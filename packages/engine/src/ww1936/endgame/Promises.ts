@@ -17,37 +17,34 @@ import {
   WW_DEAL_AI_TO_HUMAN_DAYS,
   WW_DEAL_PP,
   WW_PROMISE_AI_DAYS,
-  WW_PROMISE_BORDER_VP,
   WW_PROMISE_WS_PCT,
 } from "@openfront/engine-api/ww1936/DiploTypes";
 import type { WwOrderBlock } from "@openfront/engine-api/ww1936/EconomyTypes";
 import type { WwWar } from "@openfront/engine-api/ww1936/EndgameTypes";
 import {
   dealAcceptPct,
+  dealItemPoints,
   dealMargin,
+  promiseWantOf,
   WW_DEAL_VETO,
-  WW_DEAL_WANTED_REGION_X,
 } from "@openfront/engine-lib/ww1936/DiploRules";
 import { historicalAiActive } from "@openfront/engine-lib/ww1936/Pace";
 import {
   promiseGateBlock,
   promisePairBlock,
   promiseStrengthOk,
-  WW_PROMISE_ALLY_PTS,
   WW_PROMISE_JOIN_PTS,
-  WW_PROMISE_WANTED_X,
 } from "@openfront/engine-lib/ww1936/PromiseRules";
 import { congressBlock } from "../depth/Congress";
 import { declareWarBlock } from "../Diplomacy";
 import { aiStrength } from "../politics/AiPolitics";
 import { hasRule } from "../politics/Spirits";
 import { addWarGoal } from "../politics/WarGoals";
-import { regionBase } from "./Conference";
 import {
-  claimsRegion,
   dealFacts,
   dealMoodOf,
   dealNet,
+  dealValueFacts,
   offerDeal,
 } from "./Deals";
 import { diploCooldownUntil, setDiploCooldown } from "./DiploState";
@@ -99,20 +96,7 @@ export function promiseWant(
   id: number,
   regions: readonly number[],
 ): 0 | 1 | 2 {
-  if (regions.some((r) => eg.hasCore(id, r) || claimsRegion(eg, id, r))) {
-    return 2;
-  }
-  const sc = eg.ww.scenario;
-  const legal = eg.ww.politics.legalOwner;
-  let vp = 0;
-  let borders = false;
-  for (const r of regions) {
-    vp += sc.region(r)?.vp ?? 0;
-    if (!borders) {
-      borders = sc.regionNeighbours(r).some((n) => (legal[n] ?? 0) === id);
-    }
-  }
-  return borders && vp >= WW_PROMISE_BORDER_VP ? 1 : 0;
+  return promiseWantOf(dealValueFacts(eg), id, regions);
 }
 
 // ---- Items: checks ----
@@ -253,35 +237,38 @@ export function promiseItemValue(
   item: PromiseItem,
   judge: number,
 ): number {
-  if (item.kind === "promise") {
-    const regions = promisedRegions(eg, item.target, item.group);
-    let base = 0;
-    for (const r of regions) base += Math.max(1, regionBase(eg, r));
-    if (judge === taker) {
-      const want = promiseWant(eg, judge, regions);
-      return want === 2 ? base * WW_PROMISE_WANTED_X : want === 1 ? base : 0;
-    }
-    if (regions.some((r) => eg.hasCore(judge, r))) return WW_DEAL_VETO;
-    if (regions.some((r) => claimsRegion(eg, judge, r))) {
-      return -base * WW_DEAL_WANTED_REGION_X;
-    }
-    return -Math.floor(base / 2);
-  }
-  if (judge === taker) {
-    return eg.ww.land.rowsOf(giver).length > 0 ? WW_PROMISE_ALLY_PTS : 0;
-  }
-  const w = eg.war(item.war);
-  if (w === null) return WW_DEAL_VETO;
-  const si = eg.sideIndex(w, taker);
-  if (si < 0) return WW_DEAL_VETO;
-  const s = si as 0 | 1;
-  const mine = sideStrength(eg, w, s);
-  const theirs = sideStrength(eg, w, (1 - s) as 0 | 1);
-  const ws = eg.ww.politics.country(giver)?.wsBp ?? 0;
-  if (!promiseStrengthOk(mine, theirs) || ws < WW_PROMISE_WS_PCT * 100) {
+  return dealItemPoints(dealValueFacts(eg), giver, taker, item, judge);
+}
+
+/** `joiner` joining war `warId` on `side`'s side, to the joiner (DealValueFacts.joinPts). */
+export function joinWarPts(
+  eg: WwEndgame,
+  joiner: number,
+  warId: number,
+  side: number,
+): number {
+  const ws = eg.ww.politics.country(joiner)?.wsBp ?? 0;
+  if (!joinSideStrong(eg, warId, side) || ws < WW_PROMISE_WS_PCT * 100) {
     return WW_DEAL_VETO;
   }
   return -WW_PROMISE_JOIN_PTS;
+}
+
+/** `side`'s side of war `warId` is strong enough for a joiner (PromiseRules.promiseStrengthOk). */
+export function joinSideStrong(
+  eg: WwEndgame,
+  warId: number,
+  side: number,
+): boolean {
+  const w = eg.war(warId);
+  if (w === null) return false;
+  const si = eg.sideIndex(w, side);
+  if (si < 0) return false;
+  const s = si as 0 | 1;
+  return promiseStrengthOk(
+    sideStrength(eg, w, s),
+    sideStrength(eg, w, (1 - s) as 0 | 1),
+  );
 }
 
 // ---- Items: an accepted deal happens ----

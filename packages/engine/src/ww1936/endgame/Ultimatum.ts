@@ -54,6 +54,7 @@ import { addTension, scaledTension } from "../politics/Tension";
 import { addWarGoal } from "../politics/WarGoals";
 import { claimsRegion } from "./Deals";
 import {
+  cardFrontId,
   diploCooldownUntil,
   setDiploCooldown,
   type StoredUltimatum,
@@ -270,15 +271,6 @@ export function ultimatumBlock(
 const cardTicks = (eg: WwEndgame): number =>
   wwRealTicks(eg.mg.config().gameConfig(), WW_ULT_CARD_TICKS);
 
-/** The human `to`'s card in front: the lowest id among the offers waiting for it (peace, deals, ultimatums). */
-function frontId(eg: WwEndgame, to: number): number {
-  let id = Number.MAX_SAFE_INTEGER;
-  for (const o of eg.peaceOffers) if (o.to === to && o.id < id) id = o.id;
-  for (const o of eg.deals) if (o.to === to && o.id < id) id = o.id;
-  for (const o of eg.ultimatums) if (o.to === to && o.id < id) id = o.id;
-  return id;
-}
-
 /**
  * ultimatum from `from` to `target` for `regions`: checked, 50 PP, tension
  * as a justification (scaled), the pair's wait starts; the target's
@@ -315,7 +307,7 @@ export function sendUltimatum(
     // An AI answers on the next tick; a human's card waits its turn.
     deadlineTick: !human
       ? tick
-      : frontId(eg, target) > id
+      : cardFrontId(eg, target) > id
         ? tick + cardTicks(eg)
         : -1,
   });
@@ -543,7 +535,7 @@ export function stepUltimatums(eg: WwEndgame, tick: number): void {
     else if (!eg.isHumanControlled(u.to) || eg.ww.autoOn(u.to, "diplomacy")) {
       resolveUltimatum(eg, u, aiGivesIn(eg, u), tick);
     } else if (u.deadlineTick < 0) {
-      if (frontId(eg, u.to) === u.id) {
+      if (cardFrontId(eg, u.to) === u.id) {
         u.deadlineTick = tick + cardTicks(eg);
         eg.dirtyDiplo = true;
       }

@@ -232,4 +232,8 @@ export interface WwDealJudgeRow {
   licence?: number;
   /** In peacetime it would cede `from` land that is not its core (its overlord, or its faction leader at opinion ≥ WW_DEAL_CEDE_OPINION). */
   cede?: boolean;
+  /** Appended (integration): `from` joining a war on its side, to it (an army: WW_PROMISE_ALLY_PTS, else 0). */
+  join?: number;
+  /** Appended (integration): the wars of `from` it would join on `from`'s side (its join_war is not a veto there). */
+  joinWars?: number[];
 }

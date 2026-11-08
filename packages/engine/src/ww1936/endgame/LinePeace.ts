@@ -10,7 +10,6 @@
 // offers by id.
 import type { WwOrderBlock } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
-  WW_WHITE_PEACE_CARD_TICKS,
   WW_WHITE_PEACE_PP,
   WW_WHITE_PEACE_STALEMATE_DAYS,
   WwLinePeaceRow,
@@ -34,7 +33,6 @@ import {
   NegPeaceJudge,
   negPeaceMissing,
 } from "@openfront/engine-lib/ww1936/NegPeaceRules";
-import { wwRealTicks } from "@openfront/engine-lib/ww1936/Pace";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { targetLeaves } from "@openfront/engine-lib/ww1936/SeparatePeaceRules";
 import { evictDivisions, transferRegionPeaceful } from "../land/PoliticsBridge";
@@ -53,6 +51,8 @@ import {
   heldPm,
   muchStronger,
   pairsOf,
+  peaceDeadline,
+  peaceJudgeTargets,
   peaceOfferBlock,
   proposerGroup,
   proposerHoldsBeaten,
@@ -172,20 +172,20 @@ export function offerLinePeace(
   const w = eg.war(warId)!;
   const s = eg.sideIndex(w, from);
   if (s === -1) return "not_at_war";
-  const human = eg.isHumanControlled(target);
+  const whole = w.sides[s].leader === from;
+  const id = eg.nextOfferId++;
   eg.peaceOffers.push({
-    id: eg.nextOfferId++,
+    id,
     war: warId,
     from,
     to: target,
-    whole: w.sides[s].leader === from,
+    whole,
     sentTick: tick,
-    // Its real 30 s at the game's pace, as the white peace's card.
-    deadlineTick: human
-      ? tick +
-        wwRealTicks(eg.mg.config().gameConfig(), WW_WHITE_PEACE_CARD_TICKS)
-      : tick,
+    // The white peace's card, in the one card queue.
+    deadlineTick: peaceDeadline(eg, target, id, tick),
     line: true,
+    // D1: a side leader's separate peace with a member, as sent.
+    ...(targetLeaves(w, from, target, whole) ? { sep: true as const } : {}),
   });
   eg.dirtyPeace = true;
   return null;
@@ -431,29 +431,30 @@ export function linePeaceData(
   for (const w of eg.wars) {
     if (w.ended !== null || w.kind !== "normal" || day < 0) continue;
     for (const s of [0, 1] as const) {
-      const target = w.sides[s === 0 ? 1 : 0].leader;
-      if (target <= 0) continue;
       for (const m of w.sides[s].members) {
         if (!fighting(m) || !eg.isHumanControlled(m.id)) continue;
         f ??= linePeaceFacts(eg);
         const whole = w.sides[s].leader === m.id;
-        const t = lineJudgeOf(eg, w, m.id, target, whole, day, f);
-        const own = new Set(t.mine);
-        // ww106: a winning AI democracy's side says no at every roll.
-        const refused =
-          !eg.isHumanControlled(target) &&
-          lineRefused(eg, w, s === 0 ? 1 : 0, t.moves, day);
-        rows.push({
-          war: w.id,
-          from: m.id,
-          to: target,
-          ...linePeaceSplit(f, t.moves, (x) => own.has(x)),
-          chance: refused ? 0 : negPeaceChance(t.j, t.value),
-          missing: negPeaceMissing(t.j, t.value),
-          ...peaceReasonOf(eg, w, m.id, target, whole, day, t.j.pct),
-          ...(refused ? { reason: "winning" as const } : {}),
-          capPm: surrenderPm(eg, m.id),
-        });
+        // D1: a side leader's separate peace with each enemy member too.
+        for (const target of peaceJudgeTargets(eg, w, s, whole)) {
+          const t = lineJudgeOf(eg, w, m.id, target, whole, day, f);
+          const own = new Set(t.mine);
+          // ww106: a winning AI democracy's side says no at every roll.
+          const refused =
+            !eg.isHumanControlled(target) &&
+            lineRefused(eg, w, s === 0 ? 1 : 0, t.moves, day);
+          rows.push({
+            war: w.id,
+            from: m.id,
+            to: target,
+            ...linePeaceSplit(f, t.moves, (x) => own.has(x)),
+            chance: refused ? 0 : negPeaceChance(t.j, t.value),
+            missing: negPeaceMissing(t.j, t.value),
+            ...peaceReasonOf(eg, w, m.id, target, whole, day, t.j.pct),
+            ...(refused ? { reason: "winning" as const } : {}),
+            capPm: surrenderPm(eg, m.id),
+          });
+        }
       }
     }
   }

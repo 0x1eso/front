@@ -46,6 +46,7 @@ import { payPp } from "../politics/PayPp";
 import { endWarBetween } from "../politics/Territory";
 import { landRegained } from "./Activate";
 import { askTermsAccepted, openTermsConference } from "./AskTerms";
+import { cardFrontId } from "./DiploState";
 import { applyLinePeace, lineAiAccepts, linePeaceOfferView } from "./LinePeace";
 import {
   aiPeaceTerms,
@@ -114,6 +115,27 @@ export const fighting = (m: Member | null): boolean =>
 export function isPuppet(eg: WwEndgame, id: number): boolean {
   const s = eg.subjectOf(id);
   return s !== null && (s.level === "integrated" || s.level === "puppet");
+}
+
+/**
+ * Whom a human on side `s` of `w` may be judged offering peace (the screens'
+ * chance rows): the other side's leader, and — from its own side's leader
+ * (`whole`), D1 — every other member still fighting that is no puppet.
+ */
+export function peaceJudgeTargets(
+  eg: WwEndgame,
+  w: WwWar,
+  s: 0 | 1,
+  whole: boolean,
+): number[] {
+  const st = s === 0 ? 1 : 0;
+  const leader = w.sides[st].leader;
+  const out = leader > 0 ? [leader] : [];
+  if (!whole) return out;
+  for (const m of w.sides[st].members) {
+    if (m.id !== leader && fighting(m) && !isPuppet(eg, m.id)) out.push(m.id);
+  }
+  return out;
 }
 
 /** `id`'s puppets fighting on its side of `w` (ascending): its separate peace covers them. */
@@ -499,25 +521,45 @@ export function offerPeace(
   const s = eg.sideIndex(w, from);
   if (s === -1) return "not_at_war";
   const whole = w.sides[s].leader === from;
-  const human = eg.isHumanControlled(target);
+  const id = eg.nextOfferId++;
   eg.peaceOffers.push({
-    id: eg.nextOfferId++,
+    id,
     war: warId,
     from,
     to: target,
     whole,
     sentTick: tick,
-    // Its real 30 s at the game's pace (Pace: fewer, longer ticks unlimited).
-    deadlineTick: human
-      ? tick +
-        wwRealTicks(eg.mg.config().gameConfig(), WW_WHITE_PEACE_CARD_TICKS)
-      : tick,
+    deadlineTick: peaceDeadline(eg, target, id, tick),
     ...(stored === undefined ? {} : { terms: stored }),
     // D1: "come home as my subject" (SeparatePeace.offerHome checked it).
     ...(home === true ? { home: true as const } : {}),
+    // D1: a side leader's separate peace with a member, as sent (a change
+    // of the target side's leader lapses it rather than turning it).
+    ...(home !== true && targetLeaves(w, from, target, whole)
+      ? { sep: true as const }
+      : {}),
   });
   eg.dirtyPeace = true;
   return null;
+}
+
+/** A human target's card: its real 30 s at the game's pace (Pace: fewer, longer ticks unlimited). */
+export const peaceCardTicks = (eg: WwEndgame): number =>
+  wwRealTicks(eg.mg.config().gameConfig(), WW_WHITE_PEACE_CARD_TICKS);
+
+/**
+ * A new peace offer's deadline (call before pushing it): an AI target
+ * answers on the next tick; a human's card runs now when nothing waits for
+ * it, else −1 until it is in front (the one card, DiploState.cardFrontId).
+ */
+export function peaceDeadline(
+  eg: WwEndgame,
+  to: number,
+  id: number,
+  tick: number,
+): number {
+  if (!eg.isHumanControlled(to)) return tick;
+  return cardFrontId(eg, to) > id ? tick + peaceCardTicks(eg) : -1;
 }
 
 /** peace_reply: `smallID` answers an offer made to it (now). */
@@ -546,6 +588,16 @@ export function stepPeaceOffers(eg: WwEndgame, tick: number): void {
     if (!offerStands(eg, o)) resolveOffer(eg, o, false, tick);
     else if (aiAnswers(eg, o.to)) {
       resolveOffer(eg, o, aiAccepts(eg, o, eg.ww.day(tick)), tick);
+    } else if (cardFrontId(eg, o.to) !== o.id) {
+      // Behind another card (a peace offer, deal or ultimatum): it waits
+      // with its clock stopped and gets its full window in front.
+      if (o.deadlineTick !== -1) {
+        o.deadlineTick = -1;
+        eg.dirtyPeace = true;
+      }
+    } else if (o.deadlineTick < 0) {
+      o.deadlineTick = tick + peaceCardTicks(eg);
+      eg.dirtyPeace = true;
     } else if (tick >= o.deadlineTick) resolveOffer(eg, o, false, tick);
   }
 }
@@ -575,15 +627,14 @@ function offerStands(eg: WwEndgame, o: PeaceOffer): boolean {
   if (o.home === true) {
     return homeTargetBlock(w, o.from, o.to, (x) => isPuppet(eg, x)) === null;
   }
-  // D1: a side leader's separate peace with a member that is no puppet;
-  // otherwise (and always for terms asked for) the target must still lead
-  // its side. Whether the target led its side when the offer went is not
-  // kept: a whole-war offer to a leader that has since passed the lead on
-  // now takes it alone out, and the other way round.
-  if (w.sides[st].leader !== o.to) {
-    return o.whole && o.ask !== true && !isPuppet(eg, o.to);
-  }
-  return true;
+  // D1: a side leader's separate peace (recorded when sent) stays one with
+  // a member that is no puppet; any other offer (and always terms asked
+  // for) needs the target to still lead its side. When the target side's
+  // leader changed so the offer would mean the other kind, it lapses.
+  const sep = o.sep === true;
+  if (sep !== targetLeaves(w, o.from, o.to, o.whole)) return false;
+  if (sep) return o.ask !== true && !isPuppet(eg, o.to);
+  return w.sides[st].leader === o.to;
 }
 
 function resolveOffer(
@@ -594,16 +645,9 @@ function resolveOffer(
 ): void {
   eg.peaceOffers = eg.peaceOffers.filter((x) => x !== o);
   eg.dirtyPeace = true;
-  // w86: the card shows one offer at a time; the next one gets its full
-  // window once it is in front (it ran out unseen before).
-  const next = eg.peaceOffers.find((x) => x.to === o.to);
-  if (next !== undefined && eg.isHumanControlled(o.to)) {
-    next.deadlineTick = Math.max(
-      next.deadlineTick,
-      tick +
-        wwRealTicks(eg.mg.config().gameConfig(), WW_WHITE_PEACE_CARD_TICKS),
-    );
-  }
+  // w86: the card shows one offer at a time; the next one (waiting with
+  // deadlineTick −1) gets its full window once it is in front, on the next
+  // step (stepPeaceOffers, the one card across peace, deals, ultimatums).
   const day = eg.ww.day(tick);
   const names = countryParams(eg, { target: o.to });
   // Negotiated peace: terms that no longer hold (a region changed its

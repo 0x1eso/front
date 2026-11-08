@@ -185,7 +185,7 @@ export function linePeacePreview(
   const ui = linePeaceUiOf(game);
   if (ui.war !== w.id || me <= 0) return null;
   const target = ui.target;
-  const row = game.wwEndgame?.()?.lineFor(me, w.id) ?? null;
+  const row = game.wwEndgame?.()?.lineFor(me, w.id, target) ?? null;
   const ready = row !== null && row.to === target;
   const split: WwLinePeaceSplit = ready
     ? row
@@ -250,7 +250,7 @@ function mapLine(
     if (o === null || o.line === undefined) return null;
     return { split: flipSplit(o.line), me: o.to, them: o.from };
   }
-  const row = eg.lineFor(me, ui.war);
+  const row = eg.lineFor(me, ui.war, ui.target);
   if (row === null || row.to !== ui.target) return null;
   return { split: row, me, them: ui.target };
 }

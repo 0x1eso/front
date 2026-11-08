@@ -6,13 +6,17 @@
 // One currency, "value points": a region is worth the conference's base
 // value, equipment its production cost (WW_DEAL_IC_PER_POINT industry a
 // point). Integers only; regions by id, countries by smallID.
-import type { DealItem } from "@openfront/engine-api/ww1936/DiploTypes";
+import {
+  type DealItem,
+  WW_PROMISE_BORDER_VP,
+} from "@openfront/engine-api/ww1936/DiploTypes";
 import {
   EQUIP_KEYS,
   type WwOrderBlock,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { NON_TRANSFERABLE } from "./DepthRules";
 import { unitCostMilli } from "./Equipment";
+import { WW_PROMISE_ALLY_PTS, WW_PROMISE_WANTED_X } from "./PromiseRules";
 
 // ---- Value points (named; L7 tunes them) ----
 
@@ -179,6 +183,194 @@ export function guaranteePoints(
   return -(sameIdeology
     ? WW_DEAL_GUARANTEE_GIVE_SAME_PTS
     : WW_DEAL_GUARANTEE_GIVE_PTS);
+}
+
+// ---- One item's value (the engine's judge and the composer's bar) ----
+
+/**
+ * What an item's value reads. The engine answers from its state; the
+ * client from its views and the dealJudge row (DiploTypes.WwDealJudgeRow),
+ * which carries the parts only the engine can price (the `*Pts` ones and
+ * joinPts/hasArmy). Countries by smallID.
+ */
+export interface DealValueFacts {
+  legalOwner(region: number): number;
+  /** The conference's base value of a region (EndgameRules.regionBaseValue). */
+  regionBase(region: number): number;
+  vp(region: number): number;
+  neighbours(region: number): readonly number[];
+  /** The regions of content group `group`. */
+  groupRegions(group: string): readonly number[];
+  hasCore(id: number, region: number): boolean;
+  /** `region` lies in one of `id`'s claim groups. */
+  claims(id: number, region: number): boolean;
+  /** A region between these two moves as a wartime deal (wartimeDeal). */
+  wartime(giver: number, taker: number): boolean;
+  /** In peacetime `judge` cedes non-core land to `taker` at all. */
+  cedesTo(judge: number, taker: number): boolean;
+  /** Access through `giver`, to `judge` that gets it. */
+  accessGetPts(judge: number, giver: number): number;
+  /** `judge` opening its land to `taker`. */
+  accessGivePts(judge: number, taker: number): number;
+  /** A pact with `other`, to `judge`. */
+  napPts(judge: number, other: number): number;
+  /** A guarantee between `judge` and `other` (`gets`: `other` guarantees `judge`). */
+  guaranteePts(judge: number, other: number, gets: boolean): number;
+  /** A licence of `item` from `giver` to `taker`, to `judge` (one of the two). */
+  licencePts(
+    giver: number,
+    taker: number,
+    item: Extract<DealItem, { kind: "licence" }>,
+    judge: number,
+  ): number;
+  /** `id` has an army (an ally worth having). */
+  hasArmy(id: number): boolean;
+  /** `joiner` joining war `war` on `side`'s side, to the joiner: −WW_PROMISE_JOIN_PTS or WW_DEAL_VETO. */
+  joinPts(joiner: number, war: number, side: number): number;
+}
+
+/** The regions of `group` that are `target`'s by law now, ascending. */
+export function promisedRegionsOf(
+  v: Pick<DealValueFacts, "groupRegions" | "legalOwner">,
+  target: number,
+  group: string,
+): number[] {
+  return v
+    .groupRegions(group)
+    .filter((r) => v.legalOwner(r) === target)
+    .sort((a, b) => a - b);
+}
+
+/**
+ * How much `id` wants `regions` (a promised group): 2 when one is its core
+ * or claim, 1 when the group borders its land and holds
+ * WW_PROMISE_BORDER_VP victory points or more, else 0.
+ */
+export function promiseWantOf(
+  v: Pick<
+    DealValueFacts,
+    "hasCore" | "claims" | "vp" | "neighbours" | "legalOwner"
+  >,
+  id: number,
+  regions: readonly number[],
+): 0 | 1 | 2 {
+  if (regions.some((r) => v.hasCore(id, r) || v.claims(id, r))) return 2;
+  let vp = 0;
+  let borders = false;
+  for (const r of regions) {
+    vp += v.vp(r);
+    if (!borders) borders = v.neighbours(r).some((n) => v.legalOwner(n) === id);
+  }
+  return borders && vp >= WW_PROMISE_BORDER_VP ? 1 : 0;
+}
+
+/**
+ * `item`'s value points to `judge` (its giver or its taker): positive is
+ * good for it, WW_DEAL_VETO an item it never gives.
+ *
+ * A region, to its taker: its base, × WW_DEAL_WANTED_REGION_X when its core
+ * or claim. To its giver: in peacetime never, unless it cedes to the taker
+ * and it is no core; land it only holds costs its base (half when owed to
+ * the taker); its own land × WW_DEAL_OWN_REGION_X, a core ×
+ * WW_DEAL_CORE_REGION_X. Equipment and lend-lease cost what they cost.
+ * A promise, to its receiver: the group's base × WW_PROMISE_WANTED_X when
+ * its core or claim, × 1 when it only borders it, else nothing; to the
+ * promiser never its core, its claim at twice the base, else half. Joining a
+ * war: to the side joined WW_PROMISE_ALLY_PTS when the joiner has an army;
+ * to the joiner, joinPts.
+ */
+export function dealItemPoints(
+  v: DealValueFacts,
+  giver: number,
+  taker: number,
+  item: DealItem,
+  judge: number,
+): number {
+  const gets = judge === taker;
+  const other = gets ? giver : taker;
+  switch (item.kind) {
+    case "region": {
+      const r = item.region;
+      const base = Math.max(1, v.regionBase(r));
+      const wanted = (id: number) => v.hasCore(id, r) || v.claims(id, r);
+      if (gets) return wanted(judge) ? base * WW_DEAL_WANTED_REGION_X : base;
+      if (
+        !v.wartime(giver, taker) &&
+        (v.hasCore(judge, r) || !v.cedesTo(judge, taker))
+      ) {
+        return WW_DEAL_VETO;
+      }
+      const legal = v.legalOwner(r);
+      if (legal !== judge) {
+        return -(wanted(taker) || legal === taker
+          ? Math.floor(base / 2)
+          : base);
+      }
+      return -(v.hasCore(judge, r)
+        ? base * WW_DEAL_CORE_REGION_X
+        : base * WW_DEAL_OWN_REGION_X);
+    }
+    case "equipment": {
+      const p = dealCostPoints(equipKeyCostMilli(item.key), item.count);
+      return gets ? p : -p;
+    }
+    case "lend_lease": {
+      const p = dealCostPoints(
+        lendLeaseCostMilli(item.item, item.gen),
+        item.perMonth * item.months,
+      );
+      return gets ? p : -p;
+    }
+    case "licence":
+      return v.licencePts(giver, taker, item, judge);
+    case "access":
+      return gets
+        ? v.accessGetPts(judge, giver)
+        : v.accessGivePts(judge, taker);
+    case "nap":
+      return v.napPts(judge, other);
+    case "guarantee":
+      return v.guaranteePts(judge, other, gets);
+    case "promise": {
+      const regions = promisedRegionsOf(v, item.target, item.group);
+      let base = 0;
+      for (const r of regions) base += Math.max(1, v.regionBase(r));
+      if (gets) {
+        const want = promiseWantOf(v, judge, regions);
+        return want === 2 ? base * WW_PROMISE_WANTED_X : want === 1 ? base : 0;
+      }
+      if (regions.some((r) => v.hasCore(judge, r))) return WW_DEAL_VETO;
+      if (regions.some((r) => v.claims(judge, r))) {
+        return -base * WW_DEAL_WANTED_REGION_X;
+      }
+      return -Math.floor(base / 2);
+    }
+    case "join_war":
+      if (gets) return v.hasArmy(giver) ? WW_PROMISE_ALLY_PTS : 0;
+      return v.joinPts(giver, item.war, taker);
+  }
+}
+
+/** The deal's value points to its target `to`: what it gets less what it gives (a veto sinks it). */
+export function dealNetPoints(
+  v: DealValueFacts,
+  from: number,
+  to: number,
+  give: readonly DealItem[],
+  take: readonly DealItem[],
+): number {
+  let net = 0;
+  for (const [g, t, list] of [
+    [from, to, give],
+    [to, from, take],
+  ] as const) {
+    for (const i of list) {
+      const p = dealItemPoints(v, g, t, i, to);
+      if (p <= WW_DEAL_VETO) return WW_DEAL_VETO;
+      net += p;
+    }
+  }
+  return Math.max(WW_DEAL_VETO, net);
 }
 
 // ---- Facts and checks ----

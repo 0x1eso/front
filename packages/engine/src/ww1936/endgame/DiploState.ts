@@ -116,6 +116,22 @@ export function expireDiploTimers(eg: WwEndgame, day: number): void {
   }
 }
 
+// ---- The one card ----
+
+/**
+ * The human `to`'s card in front: the lowest id among the offers waiting
+ * for it (peace offers, deals and ultimatums share one id counter). An
+ * offer behind it keeps deadlineTick −1 and gets its full window once it
+ * is in front (MAX_SAFE_INTEGER: none waits).
+ */
+export function cardFrontId(eg: WwEndgame, to: number): number {
+  let id = Number.MAX_SAFE_INTEGER;
+  for (const o of eg.peaceOffers) if (o.to === to && o.id < id) id = o.id;
+  for (const o of eg.deals) if (o.to === to && o.id < id) id = o.id;
+  for (const o of eg.ultimatums) if (o.to === to && o.id < id) id = o.id;
+  return id;
+}
+
 // ---- Screens ----
 
 /** The diplomacy part of takeData: everything, when first or changed; else null. */

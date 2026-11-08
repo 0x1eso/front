@@ -7,9 +7,9 @@
 // everything again and its block reason wins.
 //
 // The client's checks mirror the design's rules where the views carry the
-// facts. The deal valuation below is a stand-in until engine-lib's
-// DiploRules lands (lane L2): `dealItemPoints` and `dealChance` are the only
-// places that would change.
+// facts. The deal's chance bar values items with engine-lib DiploRules,
+// the engine's own function, fed by the views and the engine's dealJudge
+// row; the promise checks are PromiseRules'.
 import type { WwOrder } from "@openfront/engine-api/Schemas";
 import {
   type DealItem,
@@ -43,8 +43,29 @@ import {
   IDEO_DEM,
   IDEOLOGIES,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
+import {
+  type CollabRegionFacts,
+  collabRegionOk,
+} from "@openfront/engine-lib/ww1936/CollabRules";
 import { CONTENT } from "@openfront/engine-lib/ww1936/content/registry";
-import { unitCostMilli } from "@openfront/engine-lib/ww1936/Equipment";
+import {
+  accessGivePoints,
+  dealAcceptPct,
+  dealNetPoints,
+  dealShapeBlock,
+  type DealValueFacts,
+  guaranteePoints,
+  isGift,
+  licencePoints,
+  WW_DEAL_LICENCE_GIVE_PTS,
+  WW_DEAL_SCORE_ZERO,
+  WW_DEAL_VETO,
+} from "@openfront/engine-lib/ww1936/DiploRules";
+import {
+  promiseGateBlock,
+  promisePairBlock,
+  WW_PROMISE_JOIN_PTS,
+} from "@openfront/engine-lib/ww1936/PromiseRules";
 import { translateText } from "../../Utils";
 import {
   type DealForm,
@@ -104,8 +125,12 @@ function guaranteesOf(game: DiploGame, by: number, to: number): boolean {
   );
 }
 
+function wtBp(game: DiploGame): number {
+  return game.wwPolitics?.()?.global?.wtBp ?? 0;
+}
+
 function wtPct(game: DiploGame): number {
-  return Math.floor((game.wwPolitics?.()?.global?.wtBp ?? 0) / 100);
+  return Math.floor(wtBp(game) / 100);
 }
 
 /** My ongoing wars, oldest first. */
@@ -189,48 +214,86 @@ export function dealItemText(game: DiploGame, item: DealItem): string {
   }
 }
 
-// ---- The stand-in valuation (until engine-lib DiploRules, lane L2) ----
+// ---- The valuation (engine-lib DiploRules, the engine's own) ----
 
-/** An item's value points as its receiver sees them (the design's currencies, roughly). */
-export function dealItemPoints(game: DiploGame, item: DealItem): number {
+/** `a` and `b` fight on one side of an ongoing war. */
+function sameSideWith(game: DiploGame, a: number, b: number): boolean {
+  return myWars(game, a).some((w) => {
+    const sa = sideIndex(w, a);
+    return sa >= 0 && sa === sideIndex(w, b);
+  });
+}
+
+/** The facts PromiseRules' pair check reads, from the views. */
+function warFacts(game: DiploGame) {
+  return {
+    atWar: (a: number, b: number) => atWarWith(game, a, b),
+    sameSide: (a: number, b: number) => sameSideWith(game, a, b),
+  };
+}
+
+/**
+ * DiploRules' value facts for `judge`'s view of an offer from `me`: the
+ * map, cores and claims from the views, and the parts only the engine can
+ * price from its dealJudge row for (me, judge). Before a row came: the
+ * neutral defaults.
+ */
+export function dealValueFactsOf(
+  game: DiploGame,
+  me: number,
+  judge: number,
+): DealValueFacts | null {
   const f = negPeaceFactsOf(game);
-  switch (item.kind) {
-    case "region":
-      return f?.base(item.region) ?? 0;
-    case "equipment": {
-      const k = EQUIP_KEYS[item.key];
-      if (k === undefined) return 0;
-      return Math.floor((unitCostMilli(k[0], k[1]) * item.count) / 100_000);
+  const sc = game.worldWarScenario();
+  if (f === null || sc === null) return null;
+  const row = game.wwEndgame?.()?.dealJudgeFor(me, judge) ?? null;
+  const claimed = new Map<number, Set<number>>();
+  const claims = (id: number, r: number) => {
+    let set = claimed.get(id);
+    if (set === undefined) {
+      set = new Set(claimGroups(game, id).flatMap((g) => groupRegions(g)));
+      claimed.set(id, set);
     }
-    case "lend_lease": {
-      const cost =
-        item.item === "fuel" ? 100 : unitCostMilli(item.item, item.gen);
-      return Math.floor((cost * item.perMonth * item.months) / 100_000);
-    }
-    case "licence":
-      return 10;
-    case "access":
-      return 3;
-    case "nap":
-      return 8;
-    case "guarantee":
-      return 12;
-    case "promise": {
-      let v = 0;
-      for (const r of groupRegions(item.group)) v += f?.base(r) ?? 0;
-      return v;
-    }
-    case "join_war":
-      return 60;
-  }
+    return set.has(r);
+  };
+  const hasWar = (id: number) => myWars(game, id).length > 0;
+  return {
+    legalOwner: f.legalOwner,
+    regionBase: f.base,
+    vp: f.vp,
+    neighbours: (r) => sc.regionNeighbours(r),
+    groupRegions,
+    hasCore: (id, r) => coreHoldersNow(game, r).includes(id),
+    claims,
+    wartime: (g, t) => sameSideWith(game, g, t) || hasWar(g) || hasWar(t),
+    cedesTo: (j, t) => j === judge && t === me && row?.cede === true,
+    accessGetPts: () => row?.access ?? 0,
+    accessGivePts: () =>
+      row?.accessGive ?? accessGivePoints(WW_DEAL_SCORE_ZERO),
+    napPts: () => row?.nap ?? 0,
+    guaranteePts: (_j, _o, gets) =>
+      (gets ? row?.guarantee : row?.guaranteeGive) ??
+      guaranteePoints(gets, false, true),
+    // A licence the judge gets: the tech gap is the engine's (0 here).
+    licencePts: (_g, taker, _i, j) =>
+      j === taker
+        ? licencePoints(0)
+        : (row?.licence ?? -WW_DEAL_LICENCE_GIVE_PTS),
+    hasArmy: () => (row?.join ?? 0) > 0,
+    joinPts: (_joiner, war) =>
+      row === null || (row.joinWars ?? []).includes(war)
+        ? -WW_PROMISE_JOIN_PTS
+        : WW_DEAL_VETO,
+  };
 }
 
 export type DealChanceLevel = "none" | "low" | "medium" | "high";
 
 /**
- * The bar under the composer: what the target gets minus what it gives,
- * less the margin its AI wants (the engine's dealJudge row; 0 before one
- * came). Percent 0–100 and the level in words.
+ * The bar under the composer: the target's value of the deal (what it gets
+ * less what it gives, DiploRules as the engine values it) against the
+ * margin its AI wants (the dealJudge row; 0 before one came), as the
+ * engine's accept chance. Percent 0–100 and the level in words.
  */
 export function dealChance(
   game: DiploGame,
@@ -239,11 +302,10 @@ export function dealChance(
   give: readonly DealItem[],
   take: readonly DealItem[],
 ): { pct: number; level: DealChanceLevel } {
-  let net = 0;
-  for (const x of give) net += dealItemPoints(game, x);
-  for (const x of take) net -= dealItemPoints(game, x);
-  net -= game.wwEndgame?.()?.dealJudgeFor(me, to)?.margin ?? 0;
-  const pct = Math.max(0, Math.min(100, 50 + net * 4));
+  const v = dealValueFactsOf(game, me, to);
+  const net = v === null ? 0 : dealNetPoints(v, me, to, give, take);
+  const margin = game.wwEndgame?.()?.dealJudgeFor(me, to)?.margin ?? 0;
+  const pct = dealAcceptPct(net, margin, isGift(give, take));
   const level: DealChanceLevel =
     pct >= 75 ? "high" : pct >= 50 ? "medium" : pct > 0 ? "low" : "none";
   return { pct, level };
@@ -306,6 +368,9 @@ export function ultimatumGate(
   me: number,
   other: number,
 ): WwOrderBlock | null {
+  const eg = game.wwEndgame?.() ?? null;
+  if (eg?.isExile(me) === true) return "dead";
+  if (eg?.isExile(other) === true) return "bad_target";
   const ruling = rulingOf(game, me);
   if (ruling === IDEO_DEM) return "ultimatum_gov";
   if (
@@ -319,7 +384,9 @@ export function ultimatumGate(
     atWarWith(game, me, other) ||
     (fi >= 0 && fi === factionIdx(game, other)) ||
     napBetween(game, me, other) ||
-    guaranteesOf(game, me, other)
+    guaranteesOf(game, me, other) ||
+    eg?.subjectOf(other)?.overlord === me ||
+    eg?.subjectOf(me)?.overlord === other
   ) {
     return "ultimatum_relation";
   }
@@ -349,6 +416,7 @@ export function ultimatumCandidates(
   const out: number[] = [];
   for (const r of sc.landRegions) {
     if (f.legalOwner(r.id) !== target || r.id === capital) continue;
+    if (f.isZone(r.id)) continue;
     const mine =
       claimed.has(r.id) ||
       coreHoldersNow(game, r.id).includes(me) ||
@@ -391,7 +459,11 @@ export function ultimatumPrepick(
   return out;
 }
 
-/** The regions of a capitulated country a collaboration government may take: its legal land I control, not my cores or claims. */
+/**
+ * The regions of a capitulated country a collaboration government may take
+ * (CollabRules, the engine's rule): its legal land I control, not my cores
+ * or claims, not at stake in the conference still to settle.
+ */
 export function collabCandidates(
   game: DiploGame,
   me: number,
@@ -404,13 +476,22 @@ export function collabCandidates(
   for (const g of claimGroups(game, me)) {
     for (const r of groupRegions(g)) claimed.add(r);
   }
-  const out: number[] = [];
-  for (const r of sc.landRegions) {
-    if (f.legalOwner(r.id) !== target || f.controller(r.id) !== me) continue;
-    if (claimed.has(r.id) || coreHoldersNow(game, r.id).includes(me)) continue;
-    out.push(r.id);
-  }
-  return out;
+  const conf = game.wwEndgame?.()?.conference() ?? null;
+  const stake = new Set(
+    conf === null || conf.status === "done"
+      ? []
+      : conf.stake.map((s) => s.region),
+  );
+  const facts: CollabRegionFacts = {
+    legalOwner: f.legalOwner,
+    controller: f.controller,
+    hasCore: (id, r) => coreHoldersNow(game, r).includes(id),
+    claims: (_id, r) => claimed.has(r),
+    inOpenStake: (r) => stake.has(r),
+  };
+  return sc.landRegions
+    .map((r) => r.id)
+    .filter((r) => collabRegionOk(facts, me, target, r));
 }
 
 /** Capitulated (gone) or in exile: a country a collaboration government may stand for. */
@@ -613,15 +694,18 @@ export function diploRows(
       (enemyFaction >= 0 && factionIdx(game, other) === enemyFaction) ||
       napBetween(game, other, promise.target) ||
       atWarWith(game, other, promise.target);
+    const gate = promiseGateBlock(rulingOf(game, other), wtBp(game));
     rows.push({
       id: "promise",
       label: translateText(DEAL_UI_KEYS.rowPromise),
       cost: ppText(WW_DEAL_PP),
       block: bad
         ? blockText("promise_bad_target")
-        : pair !== null
-          ? blockText(pair)
-          : ppBlock(game, me, WW_DEAL_PP),
+        : gate !== null
+          ? blockText(gate)
+          : pair !== null
+            ? blockText(pair)
+            : ppBlock(game, me, WW_DEAL_PP),
       act: {
         kind: "compose",
         mode: "deal",
@@ -807,10 +891,13 @@ function kindBlock(
       return myWars(game, giver).length === 0
         ? blockText("promise_bad_target")
         : null;
-    case "join_war":
-      return joinWarChoices(game, giver, taker).length === 0
-        ? blockText("promise_bad_target")
-        : null;
+    case "join_war": {
+      if (joinWarChoices(game, giver, taker).length === 0) {
+        return blockText("promise_bad_target");
+      }
+      const gate = promiseGateBlock(rulingOf(game, giver), wtBp(game));
+      return gate === null ? null : blockText(gate);
+    }
     default:
       return null;
   }
@@ -1036,11 +1123,13 @@ export function dealComposer(game: DiploGame): DealComposerView | null {
           }));
     const empty = ui.give.length === 0 && ui.take.length === 0;
     const pair = dealPairBlock(game, me, to);
-    const block = empty
-      ? blockText("deal_empty")
-      : pair !== null
-        ? blockText(pair)
-        : ppBlock(game, me, WW_DEAL_PP);
+    const rule = empty
+      ? "deal_empty"
+      : (pair ??
+        dealShapeBlock(ui.give, ui.take) ??
+        promisePairBlock(warFacts(game), me, to, ui.give, ui.take));
+    const block =
+      rule !== null ? blockText(rule) : ppBlock(game, me, WW_DEAL_PP);
     const human = isHumanCountry(game, to);
     const c = human ? null : dealChance(game, me, to, ui.give, ui.take);
     return {

@@ -26,11 +26,13 @@ import type {
 } from "@openfront/engine-api/ww1936/EndgameTypes";
 import { dealMapTap, dealUiOf } from "../../../src/client/hud/ww1936/DealUi";
 import {
+  dealChance,
   dealComposer,
   diploCardModel,
   diploRows,
   openDiploAct,
   separatePeaceButtons,
+  ultimatumGate,
   ultimatumPrepick,
   type DiploGame,
 } from "../../../src/client/hud/ww1936/DiploModel";
@@ -436,5 +438,89 @@ describe("the one answer card", () => {
     expect(ui.give).toEqual([{ kind: "region", region: KRAKOW }]);
     expect(ui.take).toEqual([{ kind: "nap" }]);
     ui.close();
+  });
+});
+
+describe("the integration seams: one valuation, the engine's gates", () => {
+  it("the chance bar values the deal with DiploRules and the engine's row", () => {
+    const eg = new WwEndgameView();
+    const g = game("POL", eg);
+    const nap = { kind: "nap" as const };
+    // A gift (nothing asked back, no pact): certain; a pact binds both, so
+    // it is weighed against the margin.
+    expect(
+      dealChance(g, ID("POL"), ID("DEU"), [{ kind: "access" }], []).pct,
+    ).toBe(100);
+    expect(dealChance(g, ID("POL"), ID("DEU"), [nap], []).pct).toBe(50);
+    // The row prices the pact: liked, the margin cleared; disliked, never.
+    eg.apply({
+      news: [],
+      dealJudge: [{ from: ID("POL"), to: ID("DEU"), margin: 5, nap: 20 }],
+    });
+    expect(
+      dealChance(g, ID("POL"), ID("DEU"), [nap], [{ kind: "access" }]).pct,
+    ).toBe(100);
+    eg.apply({
+      news: [],
+      dealJudge: [{ from: ID("POL"), to: ID("DEU"), margin: 5, nap: -20 }],
+    });
+    expect(
+      dealChance(g, ID("POL"), ID("DEU"), [nap], [{ kind: "access" }]).pct,
+    ).toBe(0);
+    // Joining my war: a veto unless the row names the war.
+    const join = { kind: "join_war" as const, war: 4, target: ID("ITA") };
+    eg.apply({
+      news: [],
+      dealJudge: [
+        { from: ID("POL"), to: ID("DEU"), margin: 0, nap: 20, joinWars: [] },
+      ],
+    });
+    expect(dealChance(g, ID("POL"), ID("DEU"), [nap], [join]).pct).toBe(0);
+    eg.apply({
+      news: [],
+      dealJudge: [
+        { from: ID("POL"), to: ID("DEU"), margin: 0, nap: 20, joinWars: [4] },
+      ],
+    });
+    expect(dealChance(g, ID("POL"), ID("DEU"), [nap], [join]).pct).toBe(100);
+  });
+
+  it("the ultimatum row: not to my overlord or subject, not to or from an exile", () => {
+    const eg = new WwEndgameView();
+    const g = game("DEU", eg, { ruling: FASCIST });
+    const ult = () =>
+      diploRows(g, ID("DEU"), ID("POL")).find((r) => r.id === "ultimatum")
+        ?.block;
+    expect(ult()).toBeNull();
+    eg.apply({
+      news: [],
+      subjects: [
+        { subject: ID("POL"), overlord: ID("DEU"), level: "puppet" } as never,
+      ],
+    });
+    expect(ult()).toBe("[ww1936.econ.block.ultimatum_relation]");
+    eg.apply({
+      news: [],
+      subjects: [],
+      exiles: [{ smallID: ID("POL"), host: ID("FRA") } as never],
+    });
+    expect(ultimatumGate(g, ID("DEU"), ID("POL"))).toBe("bad_target");
+    eg.apply({
+      news: [],
+      exiles: [{ smallID: ID("DEU"), host: ID("ITA") } as never],
+    });
+    expect(ultimatumGate(g, ID("DEU"), ID("POL"))).toBe("dead");
+  });
+
+  it("a join-war item in the + list is greyed by the government's tension gate (PromiseRules)", () => {
+    const eg = new WwEndgameView();
+    eg.apply({ news: [], wars: [war()] });
+    const g = game("POL", eg);
+    openDiploAct(g, { kind: "compose", mode: "deal", to: ID("SUN") });
+    dealUiOf(g).toggleAdding("take");
+    // SUN's government in the fixture is not fascist or communist and world tension is low.
+    const k = dealComposer(g)!.kinds.find((x) => x.kind === "join_war")!;
+    expect(k.block).toBe("[ww1936.econ.block.tension_gate]");
+    dealUiOf(g).close();
   });
 });

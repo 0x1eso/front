@@ -24,6 +24,7 @@ import {
   WW_DEAL_CEDE_OPINION,
   WW_DEAL_PP,
   WW_DEAL_REFUSAL_DAYS,
+  WW_PROMISE_WS_PCT,
   type WwDealJudgeRow,
 } from "@openfront/engine-api/ww1936/DiploTypes";
 import {
@@ -38,30 +39,27 @@ import {
 import {
   accessGivePoints,
   dealAccepts,
-  dealCostPoints,
   dealEquipBlock,
   type DealFacts,
+  dealItemPoints,
   dealMargin,
   type DealMood,
+  dealNetPoints,
   dealRegionBlock,
   dealShapeBlock,
   dealTreatyBlock,
+  type DealValueFacts,
   equipKeyCostMilli,
   guaranteePoints,
   isGift,
-  lendLeaseCostMilli,
   licencePoints,
   napPoints,
   wartimeDeal,
   WW_DEAL_ACCESS_NEED_PTS,
-  WW_DEAL_CORE_REGION_X,
   WW_DEAL_IC_PER_POINT,
   WW_DEAL_LICENCE_GIVE_PTS,
   WW_DEAL_LICENCE_REFUSE_PTS,
-  WW_DEAL_OWN_REGION_X,
   WW_DEAL_ROLL_BAND,
-  WW_DEAL_VETO,
-  WW_DEAL_WANTED_REGION_X,
 } from "@openfront/engine-lib/ww1936/DiploRules";
 import {
   lendLeaseSeaDays,
@@ -70,6 +68,7 @@ import {
 import { unitCostMilli } from "@openfront/engine-lib/ww1936/Equipment";
 import { wwRealTicks } from "@openfront/engine-lib/ww1936/Pace";
 import { guaranteeGate } from "@openfront/engine-lib/ww1936/PoliticsRules";
+import { WW_PROMISE_ALLY_PTS } from "@openfront/engine-lib/ww1936/PromiseRules";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import {
   aiAcceptsLicence,
@@ -94,6 +93,7 @@ import {
 import { landRegained } from "./Activate";
 import { regionBase } from "./Conference";
 import {
+  cardFrontId,
   diploCooldownUntil,
   setDiploCooldown,
   type StoredDeal,
@@ -112,9 +112,10 @@ import {
 } from "./LendLease";
 import {
   applyPromiseItem,
+  joinSideStrong,
+  joinWarPts,
   promiseDealBlock,
   promiseItemBlock,
-  promiseItemValue,
 } from "./Promises";
 import { countryParams } from "./Wars";
 import type { WwEndgame } from "./WwEndgame";
@@ -182,9 +183,6 @@ export function claimsRegion(
   }
   return false;
 }
-
-const wanted = (eg: WwEndgame, id: number, r: number): boolean =>
-  eg.hasCore(id, r) || claimsRegion(eg, id, r);
 
 /** `id`'s faction leader (0: none, or itself). */
 function factionLeaderOf(eg: WwEndgame, id: number): number {
@@ -389,58 +387,35 @@ function regionBaseOf(eg: WwEndgame, r: number): number {
   return v;
 }
 
-/**
- * `item`'s value points to `judge` (the giver or the taker): positive is
- * good for it, WW_DEAL_VETO an item it never gives.
- */
-export function dealItemValue(
-  eg: WwEndgame,
-  giver: number,
-  taker: number,
-  item: DealItem,
-  judge: number,
-): number {
-  const gets = judge === taker;
+/** The deal value facts from the engine's state (DiploRules.DealValueFacts). */
+export function dealValueFacts(eg: WwEndgame): DealValueFacts {
   const ww = eg.ww;
   const pol = ww.politics;
-  const other = gets ? giver : taker;
-  switch (item.kind) {
-    case "region": {
-      const r = item.region;
-      const base = Math.max(1, regionBaseOf(eg, r));
-      if (gets) {
-        return wanted(eg, judge, r) ? base * WW_DEAL_WANTED_REGION_X : base;
-      }
-      if (
-        !wartimeDeal(dealFacts(eg), giver, taker) &&
-        !aiCedes(eg, judge, taker, r)
-      ) {
-        return WW_DEAL_VETO;
-      }
-      const legal = pol.legalOwner[r] ?? 0;
-      if (legal !== judge) {
-        // Land it only holds: the ally it belongs to is owed it.
-        return -(wanted(eg, taker, r) || legal === taker
-          ? Math.floor(base / 2)
-          : base);
-      }
-      return -(eg.hasCore(judge, r)
-        ? base * WW_DEAL_CORE_REGION_X
-        : base * WW_DEAL_OWN_REGION_X);
-    }
-    case "equipment": {
-      const v = dealCostPoints(equipKeyCostMilli(item.key), item.count);
-      return gets ? v : -v;
-    }
-    case "lend_lease": {
-      const v = dealCostPoints(
-        lendLeaseCostMilli(item.item, item.gen),
-        item.perMonth * item.months,
-      );
-      return gets ? v : -v;
-    }
-    case "licence": {
-      if (!gets) {
+  const facts = dealFacts(eg);
+  return {
+    legalOwner: (r) => pol.legalOwner[r] ?? 0,
+    regionBase: (r) => regionBaseOf(eg, r),
+    vp: (r) => ww.scenario.region(r)?.vp ?? 0,
+    neighbours: (r) => ww.scenario.regionNeighbours(r),
+    groupRegions: (g) => pol.content.groupIdx.get(g)?.regions ?? [],
+    hasCore: (id, r) => eg.hasCore(id, r),
+    claims: (id, r) => claimsRegion(eg, id, r),
+    wartime: (g, t) => wartimeDeal(facts, g, t),
+    cedesTo: (judge, taker) => aiCedesTo(eg, judge, taker),
+    accessGetPts: (judge, giver) =>
+      accessNeeded(eg, judge, giver) ? WW_DEAL_ACCESS_NEED_PTS : 0,
+    accessGivePts: (judge, taker) =>
+      accessGivePoints(aiAcceptScore(pol, "access", taker, judge)),
+    napPts: (judge, other) =>
+      napPoints(aiAcceptScore(pol, "nap", other, judge)),
+    guaranteePts: (judge, other, gets) =>
+      guaranteePoints(
+        gets,
+        isMajor(pol, other),
+        pol.country(judge)?.ruling === pol.country(other)?.ruling,
+      ),
+    licencePts: (giver, taker, item, judge) => {
+      if (judge !== taker) {
         return aiAcceptsLicence(ww.depth, judge, taker)
           ? -WW_DEAL_LICENCE_GIVE_PTS
           : -WW_DEAL_LICENCE_REFUSE_PTS;
@@ -451,24 +426,24 @@ export function dealItemValue(
           : keyYear(ww.depth, giver, item.key) -
             lineNewestYear(ww.depth, taker, item.key);
       return licencePoints(gap);
-    }
-    case "access":
-      if (gets) {
-        return accessNeeded(eg, judge, giver) ? WW_DEAL_ACCESS_NEED_PTS : 0;
-      }
-      return accessGivePoints(aiAcceptScore(pol, "access", taker, judge));
-    case "nap":
-      return napPoints(aiAcceptScore(pol, "nap", other, judge));
-    case "guarantee":
-      return guaranteePoints(
-        gets,
-        isMajor(pol, other),
-        pol.country(judge)?.ruling === pol.country(other)?.ruling,
-      );
-    case "promise":
-    case "join_war":
-      return promiseItemValue(eg, giver, taker, item, judge);
-  }
+    },
+    hasArmy: (id) => ww.land.rowsOf(id).length > 0,
+    joinPts: (joiner, war, side) => joinWarPts(eg, joiner, war, side),
+  };
+}
+
+/**
+ * `item`'s value points to `judge` (the giver or the taker): positive is
+ * good for it, WW_DEAL_VETO an item it never gives (DiploRules.dealItemPoints).
+ */
+export function dealItemValue(
+  eg: WwEndgame,
+  giver: number,
+  taker: number,
+  item: DealItem,
+  judge: number,
+): number {
+  return dealItemPoints(dealValueFacts(eg), giver, taker, item, judge);
 }
 
 /** The deal's value points to its target `to` (what it gets less what it gives; a veto sinks it). */
@@ -479,18 +454,7 @@ export function dealNet(
   give: readonly DealItem[],
   take: readonly DealItem[],
 ): number {
-  let net = 0;
-  for (const [g, t, list] of [
-    [from, to, give],
-    [to, from, take],
-  ] as const) {
-    for (const i of list) {
-      const v = dealItemValue(eg, g, t, i, to);
-      if (v <= WW_DEAL_VETO) return WW_DEAL_VETO;
-      net += v;
-    }
-  }
-  return Math.max(WW_DEAL_VETO, net);
+  return dealNetPoints(dealValueFacts(eg), from, to, give, take);
 }
 
 /** The AI `judge`'s mood toward `proposer`. */
@@ -682,15 +646,6 @@ function endDealLendLease(eg: WwEndgame, day: number): void {
 const cardTicks = (eg: WwEndgame): number =>
   wwRealTicks(eg.mg.config().gameConfig(), WW_DEAL_CARD_TICKS);
 
-/** The human `to`'s card in front: the lowest id among the offers waiting for it (peace, deals, ultimatums). */
-function frontId(eg: WwEndgame, to: number): number {
-  let id = Number.MAX_SAFE_INTEGER;
-  for (const o of eg.peaceOffers) if (o.to === to && o.id < id) id = o.id;
-  for (const o of eg.deals) if (o.to === to && o.id < id) id = o.id;
-  for (const o of eg.ultimatums) if (o.to === to && o.id < id) id = o.id;
-  return id;
-}
-
 const pendingPair = (eg: WwEndgame, a: number, b: number): boolean =>
   eg.deals.some(
     (o) => (o.from === a && o.to === b) || (o.from === b && o.to === a),
@@ -750,7 +705,7 @@ export function offerDeal(
     // An AI answers on the next tick; a human's card waits its turn.
     deadlineTick: !human
       ? tick
-      : frontId(eg, to) > id
+      : cardFrontId(eg, to) > id
         ? tick + cardTicks(eg)
         : -1,
   });
@@ -833,7 +788,7 @@ export function stepDeals(eg: WwEndgame, tick: number): void {
     else if (!eg.isHumanControlled(o.to) || eg.ww.autoOn(o.to, "diplomacy")) {
       resolveDeal(eg, o, aiAcceptsDeal(eg, o), tick);
     } else if (o.deadlineTick < 0) {
-      if (frontId(eg, o.to) === o.id) {
+      if (cardFrontId(eg, o.to) === o.id) {
         o.deadlineTick = tick + cardTicks(eg);
         eg.dirtyDiplo = true;
       }
@@ -1035,23 +990,35 @@ export function dealJudgeData(
     const humans = [...eg.humanOf.keys()]
       .filter((h) => eg.isActor(h))
       .sort((a, b) => a - b);
+    const v = dealValueFacts(eg);
     for (const h of humans) {
+      // h's ongoing normal wars where it fights, and those whose side is
+      // strong enough for a joiner (its war support is checked per AI).
+      const wars = eg.wars
+        .filter(
+          (w) =>
+            w.ended === null &&
+            w.kind === "normal" &&
+            eg.member(w, h)?.state === "active",
+        )
+        .map((w) => w.id);
+      const strong = wars.filter((w) => joinSideStrong(eg, w, h));
       for (let t = 1; t < eg.size; t++) {
         if (t === h || !eg.isActor(t) || eg.isHumanControlled(t)) continue;
-        const same = pol.country(t)?.ruling === pol.country(h)?.ruling;
+        const ws = pol.country(t)?.wsBp ?? 0;
         rows.push({
           from: h,
           to: t,
           margin: dealMargin(dealMoodOf(eg, t, h)),
-          access: accessNeeded(eg, t, h) ? WW_DEAL_ACCESS_NEED_PTS : 0,
-          accessGive: accessGivePoints(aiAcceptScore(pol, "access", h, t)),
-          nap: napPoints(aiAcceptScore(pol, "nap", h, t)),
-          guarantee: guaranteePoints(true, isMajor(pol, h), same),
-          guaranteeGive: guaranteePoints(false, isMajor(pol, h), same),
-          licence: aiAcceptsLicence(ww.depth, t, h)
-            ? -WW_DEAL_LICENCE_GIVE_PTS
-            : -WW_DEAL_LICENCE_REFUSE_PTS,
+          access: v.accessGetPts(t, h),
+          accessGive: v.accessGivePts(t, h),
+          nap: v.napPts(t, h),
+          guarantee: v.guaranteePts(t, h, true),
+          guaranteeGive: v.guaranteePts(t, h, false),
+          licence: v.licencePts(t, h, { kind: "licence", key: 0 }, t),
           cede: aiCedesTo(eg, t, h),
+          join: v.hasArmy(h) ? WW_PROMISE_ALLY_PTS : 0,
+          joinWars: ws >= WW_PROMISE_WS_PCT * 100 ? strong : [],
         });
       }
     }

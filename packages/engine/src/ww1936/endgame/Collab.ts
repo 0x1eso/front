@@ -39,6 +39,10 @@ import {
   IDEOLOGIES,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import {
+  type CollabRegionFacts,
+  collabRegionOk,
+} from "@openfront/engine-lib/ww1936/CollabRules";
+import {
   civilWarColor,
   coveragePct,
   packRgb,
@@ -82,6 +86,20 @@ function claimRegions(eg: WwEndgame, id: number): Set<number> {
     }
   }
   return out;
+}
+
+/** CollabRules' facts from the engine's state (`from`'s claims read once). */
+export function collabFacts(eg: WwEndgame, from: number): CollabRegionFacts {
+  const ww = eg.ww;
+  const claims = claimRegions(eg, from);
+  return {
+    legalOwner: (r) => ww.politics.legalOwner[r] ?? 0,
+    controller: (r) => ww.land.controller[r] ?? 0,
+    hasCore: (id, r) => eg.hasCore(id, r),
+    claims: (id, r) =>
+      id === from ? claims.has(r) : claimRegions(eg, id).has(r),
+    inOpenStake: (r) => inOpenStake(eg, r),
+  };
 }
 
 /** In the stake of a conference still to settle (its result decides). */
@@ -192,8 +210,7 @@ export function collabBlock(
   }
   if (!mainOccupier(eg, from, target, day)) return "collab_not_occupier";
   const legal = pol.legalOwner;
-  const ctl = ww.land.controller;
-  const claims = claimRegions(eg, from);
+  const facts = collabFacts(eg, from);
   const seen = new Set<number>();
   let vp = 0;
   for (const r of regions) {
@@ -201,11 +218,7 @@ export function collabBlock(
     if (
       reg === undefined ||
       seen.has(r) ||
-      (legal[r] ?? 0) !== target ||
-      ctl[r] !== from ||
-      eg.hasCore(from, r) ||
-      claims.has(r) ||
-      inOpenStake(eg, r)
+      !collabRegionOk(facts, from, target, r)
     ) {
       return "collab_bad_region";
     }
@@ -391,7 +404,7 @@ export function aiCollabDay(
     held.set(t, (held.get(t) ?? 0) + r.vp);
   }
   if (held.size === 0) return;
-  const claims = claimRegions(eg, id);
+  const facts = collabFacts(eg, id);
   for (const t of [...held.keys()].sort((a, b) => a - b)) {
     let total = 0;
     const pick: number[] = [];
@@ -401,10 +414,7 @@ export function aiCollabDay(
     for (const r of ww.scenario.landRegions) {
       if ((legal[r.id] ?? 0) !== t) continue;
       total += r.vp;
-      if (ctl[r.id] !== id || eg.hasCore(id, r.id) || claims.has(r.id)) {
-        continue;
-      }
-      if (inOpenStake(eg, r.id)) continue;
+      if (!collabRegionOk(facts, id, t, r.id)) continue;
       pick.push(r.id);
       const n = needOf(eg, id, r.id);
       sup += Math.min(eg.supDeci[r.id], n);

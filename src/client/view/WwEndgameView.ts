@@ -189,16 +189,28 @@ export class WwEndgameView {
   }
 
   /** White peace offers made to `smallID`, oldest first. */
-  /** Negotiated peace: the judge's facts for `from`'s offer in war `war` (null: none sent). */
-  judgeFor(from: number, war: number): WwPeaceJudgeRow | null {
+  /**
+   * Negotiated peace: the judge's facts for `from`'s offer in war `war` to
+   * `to` (absent: the enemy leader, the first row; D1 adds a row for each
+   * enemy member a side leader may offer a separate peace). Null: none sent.
+   */
+  judgeFor(from: number, war: number, to?: number): WwPeaceJudgeRow | null {
     return (
-      this.peaceJudge.find((j) => j.from === from && j.war === war) ?? null
+      this.peaceJudge.find(
+        (j) =>
+          j.from === from && j.war === war && (to === undefined || j.to === to),
+      ) ?? null
     );
   }
 
-  /** Peace on the current line: what `from`'s offer in war `war` would settle now (null: none sent). */
-  lineFor(from: number, war: number): WwLinePeaceRow | null {
-    return this.linePeace.find((r) => r.from === from && r.war === war) ?? null;
+  /** Peace on the current line: what `from`'s offer in war `war` to `to` would settle now (as judgeFor; null: none sent). */
+  lineFor(from: number, war: number, to?: number): WwLinePeaceRow | null {
+    return (
+      this.linePeace.find(
+        (r) =>
+          r.from === from && r.war === war && (to === undefined || r.to === to),
+      ) ?? null
+    );
   }
 
   offersTo(smallID: number): WwPeaceOfferView[] {

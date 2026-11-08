@@ -48,6 +48,7 @@ import {
   frontCounts,
   heldPm,
   muchStronger,
+  peaceJudgeTargets,
   proposerGroup,
   surrenderPm,
   targetGroup,
@@ -397,30 +398,36 @@ export function peaceJudgeData(
   for (const w of eg.wars) {
     if (w.ended !== null || w.kind !== "normal" || day < 0) continue;
     for (const s of [0, 1] as const) {
-      const target = w.sides[s === 0 ? 1 : 0].leader;
-      if (target <= 0) continue;
       for (const m of w.sides[s].members) {
         if (!fighting(m) || !eg.isHumanControlled(m.id)) continue;
         f ??= negPeaceFacts(eg);
         const whole = w.sides[s].leader === m.id;
-        const j = peaceJudgeOf(eg, w, m.id, target, whole, day, f);
-        // ww103: an AI side holding a beaten country deals on the line only.
-        // ww106: a winning AI democracy's side fights on.
-        const refuses =
-          !eg.isHumanControlled(target) &&
-          (targetHoldsBeaten(eg, w, m.id, whole) ||
-            democracyFightsOn(eg, w, s === 0 ? 1 : 0, day));
-        const reason = peaceReasonOf(eg, w, m.id, target, whole, day, j.pct);
-        rows.push({
-          war: w.id,
-          from: m.id,
-          to: target,
-          ...j,
-          ...reason,
-          ...(refuses
-            ? { pct: 0, winNeed: LINE_REFUSED_NEED, reason: "winning" as const }
-            : {}),
-        });
+        // D1: a side leader's separate peace with each enemy member too.
+        for (const target of peaceJudgeTargets(eg, w, s, whole)) {
+          const sep = target !== w.sides[s === 0 ? 1 : 0].leader;
+          const j = peaceJudgeOf(eg, w, m.id, target, whole, day, f);
+          // ww103: an AI side holding a beaten country deals on the line only.
+          // ww106: a winning AI democracy's side fights on.
+          const refuses =
+            !eg.isHumanControlled(target) &&
+            (targetHoldsBeaten(eg, w, m.id, whole, sep ? target : undefined) ||
+              democracyFightsOn(eg, w, s === 0 ? 1 : 0, day));
+          const reason = peaceReasonOf(eg, w, m.id, target, whole, day, j.pct);
+          rows.push({
+            war: w.id,
+            from: m.id,
+            to: target,
+            ...j,
+            ...reason,
+            ...(refuses
+              ? {
+                  pct: 0,
+                  winNeed: LINE_REFUSED_NEED,
+                  reason: "winning" as const,
+                }
+              : {}),
+          });
+        }
       }
     }
   }

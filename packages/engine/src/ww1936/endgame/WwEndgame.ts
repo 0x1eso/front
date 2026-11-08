@@ -317,6 +317,8 @@ const PeaceOfferSchema = z.object({
   ask: z.literal(true).optional(),
   /** Diplomacy D1: "come home as my subject" to an exile; absent for the other kinds. */
   home: z.literal(true).optional(),
+  /** Diplomacy D1 (integration): a side leader's separate peace with an enemy member, as sent (absent: not one). */
+  sep: z.literal(true).optional(),
 });
 export type PeaceOffer = z.infer<typeof PeaceOfferSchema>;
 export const WwEndgameStateSchema = z.object({
@@ -2091,6 +2093,8 @@ export class WwEndgame {
         mix(t.demand);
         ids(t.free);
       }
+      // Diplomacy D1: a separate peace as sent (nothing otherwise).
+      if (o.sep === true) mix(5);
     }
     for (const list of [this.peaceCooldowns, this.truces]) {
       mix(list.length);
