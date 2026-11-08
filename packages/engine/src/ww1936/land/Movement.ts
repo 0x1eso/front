@@ -9,12 +9,15 @@ import {
   MOVE_RETREAT,
   MOVE_SEA,
   MOVE_WALK,
+  ROLE_ATTACK,
+  ROLE_NONE,
   TPL_ARMOR_ANY,
   TPL_CAVALRY_MAJOR,
   TPL_MOTOR_ANY,
   traitBit,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import type { WwStatKey } from "@openfront/engine-api/ww1936/PoliticsTypes";
+import { nearestOf } from "@openfront/engine-lib/ww1936/FrontRules";
 import { landFuelSpeedPm } from "@openfront/engine-lib/ww1936/FuelRules";
 import {
   edgeTicks,
@@ -463,6 +466,91 @@ const pathMemos = new WeakMap<
     paths: Map<string, number[]>;
   }
 >();
+
+/** ww162 §1.4: a pinned division below this org (% of max) does not go into an attack. */
+const PIN_ATTACK_ORG_PCT = 30;
+
+/**
+ * ww162 §1.4: the army's pinned divisions go to their regions (on order
+ * apply and every day). To a region of our side a division walks (today's
+ * paths) and holds there. To an enemy region it walks over our land to the
+ * nearest region of ours next to it, then walks in when nobody defends it
+ * or attacks it (at 30 % org or more); once there it holds, also in a region
+ * it took. A division in a battle fights on (an attack on another region
+ * is left); one retreating, advancing or on a train or ship goes on first.
+ * A pin on land neither ours nor an enemy's (peace) goes, and the army takes
+ * the division back (it goes pending).
+ */
+export function stepPins(land: WwLand, a: Army, tick: number): void {
+  if (a.pins.length === 0) return;
+  const t = land.divisions;
+  const sc = land.scenario;
+  const me = land.ownerForSides(a);
+  const prep = land.ww.inPrep(tick);
+  const ours = (x: number) => land.sameSide(me, land.controller[x]);
+  const keep: [number, number][] = [];
+  for (const pin of a.pins) {
+    const [id, to] = pin;
+    const r = t.rowOf(id);
+    if (r < 0) continue;
+    const c = land.controller[to];
+    const enemy = !ours(to);
+    if (enemy && !land.isEnemy(me, c)) continue;
+    keep.push(pin);
+    const tired = t.org[r] * 100 < land.orgMaxOf(r) * PIN_ATTACK_ORG_PCT;
+    if (t.battle[r] !== 0) {
+      if (t.role[r] === ROLE_ATTACK && (t.battle[r] !== to || tired)) {
+        t.role[r] = ROLE_NONE;
+        land.markArmy(a.id);
+      }
+      continue;
+    }
+    const m = t.mode[r];
+    if (m !== MOVE_NONE && m !== MOVE_WALK) continue;
+    const here = t.region[r];
+    if (here === to) {
+      // There: it holds (a walk on to elsewhere stops).
+      if (m === MOVE_WALK) stopDivision(land, r);
+      else t.dest[r] = to;
+      continue;
+    }
+    // A walk into enemy land that is not this pin's stops.
+    const intoEnemy = m === MOVE_WALK && !ours(t.next[r]);
+    if (enemy && ours(here) && sc.edgeBetween(here, to) >= 0) {
+      if (m === MOVE_WALK && t.next[r] === to) continue;
+      if (m === MOVE_WALK) stopDivision(land, r);
+      if (prep) continue;
+      if (enemyDivisionsIn(land, me, to) === 0) {
+        startHopInto(land, r, to, MOVE_WALK);
+      } else if (!tired) {
+        joinBattle(land, id, to);
+      }
+      continue;
+    }
+    let dest = to;
+    if (enemy) {
+      const gates = new Set<number>();
+      for (const e of sc.edgesOf(to)) if (ours(e.to)) gates.add(e.to);
+      dest = nearestOf(land, gates, [here], ours);
+      if (dest === 0) {
+        // No way over our land: it waits where it stands.
+        if (m === MOVE_NONE) t.dest[r] = here;
+        else if (intoEnemy) stopDivision(land, r);
+        continue;
+      }
+    }
+    if (t.dest[r] === dest && !intoEnemy) continue;
+    if (intoEnemy) stopDivision(land, r);
+    t.dest[r] = dest;
+    if (t.mode[r] === MOVE_NONE) startNextHop(land, r, tick);
+    land.markArmy(a.id);
+  }
+  if (keep.length !== a.pins.length) {
+    a.pins = keep;
+    a.pending = true;
+    land.markArmy(a.id);
+  }
+}
 
 /** Stops a division where it stands (finished here by the foundation; C and A call it). */
 export function stopDivision(land: WwLand, row: number): void {

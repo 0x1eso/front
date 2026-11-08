@@ -85,6 +85,28 @@ export function armyRows(land: WwLand, army: Army): number[] {
   return out;
 }
 
+/**
+ * ww162 §1.4: live rows of the army's divisions that are not pinned, in row
+ * order: what its layout, rotation, gap fill and plan move. Readiness,
+ * supply, the summary and the battles still count every division.
+ */
+export function freeRows(land: WwLand, army: Army): number[] {
+  if (army.pins.length === 0) return armyRows(land, army);
+  const pinned = new Set(army.pins.map((p) => p[0]));
+  const out: number[] = [];
+  for (const id of army.divisions) {
+    if (pinned.has(id)) continue;
+    const r = land.divisions.rowOf(id);
+    if (r >= 0) out.push(r);
+  }
+  return out;
+}
+
+/** ww162 §1.4: the army's divisions that are not pinned (the gap fill's count). */
+export function freeCount(army: Army): number {
+  return army.divisions.length - army.pins.length;
+}
+
 /** Edges no region is from the plan's targets. */
 export const FAR = 1 << 30;
 
@@ -200,7 +222,7 @@ export function finishPlan(land: WwLand, army: Army): boolean {
   if (!o.targets.every((r) => land.sameSide(me, land.controller[r]))) {
     return false;
   }
-  for (const r of armyRows(land, army)) leaveAttack(land, r);
+  for (const r of freeRows(land, army)) leaveAttack(land, r);
   army.order = {
     ...idleOrder(),
     kind: "front",
@@ -268,7 +290,7 @@ function finishGoal(land: WwLand, army: Army): boolean {
     o.goal = left;
     return false;
   }
-  for (const r of armyRows(land, army)) leaveAttack(land, r);
+  for (const r of freeRows(land, army)) leaveAttack(land, r);
   army.odds = undefined;
   if (!taken) {
     // Nothing of it taken: the army keeps the front it had.
@@ -322,7 +344,7 @@ function endDirect(
     | "events_display.ww1936_direct_over",
 ): true {
   const o = army.order;
-  for (const r of armyRows(land, army)) leaveAttack(land, r);
+  for (const r of freeRows(land, army)) leaveAttack(land, r);
   army.order = {
     ...idleOrder(),
     kind: "front",
@@ -355,7 +377,7 @@ function nearestEnemyRegion(land: WwLand, army: Army, me: number): number {
   const ours = (r: number) => land.sameSide(me, land.controller[r]);
   const seen = new Set<number>();
   let layer: number[] = [];
-  for (const r of armyRows(land, army)) {
+  for (const r of freeRows(land, army)) {
     const at = land.divisions.region[r];
     if (!seen.has(at) && ours(at)) {
       seen.add(at);
@@ -515,7 +537,8 @@ export function planDay(
   const others: [number, number[]][] = [];
   const t = land.divisions;
   const dist = targetDist ?? targetDistances(land, army);
-  const rows = armyRows(land, army);
+  // ww162 §1.4: pinned divisions are out of the plan.
+  const rows = freeRows(land, army);
   const ax = axis ?? planAxis(army.front, o, dist);
   // Enemy region -> the divisions of the axis regions that go for it.
   const strikes = new Map<number, number[]>();
@@ -639,7 +662,7 @@ export function oddsOf(
   const t = land.divisions;
   const dist = targetDist ?? targetDistances(land, army);
   const ax = planAxis(army.front, o, dist);
-  const rows = armyRows(land, army);
+  const rows = freeRows(land, army);
   // Per zone region: where it would attack and with whom.
   const legs: { f: number; to: number; side: number[] }[] = [];
   // Enemy region -> the divisions of all the axis regions that go for it.

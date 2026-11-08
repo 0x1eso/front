@@ -9,12 +9,15 @@ import {
   WW_GROUP_ARMIES,
   WW_MAX_FIELD_MARSHALS,
 } from "@openfront/engine-api/ww1936/DepthTypes";
+import type { WwOrderBlock } from "@openfront/engine-api/ww1936/EconomyTypes";
 import type { GeneralTrait } from "@openfront/engine-api/ww1936/LandTypes";
 import { TRAIT_SLOTS } from "@openfront/engine-api/ww1936/LandTypes";
 import {
   AdmiralTrait,
   WW_ADMIRAL_TRAIT_MAX,
 } from "@openfront/engine-api/ww1936/NavyTypes";
+import type { FrontWorld } from "./FrontRules";
+import type { OrderCheckWorld } from "./LandOrderChecks";
 
 /** Spec §4.2 table: the new general traits (ww84: the three terrain ones are gone). */
 export interface GeneralTraitDef {
@@ -281,6 +284,125 @@ export function splitFront(
     at += s;
   }
   return out;
+}
+
+/**
+ * ww162 §1.4: why divisions standing in `from` cannot be pinned to `region`
+ * now. A region of our side must be reached from each of them over our
+ * side's land (no_path). An enemy region must be one we are at war with
+ * (not_at_war), next to a region
+ * of ours (not_adjacent), and that region reached from each of them over
+ * our land (no_path): they walk there and attack. Null when they may go.
+ */
+export function divisionMoveBlock(
+  w: OrderCheckWorld,
+  from: readonly number[],
+  region: number,
+): WwOrderBlock | null {
+  const sc = w.scenario;
+  if (sc.region(region) === undefined) return "bad_region";
+  const ours = (r: number) => w.sameSide(w.me, w.controller[r]);
+  let goals: number[];
+  if (ours(region)) {
+    goals = [region];
+  } else {
+    const c = w.controller[region];
+    if (!w.isEnemy(w.me, c)) return "not_at_war";
+    goals = sc
+      .edgesOf(region)
+      .map((e) => e.to)
+      .filter(ours);
+    if (goals.length === 0) return "not_adjacent";
+  }
+  const want = new Set(goals);
+  for (const start of new Set(from)) {
+    if (!reaches(w, start, want, ours)) return "no_path";
+  }
+  return null;
+}
+
+/** Whether a region of `goals` is reached from `start` (always a source) over regions `pass` accepts. */
+function reaches(
+  w: Pick<FrontWorld, "scenario">,
+  start: number,
+  goals: ReadonlySet<number>,
+  pass: (region: number) => boolean,
+): boolean {
+  if (goals.has(start)) return true;
+  const seen = new Set<number>([start]);
+  const queue = [start];
+  for (let i = 0; i < queue.length; i++) {
+    for (const e of w.scenario.edgesOf(queue[i])) {
+      if (seen.has(e.to) || !pass(e.to)) continue;
+      if (goals.has(e.to)) return true;
+      seen.add(e.to);
+      queue.push(e.to);
+    }
+  }
+  return false;
+}
+
+/**
+ * ww162 §1.2 group_goal with `split` (Design A §1.4): each region of the
+ * offensive line goes to the army whose sector is nearest it, in edges over
+ * any land (a multi-source BFS from each sector; ties: the earlier army).
+ * Each army's share keeps the line's order. An army with an empty sector
+ * gets nothing; with no sector reaching a region, it goes to the first
+ * army that has a sector (or the first army).
+ */
+export function splitGoal(
+  w: Pick<FrontWorld, "scenario">,
+  goal: readonly number[],
+  sectors: readonly (readonly number[])[],
+): number[][] {
+  const out = sectors.map((): number[] => []);
+  if (sectors.length === 0) return out;
+  const dists = sectors.map((s) => landDistances(w, s));
+  const first = Math.max(
+    0,
+    sectors.findIndex((s) => s.length > 0),
+  );
+  for (const r of goal) {
+    let best = -1;
+    let bestD = Infinity;
+    dists.forEach((d, i) => {
+      const x = d.get(r);
+      if (x !== undefined && x < bestD) {
+        best = i;
+        bestD = x;
+      }
+    });
+    out[best < 0 ? first : best].push(r);
+  }
+  return out;
+}
+
+/** Edges from `from` to every land region (BFS over the scenario's land edges). */
+function landDistances(
+  w: Pick<FrontWorld, "scenario">,
+  from: readonly number[],
+): Map<number, number> {
+  const dist = new Map<number, number>();
+  const queue: number[] = [];
+  for (const r of [...from].sort((a, b) => a - b)) {
+    if (dist.has(r)) continue;
+    dist.set(r, 0);
+    queue.push(r);
+  }
+  for (let i = 0; i < queue.length; i++) {
+    const u = queue[i];
+    for (const e of w.scenario.edgesOf(u)) {
+      if (dist.has(e.to)) continue;
+      dist.set(e.to, dist.get(u)! + 1);
+      queue.push(e.to);
+    }
+  }
+  return dist;
+}
+
+/** ww162 §1.1: a sector's front-line ends (its first and last region); null when empty. */
+export function sectorEnds(part: readonly number[]): [number, number] | null {
+  return part.length === 0 ? null : [part[0], part[part.length - 1]];
 }
 
 export const MEDAL_STATS = {

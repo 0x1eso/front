@@ -25,6 +25,7 @@ import {
   WW_PARA_PREP_DAYS,
   WW_ZONE_MAX,
 } from "@openfront/engine-api/ww1936/LandTypes";
+import { divisionMoveBlock } from "@openfront/engine-lib/ww1936/CommandRules";
 import { borderRegionsOf } from "@openfront/engine-lib/ww1936/FrontRules";
 import {
   landOrderBlockOf,
@@ -41,10 +42,11 @@ import {
   findPath,
   railPath,
   startNextHop,
+  stepPins,
   stopDivision,
 } from "./Movement";
 import { capture } from "./Occupation";
-import { armyRows, fallbackOf } from "./Plans";
+import { armyRows, fallbackOf, freeRows } from "./Plans";
 import { disbandDivision } from "./Sustain";
 import type { Army, CountryLand, WwLand } from "./WwLand";
 
@@ -88,12 +90,15 @@ export function issueArmyOrder(
     order.kind !== "army_zone" &&
     order.kind !== "army_general" &&
     order.kind !== "army_execute" &&
-    order.kind !== "army_fallback"
+    order.kind !== "army_fallback" &&
+    order.kind !== "division_release"
   ) {
     cancelInvasion(land.ww.navy, a.id);
   }
   switch (order.kind) {
     case "army_move":
+      // ww162 §1.4: an army-wide move takes every division (pins go).
+      releasePins(land, a, []);
       // Spec §7.3: a move onto an enemy region is a one-target attack.
       // P5 lane A: a volunteer army's side is its host's (ownerForSides).
       if (
@@ -147,10 +152,10 @@ export function issueArmyOrder(
       }
       break;
     case "army_auto":
-      setAutoLevel(a, order.on ? 2 : 0);
+      setAutoLevel(land, a, order.on ? 2 : 0);
       break;
     case "army_auto_level":
-      setAutoLevel(a, order.level);
+      setAutoLevel(land, a, order.level);
       break;
     case "army_zone":
       setZone(a, order.regions);
@@ -168,6 +173,13 @@ export function issueArmyOrder(
     case "army_fall_back":
       fallBack(land, a);
       a.pending = true;
+      break;
+    // ww162 §1.4 (lane L2): per-division pins.
+    case "division_move":
+      pinDivisions(land, a, order.divisions, order.region);
+      break;
+    case "division_release":
+      releasePins(land, a, order.divisions);
       break;
     case "paradrop": {
       // P4 (spec §14.10, pre-flight A12): paradropPrepPct shortens it.
@@ -191,10 +203,57 @@ export function issueArmyOrder(
   return null;
 }
 
-/** ww7: the army's auto level (0 off, 1 defend only, 2 full); `auto` follows. */
-function setAutoLevel(a: Army, level: number): void {
+/**
+ * ww7: the army's auto level (0 off, 1 defend only, 2 full); `auto` follows.
+ * ww162 §1.4: the AI takes the whole army, so its pins go.
+ */
+function setAutoLevel(land: WwLand, a: Army, level: number): void {
   a.autoLevel = level;
   a.auto = level > 0;
+  if (level > 0) releasePins(land, a, []);
+}
+
+/**
+ * ww162 §1.4: `ids` (repeats dropped) are pinned to `region`, a pin already
+ * there moved. An attack on another region is left at once (a defence goes
+ * on until its battle ends). The army goes pending: its layout no longer
+ * counts them, and the pin step sends them now.
+ */
+function pinDivisions(
+  land: WwLand,
+  a: Army,
+  ids: readonly number[],
+  region: number,
+): void {
+  const t = land.divisions;
+  const pins = new Map(a.pins.map((p) => [p[0], p[1]]));
+  for (const id of ids) {
+    pins.set(id, region);
+    const r = t.rowOf(id);
+    if (r >= 0 && t.battle[r] !== region) leaveAttack(land, r);
+  }
+  a.pins = [...pins]
+    .sort((x, y) => x[0] - y[0])
+    .map(([id, to]): [number, number] => [id, to]);
+  a.pending = true;
+}
+
+/**
+ * ww162 §1.4: the pins of `ids` go (empty: every pin); the army takes the
+ * divisions back on its next apply (it goes pending when one went).
+ */
+export function releasePins(
+  land: WwLand,
+  a: Army,
+  ids: readonly number[],
+): void {
+  if (a.pins.length === 0) return;
+  const drop = new Set(ids);
+  const keep = ids.length === 0 ? [] : a.pins.filter((p) => !drop.has(p[0]));
+  if (keep.length === a.pins.length) return;
+  a.pins = keep;
+  a.pending = true;
+  land.markArmy(a.id);
 }
 
 /**
@@ -344,9 +403,14 @@ function setDirect(
   a.order.direct = true;
 }
 
-/** A new standing order that is no front: the front and the readiness go. */
+/**
+ * A new standing order that is no front: the front and the readiness go.
+ * ww162 §1.4: so do the pins (a halt, move, rail, paradrop or garrison
+ * takes the whole army).
+ */
 function setOrder(a: Army, order: ArmyOrder): void {
   a.order = order;
+  a.pins = [];
   a.front = [];
   a.path = [];
   a.planBp = 0;
@@ -550,7 +614,10 @@ export function stopOrFinishEdge(land: WwLand, r: number): void {
 function applyOrder(land: WwLand, a: Army, tick: number, day: number): void {
   const t = land.divisions;
   const o = a.order;
-  const rows = armyRows(land, a);
+  // ww162 §1.4: a voyage or an invasion takes the whole army (pins go);
+  // otherwise the order moves the free divisions and the pins their own.
+  if (a.pins.length > 0 && busyAtSea(land, a)) a.pins = [];
+  const rows = freeRows(land, a);
   const me = land.ownerForSides(a);
   if (o.kind !== "front" && o.kind !== "plan") a.odds = undefined;
   switch (o.kind) {
@@ -607,7 +674,19 @@ function applyOrder(land: WwLand, a: Army, tick: number, day: number): void {
       }
       break;
   }
+  stepPins(land, a, tick);
   land.markArmy(a.id);
+}
+
+/** ww162 §1.4: the army sails, invades or drops as a whole (no division may be pinned out). */
+function busyAtSea(land: WwLand, a: Army): boolean {
+  const o = a.order;
+  return (
+    o.kind === "invade" ||
+    o.kind === "paradrop" ||
+    (o.kind === "move" && o.mode === MOVE_SEA) ||
+    land.ww.navy.invasions.has(a.id)
+  );
 }
 
 /**
@@ -620,6 +699,8 @@ function drop(land: WwLand, a: Army, tick: number, day: number): void {
   const t = land.divisions;
   const to = a.order.to;
   const me = a.owner;
+  // ww162 §1.4: the whole army drops.
+  a.pins = [];
   const rows = armyRows(land, a);
   const c = land.controller[to];
   const enemy = land.isEnemy(me, c);
@@ -656,7 +737,40 @@ export function armyOrderBlock(
   cl: CountryLand,
   order: LandOrder,
 ): WwOrderBlock | null {
-  return landOrderBlockOf(orderCheckWorld(land, cl.smallID), order);
+  const w = orderCheckWorld(land, cl.smallID);
+  const block = landOrderBlockOf(w, order);
+  if (block !== null || order.kind !== "division_move") return block;
+  return divisionOrderBlock(land, w, order);
+}
+
+/**
+ * ww162 §1.4: division_move's own checks, after the army's: every division
+ * is one of the army's (no repeat), the army is not sailing, invading or
+ * dropping (army_busy), and the region is one they may go to
+ * (CommandRules.divisionMoveBlock).
+ */
+function divisionOrderBlock(
+  land: WwLand,
+  w: OrderCheckWorld,
+  order: Extract<LandOrder, { kind: "division_move" }>,
+): WwOrderBlock | null {
+  const a = land.armies.get(order.army)!;
+  const t = land.divisions;
+  const ids = new Set(order.divisions);
+  if (ids.size !== order.divisions.length) return "bad_index";
+  const from: number[] = [];
+  for (const id of order.divisions) {
+    const r = t.rowOf(id);
+    if (r < 0 || !a.divisions.includes(id)) return "bad_index";
+    from.push(t.region[r]);
+  }
+  if (busyAtSea(land, a)) return "army_busy";
+  // P5 lane A: a volunteer army's side checks read its host's.
+  return divisionMoveBlock(
+    { ...w, me: land.ownerForSides(a) },
+    from,
+    order.region,
+  );
 }
 
 /** The order checks' view of the land war for country `me`. */

@@ -112,18 +112,12 @@ describe("ww162 L0: the battle planner's contract", () => {
     }
   });
 
-  test("the pin and marshal orders reach land.issue, which refuses them until L2", async () => {
-    // ww162 L1 gave the three line orders their rules (ArmyPlannerLines).
-    const { l, deu, a, ours } = await board();
+  test("the marshal orders reach land.issue, which refuses them for a group that is not there", async () => {
+    // ww162 L1 gave the three line orders their rules (ArmyPlannerLines),
+    // L2 the pins and the marshal's lines (ArmyPlannerPins).
+    const { l, deu, ours } = await board();
     const before = l.hash();
     const orders = [
-      {
-        kind: "division_move",
-        army: a.id,
-        divisions: [a.divisions[0]],
-        region: ours[0],
-      },
-      { kind: "division_release", army: a.id, divisions: [] },
       {
         kind: "group_front_line",
         group: 1,

@@ -81,6 +81,7 @@ import {
 import { techTotals } from "@openfront/engine-lib/ww1936/WwTechs";
 import { z } from "zod";
 import type { Game, Player } from "../../game/Game";
+import { issueGroupLine } from "../depth/ArmyGroups";
 import { effectiveLevel } from "../economy/Buildings";
 import type { WwEconomy } from "../economy/WwEconomy";
 import { type LandSeaAirHooks, NEUTRAL_HOOKS } from "../navy/NavyAirHooks";
@@ -101,7 +102,7 @@ import { noteLandFuel } from "./LandFuel";
 import { startLand } from "./LandStartRun";
 import { nextStepOf, stepMovement } from "./Movement";
 import { stepSpread } from "./Occupation";
-import { applyArmyOrders, issueArmyOrder } from "./Orders";
+import { applyArmyOrders, issueArmyOrder, releasePins } from "./Orders";
 import { directView, oddsOf } from "./Plans";
 import { dmzBlocks } from "./PoliticsBridge";
 import { dailyPositions, resetPosition } from "./Positions";
@@ -1261,6 +1262,11 @@ export class WwLand {
         // P4 plan decision 34 (pre-flight §0-6): the navy carries it, the
         // AI's sea moves too (convoys, routes, interception: lane C).
         block = this.ww.navy.issue(smallID, order, this.mg.ticks(), by);
+        // ww162 §1.4: the whole army sails (its pins go).
+        if (block === null) {
+          const a = this.armies.get(order.army);
+          if (a !== undefined) releasePins(this, a, []);
+        }
         break;
       case "army_move":
       case "army_rail":
@@ -1281,8 +1287,17 @@ export class WwLand {
       case "army_goal":
       case "army_fallback":
       case "army_fall_back":
-        // ww162 (lane L1): the battle planner's three lines go there too.
+      case "division_move":
+      case "division_release":
+        // ww162 (lanes L1, L2): the battle planner's three lines and the
+        // per-division pins go there too.
         block = issueArmyOrder(this, cl, order, by);
+        break;
+      case "group_front_line":
+      case "group_goal":
+      case "group_fallback":
+        // ww162 §1.1-§1.3 (lane L2): a marshal's lines, cut among his armies.
+        block = issueGroupLine(this.ww.depth, smallID, order, by);
         break;
       default:
         return "bad_index";
@@ -1506,6 +1521,10 @@ export class WwLand {
     const army = this.armies.get(t.army[row]);
     if (army !== undefined) {
       army.divisions = army.divisions.filter((d) => d !== id);
+      // ww162 §1.4: its pin goes with it.
+      if (army.pins.length > 0) {
+        army.pins = army.pins.filter((p) => p[0] !== id);
+      }
       this.dirtyArmies.add(army.id);
       if (army.divisions.length === 0) {
         this.removeArmy(army.id, { destroyed, region: t.region[row] });
@@ -2097,6 +2116,10 @@ export class WwLand {
     const old = this.armies.get(this.divisions.army[r]);
     if (old !== undefined && old !== army) {
       old.divisions = old.divisions.filter((d) => d !== divisionId);
+      // ww162 §1.4: a division leaving its army leaves its pin.
+      if (old.pins.length > 0) {
+        old.pins = old.pins.filter((p) => p[0] !== divisionId);
+      }
       this.dirtyArmies.add(old.id);
       if (old.divisions.length === 0) {
         this.removeArmy(old.id, {

@@ -32,13 +32,16 @@ import {
 } from "@openfront/engine-lib/ww1936/FrontRules";
 import { moveNeed } from "@openfront/engine-lib/ww1936/MoveRules";
 import { RegionHeap } from "@openfront/engine-lib/ww1936/RegionHeap";
+import { clearGroupLines } from "../depth/ArmyGroups";
 import { retreatDivision } from "./Battles";
-import { startNextHop, stopDivision } from "./Movement";
+import { startNextHop, stepPins, stopDivision } from "./Movement";
 import { leaveAttack, stopOrFinishEdge } from "./Orders";
 import {
   armyRows,
   FAR,
   finishPlan,
+  freeCount,
+  freeRows,
   isBroad,
   oddsOf,
   planAxis,
@@ -153,6 +156,8 @@ export function dailyFronts(land: WwLand, smallID: number, day: number): void {
     }
     setOdds(land, d);
   }
+  // ww162 §1.4: the pinned divisions, every army's (any order).
+  for (const a of land.armiesOf(smallID)) stepPins(land, a, tick);
 }
 
 /**
@@ -178,7 +183,7 @@ export function applyFront(
     peers.push(
       b === a
         ? { a, n: d.rows.length, front: d.front, fills: d.fills }
-        : { a: b, n: b.divisions.length, front: b.front, fills: new Set() },
+        : { a: b, n: freeCount(b), front: b.front, fills: new Set() },
     );
   }
   if (peers.length > 1) {
@@ -236,7 +241,8 @@ function finishMove(land: WwLand, a: Army): void {
   // A new order not applied yet (applyArmyOrders runs after the days).
   if (a.pending) return;
   const t = land.divisions;
-  for (const r of armyRows(land, a)) if (t.mode[r] !== MOVE_NONE) return;
+  // ww162 §1.4: the pinned divisions walk on their own.
+  for (const r of freeRows(land, a)) if (t.mode[r] !== MOVE_NONE) return;
   a.order = idleOrder();
   a.path = [];
   land.markArmy(a.id);
@@ -305,7 +311,8 @@ export function fallbackDue(land: WwLand, a: Army): boolean {
   let ours = 0;
   let org = 0;
   let orgMax = 0;
-  for (const r of armyRows(land, a)) {
+  // ww162 §1.4: the divisions on the line (the pinned stand elsewhere).
+  for (const r of freeRows(land, a)) {
     ours += land.strengthOf(r);
     org += t.org[r];
     orgMax += land.orgMaxOf(r);
@@ -345,6 +352,10 @@ export function fallBack(land: WwLand, a: Army): void {
   const onLine = new Set(line);
   const me = land.ownerForSides(a);
   const t = land.divisions;
+  // ww162 §1.4: the whole army goes: its pins are released. A group's
+  // lines end with it (the marshal's front no longer holds).
+  if (a.pins.length > 0) a.pins = [];
+  if (a.group !== 0) clearGroupLines(land.ww.depth, a.owner, a.group);
   for (const r of armyRows(land, a)) {
     if (t.battle[r] !== 0 && t.role[r] !== ROLE_ATTACK) {
       if (t.mode[r] === MOVE_NONE && !onLine.has(t.region[r])) {
@@ -384,7 +395,7 @@ function sameList(a: readonly number[], b: readonly number[]): boolean {
 
 /** Spec §8.1: the army waits where it is (its border is gone). */
 function goIdle(land: WwLand, a: Army): void {
-  for (const r of armyRows(land, a)) {
+  for (const r of freeRows(land, a)) {
     leaveAttack(land, r);
     stopOrFinishEdge(land, r);
   }
@@ -476,7 +487,8 @@ function openDay(
   finishPlan(land, a);
   const o = a.order;
   const g = graphOf(land, graphs, me, o.enemy);
-  const rows = armyRows(land, a);
+  // ww162 §1.4: the army lays out, rotates and attacks with its free divisions.
+  const rows = freeRows(land, a);
   const attack = o.kind === "plan";
   const dist =
     attack && planTargets(o).length > 0 ? targetDistances(land, a) : null;
