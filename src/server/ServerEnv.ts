@@ -169,8 +169,21 @@ export class ServerEnv {
   static workerPort(gameID: GameID): number {
     return ServerEnv.workerPortByIndex(ServerEnv.workerIndex(gameID));
   }
+  // The master's port, from MASTER_PORT (default 3000); worker i listens on
+  // the master's port + 1 + i. Only game-night.sh's proof runs set it, to
+  // start a real server beside a live one; vite.config.ts's dev proxy and
+  // every deploy use the defaults.
+  static masterPort(): number {
+    const raw = process.env.MASTER_PORT;
+    if (raw === undefined || raw.length === 0) return 3000;
+    const n = Number(raw);
+    if (!Number.isInteger(n) || n < 1 || n > 65535) {
+      throw new Error(`Invalid MASTER_PORT: ${JSON.stringify(raw)}`);
+    }
+    return n;
+  }
   static workerPortByIndex(index: number): number {
-    return 3001 + index;
+    return ServerEnv.masterPort() + 1 + index;
   }
   // Mint a game id under this deployment's instance letter.
   static generateGameId(): GameID {
