@@ -126,8 +126,8 @@ export interface FrontDraft {
   chain: number[];
 }
 
-/** A foreign country `me` may face from `r` (at war first; ties: the smaller region id); 0: none. */
-function facedFrom(w: FrontWorld, me: number, r: number): number {
+/** The foreign countries `me` faces from `r`: [one at war, any] (ties: the smaller region id; 0: none). */
+function facedFrom(w: FrontWorld, me: number, r: number): [number, number] {
   let atWar = 0;
   let other = 0;
   let atWarR = Infinity;
@@ -144,13 +144,15 @@ function facedFrom(w: FrontWorld, me: number, r: number): number {
       otherR = e.to;
     }
   }
-  return atWar !== 0 ? atWar : other;
+  return [atWar, other];
 }
 
 /**
  * The enemy a front drawn from region `r` faces (design §2): the owner of
  * `r` when it is foreign, else the country the nearest region of ours
- * with a foreign neighbour faces (at war first). 0: none.
+ * facing a country at war with us faces (BFS over our land; ties: the
+ * smaller id), else (no war reachable: before the war) the one the
+ * nearest region with any foreign neighbour faces. 0: none.
  */
 export function enemyFacing(w: FrontWorld, me: number, r: number): number {
   const c = w.controller[r];
@@ -159,17 +161,25 @@ export function enemyFacing(w: FrontWorld, me: number, r: number): number {
   if (!w.sameSide(me, c)) return 0;
   let level = [r];
   const seen = new Set(level);
+  let firstOther = 0;
   while (level.length > 0) {
-    let best = 0;
-    let bestR = Infinity;
+    let war = 0;
+    let warR = Infinity;
+    let other = 0;
+    let otherR = Infinity;
     for (const u of level) {
-      const f = facedFrom(w, me, u);
-      if (f !== 0 && u < bestR) {
-        best = f;
-        bestR = u;
+      const [fw, fo] = facedFrom(w, me, u);
+      if (fw !== 0 && u < warR) {
+        war = fw;
+        warR = u;
+      }
+      if (fo !== 0 && u < otherR) {
+        other = fo;
+        otherR = u;
       }
     }
-    if (best !== 0) return best;
+    if (war !== 0) return war;
+    if (firstOther === 0) firstOther = other;
     const next: number[] = [];
     for (const u of level) {
       for (const e of w.scenario.edgesOf(u)) {
@@ -180,7 +190,7 @@ export function enemyFacing(w: FrontWorld, me: number, r: number): number {
     }
     level = next;
   }
-  return 0;
+  return firstOther;
 }
 
 /** Our border set against `enemy`. */
@@ -229,8 +239,9 @@ export function moveFrontEnd(
 
 /**
  * Design §2 (taps): a tap on `r` stretches the nearest end of `front` to
- * it (by distance; ties: the first end); with no front, a one-region front
- * there. null when `r` does not snap.
+ * it (by distance; ties: the first end; a one-region front: the second
+ * end); with no front, a one-region front there. null when `r` does not
+ * snap.
  */
 export function extendFront(
   w: FrontWorld,
@@ -242,8 +253,12 @@ export function extendFront(
   const s = snapToBorder(w, borderSet(w, me, front.enemy), me, r);
   if (s === 0) return null;
   const sc = w.scenario;
+  // A one-region front grows from its second end, so the first stays put.
   const i =
-    sc.regionKm(front.ends[1], s) < sc.regionKm(front.ends[0], s) ? 1 : 0;
+    front.ends[0] === front.ends[1] ||
+    sc.regionKm(front.ends[1], s) < sc.regionKm(front.ends[0], s)
+      ? 1
+      : 0;
   return moveFrontEnd(w, me, front, i, s);
 }
 
