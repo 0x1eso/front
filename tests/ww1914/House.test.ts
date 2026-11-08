@@ -583,6 +583,21 @@ describe("a bill through the house", () => {
     ).toBe(true);
   });
 
+  test("a faction with no leader at hand is named by its row's first man in the vote's lines", async () => {
+    const { gw, n, seat } = await atWar();
+    n.inst.reichstag = 5;
+    gw.person("deu_ebert")!.status = "waiting";
+    drafted(gw, seat, "deu_aux", "unions_text");
+    houseStep(gw);
+    expect(factionOf(seat, "t_spd")!.leader).toBe(null);
+    n.laws.find((x) => x.id === "deu_aux")!.stage = "vote";
+    lawPut(ctxOf(gw, seat), "deu_aux");
+    const lines = seat.log.filter((l) => l.key.startsWith("house_voted_"));
+    expect(lines.length).toBeGreaterThan(0);
+    for (const l of lines) expect(l.who).toBeDefined();
+    expect(lines.some((l) => l.who === "deu_ebert")).toBe(true);
+  });
+
   test("short of the count it goes back to the house, whatever the day", async () => {
     const { gw, n, seat } = await atWar();
     n.inst.reichstag = -5;

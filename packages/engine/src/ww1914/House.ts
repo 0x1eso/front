@@ -126,6 +126,15 @@ function sitsIn(id: string): boolean {
   return Object.values(factionRow(id)?.seats ?? {}).some((n) => (n ?? 0) > 0);
 }
 
+/**
+ * Who a reason line names for a faction: its leader, else the man its row
+ * names first (the party is still his while he waits or is out of office).
+ */
+function whoOf(st: GwFactionState | null): string | undefined {
+  if (st === null) return undefined;
+  return st.leader ?? factionRow(st.id)?.leaders[0]?.person ?? undefined;
+}
+
 /** `take` seats from each chamber of `from`, at most what it has. */
 function moveSeats(from: Seats, take: number): { left: Seats; moved: Seats } {
   const left: Seats = {};
@@ -285,10 +294,10 @@ function settleStep(
   if (st.step > was && st.step >= 2) {
     const s = stepsOf(row)[st.step - 2];
     if (s !== undefined) call(seat, s.scene, gw.s.chapter + 1);
-    reason(gw, seat, `house_temper_${st.step}`, st.leader ?? undefined);
+    reason(gw, seat, `house_temper_${st.step}`, whoOf(st));
   }
   if (st.step < was && st.step <= 1 && was >= 2) {
-    reason(gw, seat, "house_temper_down", st.leader ?? undefined);
+    reason(gw, seat, "house_temper_down", whoOf(st));
   }
 }
 
@@ -352,7 +361,7 @@ function settleDeals(gw: GreatWar, seat: GwSeatState, st: GwFactionState) {
     if (p === undefined) return false;
     if (p.kept) {
       st.heat = Math.max(0, st.heat - 2);
-      reason(gw, seat, "house_deal_kept", st.leader ?? undefined);
+      reason(gw, seat, "house_deal_kept", whoOf(st));
       return false;
     }
     if (p.broken) {
@@ -388,7 +397,7 @@ function splitsAndJoins(gw: GreatWar, seat: GwSeatState): void {
         }
         into.leader = factionLeader(gw, seat, sp.into);
         if (sp.scene !== undefined) call(seat, sp.scene, gw.s.chapter + 1);
-        reason(gw, seat, "house_split", into.leader ?? undefined);
+        reason(gw, seat, "house_split", whoOf(into));
         house.story = {
           kind: "split",
           faction: sp.into,
@@ -421,7 +430,7 @@ function splitsAndJoins(gw: GreatWar, seat: GwSeatState): void {
       into.strength = clampTo(sum, 1, GW_FACTION_STRENGTH_MAX);
       into.leader = factionLeader(gw, seat, jn.into);
       if (jn.scene !== undefined) call(seat, jn.scene, gw.s.chapter + 1);
-      reason(gw, seat, "house_joined", into.leader ?? undefined);
+      reason(gw, seat, "house_joined", whoOf(into));
       house.story = { kind: "joined", faction: jn.into, chapter: gw.s.chapter };
       news(gw, "house_joined", seat.tag);
     } else if (
@@ -751,12 +760,7 @@ export function houseRefused(
   for (const row of factionRows(seat.tag)) {
     if (sideOf(gw, seat, bill, st, row.id).side <= 0) continue;
     heatBy(gw, seat, row.id, 2);
-    reason(
-      gw,
-      seat,
-      "house_refused_by",
-      factionOf(seat, row.id)?.leader ?? undefined,
-    );
+    reason(gw, seat, "house_refused_by", whoOf(factionOf(seat, row.id)));
   }
   reason(gw, seat, "house_refused");
 }
@@ -786,7 +790,7 @@ function vote(
     const f = factionOf(seat, row.id);
     if (f?.status !== "in") continue;
     const { side, broke } = sideOf(gw, seat, bill, st, row.id);
-    const who = f.leader ?? undefined;
+    const who = whoOf(f);
     if (st.warm.includes(row.id) && side > 0) {
       reason(gw, seat, "house_warmed", who);
     }
@@ -1243,7 +1247,7 @@ export function houseEffect(ctx: SceneCtx, e: HouseEffect): void {
       if (f === null || f.status === "under") return;
       f.status = "under";
       f.since = gw.s.chapter;
-      reason(gw, seat, "house_under", f.leader ?? undefined);
+      reason(gw, seat, "house_under", whoOf(f));
       return;
     }
     case "deal":
@@ -1253,12 +1257,7 @@ export function houseEffect(ctx: SceneCtx, e: HouseEffect): void {
       if (!houseHolds(ctx, { is: "amendable", id: e.id })) return;
       const m = movingBill(gw, seat)!;
       m.st.text = factionRow(e.id)!.amends![m.st.id];
-      reason(
-        gw,
-        seat,
-        "house_amended",
-        factionOf(seat, e.id)?.leader ?? undefined,
-      );
+      reason(gw, seat, "house_amended", whoOf(factionOf(seat, e.id)));
       return;
     }
     case "bill_answer": {
