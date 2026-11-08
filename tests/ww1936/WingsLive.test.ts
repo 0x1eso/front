@@ -331,6 +331,24 @@ function hand(g: Game): void {
       .sort((a, b) => sc.regionKm(b, from) - sc.regionKm(a, from))[0];
     econ.addBuilding(far, "air_base", 2);
   }
+  if (t > T(121) && t <= T(200) && (t - START) % 15 === 0) {
+    // A forward base with the followed army while its wing is out of reach,
+    // as a player builds behind an advance: the move-up needs a free base in
+    // reach of the battles, and the army now fights its way deep into Poland,
+    // beyond every base the stage put down before (ww164).
+    const w = air.wings.get(stage.casWing);
+    const a = w === undefined ? undefined : land.armies.get(w.follow);
+    if (w !== undefined && a !== undefined) {
+      const r = land.armyRegion(a);
+      if (
+        land.controller[r] === deu &&
+        econ.buildingArray("air_base")[r] === 0 &&
+        sc.targetKm(w.base, r) > wingStats(air, w).rangeKm
+      ) {
+        econ.addBuilding(r, "air_base", 2);
+      }
+    }
+  }
   if (t === T(149)) {
     // The train: a damaged railway next to fresh divisions at the capital.
     const cap = ww.capitalRegion(deu);
