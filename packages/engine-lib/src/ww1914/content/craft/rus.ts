@@ -335,7 +335,9 @@ const labour = (
   stage: ["war"],
   when: all(throne, footingAt(1), when),
   once: true,
-  salience: 5,
+  // 5 lost every draw to the war desk in bot runs (eligible 8-14 chapters,
+  // dealt never); 7 as Germany's labour scenes.
+  salience: 7,
   tags: ["home"],
   cast,
   variants: [{ id: "base" }],

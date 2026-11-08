@@ -123,6 +123,21 @@ describe("the rows", () => {
       expect(craftProblems(GW_CONTENT, tag, pack)).toEqual([]);
     },
   );
+
+  // Bot runs (ww157 merge): at salience 5 Russia's labour scenes held for
+  // 8-14 chapters a game and never won a draw against the war desk.
+  test.each(["deu", "gbr", "auh", "rus"])(
+    "%s's labour scenes can win a war desk's draw",
+    (tag) => {
+      const labour = GW_CONTENT.scenes.filter((s) =>
+        s.id.startsWith(`${tag}_lb_`),
+      );
+      expect(labour.length).toBeGreaterThan(0);
+      for (const s of labour) {
+        expect([s.id, s.salience >= 6]).toEqual([s.id, true]);
+      }
+    },
+  );
 });
 
 // ---- Fixture rows on the mini map, Germany ----
