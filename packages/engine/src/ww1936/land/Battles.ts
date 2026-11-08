@@ -129,6 +129,7 @@ import {
 import { generalOf } from "./GeneralsRun";
 import { startHopInto, stopDivision } from "./Movement";
 import { capture } from "./Occupation";
+import { noteEquipLoss } from "./Sustain";
 import { Battle, SPREAD_BATTLE, SPREAD_REVERT, type WwLand } from "./WwLand";
 
 const DESTROYED_KEY = "events_display.ww1936_divisions_destroyed" as const;
@@ -1471,6 +1472,8 @@ export function applyHpLoss(land: WwLand, row: number, hpMilli: number): void {
     const k = Math.min(have, Math.floor(m / 1000));
     t.lossEq[base + j] = k === have ? 0 : m - k * 1000;
     if (k > 0) eq[base + j] = have - k;
+    // ww162 L3: the loss ring the line planner reads.
+    if (k > 0) noteEquipLoss(land, owner, j, k, land.day());
     if (k > 0 && bt !== undefined) {
       bt.capEq ??= new Array<number>(2 * GROUND_SLOTS).fill(0);
       bt.capEq[side + j] += k * 1000;

@@ -20,10 +20,13 @@ import {
 import type { WwStatKey } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import { HOSPITAL_ATTRITION_PCT } from "@openfront/engine-lib/ww1936/CombatRules";
+import { PLAN_LOSS_DAYS } from "@openfront/engine-lib/ww1936/EconomyRules";
 import { breakdownPpm } from "@openfront/engine-lib/ww1936/hist/Wear";
 import {
+  equipByType,
   isTankGroup,
   oldInfoOf,
+  slotGroup,
 } from "@openfront/engine-lib/ww1936/TemplateStats";
 import {
   drawEquip,
@@ -43,7 +46,7 @@ import {
   reinforceCap,
   TYPE_SLOTS,
 } from "./Training";
-import type { WwLand } from "./WwLand";
+import type { Army, CountryLand, WwLand } from "./WwLand";
 
 /** Spec §5.3: daily attrition below this supply rate, ‰. */
 export const ATTRITION_SUPPLY_PM = 500;
@@ -74,6 +77,9 @@ export function dailySustain(land: WwLand, smallID: number, day: number): void {
   const cl = land.country(smallID);
   const ce = land.econ.country(smallID);
   if (cl === null || ce === null) return;
+  // ww162 L3: tomorrow's slot of the loss ring starts empty (today's keeps
+  // filling until tomorrow's step).
+  clearLossDay(cl, day + 1);
   // Spec §5.1: training, then one message for the day's new divisions.
   const ready = dailyTraining(land, cl, ce);
   cl.readyToday = ready;
@@ -89,7 +95,9 @@ export function dailySustain(land: WwLand, smallID: number, day: number): void {
   // P6 hook (D, spec §4.6): the armies' reinforcement priority first; the
   // rest of the day (attrition, experience) touches no stock, so it may run
   // in row order after.
-  const order = land.depthHooks.reinforceOrder(smallID);
+  // ww162 L3 (Design A §2.3): inside a priority, the fight first.
+  const hooked = land.depthHooks.reinforceOrder(smallID);
+  const order = hooked === null ? null : fightFirst(land, hooked);
   // The generation swap's plan, once for the country's day (null: nothing
   // old is held where better stock waits; no division row is touched).
   const plan = swapPlanOf(land, ce, smallID);
@@ -354,8 +362,114 @@ function attrition(land: WwLand, r: number, day: number): void {
       Math.floor((have * wear) / 1000);
     const lost = Math.min(have, Math.floor(t.lossEq[base + j] / 1000));
     t.lossEq[base + j] -= lost * 1000;
-    if (lost > 0) land.addEquip(r, j, -lost);
+    if (lost > 0) {
+      land.addEquip(r, j, -lost);
+      noteEquipLoss(land, t.owner[r], j, lost, day);
+    }
   }
+}
+
+// ---- ww162 L3 (Design A §2.2, §2.3, §3): losses, the draw order, the army's shortage ----
+
+/**
+ * Equipment a division of `owner` lost from slot `j` (GROUND_SLOTS index)
+ * on `day`, into its need group's column of the loss ring.
+ */
+export function noteEquipLoss(
+  land: WwLand,
+  owner: number,
+  j: number,
+  units: number,
+  day: number,
+): void {
+  if (units <= 0) return;
+  const cl = land.country(owner);
+  if (cl === null) return;
+  const g = slotGroup(land.keyStatsOf(owner), j);
+  if (g < 0 || g >= NEED_GROUP_COUNT) return;
+  if (cl.lossRing.length === 0) {
+    cl.lossRing = new Array<number>(PLAN_LOSS_DAYS * NEED_GROUP_COUNT).fill(0);
+  }
+  cl.lossRing[lossDayOf(day) * NEED_GROUP_COUNT + g] += units;
+}
+
+/** The ring's slot of `day`. */
+function lossDayOf(day: number): number {
+  return ((day % PLAN_LOSS_DAYS) + PLAN_LOSS_DAYS) % PLAN_LOSS_DAYS;
+}
+
+/** Empties `day`'s slot of the ring (it last held the day PLAN_LOSS_DAYS before). */
+function clearLossDay(cl: CountryLand, day: number): void {
+  if (cl.lossRing.length === 0) return;
+  cl.lossRing.fill(
+    0,
+    lossDayOf(day) * NEED_GROUP_COUNT,
+    (lossDayOf(day) + 1) * NEED_GROUP_COUNT,
+  );
+}
+
+/** Units lost per need group over the ring's days (NEED_GROUPS order). */
+export function lossesOf(cl: CountryLand): number[] {
+  const out = new Array<number>(NEED_GROUP_COUNT).fill(0);
+  const ring = cl.lossRing;
+  for (let i = 0; i < ring.length; i++) out[i % NEED_GROUP_COUNT] += ring[i];
+  return out;
+}
+
+/** The fight classes of the draw order, first to last. */
+const DRAW_BATTLE = 0;
+const DRAW_PLAN_ZONE = 1;
+const DRAW_ZONE = 2;
+const DRAW_REST = 3;
+
+/**
+ * Design A §2.3: the reinforcement draw order. The armies' priority still
+ * comes first (high, normal, low); inside one, divisions in battle, then
+ * the zone holders of plan armies, then other zone holders, then the
+ * rest, each in the order given (division id).
+ */
+export function fightFirst(land: WwLand, ids: readonly number[]): number[] {
+  const t = land.divisions;
+  const keyed = ids.map((id, k) => {
+    const r = t.rowOf(id);
+    if (r < 0) return { id, k, key: 3 * 4 + DRAW_REST };
+    const a = t.army[r] === 0 ? undefined : land.armies.get(t.army[r]);
+    const tier = 2 - Math.max(0, Math.min(2, a?.priority ?? 1));
+    let cls = DRAW_REST;
+    if (t.battle[r] !== 0) cls = DRAW_BATTLE;
+    else if (a !== undefined && a.front.includes(t.region[r])) {
+      cls = a.order.kind === "plan" ? DRAW_PLAN_ZONE : DRAW_ZONE;
+    }
+    return { id, k, key: tier * 4 + cls };
+  });
+  keyed.sort((x, y) => x.key - y.key || x.k - y.k);
+  return keyed.map((x) => x.id);
+}
+
+/**
+ * Design A §3: the army's two shortest need groups, [NEED_GROUPS index,
+ * units missing] (the most missing first, ties: the lower group), summed
+ * per division as max(0, need − held). Empty when nothing is short.
+ */
+export function armyShort(land: WwLand, a: Army): [number, number][] {
+  const t = land.divisions;
+  const ks = land.keyStatsOf(a.owner);
+  const short = new Array<number>(NEED_GROUP_COUNT).fill(0);
+  for (const id of a.divisions) {
+    const r = t.rowOf(id);
+    if (r < 0) continue;
+    const need = land.baseStatsOf(r).need;
+    const held = equipByType(t.equipOf(r), ks);
+    for (let g = 0; g < need.length; g++) {
+      if (need[g] > held[g]) short[g] += need[g] - held[g];
+    }
+  }
+  const out: [number, number][] = [];
+  for (let g = 0; g < NEED_GROUP_COUNT; g++) {
+    if (short[g] > 0) out.push([g, short[g]]);
+  }
+  out.sort((x, y) => y[1] - x[1] || x[0] - y[0]);
+  return out.slice(0, 2);
 }
 
 /** Disband (spec §5.3): men and equipment back, then the division goes. Orders call it. */
