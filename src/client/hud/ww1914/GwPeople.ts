@@ -3,6 +3,7 @@ import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
 import type { GwCtx } from "./GwCtx";
 import { rich } from "./GwDict";
+import { gwFace } from "./GwFace";
 import {
   appointable,
   dismissal,
@@ -117,11 +118,27 @@ function dismissButton(c: GwCtx, p: GwPersonView): TemplateResult {
       : nothing}`;
 }
 
+/** A 36 px face beside the name, or the initial in the same circle. */
+function rowFace(c: GwCtx, id: string, name: string): TemplateResult {
+  return gwFace(
+    c.faces,
+    id,
+    translateText("gw.ui.face_alt", { name }),
+    "h-9 w-9",
+    html`<span
+      class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/30 bg-white/10 text-sm font-bold"
+      aria-hidden="true"
+      >${name.replace(/\s+/g, "").slice(0, 1)}</span
+    >`,
+  );
+}
+
 function row(c: GwCtx, p: GwPersonView): TemplateResult {
   const open = c.ui.openPerson === p.id;
   const lean = personLean(c.pack, p.id);
   const bio = personBio(c.pack, p.id);
   const offices = appointable(c.seat, p);
+  const name = personName(c.pack, p.id);
   return html`<section
     data-gw-person=${p.id}
     class="rounded border border-white/15 bg-black/35 p-2.5"
@@ -134,10 +151,9 @@ function row(c: GwCtx, p: GwPersonView): TemplateResult {
         c.redraw();
       }}
     >
+      ${rowFace(c, p.id, name)}
       <span class="min-w-0 flex-1">
-        <span class="block truncate text-sm font-bold"
-          >${personName(c.pack, p.id)}</span
-        >
+        <span class="block truncate text-sm font-bold">${name}</span>
         <span class="${MUTED} block truncate"
           >${p.office === null
             ? translateText("gw.ui.no_office")

@@ -162,6 +162,8 @@ export interface GwCtx {
   data: GreatWarData;
   seat: GwSeatView;
   pack: GwPack | null;
+  /** Person ids with a photograph; none, or absent, draws monograms. */
+  faces?: ReadonlySet<string>;
   ui: GwUi;
   map?: GwMapApi | null;
   tick: number;

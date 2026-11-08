@@ -3938,6 +3938,7 @@
       "dismiss_sure": "Tap again to dismiss",
       "ending_default": "The game has ended",
       "era": "Period",
+      "face_alt": "Photograph of {name}",
       "fact": {
         "ally": "mood",
         "count": "vote outlook",

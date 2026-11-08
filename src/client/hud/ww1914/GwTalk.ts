@@ -7,6 +7,7 @@ import { translateText } from "../../Utils";
 import type { GwCtx, GwUi, Transcript } from "./GwCtx";
 import { briefLine, pastLine, rich } from "./GwDict";
 import { newPass, TextPass } from "./GwDictModel";
+import { gwFace } from "./GwFace";
 import { groupReplies, trustIndex } from "./GwModel";
 import { BTN, CHIP, MUTED } from "./GwStyle";
 import {
@@ -98,14 +99,30 @@ function monogram(name: string): string {
   return name.replace(/\s+/g, "").slice(0, 1);
 }
 
-/** Someone in the years before 1914: a name, and who they were then. */
-function pastPlate(name: string, as: string | null): TemplateResult {
-  return html`<div
+/** The person's photograph in the 64 px circle, or their initial. */
+function face(c: GwCtx, who: string, name: string): TemplateResult {
+  return gwFace(
+    c.faces,
+    who,
+    translateText("gw.ui.face_alt", { name }),
+    "h-16 w-16",
+    html`<div
       class="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border border-white/30 bg-white/10 text-2xl font-bold"
       aria-hidden="true"
     >
       ${monogram(name)}
-    </div>
+    </div>`,
+  );
+}
+
+/** Someone in the years before 1914: a name, and who they were then. */
+function pastPlate(
+  c: GwCtx,
+  who: string,
+  name: string,
+  as: string | null,
+): TemplateResult {
+  return html`${face(c, who, name)}
     <div class="min-w-0">
       <h2 class="text-xl font-bold leading-tight" data-gw-who>${name}</h2>
       ${as === null
@@ -132,21 +149,17 @@ function pastHead(c: GwCtx, first: GwCardView): TemplateResult {
   </div>`;
 }
 
-/** Who sits across: initial, name, office and lean, how they stand with you. */
+/** Who sits across: face, name, office and lean, how they stand with you. */
 function plate(
   c: GwCtx,
+  who: string,
   name: string,
   lean: string,
   person: GwSeatView["people"][number] | undefined,
   trust: number,
 ): TemplateResult {
   const office = person?.office ?? null;
-  return html`<div
-      class="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border border-white/30 bg-white/10 text-2xl font-bold"
-      aria-hidden="true"
-    >
-      ${monogram(name)}
-    </div>
+  return html`${face(c, who, name)}
     <div class="min-w-0">
       <h2 class="text-xl font-bold leading-tight" data-gw-who>${name}</h2>
       <div class="text-sm text-white/70">
@@ -235,8 +248,8 @@ export function talkView(
         ${who === ""
           ? nothing
           : past
-            ? pastPlate(name, pastOf(c.pack, first, who).as)
-            : plate(c, name, lean, person, trust)}
+            ? pastPlate(c, who, name, pastOf(c.pack, first, who).as)
+            : plate(c, who, name, lean, person, trust)}
         ${past
           ? nothing
           : html`<button

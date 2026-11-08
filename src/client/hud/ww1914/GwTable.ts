@@ -11,11 +11,13 @@ import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
 import type { GwCtx } from "./GwCtx";
 import { rich } from "./GwDict";
+import { gwFace } from "./GwFace";
 import { BTN, BTN_ON, CHIP, GLASS, HEAD, MUTED } from "./GwStyle";
 import {
   aideLines,
   countryName,
   envoyName,
+  envoyPerson,
   envoyTitle,
   GW_MAP_INK,
   landsOf,
@@ -504,6 +506,24 @@ function latest(t: GwTableView): GwTableLine | undefined {
   return t.lines[t.lines.length - 1];
 }
 
+/** The speaker's 32 px face; nothing for a chair without one. */
+function envoyFace(
+  c: GwCtx,
+  who: GwTag,
+  t: GwTableView,
+  name: string,
+): TemplateResult | typeof nothing {
+  const id = envoyPerson(who, t, c.seat);
+  if (id === null) return nothing;
+  return gwFace(
+    c.faces,
+    id,
+    translateText("gw.ui.face_alt", { name }),
+    "h-8 w-8",
+    html``,
+  );
+}
+
 /** Who is speaking now, across the bottom of the map. */
 export function speech(c: GwCtx): TemplateResult | typeof nothing {
   const t = c.seat.table;
@@ -514,6 +534,7 @@ export function speech(c: GwCtx): TemplateResult | typeof nothing {
   if (c.ui.tab !== "table") return nothing;
   const text = lineText(c.pack, t, line);
   const talking = !t.done && t.due === null;
+  const name = envoyName(c.pack, line.who, t, c.seat);
   return html`<div
     class="${GLASS} pointer-events-auto fixed bottom-[calc(42vh+0.5rem)] left-2 right-14 z-[897] rounded p-2.5 text-white sm:bottom-3 sm:left-[416px] sm:right-3 sm:mx-auto sm:max-w-[720px]"
     data-gw-speech
@@ -521,10 +542,8 @@ export function speech(c: GwCtx): TemplateResult | typeof nothing {
     data-gw-word=${line.word}
   >
     <div class="flex items-center gap-2">
-      ${flag(line.who)}
-      <span class="text-sm font-bold" data-gw-envoy=${line.who}
-        >${envoyName(c.pack, line.who, t, c.seat)}</span
-      >
+      ${envoyFace(c, line.who, t, name)} ${flag(line.who)}
+      <span class="text-sm font-bold" data-gw-envoy=${line.who}>${name}</span>
       <span class=${MUTED}>${envoyTitle(c.pack, line.who, c.seat)}</span>
       ${talking
         ? html`<button

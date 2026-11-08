@@ -1,0 +1,1717 @@
+{
+  "version": 1,
+  "faces": [
+    {
+      "id": "auh_adler",
+      "url": "https://commons.wikimedia.org/wiki/File:Victor_Adler_(ca_1900).jpg",
+      "author": "Albert Voisard",
+      "date": "c. 1900 (title of the file: Victor Adler (ca 1900))",
+      "licence": ["PD-old-70-expired"],
+      "crop": [0, 1, 459, 459]
+    },
+    {
+      "id": "auh_andrassy",
+      "url": "https://commons.wikimedia.org/wiki/File:Ifj._gr%C3%B3f_Andr%C3%A1ssy_Gyula.jpg",
+      "author": "Unknown author Unknown author",
+      "date": "cc. 1920",
+      "licence": ["PD-old"],
+      "crop": [0, 61, 1586, 1586]
+    },
+    {
+      "id": "auh_arz",
+      "url": "https://commons.wikimedia.org/wiki/File:General_der_Infanterie_Arz_von_Strau%C3%9Fenburg.jpg",
+      "author": "unknown (Österreichische Nationalbibliothek - Austrian National Library)",
+      "date": "1914",
+      "licence": ["PD-old", "PD-Hungary"],
+      "crop": [144, 0, 439, 439]
+    },
+    {
+      "id": "auh_beck",
+      "url": "https://commons.wikimedia.org/wiki/File:Beck_Rzikowsky_Friedrich_GO_1830_1920.jpg",
+      "author": "Unidentified photographer",
+      "date": "Photo made around 1890.",
+      "licence": ["PD-old"],
+      "crop": [38, 0, 379, 379]
+    },
+    {
+      "id": "auh_berchtold",
+      "url": "https://commons.wikimedia.org/wiki/File:Graaf_Leopold_Berchtold,_minister_van_Buitenlandse_Zaken_van_Oostenrijk-Hongarije,_SFA022000199.jpg",
+      "author": "Unknown author Unknown author",
+      "date": "1912",
+      "licence": ["PD-anon-70-EU", "PD-US"],
+      "crop": [216, 616, 1828, 1828]
+    },
+    {
+      "id": "auh_bilinski",
+      "url": "https://commons.wikimedia.org/wiki/File:Bilinski.jpg",
+      "author": "Charles Scolik",
+      "date": "1920",
+      "licence": ["PD-old-auto-expired"],
+      "crop": [459, 113, 995, 995]
+    },
+    {
+      "id": "auh_bolfras",
+      "url": "https://commons.wikimedia.org/wiki/File:General_Artur_Bolfras_1914_A._Huber.png",
+      "author": "Anton Huber",
+      "date": "1914",
+      "licence": ["PD-old-auto-expired"],
+      "crop": [184, 0, 397, 397]
+    },
+    {
+      "id": "auh_boroevic",
+      "url": "https://commons.wikimedia.org/wiki/File:Austro-Hungarian_Field_Marshall_Svetozar_Boroevi%C4%87,_Baron_Boro%C3%ABvi%C4%87_von_Bojna,_WWI_(49508673641).jpg",
+      "author": "Eugen Schöfer",
+      "date": "by 1912",
+      "licence": ["PD-old-auto-expired"],
+      "crop": [2, 54, 1867, 1867]
+    },
+    {
+      "id": "auh_burian",
+      "url": "https://commons.wikimedia.org/wiki/File:Stephan_Freiherr_von_Burian_1915_Charles_Scolik.png",
+      "author": "Charles Scolik",
+      "date": "by 1915",
+      "licence": ["PD-old-auto-1923"],
+      "crop": [137, 88, 850, 850]
+    },
+    {
+      "id": "auh_clam",
+      "url": "https://commons.wikimedia.org/wiki/File:Count_Heinrich_Clam-Martinic.jpg",
+      "author": "Unknown author Unknown author",
+      "date": "circa 1910",
+      "licence": ["PD-old"],
+      "crop": [146, 38, 215, 215]
+    },
+    {
+      "id": "auh_conrad",
+      "url": "https://commons.wikimedia.org/wiki/File:HOTZENDORF,_GEN._CONRAD_VON._GENERAL_STAFF,_GERMANY_(cropped).jpg",
+      "author": "Harris & Ewing Collection",
+      "date": "1914",
+      "licence": ["PD-Harris-Ewing", "PD-old-70-1923"],
+      "crop": [394, 0, 5146, 5146]
+    },
+    {
+      "id": "auh_czernin",
+      "url": "https://commons.wikimedia.org/wiki/File:Graf_Ottokar_Czernin_(1872%E2%80%931932)_1918.jpg",
+      "author": "Carl Pietzner",
+      "date": "by 10 February 1918",
+      "licence": ["PD-old-auto-1923"],
+      "crop": [519, 176, 635, 635]
+    },
+    {
+      "id": "auh_ff",
+      "url": "https://commons.wikimedia.org/wiki/File:Franz_Ferdinand,_Erzherzog_von_%C3%96sterreich-Este_(cropped).jpg",
+      "author": "Atelier Adèle",
+      "date": "1913",
+      "licence": ["PD-anon-70-EU", "PD-US-expired"],
+      "crop": [277, 0, 567, 567]
+    },
+    {
+      "id": "auh_franz_joseph",
+      "url": "https://commons.wikimedia.org/wiki/File:Franz_Joseph_I_of_Austria.1910_(cropped).jpg",
+      "author": "Carl Pietzner",
+      "date": "1910",
+      "licence": ["PD-old-auto-expired"],
+      "crop": [169, 0, 1104, 1104]
+    },
+    {
+      "id": "auh_friedrich",
+      "url": "https://commons.wikimedia.org/wiki/File:Grand_Duke_Friedrich_-_Austria_LCCN2014694986.jpg",
+      "author": "Bain News Service, publisher",
+      "date": "1910",
+      "licence": ["PD-Bain", "PD-old-70-1923"],
+      "crop": [806, 597, 3312, 3312]
+    },
+    {
+      "id": "auh_haus",
+      "url": "https://commons.wikimedia.org/wiki/File:Anton_Haus.jpg",
+      "author": "Carl Pietzner",
+      "date": "1914",
+      "licence": ["PD-old"],
+      "crop": [0, 14, 303, 303]
+    },
+    {
+      "id": "auh_horthy",
+      "url": "https://commons.wikimedia.org/wiki/File:Linienschiffskapit%C3%A4n_Nikolaus_Horthy_von_Nagy-Banya_1915_C._Pietzner.png",
+      "author": "Carl Pietzner",
+      "date": "by 1915",
+      "licence": ["PD-old-auto-1923"],
+      "crop": [77, 113, 747, 747]
+    },
+    {
+      "id": "auh_karl",
+      "url": "https://commons.wikimedia.org/wiki/File:Karl_I.,_Kaiser_von_%C3%96sterreich_(1887-1922).jpg",
+      "author": "Hermann Clemens Kosel",
+      "date": "1917",
+      "licence": ["PD-old-auto-expired"],
+      "crop": [9, 0, 540, 540]
+    },
+    {
+      "id": "auh_karolyi",
+      "url": "https://commons.wikimedia.org/wiki/File:K%C3%A1rolyi_Mih%C3%A1ly_k%C3%B6zt%C3%A1rsas%C3%A1gi_eln%C3%B6k.png",
+      "author": "Révész és Bíró",
+      "date": "1919",
+      "licence": ["PD-old", "PD-Hungary"],
+      "crop": [139, 17, 859, 859]
+    },
+    {
+      "id": "auh_ketterl",
+      "url": "https://commons.wikimedia.org/wiki/File:Der_Kammerdiener_Eugen_Ketterl,_von_Theodor_Zasche.jpg",
+      "author": "Theo Zasche",
+      "date": "before 1898",
+      "licence": ["PD-old-70"],
+      "crop": [802, 305, 277, 277]
+    },
+    {
+      "id": "auh_koerber",
+      "url": "https://commons.wikimedia.org/wiki/File:Ernest_von_Koerber_1905_GT%C3%96_C._Pietzner.png",
+      "author": "Carl Pietzner",
+      "date": "by 1905",
+      "licence": ["PD-old-auto-1923"],
+      "crop": [98, 39, 585, 585]
+    },
+    {
+      "id": "auh_korosec",
+      "url": "https://commons.wikimedia.org/wiki/File:Koro%C5%A1ec_Anton.png",
+      "author": "Verwaist",
+      "date": "before 1907",
+      "licence": ["PD-anon-expired"],
+      "crop": [0, 73, 539, 539]
+    },
+    {
+      "id": "auh_kramar",
+      "url": "https://commons.wikimedia.org/wiki/File:Karel_Kram%C3%A1%C5%99_1920s.jpg",
+      "author": "Unknown author Unknown author",
+      "date": "before 1928",
+      "licence": ["PD-anon-70-EU", "PD-old"],
+      "crop": [0, 28, 1496, 1496]
+    },
+    {
+      "id": "auh_krobatin",
+      "url": "https://commons.wikimedia.org/wiki/File:Krobatin_Alexander_FM_1849_1933_photo.jpg",
+      "author": "Unknown author Unknown author",
+      "date": "1914",
+      "licence": ["PD-old"],
+      "crop": [1, 0, 431, 431]
+    },
+    {
+      "id": "auh_lammasch",
+      "url": "https://commons.wikimedia.org/wiki/File:Heinrich_Lammasch_(1853%E2%80%931920)_by_Isidor_Hark%C3%A1nyi.jpg",
+      "author": "Isidor Harkányi (1852–1932)",
+      "date": "by 3 November 1918",
+      "licence": ["PD-old-auto-1923"],
+      "crop": [71, 41, 848, 848]
+    },
+    {
+      "id": "auh_montenuovo",
+      "url": "https://commons.wikimedia.org/wiki/File:Alfred_von_montenuovo_1902.png",
+      "author": "Wilhelm J. Burger",
+      "date": "1902",
+      "licence": ["PD-old"],
+      "crop": [158, 0, 297, 297]
+    },
+    {
+      "id": "auh_pilsudski",
+      "url": "https://commons.wikimedia.org/wiki/File:Mar%C3%A9chal_Pilsudski_-_btv1b9038321t.jpg",
+      "author": "Agence de presse Meurisse. Agence photographique (commanditaire)",
+      "date": "1921",
+      "licence": ["PD-France", "PD-1996"],
+      "crop": [1012, 277, 2632, 2632]
+    },
+    {
+      "id": "auh_potiorek",
+      "url": "https://commons.wikimedia.org/wiki/File:Potiorek_oskar_fzm_1853_1933_photo2.jpg",
+      "author": "Carl Pietzner",
+      "date": "Photo made in 1914 .",
+      "licence": ["PD-old-80-expired"],
+      "crop": [237, 324, 998, 998]
+    },
+    {
+      "id": "auh_schratt",
+      "url": "https://commons.wikimedia.org/wiki/File:Katharina_Schratt_c1900.jpg",
+      "author": "Anonymous Unknown author",
+      "date": "circa 1900",
+      "licence": ["PD-old"],
+      "crop": [80, 216, 813, 813]
+    },
+    {
+      "id": "auh_sophie",
+      "url": "https://commons.wikimedia.org/wiki/File:Princess_Sophie_of_Hohenberg_LCCN2014695528.jpg",
+      "author": "Bain News Service, publisher",
+      "date": "1910",
+      "licence": ["PD-Bain", "PD-old-70-1923"],
+      "crop": [1053, 896, 1734, 1734]
+    },
+    {
+      "id": "auh_sturgkh",
+      "url": "https://commons.wikimedia.org/wiki/File:Karl_Graf_von_St%C3%BCrgkh.jpg",
+      "author": "Unknown author Unknown author",
+      "date": "1911",
+      "licence": ["PD-US"],
+      "crop": [155, 24, 220, 220]
+    },
+    {
+      "id": "auh_teleszky",
+      "url": "https://commons.wikimedia.org/wiki/File:Teleszky_J%C3%A1nos.JPEG",
+      "author": "István Goszleth",
+      "date": "1912",
+      "licence": ["PD-old-100"],
+      "crop": [6, 24, 417, 417]
+    },
+    {
+      "id": "auh_tisza",
+      "url": "https://commons.wikimedia.org/wiki/File:Portrait_of_Istv%C3%A1n_Tisza.jpg",
+      "author": "Adolf Szenes",
+      "date": "1915",
+      "licence": ["PD-old-auto-expired"],
+      "crop": [183, 61, 488, 488]
+    },
+    {
+      "id": "auh_valerie",
+      "url": "https://commons.wikimedia.org/wiki/File:Archduchess_Marie_Valerie_of_Austria.jpg",
+      "author": "Carl Pietzner",
+      "date": "1903",
+      "licence": ["PD-old"],
+      "crop": [177, 339, 1150, 1150]
+    },
+    {
+      "id": "auh_wekerle",
+      "url": "https://commons.wikimedia.org/wiki/File:PM_S%C3%A1ndor_Wekerle.jpg",
+      "author": "Adolf Szenes",
+      "date": "1918",
+      "licence": ["PD-old-auto-expired"],
+      "crop": [113, 0, 876, 876]
+    },
+    {
+      "id": "auh_wilhelm",
+      "url": "https://commons.wikimedia.org/wiki/File:Vyshyvanyi_01.jpg",
+      "author": "Unknown author Unknown author",
+      "date": "circa 1918",
+      "licence": ["PD-old"],
+      "crop": [0, 25, 382, 382]
+    },
+    {
+      "id": "auh_zita",
+      "url": "https://commons.wikimedia.org/wiki/File:Empress_Zita_of_Austria_-_Hungary.jpg",
+      "author": "Carl Pietzner",
+      "date": "1911-07-12",
+      "licence": ["PD-old-auto-expired"],
+      "crop": [181, 33, 252, 252]
+    },
+    {
+      "id": "bel_albert",
+      "url": "https://commons.wikimedia.org/wiki/File:Portrait_of_Albert_I_of_Belgium_(cropped).jpg",
+      "author": "Richard Speaight",
+      "date": "1917",
+      "licence": ["PD-old-auto-expired"],
+      "crop": [0, 12, 1234, 1234]
+    },
+    {
+      "id": "bgr_ferdinand",
+      "url": "https://commons.wikimedia.org/wiki/File:Zar_Ferdinand_Bulgarien.jpg",
+      "author": "Unknown author Unknown author",
+      "date": "1912",
+      "licence": ["PD-anon-70-EU"],
+      "crop": [267, 163, 532, 532]
+    },
+    {
+      "id": "bgr_radoslavov",
+      "url": "https://commons.wikimedia.org/wiki/File:BASA-237K-1-361-2-Vasil_Radoslavov.jpg",
+      "author": "Unknown author Unknown author",
+      "date": "before 1915",
+      "licence": ["PD-anon-70-EU"],
+      "crop": [0, 56, 925, 925]
+    },
+    {
+      "id": "che_ador",
+      "url": "https://commons.wikimedia.org/wiki/File:(6-9-24,_Gen%C3%A8ve,_r%C3%A9union_de_la_S.D.N.)_G(ustave)_Ador,_pr%C3%A9sident_(du_comit%C3%A9_international_de_la)_Croix_Rouge_(devant_l%27h%C3%B4tel_Victoria)_-_btv1b53136927v.jpg",
+      "author": "Agence Rol. Agence photographique (commanditaire)",
+      "date": "1924",
+      "licence": ["PD-France", "PD-1996", "PD-US-expired"],
+      "crop": [1871, 723, 1337, 1337]
+    },
+    {
+      "id": "deu_ballin",
+      "url": "https://commons.wikimedia.org/wiki/File:Albert_Ballin_2.jpg",
+      "author": "Unknown photographer Unknown photographer",
+      "date": "before 1918",
+      "licence": ["PD-old-expired"],
+      "crop": [0, 30, 1680, 1680]
+    },
+    {
+      "id": "deu_batocki",
+      "url": "https://commons.wikimedia.org/wiki/File:Adolf_Tortilowicz_von_Batocki-Friebe_1914_(cropped).jpg",
+      "author": "Nicola Perscheid",
+      "date": "circa 1914",
+      "licence": ["PD-old-auto-expired"],
+      "crop": [54, 0, 1057, 1057]
+    },
+    {
+      "id": "deu_bauer",
+      "url": "https://commons.wikimedia.org/wiki/File:OberstleutnantMaxBauer.jpg",
+      "author": "Berliner August Scherl Verlag",
+      "date": "1918",
+      "licence": ["PD-old"],
+      "crop": [122, 81, 387, 387]
+    },
+    {
+      "id": "deu_bernstorff",
+      "url": "https://commons.wikimedia.org/wiki/File:Johann_Heinrich_von_Bernstorff_1908.jpg",
+      "author": "Bain News Service, publisher",
+      "date": "1908",
+      "licence": ["PD-Bain", "PD-US"],
+      "crop": [22, 8, 344, 344]
+    },
+    {
+      "id": "deu_bethmann",
+      "url": "https://commons.wikimedia.org/wiki/File:Theobald_von_Bethmann_Hollweg_c._1909_(cropped).jpg",
+      "author": "Photographer not credited",
+      "date": "1909",
+      "licence": ["PD-old-auto-1923"],
+      "crop": [237, 65, 469, 469]
+    },
+    {
+      "id": "deu_brockdorff",
+      "url": "https://commons.wikimedia.org/wiki/File:Comte_(Ulrich_von)_Brockdorff-Rantzau,_ministre_allemand_des_Affaires_%C3%A9trang%C3%A8res,_d%C3%A9l%C3%A9gu%C3%A9_%C3%A0_la_conf%C3%A9rence_de_la_Paix_-_btv1b530161397.jpg",
+      "author": "Agence Rol. Agence photographique (commanditaire)",
+      "date": "1919",
+      "licence": ["PD-France", "PD-1996", "PD-US-expired"],
+      "crop": [0, 589, 3052, 3052]
+    },
+    {
+      "id": "deu_buelow",
+      "url": "https://commons.wikimedia.org/wiki/File:Bernhard_von_B%C3%BClow.jpg",
+      "author": "Bain News Service, publisher",
+      "date": "1908-11",
+      "licence": ["PD-Bain", "PD-US"],
+      "crop": [814, 40, 1805, 1805]
+    },
+    {
+      "id": "deu_capelle",
+      "url": "https://commons.wikimedia.org/wiki/File:Eduard_Von_Capelle.jpg",
+      "author": "Unknown author Unknown author",
+      "date": "1916",
+      "licence": ["PD-old-70-1923"],
+      "crop": [170, 138, 290, 290]
+    },
+    {
+      "id": "deu_cecilie",
+      "url": "https://commons.wikimedia.org/wiki/File:Cecilie_of_Mecklenburg-Schwerin_Crown_Princess_of_Germany_and_Prussia.jpg",
+      "author": "Unidentified photographer",
+      "date": "circa 1905",
+      "licence": ["PD-old"],
+      "crop": [165, 139, 442, 442]
+    },
+    {
+      "id": "deu_delbruck",
+      "url": "https://commons.wikimedia.org/wiki/File:Dr._Delbr%C3%BCck_LCCN2014699857.jpg",
+      "author": "Bain News Service, publisher",
+      "date": "1910",
+      "licence": ["PD-Bain", "PD-old-70-1923"],
+      "crop": [130, 93, 510, 510]
+    },
+    {
+      "id": "deu_ebert",
+      "url": "https://commons.wikimedia.org/wiki/File:Friedrich_Ebert_in_1918.jpg",
+      "author": "Hermann Noack",
+      "date": "probably between October 1918 and 28 December 1918",
+      "licence": ["PD-1923"],
+      "crop": [75, 58, 674, 674]
+    },
+    {
+      "id": "deu_empress",
+      "url": "https://commons.wikimedia.org/wiki/File:AUGUSTA_VICTORIA,_H.R.H._EMPRESS_OF_GERMANY,_BORN_IN_1858_LCCN2016865808.jpg",
+      "author": "Harris & Ewing Collection",
+      "date": "1914",
+      "licence": ["PD-Harris-Ewing", "PD-old-70-1923"],
+      "crop": [2430, 215, 2783, 2783]
+    },
+    {
+      "id": "deu_erzberger",
+      "url": "https://commons.wikimedia.org/wiki/File:Matthias_Erzberger_(links),_ex-minister_van_Financi%C3%ABn_van_de_Weimar-regering_in_Duitsland,_wordt,_SFA005001640.jpg",
+      "author": "Unknown author",
+      "date": "1920",
+      "licence": ["PD-anon-70-EU", "PD-US"],
+      "crop": [479, 649, 526, 526]
+    },
+    {
+      "id": "deu_eulenburg",
+      "url": "https://commons.wikimedia.org/wiki/File:Philipp_zu_Eulenburg.jpg",
+      "author": "Unknown author Unknown author",
+      "date": "1895",
+      "licence": ["PD-old"],
+      "crop": [0, 8, 327, 327]
+    },
+    {
+      "id": "deu_falkenhayn",
+      "url": "https://commons.wikimedia.org/wiki/File:Erich_von_Falkenhayn.jpg",
+      "author": "Albert Meyer",
+      "date": "1913",
+      "licence": ["PD-old-auto-expired"],
+      "crop": [158, 156, 1149, 1149]
+    },
+    {
+      "id": "deu_groener",
+      "url": "https://commons.wikimedia.org/wiki/File:General_Groener.jpg",
+      "author": "Bain News Service",
+      "date": "circa 1915",
+      "licence": ["PD-Bain"],
+      "crop": [0, 97, 982, 982]
+    },
+    {
+      "id": "deu_haase",
+      "url": "https://commons.wikimedia.org/wiki/File:Hugo_Haase_LCCN2014708068.jpg",
+      "author": "Bain News Service, publisher",
+      "date": "1915",
+      "licence": ["PD-Bain", "PD-old-70-1923"],
+      "crop": [0, 880, 4173, 4173]
+    },
+    {
+      "id": "deu_havenstein",
+      "url": "https://commons.wikimedia.org/wiki/File:R.E._Havenstein_LCCN2014716679.jpg",
+      "author": "Bain News Service, publisher",
+      "date": "1900",
+      "licence": ["PD-Bain", "PD-old-70-1923"],
+      "crop": [700, 0, 2037, 2037]
+    },
+    {
+      "id": "deu_heir",
+      "url": "https://commons.wikimedia.org/wiki/File:Kronprinz_Wilhelm_1._Leib-Husarenregiment.jpg",
+      "author": "E. Bieber",
+      "date": "1912/13",
+      "licence": ["PD-US"],
+      "crop": [82, 89, 342, 342]
+    },
+    {
+      "id": "deu_helfferich",
+      "url": "https://commons.wikimedia.org/wiki/File:Karl_Helfferich_LCCN2014701674.tif",
+      "author": "Bain News Service, publisher",
+      "date": "1915",
+      "licence": ["PD-Bain", "PD-old-70-1923"],
+      "crop": [797, 446, 2184, 2184]
+    },
+    {
+      "id": "deu_hertling",
+      "url": "https://commons.wikimedia.org/wiki/File:Georg_von_Hertling_portrait_(cropped).jpg",
+      "author": "Bruckmann, F. Originally uploaded to Wikimedia Commons by Rowanwindwhistler Cropped and reuploaded to Wikimedia Commons by Emiya1980",
+      "date": "1919",
+      "licence": ["PD-US"],
+      "crop": [80, 16, 217, 217]
+    },
+    {
+      "id": "deu_hindenburg",
+      "url": "https://commons.wikimedia.org/wiki/File:Paul_von_Hindenburg_(1914)_von_Nicola_Perscheid_(cropped).jpg",
+      "author": "Nicola Perscheid / Adam Cuerden",
+      "date": "1914",
+      "licence": ["PD-old-auto-expired"],
+      "crop": [193, 0, 2140, 2140]
+    },
+    {
+      "id": "deu_hintze",
+      "url": "https://commons.wikimedia.org/wiki/File:Paul_von_Hintze_1915.jpg",
+      "author": "Agence Rol",
+      "date": "1915",
+      "licence": ["PD-UK-unknown", "PD-US-1996"],
+      "crop": [161, 151, 1367, 1367]
+    },
+    {
+      "id": "deu_hoffmann",
+      "url": "https://commons.wikimedia.org/wiki/File:GeneralMaxHoffmann.jpg",
+      "author": "M. Hoffmann",
+      "date": "1913",
+      "licence": ["PD-old"],
+      "crop": [0, 166, 1183, 1183]
+    },
+    {
+      "id": "deu_holtzendorff",
+      "url": "https://commons.wikimedia.org/wiki/File:Henning_von_Holtzendorff_(cropped).jpg",
+      "author": "Hänse Hermann (photographer)",
+      "date": "1918",
+      "licence": ["PD-1923"],
+      "crop": [43, 27, 367, 367]
+    },
+    {
+      "id": "deu_jagow",
+      "url": "https://commons.wikimedia.org/wiki/File:Gottlieb_von_Jagow_LCCN2016865806.tif",
+      "author": "Harris & Ewing Collection",
+      "date": "1914",
+      "licence": ["PD-Harris-Ewing", "PD-old-70-1923"],
+      "crop": [2738, 1228, 2193, 2193]
+    },
+    {
+      "id": "deu_kuhlmann",
+      "url": "https://commons.wikimedia.org/wiki/File:BASA_600K-3-469-9_Richard_von_K%C3%BChlmann.jpg",
+      "author": "Unknown author Unknown author",
+      "date": "1918",
+      "licence": ["PD-anon-70-EU"],
+      "crop": [45, 83, 323, 323]
+    },
+    {
+      "id": "deu_lichnowsky",
+      "url": "https://commons.wikimedia.org/wiki/File:Karl_Max_F%C3%BCrst_Lichnowsky,_der_neue_deutsche_Botschafter_in_London,_1912.jpg",
+      "author": "Photographer not credited (Deutsche Illustrationsgesellschaft)",
+      "date": "1912",
+      "licence": ["PD-old"],
+      "crop": [227, 18, 547, 547]
+    },
+    {
+      "id": "deu_liebknecht",
+      "url": "https://commons.wikimedia.org/wiki/File:Karl_Liebknecht_portrait_(cropped).jpg",
+      "author": "Unknown author Unknown author",
+      "date": "before 1919",
+      "licence": ["PD-old"],
+      "crop": [0, 54, 1024, 1024]
+    },
+    {
+      "id": "deu_ludendorff",
+      "url": "https://commons.wikimedia.org/wiki/File:Erich_Ludendorff.jpg",
+      "author": "Alexander Binder",
+      "date": "1915–1920 (between ca. 1915 and ca. 1920) [1]",
+      "licence": ["PD-old-auto-1923", "PD-Bain"],
+      "crop": [335, 0, 3099, 3099]
+    },
+    {
+      "id": "deu_mackensen",
+      "url": "https://commons.wikimedia.org/wiki/File:General_Feldmarschall_August_Von_Mackensen.png",
+      "author": "Unknown author Unknown author",
+      "date": "between 1914 and 1915",
+      "licence": ["PD-old-auto-1923"],
+      "crop": [76, 146, 332, 332]
+    },
+    {
+      "id": "deu_margaret",
+      "url": "https://commons.wikimedia.org/wiki/File:Hessenin_Prinsessa_Margaret_-_Princess_Margaret_of_Prussia.jpg",
+      "author": "Thomas Heinrich Voigt",
+      "date": "circa 1906",
+      "licence": ["PD-old-expired"],
+      "crop": [129, 0, 241, 241]
+    },
+    {
+      "id": "deu_max_baden",
+      "url": "https://commons.wikimedia.org/wiki/File:Max_of_Baden_LCCN2014709299.jpg",
+      "author": "Bain News Service, publisher",
+      "date": "1915",
+      "licence": ["PD-Bain", "PD-old-70-1923"],
+      "crop": [0, 315, 4198, 4198]
+    },
+    {
+      "id": "deu_michaelis",
+      "url": "https://commons.wikimedia.org/wiki/File:Dr._Georg_Michaelis,_der_neue_Reichskanzler,_1917.jpg",
+      "author": "Elly Lisser / Elli Lisser (1883-1943)",
+      "date": "1917",
+      "licence": ["PD-old-auto-1923"],
+      "crop": [307, 0, 444, 444]
+    },
+    {
+      "id": "deu_moltke",
+      "url": "https://commons.wikimedia.org/wiki/File:Generalleutnant_von_Moltke,_der_neue_Chef_des_Generalstabs,_1906_(cropped).jpg",
+      "author": "E. Bieber",
+      "date": "1906",
+      "licence": ["PD-old-70-1923"],
+      "crop": [87, 0, 594, 594]
+    },
+    {
+      "id": "deu_muller",
+      "url": "https://commons.wikimedia.org/wiki/File:Admiral_Georg_Alexander_von_M%C3%BCller_(cropped).jpg",
+      "author": "Arthur Schulz (1864-1930)",
+      "date": "after 1912",
+      "licence": ["PD-old-80"],
+      "crop": [38, 0, 279, 279]
+    },
+    {
+      "id": "deu_parvus",
+      "url": "https://commons.wikimedia.org/wiki/File:Parvus_Alexander_(cropped).jpg",
+      "author": "Unknown photographer",
+      "date": "1906",
+      "licence": ["PD-old-100-1923", "PD-anon-1923", "PD-RusEmpire"],
+      "crop": [71, 0, 432, 432]
+    },
+    {
+      "id": "deu_pourtales",
+      "url": "https://commons.wikimedia.org/wiki/File:Friedrich_Pourtal%C3%A8s.tif",
+      "author": "Ernst Sandau",
+      "date": "circa 1915",
+      "licence": ["PD-old-auto-expired"],
+      "crop": [137, 0, 569, 569]
+    },
+    {
+      "id": "deu_rathenau",
+      "url": "https://commons.wikimedia.org/wiki/File:Walther_Rathenau.jpg",
+      "author": "Bain News Service",
+      "date": "c. 1913 (Bain caption number 3721-13; Rathenau d. 1922)",
+      "licence": ["PD-Bain", "PD-US"],
+      "crop": [573, 216, 2564, 2564]
+    },
+    {
+      "id": "deu_rupprecht",
+      "url": "https://commons.wikimedia.org/wiki/File:Rupprecht_von_Bayern.jpg",
+      "author": "Bernhard Dittmar",
+      "date": "circa 1914",
+      "licence": ["PD-old-auto-expired"],
+      "crop": [53, 29, 222, 222]
+    },
+    {
+      "id": "deu_scheer",
+      "url": "https://commons.wikimedia.org/wiki/File:Scheer.JPG",
+      "author": "Unknown author Unknown author",
+      "date": "1920",
+      "licence": ["PD-UK-unknown", "PD-1923", "PD-UK"],
+      "crop": [146, 0, 277, 277]
+    },
+    {
+      "id": "deu_scheidemann",
+      "url": "https://commons.wikimedia.org/wiki/File:Philip_Scheideman_(i.e._Philipp_Heinrich_Scheidemann).tif",
+      "author": "Bain News Service",
+      "date": "circa 1915–1920",
+      "licence": ["PD-US-expired"],
+      "crop": [419, 203, 3772, 3772]
+    },
+    {
+      "id": "deu_stein",
+      "url": "https://commons.wikimedia.org/wiki/File:Von_Stein_LCCN2014698029.jpg",
+      "author": "Bain News Service, publisher",
+      "date": "1910",
+      "licence": ["PD-Bain", "PD-old-70-1923"],
+      "crop": [244, 257, 3449, 3449]
+    },
+    {
+      "id": "deu_stresemann",
+      "url": "https://commons.wikimedia.org/wiki/File:Dr._Gustav_Stresemann.jpg",
+      "author": "International Newsreel",
+      "date": "08-13-1923",
+      "licence": ["PD-US-expired"],
+      "crop": [273, 0, 928, 928]
+    },
+    {
+      "id": "deu_tirpitz",
+      "url": "https://commons.wikimedia.org/wiki/File:German_Grand_Admiral_Alfred_von_Tirpitz_LOC_hec.04716.jpg",
+      "author": "Harris & Ewing Collection",
+      "date": "between 1913 and 1917",
+      "licence": ["PD-Harris-Ewing", "PD-old-70-1923"],
+      "crop": [2756, 845, 3391, 3391]
+    },
+    {
+      "id": "deu_tschirschky",
+      "url": "https://commons.wikimedia.org/wiki/File:Heinrich_Leonhard_von_Tschirschky_LOC_01127u.jpg",
+      "author": "Unknown author",
+      "date": "1906",
+      "licence": ["PD-US", "PD-Bain"],
+      "crop": [509, 222, 2838, 2838]
+    },
+    {
+      "id": "deu_valentini",
+      "url": "https://commons.wikimedia.org/wiki/File:Rudolf_von_Valentini.jpg",
+      "author": "Anonymous Unknown author",
+      "date": "circa 1918",
+      "licence": ["PD-old"],
+      "crop": [7, 0, 824, 824]
+    },
+    {
+      "id": "deu_wild",
+      "url": "https://commons.wikimedia.org/wiki/File:AdolfWildVonHohenborn_(cropped).jpg",
+      "author": "Albert Meyer",
+      "date": "circa 1920",
+      "licence": ["PD-1923", "PD-old"],
+      "crop": [26, 0, 459, 459]
+    },
+    {
+      "id": "deu_wilhelm",
+      "url": "https://commons.wikimedia.org/wiki/File:Wilhelm_II,_three-quarter_length_portrait,_standing,_facing_slightly_right_(3x4_cropped).jpg",
+      "author": "Miscellaneous Items in High Demand, PPOC, Library of Congress",
+      "date": "1913",
+      "licence": ["PD-old-70-1923"],
+      "crop": [640, 0, 943, 943]
+    },
+    {
+      "id": "deu_zimmermann",
+      "url": "https://commons.wikimedia.org/wiki/File:Artur_Zimmermann._Staatssekret%C3%A4r_des_Ausw%C3%A4rtigen_Amtes_(cropped).png",
+      "author": "Unknown author Unknown author",
+      "date": "1918",
+      "licence": ["PD-US-expired"],
+      "crop": [0, 86, 1151, 1151]
+    },
+    {
+      "id": "dnk_andersen",
+      "url": "https://commons.wikimedia.org/wiki/File:Hans_Niels_Andersen_by_Jens_Petersen_%26_S%C3%B8n.jpg",
+      "author": "Jens Petersen",
+      "date": "1880s",
+      "licence": ["PD-old-100"],
+      "crop": [49, 3, 3033, 3033]
+    },
+    {
+      "id": "esp_alfonso",
+      "url": "https://commons.wikimedia.org/wiki/File:Rey_Alfonso_XIII_de_Espa%C3%B1a,_by_Kaulak.jpg",
+      "author": "Kaulak",
+      "date": "1916",
+      "licence": ["PD-old-auto-1923"],
+      "crop": [725, 393, 740, 740]
+    },
+    {
+      "id": "fra_briand",
+      "url": "https://commons.wikimedia.org/wiki/File:Aristide_Briand.png",
+      "author": "Anonymous Unknown author",
+      "date": "1920s",
+      "licence": ["PD-anon-70-EU"],
+      "crop": [65, 0, 631, 631]
+    },
+    {
+      "id": "fra_cambon",
+      "url": "https://commons.wikimedia.org/wiki/File:Jules_Cambon_LCCN2014699534.tif",
+      "author": "Bain News Service, publisher",
+      "date": "1910",
+      "licence": ["PD-Bain", "PD-old-70-1923"],
+      "crop": [0, 162, 4135, 4135]
+    },
+    {
+      "id": "fra_clemenceau",
+      "url": "https://commons.wikimedia.org/wiki/File:Georges_Clemenceau_par_Nadar.jpg",
+      "author": "Paul Nadar",
+      "date": "1904",
+      "licence": ["PD-old-70-1923"],
+      "crop": [0, 1, 363, 363]
+    },
+    {
+      "id": "fra_foch",
+      "url": "https://commons.wikimedia.org/wiki/File:Ferdinand_Foch_pre_1915.jpg",
+      "author": "Unknown author",
+      "date": "entre 1908 et 1913",
+      "licence": ["PD-US", "PD-Bain"],
+      "crop": [13, 20, 418, 418]
+    },
+    {
+      "id": "fra_joffre",
+      "url": "https://commons.wikimedia.org/wiki/File:G%C3%A9n%C3%A9ral_Joffre_-_btv1b69316714.jpg",
+      "author": "Agence Rol. Agence photographique (commanditaire)",
+      "date": "1914",
+      "licence": ["PD-France", "PD-1996", "PD-US-expired"],
+      "crop": [219, 184, 1405, 1405]
+    },
+    {
+      "id": "fra_paleologue",
+      "url": "https://commons.wikimedia.org/wiki/File:Maurice_Paleologue.jpg",
+      "author": "Unknown author Unknown author",
+      "date": "1914",
+      "licence": ["PD-old"],
+      "crop": [497, 45, 241, 241]
+    },
+    {
+      "id": "fra_petain",
+      "url": "https://commons.wikimedia.org/wiki/File:Philippe_P%C3%A9tain_(before_1918).jpg",
+      "author": "Henri Manuel",
+      "date": "before 1918",
+      "licence": ["PD-old-auto-expired"],
+      "crop": [82, 53, 273, 273]
+    },
+    {
+      "id": "fra_poincare",
+      "url": "https://commons.wikimedia.org/wiki/File:Raymond_Poincar%C3%A9_officiel_(cropped).jpg",
+      "author": "Braun",
+      "date": "1913",
+      "licence": ["PD-1923"],
+      "crop": [135, 0, 691, 691]
+    },
+    {
+      "id": "gbr_asquith",
+      "url": "https://commons.wikimedia.org/wiki/File:H_H_Asquith_1908_(cropped).jpg",
+      "author": "Unknown author",
+      "date": "1908",
+      "licence": ["PD-old-auto-1923"],
+      "crop": [0, 201, 2145, 2145]
+    },
+    {
+      "id": "gbr_balfour",
+      "url": "https://commons.wikimedia.org/wiki/File:A.J._Balfour_LCCN2014699377.jpg",
+      "author": "Bain News Service, publisher",
+      "date": "1910",
+      "licence": ["PD-Bain", "PD-old-70-1923"],
+      "crop": [822, 661, 2736, 2736]
+    },
+    {
+      "id": "gbr_battenberg",
+      "url": "https://commons.wikimedia.org/wiki/File:Prince_Louis_of_Battenberg_LCCN2014696054.jpg",
+      "author": "Bain News Service, publisher",
+      "date": "1910",
+      "licence": ["PD-Bain", "PD-old-70-1923"],
+      "crop": [610, 403, 2728, 2728]
+    },
+    {
+      "id": "gbr_bertie",
+      "url": "https://commons.wikimedia.org/wiki/File:Francis_Bertie_1915.jpg",
+      "author": "Agence Rol",
+      "date": "1915",
+      "licence": ["PD-old"],
+      "crop": [329, 0, 879, 879]
+    },
+    {
+      "id": "gbr_birrell",
+      "url": "https://commons.wikimedia.org/wiki/File:Augustine_Birrell,_autochrome,_1915%E2%80%931920_(by_Olive_Edis)_(cropped).png",
+      "author": "Olive Edis",
+      "date": "1915–1920",
+      "licence": ["PD-old-auto-expired"],
+      "crop": [0, 103, 1249, 1249]
+    },
+    {
+      "id": "gbr_bonar_law",
+      "url": "https://commons.wikimedia.org/wiki/File:Bonar_Law_1923_portrait_by_Walter_Stoneman_(3x4_cropped).jpg",
+      "author": "Bain News Service",
+      "date": "1923",
+      "licence": ["PD-Bain", "PD-US-expired", "PD-old-auto-expired"],
+      "crop": [0, 179, 3362, 3362]
+    },
+    {
+      "id": "gbr_buchanan",
+      "url": "https://commons.wikimedia.org/wiki/File:Sir_George_William_Buchanan_in_1915.jpg",
+      "author": "Unknown author Unknown author",
+      "date": "between 1910 and 1915",
+      "licence": ["PD-US", "PD-Bain"],
+      "crop": [126, 76, 579, 579]
+    },
+    {
+      "id": "gbr_carson",
+      "url": "https://commons.wikimedia.org/wiki/File:Sir_Edward_Carson,_bw_photo_portrait_seated_(cropped)(2).jpg",
+      "author": "J. Beagles & Co., Ltd.",
+      "date": "circa 1900",
+      "licence": ["PD-anon-expired"],
+      "crop": [133, 0, 1613, 1613]
+    },
+    {
+      "id": "gbr_churchill",
+      "url": "https://commons.wikimedia.org/wiki/File:Winston_Churchill_LCCN2014684733.jpg",
+      "author": "Bain News Service, publisher",
+      "date": "c. 1913 (Bain caption number 1016-13; the catalogue gives no date)",
+      "licence": ["PD-Bain", "PD-US-no notice"],
+      "crop": [1050, 764, 2875, 2875]
+    },
+    {
+      "id": "gbr_clementine",
+      "url": "https://commons.wikimedia.org/wiki/File:Clementine_Churchill_1915.jpg",
+      "author": "Unattributed",
+      "date": "1915-02-16",
+      "licence": ["PD-US"],
+      "crop": [0, 83, 897, 897]
+    },
+    {
+      "id": "gbr_douglas",
+      "url": "https://commons.wikimedia.org/wiki/File:Gen._Chas._W.H._Douglas_LCCN2014695788.tif",
+      "author": "Bain News Service, publisher",
+      "date": "1910",
+      "licence": ["PD-Bain", "PD-old-70-1923"],
+      "crop": [1371, 1206, 1318, 1318]
+    },
+    {
+      "id": "gbr_fisher",
+      "url": "https://commons.wikimedia.org/wiki/File:Adm._Sir_John_Fisher_LCCN2014703509.tif",
+      "author": "Bain News Service, publisher",
+      "date": "1910",
+      "licence": ["PD-Bain", "PD-old-70-1923"],
+      "crop": [1499, 430, 1320, 1320]
+    },
+    {
+      "id": "gbr_french",
+      "url": "https://commons.wikimedia.org/wiki/File:John_French,_1st_Earl_of_Ypres.jpg",
+      "author": "Bain News Service, publisher",
+      "date": "1911-09-01",
+      "licence": ["PD-Bain", "PD-US"],
+      "crop": [316, 830, 2238, 2238]
+    },
+    {
+      "id": "gbr_george_v",
+      "url": "https://commons.wikimedia.org/wiki/File:King_George_1923_LCCN2014715558_(cropped).jpg",
+      "author": "Bassano Ltd",
+      "date": "between 1922 and 1923",
+      "licence": ["PD-UK-unknown", "PD-anon-expired", "PD-Bain"],
+      "crop": [207, 0, 2400, 2400]
+    },
+    {
+      "id": "gbr_goschen",
+      "url": "https://commons.wikimedia.org/wiki/File:Sir_E._Goschek,_British_Ambassador,_portrait_LCCN2014683410.jpg",
+      "author": "Bain News Service, publisher",
+      "date": "c. 1908-1910 (Bain negative 03416; ambassador in Berlin from 1908)",
+      "licence": ["PD-Bain", "PD-US-no notice"],
+      "crop": [959, 373, 2944, 2944]
+    },
+    {
+      "id": "gbr_grey",
+      "url": "https://commons.wikimedia.org/wiki/File:Edward_Grey_1914_cropped.JPG",
+      "author": "Bassano",
+      "date": "1914 (title of the file: Edward Grey 1914)",
+      "licence": ["PD-Bain"],
+      "crop": [0, 56, 4200, 4200]
+    },
+    {
+      "id": "gbr_haig",
+      "url": "https://commons.wikimedia.org/wiki/File:Sir_Douglas_Haig.jpg",
+      "author": "Elliott & Fry",
+      "date": "published 1917",
+      "licence": ["PD-UK-unknown", "PD-US-expired"],
+      "crop": [0, 74, 1815, 1815]
+    },
+    {
+      "id": "gbr_haldane",
+      "url": "https://commons.wikimedia.org/wiki/File:Viscount_Haldane.jpg",
+      "author": "Bassano Ltd",
+      "date": "1919-10-18",
+      "licence": ["PD-UK-unknown", "PD-US-expired"],
+      "crop": [48, 0, 500, 500]
+    },
+    {
+      "id": "gbr_hall",
+      "url": "https://commons.wikimedia.org/wiki/File:Capt._W.R._Hall_LCCN2014703623.jpg",
+      "author": "Bain News Service, publisher",
+      "date": "1910",
+      "licence": ["PD-Bain", "PD-old-70-1923"],
+      "crop": [1190, 488, 1947, 1947]
+    },
+    {
+      "id": "gbr_hankey",
+      "url": "https://commons.wikimedia.org/wiki/File:Sir_Maurice_Hankey_LOC_npcc.05488.jpg",
+      "author": "National Photo Company Collection",
+      "date": "1921",
+      "licence": ["PD-National Photo Company", "PD-old-70-1923"],
+      "crop": [1891, 1032, 803, 803]
+    },
+    {
+      "id": "gbr_henderson",
+      "url": "https://commons.wikimedia.org/wiki/File:1910_Arthur_Henderson.jpg",
+      "author": "Unknown author Unknown author",
+      "date": "Published between ca. 1910 and ca. 1915",
+      "licence": ["PD-Bain"],
+      "crop": [6, 0, 3621, 3621]
+    },
+    {
+      "id": "gbr_jellicoe",
+      "url": "https://commons.wikimedia.org/wiki/File:AdmiralSirJohnJellicoe1917.jpg",
+      "author": "Alice Hughes",
+      "date": "1917",
+      "licence": ["PD-old"],
+      "crop": [465, 263, 2798, 2798]
+    },
+    {
+      "id": "gbr_kitchener",
+      "url": "https://commons.wikimedia.org/wiki/File:Herbert_Kitchener_1914.jpg",
+      "author": "Harris & Ewing, Inc.",
+      "date": "1914",
+      "licence": ["PD-Harris-Ewing"],
+      "crop": [0, 514, 4113, 4113]
+    },
+    {
+      "id": "gbr_lloyd_george",
+      "url": "https://commons.wikimedia.org/wiki/File:David_Lloyd_George.jpg",
+      "author": "Harris & Ewing",
+      "date": "Copyright 1919",
+      "licence": ["PD-US"],
+      "crop": [0, 16, 907, 907]
+    },
+    {
+      "id": "gbr_margot",
+      "url": "https://commons.wikimedia.org/wiki/File:Portrait_of_Margot_Asquith,_Countess_of_Oxford_and_Asquith.jpg",
+      "author": "Alice Hughes",
+      "date": "by 1895",
+      "licence": ["PD-old-auto-expired"],
+      "crop": [74, 371, 1273, 1273]
+    },
+    {
+      "id": "gbr_mckenna",
+      "url": "https://commons.wikimedia.org/wiki/File:Reginald_McKenna_LCCN2014716496.jpg",
+      "author": "Bain News Service, publisher",
+      "date": "1900",
+      "licence": ["PD-Bain", "PD-old-70-1923"],
+      "crop": [596, 105, 2902, 2902]
+    },
+    {
+      "id": "gbr_milner",
+      "url": "https://commons.wikimedia.org/wiki/File:Lord_Milner.jpg",
+      "author": "Elliott & Fry",
+      "date": "Published 1906",
+      "licence": ["PD-Gutenberg", "PD-old-100"],
+      "crop": [29, 0, 341, 341]
+    },
+    {
+      "id": "gbr_morley",
+      "url": "https://commons.wikimedia.org/wiki/File:Morley-John-Viscount.jpg",
+      "author": "W. & D. Downey",
+      "date": "Published 1890",
+      "licence": ["PD-old"],
+      "crop": [80, 44, 212, 212]
+    },
+    {
+      "id": "gbr_northcliffe",
+      "url": "https://commons.wikimedia.org/wiki/File:Lord_Northcliffe_LCCN2014699557.jpg",
+      "author": "Bain News Service, publisher",
+      "date": "1910",
+      "licence": ["PD-Bain", "PD-old-70-1923"],
+      "crop": [1224, 304, 1935, 1935]
+    },
+    {
+      "id": "gbr_redmond",
+      "url": "https://commons.wikimedia.org/wiki/File:John_Redmond,_circa_1909.jpg",
+      "author": "Russell and Sons, 51 Baker Street, London",
+      "date": "1909-01-01",
+      "licence": ["PD-US-expired"],
+      "crop": [99, 56, 1985, 1985]
+    },
+    {
+      "id": "gbr_robertson",
+      "url": "https://commons.wikimedia.org/wiki/File:Sir_William_Robertson_negative_(cropped).jpg",
+      "author": "Unknown author Unknown author",
+      "date": "between 1910 and 1915",
+      "licence": ["PD-Bain"],
+      "crop": [1115, 0, 1576, 1576]
+    },
+    {
+      "id": "gbr_simon",
+      "url": "https://commons.wikimedia.org/wiki/File:John_Simon,_1916_(cropped).jpg",
+      "author": "Bain News Service, publisher",
+      "date": "1916",
+      "licence": ["PD-Bain", "PD-old-70-1923"],
+      "crop": [0, 185, 3489, 3489]
+    },
+    {
+      "id": "gbr_spring_rice",
+      "url": "https://commons.wikimedia.org/wiki/File:Cecil_Spring-Rice.png",
+      "author": "Photographer not credited",
+      "date": "circa 1915",
+      "licence": ["PD-Gutenberg"],
+      "crop": [0, 3, 329, 329]
+    },
+    {
+      "id": "gbr_wilson",
+      "url": "https://commons.wikimedia.org/wiki/File:Gen._Sir_Henry_Wilson_LCCN2014705968.tif",
+      "author": "Bain News Service, publisher",
+      "date": "1915",
+      "licence": ["PD-Bain", "PD-old-70-1923"],
+      "crop": [1017, 858, 2207, 2207]
+    },
+    {
+      "id": "grc_constantine",
+      "url": "https://commons.wikimedia.org/wiki/File:Constantine_I_of_Greece_in_1914.jpg",
+      "author": "Harris & Ewing Collection",
+      "date": "1914",
+      "licence": ["PD-Harris-Ewing", "PD-old-70-1923"],
+      "crop": [427, 0, 4947, 4947]
+    },
+    {
+      "id": "grc_venizelos",
+      "url": "https://commons.wikimedia.org/wiki/File:Eleftherios_Venizelos_1919_(3x4_cropped).jpg",
+      "author": "Photoprint copyrighted by Harris & Ewing (No known restrictions on publication)",
+      "date": "1919-09-05",
+      "licence": ["PD-US", "PD-Harris-Ewing"],
+      "crop": [32, 0, 909, 909]
+    },
+    {
+      "id": "ita_cadorna",
+      "url": "https://commons.wikimedia.org/wiki/File:Luigi_Cadorna_02.jpg",
+      "author": "Unknown author",
+      "date": "1917",
+      "licence": ["PD-US-expired"],
+      "crop": [93, 135, 786, 786]
+    },
+    {
+      "id": "ita_giolitti",
+      "url": "https://commons.wikimedia.org/wiki/File:Portrait_of_Giovanni_Giolitti,_1920.jpg",
+      "author": "Unknown author Unknown author",
+      "date": "1920",
+      "licence": ["PD-Italy"],
+      "crop": [387, 358, 744, 744]
+    },
+    {
+      "id": "ita_salandra",
+      "url": "https://commons.wikimedia.org/wiki/File:SALANDRA,_ANTONIO._PREMIER_OF_ITALY_LCCN2016866637.jpg",
+      "author": "Harris & Ewing Collection",
+      "date": "1915",
+      "licence": ["PD-Harris-Ewing", "PD-old-70-1923"],
+      "crop": [335, 0, 6989, 6989]
+    },
+    {
+      "id": "ita_sonnino",
+      "url": "https://commons.wikimedia.org/wiki/File:Monsieur_Sonnino,_ministre_des_affaires_%C3%A9trang%C3%A8res_d%27Italie_-_btv1b6933994s.jpg",
+      "author": "Agence Rol",
+      "date": "1915",
+      "licence": ["PD-France", "PD-anon-expired"],
+      "crop": [155, 183, 1612, 1612]
+    },
+    {
+      "id": "jpn_kato",
+      "url": "https://commons.wikimedia.org/wiki/File:Kato_Takaaki_circa_1915.jpg",
+      "author": "Bain",
+      "date": "1915",
+      "licence": ["PD-US"],
+      "crop": [254, 144, 153, 153]
+    },
+    {
+      "id": "jpn_saionji",
+      "url": "https://commons.wikimedia.org/wiki/File:Portrait_of_Marquis_Saionji_Kinmochi_in_1908.jpg",
+      "author": "安藤徳器 著 審美書院 出版",
+      "date": "1908",
+      "licence": ["PD-Japan-oldphoto"],
+      "crop": [344, 185, 877, 877]
+    },
+    {
+      "id": "ott_cemal",
+      "url": "https://commons.wikimedia.org/wiki/File:Cemal_Pa%C5%9Fa_(1915).jpg",
+      "author": "Unknown author Unknown author",
+      "date": "1915-01-01",
+      "licence": ["PD-TR", "PD-old", "PD-US-expired"],
+      "crop": [0, 0, 720, 720]
+    },
+    {
+      "id": "ott_enver",
+      "url": "https://commons.wikimedia.org/wiki/File:Enver_Pasha_1911.jpg",
+      "author": "Nicola Perscheid",
+      "date": "1911",
+      "licence": ["PD-old-auto-expired"],
+      "crop": [157, 84, 378, 378]
+    },
+    {
+      "id": "ott_hussein",
+      "url": "https://commons.wikimedia.org/wiki/File:Sharif_Husayn.jpg",
+      "author": "Unknown author Unknown author",
+      "date": "1916",
+      "licence": ["PD-Jordan", "PD-Syria", "PD-Saudi Arabia", "PD-1923"],
+      "crop": [179, 0, 494, 494]
+    },
+    {
+      "id": "ott_talat",
+      "url": "https://commons.wikimedia.org/wiki/File:Mehmed_talat.jpg",
+      "author": "Unknown author Unknown author",
+      "date": "before 1920",
+      "licence": ["PD-old"],
+      "crop": [0, 40, 917, 917]
+    },
+    {
+      "id": "rou_bratianu",
+      "url": "https://commons.wikimedia.org/wiki/File:IonelBratianu3b40761r.jpg",
+      "author": "Not stated, Harris & Ewing Collection",
+      "date": "circa 1919",
+      "licence": ["PD-Harris-Ewing"],
+      "crop": [40, 1, 397, 397]
+    },
+    {
+      "id": "rou_marie",
+      "url": "https://commons.wikimedia.org/wiki/File:Queen_Mary_of_Romania_2.jpg",
+      "author": "Unknown photographer",
+      "date": "between circa 1920 and circa 1925",
+      "licence": ["PD-Bain", "PD-anon-70-EU", "PD-US-expired"],
+      "crop": [1101, 1359, 2725, 2725]
+    },
+    {
+      "id": "rus_alekseev",
+      "url": "https://commons.wikimedia.org/wiki/File:%D0%9D%D0%B0%D1%87%D0%B0%D0%BB%D1%8C%D0%BD%D0%B8%D0%BA_%D1%88%D1%82%D0%B0%D0%B1%D0%B0_%D0%92%D0%B5%D1%80%D1%85%D0%BE%D0%B2%D0%BD%D0%BE%D0%B3%D0%BE_%D0%B3%D0%BB%D0%B0%D0%B2%D0%BD%D0%BE%D0%BA%D0%BE%D0%BC%D0%B0%D0%BD%D0%B4%D1%83%D1%8E%D1%89%D0%B5%D0%B3%D0%BE_%D0%B3%D0%B5%D0%BD%D0%B5%D1%80%D0%B0%D0%BB_%D0%90%D0%BB%D0%B5%D0%BA%D1%81%D0%B5%D0%B5%D0%B2.jpg",
+      "author": "Unknown author Unknown author",
+      "date": "1915-10-02",
+      "licence": ["PD-anon-expired"],
+      "crop": [83, 19, 342, 342]
+    },
+    {
+      "id": "rus_alexandra",
+      "url": "https://commons.wikimedia.org/wiki/File:Alexandra_Fyodorovna_LOC_01137u.jpg",
+      "author": "Boasson and Eggler St. Petersburg Nevsky 24. Bain News Service, publisher",
+      "date": "1908",
+      "licence": ["PD-Bain"],
+      "crop": [649, 672, 1981, 1981]
+    },
+    {
+      "id": "rus_bark",
+      "url": "https://commons.wikimedia.org/wiki/File:Bark_Piotr_(1869-1937).jpg",
+      "author": "unknown russian pre-revolutionary Photograph",
+      "date": "~ 1915",
+      "licence": ["PD-old"],
+      "crop": [9, 0, 309, 309]
+    },
+    {
+      "id": "rus_belyaev",
+      "url": "https://commons.wikimedia.org/wiki/File:Belyaev,_Mikhail_Alekseyevich_(1863-1918)01.jpg",
+      "author": "Karl Bulla",
+      "date": "~ 1910 - 1915",
+      "licence": ["PD-RusEmpire"],
+      "crop": [53, 0, 332, 332]
+    },
+    {
+      "id": "rus_botkin",
+      "url": "https://commons.wikimedia.org/wiki/File:BotkinES.jpg",
+      "author": "Original uploader was Hiltoniel at ru.wikipedia",
+      "date": "before 1918",
+      "licence": ["PD-old"],
+      "crop": [7, 0, 375, 375]
+    },
+    {
+      "id": "rus_brusilov",
+      "url": "https://commons.wikimedia.org/wiki/File:AlekseiBrusilov1916.jpeg",
+      "author": "Unknown, Agence Rol. Agence photographique",
+      "date": "1916",
+      "licence": ["PD-RusEmpire", "PD-US"],
+      "crop": [91, 78, 303, 303]
+    },
+    {
+      "id": "rus_chkheidze",
+      "url": "https://commons.wikimedia.org/wiki/File:1919_Nicolas_Tchkheidze.jpg",
+      "author": "Auguste Léon",
+      "date": "1919-05-15",
+      "licence": ["PD-old-auto-expired", "Cc-zero"],
+      "crop": [361, 228, 722, 722]
+    },
+    {
+      "id": "rus_danilov",
+      "url": "https://commons.wikimedia.org/wiki/File:Yuri_Danilov.jpg",
+      "author": "unknown / фотограф неизвестен",
+      "date": "before 1917",
+      "licence": ["PD-old"],
+      "crop": [163, 27, 635, 635]
+    },
+    {
+      "id": "rus_dmitri",
+      "url": "https://commons.wikimedia.org/wiki/File:%D0%92%D0%B5%D0%BB%D0%B8%D0%BA%D0%B8%D0%B9_%D0%BA%D0%BD%D1%8F%D0%B7%D1%8C_%D0%94%D0%BC%D0%B8%D1%82%D1%80%D0%B8%D0%B9_%D0%9F%D0%B0%D0%B2%D0%BB%D0%BE%D0%B2%D0%B8%D1%87.jpg",
+      "author": "Unknown author Unknown author",
+      "date": "1912",
+      "licence": ["PD-RusEmpire"],
+      "crop": [77, 136, 765, 765]
+    },
+    {
+      "id": "rus_durnovo",
+      "url": "https://commons.wikimedia.org/wiki/File:Durnovo_Petr_(1842-1915).jpg",
+      "author": "unknown russian pre-revolutionary Photograph",
+      "date": "~ 1900 - 1905",
+      "licence": ["PD-old"],
+      "crop": [141, 39, 282, 282]
+    },
+    {
+      "id": "rus_ella",
+      "url": "https://commons.wikimedia.org/wiki/File:Grand_Duchess_Elisabeth_Fedorovna_in_1885.jpg",
+      "author": "Charles Bergamasco",
+      "date": "1885",
+      "licence": ["PD-old-auto-1923"],
+      "crop": [193, 67, 192, 192]
+    },
+    {
+      "id": "rus_evert",
+      "url": "https://commons.wikimedia.org/wiki/File:G%C3%A9n%C3%A9ral_Evert_commandant_d%27un_corps_d%27arm%C3%A9e_russe_(portrait)_-_btv1b69337713.jpg",
+      "author": "Agence Rol. Agence photographique (commanditaire)",
+      "date": "1915",
+      "licence": ["PD-France", "PD-1996", "PD-US-expired"],
+      "crop": [631, 62, 936, 936]
+    },
+    {
+      "id": "rus_fredericks",
+      "url": "https://commons.wikimedia.org/wiki/File:Frederix_Vladimir.jpg",
+      "author": "Unknown author Unknown author",
+      "date": "between 1896 and 1898",
+      "licence": ["PD-RusEmpire"],
+      "crop": [246, 188, 821, 821]
+    },
+    {
+      "id": "rus_golitsyn",
+      "url": "https://commons.wikimedia.org/wiki/File:Prince_Nikolai_D._Galitzine.jpeg",
+      "author": "Unidentified photographer",
+      "date": "1912",
+      "licence": ["PD-RusEmpire"],
+      "crop": [84, 0, 198, 198]
+    },
+    {
+      "id": "rus_goremykin",
+      "url": "https://commons.wikimedia.org/wiki/File:Ivan_Logginovitch_Goremykin,_c._1906.jpg",
+      "author": "Uncredited, restoration by Adam Cuerden",
+      "date": "circa 1906",
+      "licence": ["PD-RusEmpire", "PD-US"],
+      "crop": [1159, 435, 1390, 1390]
+    },
+    {
+      "id": "rus_grigorovich",
+      "url": "https://commons.wikimedia.org/wiki/File:%D0%93%D1%80%D0%B8%D0%B3%D0%BE%D1%80%D0%BE%D0%B2%D0%B8%D1%87_%D0%98%D0%B2%D0%B0%D0%BD_%D0%9A%D0%BE%D0%BD%D1%81%D1%82%D0%B0%D0%BD%D1%82%D0%B8%D0%BD%D0%BE%D0%B2%D0%B8%D1%87,_%D1%80%D1%83%D1%81%D1%81%D0%BA%D0%B8%D0%B9_%D0%BA%D0%BE%D0%BD%D1%82%D1%80-%D0%B0%D0%B4%D0%BC%D0%B8%D1%80%D0%B0%D0%BB,_%D0%B3%D0%B5%D0%BD.%D0%B0%D0%B4%D1%8C%D1%8E%D1%82%D0%B0%D0%BD%D1%82,~1908%D0%B3.jpg",
+      "author": "Unknown author Unknown author",
+      "date": "1908",
+      "licence": ["PD-Russia-1996"],
+      "crop": [62, 50, 612, 612]
+    },
+    {
+      "id": "rus_guchkov",
+      "url": "https://commons.wikimedia.org/wiki/File:Alexandre_Goutchkoff_(i.e._Alexander_Guchkov)_ancien_pr%C3%A9sident_de_la_douma,_%C3%A9lu_pr%C3%A9sident_du_comit%C3%A9_central_pour_la_fourniture_militaire_-_btv1b6908752g.jpg",
+      "author": "Agence Rol. Agence photographique (commanditaire)",
+      "date": "1915",
+      "licence": ["PD-France", "PD-1996", "PD-US-expired"],
+      "crop": [774, 412, 1548, 1548]
+    },
+    {
+      "id": "rus_ivanov",
+      "url": "https://commons.wikimedia.org/wiki/File:Nikolai_I._Ivanov.jpeg",
+      "author": "Unknown author Unknown author",
+      "date": "1914",
+      "licence": ["PD-RusEmpire"],
+      "crop": [41, 37, 332, 332]
+    },
+    {
+      "id": "rus_kerensky",
+      "url": "https://commons.wikimedia.org/wiki/File:Alexander_Kerensky_1917_Crop.jpg",
+      "author": "Karl Bulla",
+      "date": "1917",
+      "licence": ["PD-RusEmpire"],
+      "crop": [140, 97, 655, 655]
+    },
+    {
+      "id": "rus_khvostov",
+      "url": "https://commons.wikimedia.org/wiki/File:Alexei_Khvostov.jpg",
+      "author": "Фотография ателье Буллы",
+      "date": "1913",
+      "licence": ["PD-old"],
+      "crop": [2, 19, 350, 350]
+    },
+    {
+      "id": "rus_kokovtsov",
+      "url": "https://commons.wikimedia.org/wiki/File:Vladimir_Nikolaevi%C4%8D_Kokovcov.jpg",
+      "author": "Bain News Service, publisher.",
+      "date": "between 1910 and 1915",
+      "licence": ["PD-US"],
+      "crop": [225, 7, 242, 242]
+    },
+    {
+      "id": "rus_kolchak",
+      "url": "https://commons.wikimedia.org/wiki/File:Kolchak.jpg",
+      "author": "Unknown photographer",
+      "date": "1919",
+      "licence": ["PD-old"],
+      "crop": [159, 62, 1123, 1123]
+    },
+    {
+      "id": "rus_kornilov",
+      "url": "https://commons.wikimedia.org/wiki/File:Kornilov1916.jpeg",
+      "author": "Unknown author Unknown author",
+      "date": "1916",
+      "licence": ["PD-Russia"],
+      "crop": [26, 17, 544, 544]
+    },
+    {
+      "id": "rus_kr",
+      "url": "https://commons.wikimedia.org/wiki/File:Grand_Duke_Konstantin_Konstantinovich.jpeg",
+      "author": "Unknown author Unknown author",
+      "date": "1915",
+      "licence": ["PD-RusEmpire"],
+      "crop": [99, 21, 232, 232]
+    },
+    {
+      "id": "rus_krivoshein",
+      "url": "https://commons.wikimedia.org/wiki/File:Krivoshein_Alexandr_Vasilevich.jpg",
+      "author": "М.Л. Левенсон",
+      "date": "1915",
+      "licence": ["PD-RusEmpire", "PD-old"],
+      "crop": [90, 0, 263, 263]
+    },
+    {
+      "id": "rus_lenin",
+      "url": "https://commons.wikimedia.org/wiki/File:Lenin_in_1920_(cropped).jpg",
+      "author": "Unknown, presumably official",
+      "date": "1920-04",
+      "licence": ["PD-Russia"],
+      "crop": [0, 0, 1804, 1804]
+    },
+    {
+      "id": "rus_lvov",
+      "url": "https://commons.wikimedia.org/wiki/File:Georgy_Lvov_1917.jpg",
+      "author": "Karl Bulla",
+      "date": "1917-03",
+      "licence": ["PD-RusEmpire"],
+      "crop": [519, 248, 664, 664]
+    },
+    {
+      "id": "rus_maklakov",
+      "url": "https://commons.wikimedia.org/wiki/File:Maklakov_Nikolay_Alexeevich.jpg",
+      "author": "М.Л. Левенсон",
+      "date": "1915",
+      "licence": ["PD-RusEmpire", "PD-old"],
+      "crop": [65, 38, 315, 315]
+    },
+    {
+      "id": "rus_maria",
+      "url": "https://commons.wikimedia.org/wiki/File:Maria_Feodorovna_of_Russia_1881.jpg",
+      "author": "Charles Jacotin, Paris",
+      "date": "1881",
+      "licence": ["PD-old-auto-expired"],
+      "crop": [538, 347, 853, 853]
+    },
+    {
+      "id": "rus_mathilde",
+      "url": "https://commons.wikimedia.org/wiki/File:Camargo-Mathilde_Kschessinskaya-1897.JPG",
+      "author": "Unknown photographer of the photography department of the Imperial Mariinsky Theatre. St. Petersburg, Russian Empire.",
+      "date": "circa 1902",
+      "licence": ["PD-RusEmpire"],
+      "crop": [20, 152, 263, 263]
+    },
+    {
+      "id": "rus_michael",
+      "url": "https://commons.wikimedia.org/wiki/File:Mihail_II.jpg",
+      "author": "Unknown author Unknown author",
+      "date": "before February 1917",
+      "licence": ["PD-Russia", "PD-1923"],
+      "crop": [73, 15, 172, 172]
+    },
+    {
+      "id": "rus_milyukov",
+      "url": "https://commons.wikimedia.org/wiki/File:Pavel_Milyukov_1.jpg",
+      "author": "Published by Russian Information Bureau, NY, 1918",
+      "date": "1918",
+      "licence": ["PD-US"],
+      "crop": [0, 60, 1533, 1533]
+    },
+    {
+      "id": "rus_nicholas",
+      "url": "https://commons.wikimedia.org/wiki/File:George_V_and_Nicholas_II_in_Berlin,_1913.jpg",
+      "author": "Ernst Sandau",
+      "date": "26 May 1913",
+      "licence": ["PD-old-100-1923"],
+      "crop": [651, 515, 835, 835]
+    },
+    {
+      "id": "rus_nikolasha",
+      "url": "https://commons.wikimedia.org/wiki/File:Grand_Duke_Nicholas_Nikolaevich_of_Russia._Die_Kaukasusfront._Grosser_Bilderatlas_des_Weltkrieges,_Bruckmann.jpg",
+      "author": "Bruckmann, F.",
+      "date": "between 1918 and 1919",
+      "licence": ["PD-US"],
+      "crop": [168, 207, 726, 726]
+    },
+    {
+      "id": "rus_nilov",
+      "url": "https://commons.wikimedia.org/wiki/File:G%C3%A9n%C3%A9ral_Niloff_(portrait)_-_btv1b6933768m.jpg",
+      "author": "Agence Rol. Agence photographique (commanditaire)",
+      "date": "1915",
+      "licence": ["PD-France", "PD-1996", "PD-US-expired"],
+      "crop": [445, 59, 988, 988]
+    },
+    {
+      "id": "rus_olga",
+      "url": "https://commons.wikimedia.org/wiki/File:Grand_Duchess_Olga_Nikolaevna_of_Russia.jpg",
+      "author": "Boissonnas & Eggler",
+      "date": "1914",
+      "licence": ["PD-Russia-expired"],
+      "crop": [53, 243, 1031, 1031]
+    },
+    {
+      "id": "rus_olga_a",
+      "url": "https://commons.wikimedia.org/wiki/File:Grand_Duchess_Olga_Alexandrovna.jpg",
+      "author": "Publisher: Bain News Service",
+      "date": "between circa 1910 and circa 1915",
+      "licence": ["PD-RusEmpire", "PD-Bain"],
+      "crop": [962, 541, 1525, 1525]
+    },
+    {
+      "id": "rus_polivanov",
+      "url": "https://commons.wikimedia.org/wiki/File:Gen._Polivanoff,_Minister_of_War_LCCN2014701611.jpg",
+      "author": "Bain News Service, publisher",
+      "date": "1915",
+      "licence": ["PD-Bain", "PD-old-70-1923"],
+      "crop": [1252, 824, 1851, 1851]
+    },
+    {
+      "id": "rus_protopopov",
+      "url": "https://commons.wikimedia.org/wiki/File:Protopopov--fallofromanoffsh00londrich.jpg",
+      "author": "Wood, Alan",
+      "date": "1918",
+      "licence": ["PD-US"],
+      "crop": [420, 247, 1025, 1025]
+    },
+    {
+      "id": "rus_rasputin",
+      "url": "https://commons.wikimedia.org/wiki/File:Rasputin-Big-photos-2.jpg",
+      "author": "Karl Bulla",
+      "date": "1907-1908",
+      "licence": ["PD-old-70-1923"],
+      "crop": [1525, 1414, 1382, 1382]
+    },
+    {
+      "id": "rus_rittikh",
+      "url": "https://commons.wikimedia.org/wiki/File:Alexander_A._Rittikh.jpeg",
+      "author": "Иосиф Адольфович Оцуп (1875-1934) или Яков Владимирович Штейнберг (1880-1942)",
+      "date": "1912",
+      "licence": ["PD-Russia-expired"],
+      "crop": [34, 19, 524, 524]
+    },
+    {
+      "id": "rus_rodzianko",
+      "url": "https://commons.wikimedia.org/wiki/File:Mija%C3%ADlRodizianko--russiainrevolut00jone.jpg",
+      "author": "Jones, Stinton",
+      "date": "1917-03",
+      "licence": ["PD-US"],
+      "crop": [0, 115, 1376, 1376]
+    },
+    {
+      "id": "rus_ruzsky",
+      "url": "https://commons.wikimedia.org/wiki/File:Gen._Nicholas_V._Ruzsky_LCCN2014697324.jpg",
+      "author": "Bain News Service, publisher",
+      "date": "1910",
+      "licence": ["PD-Bain", "PD-old-70-1923"],
+      "crop": [555, 532, 3336, 3336]
+    },
+    {
+      "id": "rus_samarin",
+      "url": "https://commons.wikimedia.org/wiki/File:Samarin_Alexandr_Dmitrievich.jpg",
+      "author": "М.Л. Левенсон",
+      "date": "1915",
+      "licence": ["PD-RusEmpire", "PD-old"],
+      "crop": [79, 0, 243, 243]
+    },
+    {
+      "id": "rus_sandro",
+      "url": "https://commons.wikimedia.org/wiki/File:Grand_Duke_Alexander_Mikhailovich_(LOC).jpg",
+      "author": "The Library of Congress",
+      "date": "between 1896 and 1906",
+      "licence": ["PD-Bain", "PD-RusEmpire"],
+      "crop": [486, 0, 2203, 2203]
+    },
+    {
+      "id": "rus_sazonov",
+      "url": "https://commons.wikimedia.org/wiki/File:Sergei_Dmitrievich_Sazonov_(cropped).jpg",
+      "author": "Unknown / Inconnu",
+      "date": "Unknown date, before 1914 / Inconnu, avant 1914",
+      "licence": ["PD-US"],
+      "crop": [0, 42, 574, 574]
+    },
+    {
+      "id": "rus_sergei_m",
+      "url": "https://commons.wikimedia.org/wiki/File:%D0%92%D0%B5%D0%BB.%D0%BA%D0%BD._%D0%A1%D0%B5%D1%80%D0%B3%D0%B5%D0%B9_%D0%9C%D0%B8%D1%85%D0%B0%D0%B9%D0%BB%D0%BE%D0%B2%D0%B8%D1%87_%D0%A0%D0%BE%D0%BC%D0%B0%D0%BD%D0%BE%D0%B2_%D0%B2_%D0%BC%D1%83%D0%BD%D0%B4%D0%B8%D1%80%D0%B5_%D0%B3%D0%B2.%D0%BA%D0%BE%D0%BD%D0%BD%D0%BE%D0%B9_%D0%B0%D1%80%D1%82%D0%B8%D0%BB%D0%BB%D0%B5%D1%80%D0%B8%D0%B8_1905_P6160026_1a_e1.jpg",
+      "author": "Unknown author Unknown author",
+      "date": "between 1904 and 1905",
+      "licence": ["PD-anon-expired"],
+      "crop": [28, 77, 590, 590]
+    },
+    {
+      "id": "rus_shcherbatov",
+      "url": "https://commons.wikimedia.org/wiki/File:Scherbatov_Nikolay_Borisovich.jpg",
+      "author": "М.Л. Левенсон",
+      "date": "1915",
+      "licence": ["PD-RusEmpire", "PD-old"],
+      "crop": [84, 0, 243, 243]
+    },
+    {
+      "id": "rus_shingarev",
+      "url": "https://commons.wikimedia.org/wiki/File:A_I_Shingarev.jpg",
+      "author": "Unknown author Unknown author",
+      "date": "before 1917",
+      "licence": ["PD-RusEmpire"],
+      "crop": [0, 0, 192, 192]
+    },
+    {
+      "id": "rus_shuvaev",
+      "url": "https://commons.wikimedia.org/wiki/File:Dmitry_Sav._Shuvaev.jpg",
+      "author": "Unknown author Unknown author",
+      "date": "1916",
+      "licence": ["PD-RusEmpire"],
+      "crop": [163, 0, 232, 232]
+    },
+    {
+      "id": "rus_sturmer",
+      "url": "https://commons.wikimedia.org/wiki/File:%D0%A8%D1%82%D1%8E%D1%80%D0%BC%D0%B5%D1%80_%D0%91._(%D0%9D%D0%BE%D0%B2%D0%B3%D0%BE%D1%80%D0%BE%D0%B4%D1%81%D0%BA%D0%B0%D1%8F_%D0%BE%D0%B1%D0%BB%D0%B0%D1%81%D1%82%D1%8C).jpg",
+      "author": "Unknown author Unknown author",
+      "date": "before 1917",
+      "licence": ["PD-RusEmpire"],
+      "crop": [81, 21, 449, 449]
+    },
+    {
+      "id": "rus_sukhomlinov",
+      "url": "https://commons.wikimedia.org/wiki/File:Sukhomlinov_Vladimir_Alexandrovich_(cropped).jpg",
+      "author": "М.Л. Левенсон",
+      "date": "1915",
+      "licence": ["PD-RusEmpire"],
+      "crop": [124, 46, 516, 516]
+    },
+    {
+      "id": "rus_trepov",
+      "url": "https://commons.wikimedia.org/wiki/File:Trepov_(cropped).jpg",
+      "author": "Unidentified photographer",
+      "date": "1913",
+      "licence": ["PD-RusEmpire"],
+      "crop": [254, 0, 318, 318]
+    },
+    {
+      "id": "rus_witte",
+      "url": "https://commons.wikimedia.org/wiki/File:SergeiWitte01548v.jpg",
+      "author": "Chapiro, St. Petersburg",
+      "date": "between 1880 and 1886",
+      "licence": ["PD-RusEmpire", "PD-US"],
+      "crop": [498, 393, 1849, 1849]
+    },
+    {
+      "id": "rus_yanushkevich",
+      "url": "https://commons.wikimedia.org/wiki/File:Nikolai_Yanushkevich.jpg",
+      "author": "фотограф неизвестен",
+      "date": "период 1911—1913 годов.",
+      "licence": ["PD-old"],
+      "crop": [96, 77, 767, 767]
+    },
+    {
+      "id": "rus_yudenich",
+      "url": "https://commons.wikimedia.org/wiki/File:Nikolai_N._Yudenich.jpg",
+      "author": "Сканирование: Владимир Васильев",
+      "date": "1916-01-13",
+      "licence": ["PD-1923"],
+      "crop": [123, 52, 656, 656]
+    },
+    {
+      "id": "srb_apis",
+      "url": "https://commons.wikimedia.org/wiki/File:Dragutin_Dimitrijevi%C4%87-Apis,_ca._1900.jpg",
+      "author": "Unknown author Unknown author",
+      "date": "circa 1900",
+      "licence": ["PD-old"],
+      "crop": [282, 237, 270, 270]
+    },
+    {
+      "id": "srb_pasic",
+      "url": "https://commons.wikimedia.org/wiki/File:NikolaPasic--balkancockpitpol00pric_0191.png",
+      "author": "Unknown author",
+      "date": "1914",
+      "licence": ["PD-UK-unknown", "PD-1996", "PD-old-70"],
+      "crop": [289, 83, 412, 412]
+    },
+    {
+      "id": "usa_bryan",
+      "url": "https://commons.wikimedia.org/wiki/File:W.J._(William_Jennings)_Bryan_LCCN2014717371.jpg",
+      "author": "Bain News Service, publisher",
+      "date": "before 1925 (Bain negative, undated in the catalogue; Bryan d. 26 July 1925)",
+      "licence": ["PD-Bain", "PD-old-70-1923"],
+      "crop": [905, 558, 1070, 1070]
+    },
+    {
+      "id": "usa_house",
+      "url": "https://commons.wikimedia.org/wiki/File:E._M._House_LCCN2014700618_(cropped).jpg",
+      "author": "Bain News Service, publisher",
+      "date": "1910",
+      "licence": ["PD-Bain", "PD-old-70-1923"],
+      "crop": [467, 206, 2177, 2177]
+    },
+    {
+      "id": "usa_lansing",
+      "url": "https://commons.wikimedia.org/wiki/File:Robert_Lansing_cph.3b47713_(3x4a).jpg",
+      "author": "Harris & Ewing",
+      "date": "1919",
+      "licence": ["PD-Harris-Ewing"],
+      "crop": [0, 0, 870, 870]
+    },
+    {
+      "id": "usa_morgan",
+      "url": "https://commons.wikimedia.org/wiki/File:J.P._Morgan_-_Haldane_-_Sir_K._M._McKenzie_LCCN2014694257_(cropped)_(cropped).jpg",
+      "author": "Bain News Service, publisher",
+      "date": "1913",
+      "licence": ["PD-Bain", "PD-old-70-1923"],
+      "crop": [20, 0, 580, 580]
+    },
+    {
+      "id": "usa_pershing",
+      "url": "https://commons.wikimedia.org/wiki/File:PERSHING,_JOHN_J._GENERAL_LCCN2016859650.jpg",
+      "author": "Harris & Ewing, photographer",
+      "date": "1905",
+      "licence": ["PD-Harris-Ewing", "PD-old-70-1923"],
+      "crop": [2122, 835, 4244, 4244]
+    },
+    {
+      "id": "usa_wilson",
+      "url": "https://commons.wikimedia.org/wiki/File:President_Woodrow_Wilson_Harris_%26_Ewing_(3x4_cropped_b).jpg",
+      "author": "Harris & Ewing, photographer",
+      "date": "1914",
+      "licence": ["PD-Harris-Ewing", "PD-US-no notice"],
+      "crop": [193, 0, 5688, 5688]
+    },
+    {
+      "id": "vat_benedict",
+      "url": "https://commons.wikimedia.org/wiki/File:His_Holiness_Pope_Benedict_XV_(5292152).jpg",
+      "author": "Unknown author",
+      "date": "1920",
+      "licence": ["PD-old-auto-expired"],
+      "crop": [836, 452, 401, 401]
+    }
+  ]
+}
