@@ -50,6 +50,7 @@ const LICENCES = new RegExp(
       // At home.
       "PD-old(-70|-80|-100)?",
       "PD-anon-70-EU",
+      "Anonymous-EU",
       "PD-RusEmpire",
       "PD-Russia(-expired)?",
       "PD-UK(-unknown)?",

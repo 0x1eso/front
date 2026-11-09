@@ -746,12 +746,76 @@
       "crop": [725, 393, 740, 740]
     },
     {
+      "id": "fra_augagneur",
+      "url": "https://commons.wikimedia.org/wiki/File:Augagneur_LCCN2014699236.jpg",
+      "author": "Bain News Service, publisher",
+      "date": "1910",
+      "licence": ["PD-Bain", "PD-old-70-1923"],
+      "crop": [0, 379, 4216, 4216]
+    },
+    {
+      "id": "fra_barrere",
+      "url": "https://commons.wikimedia.org/wiki/File:M._(Camille)_Barr%C3%A8re_-_btv1b53073316n.jpg",
+      "author": "Agence Rol. Agence photographique (commanditaire)",
+      "date": "1921",
+      "licence": ["PD-France", "PD-1996"],
+      "crop": [0, 189, 6050, 6050]
+    },
+    {
+      "id": "fra_barres",
+      "url": "https://commons.wikimedia.org/wiki/File:1918_Maurice_Barr%C3%A8s.jpg",
+      "author": "Auguste Léon",
+      "date": "1918-08-10",
+      "licence": ["PD-old-auto-expired"],
+      "crop": [427, 64, 424, 424]
+    },
+    {
+      "id": "fra_barthou",
+      "url": "https://commons.wikimedia.org/wiki/File:Jean_Louis_Barthou_(1862-1934),_de_nieuwe_minister-president_van_Frankrijk,_SFA022000154.jpg",
+      "author": "Unknown author Unknown author",
+      "date": "1913",
+      "licence": ["PD-anon-70-EU", "PD-US"],
+      "crop": [489, 524, 1155, 1155]
+    },
+    {
+      "id": "fra_berthelot",
+      "url": "https://commons.wikimedia.org/wiki/File:M._Philippe_Berthelot_-_btv1b53156858s.jpg",
+      "author": "Agence Rol. Agence photographique (commanditaire)",
+      "date": "1925",
+      "licence": ["PD-France", "PD-1996"],
+      "crop": [1303, 1246, 3480, 3480]
+    },
+    {
+      "id": "fra_bienvenu_martin",
+      "url": "https://commons.wikimedia.org/wiki/File:Jean-Baptiste_Bienvenu-Martin_(15223397847)_(cropped).jpg",
+      "author": "Université de Caen Basse-Normandie from Caen, France",
+      "date": "1914",
+      "licence": ["PD-old"],
+      "crop": [0, 27, 1273, 1273]
+    },
+    {
+      "id": "fra_bourgeois",
+      "url": "https://commons.wikimedia.org/wiki/File:L%C3%A9on_Bourgeois_1917_(cropped).jpg",
+      "author": "Agence de presse Meurisse",
+      "date": "1917",
+      "licence": ["PD-anon-70-EU", "PD-1923"],
+      "crop": [0, 727, 3218, 3218]
+    },
+    {
       "id": "fra_briand",
       "url": "https://commons.wikimedia.org/wiki/File:Aristide_Briand.png",
       "author": "Anonymous Unknown author",
       "date": "1920s",
       "licence": ["PD-anon-70-EU"],
       "crop": [65, 0, 631, 631]
+    },
+    {
+      "id": "fra_caillaux",
+      "url": "https://commons.wikimedia.org/wiki/File:Portrait_of_Joseph_Caillaux_(cropped).jpg",
+      "author": "Henri Manuel",
+      "date": "before 1912",
+      "licence": ["PD-old-auto-expired"],
+      "crop": [26, 101, 540, 540]
     },
     {
       "id": "fra_cambon",
@@ -762,12 +826,84 @@
       "crop": [0, 162, 4135, 4135]
     },
     {
+      "id": "fra_castelnau",
+      "url": "https://commons.wikimedia.org/wiki/File:Gen._Castelneau_(i.e.,_Castelnau)_LCCN2014703495.jpg",
+      "author": "Bain News Service, publisher",
+      "date": "1915",
+      "licence": ["PD-Bain", "PD-old-70-1923"],
+      "crop": [622, 3, 3030, 3030]
+    },
+    {
       "id": "fra_clemenceau",
       "url": "https://commons.wikimedia.org/wiki/File:Georges_Clemenceau_par_Nadar.jpg",
       "author": "Paul Nadar",
       "date": "1904",
       "licence": ["PD-old-70-1923"],
       "crop": [0, 1, 363, 363]
+    },
+    {
+      "id": "fra_cochin",
+      "url": "https://commons.wikimedia.org/wiki/File:M._Denys_Cochin,_ministre_d%27Etat,_de_trois-quart_-_btv1b90441927.jpg",
+      "author": "Agence de presse Meurisse. Agence photographique (commanditaire)",
+      "date": "1915",
+      "licence": ["PD-France", "PD-1996"],
+      "crop": [1756, 663, 1839, 1839]
+    },
+    {
+      "id": "fra_daudet",
+      "url": "https://commons.wikimedia.org/wiki/File:Portrait_de_L%C3%A9on_Daudet_-_btv1b53088483m.jpg",
+      "author": "Agence Rol. Agence photographique (commanditaire)",
+      "date": "1922",
+      "licence": ["PD-France", "PD-1996"],
+      "crop": [765, 1466, 4241, 4241]
+    },
+    {
+      "id": "fra_david",
+      "url": "https://commons.wikimedia.org/wiki/File:Fernand_David_-_Minister_of_Agric._LCCN2014695650.tif",
+      "author": "Bain News Service, publisher",
+      "date": "1910",
+      "licence": ["PD-Bain", "PD-old-70-1923"],
+      "crop": [588, 473, 3278, 3278]
+    },
+    {
+      "id": "fra_delcasse",
+      "url": "https://commons.wikimedia.org/wiki/File:Delcasse_LCCN2014685739_(cropped).jpg",
+      "author": "Bain News Service, publisher",
+      "date": "undated in the catalogue: a Bain News Service negative (LoC LCCN2014685739), so no later than 1923, the year Delcassé died",
+      "licence": ["PD-Bain", "PD-US-no notice"],
+      "crop": [0, 117, 2303, 2303]
+    },
+    {
+      "id": "fra_deschanel",
+      "url": "https://commons.wikimedia.org/wiki/File:Portrait_officiel_P._Deschanel.jpg",
+      "author": "Anonymous Unknown author",
+      "date": "1920",
+      "licence": ["PD-France", "PD-1923", "PD-anon-70-EU"],
+      "crop": [0, 0, 469, 469]
+    },
+    {
+      "id": "fra_doumergue",
+      "url": "https://commons.wikimedia.org/wiki/File:Gaston_Doumergue_LCCN2014695454.jpg",
+      "author": "Bain News Service, publisher",
+      "date": "1910",
+      "licence": ["PD-Bain", "PD-old-70-1923"],
+      "crop": [1023, 793, 2220, 2220]
+    },
+    {
+      "id": "fra_dubost",
+      "url": "https://commons.wikimedia.org/wiki/File:M._Antonin_Dubost,_Pr%C3%A9sident_du_S%C3%A9nat_-_btv1b9021494m.jpg",
+      "author": "Agence de presse Meurisse. Agence photographique (commanditaire)",
+      "date": "1912",
+      "licence": ["PD-France", "PD-1996"],
+      "crop": [610, 448, 3955, 3955]
+    },
+    {
+      "id": "fra_ferry",
+      "url": "https://commons.wikimedia.org/wiki/File:Ferry,_Abel_(Excelsior_1911).jpg",
+      "author": "Unknown author Unknown author",
+      "date": "1911",
+      "licence": ["PD-France", "PD-US-expired"],
+      "crop": [0, 94, 604, 604]
     },
     {
       "id": "fra_foch",
@@ -778,6 +914,38 @@
       "crop": [13, 20, 418, 418]
     },
     {
+      "id": "fra_gallieni",
+      "url": "https://commons.wikimedia.org/wiki/File:Gen._Gallieni_LCCN2014697689_(cropped).jpg",
+      "author": "Bain News Service, publisher",
+      "date": "1910",
+      "licence": ["PD-Bain", "PD-old-70-1923"],
+      "crop": [217, 0, 3119, 3119]
+    },
+    {
+      "id": "fra_gauthier",
+      "url": "https://commons.wikimedia.org/wiki/File:Armand_Gauthier_1914.jpg",
+      "author": "Agence Rol",
+      "date": "1914",
+      "licence": ["PD-old"],
+      "crop": [0, 66, 1324, 1324]
+    },
+    {
+      "id": "fra_guesde",
+      "url": "https://commons.wikimedia.org/wiki/File:Jules_Guesde_LCCN2014697708.jpg",
+      "author": "Bain News Service, publisher",
+      "date": "1900",
+      "licence": ["PD-Bain", "PD-old-70-1923"],
+      "crop": [893, 952, 2386, 2386]
+    },
+    {
+      "id": "fra_jaures",
+      "url": "https://commons.wikimedia.org/wiki/File:Jean_Jaur%C3%A8s,_1904,_par_Nadar.jpg",
+      "author": "Nadar",
+      "date": "circa 1904",
+      "licence": ["PD-old-100-expired"],
+      "crop": [346, 458, 1929, 1929]
+    },
+    {
       "id": "fra_joffre",
       "url": "https://commons.wikimedia.org/wiki/File:G%C3%A9n%C3%A9ral_Joffre_-_btv1b69316714.jpg",
       "author": "Agence Rol. Agence photographique (commanditaire)",
@@ -786,12 +954,140 @@
       "crop": [219, 184, 1405, 1405]
     },
     {
+      "id": "fra_jouhaux",
+      "url": "https://commons.wikimedia.org/wiki/File:L%C3%A9on_Jouhaux_1914.jpg",
+      "author": "Agence de presse Meurisse",
+      "date": "1914",
+      "licence": ["PD-old"],
+      "crop": [944, 315, 856, 856]
+    },
+    {
+      "id": "fra_jusserand",
+      "url": "https://commons.wikimedia.org/wiki/File:Jean_Jules_Jusserand_cph.3b15757.jpg",
+      "author": "Harris & Ewing",
+      "date": "1910",
+      "licence": ["PD-Harris-Ewing"],
+      "crop": [0, 112, 1071, 1071]
+    },
+    {
+      "id": "fra_lacaze",
+      "url": "https://commons.wikimedia.org/wiki/File:Amiral_Lacaze_-_btv1b6945737z.jpg",
+      "author": "Agence Rol. Agence photographique (commanditaire)",
+      "date": "1916",
+      "licence": ["PD-France", "PD-1996", "PD-US-expired"],
+      "crop": [525, 213, 1950, 1950]
+    },
+    {
+      "id": "fra_lanrezac",
+      "url": "https://commons.wikimedia.org/wiki/File:Charles_Lanrezac.gif",
+      "author": "Author of the images is not credited in the book",
+      "date": "1916",
+      "licence": ["Anonymous-EU", "PD-US"],
+      "crop": [101, 48, 194, 194]
+    },
+    {
+      "id": "fra_longuet",
+      "url": "https://commons.wikimedia.org/wiki/File:Jean_Longuet_1918.jpg",
+      "author": "Agence de presse Meurisse",
+      "date": "1918",
+      "licence": ["PD-old"],
+      "crop": [0, 50, 374, 374]
+    },
+    {
+      "id": "fra_loucheur",
+      "url": "https://commons.wikimedia.org/wiki/File:Louis_Loucheur_(1917).jpg",
+      "author": "Anonymous Unknown author",
+      "date": "1917",
+      "licence": ["PD-anon-70-EU", "PD-France"],
+      "crop": [0, 45, 1129, 1129]
+    },
+    {
+      "id": "fra_lyautey",
+      "url": "https://commons.wikimedia.org/wiki/File:G%C3%A9n%C3%A9ral_Lyautey,_en_tenue_d%27acad%C3%A9micien,_gros_plan_-_btv1b90339005.jpg",
+      "author": "Agence de presse Meurisse. Agence photographique (commanditaire)",
+      "date": "1920",
+      "licence": ["PD-France", "PD-1996"],
+      "crop": [712, 441, 3968, 3968]
+    },
+    {
+      "id": "fra_malvy",
+      "url": "https://commons.wikimedia.org/wiki/File:Malvy_-_Minister_of_Interior_LCCN2014695648.jpg",
+      "author": "Bain News Service, publisher",
+      "date": "1914",
+      "licence": ["PD-Bain", "PD-old-70-1923"],
+      "crop": [1143, 806, 2200, 2200]
+    },
+    {
+      "id": "fra_mandel",
+      "url": "https://commons.wikimedia.org/wiki/File:M._Mandel,_chef_de_cabinet_de_Cl%C3%A9menceau,_d%C3%A9put%C3%A9_de_la_Gironde_-_btv1b9033236c.jpg",
+      "author": "Agence de presse Meurisse. Agence photographique (commanditaire)",
+      "date": "1919",
+      "licence": ["PD-France", "PD-1996", "PD-US-expired"],
+      "crop": [4, 704, 4365, 4365]
+    },
+    {
+      "id": "fra_mangin",
+      "url": "https://commons.wikimedia.org/wiki/File:G%C3%A9n%C3%A9ral_Mangin_(portrait)_-_btv1b6908328f.jpg",
+      "author": "Agence Rol",
+      "date": "1915",
+      "licence": ["PD-France", "PD-anon-expired"],
+      "crop": [418, 374, 1557, 1557]
+    },
+    {
+      "id": "fra_messimy",
+      "url": "https://commons.wikimedia.org/wiki/File:Adolphe_Messimy_1914.jpg",
+      "author": "Agence de presse Meurisse",
+      "date": "1914",
+      "licence": ["PD-old"],
+      "crop": [0, 0, 3397, 3397]
+    },
+    {
+      "id": "fra_millerand",
+      "url": "https://commons.wikimedia.org/wiki/File:Alexandre_Millerand_1914.jpg",
+      "author": "Agence de presse Meurisse",
+      "date": "1914",
+      "licence": ["PD-US-expired"],
+      "crop": [0, 211, 3795, 3795]
+    },
+    {
+      "id": "fra_nivelle",
+      "url": "https://commons.wikimedia.org/wiki/File:Robert_Georges_Nivelle.jpg",
+      "author": "Unknown author Unknown author",
+      "date": "circa 1917",
+      "licence": ["PD-old-100-1923"],
+      "crop": [71, 57, 761, 761]
+    },
+    {
+      "id": "fra_noulens",
+      "url": "https://commons.wikimedia.org/wiki/File:Mr_Noulens,_portrait_-_btv1b90417145.jpg",
+      "author": "Agence de presse Meurisse. Agence photographique (commanditaire)",
+      "date": "1914",
+      "licence": ["PD-France", "PD-1996", "PD-US-expired"],
+      "crop": [1847, 1995, 1834, 1834]
+    },
+    {
+      "id": "fra_painleve",
+      "url": "https://commons.wikimedia.org/wiki/File:Paul_Painlev%C3%A9_LCCN2014699753.jpg",
+      "author": "Bain News Service, publisher",
+      "date": "1915",
+      "licence": ["PD-Bain", "PD-old-70-1923"],
+      "crop": [0, 79, 748, 748]
+    },
+    {
       "id": "fra_paleologue",
       "url": "https://commons.wikimedia.org/wiki/File:Maurice_Paleologue.jpg",
       "author": "Unknown author Unknown author",
       "date": "1914",
       "licence": ["PD-old"],
       "crop": [497, 45, 241, 241]
+    },
+    {
+      "id": "fra_paul_cambon",
+      "url": "https://commons.wikimedia.org/wiki/File:Paul_Cambon_LCCN2014700157.jpg",
+      "author": "Bain News Service, publisher",
+      "date": "1910",
+      "licence": ["PD-Bain", "PD-old-70-1923"],
+      "crop": [381, 381, 3860, 3860]
     },
     {
       "id": "fra_petain",
@@ -808,6 +1104,62 @@
       "date": "1913",
       "licence": ["PD-1923"],
       "crop": [135, 0, 691, 691]
+    },
+    {
+      "id": "fra_renaudel",
+      "url": "https://commons.wikimedia.org/wiki/File:Pierre_Renaudel_by_Henri_Manuel_1916.jpg",
+      "author": "Henri Manuel",
+      "date": "1916-06-24",
+      "licence": ["PD-old-auto-1923"],
+      "crop": [0, 15, 1492, 1492]
+    },
+    {
+      "id": "fra_ribot",
+      "url": "https://commons.wikimedia.org/wiki/File:Alexandre_Ribot_02.jpg",
+      "author": "Unknown author Unknown author",
+      "date": "1914-10-06",
+      "licence": ["PD-US"],
+      "crop": [243, 72, 2938, 2938]
+    },
+    {
+      "id": "fra_roques",
+      "url": "https://commons.wikimedia.org/wiki/File:G%C3%A9n%C3%A9ral_Roques_-_btv1b6945911d.jpg",
+      "author": "Agence Rol. Agence photographique (commanditaire)",
+      "date": "1916",
+      "licence": ["PD-France", "PD-1996", "PD-US-expired"],
+      "crop": [902, 331, 1283, 1283]
+    },
+    {
+      "id": "fra_sarrail",
+      "url": "https://commons.wikimedia.org/wiki/File:Gen._Sarrail_LCCN2014701339.jpg",
+      "author": "Bain News Service, publisher",
+      "date": "1915",
+      "licence": ["PD-Bain", "PD-old-70-1923"],
+      "crop": [663, 502, 3229, 3229]
+    },
+    {
+      "id": "fra_sembat",
+      "url": "https://commons.wikimedia.org/wiki/File:Marcel_Sembat_-_photographie_Henri_Manuel.jpg",
+      "author": "Henri Manuel",
+      "date": "circa 1910",
+      "licence": ["PD-old-auto-expired"],
+      "crop": [0, 47, 879, 879]
+    },
+    {
+      "id": "fra_thomas",
+      "url": "https://commons.wikimedia.org/wiki/File:Albert_Thomas_1914.jpg",
+      "author": "Agence de presse Meurisse",
+      "date": "1914",
+      "licence": ["PD-old"],
+      "crop": [0, 10, 365, 365]
+    },
+    {
+      "id": "fra_viviani",
+      "url": "https://commons.wikimedia.org/wiki/File:Ren%C3%A9_Viviani,_1912.jpg",
+      "author": "Agence de presse Meurisse",
+      "date": "1912",
+      "licence": ["PD-anon-70-EU", "PD-US-expired"],
+      "crop": [812, 539, 3186, 3186]
     },
     {
       "id": "gbr_asquith",
