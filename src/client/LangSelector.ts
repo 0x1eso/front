@@ -300,6 +300,7 @@ export class LangSelector extends LitElement {
       "offline-banner",
       "install-app-prompt",
       "offline-maps-panel",
+      "flag-picker",
     ];
 
     document.title = this.translateText("branding.title", { name: GAME_TITLE });

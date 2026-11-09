@@ -2007,6 +2007,8 @@
     "nation_players": "국가",
     "player": "플레이어",
     "player_immunity_duration": "PVP 면역 지속 시간 (분)",
+    "player_limit": "인원 제한",
+    "player_limit_placeholder": "인원",
     "player_whitelist": "플레이어 화이트리스트 (공개 ID)",
     "player_whitelist_placeholder": "쉼표로 구분",
     "players": "플레이어",
@@ -15736,7 +15738,7 @@
         "west": "서부"
       },
       "threads_title": "오래 끓는 일",
-      "topic_count": "지금 꺼낼 이야기 {n}가지",
+      "topic_count": "지금 꺼낼 이야기 {n}개",
       "trench": "참호 {n}/{max}단계",
       "trench_word": {
         "0": "움직이는 전선",
