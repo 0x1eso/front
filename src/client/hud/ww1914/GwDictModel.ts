@@ -47,6 +47,8 @@ const TITLES: readonly string[] = ["황태자", "황후", "모후"];
 /** One seat's text uses the name for two people: a card would often be wrong. */
 const TWO_PEOPLE: Readonly<Partial<Record<GwTag, readonly string[]>>> = {
   GBR: ["윌슨"],
+  // Paul in London, Jules at the Quai d'Orsay.
+  FRA: ["캉봉"],
 };
 
 /** What can be looked up by this seat, with what it has found so far. */

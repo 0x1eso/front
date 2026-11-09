@@ -73,6 +73,15 @@ export const GW_LAW_BODIES = {
     need: 0,
     decree: { price: 15, inst: "duma", delta: -1 },
   },
+  // France: the Chamber, then the Senate with an equal vote; a decree under
+  // the state of siege goes round both, and the Chamber resents it.
+  chambre: {
+    kind: "vote",
+    inst: "chamber",
+    need: 0,
+    second: { inst: "senate", need: 0 },
+    decree: { price: 15, inst: "chamber", delta: -1 },
+  },
 } as const satisfies Readonly<Record<string, GwLawBody>>;
 
 /** The door a country's bills meet first: what its scenes print. */
@@ -81,6 +90,7 @@ export const GW_LAW_HOME: Readonly<Partial<Record<GwTag, GwLawBody>>> = {
   GBR: GW_LAW_BODIES.commons,
   AUH: GW_LAW_BODIES.hungary,
   RUS: GW_LAW_BODIES.tsar,
+  FRA: GW_LAW_BODIES.chambre,
 };
 
 /** What a law in force does, on its months of war. */

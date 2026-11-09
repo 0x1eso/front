@@ -292,6 +292,47 @@ const russianRules: GwInstRule[] = [
   ...asked,
 ];
 
+/**
+ * France: the Chamber cools with order, a lost front shakes it, the premier's
+ * signature follows his trust, and the GQG gathers power while the war runs
+ * (Joffre's autonomy) until a premier takes it back.
+ */
+const frenchRules = (letterAt: number, gqg: boolean): GwInstRule[] => [
+  {
+    rule: "low_order",
+    inst: "chamber",
+    at: 1,
+    delta: -1,
+    key: "chamber_cools",
+  },
+  { rule: "lost_front", inst: "chamber", delta: -1, key: "chamber_shaken" },
+  {
+    rule: "tracks",
+    inst: "countersign",
+    office: "chancellor",
+    letterAt,
+    key: "countersign_refused",
+  },
+  ...(gqg
+    ? [
+        {
+          rule: "drift",
+          inst: "army",
+          delta: 1,
+          every: 8,
+          key: "gqg_grows",
+        } as const,
+      ]
+    : []),
+  ...asked,
+];
+
+const frenchPapers: GwPaperBar[] = [
+  { inst: "chamber", max: -4, closes: ["other"], why: "chamber" },
+  { inst: "countersign", max: -3, closes: ["major"], why: "countersign" },
+  { inst: "army", min: 4, closes: ["hold"], why: "army" },
+];
+
 /** Form of government -> who can say no. "" is a country with no row yet. */
 export const GW_AUTHORITY: Readonly<Record<string, GwAuthorityRow>> = {
   "": NOBODY,
@@ -496,6 +537,47 @@ export const GW_AUTHORITY: Readonly<Record<string, GwAuthorityRow>> = {
     ],
     papers: [{ inst: "soviet", min: 2, closes: ["major"], why: "soviet" }],
     dismiss: [{ camp: "any", inst: "soviet", delta: 1 }],
+  },
+  // France (ww166). The President asks for a removal; the Chamber minds it.
+  fra_republic: {
+    law: GW_LAW_BODIES.chambre,
+    inst: { chamber: 1, senate: 1, countersign: 1, army: 0 },
+    rules: frenchRules(-3, true),
+    papers: frenchPapers,
+    dismiss: [{ camp: "any", inst: "chamber", delta: -1 }],
+  },
+  fra_union: {
+    law: GW_LAW_BODIES.chambre,
+    inst: { chamber: 2, senate: 1, countersign: 1, army: 1 },
+    rules: frenchRules(-3, true),
+    papers: frenchPapers,
+    dismiss: [{ camp: "any", inst: "chamber", delta: -1 }],
+  },
+  // Clemenceau's government: the GQG answers to him, his signature is dear.
+  fra_tiger: {
+    law: GW_LAW_BODIES.chambre,
+    inst: { chamber: 1, senate: 2, countersign: 2, army: -1 },
+    rules: frenchRules(-2, false),
+    papers: [
+      { inst: "chamber", max: -4, closes: ["other"], why: "chamber" },
+      {
+        inst: "countersign",
+        max: -1,
+        closes: ["major", "other"],
+        why: "countersign",
+      },
+    ],
+    dismiss: [
+      { camp: "any", inst: "chamber", delta: -1 },
+      { camp: "any", inst: "countersign", delta: -1 },
+    ],
+  },
+  fra_defeat: {
+    law: GW_LAW_BODIES.chambre,
+    inst: { chamber: -1, senate: 0, countersign: 0 },
+    rules: asked,
+    papers: [],
+    dismiss: [{ camp: "any", inst: "chamber", delta: -1 }],
   },
 };
 

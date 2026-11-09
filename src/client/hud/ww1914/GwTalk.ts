@@ -9,6 +9,7 @@ import { briefLine, pastLine, rich } from "./GwDict";
 import { newPass, TextPass } from "./GwDictModel";
 import { gwFace } from "./GwFace";
 import { groupReplies, trustIndex } from "./GwModel";
+import { officeTitle } from "./GwOffice";
 import { BTN, CHIP, MUTED } from "./GwStyle";
 import {
   beatOf,
@@ -163,7 +164,7 @@ function plate(
     <div class="min-w-0">
       <h2 class="text-xl font-bold leading-tight" data-gw-who>${name}</h2>
       <div class="text-sm text-white/70">
-        ${office === null ? nothing : translateText(`gw.office.${office}`)}
+        ${office === null ? nothing : officeTitle(c.seat.tag, office)}
         ${lean === ""
           ? nothing
           : html`<span>${office === null ? "" : " · "}${lean}</span>`}

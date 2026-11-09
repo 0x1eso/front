@@ -119,9 +119,13 @@ function rowStep(ctx: SceneCtx, row: GwGovRow): void {
   }
   const next = row.steps[e.step];
   if (next === undefined || e.heat < next.at) return;
+  // A friend away can't lose the game: a regent's seat never reaches the
+  // last scene of a fatal row (as with plots).
+  if (row.fatal && seat.regent && e.step === row.steps.length - 1) return;
   e.step++;
   // What was said in a talk stands: the same person doesn't come twice.
   if (
+    next.again !== true &&
     sceneOf(next.scene)?.kind === "talk" &&
     seat.seen[next.scene] !== undefined
   ) {

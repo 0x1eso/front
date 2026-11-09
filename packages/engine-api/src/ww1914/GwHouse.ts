@@ -18,6 +18,10 @@ export const GW_CHAMBERS = [
   "reichsrat",
   /** The Hungarian Diet. */
   "budapest",
+  /** France: the Chamber of Deputies. */
+  "chambre",
+  /** France: the Senate, an equal vote. */
+  "senat",
 ] as const;
 export type GwChamber = (typeof GW_CHAMBERS)[number];
 
@@ -59,7 +63,14 @@ export const GW_VOTE_BANDS = [
 export type GwVoteBand = (typeof GW_VOTE_BANDS)[number];
 
 /** The way round the house: which constitution's door. */
-export const GW_AROUNDS = ["bundesrat", "dora", "art87", "par14"] as const;
+export const GW_AROUNDS = [
+  "bundesrat",
+  "dora",
+  "art87",
+  "par14",
+  /** France: a decree under the state of siege. */
+  "siege",
+] as const;
 export type GwAround = (typeof GW_AROUNDS)[number];
 
 /** A file's weakness kinds (S2): gw.house.weak.<id>. */

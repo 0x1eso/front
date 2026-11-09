@@ -64,7 +64,14 @@ export const GW_FOOTINGS = ["peace", "war", "total"] as const;
 export type GwFooting = (typeof GW_FOOTINGS)[number];
 
 /** Raw materials the war runs short of. Text: gw.craft.shortage.<id>. */
-export const GW_SHORTAGES = ["nitrates", "rubber", "copper", "fats"] as const;
+export const GW_SHORTAGES = [
+  "nitrates",
+  "rubber",
+  "copper",
+  "fats",
+  /** France: the coal of the occupied north. */
+  "coal",
+] as const;
 export type GwShortage = (typeof GW_SHORTAGES)[number];
 
 const int = z.number().int();

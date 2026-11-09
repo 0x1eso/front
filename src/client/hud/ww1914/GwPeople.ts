@@ -12,6 +12,7 @@ import {
   trustIndex,
   vacantOffices,
 } from "./GwModel";
+import { officeTitle } from "./GwOffice";
 import { BTN, BTN_ON, CHIP, HEAD, MUTED } from "./GwStyle";
 import {
   personBio,
@@ -180,7 +181,7 @@ function row(c: GwCtx, p: GwPersonView): TemplateResult {
         <span class="${MUTED} block truncate"
           >${p.office === null
             ? translateText("gw.ui.no_office")
-            : translateText(`gw.office.${p.office}`)}${lean === ""
+            : officeTitle(c.seat.tag, p.office)}${lean === ""
             ? nothing
             : html` · ${lean}`}</span
         >
@@ -232,7 +233,7 @@ function row(c: GwCtx, p: GwPersonView): TemplateResult {
                   c.send({ kind: "appoint", person: p.id, office: o })}
               >
                 ${translateText("gw.ui.appoint", {
-                  office: translateText(`gw.office.${o}`),
+                  office: officeTitle(c.seat.tag, o),
                 })}
               </button>`,
           )}
@@ -255,7 +256,7 @@ function vacancies(c: GwCtx): TemplateResult | typeof nothing {
     ${offices.map((o) => {
       const names = c.seat.world.candidates[o] ?? [];
       return html`<div data-gw-vacant-office=${o}>
-        <div class="text-sm">${translateText(`gw.office.${o}`)}</div>
+        <div class="text-sm">${officeTitle(c.seat.tag, o)}</div>
         <div class="mt-1 flex flex-wrap gap-1">
           ${names.map(
             (id) =>

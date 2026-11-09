@@ -22,6 +22,7 @@ import type {
 import type { GwReportView } from "@openfront/engine-api/ww1914/GwWorldView";
 import { applyJosa } from "../../Josa";
 import { translateText } from "../../Utils";
+import { officeTitle } from "./GwOffice";
 
 /** A key's text, or null when it has none. */
 export function textOrNull(
@@ -91,7 +92,7 @@ export function fillGw(
       const office = seat.people.find((p) => p.id === id)?.office;
       return office === null || office === undefined
         ? ""
-        : translateText(`gw.office.${office}`);
+        : officeTitle(seat.tag, office);
     },
   );
   return applyJosa(out);

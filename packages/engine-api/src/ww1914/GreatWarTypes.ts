@@ -230,6 +230,10 @@ export const GW_INSTITUTIONS = [
   "duma",
   "ministers",
   "soviet",
+  // France: the Chamber of Deputies and the Senate (the premier's signature
+  // is `countersign`, the GQG is `army`).
+  "chamber",
+  "senate",
 ] as const;
 export type GwInstitution = (typeof GW_INSTITUTIONS)[number];
 export const GW_INST_MIN = -5;
@@ -1060,6 +1064,11 @@ export const GW_SECRETS = [
   "grc_king_letters",
   "ott_peace_feelers",
   "jpn_china_list",
+  // France's seat (ww166). How far the 1917 refusals spread is the world's
+  // `fra_army_refusals`, which a French seat can find too.
+  "fra_toul_verdun",
+  "fra_rubicon_papers",
+  "fra_bolo_money",
 ] as const;
 export type GwSecret = (typeof GW_SECRETS)[number];
 
@@ -1081,6 +1090,9 @@ const GW_SECRET_SEATS: Readonly<Partial<Record<GwSecret, string>>> = {
   deu_tirpitz_press: "DEU",
   deu_food_books: "DEU",
   deu_fleet_plan_oct: "DEU",
+  fra_toul_verdun: "FRA",
+  fra_rubicon_papers: "FRA",
+  fra_bolo_money: "FRA",
 };
 
 /** The secrets a seat of this country can come to know. */
@@ -1213,6 +1225,8 @@ export const GW_CIPHERS: readonly { cost: number; pct: number }[] = [
 /** What a country's listeners add to the chance, for its own copies. */
 export const GW_LISTENERS: Readonly<Partial<Record<GwTagName, number>>> = {
   GBR: 10,
+  // The War Ministry's cipher bureau, which read German wireless in 1914.
+  FRA: 8,
 };
 
 export const GwTelegramSchema = z.object({

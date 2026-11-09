@@ -28,7 +28,7 @@ import { proposalsFor } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { spendHouseCall } from "./House";
 import { lawOrder } from "./Laws";
-import { dismissPerson, dismissPrice } from "./People";
+import { dismissPerson, dismissPrice, pressPremier } from "./People";
 import { postGeneral } from "./Post";
 import { pressCensor, pressInvite, pressLeak } from "./Press";
 import { prologueRefuses } from "./Prologue";
@@ -47,6 +47,7 @@ import { answerSlow, askSlow, closeByHost, noteActed } from "./Seats";
 import { sendBack } from "./SendBack";
 import { inOpening, newcomers } from "./Story";
 import { tableClaim, tableNext, tablePass, tableWord } from "./Table";
+import { GW_PREMIER_PICKS } from "./Tables";
 import { applyReply, summonScenes } from "./Talk";
 import { sendTelegram } from "./Telegrams";
 import { offerTerms } from "./Terms";
@@ -131,9 +132,13 @@ export function applyGwOrder(
       const p = gw.person(o.person);
       if (!ownPerson(seat, o.person) || p === null) return "no_person";
       if (p.office === null || p.status !== "active") return "no_person";
+      // A premier falls in the house, not by the President's hand.
+      const picks = GW_PREMIER_PICKS[seat.tag] !== undefined;
+      if (picks && p.office === "chancellor") return "premier_house";
       const n = gw.nation(seat.tag);
       if (n === null || n.authority < dismissPrice(p.id)) return "no_authority";
       dismissPerson(gw, seat, p);
+      pressPremier(gw, seat, p.id);
       return null;
     }
     case "appoint": {
@@ -141,6 +146,7 @@ export function applyGwOrder(
       if (!ownPerson(seat, o.person) || p === null) return "no_person";
       if (p.status !== "active") return "no_person";
       setOffice({ gw, seat, cast: {} }, p, o.office);
+      if (o.office !== "chancellor") pressPremier(gw, seat, p.id);
       return null;
     }
     case "allocate": {

@@ -17,6 +17,7 @@ import {
   type OccupationCell,
 } from "../../render/gl/passes/OccupationPass";
 import { translateText } from "../../Utils";
+import { officeTitle } from "./GwOffice";
 
 type Rgb = readonly [number, number, number];
 
@@ -230,7 +231,7 @@ export function envoyTitle(
   who: GwTag,
   seat: GwSeatView,
 ): string {
-  if (who === seat.tag) return translateText("gw.office.foreign");
+  if (who === seat.tag) return officeTitle(seat.tag, "foreign");
   const rows = pack?.table?.envoys;
   return rows?.[who]?.title ?? rows?.minor?.title ?? countryName(who);
 }

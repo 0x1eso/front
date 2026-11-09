@@ -29,8 +29,16 @@ export interface GwGovRow {
   /** A seat flag that puts the threat out of the game. */
   readonly unless?: string;
   readonly feeds: readonly GwGovFeed[];
-  /** Scenes in order, each with the heat it comes at; months, whatever the calendar. */
-  readonly steps: readonly { readonly at: number; readonly scene: string }[];
+  /**
+   * Scenes in order, each with the heat it comes at; months, whatever the
+   * calendar. `again`: a talk that comes each time it is reached, though seen
+   * (France's consultations: a cabinet can fall more than once).
+   */
+  readonly steps: readonly {
+    readonly at: number;
+    readonly scene: string;
+    readonly again?: boolean;
+  }[];
   /** Months it lies quiet once beaten. */
   readonly rest: number;
   /** Its last scene can lose the game. */
@@ -76,6 +84,11 @@ const inOffice = (o: "chancellor"): GwCond => ({
 
 const steps = (id: string, ...at: number[]) =>
   at.map((a, i) => ({ at: a, scene: `gov_${id}_${i + 1}` }));
+
+/** France: a cabinet's fall ends in the President's consultations. */
+export const GW_FRA_CONSULT = "gov_fra_consult";
+const FRA_REGIMES = ["fra_republic", "fra_union", "fra_tiger"];
+const dateFrom = (from: string) => world({ is: "date", from });
 
 export const GW_GOV: readonly GwGovRow[] = [
   {
@@ -266,6 +279,67 @@ export const GW_GOV: readonly GwGovRow[] = [
       },
     ],
     steps: steps("rus_court", 6, 12, 20),
+    rest: 12,
+    fatal: true,
+  },
+  // France (ww166 plan §1). A fallen cabinet is not a lost game: the last step
+  // of the Chamber's and the Senate's rows is the consultations, where the
+  // President calls the next premier. Only the Élysée row can end the game.
+  {
+    id: "fra_chamber",
+    tag: "FRA",
+    regimes: FRA_REGIMES,
+    from: "1914-12",
+    feeds: [
+      { when: inst("chamber", { max: -1 }), key: "fra_chamber" },
+      {
+        when: {
+          kind: "all",
+          of: [dateFrom("1916-06"), inst("chamber", { max: 0 })],
+        },
+        key: "fra_secret_committee",
+      },
+      { when: beaten, key: "war_bad" },
+      { when: unrest, key: "streets" },
+    ],
+    steps: [
+      ...steps("fra_chamber", 3, 7),
+      { at: 11, scene: GW_FRA_CONSULT, again: true },
+    ],
+    rest: 8,
+    fatal: false,
+  },
+  {
+    id: "fra_senate",
+    tag: "FRA",
+    regimes: ["fra_republic", "fra_union"],
+    from: "1915-01",
+    // The Tiger chaired the Senate's army commission: in office, he is it.
+    unless: "f_pm_clemenceau",
+    feeds: [
+      { when: inst("senate", { max: -1 }), key: "fra_senate" },
+      { when: gaugeMax("shells", 1), key: "fra_shells" },
+      { when: inst("army", { min: 3 }), key: "fra_gqg" },
+    ],
+    steps: [
+      ...steps("fra_senate", 3, 7),
+      { at: 11, scene: GW_FRA_CONSULT, again: true },
+    ],
+    rest: 10,
+    fatal: false,
+  },
+  {
+    id: "fra_elysee",
+    tag: "FRA",
+    regimes: FRA_REGIMES,
+    from: "1915-06",
+    feeds: [
+      { when: inst("chamber", { max: -3 }), key: "fra_chamber_hostile" },
+      { when: inst("senate", { max: -3 }), key: "fra_senate_hostile" },
+      { when: inst("countersign", { max: -3 }), key: "fra_countersign" },
+      { when: world({ is: "score", max: -40 }), key: "war_bad" },
+    ],
+    steps: steps("fra_elysee", 6, 12, 20),
     rest: 12,
     fatal: true,
   },

@@ -12,6 +12,7 @@ import { translateText } from "../../Utils";
 import type { GwCtx } from "./GwCtx";
 import { rich } from "./GwDict";
 import { gwFace } from "./GwFace";
+import { officeTitle } from "./GwOffice";
 import { BTN, BTN_ON, CHIP, GLASS, HEAD, MUTED } from "./GwStyle";
 import {
   aideLines,
@@ -195,8 +196,7 @@ function aides(c: GwCtx, t: GwTableView) {
       (l) =>
         html`<div data-gw-aide=${l.office}>
           <div class=${MUTED}>
-            ${personName(c.pack, l.who)} ·
-            ${translateText(`gw.office.${l.office}`)}
+            ${personName(c.pack, l.who)} · ${officeTitle(c.seat.tag, l.office)}
           </div>
           <p class="text-sm leading-6 text-white/90">“${rich(c, l.text)}”</p>
         </div>`,

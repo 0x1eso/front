@@ -10,6 +10,7 @@ import {
   splitTerms,
   TextPass,
 } from "./GwDictModel";
+import { officeTitle } from "./GwOffice";
 import { BTN, GLASS, HEAD, MUTED } from "./GwStyle";
 import { personBio, personLean, personName } from "./GwText";
 
@@ -44,7 +45,7 @@ function open(c: GwCtx, ref: DictRef, e: Event): void {
 function titleOf(c: GwCtx, id: string): string | null {
   const office = c.seat.people.find((p) => p.id === id)?.office;
   if (office !== null && office !== undefined && office !== "court") {
-    return translateText(`gw.office.${office}`);
+    return officeTitle(c.seat.tag, office);
   }
   return leanTitle(personLean(c.pack, id));
 }
@@ -107,7 +108,7 @@ function personCard(c: GwCtx, id: string) {
     sub:
       office === null || office === undefined
         ? ""
-        : translateText(`gw.office.${office}`),
+        : officeTitle(c.seat.tag, office),
     lines: [personLean(c.pack, id), personBio(c.pack, id)].filter(
       (x) => x !== "",
     ),

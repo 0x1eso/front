@@ -1184,7 +1184,8 @@ type HouseCond = Extract<
       | "law_origin"
       | "whip_said"
       | "around"
-      | "house_sits";
+      | "house_sits"
+      | "confidence";
   }
 >;
 
@@ -1263,7 +1264,37 @@ export function houseHolds(ctx: SceneCtx, c: HouseCond): boolean {
       return inRange(seat.house?.around ?? 0, c);
     case "house_sits":
       return houseSits(gw, seat, c.id);
+    case "confidence":
+      return confidence(gw, seat, c.stance) >= (c.min ?? 0);
   }
+}
+
+/**
+ * A confidence vote's count in the house's first chamber, as `countIn` counts
+ * a bill: the body's weight, then seats on each faction's side. A boycott,
+ * a held leader or a faction turned (temper 2, its bloc at -3) counts as
+ * the bill's rules say. No house yet: nobody to refuse.
+ */
+function confidence(
+  gw: GreatWar,
+  seat: GwSeatState,
+  stance: Readonly<Record<string, number>>,
+): number {
+  const house = houseRow(seat.tag);
+  const n = gw.nation(seat.tag);
+  const c = house?.chambers[0];
+  if (house === null || n === null || c === undefined || houseOf(seat) === null)
+    return 0;
+  let count = c.inst === undefined ? 0 : (n.inst[c.inst] ?? 0);
+  for (const row of factionRows(seat.tag)) {
+    const seats = seatsNow(seat, row)[c.id] ?? 0;
+    const f = factionOf(seat, row.id);
+    if (seats === 0 || f === null || f.status !== "in") continue;
+    if (f.held >= gw.s.chapter || f.step >= 3) continue;
+    const turned = f.step === 2 || blocNow(gw, seat, row.bloc) <= -3;
+    count += seats * (turned ? -1 : (stance[row.id] ?? 0));
+  }
+  return count;
 }
 
 type HouseEffect = Extract<

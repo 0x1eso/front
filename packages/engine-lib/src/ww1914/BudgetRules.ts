@@ -287,6 +287,15 @@ const hungary: GwBudgetBody = {
   fallout: 2,
 };
 
+const chambre: GwBudgetBody = {
+  kind: "vote",
+  inst: "chamber",
+  need: -2,
+  second: { inst: "senate", need: -3 },
+  forcePrice: 25,
+  fallout: 2,
+};
+
 export const GW_BUDGET_BODIES: Readonly<Record<string, GwBudgetBody>> = {
   empire: {
     kind: "vote",
@@ -321,6 +330,11 @@ export const GW_BUDGET_BODIES: Readonly<Record<string, GwBudgetBody>> = {
     fallout: 1,
   },
   rep: { kind: "vote", inst: "duma", need: -2, forcePrice: 20, fallout: 1 },
+  // France: the Chamber votes the credits, the provisional twelfths.
+  fra_republic: chambre,
+  fra_union: chambre,
+  fra_tiger: chambre,
+  fra_defeat: chambre,
 };
 
 /** A gauge step is this many point-days: 100 points held for a 360-day year. */

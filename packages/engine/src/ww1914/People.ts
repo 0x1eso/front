@@ -15,7 +15,12 @@ import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { dismissalFallout } from "./Authority";
 import type { GreatWar } from "./GreatWar";
 import { holderOf } from "./SceneRun";
-import { GW_NO_COMMAND, GW_PASSING, GW_PASSING_BY_SCENE } from "./Tables";
+import {
+  GW_NO_COMMAND,
+  GW_PASSING,
+  GW_PASSING_BY_SCENE,
+  GW_PREMIER_PICKS,
+} from "./Tables";
 import { chapterOf, clampTo, defOf, ownPeople, reasonOf, turn } from "./World";
 
 const P_HEALTH_FAIL = idHash("gw_health_fail");
@@ -114,6 +119,28 @@ export function dismissPerson(
     weight: -3,
   });
   ripple(gw, p.id, false);
+}
+
+/**
+ * The head pressed the premier over a minister (GW_PREMIER_PICKS): the premier
+ * minds it; at the bottom of his trust he resigns and the consultations come.
+ * Nothing for a country whose head picks his own ministers.
+ */
+export function pressPremier(
+  gw: GreatWar,
+  seat: GwSeatState,
+  about: string,
+): void {
+  const row = GW_PREMIER_PICKS[seat.tag];
+  const pm = holderOf(gw, seat, "chancellor");
+  if (row === undefined || pm === null || pm.id === about) return;
+  trustBy(pm, -1);
+  reasonOf(gw, seat, "premier_pressed", pm.id);
+  if (pm.trust > GW_TRUST_MIN) return;
+  personLeaves(gw, seat, pm, "premier_resigned");
+  if (!seat.scheduled.some((q) => q.scene === row.consult)) {
+    seat.scheduled.push({ scene: row.consult, chapter: gw.s.chapter + 1 });
+  }
 }
 
 /** They go on their own: no price, no office. */

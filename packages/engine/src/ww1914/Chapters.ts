@@ -25,6 +25,7 @@ import { seaStep } from "./Sea";
 import { closeSeats, regentStep, waitedFor } from "./Seats";
 import { storyStep } from "./Story";
 import { openSession, tableStep } from "./Table";
+import { GW_SUMMONS_LESS } from "./Tables";
 import { telegramStep } from "./Telegrams";
 import { termsStep } from "./Terms";
 import { treatyStep } from "./Treaties";
@@ -87,6 +88,11 @@ function bigChapter(gw: GreatWar, seat: GwSeatState): boolean {
   return turned;
 }
 
+/** What the seat's flags take from a chapter's summons (GW_SUMMONS_LESS). */
+function summonsLess(seat: GwSeatState): number {
+  return seat.flags.reduce((n, f) => n + (GW_SUMMONS_LESS[f] ?? 0), 0);
+}
+
 /** Opens chapter `s.chapter`: its date, summons, deadline and desk. */
 export function openChapter(gw: GreatWar, ticks: number): void {
   const s = gw.s;
@@ -99,10 +105,13 @@ export function openChapter(gw: GreatWar, ticks: number): void {
   for (const seat of s.seats) {
     seat.ready = false;
     seat.wired = 0;
-    seat.audiences = rulerAudiences(
-      gw,
-      seat,
-      ch.summons + (bigChapter(gw, seat) ? ch.bigSummons : 0),
+    seat.audiences = Math.max(
+      0,
+      rulerAudiences(
+        gw,
+        seat,
+        ch.summons + (bigChapter(gw, seat) ? ch.bigSummons : 0),
+      ) - summonsLess(seat),
     );
     seat.privates = ch.privates;
     seat.acts = ch.acts;

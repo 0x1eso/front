@@ -237,5 +237,7 @@ export const GW_ORDER_BLOCKS = [
   "bad_clause",
   "no_treaty",
   "at_war",
+  // France: a premier falls in the house, not by the President's hand.
+  "premier_house",
 ] as const;
 export type GwOrderBlock = (typeof GW_ORDER_BLOCKS)[number];

@@ -13,6 +13,7 @@ import { applyJosa } from "../../Josa";
 import { translateText } from "../../Utils";
 import type { GwCtx } from "./GwCtx";
 import { blocFactions } from "./GwHouse";
+import { officeTitle } from "./GwOffice";
 import { BTN, BTN_ON, CHIP, fillColor, HEAD, MUTED } from "./GwStyle";
 import { personName } from "./GwText";
 
@@ -229,7 +230,7 @@ function leakPick(c: GwCtx): TemplateResult {
           }}
         >
           ${personName(c.pack, p.id)}
-          <span class=${MUTED}>${translateText(`gw.office.${p.office}`)}</span>
+          <span class=${MUTED}>${officeTitle(c.seat.tag, p.office)}</span>
         </button>`,
     )}
   </div>`;

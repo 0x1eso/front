@@ -4,6 +4,7 @@ import { translateText } from "../../Utils";
 import type { GwCtx } from "./GwCtx";
 import { rich } from "./GwDict";
 import { endingsOf, logByChapter, shelfTotals } from "./GwModel";
+import { officeTitle } from "./GwOffice";
 import { BTN, CHIP, HEAD, MUTED } from "./GwStyle";
 import { countryName, placeName } from "./GwTableModel";
 import {
@@ -194,7 +195,7 @@ function cast(c: GwCtx, m: GwMemoir): TemplateResult {
               ? translateText(`gw.ui.person_status.${p.status}`)
               : p.office === null
                 ? translateText("gw.ui.no_office")
-                : translateText(`gw.office.${p.office}`)}${p.wins + p.losses > 0
+                : officeTitle(c.seat.tag, p.office)}${p.wins + p.losses > 0
               ? ` · ${translateText("gw.ui.person_record", {
                   wins: p.wins,
                   losses: p.losses,

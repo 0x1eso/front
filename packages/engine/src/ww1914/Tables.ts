@@ -418,6 +418,30 @@ export const GW_SEAT_PERSON: Readonly<
   RUS: [{ person: "rus_nicholas" }],
   DEU: [{ person: "deu_wilhelm" }],
   AUH: [{ person: "auh_franz_joseph" }],
+  FRA: [{ person: "fra_poincare" }],
+};
+
+/**
+ * Countries whose head names only the premier (France, owner's ww166 call 2).
+ * The ministers are the premier's: the head can press for a name or ask for a
+ * removal, which costs the premier's trust; at the bottom he resigns and the
+ * `consult` scene comes. The premier himself is never dismissed: he falls in
+ * the house (GovTable).
+ */
+export const GW_PREMIER_PICKS: Readonly<
+  Partial<Record<GwTag, { readonly consult: string }>>
+> = {
+  FRA: { consult: "gov_fra_consult" },
+};
+
+/**
+ * Seat flags that take summons from each chapter they are up: at sea in July
+ * 1914 the President has none (France, chapters 3-4); under Clemenceau's
+ * government he has one fewer.
+ */
+export const GW_SUMMONS_LESS: Readonly<Record<string, number>> = {
+  f_at_sea: 99,
+  f_pm_clemenceau: 1,
 };
 
 /** A scene's flag is the war plan signed: scenes set flags, the world reads. */

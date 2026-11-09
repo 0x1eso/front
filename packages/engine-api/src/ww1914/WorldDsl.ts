@@ -230,6 +230,13 @@ export type GwWorldCond =
   | ({ is: "around" } & Range)
   /** A chamber sits to vote on the bill now (false: only the way round). */
   | { is: "house_sits"; id: string }
+  /**
+   * A vote of confidence in the first chamber, counted now as a bill would be
+   * (ww166, France's consultations): the chamber's weight plus each faction's
+   * seats on its side. `stance`: faction -> -1, 0 or 1; absent factions stay
+   * away. Holds at a count of `min` (0 if absent) or more; true with no house.
+   */
+  | { is: "confidence"; stance: Readonly<Record<string, number>>; min?: number }
   // ---- Plots, the dossier, allies (ww158, S2) ----
   /** Sign scenes of a plot the seat has opened. */
   | ({ is: "plot_signs"; id: string } & Range)
@@ -511,6 +518,10 @@ export const GwWorldCondSchema = z.union([
   is("whip_said", { of: z.array(z.enum(GW_WHIP_WORDS)) }),
   is("around", range),
   is("house_sits", { id: GwIdSchema }),
+  is("confidence", {
+    stance: z.record(GwIdSchema, int.min(-1).max(1)),
+    min: int.optional(),
+  }),
   is("plot_signs", { id: GwIdSchema, ...range }),
   is("plot_warned", { id: GwIdSchema }),
   is("file", {

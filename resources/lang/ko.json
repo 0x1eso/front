@@ -14688,7 +14688,8 @@
       "shortage_nitrates": "질산염 부족이 드러났다.",
       "shortage_rubber": "고무 부족이 드러났다.",
       "treaty_loan_got": "조약에 따른 차관이 들어왔다",
-      "treaty_loan_paid": "조약에 따른 차관이 나갔다"
+      "treaty_loan_paid": "조약에 따른 차관이 나갔다",
+      "shortage_coal": "석탄 부족이 드러났다."
     },
     "mandate": {
       "deu_bread_for_the_winter": "겨울 빵을 남기기",
@@ -14834,7 +14835,11 @@
       "file_scandal": "{a}에서 추문이 터졌다. 한 사람의 뒷일이 신문에 실렸다.",
       "regent_took_over": "{a}에서 섭정이 나라를 맡았다.",
       "treaty_leaked": "{a}과(와) {b} 사이의 비밀 조약이 새어 나왔다.",
-      "treaty_broken": "{a}이(가) {b}과(와)의 조약을 깼다."
+      "treaty_broken": "{a}이(가) {b}과(와)의 조약을 깼다.",
+      "regime_fra_republic": "{a}: 제3공화국.",
+      "regime_fra_union": "{a}: 신성 연합.",
+      "regime_fra_tiger": "{a}: 클레망소 정부.",
+      "regime_fra_defeat": "{a}: 강화를 청하는 프랑스."
     },
     "odds": {
       "0": "될 일이 아닙니다.",
@@ -14888,7 +14893,10 @@
       "stavka": "사령부가 이 안을 받지 않는다.",
       "soviet": "소비에트가 허락하지 않는다.",
       "duma": "두마가 받지 않는다.",
-      "reichstag": "제국의회가 이것을 참지 않는다."
+      "reichstag": "제국의회가 이것을 참지 않는다.",
+      "chamber": "하원이 이 안을 받지 않는다.",
+      "senate": "상원이 이 안을 받지 않는다.",
+      "countersign": "수상이 이 안에 부서하지 않는다."
     },
     "reason": {
       "army_grows": "군이 전쟁을 더 많이 쥐었다.",
@@ -15078,7 +15086,18 @@
       "treaty_lapsed": "조약 제안이 답 없이 기한을 넘겼다.",
       "treaty_refused": "조약 제안이 거절되었다.",
       "treaty_signed": "비밀 조약에 서명했다.",
-      "treaty_broken": "상대가 비밀 조약을 깼다."
+      "treaty_broken": "상대가 비밀 조약을 깼다.",
+      "shortage_coal": "석탄이(가) 모자라기 시작했다.",
+      "shortage_coal_solved": "석탄 부족의 답을 찾았다.",
+      "regime_fra_republic": "정체가 바뀌었다: 제3공화국.",
+      "regime_fra_union": "정체가 바뀌었다: 신성 연합.",
+      "regime_fra_tiger": "정체가 바뀌었다: 클레망소 정부.",
+      "regime_fra_defeat": "정체가 바뀌었다: 강화를 청하는 프랑스.",
+      "chamber_cools": "하원이 식었다.",
+      "chamber_shaken": "전선을 잃어 하원이 흔들렸다.",
+      "gqg_grows": "총사령부가 일을 더 쥐었다.",
+      "premier_pressed": "수상은 자기 장관 일로 압박받은 것을 언짢아했다.",
+      "premier_resigned": "거듭된 압박에 수상이 사표를 냈다."
     },
     "result": {
       "advance": "전진",
@@ -15125,7 +15144,10 @@
       "rou_shell_gap": "루마니아의 포탄은 여섯 주 분이었다.",
       "grc_king_letters": "아테네의 왕은 베를린에 따로 편지를 보내고 있었다.",
       "ott_peace_feelers": "콘스탄티노폴은 스위스에서 단독 강화를 묻고 있었다.",
-      "jpn_china_list": "일본의 요구 목록에는 알린 것보다 일곱 조항이 더 있었다."
+      "jpn_china_list": "일본의 요구 목록에는 알린 것보다 일곱 조항이 더 있었다.",
+      "fra_toul_verdun": "베를린이 쇤 대사에게 보낸 전문에는, 프랑스가 중립을 지키겠다면 그 담보로 툴과 베르됭 요새를 넘기라는 요구가 들어 있었다.",
+      "fra_rubicon_papers": "카요는 강화 내각을 어떻게 세울지 적은 메모를 외국 은행 금고에 넣어 두었다.",
+      "fra_bolo_money": "볼로가 파리 신문을 사들인 돈은 독일에서 나왔다."
     },
     "source": {
       "agents": "첩보원",
@@ -15269,7 +15291,9 @@
       "gov_up": "불길이 커짐",
       "gov_election": "총선으로 감",
       "may_fall": "여기서 끝날 수 있음",
-      "opinion": "여론"
+      "opinion": "여론",
+      "chamber": "하원",
+      "senate": "상원"
     },
     "theatre": {
       "balkan": "발칸",
@@ -15343,7 +15367,11 @@
       "gov_held_rus_duma": "두마와의 싸움을 넘겼다",
       "gov_held_rus_court": "멈춘 기차를 움직였다",
       "table_signed": "강화 조약이 서명되고 지도가 다시 그려졌다.",
-      "treaty_leaked": "비밀 조약이 새어 나왔다."
+      "treaty_leaked": "비밀 조약이 새어 나왔다.",
+      "regime_fra_republic": "{country}의 정체가 바뀌었다: 제3공화국.",
+      "regime_fra_union": "{country}의 정체가 바뀌었다: 신성 연합.",
+      "regime_fra_tiger": "{country}의 정체가 바뀌었다: 클레망소 정부.",
+      "regime_fra_defeat": "{country}의 정체가 바뀌었다: 강화를 청하는 프랑스."
     },
     "ui": {
       "alloc_now": "지금: {main}, {posture}, {scale}",
@@ -15395,7 +15423,8 @@
         "no_seat": "그 자리에 친구가 없다.",
         "bad_clause": "조항이 맞지 않는다.",
         "not_asked": "청한 자리가 없다.",
-        "too_many": "이 장에는 더 할 수 없다."
+        "too_many": "이 장에는 더 할 수 없다.",
+        "premier_house": "대통령은 수상을 해임할 수 없다. 수상은 하원에서 물러난다."
       },
       "brief_label": "비서의 메모",
       "calendar": {
@@ -15507,7 +15536,9 @@
         "stavka": "사령부",
         "duma": "두마",
         "ministers": "각료들",
-        "soviet": "소비에트"
+        "soviet": "소비에트",
+        "chamber": "하원",
+        "senate": "상원"
       },
       "inst_title": "발목을 잡을 수 있는 곳",
       "kind": {
@@ -15857,7 +15888,11 @@
       "crown": "책임 내각 아래의 황제",
       "regency": "섭정",
       "provisional": "임시정부",
-      "rep": "러시아 공화국"
+      "rep": "러시아 공화국",
+      "fra_republic": "제3공화국",
+      "fra_union": "신성 연합",
+      "fra_tiger": "클레망소 정부",
+      "fra_defeat": "강화를 청하는 프랑스"
     },
     "issue": {
       "entry": "참전",
@@ -16059,7 +16094,10 @@
         "auh_court": "대기실의 말",
         "rus_cabinet": "각료회의",
         "rus_duma": "두마",
-        "rus_court": "가족의 식탁"
+        "rus_court": "가족의 식탁",
+        "fra_chamber": "하원의 질의",
+        "fra_senate": "상원 군사위원회",
+        "fra_elysee": "엘리제를 향한 말"
       },
       "word": {
         "0": "소문",
@@ -16091,7 +16129,15 @@
         "rus_duma": "두마가 등을 돌렸다.",
         "rus_shells": "포탄이 모자란다.",
         "rus_court": "궁정이 갈라졌다.",
-        "rus_plot": "식탁의 말이 끊이지 않는다."
+        "rus_plot": "식탁의 말이 끊이지 않는다.",
+        "fra_chamber": "하원이 내각을 몰아세운다.",
+        "fra_secret_committee": "의원들이 비밀회의를 요구한다.",
+        "fra_senate": "상원이 등을 돌렸다.",
+        "fra_shells": "포탄이 모자란다.",
+        "fra_gqg": "총사령부가 정부의 말을 듣지 않는다.",
+        "fra_chamber_hostile": "하원 다수가 대통령을 탓한다.",
+        "fra_senate_hostile": "상원 다수가 대통령을 탓한다.",
+        "fra_countersign": "수상이 부서를 거부한다."
       },
       "party": {
         "irish": "아일랜드당",
@@ -16479,7 +16525,8 @@
         "copper": "구리",
         "fats": "유지",
         "nitrates": "질산염",
-        "rubber": "고무"
+        "rubber": "고무",
+        "coal": "석탄"
       },
       "shortage_solved": "{name} 문제의 답을 찾았다.",
       "stage": {
@@ -16521,7 +16568,9 @@
         "duma": "두마",
         "council": "국가평의회",
         "reichsrat": "빈 제국의회",
-        "budapest": "헝가리 의회"
+        "budapest": "헝가리 의회",
+        "chambre": "하원",
+        "senat": "상원"
       },
       "whip_line": "{name}의 셈: \"{word}\"",
       "whip": {
@@ -16705,6 +16754,19 @@
       "wire_placeholder": "전보 내용",
       "wire_send": "보내기",
       "wires": "전보"
+    },
+    "office_by": {
+      "FRA": {
+        "chancellor": "수상",
+        "foreign": "외무장관",
+        "war": "전쟁장관",
+        "navy": "해군장관",
+        "interior": "내무장관",
+        "finance": "재무장관",
+        "munitions": "군수장관",
+        "chief_of_staff": "총사령관",
+        "agriculture": "농업장관"
+      }
     }
   }
 }

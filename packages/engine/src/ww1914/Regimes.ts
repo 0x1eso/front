@@ -95,6 +95,24 @@ export const GW_REGIMES: Readonly<
       retires: ["rus_fredericks"],
     }),
   ],
+  // France (ww166): the President stays whatever the form. `fra_union` is the
+  // sacred union a scene declares, `fra_tiger` Clemenceau's government (the
+  // consultations call it), `fra_defeat` a France that asks for peace.
+  FRA: [
+    form("fra_republic", "fra_defeat"),
+    form("fra_union", "fra_defeat", {
+      unrest: 0,
+      floor: {},
+      flag: "f_union_sacree",
+    }),
+    form("fra_tiger", "fra_defeat", {
+      unrest: 0,
+      floor: {},
+      flag: "f_pm_clemenceau",
+      appoint: [["fra_clemenceau", "chancellor"]],
+    }),
+    form("fra_defeat", null, { seeksPeace: true, unrest: 2 }),
+  ],
 };
 
 export function regimeRow(n: GwNationState): GwRegimeRow | null {
