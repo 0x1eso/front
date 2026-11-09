@@ -15845,7 +15845,9 @@
       "prologue_note_play": "1914년 6월까지 이 통치자의 삶을 살고 나서 첫 전보를 받습니다.",
       "prologue_play": "지난날부터 산다",
       "prologue_skip": "첫 전보부터 시작한다",
-      "paper_claimed": "이 전선의 칠한 땅: {list}"
+      "paper_claimed": "이 전선의 칠한 땅: {list}",
+      "dismiss_ask": "수상에게 해임을 요구한다",
+      "appoint_ask": "수상에게 {office} 자리를 권한다"
     },
     "unknown": {
       "ai": "{country}의 원수는 {word} 인물이었다.",
@@ -16398,7 +16400,9 @@
       "upper_hungary": "상부 헝가리",
       "west_prussia": "서프로이센",
       "west_russia": "서부 러시아",
-      "western_front": "북프랑스"
+      "western_front": "북프랑스",
+      "algeria": "알제리",
+      "west_africa": "서아프리카"
     },
     "map": {
       "do": "여기서 할 수 있는 일",

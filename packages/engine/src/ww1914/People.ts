@@ -10,17 +10,13 @@ import {
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
+import { GW_PREMIER_PICKS } from "@openfront/engine-lib/ww1914/StoryRows";
 import { daysFromCivil } from "@openfront/engine-lib/ww1936/Calendar";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { dismissalFallout } from "./Authority";
 import type { GreatWar } from "./GreatWar";
 import { holderOf } from "./SceneRun";
-import {
-  GW_NO_COMMAND,
-  GW_PASSING,
-  GW_PASSING_BY_SCENE,
-  GW_PREMIER_PICKS,
-} from "./Tables";
+import { GW_NO_COMMAND, GW_PASSING, GW_PASSING_BY_SCENE } from "./Tables";
 import { chapterOf, clampTo, defOf, ownPeople, reasonOf, turn } from "./World";
 
 const P_HEALTH_FAIL = idHash("gw_health_fail");

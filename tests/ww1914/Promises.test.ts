@@ -47,7 +47,7 @@ describe("promises come back", () => {
 
   test("the common card a person comes back with reaches every seat", () => {
     const nation = byId.get("gw_promise_broken")?.nation;
-    for (const tag of ["DEU", "GBR", "AUH", "RUS"] as const) {
+    for (const tag of ["DEU", "GBR", "AUH", "RUS", "FRA"] as const) {
       expect(nation).toContain(tag);
     }
   });

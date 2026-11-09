@@ -152,7 +152,7 @@ export function s2Problems(c: GwContent, tag: GwTag, pack: GwPack): string[] {
 }
 
 describe("the S2 rows", () => {
-  test.each(["DEU", "GBR", "AUH", "RUS"] as const)(
+  test.each(["DEU", "GBR", "AUH", "RUS", "FRA"] as const)(
     "%s's plots, files and asks have their scenes and text",
     async (tag) => {
       const pack = await loadGwPack(tag, async (p) => res(p));

@@ -10,6 +10,7 @@ import {
 } from "@openfront/engine-api/ww1914/SceneDsl";
 import { zPlayerRef } from "@openfront/engine-lib/snapshot/SnapshotType";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
+import { GW_PREMIER_PICKS } from "@openfront/engine-lib/ww1914/StoryRows";
 import { z } from "zod";
 import { Execution, Game, Player } from "../game/Game";
 import { execSnapshotType } from "../snapshot/ExecutionSnapshot";
@@ -47,7 +48,6 @@ import { answerSlow, askSlow, closeByHost, noteActed } from "./Seats";
 import { sendBack } from "./SendBack";
 import { inOpening, newcomers } from "./Story";
 import { tableClaim, tableNext, tablePass, tableWord } from "./Table";
-import { GW_PREMIER_PICKS } from "./Tables";
 import { applyReply, summonScenes } from "./Talk";
 import { sendTelegram } from "./Telegrams";
 import { offerTerms } from "./Terms";

@@ -2758,6 +2758,7 @@
     },
     "land": {
       "albania": "Albania",
+      "algeria": "Algeria",
       "alsace_lorraine": "Alsace-Lorraine",
       "america": "America",
       "austria": "Austria",
@@ -2812,6 +2813,7 @@
       "trieste": "Trieste and Istria",
       "ukraine": "Ukraine",
       "upper_hungary": "Upper Hungary",
+      "west_africa": "West Africa",
       "west_prussia": "West Prussia",
       "west_russia": "Western Russia",
       "western_front": "Northern France"
@@ -3934,6 +3936,7 @@
         "3": "Close to war"
       },
       "appoint": "Appoint as {office}",
+      "appoint_ask": "Press the premier for {office}",
       "audiences": "Audiences left: {n}",
       "audiences_hint": "Calling someone spends one.",
       "authority": "Authority {n}",
@@ -4019,6 +4022,7 @@
       "desk_empty": "Nothing waits on the desk. You may call someone or close the chapter.",
       "dict_close": "Close",
       "dismiss": "Dismiss",
+      "dismiss_ask": "Ask the premier to remove",
       "dismiss_price": "Authority {n}",
       "dismiss_sure": "Tap again to dismiss",
       "ending_default": "The game has ended",

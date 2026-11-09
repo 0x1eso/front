@@ -378,7 +378,7 @@ describe("the content of the schedule", () => {
       JSON.parse(
         fs.readFileSync(path.join(__dirname, "../../resources", f), "utf8"),
       ) as unknown;
-    for (const tag of ["DEU", "GBR", "AUH", "RUS"] as const) {
+    for (const tag of ["DEU", "GBR", "AUH", "RUS", "FRA"] as const) {
       const pack = await loadGwPack(tag, get);
       out.push(
         ...gwActPackProblems(

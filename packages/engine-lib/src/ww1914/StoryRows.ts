@@ -74,3 +74,16 @@ export const GW_OPENING_CIRCLE: Readonly<
 export const GW_OPENING_CHAPTERS = 3;
 /** Cards on the desk in those chapters. */
 export const GW_OPENING_DESK = 2;
+
+/**
+ * Countries whose head names only the premier (France, owner's ww166 call 2).
+ * The ministers are the premier's: the head can press for a name or ask for a
+ * removal, which costs the premier's trust; at the bottom he resigns and the
+ * `consult` scene comes. The premier himself is never dismissed: he falls in
+ * the house (GovTable).
+ */
+export const GW_PREMIER_PICKS: Readonly<
+  Partial<Record<GwTag, { readonly consult: string }>>
+> = {
+  FRA: { consult: "gov_fra_consult" },
+};

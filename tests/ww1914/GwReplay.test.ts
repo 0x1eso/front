@@ -39,7 +39,7 @@ describe("the common pass of bodies", () => {
 
   test("common text speaks to no seat in particular", async () => {
     const packs: GwPack[] = await Promise.all(
-      (["DEU", "GBR", "AUH", "RUS"] as const).map((t) => loadGwPack(t, disk)),
+      (["DEU", "GBR", "AUH", "RUS", "FRA"] as const).map((t) => loadGwPack(t, disk)),
     );
     for (const pack of packs) {
       for (const [id, likes] of entries) {

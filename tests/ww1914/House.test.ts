@@ -79,7 +79,7 @@ import path from "node:path";
 import { afterEach, describe, expect, test } from "vitest";
 import { gwRunner } from "./util";
 
-const NATIONS: GwTag[] = ["DEU", "GBR", "AUH", "RUS"];
+const NATIONS: GwTag[] = ["DEU", "GBR", "AUH", "RUS", "FRA"];
 const KO = path.join(__dirname, "../../resources/ww1914/ko");
 const packOf = (f: string): GwPack =>
   fs.existsSync(path.join(KO, f))

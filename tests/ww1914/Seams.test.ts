@@ -421,13 +421,13 @@ describe("pack shares", () => {
 
   test("the main files stay required, and countries with no shares ask only for the casts", async () => {
     const asked: string[] = [];
-    await loadGwPack("FRA", async (p) => {
+    await loadGwPack("ITA", async (p) => {
       asked.push(p);
       return pack();
     });
     expect(asked).toEqual([
       "ww1914/ko/common.json",
-      "ww1914/ko/FRA.json",
+      "ww1914/ko/ITA.json",
       "ww1914/ko/common.war.json",
       "ww1914/ko/common.people.json",
       "ww1914/ko/common.dip.json",

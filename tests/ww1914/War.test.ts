@@ -188,7 +188,7 @@ describe("neutrals", () => {
 
 describe("the ladder, country by country", () => {
   test("each of the four has four scenes, and each rung a way down", () => {
-    for (const tag of ["DEU", "GBR", "AUH", "RUS"] as const) {
+    for (const tag of ["DEU", "GBR", "AUH", "RUS", "FRA"] as const) {
       const row = GW_HOME[tag]!;
       for (const id of row.rungs) {
         const s = GW_CONTENT.scenes.find((x) => x.id === id);

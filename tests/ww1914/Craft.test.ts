@@ -120,7 +120,7 @@ function craftProblems(c: GwContent, tag: string, pack: GwPack): string[] {
 }
 
 describe("the rows", () => {
-  test.each(["DEU", "GBR", "AUH", "RUS"])(
+  test.each(["DEU", "GBR", "AUH", "RUS", "FRA"])(
     "%s's statecraft has its papers and text",
     async (tag) => {
       const pack = await loadGwPack(tag as "DEU", async (p) => res(p));

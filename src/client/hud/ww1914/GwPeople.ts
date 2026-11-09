@@ -1,4 +1,6 @@
+import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import type { GwPersonView } from "@openfront/engine-api/ww1914/GwView";
+import { GW_PREMIER_PICKS } from "@openfront/engine-lib/ww1914/StoryRows";
 import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
 import type { GwCtx } from "./GwCtx";
@@ -88,6 +90,12 @@ function promises(c: GwCtx, id: string): TemplateResult | typeof nothing {
   </div>`;
 }
 
+/** The head names only the premier (France): the rest he can only press for. */
+const premierPicks = (c: GwCtx) =>
+  GW_PREMIER_PICKS[c.seat.tag as GwTag] !== undefined;
+const pressOnly = (c: GwCtx, o: string) =>
+  premierPicks(c) && o !== "chancellor";
+
 function dismissButton(c: GwCtx, p: GwPersonView): TemplateResult {
   const armed = c.ui.armedDismiss === p.id;
   const cost = dismissal(c.seat, p.id);
@@ -106,7 +114,13 @@ function dismissButton(c: GwCtx, p: GwPersonView): TemplateResult {
         c.send({ kind: "dismiss", person: p.id });
       }}
     >
-      ${translateText(armed ? "gw.ui.dismiss_sure" : "gw.ui.dismiss")}
+      ${translateText(
+        armed
+          ? "gw.ui.dismiss_sure"
+          : premierPicks(c)
+            ? "gw.ui.dismiss_ask"
+            : "gw.ui.dismiss",
+      )}
       ${cost === null
         ? nothing
         : html`<span class="${CHIP} ml-1"
@@ -232,12 +246,15 @@ function row(c: GwCtx, p: GwPersonView): TemplateResult {
                 @click=${() =>
                   c.send({ kind: "appoint", person: p.id, office: o })}
               >
-                ${translateText("gw.ui.appoint", {
-                  office: officeTitle(c.seat.tag, o),
-                })}
+                ${translateText(
+                  pressOnly(c, o) ? "gw.ui.appoint_ask" : "gw.ui.appoint",
+                  { office: officeTitle(c.seat.tag, o) },
+                )}
               </button>`,
           )}
-          ${p.office === null ? nothing : dismissButton(c, p)}
+          ${p.office === null || (p.office === "chancellor" && premierPicks(c))
+            ? nothing
+            : dismissButton(c, p)}
         </div>`
       : nothing}
   </section>`;

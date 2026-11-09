@@ -267,7 +267,7 @@ describe("the end between friends", () => {
 });
 
 describe("the friends' lobby", () => {
-  test("offers the four written seats, mine under my name, a friend's shut", () => {
+  test("offers the five written seats, mine under my name, a friend's shut", () => {
     const root = document.createElement("div");
     render(
       gwSeatPicker(
@@ -290,7 +290,7 @@ describe("the friends' lobby", () => {
       [...root.querySelectorAll<HTMLElement>("[data-gw-seat]")].map(
         (b) => b.dataset.gwSeat,
       ),
-    ).toEqual(["DEU", "GBR", "AUH", "RUS"]);
+    ).toEqual(["DEU", "GBR", "AUH", "RUS", "FRA"]);
     expect(seat("DEU").textContent).toContain("나무");
     expect(seat("RUS").textContent).toContain("바다");
     expect(seat("RUS").disabled).toBe(true);
