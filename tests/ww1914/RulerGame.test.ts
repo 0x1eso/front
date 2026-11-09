@@ -9,7 +9,7 @@ import { beforeAll, describe, expect, test } from "vitest";
 import { NodeGameMapLoader } from "../perf/fullgame/NodeGameMapLoader";
 import { GW_SIM_PROFILES, playRun } from "./sim/GwSim";
 
-const SEATS: GwTag[] = ["DEU", "GBR", "AUH", "RUS"];
+const SEATS: GwTag[] = ["DEU", "GBR", "AUH", "RUS", "FRA"];
 /** Not every game has a war that lasts: look through this many for one. */
 const TRIES = 8;
 

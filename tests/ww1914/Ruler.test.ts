@@ -31,7 +31,7 @@ const res = (p: string) =>
   JSON.parse(
     fs.readFileSync(path.join(__dirname, "../../resources", p), "utf8"),
   );
-const SEATS = ["DEU", "GBR", "AUH", "RUS"] as const;
+const SEATS = ["DEU", "GBR", "AUH", "RUS", "FRA"] as const;
 
 async function fresh(): Promise<GreatWar> {
   const { runner } = await gwRunner();

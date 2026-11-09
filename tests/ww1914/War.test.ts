@@ -462,7 +462,7 @@ describe("how it stops", () => {
   });
 
   test("every country's rows name an ending with a mandate list beside it", () => {
-    for (const tag of ["DEU", "GBR", "AUH", "RUS"] as const) {
+    for (const tag of ["DEU", "GBR", "AUH", "RUS", "FRA"] as const) {
       expect(GW_ENDING_ROWS[tag]!.length).toBeGreaterThanOrEqual(6);
       expect(GW_MANDATES[tag]!.length).toBeGreaterThanOrEqual(12);
     }

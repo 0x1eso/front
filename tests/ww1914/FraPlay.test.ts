@@ -151,6 +151,21 @@ describe("France's President", () => {
     expect(called(gw, "gov_fra_consult")).toBe(true);
   });
 
+  test("leaving the Tiger's cabinet, the sacred union comes back only if the SFIO stayed", async () => {
+    for (const out of [false, true]) {
+      const gw = await game();
+      late(gw);
+      const seat = seatOf(gw);
+      const n = gw.nation("FRA")!;
+      n.regime = "fra_tiger";
+      seat.flags.push("f_pm_clemenceau");
+      if (out) seat.flags.push("f_sfio_out");
+      consult(gw, "call_briand");
+      expect(premier(gw)).toBe("fra_briand");
+      expect(n.regime, String(out)).toBe(out ? "fra_republic" : "fra_union");
+    }
+  });
+
   test("holds no summons at sea, one fewer under Clemenceau", async () => {
     const gw = await game();
     const seat = seatOf(gw);

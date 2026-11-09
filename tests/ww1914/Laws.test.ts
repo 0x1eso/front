@@ -41,7 +41,7 @@ import { NodeGameMapLoader } from "../perf/fullgame/NodeGameMapLoader";
 import { GW_SIM_PROFILES, playRun } from "./sim/GwSim";
 import { gwRunner, order, playChapter, seat, view } from "./util";
 
-const NATIONS: GwTag[] = ["DEU", "GBR", "AUH", "RUS"];
+const NATIONS: GwTag[] = ["DEU", "GBR", "AUH", "RUS", "FRA"];
 const KO = path.join(__dirname, "../../resources/ww1914/ko");
 const packOf = (f: string): GwPack =>
   JSON.parse(fs.readFileSync(path.join(KO, f), "utf8")) as GwPack;

@@ -867,4 +867,204 @@ export const PRESS_SCENES: readonly GwScene[] = [
       ["leave", [], [{ kind: "opinion", bloc: "parliament", delta: -1 }]],
     ],
   ),
+  // ---- France (ww166, lane W5). No `tell`: what came of it shows after. ----
+  scene(
+    "FRA",
+    "army",
+    bloc("army"),
+    { cos: "chief_of_staff", w: "war" },
+    "go_chantilly",
+    [
+      [
+        "go_chantilly",
+        [],
+        [
+          inst_("army", 1),
+          { kind: "opinion", bloc: "army", delta: 1 },
+          { kind: "audiences", delta: -1 },
+        ],
+      ],
+      ["back_gqg", [], [inst_("army", 2), inst_("chamber", -1)]],
+      ["minister_speaks", [], [inst_("army", -1), inst_("chamber", 1)]],
+    ],
+  ),
+  scene(
+    "FRA",
+    "court",
+    bloc("court"),
+    { in: "interior", ch: "chancellor" },
+    "see_barres",
+    [
+      [
+        "see_barres",
+        [],
+        [
+          { kind: "opinion", bloc: "court", delta: 1 },
+          { kind: "audiences", delta: -1 },
+        ],
+      ],
+      [
+        "cardinal_mass",
+        [],
+        [
+          { kind: "opinion", bloc: "court", delta: 2 },
+          { kind: "opinion", bloc: "workers", delta: -1 },
+        ],
+      ],
+      [
+        "republic_first",
+        [],
+        [inst_("chamber", 1), { kind: "opinion", bloc: "court", delta: -1 }],
+      ],
+    ],
+  ),
+  scene(
+    "FRA",
+    "parliament",
+    bloc("parliament"),
+    { ch: "chancellor", in: "interior" },
+    "hear_leaders",
+    [
+      [
+        "hear_leaders",
+        [],
+        [
+          inst_("chamber", 1),
+          { kind: "opinion", bloc: "parliament", delta: 1 },
+          { kind: "audiences", delta: -1 },
+        ],
+      ],
+      ["message", [], [inst_("chamber", 2), inst_("countersign", -1)]],
+      ["behind_pm", [], [inst_("countersign", 1), inst_("chamber", -1)]],
+    ],
+  ),
+  scene(
+    "FRA",
+    "business",
+    bloc("business"),
+    { fin: "finance", w: "war" },
+    "contracts",
+    [
+      [
+        "contracts",
+        [],
+        [
+          { kind: "gauge", gauge: "money", delta: -1 },
+          { kind: "opinion", bloc: "business", delta: 2 },
+        ],
+      ],
+      [
+        "hear_forges",
+        [],
+        [
+          { kind: "opinion", bloc: "business", delta: 1 },
+          { kind: "audiences", delta: -1 },
+        ],
+      ],
+      [
+        "profits_word",
+        [],
+        [
+          { kind: "opinion", bloc: "business", delta: -1 },
+          { kind: "opinion", bloc: "workers", delta: 1 },
+          { kind: "gauge", gauge: "order", delta: 1 },
+        ],
+      ],
+    ],
+  ),
+  scene(
+    "FRA",
+    "workers",
+    bloc("workers"),
+    { in: "interior", ch: "chancellor" },
+    "meet_cgt",
+    [
+      [
+        "meet_cgt",
+        [],
+        [
+          inst_("chamber", 1),
+          { kind: "opinion", bloc: "workers", delta: 1 },
+          { kind: "opinion", bloc: "court", delta: -1 },
+        ],
+      ],
+      [
+        "wages",
+        [],
+        [
+          { kind: "gauge", gauge: "money", delta: -1 },
+          { kind: "gauge", gauge: "order", delta: 1 },
+          { kind: "opinion", bloc: "workers", delta: 2 },
+        ],
+      ],
+      [
+        "prefects",
+        [],
+        [
+          { kind: "gauge", gauge: "order", delta: -1 },
+          inst_("army", 1),
+          { kind: "opinion", bloc: "workers", delta: -2 },
+        ],
+      ],
+    ],
+  ),
+  scene(
+    "FRA",
+    "press",
+    bloc("press"),
+    { in: "interior", ch: "chancellor" },
+    "leave",
+    [
+      [
+        "editors",
+        [],
+        [
+          { kind: "opinion", bloc: "press", delta: 2 },
+          { kind: "rumour", delta: -1 },
+          { kind: "audiences", delta: -1 },
+        ],
+      ],
+      [
+        "loosen",
+        [],
+        [
+          { kind: "censor", delta: -1 },
+          { kind: "opinion", bloc: "press", delta: 2 },
+          inst_("army", -1),
+        ],
+      ],
+      [
+        "leave",
+        [],
+        [inst_("army", 1), { kind: "opinion", bloc: "press", delta: -1 }],
+      ],
+    ],
+  ),
+  scene(
+    "FRA",
+    "rumour",
+    rumour,
+    { in: "interior", ch: "chancellor" },
+    "leave",
+    [
+      [
+        "communique",
+        [],
+        [
+          { kind: "rumour", delta: -3 },
+          inst_("army", -1),
+          { kind: "audiences", delta: -1 },
+        ],
+      ],
+      [
+        "go_see",
+        [],
+        [
+          { kind: "rumour", delta: -2 },
+          { kind: "audiences", delta: -1 },
+        ],
+      ],
+      ["leave", [], [{ kind: "opinion", bloc: "parliament", delta: -1 }]],
+    ],
+  ),
 ];

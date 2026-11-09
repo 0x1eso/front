@@ -205,6 +205,56 @@ export const GW_ENDING_ROWS: Readonly<
     },
     { id: "rus_tsar_falls", of: ["home_collapse"] },
   ],
+  // France (ww166): the President stays to the end; what the end was.
+  FRA: [
+    { id: "fra_end_resigned", of: ["fra_end_resigned"] },
+    {
+      id: "fra_end_alliance",
+      of: [...ANY_END, ...FIRST_WINTER],
+      when: flag("f_alliance_broken"),
+    },
+    { id: "fra_end_long_peace", of: ["long_peace"] },
+    { id: "fra_end_mutiny", of: ["home_collapse"] },
+    {
+      id: "fra_end_mutiny",
+      of: ["compromise_peace", "armistice_conference"],
+      when: any(
+        { kind: "seen", scene: "fra_big_mutiny" },
+        { kind: "inst", inst: "army", max: -3 },
+      ),
+    },
+    {
+      id: "fra_end_bordeaux",
+      of: ANY_WAR,
+      when: all(
+        flag("f_gov_bordeaux"),
+        world({ is: "front", theatre: "west", from: "marne" }),
+      ),
+    },
+    {
+      id: "fra_end_alone_west",
+      of: ["deadline", "compromise_peace", "armistice_conference"],
+      when: out("GBR"),
+    },
+    { id: "fra_end_bordeaux", of: ["armistice_conference"] },
+    { id: "fra_end_white", of: ["compromise_peace"] },
+    {
+      id: "fra_end_rhine",
+      of: ["victory_peace"],
+      when: world({ is: "front", theatre: "west", to: "rhine" }),
+    },
+    { id: "fra_end_tiger", of: ["victory_peace"], when: regime("fra_tiger") },
+    {
+      id: "fra_end_conference",
+      of: ["victory_peace"],
+      when: all(
+        world({ is: "entered", tag: "USA", side: "entente" }),
+        world({ is: "entered", tag: "GBR", side: "entente" }),
+      ),
+    },
+    { id: "fra_end_alsace", of: ["victory_peace"] },
+    { id: "fra_end_deadline", of: ["deadline"] },
+  ],
 };
 
 /** A paragraph a country's memoir closes on: the first that holds. */

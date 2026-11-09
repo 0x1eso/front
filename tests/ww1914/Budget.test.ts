@@ -41,7 +41,7 @@ import { diffSnapshots } from "../util/Snapshot";
 import { MINI, stamped, step, wwGameStart } from "../ww1936/util";
 import { gwRunner, HUMAN, playChapter } from "./util";
 
-const SEATS: GwTag[] = ["DEU", "GBR", "AUH", "RUS"];
+const SEATS: GwTag[] = ["DEU", "GBR", "AUH", "RUS", "FRA"];
 const gwOf = (r: GameRunner): GreatWar => r.game.greatWar()!;
 
 const basis = (over = {}) => ({

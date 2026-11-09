@@ -20,6 +20,7 @@ import {
   reason,
   remember,
   role,
+  schedule,
   setFlag,
   trustOf,
 } from "@openfront/engine-api/ww1914/SceneDsl";
@@ -33,8 +34,10 @@ import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
  * lost game, and nothing here changes who the seat is: Poincaré stays. Only
  * the Élysée row's last paper can end the game, and its first way is safe.
  *
- * Lane S wrote this working skeleton; lane W5 owns the file and its text in
- * resources/ww1914/ko/FRA.gov.json from here (ww166-format.md).
+ * Lane S wrote the skeleton; lane W5 wrote it out (ww166-format.md). Text in
+ * resources/ww1914/ko/FRA.gov.json. Each premier carries his price (plan §1:
+ * a law, an aim, less room for the President), and brings his list of
+ * ministers to the Élysée the next chapter (gov_fra_cabinet).
  */
 
 const onlyCalled = flag("gw_world_called_only");
@@ -147,6 +150,9 @@ export const FRA_PM_FLAGS = [
   "f_pm_caillaux",
 ] as const;
 
+/** Set by the home share (W3) when the SFIO leaves the government. */
+export const SFIO_OUT = "f_sfio_out";
+
 /** The rows a new cabinet puts out: the Chamber's and the Senate's. */
 const CABINET_ROWS = ["fra_chamber", "fra_senate"];
 
@@ -162,6 +168,8 @@ interface FraPremier {
   readonly when: GwCond;
   readonly ministers: readonly (readonly [string, GwOffice])[];
   readonly stance: Readonly<Record<string, number>>;
+  /** What calling him costs, paid the day he is called. */
+  readonly price: readonly GwEffect[];
 }
 
 const PREMIERS: readonly FraPremier[] = [
@@ -174,6 +182,15 @@ const PREMIERS: readonly FraPremier[] = [
       ["fra_millerand", "war"],
     ],
     stance: { fra_radicals: 1, fra_repsoc: 1, fra_sfio: 1, fra_left_rep: 1 },
+    // Called back, he is a man the Chamber has already put out once; what
+    // the President heard from him since makes that cheaper (k_viv_after).
+    price: [
+      {
+        kind: "maybe",
+        when: not(memory("k_viv_after")),
+        then: [inst("chamber", -1)],
+      },
+    ],
   },
   {
     name: "briand",
@@ -187,6 +204,8 @@ const PREMIERS: readonly FraPremier[] = [
       fra_left_rep: 1,
       fra_fed_rep: 1,
     },
+    // He governs by talk, and the talk is his: less room for the President.
+    price: [authority(-5)],
   },
   {
     name: "ribot",
@@ -199,6 +218,8 @@ const PREMIERS: readonly FraPremier[] = [
       fra_fed_rep: 1,
       fra_catholics: 1,
     },
+    // The Senate's man: the Senate sits easier, the Chamber's left does not.
+    price: [inst("senate", 1), inst("chamber", -1)],
   },
   {
     name: "painleve",
@@ -206,6 +227,8 @@ const PREMIERS: readonly FraPremier[] = [
     when: from("1917-01"),
     ministers: [],
     stance: { fra_radicals: 1, fra_repsoc: 1, fra_left_rep: 1 },
+    // He asks the generals for their odds: the GQG resents it.
+    price: [inst("army", -1)],
   },
   {
     name: "barthou",
@@ -218,6 +241,8 @@ const PREMIERS: readonly FraPremier[] = [
       fra_catholics: 1,
       fra_sfio: -1,
     },
+    // The three-year law's man: the left counts it against him.
+    price: [inst("chamber", -1), inst("army", 1)],
   },
   {
     // The hardest call: the man who fought the President's election takes
@@ -236,6 +261,9 @@ const PREMIERS: readonly FraPremier[] = [
       fra_minority: -1,
       fra_caillaux: -1,
     },
+    // He takes the war out of the President's hands: the premier's signature
+    // is his own now, and he asks nobody's leave.
+    price: [inst("countersign", -2), authority(-10)],
   },
   {
     name: "caillaux",
@@ -256,6 +284,8 @@ const PREMIERS: readonly FraPremier[] = [
       fra_af: -1,
       fra_tiger: -1,
     },
+    // A cabinet that talks of peace: the GQG and London hear it at once.
+    price: [inst("army", -2), { kind: "trust", tag: "GBR", delta: -1 }],
   },
 ];
 
@@ -263,7 +293,7 @@ const PREMIERS: readonly FraPremier[] = [
  * What calling a premier does: the old flags go, his comes, he and his
  * ministers are appointed, the cabinet's rows are put out. Clemenceau's
  * government is a form of its own (regime fra_tiger); leaving it goes back
- * to the sacred union. Exported for scenes that call a premier elsewhere.
+ * to the sacred union, or to the plain Republic once the SFIO has left. Exported for scenes that call a premier elsewhere.
  */
 export function callPremier(name: string): GwEffect[] {
   const row = PREMIERS.find((x) => x.name === name);
@@ -276,7 +306,20 @@ export function callPremier(name: string): GwEffect[] {
       : {
           kind: "maybe",
           when: regime("fra_tiger"),
-          then: [doWorld({ do: "regime", to: "fra_union" })],
+          // Once the Socialists have walked out (W3's f_sfio_out), the
+          // sacred union doesn't come back: the plain Republic does.
+          then: [
+            {
+              kind: "maybe",
+              when: flag(SFIO_OUT),
+              then: [doWorld({ do: "regime", to: "fra_republic" })],
+            },
+            {
+              kind: "maybe",
+              when: not(flag(SFIO_OUT)),
+              then: [doWorld({ do: "regime", to: "fra_union" })],
+            },
+          ],
         },
     setFlag(`f_pm_${name}`),
     { kind: "appoint", who: { person: row.person }, office: "chancellor" },
@@ -288,10 +331,15 @@ export function callPremier(name: string): GwEffect[] {
       }),
     ),
     ...CABINET_ROWS.map(beat),
+    ...row.price,
     remember("k_gov_fra_consulted"),
     reason(`gov_fra_called_${name}`),
+    schedule(GOV_FRA_CABINET, 1),
   ];
 }
+
+/** The new premier brings his list to the Élysée (plan §4 ④). */
+export const GOV_FRA_CABINET = "gov_fra_cabinet";
 
 const callable = (x: FraPremier): GwCond =>
   all(
@@ -328,7 +376,11 @@ const CONSULT: GwScene = {
   variants: [v("again", memory("k_gov_fra_consulted")), v("base")],
   nodes: {
     n1: {
-      says: [v("again", memory("k_gov_fra_consulted")), v("base")],
+      says: [
+        v("des", memory("k_des_chamber")),
+        v("again", memory("k_gov_fra_consulted")),
+        v("base"),
+      ],
       replies: [decide("hear", "n2")],
     },
     n2: {
@@ -339,7 +391,7 @@ const CONSULT: GwScene = {
     n3: {
       alone: true,
       fallback: "renew",
-      says: [v("base")],
+      says: [v("war", world({ is: "war" })), v("base")],
       replies: [
         renew,
         ...PREMIERS.map(
@@ -355,7 +407,61 @@ const CONSULT: GwScene = {
 
 // ---- The rows ----
 
+/**
+ * The new premier's list, the chapter after he is called. The President can
+ * take it, add a word, or press for a name: pressing costs the premier's
+ * trust, as the plan has it, and the list is his to keep or not.
+ */
+const pmFlag = (name: string) => v(name, flag(`f_pm_${name}`));
+const CABINET: GwScene = {
+  id: GOV_FRA_CABINET,
+  nation: ["FRA"],
+  kind: "proposal",
+  cast: { pm: orTrusted(office("chancellor")) },
+  salience: 8,
+  tags: ["home", "people"],
+  scheduledOnly: true,
+  variants: [
+    pmFlag("clemenceau"),
+    pmFlag("caillaux"),
+    pmFlag("briand"),
+    pmFlag("ribot"),
+    pmFlag("painleve"),
+    pmFlag("barthou"),
+    v("base"),
+  ],
+  fallback: "take_list",
+  options: [
+    opt("take_list", [trustOf(role("pm"), 1), reason("gov_fra_list_taken")]),
+    opt("message", [
+      inst("chamber", 1),
+      inst("countersign", -1),
+      reason("gov_fra_list_message"),
+    ]),
+    opt("press_name", [
+      trustOf(role("pm"), -1),
+      inst("countersign", 1),
+      authority(-5),
+      reason("gov_fra_list_pressed"),
+    ]),
+    opt(
+      "press_delcasse",
+      [
+        trustOf(role("pm"), -1),
+        { kind: "appoint", who: { person: "fra_delcasse" }, office: "foreign" },
+        reason("gov_fra_list_delcasse"),
+      ],
+      all(
+        memory("k_del_after"),
+        { kind: "person_active", person: "fra_delcasse" },
+        not(flag("f_pm_clemenceau")),
+      ),
+    ),
+  ],
+};
+
 export const GOV_FRA_SCENES: GwScene[] = [
+  CABINET,
   talk("gov_fra_chamber_1", orTrusted(office("chancellor")), {
     open: node(
       [v("cold", at("chamber", { max: -2 })), v("base")],

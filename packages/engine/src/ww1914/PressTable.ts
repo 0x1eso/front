@@ -7,7 +7,7 @@
 import { GwInstitution } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import type { GwBloc } from "@openfront/engine-api/ww1914/GwPress";
-import { all, GwCond, not } from "@openfront/engine-api/ww1914/SceneDsl";
+import { all, flag, GwCond, not } from "@openfront/engine-api/ww1914/SceneDsl";
 import { world } from "@openfront/engine-api/ww1914/WorldDsl";
 
 export type GwStoryOn =
@@ -1030,10 +1030,257 @@ const RUS: GwPressRow = {
   ],
 };
 
+/**
+ * France (ww166, lane W5). The seat's own scenes from other shares are called
+ * by prefix, so a story waits for its scene rather than naming a pick here.
+ * 《카나르 앙셰네》 came out in September 1915: it reads only the long war.
+ */
+const FRA: GwPressRow = {
+  papers: [
+    { id: "temps", blocs: ["parliament", "business"], foe: "workers" },
+    { id: "matin", blocs: ["press", "business"] },
+    { id: "huma", blocs: ["workers"], foe: "court" },
+    { id: "af", blocs: ["court"], foe: "parliament" },
+    { id: "echo", blocs: ["army", "court"], foe: "workers" },
+    { id: "homme", blocs: ["parliament"], foe: "army" },
+    { id: "canard", blocs: ["press"], foe: "army", noInvite: true },
+    { id: "bonnet", blocs: ["workers"], foe: "army", noInvite: true },
+  ],
+  start: 0,
+  peaceCap: 0,
+  warLevel: 1,
+  price: 10,
+  bar: { inst: "chamber", min: -2, why: "chamber" },
+  free: [],
+  // The secret papers of the other shares (Schoen's question, Carnet B, the
+  // mutinies, Sixtus, the Rhine note, Lancken) join here at the merge: a
+  // closed id must be a written scene.
+  closed: [],
+  stories: [
+    story(
+      "censor",
+      10,
+      event("censor"),
+      { homme: -1, huma: -1, temps: 1 },
+      { rest: 0 },
+    ),
+    story(
+      "lift",
+      10,
+      event("lift"),
+      { homme: 1, huma: 1, echo: -1 },
+      { rest: 0 },
+    ),
+    story(
+      "leak",
+      10,
+      event("leak"),
+      { matin: 0, homme: 0, echo: -1 },
+      { rest: 0 },
+    ),
+    story(
+      "war_censor",
+      7,
+      event("war_censor"),
+      { echo: 1, temps: 0, bonnet: -1 },
+      { free: true },
+    ),
+    story(
+      "caillaux_trial",
+      8,
+      { chose: ["fra_c_caillaux_trial"], prefix: true },
+      { matin: 0, af: -1, huma: 0 },
+    ),
+    story(
+      "mobilise",
+      9,
+      { chose: ["fra_c_mobilise"], prefix: true },
+      { echo: 1, temps: 1, huma: 0 },
+    ),
+    story(
+      "union",
+      9,
+      { chose: ["fra_c_union"], prefix: true },
+      { huma: 1, temps: 1, af: 0 },
+    ),
+    story(
+      "bordeaux",
+      9,
+      { chose: ["fra_big_bordeaux"], prefix: true },
+      { matin: 0, homme: -1, temps: 0 },
+    ),
+    story(
+      "marne",
+      9,
+      { chose: ["fra_big_marne"], prefix: true },
+      { echo: 1, homme: -1, temps: 0 },
+    ),
+    story(
+      "verdun",
+      9,
+      { chose: ["fra_big_verdun"], prefix: true },
+      { echo: 1, temps: 1, homme: 0 },
+    ),
+    story(
+      "joffre_out",
+      9,
+      { chose: ["fra_big_joffre"], prefix: true },
+      { echo: -1, homme: 1, temps: 0 },
+    ),
+    story(
+      "doullens",
+      8,
+      { chose: ["fra_w_doullens"], prefix: true },
+      { echo: 1, temps: 1, matin: 0 },
+    ),
+    story(
+      "bonnet_rouge",
+      9,
+      { chose: ["fra_h_bonnet_rouge"], prefix: true },
+      { af: 1, homme: 1, bonnet: -1 },
+    ),
+    story(
+      "malvy",
+      9,
+      { chose: ["fra_h_malvy_fall"], prefix: true },
+      { homme: 1, af: 1, huma: -1 },
+    ),
+    story(
+      "caillaux_arrest",
+      9,
+      { chose: ["fra_h_caillaux_arrest"], prefix: true },
+      { af: 1, huma: -1, temps: 0 },
+    ),
+    story("consult", 8, decided("gov_fra_consult"), {
+      temps: 0,
+      homme: -1,
+      huma: 0,
+    }),
+    story(
+      "secret_committee",
+      8,
+      decided("gov_fra_chamber_2", "secret_session"),
+      { homme: 1, echo: -1, temps: 0 },
+    ),
+    story("elysee", 9, decided(["gov_fra_elysee_2", "gov_fra_elysee_3"]), {
+      af: -1,
+      homme: -1,
+      temps: 0,
+    }),
+    story("regime_tiger", 9, ownNews("regime_fra_tiger"), {
+      homme: 1,
+      huma: -1,
+      af: 1,
+    }),
+    story("regime_union", 9, ownNews("regime_fra_union"), {
+      temps: 1,
+      huma: 1,
+      af: 0,
+    }),
+    // The day of a bill: the page says which one, above the headlines.
+    story(
+      "law",
+      8,
+      { chose: ["gw_lv_"], prefix: true, picks: ["put"] },
+      { temps: 0, huma: 0, af: 0 },
+    ),
+    story(
+      "law_decree",
+      9,
+      { chose: ["gw_lv_"], prefix: true, picks: ["decree"] },
+      { homme: -1, echo: 1, temps: 0 },
+    ),
+    story(
+      "budget",
+      6,
+      { chose: ["gw_bm_fra_"], prefix: true },
+      { temps: 0, huma: -1, matin: 1 },
+    ),
+    story("sarajevo", 8, news("shot_fired"), { matin: 0, temps: 0, echo: 0 }),
+    story("war_in", 9, CAME_IN, { echo: 1, temps: 1, huma: 1 }),
+    story("armistice", 9, news("armistice_"), { temps: 1, af: 0, huma: 0 }),
+    story("cooled", 7, COOLED, { huma: 1, echo: -1, temps: 1 }),
+    story("america", 7, news("america_entered"), {
+      temps: 1,
+      matin: 1,
+      huma: 0,
+    }),
+    story("unrest_big", 8, ownNews("unrest_3", "unrest_4"), {
+      huma: -1,
+      af: -1,
+      temps: -1,
+    }),
+    story("strikes", 7, ownNews("unrest_1", "unrest_2"), {
+      huma: -1,
+      af: -1,
+      matin: -1,
+    }),
+    story("front_won", 6, WON, { echo: 1, matin: 1, homme: 0 }),
+    story("front_lost", 6, LOST, { echo: -1, homme: -1, temps: 0 }),
+    story("temp_up", 5, moved("temp", 1), { echo: 1, temps: 0, huma: -1 }),
+    story("temp_down", 5, moved("temp", -1), { echo: -1, huma: 1, temps: 1 }),
+    story("chamber_up", 5, moved("chamber", 1), {
+      temps: 1,
+      homme: 1,
+      af: -1,
+    }),
+    story("chamber_down", 5, moved("chamber", -1), {
+      temps: -1,
+      homme: -1,
+      af: 1,
+    }),
+    story("senate_up", 5, moved("senate", 1), { temps: 1, homme: 0, matin: 0 }),
+    story("senate_down", 5, moved("senate", -1), {
+      temps: -1,
+      homme: -1,
+      echo: 0,
+    }),
+    story("army_up", 5, moved("army", 1), { echo: 1, homme: -1, temps: 0 }),
+    story("army_down", 5, moved("army", -1), { echo: -1, homme: 1, temps: 0 }),
+    story("countersign_down", 5, moved("countersign", -1), {
+      homme: 0,
+      temps: -1,
+      af: 0,
+    }),
+    story("order_down", 4, moved("order", -1), { huma: -1, matin: -1, af: 0 }),
+    story("money_down", 4, moved("money", -1), {
+      temps: -1,
+      matin: 0,
+      echo: 0,
+    }),
+    story("bread_low", 4, low("bread", 1), { huma: -1, matin: -1, temps: 0 }),
+    story("shells_low", 3, low("shells", 0), { echo: -1, homme: -1, temps: 0 }),
+    story("money_low", 3, low("money", 0), { temps: -1, matin: 0, homme: 0 }),
+    story("heavy", 3, HEAVY, { huma: -1, temps: 0, echo: 0 }, { rest: 8 }),
+    story("hot", 3, HOT, { echo: 1, temps: 0, huma: -1 }, { rest: 2 }),
+    story(
+      "long_war",
+      2,
+      LONG_WAR,
+      { canard: -1, temps: 0, echo: 1 },
+      { rest: 6 },
+    ),
+    story("war_quiet", 1, WAR, { temps: 0, matin: 0, echo: 0 }, { rest: 2 }),
+    story("peace_quiet", 1, PEACE, { temps: 0, matin: 0, af: 0 }, { rest: 2 }),
+    story("any_day", 0, {}, { temps: 0, matin: 0, huma: 0 }, { rest: 0 }),
+  ],
+  rumours: [
+    { id: "kub_posters", when: world({ is: "war_age", max: 4 }) },
+    { id: "russians_passing", when: world({ is: "war_age", max: 6 }) },
+    { id: "gov_fled", when: flag("f_gov_bordeaux") },
+    { id: "generals_shot", when: world({ is: "war_age", min: 3 }) },
+    { id: "peace_salon", when: world({ is: "war_age", min: 14 }) },
+    { id: "german_money", when: world({ is: "war_age", min: 18 }) },
+    { id: "flour_hidden", when: { kind: "gauge", gauge: "bread", max: 2 } },
+    { id: "bread_cards", when: { kind: "gauge", gauge: "bread", max: 1 } },
+  ],
+};
+
 /** A country with no row has no papers on its desk. */
 export const GW_PRESS_ROWS: Readonly<Partial<Record<GwTag, GwPressRow>>> = {
   DEU,
   GBR,
   AUH,
   RUS,
+  FRA,
 };

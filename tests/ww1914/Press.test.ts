@@ -12,7 +12,7 @@ import { describe, expect, test } from "vitest";
 import { step } from "../ww1936/util";
 import { gwRunner, order, playChapter, seat, view } from "./util";
 
-const TAGS: GwTag[] = ["DEU", "GBR", "AUH", "RUS"];
+const TAGS: GwTag[] = ["DEU", "GBR", "AUH", "RUS", "FRA"];
 
 function packOf(tag: GwTag): GwPack {
   const file = path.join(

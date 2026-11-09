@@ -222,8 +222,16 @@ export const GW_BUDGET: Readonly<Partial<Record<GwTag, GwBudgetRow>>> = {
     debt: 33000,
     interest: 3,
     step: 1700,
+    warPrices: 100,
+    // The seat's own fields (ww166, lane W5): the Republic spent heavily on
+    // the army and its forts, and paid for the war with bonds, not taxes.
+    peace: [32, 12, 12, 26, 18],
+    war: [70, 6, 10, 6, 8],
     warTax: 95,
     loanDraft: 12,
+    bondShare: 75,
+    national: { inst: "chamber", drift: "morale" },
+    navy: "shipping",
     lenders: [london(15, 0), morgan(12)],
   },
   ITA: {
