@@ -951,4 +951,157 @@ export const BUDGET_SCENES: readonly GwScene[] = [
     { summon: false },
   ),
   bankruptcy("gw_bc_rus", ["RUS"], [inst("duma", -1)]),
+
+  // ---- France (ww166, lane W5). No `tell` on the meetings: results come after. ----
+  meeting(
+    "FRA",
+    "peace",
+    [
+      opt(
+        "fortresses",
+        [],
+        [
+          tilt("army", 5),
+          inst("chamber", -1),
+          reason("budget_fra_forts"),
+          sign,
+        ],
+      ),
+    ],
+    PEACE,
+  ),
+  meeting(
+    "FRA",
+    1914,
+    [
+      opt("guns", [], [tilt("army", 4), trustOf(fin, -1), sign]),
+      opt(
+        "defence_bonds",
+        [],
+        [mix("bonds", 10), reason("budget_fra_bonds"), sign],
+      ),
+    ],
+    FIRST,
+  ),
+  meeting("FRA", 1915, [
+    opt("guns", [], [tilt("army", 5), trustOf(fin, -1), sign]),
+    opt(
+      "first_loan",
+      [],
+      [mix("bonds", 12), gauge("morale", 1), sign],
+      memory("b_fra_bonds"),
+    ),
+    opt(
+      "new_york",
+      [],
+      [mix("loans", 8), { kind: "trust", tag: "USA", delta: 1 }, sign],
+      memory("b_fra_morgan"),
+    ),
+  ]),
+  meeting("FRA", 1916, [
+    opt("guns", [], [tilt("army", 5), trustOf(fin, -1), sign]),
+    opt("relief", [], [tilt("relief", 5), trustOf(role("war"), -1), sign]),
+    opt(
+      "income_tax",
+      [],
+      [mix("taxes", 15), inst("senate", -1), inst("chamber", 1), sign],
+      any(
+        memory("b_fra_income"),
+        world({ is: "law", id: "fra_law_income_tax", of: ["force"] }),
+      ),
+    ),
+  ]),
+  meeting("FRA", 1917, [
+    opt("relief", [], [tilt("relief", 6), trustOf(role("war"), -1), sign]),
+    opt("second_loan", [], [mix("bonds", 12), inst("chamber", 1), sign]),
+    opt(
+      "gold_to_london",
+      [],
+      [
+        mix("loans", 10),
+        treasury(15),
+        { kind: "trust", tag: "GBR", delta: 1 },
+        sign,
+      ],
+      memory("b_fra_gold"),
+    ),
+  ]),
+  meeting(
+    "FRA",
+    1918,
+    [
+      opt("guns", [], [tilt("army", 5), trustOf(fin, -1), sign]),
+      opt("relief", [], [tilt("relief", 6), trustOf(role("war"), -1), sign]),
+      opt(
+        "bread_price",
+        [],
+        [tilt("relief", 4), prices(-4), gauge("money", -1), sign],
+      ),
+    ],
+    LAST,
+  ),
+  talk(
+    "gw_bt_fra_bonds",
+    "FRA",
+    financeHolder,
+    atWar,
+    "b_fra_bonds",
+    { tell: [], effects: [reason("budget_heard_fra_bonds")] },
+    trade("weary", coin, cost("chamber")),
+  ),
+  talk(
+    "gw_bt_fra_morgan",
+    "FRA",
+    financeHolder,
+    since("1915-03"),
+    "b_fra_morgan",
+    { tell: [], effects: [reason("budget_heard_fra_morgan")] },
+    trade(
+      "cold",
+      coin,
+      {
+        tell: "america:+1",
+        effect: doWorld({ do: "readiness", tag: "USA", delta: 2 }),
+      },
+      "usa_credit_cliff",
+    ),
+  ),
+  talk(
+    "gw_bt_fra_income",
+    "FRA",
+    financeHolder,
+    since("1915-06"),
+    "b_fra_income",
+    { tell: [], effects: [reason("budget_heard_fra_income")] },
+    trade("stubborn", coin, cost("senate")),
+  ),
+  talk(
+    "gw_bt_fra_gold",
+    "FRA",
+    financeHolder,
+    since("1916-03"),
+    "b_fra_gold",
+    { tell: [], effects: [reason("budget_heard_fra_gold")] },
+    trade("anxious", coin, {
+      tell: "gbr:-1",
+      effect: { kind: "trust", tag: "GBR", delta: -1 },
+    }),
+  ),
+  talk(
+    "gw_bl_fra",
+    "FRA",
+    anyOf({ office: "finance", tag: "GBR" }, { favourite: true }),
+    atWar,
+    "b_fra_bound",
+    {
+      tell: ["money:+2", "gbr:+1"],
+      effects: [treasury(40), { kind: "trust", tag: "GBR", delta: 1 }],
+    },
+    trade("cold", coin, {
+      tell: "gbr:-1",
+      effect: { kind: "trust", tag: "GBR", delta: -1 },
+    }),
+    { summon: false },
+  ),
+  bankruptcy("gw_bc_fra", ["FRA"], [inst("chamber", -1)]),
 ];

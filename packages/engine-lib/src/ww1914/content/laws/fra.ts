@@ -2,11 +2,7 @@
 // GW_LAW_HOME.FRA (the Chamber, then the Senate; decree under the state of
 // siege). Text in resources/ww1914/ko/FRA.laws.json. Lane W5 (ww166-format.md).
 // No `tell` anywhere: what a bill did comes after, as reason lines.
-import {
-  all,
-  memory,
-  not,
-} from "@openfront/engine-api/ww1914/SceneDsl";
+import { all, memory, not } from "@openfront/engine-api/ww1914/SceneDsl";
 import type { GwLawRow } from "../../LawRows";
 import {
   draft,

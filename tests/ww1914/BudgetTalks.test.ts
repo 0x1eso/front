@@ -13,8 +13,8 @@ const pack = (tag: string): GwPack =>
   ) as GwPack;
 
 describe("the money talks", () => {
-  test("seventeen of them, each three to six nodes deep", () => {
-    expect(talks.length).toBe(17);
+  test("twenty-two of them, each three to six nodes deep", () => {
+    expect(talks.length).toBe(22);
     for (const s of talks) {
       const n = Object.keys(s.nodes ?? {}).length;
       expect(n).toBeGreaterThanOrEqual(3);
@@ -48,7 +48,7 @@ describe("the money talks", () => {
   });
 
   test("every line is written", () => {
-    for (const tag of ["DEU", "GBR", "AUH", "RUS"]) {
+    for (const tag of ["DEU", "GBR", "AUH", "RUS", "FRA"]) {
       const scenes = talks.filter((s) => s.nation.includes(tag as "DEU"));
       expect(scenes.length).toBeGreaterThanOrEqual(3);
       expect(gwPackProblems(scenes, pack(tag))).toEqual([]);
