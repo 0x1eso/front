@@ -137,7 +137,16 @@ export function pressPremier(
   trustBy(pm, -1);
   reasonOf(gw, seat, "premier_pressed", pm.id);
   if (pm.trust > GW_TRUST_MIN) return;
-  personLeaves(gw, seat, pm, "premier_resigned");
+  // He resigns; he isn't gone: a later consultation can call him again.
+  pm.office = null;
+  pm.letter = null;
+  seat.memory.push({
+    key: "premier_resigned",
+    who: pm.id,
+    chapter: gw.s.chapter,
+    weight: 0,
+  });
+  reasonOf(gw, seat, "premier_resigned", pm.id);
   if (!seat.scheduled.some((q) => q.scene === row.consult)) {
     seat.scheduled.push({ scene: row.consult, chapter: gw.s.chapter + 1 });
   }

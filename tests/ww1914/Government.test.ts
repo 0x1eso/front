@@ -130,7 +130,7 @@ describe("the table", () => {
     }
   });
 
-  test.each(["DEU", "GBR", "AUH", "RUS"] as GwTag[])(
+  test.each(["DEU", "GBR", "AUH", "RUS", "FRA"] as GwTag[])(
     "%s has its reason lines, names and feeds in both languages",
     async (tag) => {
       const pack = await loadGwPack(tag, async (p) => json(p));
@@ -319,6 +319,14 @@ describe("the reckoning", () => {
       "rus_palace_coup",
       () => ({ stavka: -1 }),
     ],
+
+    [
+      "FRA",
+      "gov_fra_elysee_3",
+      "face",
+      "fra_end_resigned",
+      () => ({ chamber: -3, senate: -3 }),
+    ],
   ];
 
   test.each(cases)(
@@ -355,7 +363,7 @@ describe("the reckoning", () => {
     }
   });
 
-  test.each(["DEU", "GBR", "AUH", "RUS"] as GwTag[])(
+  test.each(["DEU", "GBR", "AUH", "RUS", "FRA"] as GwTag[])(
     "every scene of %s can be cast on the first day",
     async (tag) => {
       const gw = await game(tag);
@@ -422,7 +430,7 @@ describe("the election", () => {
 });
 
 describe("whole games", () => {
-  test.each(["DEU", "GBR", "AUH", "RUS"] as GwTag[])(
+  test.each(["DEU", "GBR", "AUH", "RUS", "FRA"] as GwTag[])(
     "%s plays out with its threats on the desk",
     async (tag) => {
       const scenes = new Set<string>();

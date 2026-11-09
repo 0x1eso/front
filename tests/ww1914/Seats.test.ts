@@ -8,7 +8,11 @@ import { beforeAll, describe, expect, test } from "vitest";
 import { NodeGameMapLoader } from "../perf/fullgame/NodeGameMapLoader";
 import { GW_SIM_PROFILES, newGame, playRun, startOf } from "./sim/GwSim";
 
-const SELF = { GBR: "gbr_asquith", RUS: "rus_nicholas" } as const;
+const SELF = {
+  GBR: "gbr_asquith",
+  RUS: "rus_nicholas",
+  FRA: "fra_poincare",
+} as const;
 
 describe("every written seat", () => {
   let map: MapFiles;

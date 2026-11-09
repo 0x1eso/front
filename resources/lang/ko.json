@@ -15371,7 +15371,10 @@
       "regime_fra_republic": "{country}의 정체가 바뀌었다: 제3공화국.",
       "regime_fra_union": "{country}의 정체가 바뀌었다: 신성 연합.",
       "regime_fra_tiger": "{country}의 정체가 바뀌었다: 클레망소 정부.",
-      "regime_fra_defeat": "{country}의 정체가 바뀌었다: 강화를 청하는 프랑스."
+      "regime_fra_defeat": "{country}의 정체가 바뀌었다: 강화를 청하는 프랑스.",
+      "gov_held_fra_chamber": "하원의 질의를 넘겼다",
+      "gov_held_fra_senate": "상원 군사위원회를 넘겼다",
+      "gov_held_fra_elysee": "엘리제를 향한 말을 가라앉혔다"
     },
     "ui": {
       "alloc_now": "지금: {main}, {posture}, {scale}",

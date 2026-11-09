@@ -27,6 +27,7 @@ import {
   trustOf,
 } from "@openfront/engine-api/ww1914/SceneDsl";
 import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
+import { GOV_FRA_SCENES } from "./gov_fra";
 
 /**
  * The threats to a government (brief ww142, engine GovTable). `gov_<row>_<n>`
@@ -1634,4 +1635,5 @@ export const GOV_SCENES: GwScene[] = [
   ...DEU_SCENES,
   ...AUH_SCENES,
   ...RUS_SCENES,
+  ...GOV_FRA_SCENES,
 ];
