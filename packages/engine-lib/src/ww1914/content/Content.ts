@@ -18,6 +18,7 @@ import { GW_PEOPLE } from "./people";
 import { AUH_PEOPLE } from "./people_auh";
 import { GW_PEOPLE_COMMON } from "./people_common";
 import { GW_PEOPLE_DEU } from "./people_deu";
+import { FRA_PEOPLE } from "./people_fra";
 import { GBR_PEOPLE } from "./people_gbr";
 import { GW_PEOPLE_HEADS } from "./people_heads";
 import { GW_PEOPLE_MONEY } from "./people_money";
@@ -222,6 +223,7 @@ export const GW_CONTENT: GwContent = {
     ...GBR_PRIVATE_PEOPLE,
     ...AUH_PRIVATE_PEOPLE,
     ...GW_PEOPLE_HEADS,
+    ...FRA_PEOPLE,
   ],
   acts: [
     ...COMMON_ACTS,

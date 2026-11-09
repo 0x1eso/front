@@ -510,7 +510,7 @@ export const GBR_CRISIS_SCENES: readonly GwScene[] = [
     "crisis",
     8,
     ["foreign", "tension_up"],
-    { fm: { office: "foreign" }, cambon: { person: "fra_cambon" } },
+    { fm: { office: "foreign" }, cambon: { person: "fra_paul_cambon" } },
     all(late(4), hot, tempMin(3)),
     [
       v("conference", flag("f_grey_conference")),

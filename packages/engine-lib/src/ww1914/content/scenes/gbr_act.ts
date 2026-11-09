@@ -1406,7 +1406,7 @@ const BIG_SCENES: GwScene[] = [
     {
       fm: holder("foreign"),
       navy: holder("navy"),
-      amb: { person: "fra_cambon" },
+      amb: { person: "fra_paul_cambon" },
     },
     "amb",
     {

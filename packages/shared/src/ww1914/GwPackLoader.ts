@@ -127,6 +127,7 @@ export const GW_PEOPLE_PACKS: readonly string[] = [
   "AUH.people",
   "RUS.people",
   "RUS.kin",
+  "FRA.people",
 ];
 
 /** A share not written yet is no share: only the files that are there count. */

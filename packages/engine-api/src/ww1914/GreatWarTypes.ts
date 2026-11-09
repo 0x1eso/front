@@ -90,6 +90,11 @@ export const GW_CAMPS = [
   // Russia: whose person they are.
   "court",
   "duma",
+  // France's party axis (content/people_fra).
+  "radical",
+  "socialist",
+  "centre",
+  "right",
 ] as const;
 export type GwCamp = (typeof GW_CAMPS)[number];
 

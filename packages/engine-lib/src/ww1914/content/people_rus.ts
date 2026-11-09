@@ -619,8 +619,8 @@ export const RUS_PEOPLE: readonly GwPersonDef[] = [
   {
     id: "fra_paleologue",
     tag: "FRA",
-    office: null,
-    fit: [],
+    office: "ambassador_petersburg",
+    fit: ["ambassador_petersburg"],
     camps: ["civil", "hard"],
     temperaments: ["cunning", "arrogant"],
     rivals: ["rus_rasputin"],
