@@ -135,6 +135,11 @@ const westFrom = (line: string): GwCond => ({
   of: { is: "front", theatre: "west", from: line },
 });
 const heard = (key: string): GwCond => memory(key);
+/** Chapters since France came into the war. */
+const inWarFor = (min: number, max?: number): GwCond => ({
+  kind: "world",
+  of: max === undefined ? { is: "in_war", min } : { is: "in_war", min, max },
+});
 
 const crisis: GwCond = { kind: "crisis", topic: "balkan" };
 const inWar: GwCond = { kind: "at_war", tag: "DEU" };
@@ -146,6 +151,17 @@ const bdx = flag("f_gov_bordeaux");
 const east1: GwCond = { kind: "world", of: { is: "plan", of: ["east"] } };
 const belg: GwCond = { kind: "world", of: { is: "plan", of: ["west"] } };
 const viviani = holds("chancellor", "fra_viviani");
+/**
+ * The war's first months, whenever it comes (ww166 fix): the papers of a
+ * war's opening wait on the war, not on August, up to the end of 1915.
+ */
+const warOpening = (min: number, max?: number): GwCond =>
+  all(inWar, inWarFor(min, max), {
+    kind: "world",
+    of: { is: "date", to: "1915-12" },
+  });
+/** A war that came after the summer of 1914: July's days are long gone. */
+const lateWar: GwCond = { kind: "world", of: { is: "date", from: "1914-09" } };
 
 const v = (id: string, when: GwCond): GwVariant => ({ id, when });
 const base: GwVariant = { id: "base" };
@@ -903,8 +919,14 @@ export const FRA_CRISIS_SCENES: readonly GwScene[] = [
       war: { office: "war" },
       cos: { office: "chief_of_staff" },
     },
-    all(late(4), crisis, tempMin(7), not(sea), not(mob("FRA", 2))),
+    // July's paper, or, whatever the chapter, the war's first days: France
+    // always signs its mobilisation when its war starts.
+    any(
+      all(late(4), crisis, tempMin(7), not(sea), not(mob("FRA", 2))),
+      all(inWar, inWarFor(0, 2), not(sea)),
+    ),
     [
+      v("declared", all(inWar, inWarFor(0, 2))),
       v("waited", chose("fra_c_mobilise", "wait_day")),
       v("germans", mob("DEU", 1)),
       v("russians", mob("RUS", 2)),
@@ -922,19 +944,27 @@ export const FRA_CRISIS_SCENES: readonly GwScene[] = [
           trust("RUS", 1),
           setFlag("f_fra_mobilised"),
         ]),
-        opt("wait_day", [
-          jauresFate,
-          delay(1),
-          army(-1),
-          maybe(chapters(0, 6), schedule("fra_c_mobilise", 1)),
-          reason("fra_c_mob_wait"),
-        ]),
-        opt("cover_only", [
-          jauresFate,
-          act({ do: "mobilize", tag: "FRA", level: 1 }),
-          trust("GBR", 1),
-          army(-1),
-        ]),
+        opt(
+          "wait_day",
+          [
+            jauresFate,
+            delay(1),
+            army(-1),
+            schedule("fra_c_mobilise", 1),
+            reason("fra_c_mob_wait"),
+          ],
+          not(inWar),
+        ),
+        opt(
+          "cover_only",
+          [
+            jauresFate,
+            act({ do: "mobilize", tag: "FRA", level: 1 }),
+            trust("GBR", 1),
+            army(-1),
+          ],
+          not(inWar),
+        ),
       ],
     },
   ),
@@ -975,7 +1005,14 @@ export const FRA_CRISIS_SCENES: readonly GwScene[] = [
     ["home", "tension_down"],
     { pm: { office: "chancellor" } },
     all(late(5), any(inWar, tempMin(8))),
-    [v("lives", jl), v("east", east1), v("war", inWar), base],
+    [
+      v("late_lives", all(lateWar, active("fra_jaures"))),
+      v("late", all(lateWar, not(active("fra_jaures")))),
+      v("lives", jl),
+      v("east", east1),
+      v("war", inWar),
+      base,
+    ],
     {
       stage: LATE,
       place: "paris",
@@ -1053,9 +1090,9 @@ export const FRA_CRISIS_SCENES: readonly GwScene[] = [
     8,
     ["war"],
     {},
-    all(chapters(6, 7), inWar),
+    warOpening(1, 2),
     [v("doctrine", secret("fra_offensive_doctrine")), v("belg", belg), base],
-    { stamp: "unconfirmed", source: "staff" },
+    { stamp: "unconfirmed", source: "staff", stage: LATE },
   ),
   scene(
     "fra_c_war_cabinet",
@@ -1063,9 +1100,10 @@ export const FRA_CRISIS_SCENES: readonly GwScene[] = [
     8,
     ["people", "home"],
     { pm: { office: "chancellor" } },
-    all(chapters(6, 7), inWar, holds("war", "fra_messimy")),
+    all(warOpening(1, 2), holds("war", "fra_messimy")),
     [v("lives", jl), v("union", us), base],
     {
+      stage: LATE,
       fallback: "union_cabinet",
       options: [
         opt("union_cabinet", [
@@ -1102,9 +1140,10 @@ export const FRA_CRISIS_SCENES: readonly GwScene[] = [
     7,
     ["war"],
     { war: { office: "war" } },
-    all(chapters(6, 7), inWar, westFrom("somme"), active("fra_gallieni")),
+    all(warOpening(1, 2), westFrom("somme"), active("fra_gallieni")),
     [v("messimy", holds("war", "fra_messimy")), base],
     {
+      stage: LATE,
       fallback: "name_gallieni",
       options: [
         opt("name_gallieni", [
@@ -1124,13 +1163,14 @@ export const FRA_CRISIS_SCENES: readonly GwScene[] = [
     7,
     ["people", "war"],
     { cos: { office: "chief_of_staff" } },
-    all(chapters(7, 8), inWar),
+    warOpening(2, 3),
     [
       v("free", flag("f_joffre_free")),
       v("stubborn", moody(cos, "stubborn")),
       base,
     ],
     {
+      stage: LATE,
       fallback: "accept",
       options: [
         opt("accept", [trustOf(cos, 1), army(1)]),
@@ -1154,9 +1194,10 @@ export const FRA_CRISIS_SCENES: readonly GwScene[] = [
     7,
     ["home"],
     { home: { office: "interior" } },
-    all(chapters(6, 8), inWar),
+    warOpening(1, 3),
     [v("union", us), v("cunning", moody(home, "cunning")), base],
     {
+      stage: LATE,
       fallback: "censor_wide",
       options: [
         opt("censor_wide", [
@@ -1179,9 +1220,9 @@ export const FRA_CRISIS_SCENES: readonly GwScene[] = [
     7,
     ["home", "war"],
     {},
-    all(chapters(7, 9), inWar, westFrom("somme")),
+    all(warOpening(2, 4), westFrom("somme")),
     [v("bdx", bdx), base],
-    { stamp: "estimate", source: "staff", place: "lille" },
+    { stamp: "estimate", source: "staff", place: "lille", stage: LATE },
   ),
   scene(
     "fra_c_back_to_paris",
@@ -1189,9 +1230,10 @@ export const FRA_CRISIS_SCENES: readonly GwScene[] = [
     6,
     ["home"],
     { pm: { office: "chancellor" } },
-    all(chapters(9, 10), bdx),
+    all(bdx, inWarFor(4)),
     [v("held", flag("w_marne_stopped")), base],
     {
+      stage: LATE,
       place: "bordeaux",
       fallback: "return_now",
       options: [
@@ -1216,6 +1258,7 @@ export const FRA_CRISIS_SCENES: readonly GwScene[] = [
     [
       v("alone", flag("f_alliance_broken")),
       v("bdx", all(inWar, bdx)),
+      v("war_new", all(inWar, inWarFor(0, 2), not(bdx))),
       v("war", inWar),
       v("peace", not(inWar)),
       base,
@@ -1224,6 +1267,106 @@ export const FRA_CRISIS_SCENES: readonly GwScene[] = [
       stage: ["closing"],
       fallback: "close_year",
       options: [opt("close_year", [reason("fra_c_year_closed")])],
+    },
+  ),
+
+  // ---- The autumn of 1914 (ww166 fix): the front digs in, shells and coal,
+  // the Chamber's December, and, in a peace, the stand-down ----
+  scene(
+    "fra_c_trenches",
+    "report",
+    6,
+    ["war"],
+    {},
+    warOpening(2, 6),
+    [v("held", flag("w_marne_stopped")), base],
+    { stamp: "confirmed", source: "staff", stage: LATE },
+  ),
+  scene(
+    "fra_c_shells",
+    "proposal",
+    7,
+    ["war", "home"],
+    { war: { office: "war" } },
+    warOpening(2, 8),
+    [
+      v("thin", { kind: "gauge", gauge: "shells", max: 1 }),
+      v("coal", westFrom("somme")),
+      base,
+    ],
+    {
+      stage: LATE,
+      fallback: "private_works",
+      options: [
+        opt("private_works", [
+          gauge("shells", 1),
+          gauge("money", -1),
+          reason("fra_c_shells_private"),
+        ]),
+        opt("arsenals", [army(1), trustOf(war, 1)]),
+        opt("buy_coal", [gauge("money", -1), gauge("order", 1)]),
+      ],
+    },
+  ),
+  scene(
+    "fra_c_chamber_december",
+    "proposal",
+    7,
+    ["home"],
+    { pm: { office: "chancellor" } },
+    all(from(9), {
+      kind: "world",
+      of: { is: "date", from: "1914-12", to: "1915-01" },
+    }),
+    [v("bdx", all(inWar, bdx)), v("war", inWar), base],
+    {
+      stage: WAR,
+      fallback: "short_session",
+      options: [
+        opt("short_session", [sign(1), chamber(-1)]),
+        opt("full_debate", [chamber(1), sign(-1)]),
+        opt("message", [
+          chamber(1),
+          senate(1),
+          act({ do: "authority", delta: -5 }),
+          reason("fra_c_december_message"),
+        ]),
+      ],
+    },
+  ),
+  scene(
+    "fra_c_stand_down",
+    "proposal",
+    6,
+    ["war", "tension_down"],
+    { war: { office: "war" }, cos: { office: "chief_of_staff" } },
+    all(from(8), not(inWar), not(crisis), {
+      kind: "world",
+      of: { is: "date", to: "1915-02" },
+    }),
+    [v("mobbed", mob("FRA", 1)), base],
+    {
+      stage: WAR,
+      fallback: "half",
+      options: [
+        opt("stand_down", [
+          act({ do: "stand_down", tag: "FRA", level: 0 }),
+          gauge("money", 1),
+          army(-1),
+          temp(-1),
+          trust("RUS", -1),
+        ]),
+        opt("keep_ready", [
+          army(1),
+          gauge("money", -1),
+          trust("RUS", 1),
+          trust("DEU", -1),
+        ]),
+        opt("half", [
+          act({ do: "stand_down", tag: "FRA", level: 1 }),
+          chamber(1),
+        ]),
+      ],
     },
   ),
 

@@ -29,7 +29,12 @@ import { proposalsFor } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { spendHouseCall } from "./House";
 import { lawOrder } from "./Laws";
-import { dismissPerson, dismissPrice, pressPremier } from "./People";
+import {
+  dismissedFrom,
+  dismissPerson,
+  dismissPrice,
+  pressPremier,
+} from "./People";
 import { postGeneral } from "./Post";
 import { pressCensor, pressInvite, pressLeak } from "./Press";
 import { prologueRefuses } from "./Prologue";
@@ -148,6 +153,7 @@ export function applyGwOrder(
       // The premier is called at the consultations, never named from the list.
       const picks = GW_PREMIER_PICKS[seat.tag] !== undefined;
       if (picks && o.office === "chancellor") return "premier_house";
+      if (dismissedFrom(seat, p.id, o.office)) return "no_person";
       setOffice({ gw, seat, cast: {} }, p, o.office);
       if (o.office !== "chancellor") pressPremier(gw, seat, p.id);
       return null;

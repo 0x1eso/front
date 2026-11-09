@@ -12,7 +12,12 @@ import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { warMonths } from "./Eras";
 import type { GreatWar } from "./GreatWar";
 import { armyCommander } from "./People";
-import { GW_BEHIND, GW_THEATRE_SIDES, GW_TRANSFERS } from "./Tables";
+import {
+  GW_BEHIND,
+  GW_MOBILISE,
+  GW_THEATRE_SIDES,
+  GW_TRANSFERS,
+} from "./Tables";
 import { clampTo, fights, news, other, reason, seatsOf, turn } from "./World";
 
 const P_PLAN = idHash("gw_ai_plan");
@@ -84,6 +89,17 @@ export function enter(
   news(gw, why, tag);
   turn(gw, `entered_${tag.toLowerCase()}`);
   refreshTheatres(gw);
+  callMobilisation(gw, tag);
+}
+
+/** A seat whose war came before its mobilisation paper signs it now. */
+function callMobilisation(gw: GreatWar, tag: GwTag): void {
+  const row = GW_MOBILISE[tag];
+  const seat = gw.s.seats.find((x) => x.tag === tag);
+  if (row?.atWar !== true || seat === undefined) return;
+  if (seat.seen[row.scene] !== undefined) return;
+  if (seat.scheduled.some((q) => q.scene === row.scene)) return;
+  seat.scheduled.push({ scene: row.scene, chapter: gw.s.chapter + 1 });
 }
 
 /** Beaten, or fallen apart: it leaves the war and its theatres close. */

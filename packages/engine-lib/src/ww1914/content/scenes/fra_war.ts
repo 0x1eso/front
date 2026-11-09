@@ -59,6 +59,9 @@ const CRISIS_ON: GwStage[] = ["crisis", "y1914", "war"];
 const Y14_ON: GwStage[] = ["y1914", "war"];
 
 const during = period;
+/** Months named in a scene's own text ("1916-10" .. "1916-12"). */
+const between = (from: string, to: string): GwCond =>
+  world({ is: "date", from, to });
 const since = sinceChapter;
 
 // ---- Conditions ----
@@ -548,9 +551,15 @@ const DESK: GwScene[] = [
     ],
   }),
 
+  // Dated 22 April 1915 in its text: not before that month, and only in a
+  // war that was already some months old by then.
   record(
     "fra_w_gas",
-    all(war, during("15a")),
+    all(
+      war,
+      world({ is: "date", from: "1915-04", to: "1915-06" }),
+      world({ is: "in_war", min: 4 }),
+    ),
     [v("british", fighting("GBR")), v("base")],
     "confirmed",
   ),
@@ -723,7 +732,7 @@ const DESK: GwScene[] = [
 
   record(
     "fra_w_douaumont",
-    all(war, during("16b"), seen("fra_big_verdun")),
+    all(war, between("1916-10", "1916-12"), seen("fra_big_verdun")),
     [v("petain", flag("f_petain_verdun")), v("base")],
     "confirmed",
   ),
@@ -817,7 +826,11 @@ const DESK: GwScene[] = [
     id: "fra_w_nivelle_doubts",
     kind: "crisis",
     stage: Y14_ON,
-    when: all(war, during("17a"), holds("chief_of_staff", "fra_nivelle")),
+    when: all(
+      war,
+      between("1917-01", "1917-04"),
+      holds("chief_of_staff", "fra_nivelle"),
+    ),
     cast: { cos: holder("chief_of_staff"), war: holder("war") },
     salience: 9,
     essential: true,
@@ -863,7 +876,7 @@ const DESK: GwScene[] = [
 
   record(
     "fra_w_chemin_record",
-    all(war, during("17a", "17b"), flag("f_nivelle_goes")),
+    all(war, between("1917-04", "1917-12"), flag("f_nivelle_goes")),
     [v("limited", flag("f_nivelle_limited")), v("base")],
     "confirmed",
     { salience: 7 },
@@ -953,7 +966,7 @@ const DESK: GwScene[] = [
     id: "fra_w_paris_gun",
     kind: "report",
     stage: Y14_ON,
-    when: all(war, during("18a")),
+    when: all(war, between("1918-03", "1918-06")),
     cast: {},
     salience: 7,
     tags: ["home", "tension_up"],
@@ -1041,7 +1054,7 @@ const DESK: GwScene[] = [
     "fra_w_hundred_days",
     all(
       war,
-      during("18b"),
+      between("1918-08", "1918-12"),
       any(westFwd, world({ is: "front", theatre: "west", to: "somme" })),
     ),
     [v("foch", flag("f_foch_over_all")), v("base")],

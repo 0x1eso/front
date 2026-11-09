@@ -176,7 +176,8 @@ const PREMIERS: readonly FraPremier[] = [
   {
     name: "viviani",
     person: "fra_viviani",
-    when: from("1914-08"),
+    // June 1914's premier: callable again from the first day.
+    when: from("1914-06"),
     ministers: [
       ["fra_delcasse", "foreign"],
       ["fra_millerand", "war"],
@@ -233,7 +234,8 @@ const PREMIERS: readonly FraPremier[] = [
   {
     name: "barthou",
     person: "fra_barthou",
-    when: from("1914-08"),
+    // Premier until December 1913: a name for July as for any month.
+    when: from("1914-06"),
     ministers: [],
     stance: {
       fra_left_rep: 1,
@@ -349,13 +351,53 @@ const callable = (x: FraPremier): GwCond =>
     world({ is: "confidence", stance: x.stance }),
   );
 
-/** The fallback: the same premier is asked to go on, and the rows go out. */
+const vacant: GwCond = { kind: "office_empty", office: "chancellor" };
+const maybe = (when: GwCond, then: GwEffect[]): GwEffect => ({
+  kind: "maybe",
+  when,
+  then,
+});
+
+/**
+ * The fallback: the same premier is asked to go on, and the rows go out.
+ * After a resignation the office is empty: "the same premier" is the man who
+ * resigned, asked to take his letter back (the Chamber never voted him out).
+ * If he can't come back, the first man the Chamber would vote for is called,
+ * so the office never goes to a name nobody counted.
+ */
 const renew: GwReply = {
   ...decide("renew", null, [
-    inst("chamber", -1),
-    ...CABINET_ROWS.map(beat),
-    remember("k_gov_fra_consulted"),
-    reason("gov_fra_renewed"),
+    maybe(not(vacant), [
+      inst("chamber", -1),
+      ...CABINET_ROWS.map(beat),
+      remember("k_gov_fra_consulted"),
+      reason("gov_fra_renewed"),
+    ]),
+    ...PREMIERS.map((x) =>
+      maybe(
+        all(
+          vacant,
+          { kind: "person_active", person: x.person },
+          {
+            kind: "memory",
+            key: "premier_resigned",
+            who: { person: x.person },
+            within: 6,
+          },
+        ),
+        [
+          { kind: "appoint", who: { person: x.person }, office: "chancellor" },
+          trustOf({ person: x.person }, 2),
+          inst("chamber", -1),
+          ...CABINET_ROWS.map(beat),
+          remember("k_gov_fra_consulted"),
+          reason("gov_fra_renewed"),
+        ],
+      ),
+    ),
+    ...PREMIERS.map((x) =>
+      maybe(all(vacant, callable(x)), callPremier(x.name)),
+    ),
   ]),
 };
 

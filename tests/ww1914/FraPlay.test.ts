@@ -6,7 +6,8 @@ import { dealDesk } from "@openfront/engine/ww1914/Desk";
 import { govStep } from "@openfront/engine/ww1914/Government";
 import type { GreatWar } from "@openfront/engine/ww1914/GreatWar";
 import { applyGwOrder } from "@openfront/engine/ww1914/Orders";
-import { rulerRow } from "@openfront/engine/ww1914/Ruler";
+import { rulerRow, rulerStep } from "@openfront/engine/ww1914/Ruler";
+import { enter } from "@openfront/engine/ww1914/Wars";
 import { seatPerson } from "@openfront/engine/ww1914/World";
 import { worldView } from "@openfront/engine/ww1914/WorldView";
 import { loadMapFiles } from "@openfront/shared/GameMapLoader";
@@ -37,6 +38,15 @@ async function game(): Promise<GreatWar> {
 function late(gw: GreatWar): void {
   const list = gwChapters(gw.s.calendar);
   gw.s.chapter = list.findIndex((c) => c.spanDays >= 28 && c.day > 0) + 34;
+  gw.s.day = list[gw.s.chapter].day;
+}
+
+/** The first chapter of a month, "YYYY-MM". */
+function at(gw: GreatWar, month: string): void {
+  const [y, m] = month.split("-").map(Number);
+  const list = gwChapters(gw.s.calendar);
+  const first = Date.UTC(y, m - 1, 1) / 86400000;
+  gw.s.chapter = list.findIndex((c) => c.day >= first);
   gw.s.day = list[gw.s.chapter].day;
 }
 
@@ -172,6 +182,124 @@ describe("France's President", () => {
     advanceChapter(gw, 0, false);
     expect(premier(gw)).toBeNull();
     expect(seat.desk.some((c) => c.scene === "gov_fra_consult")).toBe(true);
+  });
+
+  test("low reputation never puts him out: it feeds the Élysée row", async () => {
+    const gw = await game();
+    late(gw);
+    const seat = seatOf(gw);
+    expect(rulerRow(gw, seat)?.removable).toBe(false);
+    const elysee = () => seat.gov.find((g) => g.id === "fra_elysee")!.heat;
+    govStep(gw);
+    const calm = elysee();
+    const list = gwChapters(gw.s.calendar);
+    for (let i = 0; i < 12; i++) {
+      seat.ruler.reputation = 0;
+      rulerStep(gw);
+      gw.s.chapter++;
+      gw.s.day = list[gw.s.chapter].day;
+    }
+    expect(seat.ruler.shaken).not.toBeNull();
+    expect(gw.s.ended).toBeNull();
+    expect(seat.memoir).toBeNull();
+    expect(seatPerson(seat)).toBe("fra_poincare");
+    seat.ruler.reputation = 0;
+    govStep(gw);
+    expect(elysee()).toBeGreaterThan(calm);
+  });
+
+  test("July 1914: a premier pressed out is asked back, and the vote has names", async () => {
+    const gw = await game();
+    const seat = seatOf(gw);
+    gw.nation("FRA")!.authority = 100;
+    gw.person("fra_viviani")!.trust = -2;
+    applyGwOrder(gw, seat, { kind: "dismiss", person: "fra_malvy" });
+    expect(premier(gw)).toBeNull();
+    // Renewing an empty office asks the man who resigned to stay.
+    consult(gw, "renew");
+    expect(premier(gw)).toBe("fra_viviani");
+    expect(gw.person("fra_viviani")!.trust).toBeGreaterThan(-3);
+
+    const again = await game();
+    again.nation("FRA")!.authority = 100;
+    again.person("fra_viviani")!.trust = -2;
+    applyGwOrder(again, seatOf(again), {
+      kind: "dismiss",
+      person: "fra_malvy",
+    });
+    consult(again, "call_viviani");
+    expect(premier(again)).toBe("fra_viviani");
+    expect(seatOf(again).flags).toContain("f_pm_viviani");
+  });
+
+  test("a premier gone by his own letter brings the consultations, not the list", async () => {
+    const gw = await game();
+    at(gw, "1915-07");
+    const seat = seatOf(gw);
+    const pm = gw.person("fra_viviani")!;
+    pm.office = null;
+    pm.status = "fallen";
+    seat.desk = [];
+    seat.scheduled = [];
+    advanceChapter(gw, 0, false);
+    expect(gw.s.ended).toBeNull();
+    expect(premier(gw)).toBeNull();
+    expect(
+      called(gw, "gov_fra_consult") ||
+        seat.desk.some((c) => c.scene === "gov_fra_consult"),
+    ).toBe(true);
+    // Nobody to ask back: renewing calls the first man the Chamber votes for.
+    consult(gw, "renew");
+    const now = premier(gw);
+    expect(now).not.toBeNull();
+    expect(seat.flags).toContain(`f_pm_${now!.replace("fra_", "")}`);
+  });
+
+  test("a minister put out is not offered back for his own office", async () => {
+    const gw = await game();
+    const seat = seatOf(gw);
+    gw.nation("FRA")!.authority = 100;
+    expect(
+      applyGwOrder(gw, seat, { kind: "dismiss", person: "fra_malvy" }),
+    ).toBeNull();
+    expect(worldView(gw, seat).candidates.interior ?? []).not.toContain(
+      "fra_malvy",
+    );
+    expect(
+      applyGwOrder(gw, seat, {
+        kind: "appoint",
+        person: "fra_malvy",
+        office: "interior",
+      }),
+    ).toBe("no_person");
+  });
+
+  test("a war that comes in 1915 still brings mobilisation, and no July funeral", async () => {
+    const gw = await game();
+    at(gw, "1915-03");
+    enter(gw, "DEU", "central", "test");
+    enter(gw, "FRA", "entente", "test");
+    const seat = seatOf(gw);
+    seat.desk = [];
+    seat.scheduled = [];
+    dealDesk(gw, seat);
+    const mob = seat.desk.find((c) => c.scene === "fra_c_mobilise");
+    expect(mob?.variant).toBe("declared");
+    expect(
+      applyGwOrder(gw, seat, {
+        kind: "choose",
+        card: mob!.uid,
+        option: "wait_day",
+      }),
+    ).toBe("closed");
+    // The union's message, dealt a little later, reads as a war of 1915.
+    let union = seat.desk.find((c) => c.scene === "fra_c_union");
+    for (let i = 0; i < 4 && union === undefined; i++) {
+      seat.desk = [];
+      dealDesk(gw, seat);
+      union = seat.desk.find((c) => c.scene === "fra_c_union");
+    }
+    expect(union?.variant).toMatch(/^late/);
   });
 
   test("leaving the Tiger's cabinet, the sacred union comes back only if the SFIO stayed", async () => {

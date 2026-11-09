@@ -196,6 +196,22 @@ function nextCamp(seat: GwSeatState): GwCamp | null {
   return f === undefined ? null : NEXT_CAMP[f];
 }
 
+/**
+ * Where the premier picks the ministers (France), a man the head had put out
+ * of office `o` isn't offered it back: naming him again would undo the
+ * dismissal as a press that costs nothing.
+ */
+export function dismissedFrom(
+  seat: GwSeatState,
+  person: string,
+  o: GwOffice,
+): boolean {
+  if (GW_PREMIER_PICKS[seat.tag] === undefined) return false;
+  return seat.memory.some(
+    (m) => m.key === `dismissed_${o}` && m.who === person,
+  );
+}
+
 /** Up to two people for an office, of different camps where there are. */
 export function candidatesFor(
   gw: GreatWar,
@@ -210,7 +226,8 @@ export function candidatesFor(
       (p) =>
         p.office === null &&
         p.ailing === null &&
-        defOf(p.id)?.fit.includes(o) === true,
+        defOf(p.id)?.fit.includes(o) === true &&
+        !dismissedFrom(seat, p.id, o),
     )
     .sort(
       (a, b) =>
@@ -339,12 +356,29 @@ export function consultWaits(seat: GwSeatState): boolean {
   );
 }
 
+/**
+ * Where the head of state names the premier, a premiership emptied any other
+ * way (a letter, illness) calls the consultations too: nobody takes it by the
+ * list. Only consultations just held that left it empty let the list fill it.
+ */
+function callConsult(gw: GreatWar, seat: GwSeatState): boolean {
+  const row = GW_PREMIER_PICKS[seat.tag];
+  if (row === undefined) return false;
+  const held = seat.choices.some(
+    (c) => c.scene === row.consult && gw.s.chapter - c.chapter <= 1,
+  );
+  if (held) return false;
+  seat.scheduled.push({ scene: row.consult, chapter: gw.s.chapter + 1 });
+  return true;
+}
+
 /** An empty office is filled at the chapter's close; the seat could have. */
 function succeed(gw: GreatWar, seat: GwSeatState): void {
   const none = seat.flags.includes(NEXT_NONE);
   for (const o of none ? [] : standingOffices(seat.tag)) {
     if (holderOf(gw, seat, o) !== null) continue;
     if (o === "chancellor" && consultWaits(seat)) continue;
+    if (o === "chancellor" && callConsult(gw, seat)) continue;
     const next = candidatesFor(gw, seat, o)[0];
     const p = next === undefined ? null : gw.person(next);
     if (p === null) continue;

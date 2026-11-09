@@ -173,7 +173,9 @@ export const GW_RULERS: Readonly<
     },
   ],
   // France: the President, for the whole game. He goes to the front often
-  // (seenEvery); he can be pushed out of the Élysée (removable).
+  // (seenEvery). Plan §1 allows three losses only: the Élysée row, the
+  // Caillaux plot and his health. So reputation never puts him out by
+  // itself: a low one feeds the Élysée row (GovTable, fra_idle) instead.
   FRA: [
     {
       id: "poincare",
@@ -184,7 +186,7 @@ export const GW_RULERS: Readonly<
       seenEvery: 4,
       tollEvery: 500,
       mortal: true,
-      removable: true,
+      removable: false,
       familyTakesTime: false,
       doctors: "fra_life_doctors",
       shaken: "fra_life_shaken",

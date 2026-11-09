@@ -338,6 +338,12 @@ export const GW_GOV: readonly GwGovRow[] = [
       { when: inst("senate", { max: -3 }), key: "fra_senate_hostile" },
       { when: inst("countersign", { max: -3 }), key: "fra_countersign" },
       { when: world({ is: "score", max: -40 }), key: "war_bad" },
+      // The President's own name worn thin (his ruler card): the talk of an
+      // idle Élysée is what the majorities would use against him.
+      {
+        when: { kind: "ruler", side: "reputation", max: 1 },
+        key: "fra_idle",
+      },
     ],
     steps: steps("fra_elysee", 6, 12, 20),
     rest: 12,

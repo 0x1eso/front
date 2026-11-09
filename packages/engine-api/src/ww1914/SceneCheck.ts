@@ -80,6 +80,8 @@ export const GW_ENGINE_MEMORY = [
   "talk_well",
   "talk_ill",
   ...GW_OFFICES.map((o) => `succeeded_${o}`),
+  // A premier the head pressed into resigning (People.pressPremier).
+  "premier_resigned",
 ] as const;
 
 /**

@@ -336,6 +336,11 @@ export const GW_MOBILISE: Readonly<
         /** Who moves first if the seat won't, and the news of it. */
         first: readonly GwTag[];
         news: string;
+        /**
+         * A war that comes before the paper did still brings it, the chapter
+         * after the country comes in, whatever the chapter (Wars.enter).
+         */
+        atWar?: boolean;
       }
     >
   >
@@ -358,6 +363,7 @@ export const GW_MOBILISE: Readonly<
     wait: "wait_day",
     first: ["DEU", "AUH"],
     news: "mob_first_central",
+    atWar: true,
   },
 };
 
