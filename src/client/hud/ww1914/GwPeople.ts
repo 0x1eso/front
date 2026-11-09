@@ -8,6 +8,7 @@ import { rich } from "./GwDict";
 import { gwFace } from "./GwFace";
 import {
   appointable,
+  appointBlock,
   dismissal,
   talkTopics,
   topicLabel,
@@ -166,7 +167,7 @@ function row(c: GwCtx, p: GwPersonView): TemplateResult {
   const open = c.ui.openPerson === p.id;
   const lean = personLean(c.pack, p.id);
   const bio = personBio(c.pack, p.id);
-  const offices = appointable(c.seat, p);
+  const offices = appointBlock(c.data) === null ? appointable(c.seat, p) : [];
   const name = personName(c.pack, p.id);
   const topics = talkTopics(p);
   // Nobody to talk to about anything now: the row steps back until opened.
@@ -264,14 +265,20 @@ function row(c: GwCtx, p: GwPersonView): TemplateResult {
 function vacancies(c: GwCtx): TemplateResult | typeof nothing {
   const offices = vacantOffices(c.seat);
   if (offices.length === 0) return nothing;
+  const block = appointBlock(c.data);
   return html`<section
     class="space-y-1.5 rounded border border-amber-200/40 bg-amber-200/10 p-2.5"
     data-gw-vacant
   >
     <h3 class=${HEAD}>${translateText("gw.ui.vacant_title")}</h3>
     <p class=${MUTED}>${translateText("gw.ui.vacant_hint")}</p>
+    ${block === null
+      ? nothing
+      : html`<p class=${MUTED} data-gw-block>
+          ${translateText(`gw.ui.block.${block}`)}
+        </p>`}
     ${offices.map((o) => {
-      const names = c.seat.world.candidates[o] ?? [];
+      const names = block === null ? (c.seat.world.candidates[o] ?? []) : [];
       return html`<div data-gw-vacant-office=${o}>
         <div class="text-sm">${officeTitle(c.seat.tag, o)}</div>
         <div class="mt-1 flex flex-wrap gap-1">

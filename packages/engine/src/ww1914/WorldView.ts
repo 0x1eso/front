@@ -40,7 +40,7 @@ import {
 } from "./People";
 import { generalsFor } from "./Post";
 import { pressView } from "./Press";
-import { holds } from "./SceneRun";
+import { holderOf, holds } from "./SceneRun";
 import { GW_ACTORS, GW_COMMAND_NAMED_AFTER } from "./Tables";
 import { lastOf, ownPeople } from "./World";
 
@@ -204,6 +204,11 @@ export function worldView(gw: GreatWar, seat: GwSeatState): GwWorldView {
       if (o === "chancellor" && GW_PREMIER_PICKS[seat.tag] !== undefined) {
         return [];
       }
+      // Only an office nobody holds. The client reads vacancies off the people
+      // it is shown, and a first game's opening hides holders not yet met: a
+      // list for a held office showed it as vacant, and a pick quietly
+      // replaced the unseen minister with another unseen man.
+      if (holderOf(gw, seat, o) !== null) return [];
       const list = candidatesFor(gw, seat, o);
       return list.length > 0 ? [[o, list]] : [];
     }),

@@ -18,6 +18,7 @@ import {
   gwSecretsFor,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
+import type { GwOrderBlock } from "@openfront/engine-api/ww1914/GwOrders";
 import type { GwPack } from "@openfront/engine-api/ww1914/GwPack";
 import { GW_RULER_SIDES } from "@openfront/engine-api/ww1914/GwRuler";
 import type {
@@ -103,6 +104,17 @@ export function vacantOffices(seat: GwSeatView): GwOffice[] {
   return GW_OFFICES.filter(
     (o) => !held.has(o) && (seat.world.candidates[o]?.length ?? 0) > 0,
   );
+}
+
+/**
+ * Why an appointment would be refused before the names are looked at (the
+ * engine's first checks in applyGwOrder), or null: the box says so instead of
+ * offering names that do nothing.
+ */
+export function appointBlock(data: GreatWarData): GwOrderBlock | null {
+  if (data.ended !== null) return "ended";
+  if (data.seats.some((s) => s.prologue?.done === false)) return "prologue";
+  return null;
 }
 
 /** Offices this person can be given now: the world names who is on the list. */

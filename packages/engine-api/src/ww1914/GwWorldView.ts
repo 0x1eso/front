@@ -173,7 +173,10 @@ export interface GwWorldView {
   secrets: readonly GwSecret[];
   threads: readonly GwThread[];
   people: readonly GwPersonWorldView[];
-  /** Office -> up to two people for it, of different camps where there are. */
+  /**
+   * Vacant office -> up to two people for it, of different camps where there
+   * are. A held office has no entry.
+   */
   candidates: Readonly<Partial<Record<GwOffice, readonly string[]>>>;
   countries: readonly GwCountryView[];
   news: readonly GwNews[];
