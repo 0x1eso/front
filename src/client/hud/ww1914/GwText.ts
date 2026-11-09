@@ -189,8 +189,11 @@ export function optionText(
   id: string,
 ): string {
   const scene = pack?.scenes[card.scene];
-  if (card.node !== null) return scene?.nodes?.[card.node]?.replies[id] ?? id;
-  // Some shares wrote the lead of an option in **; the button shows plain text.
+  // Some shares wrote the lead of an option or a reply in **; the button shows
+  // plain text.
+  if (card.node !== null) {
+    return (scene?.nodes?.[card.node]?.replies[id] ?? id).replace(/\*\*/g, "");
+  }
   const line = scene?.optBy?.[card.variant]?.[id] ?? scene?.opt?.[id];
   return (line ?? id).replace(/\*\*/g, "");
 }

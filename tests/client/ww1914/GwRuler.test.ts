@@ -22,6 +22,7 @@ const pack = {
       text: { base: "b", conscience: "c" },
       opt: { sign: "**plain.** line" },
       optBy: { conscience: { sign: "**cold.**" } },
+      nodes: { n1: { says: {}, replies: { go: "**Go.** now" } } },
     },
   },
   people: {},
@@ -92,6 +93,10 @@ describe("how a broken conscience reads", () => {
       "cold.",
     );
     expect(optionText(pack, card({}), "sign")).toBe("plain. line");
+  });
+
+  test("a talk's reply shows no bold marks either", () => {
+    expect(optionText(pack, card({ node: "n1" }), "go")).toBe("Go. now");
   });
 
   test("any other decision ends on a line, the same one each draw", () => {
