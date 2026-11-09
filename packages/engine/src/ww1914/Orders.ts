@@ -145,6 +145,9 @@ export function applyGwOrder(
       const p = gw.person(o.person);
       if (!ownPerson(seat, o.person) || p === null) return "no_person";
       if (p.status !== "active") return "no_person";
+      // The premier is called at the consultations, never named from the list.
+      const picks = GW_PREMIER_PICKS[seat.tag] !== undefined;
+      if (picks && o.office === "chancellor") return "premier_house";
       setOffice({ gw, seat, cast: {} }, p, o.office);
       if (o.office !== "chancellor") pressPremier(gw, seat, p.id);
       return null;

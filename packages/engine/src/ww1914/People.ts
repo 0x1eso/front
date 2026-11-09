@@ -326,11 +326,25 @@ export function standingOffices(tag: GwTag): GwOffice[] {
   );
 }
 
+/**
+ * Where the head of state names the premier (France), an empty premiership
+ * waits for the consultations already called: nobody slips into it first.
+ */
+export function consultWaits(seat: GwSeatState): boolean {
+  const row = GW_PREMIER_PICKS[seat.tag];
+  if (row === undefined) return false;
+  return (
+    seat.scheduled.some((q) => q.scene === row.consult) ||
+    seat.desk.some((c) => c.scene === row.consult)
+  );
+}
+
 /** An empty office is filled at the chapter's close; the seat could have. */
 function succeed(gw: GreatWar, seat: GwSeatState): void {
   const none = seat.flags.includes(NEXT_NONE);
   for (const o of none ? [] : standingOffices(seat.tag)) {
     if (holderOf(gw, seat, o) !== null) continue;
+    if (o === "chancellor" && consultWaits(seat)) continue;
     const next = candidatesFor(gw, seat, o)[0];
     const p = next === undefined ? null : gw.person(next);
     if (p === null) continue;

@@ -18,6 +18,7 @@ import type {
   GwWorldView,
 } from "@openfront/engine-api/ww1914/GwWorldView";
 import { world } from "@openfront/engine-api/ww1914/WorldDsl";
+import { GW_PREMIER_PICKS } from "@openfront/engine-lib/ww1914/StoryRows";
 import {
   civilFromDays,
   formatIsoDate,
@@ -197,6 +198,10 @@ export function worldView(gw: GreatWar, seat: GwSeatState): GwWorldView {
       const from = OFFICE_FROM[o];
       const ctx = { gw, seat, cast: {} };
       if (from !== undefined && !holds(ctx, world({ is: "date", from }))) {
+        return [];
+      }
+      // France's premier comes from the consultations, not the vacancy list.
+      if (o === "chancellor" && GW_PREMIER_PICKS[seat.tag] !== undefined) {
         return [];
       }
       const list = candidatesFor(gw, seat, o);

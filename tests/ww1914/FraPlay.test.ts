@@ -8,6 +8,7 @@ import type { GreatWar } from "@openfront/engine/ww1914/GreatWar";
 import { applyGwOrder } from "@openfront/engine/ww1914/Orders";
 import { rulerRow } from "@openfront/engine/ww1914/Ruler";
 import { seatPerson } from "@openfront/engine/ww1914/World";
+import { worldView } from "@openfront/engine/ww1914/WorldView";
 import { loadMapFiles } from "@openfront/shared/GameMapLoader";
 import path from "node:path";
 import { beforeAll, describe, expect, test } from "vitest";
@@ -149,6 +150,28 @@ describe("France's President", () => {
     expect(pm.office).toBeNull();
     expect(pm.status).toBe("active");
     expect(called(gw, "gov_fra_consult")).toBe(true);
+  });
+
+  test("an empty premiership waits for the consultations: no list, no successor", async () => {
+    const gw = await game();
+    const seat = seatOf(gw);
+    gw.nation("FRA")!.authority = 100;
+    gw.person("fra_viviani")!.trust = -2;
+    applyGwOrder(gw, seat, { kind: "dismiss", person: "fra_malvy" });
+    expect(premier(gw)).toBeNull();
+    expect(called(gw, "gov_fra_consult")).toBe(true);
+    expect(worldView(gw, seat).candidates.chancellor).toBeUndefined();
+    expect(
+      applyGwOrder(gw, seat, {
+        kind: "appoint",
+        person: "fra_briand",
+        office: "chancellor",
+      }),
+    ).toBe("premier_house");
+    seat.desk = [];
+    advanceChapter(gw, 0, false);
+    expect(premier(gw)).toBeNull();
+    expect(seat.desk.some((c) => c.scene === "gov_fra_consult")).toBe(true);
   });
 
   test("leaving the Tiger's cabinet, the sacred union comes back only if the SFIO stayed", async () => {
