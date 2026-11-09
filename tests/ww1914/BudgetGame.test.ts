@@ -42,7 +42,8 @@ describe("a whole game on the real map", () => {
           tag,
           (gw) => {
             const b = gw.nation(tag)!.budget;
-            year = civilFromDays(gw.s.day).year;
+            // The months after an armistice have no budgets: count the war.
+            if (gw.s.armistice === null) year = civilFromDays(gw.s.day).year;
             war = war || gw.nation(tag)!.atWar.length > 0;
             if (b.lastChapter !== lastSeen) {
               lastSeen = b.lastChapter;
