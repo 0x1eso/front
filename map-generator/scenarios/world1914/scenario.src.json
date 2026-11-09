@@ -9619,8 +9619,8 @@
     },
     {
       "id": 415,
-      "name": "Finistère",
-      "nameKo": "피니스테르",
+      "name": "Brest",
+      "nameKo": "브레스트",
       "owner": "FRA",
       "vp": 0,
       "cat": "rural",
@@ -9638,6 +9638,7 @@
       "wcell": 377,
       "rail": 3,
       "fort": 0,
+      "place": "brest",
       "gwOwner": "FRA",
       "sr": 57,
       "harbor": 40061
@@ -10307,8 +10308,8 @@
     },
     {
       "id": 446,
-      "name": "Saône-et-Loire",
-      "nameKo": "손에루아르",
+      "name": "Le Creusot",
+      "nameKo": "르크뢰조",
       "owner": "FRA",
       "vp": 0,
       "cat": "rural",
@@ -10326,6 +10327,7 @@
       "wcell": 378,
       "rail": 3,
       "fort": 0,
+      "place": "le_creusot",
       "gwOwner": "FRA",
       "sr": 62
     },
@@ -10794,8 +10796,8 @@
     },
     {
       "id": 469,
-      "name": "Rhône",
-      "nameKo": "론",
+      "name": "Lyon",
+      "nameKo": "리옹",
       "owner": "FRA",
       "vp": 6,
       "vpTile": [2053, 727],
@@ -10814,6 +10816,7 @@
       "wcell": 378,
       "rail": 3,
       "fort": 0,
+      "place": "lyon",
       "gwOwner": "FRA",
       "sr": 62
     },
@@ -11561,8 +11564,8 @@
     },
     {
       "id": 505,
-      "name": "Gironde",
-      "nameKo": "지롱드",
+      "name": "Bordeaux",
+      "nameKo": "보르도",
       "owner": "FRA",
       "vp": 0,
       "cat": "large_town",
@@ -11580,6 +11583,7 @@
       "wcell": 378,
       "rail": 3,
       "fort": 0,
+      "place": "bordeaux",
       "gwOwner": "FRA",
       "sr": 73,
       "harbor": 40061
@@ -12083,8 +12087,8 @@
     },
     {
       "id": 528,
-      "name": "Bouches-du-Rhône",
-      "nameKo": "부슈뒤론",
+      "name": "Marseille",
+      "nameKo": "마르세유",
       "owner": "FRA",
       "vp": 6,
       "vpTile": [2059, 760],
@@ -12103,6 +12107,7 @@
       "wcell": 378,
       "rail": 3,
       "fort": 0,
+      "place": "marseille",
       "gwOwner": "FRA",
       "sr": 73,
       "harbor": 40153
@@ -16893,7 +16898,7 @@
     },
     {
       "id": 733,
-      "name": "Alger",
+      "name": "Algiers",
       "nameKo": "알제",
       "owner": "FRA",
       "vp": 4,
@@ -16913,6 +16918,7 @@
       "wcell": 342,
       "rail": 0,
       "fort": 0,
+      "place": "algiers",
       "gwOwner": "FRA",
       "sr": 97,
       "harbor": 40153
@@ -21007,6 +21013,7 @@
       "wcell": 268,
       "rail": 0,
       "fort": 0,
+      "place": "dakar",
       "gwOwner": "FRA",
       "sr": 118,
       "harbor": 40070

@@ -12,6 +12,7 @@ import { withRuler } from "../RulerRows";
 import { AUH_ACT_SCENES, AUH_ACTS, AUH_AIMS } from "./acts/auh";
 import { COMMON_ACT_SCENES, COMMON_ACTS } from "./acts/common";
 import { DEU_ACT_SCENES, DEU_ACTS, DEU_AIMS } from "./acts/deu";
+import { FRA_ACT_SCENES, FRA_ACTS, FRA_AIMS } from "./acts/fra";
 import { GBR_ACT_SCENES, GBR_ACTS, GBR_AIMS } from "./acts/gbr";
 import { RUS_ACT_SCENES, RUS_ACTS, RUS_AIMS } from "./acts/rus";
 import { GW_PEOPLE } from "./people";
@@ -65,6 +66,13 @@ import { withDeuReplay } from "./scenes/deu_replay";
 import { DEU_SEA_SCENES } from "./scenes/deu_sea";
 import { DEU_WAR_SCENES } from "./scenes/deu_war";
 import { gwDossierActs, gwDossierScenes } from "./scenes/dossier";
+import { FRA_STORY_SCENES } from "./scenes/fra_act";
+import { FRA_CRISIS_SCENES } from "./scenes/fra_crisis";
+import { FRA_HOME_SCENES } from "./scenes/fra_home";
+import { FRA_PRIVATE_PEOPLE, FRA_PRIVATE_SCENES } from "./scenes/fra_private";
+import { FRA_ECHOES, FRA_PROLOGUE_SCENES } from "./scenes/fra_prologue";
+import { FRA_WAR_SCENES } from "./scenes/fra_war";
+import { FRA_WORLD_SCENES } from "./scenes/fra_world";
 import { GBR_CRISIS_SCENES } from "./scenes/gbr_crisis";
 import { GBR_HOME_SCENES } from "./scenes/gbr_home";
 import { withMore } from "./scenes/gbr_more";
@@ -122,6 +130,7 @@ export const GW_ECHOES: readonly GwEcho[] = [
   ...GBR_ECHOES,
   ...AUH_ECHOES,
   ...RUS_ECHOES,
+  ...FRA_ECHOES,
 ];
 
 /** All content. A new country's file adds one line here. */
@@ -166,6 +175,11 @@ export const GW_CONTENT: GwContent = {
             ...RUS_FALL_SCENES,
           ].map(withRusPrivate),
           ...RUS_PRIVATE_SCENES,
+          ...FRA_CRISIS_SCENES,
+          ...FRA_WAR_SCENES,
+          ...FRA_HOME_SCENES,
+          ...FRA_WORLD_SCENES,
+          ...FRA_PRIVATE_SCENES,
           ...DEU_FRONT_SCENES,
           ...DEU_SEA_SCENES,
           ...DEU_HOME_SCENES,
@@ -190,17 +204,20 @@ export const GW_CONTENT: GwContent = {
         ...PRESS_SCENES,
         ...DEU_STORY_SCENES,
         ...RUS_STORY_SCENES,
+        ...FRA_STORY_SCENES,
         ...[
           ...COMMON_ACT_SCENES,
           ...DEU_ACT_SCENES,
           ...GBR_ACT_SCENES,
           ...AUH_ACT_SCENES,
           ...RUS_ACT_SCENES,
+          ...FRA_ACT_SCENES,
         ].map((s) => ({ ...s, byAct: true })),
         ...DEU_PROLOGUE_SCENES,
         ...GBR_PROLOGUE_SCENES,
         ...AUH_PROLOGUE_SCENES,
         ...RUS_PROLOGUE_SCENES,
+        ...FRA_PROLOGUE_SCENES,
       ]
         .map(withDeuReplay)
         .map(withDeuPrivate)
@@ -224,6 +241,7 @@ export const GW_CONTENT: GwContent = {
     ...AUH_PRIVATE_PEOPLE,
     ...GW_PEOPLE_HEADS,
     ...FRA_PEOPLE,
+    ...FRA_PRIVATE_PEOPLE,
   ],
   acts: [
     ...COMMON_ACTS,
@@ -231,9 +249,10 @@ export const GW_CONTENT: GwContent = {
     ...GBR_ACTS,
     ...AUH_ACTS,
     ...RUS_ACTS,
+    ...FRA_ACTS,
     ...gwDossierActs(GW_HOUSE_CONTENT),
   ],
-  aims: [...DEU_AIMS, ...GBR_AIMS, ...AUH_AIMS, ...RUS_AIMS],
+  aims: [...DEU_AIMS, ...GBR_AIMS, ...AUH_AIMS, ...RUS_AIMS, ...FRA_AIMS],
   inventions: GW_INVENTIONS,
   projects: GW_PROJECTS,
   footing: GW_FOOTING,

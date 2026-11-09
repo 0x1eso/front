@@ -44,6 +44,16 @@ import {
   DEU_WEAK,
 } from "../house/deu";
 import {
+  FRA_ASKS,
+  FRA_BILLS,
+  FRA_FACTIONS,
+  FRA_HOUSE_LAWS,
+  FRA_HOUSE_SCENES,
+  FRA_PLOT_SCENES,
+  FRA_PLOTS,
+  FRA_WEAK,
+} from "../house/fra";
+import {
   GBR_ASKS,
   GBR_BILLS,
   GBR_FACTIONS,
@@ -71,6 +81,7 @@ export const GW_HOUSE_LAWS: readonly GwLawRow[] = [
   ...GBR_HOUSE_LAWS,
   ...AUH_HOUSE_LAWS,
   ...RUS_HOUSE_LAWS,
+  ...FRA_HOUSE_LAWS,
 ];
 
 const factions: readonly GwFactionRow[] = [
@@ -78,16 +89,17 @@ const factions: readonly GwFactionRow[] = [
   ...GBR_FACTIONS,
   ...AUH_FACTIONS,
   ...RUS_FACTIONS,
+  ...FRA_FACTIONS,
 ];
 
 /** Every house row, its factions, bills and S2 rows. */
 export const GW_HOUSE_CONTENT: GwHouseContent = {
   houses: GW_HOUSE_ROWS.filter((h) => factions.some((f) => f.tag === h.tag)),
   factions,
-  bills: [...DEU_BILLS, ...GBR_BILLS, ...AUH_BILLS, ...RUS_BILLS],
-  plots: [...DEU_PLOTS, ...GBR_PLOTS, ...AUH_PLOTS, ...RUS_PLOTS],
-  weak: [...DEU_WEAK, ...GBR_WEAK, ...AUH_WEAK, ...RUS_WEAK],
-  asks: [...DEU_ASKS, ...GBR_ASKS, ...AUH_ASKS, ...RUS_ASKS],
+  bills: [...DEU_BILLS, ...GBR_BILLS, ...AUH_BILLS, ...RUS_BILLS, ...FRA_BILLS],
+  plots: [...DEU_PLOTS, ...GBR_PLOTS, ...AUH_PLOTS, ...RUS_PLOTS, ...FRA_PLOTS],
+  weak: [...DEU_WEAK, ...GBR_WEAK, ...AUH_WEAK, ...RUS_WEAK, ...FRA_WEAK],
+  asks: [...DEU_ASKS, ...GBR_ASKS, ...AUH_ASKS, ...RUS_ASKS, ...FRA_ASKS],
 };
 
 /** Scenes written by hand in the house files. */
@@ -96,10 +108,12 @@ export const HOUSE_WRITTEN_SCENES: readonly GwScene[] = [
   ...GBR_HOUSE_SCENES,
   ...AUH_HOUSE_SCENES,
   ...RUS_HOUSE_SCENES,
+  ...FRA_HOUSE_SCENES,
   ...DEU_PLOT_SCENES,
   ...GBR_PLOT_SCENES,
   ...AUH_PLOT_SCENES,
   ...RUS_PLOT_SCENES,
+  ...FRA_PLOT_SCENES,
 ];
 
 /** Never drawn: the engine calls these (engine/ww1914/House). */

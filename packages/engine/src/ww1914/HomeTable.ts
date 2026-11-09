@@ -164,6 +164,12 @@ export const GW_HOME: Readonly<Partial<Record<GwTag, GwHomeRow>>> = {
   },
   FRA: {
     rungs: COMMON,
+    // The top of the ladder for a French seat, once written (lane W3).
+    top: {
+      fra_republic: "fra_h_top",
+      fra_union: "fra_h_top",
+      fra_tiger: "fra_h_top",
+    },
     concedes: 70,
     strains: [
       { gauge: "order", delta: -1, every: 9, from: 24, key: "order_weary" },

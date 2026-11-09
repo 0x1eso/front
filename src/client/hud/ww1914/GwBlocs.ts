@@ -230,7 +230,7 @@ function leakPick(c: GwCtx): TemplateResult {
           }}
         >
           ${personName(c.pack, p.id)}
-          <span class=${MUTED}>${officeTitle(c.seat.tag, p.office)}</span>
+          <span class=${MUTED}>${officeTitle(c.seat.tag, p.office ?? "")}</span>
         </button>`,
     )}
   </div>`;

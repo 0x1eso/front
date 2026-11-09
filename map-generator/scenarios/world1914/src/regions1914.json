@@ -1835,6 +1835,48 @@
       "key": "amsterdam",
       "name": ["Amsterdam", "암스테르담"],
       "group": "netherlands"
+    },
+    {
+      "id": 505,
+      "key": "bordeaux",
+      "name": ["Bordeaux", "보르도"],
+      "group": "france"
+    },
+    {
+      "id": 469,
+      "key": "lyon",
+      "name": ["Lyon", "리옹"],
+      "group": "france"
+    },
+    {
+      "id": 528,
+      "key": "marseille",
+      "name": ["Marseille", "마르세유"],
+      "group": "france"
+    },
+    {
+      "id": 415,
+      "key": "brest",
+      "name": ["Brest", "브레스트"],
+      "group": "france"
+    },
+    {
+      "id": 446,
+      "key": "le_creusot",
+      "name": ["Le Creusot", "르크뢰조"],
+      "group": "france"
+    },
+    {
+      "id": 733,
+      "key": "algiers",
+      "name": ["Algiers", "알제"],
+      "group": "algeria"
+    },
+    {
+      "id": 908,
+      "key": "dakar",
+      "name": ["Dakar", "다카르"],
+      "group": "west_africa"
     }
   ],
   "aliases": {

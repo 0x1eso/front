@@ -352,6 +352,13 @@ export const GW_MOBILISE: Readonly<
     first: ["DEU", "AUH"],
     news: "mob_first_central",
   },
+  // France signs on 1 August 1914; put off twice, Germany moves first.
+  FRA: {
+    scene: "fra_c_mobilise",
+    wait: "wait_day",
+    first: ["DEU", "AUH"],
+    news: "mob_first_central",
+  },
 };
 
 /** How a seat's own ultimatum heats the crisis (auh_c_note_draft). */

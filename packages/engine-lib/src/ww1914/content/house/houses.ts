@@ -136,9 +136,40 @@ export const RUS_HOUSE: GwHouseRow = {
   signs: true,
 };
 
+/**
+ * France (ww166): the Chamber, then the Senate with an equal vote (not the
+ * Lords' delay). The way round is a decree under the state of siege, declared
+ * on 2 August 1914: the left resents it. Canonical factions (plan §2 House):
+ * fra_radicals fra_caillaux fra_repsoc fra_sfio fra_minority fra_left_rep
+ * fra_fed_rep fra_catholics fra_af fra_tiger fra_gqg.
+ */
+export const FRA_HOUSE: GwHouseRow = {
+  tag: "FRA",
+  chambers: [
+    { id: "chambre", inst: "chamber", kind: "vote", starts: true },
+    { id: "senat", inst: "senate", kind: "vote" },
+  ],
+  // The Interior counts the majority for the premier.
+  whip: either(office("interior"), office("chancellor")),
+  around: {
+    id: "siege",
+    when: world({ is: "war" }),
+    price: 15,
+    inst: "chamber",
+    delta: -1,
+    skips: ["chambre", "senat"],
+    heats: [
+      { faction: "fra_radicals", by: 1 },
+      { faction: "fra_sfio", by: 1 },
+    ],
+  },
+  police: either(office("interior"), office("chancellor")),
+};
+
 export const GW_HOUSE_ROWS: readonly GwHouseRow[] = [
   DEU_HOUSE,
   GBR_HOUSE,
   AUH_HOUSE,
   RUS_HOUSE,
+  FRA_HOUSE,
 ];

@@ -172,6 +172,25 @@ export const GW_RULERS: Readonly<
       broken: "rus_life_broken",
     },
   ],
+  // France: the President, for the whole game. He goes to the front often
+  // (seenEvery); he can be pushed out of the Élysée (removable).
+  FRA: [
+    {
+      id: "poincare",
+      person: "fra_poincare",
+      born: "1860-08-20",
+      start: side(4, 3, 4, 3),
+      agesEvery: 18,
+      seenEvery: 4,
+      tollEvery: 500,
+      mortal: true,
+      removable: true,
+      familyTakesTime: false,
+      doctors: "fra_life_doctors",
+      shaken: "fra_life_shaken",
+      broken: "fra_life_broken",
+    },
+  ],
 };
 
 /** Every scene the rule calls. */

@@ -99,6 +99,24 @@ export const GW_PACK_SHARES: Readonly<
     "craft",
     "house",
   ],
+  FRA: [
+    "crisis",
+    "war",
+    "home",
+    "world",
+    "budget",
+    "laws",
+    "ruler",
+    "gov",
+    "private",
+    "press",
+    "acts",
+    "act",
+    "prologue",
+    "table",
+    "craft",
+    "house",
+  ],
 };
 
 /** The same for `common.json`: every seat loads these. */

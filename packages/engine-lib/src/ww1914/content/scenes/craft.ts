@@ -24,6 +24,13 @@ import {
   DEU_SHORTAGES,
 } from "../craft/deu";
 import {
+  FRA_CRAFT_SCENES,
+  FRA_FOOTING,
+  FRA_INVENTIONS,
+  FRA_PROJECTS,
+  FRA_SHORTAGES,
+} from "../craft/fra";
+import {
   GBR_CRAFT_SCENES,
   GBR_FOOTING,
   GBR_INVENTIONS,
@@ -44,24 +51,28 @@ export const GW_INVENTIONS: readonly GwInventionRow[] = [
   ...GBR_INVENTIONS,
   ...AUH_INVENTIONS,
   ...RUS_INVENTIONS,
+  ...FRA_INVENTIONS,
 ];
 export const GW_PROJECTS: readonly GwProjectRow[] = [
   ...DEU_PROJECTS,
   ...GBR_PROJECTS,
   ...AUH_PROJECTS,
   ...RUS_PROJECTS,
+  ...FRA_PROJECTS,
 ];
 export const GW_FOOTING: readonly GwFootingRow[] = [
   DEU_FOOTING,
   GBR_FOOTING,
   AUH_FOOTING,
   RUS_FOOTING,
+  FRA_FOOTING,
 ].filter((x): x is GwFootingRow => x !== null);
 export const GW_SHORTAGE_ROWS: readonly GwShortageRow[] = [
   ...DEU_SHORTAGES,
   ...GBR_SHORTAGES,
   ...AUH_SHORTAGES,
   ...RUS_SHORTAGES,
+  ...FRA_SHORTAGES,
 ];
 
 const opt = (id: string, effects: GwOption["effects"]): GwOption => ({
@@ -180,4 +191,5 @@ export const CRAFT_SCENES: readonly GwScene[] = [
   ...GBR_CRAFT_SCENES,
   ...AUH_CRAFT_SCENES,
   ...RUS_CRAFT_SCENES,
+  ...FRA_CRAFT_SCENES,
 ];

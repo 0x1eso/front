@@ -9,6 +9,7 @@ import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
 import { GW_LAW_HOME, GwLawRow, lawTermTell } from "../../LawRows";
 import { AUH_LAWS } from "../laws/auh";
 import { DEU_LAWS } from "../laws/deu";
+import { FRA_LAWS } from "../laws/fra";
 import { GBR_LAWS } from "../laws/gbr";
 import { RUS_LAWS } from "../laws/rus";
 import {
@@ -24,6 +25,7 @@ export const GW_LAWS: readonly GwLawRow[] = [
   ...GBR_LAWS,
   ...AUH_LAWS,
   ...RUS_LAWS,
+  ...FRA_LAWS,
   ...GW_HOUSE_LAWS,
 ];
 

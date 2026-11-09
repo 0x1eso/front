@@ -13,6 +13,13 @@ export const GW_RIVAL_ROWS: Readonly<
   GBR: ["gbr_lloyd_george", "gbr_churchill", "gbr_kitchener", "gbr_bonar_law"],
   AUH: ["auh_conrad", "auh_tisza", "auh_berchtold", "auh_ff", "auh_czernin"],
   RUS: ["rus_nikolasha", "rus_rodzianko", "rus_sukhomlinov", "rus_krivoshein"],
+  FRA: [
+    "fra_clemenceau",
+    "fra_joffre",
+    "fra_caillaux",
+    "fra_briand",
+    "fra_malvy",
+  ],
 };
 
 /** Share of the game, percent, at which heat reaches each stage past signs. */
@@ -60,6 +67,7 @@ export const GW_OPENING_CIRCLE: Readonly<
   GBR: ["gbr_grey", "gbr_lloyd_george", "gbr_churchill"],
   AUH: ["auh_berchtold", "auh_conrad", "auh_tisza"],
   RUS: ["rus_sazonov", "rus_sukhomlinov", "rus_goremykin"],
+  FRA: ["fra_viviani", "fra_messimy", "fra_joffre"],
 };
 
 /** Chapters a first game holds the desk down for. */

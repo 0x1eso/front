@@ -26,6 +26,14 @@ export const GW_PLACES = {
     owner: "OTT",
     center: [2434, 860],
   },
+  algiers: {
+    id: 733,
+    name: "Algiers",
+    nameKo: "알제",
+    group: "algeria",
+    owner: "FRA",
+    center: [2067, 922],
+  },
   amiens: {
     id: 2022,
     name: "Amiens",
@@ -234,6 +242,14 @@ export const GW_PLACES = {
     owner: "SRB",
     center: [2237, 788],
   },
+  bordeaux: {
+    id: 505,
+    name: "Bordeaux",
+    nameKo: "보르도",
+    group: "france",
+    owner: "FRA",
+    center: [2004, 743],
+  },
   bozen: {
     id: 462,
     name: "Bozen",
@@ -257,6 +273,14 @@ export const GW_PLACES = {
     group: "silesia",
     owner: "DEU",
     center: [2181, 651],
+  },
+  brest: {
+    id: 415,
+    name: "Brest",
+    nameKo: "브레스트",
+    group: "france",
+    owner: "FRA",
+    center: [1961, 694],
   },
   brest_litovsk: {
     id: 311,
@@ -417,6 +441,14 @@ export const GW_PLACES = {
     group: "russian_poland",
     owner: "RUS",
     center: [2214, 655],
+  },
+  dakar: {
+    id: 908,
+    name: "Dakar",
+    nameKo: "다카르",
+    group: "west_africa",
+    owner: "FRA",
+    center: [1858, 1057],
   },
   damascus: {
     id: 2126,
@@ -778,6 +810,14 @@ export const GW_PLACES = {
     owner: "FRA",
     center: [2042, 673],
   },
+  le_creusot: {
+    id: 446,
+    name: "Le Creusot",
+    nameKo: "르크뢰조",
+    group: "france",
+    owner: "FRA",
+    center: [2039, 711],
+  },
   lemberg: {
     id: 2066,
     name: "Lemberg",
@@ -842,6 +882,14 @@ export const GW_PLACES = {
     owner: "RUS",
     center: [2276, 649],
   },
+  lyon: {
+    id: 469,
+    name: "Lyon",
+    nameKo: "리옹",
+    group: "france",
+    owner: "FRA",
+    center: [2042, 722],
+  },
   madrid: {
     id: 617,
     name: "Madrid",
@@ -865,6 +913,14 @@ export const GW_PLACES = {
     group: "baltic",
     owner: "RUS",
     center: [2257, 596],
+  },
+  marseille: {
+    id: 528,
+    name: "Marseille",
+    nameKo: "마르세유",
+    group: "france",
+    owner: "FRA",
+    center: [2052, 753],
   },
   masuria: {
     id: 2075,
