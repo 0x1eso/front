@@ -37,6 +37,10 @@ export const GW_TABLE_AIMS: Readonly<
     "strasbourg",
     "mulhouse",
     "saarbrucken",
+    // The Rhineland (ww166): occupation, a buffer, or more.
+    "rhineland",
+    "cologne",
+    "aachen",
     "beirut",
     "damascus",
     "togo",

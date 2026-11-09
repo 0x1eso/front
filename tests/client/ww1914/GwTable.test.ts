@@ -28,7 +28,7 @@ const res = (f: string) =>
     fs.readFileSync(path.join(__dirname, "../../../resources", f), "utf8"),
   );
 const common = res("ww1914/ko/common.table.json");
-const NATIONS = ["DEU", "GBR", "AUH", "RUS"];
+const NATIONS = ["DEU", "GBR", "AUH", "RUS", "FRA"];
 const MOMENTS = [
   "open",
   "turn",

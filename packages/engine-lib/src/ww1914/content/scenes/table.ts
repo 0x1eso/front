@@ -23,5 +23,5 @@ const paper = (tag: GwTag): GwScene => ({
 });
 
 export const TABLE_SCENES: readonly GwScene[] = (
-  ["DEU", "GBR", "AUH", "RUS"] as const
+  ["DEU", "GBR", "AUH", "RUS", "FRA"] as const
 ).map(paper);
