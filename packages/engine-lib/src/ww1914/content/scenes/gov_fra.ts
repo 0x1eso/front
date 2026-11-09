@@ -150,6 +150,9 @@ export const FRA_PM_FLAGS = [
   "f_pm_caillaux",
 ] as const;
 
+/** Set by the home share (W3) when the SFIO leaves the government. */
+export const SFIO_OUT = "f_sfio_out";
+
 /** The rows a new cabinet puts out: the Chamber's and the Senate's. */
 const CABINET_ROWS = ["fra_chamber", "fra_senate"];
 
@@ -290,7 +293,7 @@ const PREMIERS: readonly FraPremier[] = [
  * What calling a premier does: the old flags go, his comes, he and his
  * ministers are appointed, the cabinet's rows are put out. Clemenceau's
  * government is a form of its own (regime fra_tiger); leaving it goes back
- * to the sacred union. Exported for scenes that call a premier elsewhere.
+ * to the sacred union, or to the plain Republic once the SFIO has left. Exported for scenes that call a premier elsewhere.
  */
 export function callPremier(name: string): GwEffect[] {
   const row = PREMIERS.find((x) => x.name === name);
@@ -303,7 +306,20 @@ export function callPremier(name: string): GwEffect[] {
       : {
           kind: "maybe",
           when: regime("fra_tiger"),
-          then: [doWorld({ do: "regime", to: "fra_union" })],
+          // Once the Socialists have walked out (W3's f_sfio_out), the
+          // sacred union doesn't come back: the plain Republic does.
+          then: [
+            {
+              kind: "maybe",
+              when: flag(SFIO_OUT),
+              then: [doWorld({ do: "regime", to: "fra_republic" })],
+            },
+            {
+              kind: "maybe",
+              when: not(flag(SFIO_OUT)),
+              then: [doWorld({ do: "regime", to: "fra_union" })],
+            },
+          ],
         },
     setFlag(`f_pm_${name}`),
     { kind: "appoint", who: { person: row.person }, office: "chancellor" },
