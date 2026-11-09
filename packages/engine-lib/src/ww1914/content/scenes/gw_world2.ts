@@ -135,7 +135,8 @@ const NEWS: readonly GwScene[] = [
     variants: CENTRAL_OR_BASE,
   }),
   report("gw_n_verdun", {
-    nation: except("DEU"),
+    // France's own seat has its Verdun (lane ww166 W4).
+    nation: except("DEU", "FRA"),
     when: all(
       w({ is: "battle", theatre: "west", of: BATTLE_ANY, by: "central" }),
       w({ is: "front", theatre: "west", from: "hindenburg", to: "aisne" }),
@@ -209,7 +210,8 @@ const NEWS: readonly GwScene[] = [
     variants: SIDES,
   }),
   report("gw_n_refusals", {
-    nation: [...GW_TAGS],
+    // France's own seat has its mutinies (lane ww166 W4).
+    nation: except("FRA"),
     when: all(
       { kind: "secret", id: "fra_army_refusals" },
       w({
