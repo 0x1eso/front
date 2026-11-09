@@ -215,6 +215,18 @@ const LAW_IDS = new Set([
 const known = (...laws: string[]): string[] =>
   laws.filter((l) => LAW_IDS.has(l));
 
+const LAW_DRAFTS = new Map(
+  [...FRA_LAWS, ...FRA_HOUSE_LAWS].map((l) => [
+    l.id,
+    new Set(l.draft.map((d) => d.id)),
+  ]),
+);
+/** A faction's amendments, only on laws and texts that exist. */
+const amend = (m: Record<string, string>): Record<string, string> =>
+  Object.fromEntries(
+    Object.entries(m).filter(([law, t]) => LAW_DRAFTS.get(law)?.has(t)),
+  );
+
 /** Each faction's side, in the order of FRA_FACTIONS' seated rows. */
 const sides = (
   radicals: -1 | 0 | 1,
@@ -239,31 +251,119 @@ const sides = (
 });
 
 const ALL_BILLS: readonly GwBillRow[] = [
-  { law: W5.siege, stance: sides(1, 0, 1, 0, -1, 1, 1, 1, 1) },
-  { law: W5.threeYears, stance: sides(0, -1, 0, -1, -1, 1, 1, 1, 1) },
+  {
+    law: W5.siege,
+    stance: sides(1, 0, 1, 0, -1, 1, 1, 1, 1),
+    texts: {
+      whole_country: { fra_radicals: 0, fra_repsoc: 0, fra_sfio: -1 },
+      civil_courts: {
+        fra_sfio: 1,
+        fra_minority: 1,
+        fra_fed_rep: 0,
+        fra_tiger: 0,
+      },
+    },
+  },
+  {
+    law: W5.threeYears,
+    stance: sides(0, -1, 0, -1, -1, 1, 1, 1, 1),
+    texts: {
+      thirty_months: {
+        fra_radicals: 1,
+        fra_repsoc: 1,
+        fra_sfio: 0,
+        fra_minority: 0,
+        fra_left_rep: 0,
+        fra_fed_rep: 0,
+      },
+      two_years: {
+        fra_radicals: 1,
+        fra_caillaux: 1,
+        fra_sfio: 1,
+        fra_minority: 1,
+        fra_left_rep: -1,
+        fra_fed_rep: -1,
+        fra_catholics: -1,
+        fra_tiger: -1,
+      },
+    },
+  },
   {
     law: W5.incomeTax,
     money: true,
     stance: sides(1, 1, 1, 1, 1, 0, -1, -1, 0),
+    texts: {
+      as_voted: { fra_left_rep: 1 },
+      higher_bands: { fra_left_rep: -1, fra_repsoc: 0 },
+      caillaux_scale: { fra_left_rep: -1, fra_tiger: -1 },
+    },
   },
-  { law: W5.dalbiez, stance: sides(1, 0, 1, 1, 0, 1, 0, 0, 1) },
+  {
+    law: W5.dalbiez,
+    stance: sides(1, 0, 1, 1, 0, 1, 0, 0, 1),
+    texts: {
+      young_first: { fra_sfio: -1, fra_left_rep: 0, fra_fed_rep: 1 },
+      factory_lists: { fra_fed_rep: -1, fra_minority: -1 },
+    },
+  },
   {
     law: W5.warProfits,
     money: true,
     stance: sides(1, 1, 1, 1, 1, 0, -1, 0, 0),
+    texts: {
+      full_excess: { fra_radicals: 0, fra_catholics: -1 },
+      contracts_only: {
+        fra_left_rep: 1,
+        fra_fed_rep: 1,
+        fra_catholics: 1,
+        fra_tiger: 1,
+        fra_minority: 0,
+      },
+    },
   },
-  { law: W5.rents, around: true, stance: sides(1, 1, 1, 1, 1, 0, -1, 0, 0) },
+  {
+    law: W5.rents,
+    around: true,
+    stance: sides(1, 1, 1, 1, 1, 0, -1, 0, 0),
+    texts: {
+      all_small_rents: { fra_left_rep: -1, fra_catholics: -1 },
+      rent_boards: { fra_fed_rep: 0, fra_left_rep: 1 },
+    },
+  },
   {
     law: W5.allowances,
     money: true,
+    around: true,
     stance: sides(1, 1, 1, 1, 1, 1, 0, 1, 0),
+    texts: {
+      every_family: { fra_fed_rep: -1 },
+      with_children: { fra_fed_rep: 1, fra_catholics: 1 },
+    },
   },
   {
     law: W5.censorship,
     around: true,
     stance: sides(0, -1, 1, -1, -1, 1, 1, 1, -1),
+    texts: {
+      military_only: { fra_radicals: 1 },
+      political_too: { fra_radicals: -1, fra_repsoc: 0 },
+      white_spaces: {
+        fra_radicals: 1,
+        fra_caillaux: 1,
+        fra_minority: 1,
+        fra_tiger: 1,
+        fra_fed_rep: 0,
+      },
+    },
   },
-  { law: W5.supply, around: true, stance: sides(1, 0, 1, 1, 0, 0, -1, 0, 1) },
+  {
+    law: W5.supply,
+    stance: sides(1, 0, 1, 1, 0, 0, -1, 0, 1),
+    texts: {
+      bread_cards: { fra_radicals: 0, fra_tiger: 0 },
+      chamber_reviews: { fra_fed_rep: 0, fra_minority: 1, fra_caillaux: 1 },
+    },
+  },
   {
     law: PROPORTIONAL,
     by: "fra_repsoc",
@@ -361,7 +461,14 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
         effects: [heat("fra_fed_rep", 1), heat("fra_catholics", 1)],
       },
     ],
-    amends: { [PROPORTIONAL]: "after_war", [AMNESTY]: "press_only" },
+    amends: amend({
+      [PROPORTIONAL]: "after_war",
+      [AMNESTY]: "press_only",
+      [W5.siege]: "war_zone",
+      [W5.censorship]: "military_only",
+      [W5.threeYears]: "thirty_months",
+      [W5.incomeTax]: "as_voted",
+    }),
     splits: {
       when: all(
         warAge(18),
@@ -413,7 +520,13 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
         effects: [heat("fra_tiger", 2), heat("fra_af", 1)],
       },
     ],
-    amends: { [AMNESTY]: "strikers", [PROPORTIONAL]: "after_war" },
+    amends: amend({
+      [AMNESTY]: "strikers",
+      [PROPORTIONAL]: "after_war",
+      [W5.incomeTax]: "caillaux_scale",
+      [W5.censorship]: "white_spaces",
+      [W5.warProfits]: "full_excess",
+    }),
   },
   {
     id: "fra_repsoc",
@@ -463,10 +576,12 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
         effects: [heat("fra_radicals", 1)],
       },
     ],
-    amends: {
+    amends: amend({
       [PROPORTIONAL]: "majority_bonus",
       [ARMY_COMMISSION]: "with_gqg_leave",
-    },
+      [W5.censorship]: "military_only",
+      [W5.threeYears]: "thirty_months",
+    }),
   },
   {
     id: "fra_sfio",
@@ -524,7 +639,15 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
         effects: [inst("army", -1)],
       },
     ],
-    amends: { [AMNESTY]: "strikers", [PROPORTIONAL]: "list_vote" },
+    amends: amend({
+      [AMNESTY]: "strikers",
+      [PROPORTIONAL]: "list_vote",
+      [W5.siege]: "civil_courts",
+      [W5.rents]: "all_small_rents",
+      [W5.warProfits]: "full_excess",
+      [W5.allowances]: "every_family",
+      [W5.dalbiez]: "review_boards",
+    }),
     splits: {
       when: all(
         since("1915-06"),
@@ -578,7 +701,13 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
         effects: [heat("fra_af", 1), heat("fra_tiger", 1)],
       },
     ],
-    amends: { [AMNESTY]: "strikers", [ARMY_COMMISSION]: "visit_front" },
+    amends: amend({
+      [AMNESTY]: "strikers",
+      [ARMY_COMMISSION]: "visit_front",
+      [W5.siege]: "civil_courts",
+      [W5.warProfits]: "full_excess",
+      [W5.censorship]: "white_spaces",
+    }),
   },
   {
     id: "fra_left_rep",
@@ -623,11 +752,14 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
         effects: [gauge("money", -1)],
       },
     ],
-    amends: {
+    amends: amend({
       [PROPORTIONAL]: "majority_bonus",
       [ARMY_COMMISSION]: "with_gqg_leave",
       [AMNESTY]: "after_victory",
-    },
+      [W5.incomeTax]: "as_voted",
+      [W5.warProfits]: "contracts_only",
+      [W5.rents]: "rent_boards",
+    }),
   },
   {
     id: "fra_fed_rep",
@@ -667,7 +799,13 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
         effects: [heat("fra_sfio", 1)],
       },
     ],
-    amends: { [PROPORTIONAL]: "list_vote", [AMNESTY]: "after_victory" },
+    amends: amend({
+      [PROPORTIONAL]: "list_vote",
+      [AMNESTY]: "after_victory",
+      [W5.dalbiez]: "young_first",
+      [W5.warProfits]: "contracts_only",
+      [W5.allowances]: "with_children",
+    }),
   },
   {
     id: "fra_catholics",
@@ -706,7 +844,12 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
         effects: [heat("fra_radicals", 1), heat("fra_sfio", 1)],
       },
     ],
-    amends: { [PROPORTIONAL]: "list_vote", [AMNESTY]: "after_victory" },
+    amends: amend({
+      [PROPORTIONAL]: "list_vote",
+      [AMNESTY]: "after_victory",
+      [W5.allowances]: "with_children",
+      [W5.warProfits]: "contracts_only",
+    }),
   },
   {
     id: "fra_af",
@@ -783,7 +926,13 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
         effects: [{ kind: "censor", delta: -1 }],
       },
     ],
-    amends: { [ARMY_COMMISSION]: "visit_front", [AMNESTY]: "press_only" },
+    amends: amend({
+      [ARMY_COMMISSION]: "visit_front",
+      [AMNESTY]: "press_only",
+      [W5.censorship]: "white_spaces",
+      [W5.dalbiez]: "factory_lists",
+      [W5.supply]: "penalties_only",
+    }),
   },
   {
     id: "fra_gqg",
