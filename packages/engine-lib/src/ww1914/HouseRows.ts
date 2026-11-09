@@ -307,6 +307,7 @@ export const GW_NO_FILE: readonly string[] = [
   "rus_sergei_m",
   "fra_poincare",
   "fra_henriette",
+  "fra_lucien",
 ];
 
 /** The dossier's papers, per country (text in `<TAG>.house.json`). */
