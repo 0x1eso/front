@@ -23,10 +23,10 @@ import { world } from "@openfront/engine-api/ww1914/WorldDsl";
 import { period } from "./period";
 
 /**
- * 「프랑스」, the President's private life (ww166 W9, plan §11.5). Six lines
+ * 「프랑스」, the President's private life (ww166 W9, plan §11.5). Seven lines
  * outside work, across the game: Henriette; his brother Lucien; the house at
- * Sampigny; his friend Barthou and Barthou's son; the diary he keeps every
- * night; letters from the Meuse. Talks tagged `private` belong to the private
+ * Sampigny; his friend Barthou and Barthou's son; Barrès, the other Lorrainer
+ * of the Académie; the diary he keeps every night; letters from the Meuse. Talks tagged `private` belong to the private
  * meeting; the rest come by themselves (a visit, a paper). Each line is
  * remembered by its own later scenes, and the prologue's choices come back
  * here through FRA_ECHOES (fra_prologue.ts).
@@ -167,6 +167,13 @@ const HENRIETTE: readonly GwScene[] = [
     burned: node([bye("end", "warm")]),
     police: node([bye("end", "cold", pt(-1))]),
   }),
+  visit("hen_paris", HEN, all(war, chapter(6, 7)), 5, {
+    open: node([
+      bye("with_me", "warm", rem("hen_with"), pt(1)),
+      bye("she_stays", "frank", rem("hen_stays")),
+      bye("not_yet", "cold"),
+    ]),
+  }),
   talk("hen_rooms", HEN, all(war, period("14"), henSeen), {
     open: node(
       [
@@ -179,6 +186,7 @@ const HENRIETTE: readonly GwScene[] = [
         r("ask_pm", "cold", "ask", "pm"),
       ],
       v("police", m("hen_police")),
+      v("stays", m("hen_stays")),
     ),
     yes: node([bye("end", "warm")]),
     pm: node([
@@ -427,7 +435,47 @@ const BARTHOU: readonly GwScene[] = [
   ),
 ];
 
-// ---- 5. 일기 ----
+// ---- 5. 바레스: 같은 로렌 사람 ----
+
+const BAR_ = "fra_barres";
+
+const BARRES: readonly GwScene[] = [
+  talk("barres_metz", BAR_, ashore, {
+    open: node([
+      r("why_now", "frank", "ask", "why"),
+      bye("no_word", "cold", rem("barres_quiet"), pt(-1)),
+      bye("one_line", "warm", rem("barres_line"), pt(1)),
+    ]),
+    why: node([
+      bye("no_word2", "cold", rem("barres_quiet")),
+      bye("one_line2", "warm", rem("barres_line"), pt(1)),
+    ]),
+  }),
+  visit("barres_book", BAR_, all(war, period("15a", "16b")), 4, {
+    open: node(
+      [
+        bye("sign", "warm", rem("barres_signed"), pt(1)),
+        bye("own_words", "frank", rem("barres_own")),
+        bye("decline", "cold", pt(-1)),
+      ],
+      v("quiet", m("barres_quiet")),
+      v("line", m("barres_line")),
+    ),
+  }),
+  visit("barres_end", BAR_, all(over, seen("fra_p_barres_metz")), 4, {
+    open: node(
+      [
+        bye("together", "warm", rem("barres_together")),
+        bye("dead_first", "frank", rem("barres_dead")),
+        bye("no_speech", "cold"),
+      ],
+      v("signed", m("barres_signed")),
+      v("own", m("barres_own")),
+    ),
+  }),
+];
+
+// ---- 6. 일기 ----
 
 const DIARY: readonly GwScene[] = [
   paper("diary_first", all(war, chapter(5, 7)), 5, [
@@ -486,7 +534,7 @@ const DIARY: readonly GwScene[] = [
   ),
 ];
 
-// ---- 6. 뫼즈 ----
+// ---- 7. 뫼즈 ----
 
 const MEUSE: readonly GwScene[] = [
   paper("meuse_mother", ashore, 3, [
@@ -512,6 +560,7 @@ export const FRA_PRIVATE_SCENES: readonly GwScene[] = [
   ...LUCIEN,
   ...CLOS,
   ...BARTHOU,
+  ...BARRES,
   ...DIARY,
   ...MEUSE,
 ];

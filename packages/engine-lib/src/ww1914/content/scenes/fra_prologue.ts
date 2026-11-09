@@ -94,6 +94,7 @@ const RIBOT = byName("fra_ribot");
 const BARRES = byName("fra_barres");
 const LUCIEN = byName("fra_lucien");
 const HENRIETTE = byName("fra_henriette");
+const MESSIMY = byName("fra_messimy");
 
 export const FRA_PROLOGUE_SCENES: readonly GwScene[] = [
   // 1. 1870-71: the requisitioned house and the dog called Bismarck.
@@ -426,6 +427,7 @@ export const FRA_PROLOGUE_SCENES: readonly GwScene[] = [
     {
       ribot: past("fra_ribot"),
       viviani: past("fra_viviani"),
+      messimy: past("fra_messimy"),
       henriette: past("fra_henriette"),
     },
     "henriette",
@@ -435,15 +437,19 @@ export const FRA_PROLOGUE_SCENES: readonly GwScene[] = [
         decide("who_next", "n2"),
       ]),
       n2: by("viviani", [
-        decide("bind_law", "n3", [
+        decide("bind_law", "n2b", [
           setFlag("pro_fra_viv_bound"),
           trustOf(VIVIANI, -1),
           temper("cold"),
         ]),
-        decide("trust_him", "n3", [
+        decide("trust_him", "n2b", [
           setFlag("pro_fra_viv_trusted"),
           trustOf(VIVIANI, 1),
         ]),
+      ]),
+      n2b: by("messimy", [
+        decide("trains", "n3", [trustOf(MESSIMY, 1)]),
+        decide("slow_down", "n3", [trustOf(MESSIMY, -1), temper("cold")]),
       ]),
       n3: lone([decide("to_sunday", "n4")]),
       n4: by("henriette", [
