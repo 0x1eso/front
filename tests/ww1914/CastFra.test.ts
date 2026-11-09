@@ -18,6 +18,10 @@ import {
   FRA_VOICE_NOTES,
 } from "@openfront/engine-lib/ww1914/content/people_fra";
 import { RUS_VOICE_NOTES } from "@openfront/engine-lib/ww1914/content/people_rus";
+import {
+  FRA_PRIVATE_PEOPLE,
+  FRA_PRIVATE_VOICE_NOTES,
+} from "@openfront/engine-lib/ww1914/content/scenes/fra_private";
 import { loadGwPack } from "@openfront/shared/ww1914/GwPackLoader";
 import fs from "node:fs";
 import path from "node:path";
@@ -38,6 +42,7 @@ const ids = new Set(people.map((p) => p.id));
 const french = people.filter((p) => p.tag === "FRA");
 const voice = (id: string) =>
   FRA_VOICE_NOTES[id] ??
+  FRA_PRIVATE_VOICE_NOTES[id] ??
   GW_VOICE_NOTES_COMMON[id] ??
   GW_VOICE_NOTES[id] ??
   RUS_VOICE_NOTES[id];
@@ -45,7 +50,9 @@ const voice = (id: string) =>
 describe("France's cast", () => {
   test("every person is well formed, named once, and in the game's content", () => {
     expect(ids.size).toBe(people.length);
-    expect(french.length).toBe(FRA_PEOPLE.length + 8);
+    expect(french.length).toBe(
+      FRA_PEOPLE.length + 8 + FRA_PRIVATE_PEOPLE.length,
+    );
     for (const p of FRA_PEOPLE) {
       GwPersonDefSchema.parse(p);
       expect(people, p.id).toContain(p);
