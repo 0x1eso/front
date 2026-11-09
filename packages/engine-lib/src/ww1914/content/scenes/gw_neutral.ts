@@ -49,7 +49,10 @@ const REGIMES: Readonly<Partial<Record<GwTag, readonly string[]>>> = {
     "crown_remnant",
   ],
   RUS: ["tsar", "crown", "regency", "rep", "provisional"],
+  FRA: ["fra_republic", "fra_union", "fra_tiger", "fra_defeat"],
 };
+/** Scenes France's own seat writes for itself (lane ww166 W4): not for FRA. */
+const noFra = (tags: GwTag[]): GwTag[] => tags.filter((t) => t !== "FRA");
 const seatIs = (tag: GwTag) =>
   w({ is: "regime", of: [...(REGIMES[tag] ?? [])] });
 
@@ -297,7 +300,7 @@ const ITALY: GwScene[] = [
   ),
   decision(
     "gw_o_ita_london",
-    ENTENTE,
+    noFra(ENTENTE),
     "1915-02",
     "1915-05",
     [neutral("ITA"), entente],
@@ -452,7 +455,12 @@ const OTTOMAN: GwScene[] = [
     { fm },
     7,
     ["foreign"],
-    [v("central", central), v("entente", entente), v("base")],
+    [
+      v("fra", all(seatIs("FRA"), entente)),
+      v("central", central),
+      v("entente", entente),
+      v("base"),
+    ],
     [
       opt("wait", [], [why("o_ott_waited")]),
       opt(
@@ -753,7 +761,7 @@ const ROMANIA: GwScene[] = [
 const GREECE: GwScene[] = [
   decision(
     "gw_o_grc_salonika",
-    ENTENTE,
+    noFra(ENTENTE),
     "1915-08",
     "1916-03",
     [entente, any(flag("w_serbia_fallen"), entered("BGR", "central"))],

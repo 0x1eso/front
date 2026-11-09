@@ -85,6 +85,12 @@ const seatRUS = w({
   is: "regime",
   of: ["tsar", "crown", "regency", "rep", "provisional", "soviet"],
 });
+const seatFRA = w({
+  is: "regime",
+  of: ["fra_republic", "fra_union", "fra_tiger", "fra_defeat"],
+});
+/** Scenes France's own seat writes for itself (lane ww166 W4): not for FRA. */
+const noFra = (tags: GwTag[]): GwTag[] => tags.filter((t) => t !== "FRA");
 
 /** Plan's `regime:RUS=soviet`: Y has no such form, an AI Russia only leaves. */
 const redRussia = any(
@@ -320,6 +326,11 @@ const RAW: Loose[] = [
     all(war, date("1915-07", "1918-06")),
     { fm, cos },
     [
+      v(
+        "fra_chantilly",
+        all(seatFRA, entente, war, date("1915-12", "1916-12")),
+      ),
+      v("fra", all(seatFRA, entente, war)),
       v("chantilly", all(entente, date("1915-12", "1916-12"))),
       v("versailles", all(entente, since("1917-11"))),
       v("entente", entente),
@@ -451,7 +462,7 @@ const RAW: Loose[] = [
   ),
   paper(
     "gw_d_carve_ottoman",
-    ENTENTE,
+    noFra(ENTENTE),
     7,
     foreign,
     all(
@@ -498,7 +509,7 @@ const RAW: Loose[] = [
   ),
   paper(
     "gw_d_stockholm",
-    everyone,
+    noFra(everyone),
     7,
     foreignDown,
     all(
@@ -538,7 +549,12 @@ const RAW: Loose[] = [
     foreignDown,
     all(war, date("1917-08", "1917-12"), not(w({ is: "armistice" }))),
     { fm },
-    [v("heard", memory("k_benedict_line")), v("central", central), v("base")],
+    [
+      v("fra", all(seatFRA, not(memory("k_benedict_line")))),
+      v("heard", memory("k_benedict_line")),
+      v("central", central),
+      v("base"),
+    ],
     [
       opt("polite", [], []),
       opt("reject", ["ally:+1"], [...ally(1), why("d_papal_rejected")]),
@@ -570,7 +586,7 @@ const RAW: Loose[] = [
   ),
   paper(
     "gw_d_fourteen",
-    everyone,
+    noFra(everyone),
     8,
     foreign,
     all(americaNear, date("1918-01", "1918-06")),
@@ -617,6 +633,7 @@ const RAW: Loose[] = [
     ),
     { fm },
     [
+      v("fra", all(seatFRA, entente)),
       v("asked", chose("gw_d_aims_asked")),
       v("ahead", w({ is: "score", min: 5 })),
       v("base"),
@@ -645,6 +662,7 @@ const RAW: Loose[] = [
     all(war, date("1915-07", "1918-06")),
     { fm },
     [
+      v("fra_late", all(seatFRA, entente, date("1917-07", "1917-12"))),
       v("briand", all(entente, date("1917-07", "1917-12"))),
       v("central", central),
       v("late", since("1917-01")),
@@ -669,7 +687,7 @@ const RAW: Loose[] = [
   ),
   reading(
     "gw_d_vienna_rumour",
-    but("AUH"),
+    but("AUH", "FRA"),
     6,
     foreign,
     all(
@@ -960,7 +978,7 @@ const RAW: Loose[] = [
   ),
   paper(
     "gw_d_mecca_letters",
-    ENTENTE,
+    noFra(ENTENTE),
     6,
     foreign,
     all(
@@ -992,7 +1010,7 @@ const RAW: Loose[] = [
   ),
   paper(
     "gw_d_palestine_word",
-    everyone,
+    noFra(everyone),
     5,
     foreign,
     all(
@@ -1063,7 +1081,7 @@ const RAW: Loose[] = [
   },
   paper(
     "gw_d_new_front_ask",
-    everyone,
+    noFra(everyone),
     6,
     foreign,
     all(war, date("1915-01", "1917-12")),
