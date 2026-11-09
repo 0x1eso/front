@@ -7,6 +7,7 @@ import { gwFace } from "./GwFace";
 import {
   appointable,
   dismissal,
+  talkTopics,
   topicLabel,
   trustIndex,
   vacantOffices,
@@ -133,15 +134,34 @@ function rowFace(c: GwCtx, id: string, name: string): TemplateResult {
   );
 }
 
+/** How many talks they could be called on now; nothing at none. */
+function topicBadge(n: number): TemplateResult | typeof nothing {
+  if (n === 0) return nothing;
+  const label = translateText("gw.ui.topic_count", { n });
+  return html`<span
+    class="shrink-0 rounded-full bg-amber-300/90 px-1.5 text-xs font-bold text-slate-900"
+    data-gw-topic-count
+    title=${label}
+    aria-label=${label}
+    >${n}</span
+  >`;
+}
+
 function row(c: GwCtx, p: GwPersonView): TemplateResult {
   const open = c.ui.openPerson === p.id;
   const lean = personLean(c.pack, p.id);
   const bio = personBio(c.pack, p.id);
   const offices = appointable(c.seat, p);
   const name = personName(c.pack, p.id);
+  const topics = talkTopics(p);
+  // Nobody to talk to about anything now: the row steps back until opened.
+  const empty = topics.length === 0 && !open;
   return html`<section
     data-gw-person=${p.id}
-    class="rounded border border-white/15 bg-black/35 p-2.5"
+    ?data-gw-no-topics=${topics.length === 0}
+    class="rounded border border-white/15 bg-black/35 p-2.5 ${empty
+      ? "opacity-60"
+      : ""}"
   >
     <button
       class="flex w-full items-center gap-2 text-left"
@@ -153,7 +173,10 @@ function row(c: GwCtx, p: GwPersonView): TemplateResult {
     >
       ${rowFace(c, p.id, name)}
       <span class="min-w-0 flex-1">
-        <span class="block truncate text-sm font-bold">${name}</span>
+        <span class="flex min-w-0 items-center gap-1.5">
+          <span class="truncate text-sm font-bold">${name}</span>
+          ${topicBadge(topics.length)}
+        </span>
         <span class="${MUTED} block truncate"
           >${p.office === null
             ? translateText("gw.ui.no_office")
@@ -183,9 +206,9 @@ function row(c: GwCtx, p: GwPersonView): TemplateResult {
               </p>`}
           ${promises(c, p.id)}
           <div class="space-y-1">
-            ${p.topics.length === 0
+            ${topics.length === 0
               ? html`<p class=${MUTED}>${translateText("gw.ui.no_topics")}</p>`
-              : p.topics.map(
+              : topics.map(
                   (t) =>
                     html`<button
                       class="${BTN} w-full"

@@ -289,6 +289,14 @@ export function logByChapter(
   return out.reverse();
 }
 
+/**
+ * The talks `p` can be called on now, as their open row lists them; the
+ * engine's `openTopics` made the list. The row's count badge is its length.
+ */
+export function talkTopics(p: GwPersonView): readonly string[] {
+  return p.topics;
+}
+
 /** The chapter's own scene text: its pack topic line on the people screen. */
 export function topicLabel(pack: GwPack | null, scene: string): string {
   return pack?.scenes[scene]?.topic ?? pack?.scenes[scene]?.title ?? scene;

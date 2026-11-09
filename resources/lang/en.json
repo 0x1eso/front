@@ -4292,6 +4292,7 @@
         "west": "West"
       },
       "threads_title": "Long-running matters",
+      "topic_count": "{n} things to talk about now",
       "trench": "Trench stage {n} of {max}",
       "trench_word": {
         "0": "Moving front",

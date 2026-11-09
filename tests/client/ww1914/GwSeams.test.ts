@@ -189,6 +189,35 @@ describe("the people tab on real data", () => {
     );
   });
 
+  test("each row's topic count is what opening that person shows", async () => {
+    const { runner } = await gwRunner({}, "GWSEAMS");
+    const counts: number[] = [];
+    for (let chapter = 0; chapter < 3; chapter++) {
+      if (chapter > 0) playChapter(runner);
+      const d = view(runner);
+      const { panel } = await mount(d);
+      panel.querySelector<HTMLButtonElement>("[data-gw-tab=people]")!.click();
+      await panel.updateComplete;
+      for (const p of d.seats[0].people) {
+        const row = () => panel.querySelector(`[data-gw-person=${p.id}]`)!;
+        const badge = row().querySelector("[data-gw-topic-count]");
+        // Only a number: never which talks, nor how they would go.
+        const shown = badge === null ? 0 : Number(badge.textContent!.trim());
+        expect(badge?.textContent?.trim() ?? "0").toMatch(/^\d+$/);
+        expect(row().hasAttribute("data-gw-no-topics")).toBe(shown === 0);
+        expect(row().className.includes("opacity-60")).toBe(shown === 0);
+        row().querySelector("button")!.click();
+        await panel.updateComplete;
+        expect(row().querySelectorAll("[data-gw-topic]").length).toBe(shown);
+        expect(row().className).not.toContain("opacity-60");
+        counts.push(shown);
+      }
+      document.body.innerHTML = "";
+    }
+    expect(counts.some((n) => n > 0)).toBe(true);
+    expect(counts.some((n) => n === 0)).toBe(true);
+  });
+
   test("the ticker reads the world's wires", async () => {
     const { runner } = await gwRunner({}, "GWSEAMS");
     playChapter(runner);

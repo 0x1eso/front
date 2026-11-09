@@ -15676,6 +15676,7 @@
         "west": "서부"
       },
       "threads_title": "오래 끓는 일",
+      "topic_count": "지금 꺼낼 이야기 {n}가지",
       "trench": "참호 {n}/{max}단계",
       "trench_word": {
         "0": "움직이는 전선",
