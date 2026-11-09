@@ -14457,7 +14457,21 @@
       "deu_end_set_aside": "두 장의 문서",
       "auh_e_regency": "보좌받는 황제",
       "rus_palace_coup": "멈춘 기차",
-      "auh_e_conference": "회의장의 제국"
+      "auh_e_conference": "회의장의 제국",
+      "fra_end_alsace": "알자스가 돌아왔다",
+      "fra_end_rhine": "라인에 선 군대",
+      "fra_end_tiger": "호랑이의 평화",
+      "fra_end_white": "흰 평화",
+      "fra_end_bordeaux": "보르도의 정부",
+      "fra_end_mutiny": "거부 뒤의 강화",
+      "fra_end_long_peace": "긴 여름",
+      "fra_end_alone_west": "서부에 홀로",
+      "fra_end_conference": "회의의 주인",
+      "fra_end_deadline": "끝나지 않은 전쟁",
+      "fra_end_alliance": "동맹 없이 남은 나라",
+      "fra_r_death": "대통령의 죽음",
+      "fra_r_removed": "물러난 대통령",
+      "fra_end_resigned": "엘리제를 떠난 대통령"
     },
     "fact": {
       "force": {
@@ -14743,7 +14757,19 @@
       "rus_heir_succeeds": "황위를 넘기기",
       "rus_four_ears": "네 귀를 다 지키기",
       "rus_small_lists": "사상자 명단을 짧게 두기",
-      "rus_army_is_mine": "군을 내 손에 두기"
+      "rus_army_is_mine": "군을 내 손에 두기",
+      "fra_alsace": "알자스로렌을 되찾기",
+      "fra_rhine": "라인에 서기",
+      "fra_paris_held": "파리를 지키기",
+      "fra_britain_in": "영국을 전쟁에 붙들기",
+      "fra_bread": "식탁의 빵을 지키기",
+      "fra_quiet_shops": "공장을 조용히 두기",
+      "fra_money_left": "국고를 비우지 않기",
+      "fra_union_kept": "사회당을 단결 안에 두기",
+      "fra_no_mutiny": "군이 거부하지 않게 하기",
+      "fra_small_list": "사상자 명단을 짧게 두기",
+      "fra_america_in": "미국을 끌어들이기",
+      "fra_president_heard": "대통령의 말이 들리게 하기"
     },
     "news": {
       "america_entered": "미국이 참전했다.",

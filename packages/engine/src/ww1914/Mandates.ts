@@ -309,4 +309,75 @@ export const GW_MANDATES: Readonly<
       met: { kind: "gauge", gauge: "money", min: 1 },
     },
   ],
+  // France (ww166, lane W5). The consultations can't be counted by a
+  // condition: "heard" is read as the premier still taking his word.
+  FRA: [
+    {
+      id: "fra_alsace",
+      group: "war",
+      met: any(
+        world({ is: "peace_side", of: ["won"] }),
+        world({ is: "front", theatre: "west", to: "rhine" }),
+      ),
+    },
+    {
+      id: "fra_rhine",
+      group: "war",
+      met: world({ is: "front", theatre: "west", to: "rhine" }),
+    },
+    {
+      id: "fra_paris_held",
+      group: "war",
+      met: not(world({ is: "front", theatre: "west", from: "paris" })),
+    },
+    {
+      id: "fra_britain_in",
+      group: "war",
+      met: world({ is: "entered", tag: "GBR", side: "entente" }),
+    },
+    {
+      id: "fra_bread",
+      group: "home",
+      met: { kind: "gauge", gauge: "bread", min: 1 },
+    },
+    {
+      id: "fra_quiet_shops",
+      group: "home",
+      met: world({ is: "unrest", max: 0 }),
+    },
+    {
+      id: "fra_money_left",
+      group: "home",
+      met: { kind: "gauge", gauge: "money", min: 1 },
+    },
+    { id: "fra_union_kept", group: "home", met: not(flag("f_sfio_out")) },
+    {
+      id: "fra_no_mutiny",
+      group: "name",
+      met: all(not({ kind: "seen", scene: "fra_big_mutiny" }), {
+        kind: "inst",
+        inst: "army",
+        min: -2,
+      }),
+    },
+    {
+      id: "fra_small_list",
+      group: "name",
+      met: world({ is: "casualties", max: 1800 }),
+    },
+    {
+      id: "fra_america_in",
+      group: "name",
+      met: world({ is: "entered", tag: "USA", side: "entente" }),
+    },
+    {
+      id: "fra_president_heard",
+      group: "name",
+      met: all(not(world({ is: "regime", of: ["fra_tiger"] })), {
+        kind: "inst",
+        inst: "countersign",
+        min: 0,
+      }),
+    },
+  ],
 };

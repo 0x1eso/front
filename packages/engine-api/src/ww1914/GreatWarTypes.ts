@@ -802,6 +802,21 @@ export const GW_ENDINGS = [
   "rus_palace_coup",
   // Beaten at the table with the peoples still in the house.
   "auh_e_conference",
+  // France (ww166): the President's endings, his card's, and the Élysée row's.
+  "fra_end_alsace",
+  "fra_end_rhine",
+  "fra_end_tiger",
+  "fra_end_white",
+  "fra_end_bordeaux",
+  "fra_end_mutiny",
+  "fra_end_long_peace",
+  "fra_end_alone_west",
+  "fra_end_conference",
+  "fra_end_deadline",
+  "fra_end_alliance",
+  "fra_r_death",
+  "fra_r_removed",
+  "fra_end_resigned",
 ] as const;
 export type GwEnding = (typeof GW_ENDINGS)[number];
 

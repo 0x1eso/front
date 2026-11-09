@@ -45,7 +45,7 @@ const res = (p: string) => path.join(ROOT, "resources", p);
 const json = (p: string) => JSON.parse(fs.readFileSync(res(p), "utf8"));
 
 /** The seats with their own writing. */
-const SEATS = ["DEU", "GBR", "AUH", "RUS"] as const;
+const SEATS = ["DEU", "GBR", "AUH", "RUS", "FRA"] as const;
 const scenesOf = (tag: string) =>
   GW_CONTENT.scenes.filter(
     (s) => s.nation === undefined || (s.nation as string[]).includes(tag),
