@@ -938,6 +938,14 @@
       "crop": [893, 952, 2386, 2386]
     },
     {
+      "id": "fra_henriette",
+      "url": "https://commons.wikimedia.org/wiki/File:Mme._Poincare_LCCN2014696097.jpg",
+      "author": "Bain News Service, publisher",
+      "date": "1914",
+      "licence": ["PD-Bain", "PD-old-70-1923"],
+      "crop": [1245, 781, 1523, 1523]
+    },
+    {
       "id": "fra_jaures",
       "url": "https://commons.wikimedia.org/wiki/File:Jean_Jaur%C3%A8s,_1904,_par_Nadar.jpg",
       "author": "Nadar",
@@ -1000,6 +1008,14 @@
       "date": "1917",
       "licence": ["PD-anon-70-EU", "PD-France"],
       "crop": [0, 45, 1129, 1129]
+    },
+    {
+      "id": "fra_lucien",
+      "url": "https://commons.wikimedia.org/wiki/File:Monsieur_Lucien_Poincar%C3%A9_-_A14250.jpg",
+      "author": "Léon Auguste",
+      "date": "30 June 1918",
+      "licence": ["Cc-zero"],
+      "crop": [514, 352, 553, 553]
     },
     {
       "id": "fra_lyautey",

@@ -1052,10 +1052,17 @@ const FRA: GwPressRow = {
   price: 10,
   bar: { inst: "chamber", min: -2, why: "chamber" },
   free: [],
-  // The secret papers of the other shares (Schoen's question, Carnet B, the
-  // mutinies, Sixtus, the Rhine note, Lancken) join here at the merge: a
-  // closed id must be a written scene.
-  closed: [],
+  // The secret papers of the other shares: Schoen's question, Carnet B, the
+  // mutinies, Sixtus, the Rhine note, Lancken.
+  closed: [
+    "fra_c_toul_verdun",
+    "fra_c_carnet_b",
+    "fra_big_mutiny",
+    "fra_w_mutiny_record",
+    "fra_f_sixtus",
+    "fra_f_rhine_russia",
+    "fra_f_lancken",
+  ],
   stories: [
     story(
       "censor",

@@ -46,6 +46,8 @@ const OTHER_SHARES = [
   "fra_f_lancken",
   "fra_t_caillaux_peace",
   "fra_big_mutiny",
+  // W5's new premier's list, scheduled by callPremier.
+  "gov_fra_cabinet",
 ];
 
 describe("the home share of France", () => {

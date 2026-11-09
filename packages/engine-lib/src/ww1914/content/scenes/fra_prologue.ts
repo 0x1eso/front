@@ -6,9 +6,11 @@
 // Longchamp. The thread: a Lorraine boy who learned to keep the paper, and a
 // President who has the paper and little else. History stays as it was; the
 // choices are how he took it. The echoes land on his private life
-// (fra_private.ts), the part of the main story that is his own.
+// (fra_private.ts), the part of the main story that is his own, and, since the
+// merge, on the crisis, the opening and the consultations where they belong.
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import {
+  all,
   byName,
   chose,
   decide,
@@ -19,6 +21,7 @@ import {
   type GwReply,
   type GwScene,
   type GwVariant,
+  not,
   past,
   rivalLean,
   setFlag,
@@ -480,7 +483,19 @@ export const FRA_PROLOGUE_SCENES: readonly GwScene[] = [
   ),
 ];
 
-/** Where the main story remembers it: lines laid over his private life. */
+/** Longchamp's telegram as it came: none of its other openings. */
+const sarajevoAsItWas: GwCond = not({
+  kind: "opening",
+  of: [
+    "sarajevo_survived",
+    "sarajevo_failed",
+    "sarajevo_delayed",
+    "no_sarajevo",
+  ],
+});
+const balkanCrisis: GwCond = { kind: "crisis", topic: "balkan" };
+
+/** Where the main story remembers it: his private life, then the crisis. */
 export const FRA_ECHOES: readonly GwEcho[] = [
   // Bar-le-Duc, 1870.
   {
@@ -527,11 +542,6 @@ export const FRA_ECHOES: readonly GwEcho[] = [
   // Dreyfus.
   {
     scene: "fra_p_diary_tiger",
-    id: "pro_owned",
-    when: flag("pro_fra_dreyfus_owned"),
-  },
-  {
-    scene: "fra_p_diary_tiger",
     id: "pro_law",
     when: flag("pro_fra_dreyfus_law"),
   },
@@ -541,12 +551,6 @@ export const FRA_ECHOES: readonly GwEcho[] = [
     node: "open",
     id: "pro_day",
     when: chose("fra_pro_neva", "stay_day"),
-  },
-  {
-    scene: "fra_p_luc_wireless",
-    node: "open",
-    id: "pro_neva",
-    when: flag("pro_fra_alliance_all"),
   },
   // Versailles.
   {
@@ -573,11 +577,6 @@ export const FRA_ECHOES: readonly GwEcho[] = [
     id: "pro_back",
     when: flag("pro_fra_hen_back"),
   },
-  {
-    scene: "fra_p_diary_tiger",
-    id: "pro_line",
-    when: flag("pro_fra_clem_one_line"),
-  },
   // Babylone.
   {
     scene: "fra_p_hen_end",
@@ -601,5 +600,64 @@ export const FRA_ECHOES: readonly GwEcho[] = [
     scene: "fra_p_diary_last",
     id: "pro_germany",
     when: flag("pro_fra_fear_germany"),
+  },
+  // On the main story (merge lane): Longchamp's own telegram only, the sea
+  // while the crisis runs, Viviani's first evening, the three-year law and the
+  // night of the consultations.
+  ...(["hands", "germany", "chamber"] as const).map(
+    (f): GwEcho => ({
+      scene: "fra_c_longchamp",
+      id: `pro_${f}`,
+      when: all(flag(`pro_fra_fear_${f}`), sarajevoAsItWas),
+    }),
+  ),
+  {
+    scene: "fra_big_sea",
+    node: "n2",
+    id: "pro_all",
+    when: all(flag("pro_fra_alliance_all"), balkanCrisis),
+  },
+  {
+    scene: "fra_big_sea",
+    node: "n2",
+    id: "pro_free",
+    when: all(flag("pro_fra_alliance_free"), balkanCrisis),
+  },
+  {
+    scene: "fra_o_first",
+    node: "n2",
+    id: "pro_bound",
+    when: flag("pro_fra_viv_bound"),
+  },
+  {
+    scene: "fra_o_first",
+    node: "n2",
+    id: "pro_trusted",
+    when: flag("pro_fra_viv_trusted"),
+  },
+  ...(["mine", "his", "price"] as const).map(
+    (f): GwEcho => ({
+      scene: "fra_c_three_years",
+      id: `pro_law_${f}`,
+      when: flag(`pro_fra_law_${f}`),
+    }),
+  ),
+  {
+    scene: "fra_big_tiger",
+    node: "n4",
+    id: "pro_line",
+    when: flag("pro_fra_clem_one_line"),
+  },
+  {
+    scene: "fra_big_tiger",
+    node: "n4",
+    id: "pro_owned",
+    when: flag("pro_fra_dreyfus_owned"),
+  },
+  {
+    scene: "fra_big_tiger",
+    node: "n4",
+    id: "pro_late",
+    when: flag("pro_fra_dreyfus_late"),
   },
 ];
