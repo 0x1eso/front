@@ -23,7 +23,7 @@ import {
   SceneCtx,
   sceneOf,
 } from "./SceneRun";
-import { ownPeople, seatPerson, stageOf } from "./World";
+import { lastOf, ownPeople, seatPerson, stageOf } from "./World";
 
 const P_CAUGHT = idHash("gw_act_caught");
 
