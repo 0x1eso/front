@@ -435,10 +435,97 @@ const RUS: GwBlocRow = {
   ],
 };
 
+/** France (ww166, lane W5): `court` is the right and the Church, the salons
+ * and the Academy; the Republic has no court, but it has them. */
+const fraRegime = (...of: string[]): GwCond => world({ is: "regime", of });
+const fraLaw = (id: string): GwCond => world({ is: "law", id, of: ["force"] });
+const FRA: GwBlocRow = {
+  blocs: {
+    army: {
+      terms: [
+        base(2, "army_oath"),
+        inst("army", 2, "gqg_heard"),
+        camp("military", 1, "army_men"),
+        when(low("shells", 0), -3, "shells_out"),
+        when(losing, -2, "losing"),
+        when(flag("f_joffre_free"), 2, "joffre_free"),
+        when(flag("f_joffre_fallen"), -1, "joffre_fallen"),
+      ],
+    },
+    court: {
+      terms: [
+        base(1, "right_waits"),
+        camp("right", 1, "right_men"),
+        when(fraRegime("fra_union"), 3, "union_right"),
+        when(fraRegime("fra_tiger"), 2, "tiger_right"),
+        when(flag("f_pm_caillaux"), -4, "caillaux_peace"),
+        when(rumours(4), -2, "rumour_traitors"),
+      ],
+    },
+    parliament: {
+      terms: [
+        inst("chamber", 2, "chamber_heard"),
+        inst("senate", 1, "senate_heard"),
+        inst("countersign", 1, "cabinet_holds"),
+        camp("radical", 1, "radicals"),
+        when(fraRegime("fra_tiger"), -1, "tiger_rules"),
+        when(flag("f_secret_committee"), 2, "secret_committees"),
+      ],
+    },
+    business: {
+      terms: [
+        base(1, "forges"),
+        when(high("money", 2), 2, "credit_good"),
+        when(low("money", 0), -3, "credit_gone"),
+        when(flag("f_gov_bordeaux"), -1, "bordeaux"),
+        when(fraLaw("fra_law_war_profits"), -2, "profits_tax"),
+      ],
+    },
+    workers: {
+      terms: [
+        base(-1, "cgt_distrust"),
+        camp("socialist", 1, "socialists"),
+        when(fraRegime("fra_union"), 3, "union_left"),
+        when(flag("f_sfio_out"), -3, "sfio_out"),
+        when(flag("f_carnet_b_used"), -3, "carnet_b"),
+        when(low("bread", 1), -3, "bread_short"),
+        when(low("order", 1), -2, "strikes"),
+        when(fraLaw("fra_law_allowances"), 1, "allowances"),
+      ],
+    },
+    press: {
+      terms: [
+        base(2, "press_habit"),
+        inst("chamber", 1, "chamber_heard"),
+        when(flag("f_law_censor"), -2, "censor_law"),
+        when(rumours(3), -2, "rumour_beats"),
+      ],
+    },
+  },
+  ties: [
+    { a: "army", b: "court", key: "gqg_salons", when: instAt("army", 1) },
+    {
+      a: "parliament",
+      b: "workers",
+      key: "union_benches",
+      when: fraRegime("fra_union"),
+    },
+    { a: "court", b: "press", key: "right_papers" },
+    {
+      a: "business",
+      b: "parliament",
+      key: "forges_senate",
+      when: high("money", 1),
+    },
+    { a: "workers", b: "army", key: "poilus_factories", when: low("order", 1) },
+  ],
+};
+
 /** A country with no row has no bloc screen. */
 export const GW_BLOC_ROWS: Readonly<Partial<Record<GwTag, GwBlocRow>>> = {
   DEU,
   GBR,
   AUH,
   RUS,
+  FRA,
 };
