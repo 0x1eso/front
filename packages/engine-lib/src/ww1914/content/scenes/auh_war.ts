@@ -3665,7 +3665,14 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     id: "auh_t_con_moltke",
     nation: ["AUH"],
     kind: "talk",
-    when: during("c", "14"),
+    // The promise is tested in a crisis or the war's first months.
+    when: {
+      kind: "any",
+      of: [
+        { kind: "world", of: { is: "chain" } },
+        { kind: "world", of: { is: "war_months", own: true, max: 5 } },
+      ],
+    },
     cast: {
       who: {
         person: "auh_conrad",
@@ -7925,7 +7932,15 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("c", "14"),
+        // The first months, in a crisis, a war or the peace after it.
+        {
+          kind: "any",
+          of: [
+            { kind: "world", of: { is: "chain" } },
+            { kind: "world", of: { is: "war_months", own: true, max: 5 } },
+            { kind: "world", of: { is: "peace_months", max: 5 } },
+          ],
+        },
         {
           kind: "not",
           of: {
@@ -9632,7 +9647,6 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("14", "17a"),
         {
           kind: "person_trust",
           who: {
@@ -9817,7 +9831,6 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("14", "17a"),
         {
           kind: "not",
           of: {

@@ -1208,7 +1208,13 @@ const BIG_SCENES: GwScene[] = [
       court: holder("court"),
     },
     "fred",
-    all(atWar("RUS"), eastBroken, between("1916-05", "1916-07")),
+    // His birthday is in June (calendar); the year is the war's second or later.
+    all(
+      atWar("RUS"),
+      eastBroken,
+      world({ is: "month", of: [6] }),
+      world({ is: "war_months", own: true, min: 10 }),
+    ),
     {
       n1: node("fred", [
         say("what_news", "warm", "n2"),
@@ -1346,7 +1352,8 @@ const BIG_SCENES: GwScene[] = [
     "auh_big_honour",
     { fm: holder("foreign"), zita: { person: "auh_zita" } },
     "fm",
-    // The letter comes out in 1918 whatever brought it out; the denial is one way.
+    // The letter comes out late in a long war whatever brought it out; the
+    // denial is one way.
     all(
       karl,
       any(
@@ -1354,7 +1361,7 @@ const BIG_SCENES: GwScene[] = [
         all(
           any(flag("f_auh_letter_alsace"), flag("f_auh_letter_general")),
           inWar,
-          since("1918-01"),
+          world({ is: "war_months", min: 41 }),
         ),
       ),
     ),
@@ -1564,7 +1571,14 @@ const sign = (who: string, n: number, tags: GwScene["tags"]): GwScene => ({
   id: `auh_rv_${who}_sign${n}`,
   nation: NATION,
   kind: "wire",
-  when: all(rivalStage(1, 1), RIVALS[who], { kind: "chapter", min: n * 3 }),
+  // The first sign from the third chapter; each later one after the last.
+  when: all(
+    rivalStage(1, 1),
+    RIVALS[who],
+    n === 1
+      ? { kind: "chapter", min: 3 }
+      : { kind: "seen", scene: `auh_rv_${who}_sign${n - 1}` },
+  ),
   cast: theMan,
   salience: 4,
   tags,
@@ -1716,7 +1730,10 @@ const letters = (tone: "warm" | "cold"): GwCond => ({
   tone,
 });
 const theirWar: GwCond = { kind: "at_war_with", who: other };
-const over = any(world({ is: "armistice" }), since("1918-06"));
+const over = any(
+  world({ is: "armistice" }),
+  world({ is: "war_months", min: 46 }),
+);
 
 const LETTERS: GwScene[] = [
   letter(

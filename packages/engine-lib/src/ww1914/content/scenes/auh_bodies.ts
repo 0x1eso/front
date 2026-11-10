@@ -2831,13 +2831,15 @@ const BODIES: Readonly<Record<string, GwBodies>> = {
       person: "auh_conrad",
     },
   },
+  // The realm breaks late in a long war, at its end, or in a long peace.
   auh_k_new_form: {
     gate: {
-      kind: "world",
-      of: {
-        is: "date",
-        from: "1917-07",
-      },
+      kind: "any",
+      of: [
+        { kind: "world", of: { is: "war_months", min: 35 } },
+        { kind: "world", of: { is: "armistice" } },
+        { kind: "world", of: { is: "peace_months", min: 30 } },
+      ],
     },
   },
   auh_c_note_timing: {
@@ -3308,7 +3310,6 @@ export const AUH_QUIET_SCENES: readonly GwScene[] = [
   },
   {
     nation: ["AUH"],
-    stage: ["crisis", "y1914"],
     tags: ["home", "tension_down"],
     once: true,
     variants: [
@@ -3318,6 +3319,8 @@ export const AUH_QUIET_SCENES: readonly GwScene[] = [
     ],
     id: "auh_c_q_birthday",
     kind: "wire",
+    // His birthday month (calendar), in the first summer: no crisis has come
+    // or gone yet, so the year is the opening one.
     when: {
       kind: "all",
       of: [
@@ -3325,18 +3328,18 @@ export const AUH_QUIET_SCENES: readonly GwScene[] = [
           kind: "opening",
           of: ["no_sarajevo"],
         },
+        { kind: "not", of: { kind: "world", of: { is: "chain" } } },
         {
           kind: "not",
           of: {
-            kind: "crisis",
-            topic: "balkan",
+            kind: "world",
+            of: {
+              is: "chain_end",
+              of: ["war", "compromise", "humiliation", "fizzled"],
+            },
           },
         },
-        {
-          kind: "chapter",
-          min: 4,
-          max: 6,
-        },
+        { kind: "world", of: { is: "month", of: [7, 8] } },
       ],
     },
     cast: {

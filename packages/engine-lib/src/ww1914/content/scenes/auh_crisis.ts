@@ -30,7 +30,6 @@ import {
   trustOf,
 } from "@openfront/engine-api/ww1914/SceneDsl";
 import type { GwWorldEffect } from "@openfront/engine-api/ww1914/WorldDsl";
-import { period } from "./period";
 
 /**
  * 「오스트리아-헝가리」, the crisis share: the auh_c_ scenes, the talks of
@@ -56,8 +55,6 @@ const body = (inst: GwInstitution, delta: number): GwEffect => ({
 const hungary = (d: number) => body("hungary", d);
 const council = (d: number) => body("council", d);
 const nations = (d: number) => body("nations", d);
-
-const during = period;
 
 const temp = (delta: number): GwEffect => ({ kind: "temp", delta });
 const trust = (tag: GwTag, delta: number): GwEffect => ({
@@ -98,6 +95,16 @@ const chain = (min: number, max?: number): GwCond => ({
   kind: "world",
   of: { is: "chain", min, max },
 });
+/** July's chain, the Sarajevo crisis, whenever it runs: not a later spark's. */
+const july = (min?: number, max?: number): GwCond => ({
+  kind: "world",
+  of: {
+    is: "chain",
+    short: false,
+    ...(min === undefined ? {} : { min }),
+    ...(max === undefined ? {} : { max }),
+  },
+});
 const seen = (scene: string): GwCond => ({ kind: "seen", scene });
 const opening = (...of: GwOpening[]): GwCond => ({ kind: "opening", of });
 const atWar = (tag: GwTag): GwCond => ({ kind: "at_war", tag });
@@ -132,6 +139,25 @@ const moods = (who: GwWho, ...of: Parameters<typeof moody>[1][]) => [
   base,
 ];
 
+/**
+ * Scenes whose gate already says when (ww170: the July chain, or the war's own
+ * state): they keep no stage list, so a crisis or a war that comes late still
+ * brings them.
+ */
+const BY_STATE: ReadonlySet<string> = new Set([
+  "auh_c_berlin_answer",
+  "auh_c_council_july",
+  "auh_c_decree",
+  "auh_c_funeral",
+  "auh_c_grey_conference",
+  "auh_c_no_annex",
+  "auh_c_note_out",
+  "auh_c_serb_reply",
+  "auh_c_serb_second",
+  "auh_c_war_russia",
+  "auh_c_war_serbia",
+]);
+
 function scene(
   id: string,
   kind: GwScene["kind"],
@@ -146,7 +172,7 @@ function scene(
     id,
     nation: NATION,
     kind,
-    stage: ["crisis", "y1914"],
+    ...(BY_STATE.has(id) ? {} : { stage: ["crisis", "y1914"] }),
     when,
     cast,
     salience,
@@ -287,9 +313,10 @@ const SCENES: readonly GwScene[] = [
     8,
     ["home"],
     { court: { office: "court" }, mont: { person: "auh_montenuovo" } },
+    // The heir is dead and July's chain has just begun.
     any(
-      all(opening("sarajevo"), chapters(0, 1)),
-      all(opening("sarajevo_delayed"), crisis, chapters(1, 4)),
+      all(opening("sarajevo"), july(0, 1)),
+      all(opening("sarajevo_delayed"), crisis, july(2, 4)),
     ),
     [
       v("asked", memory("k_ber_funeral")),
@@ -658,7 +685,7 @@ const SCENES: readonly GwScene[] = [
     9,
     ["foreign", "tension_up"],
     { fm: { office: "foreign" } },
-    all(crisis, seen("auh_c_hoyos_mission")),
+    all(july(), crisis, seen("auh_c_hoyos_mission")),
     [
       v("term", flag("f_auh_berlin_term")),
       v("cold", not(flag("f_auh_sign_berlin"))),
@@ -677,7 +704,7 @@ const SCENES: readonly GwScene[] = [
       war: { office: "war" },
       finance: { office: "finance" },
     },
-    all(crisis, seen("auh_c_hoyos_mission")),
+    all(july(), crisis, seen("auh_c_hoyos_mission")),
     [
       v("bypassed", flag("f_auh_tisza_bypassed")),
       v("no_berlin", not(flag("f_auh_sign_berlin"))),
@@ -851,7 +878,7 @@ const SCENES: readonly GwScene[] = [
     7,
     ["foreign"],
     { hun_pm: { office: "hun_pm" }, cos: { office: "chief_of_staff" } },
-    all(crisis, seen("auh_c_council_july")),
+    all(july(), crisis, seen("auh_c_council_july")),
     [v("said", flag("f_auh_partition_said")), base],
     {
       fallback: "swear",
@@ -962,7 +989,7 @@ const SCENES: readonly GwScene[] = [
     8,
     ["foreign", "tension_up"],
     { fm: { office: "foreign" } },
-    all(flag("w_ultimatum_out"), seen("auh_c_note_draft")),
+    all(july(), flag("w_ultimatum_out"), seen("auh_c_note_draft")),
     [
       v("brutal", flag("f_auh_note_brutal")),
       v("soft", flag("f_auh_note_soft")),
@@ -975,7 +1002,7 @@ const SCENES: readonly GwScene[] = [
     9,
     ["foreign", "tension_up"],
     { fm: { office: "foreign" }, cos: { office: "chief_of_staff" } },
-    all(crisis, flag("w_ultimatum_out"), seen("auh_c_note_draft")),
+    all(july(), crisis, flag("w_ultimatum_out"), seen("auh_c_note_draft")),
     [
       v("soft", flag("f_auh_note_soft")),
       v("brutal", flag("f_auh_note_brutal")),
@@ -1031,6 +1058,7 @@ const SCENES: readonly GwScene[] = [
     ["foreign", "tension_up"],
     { fm: { office: "foreign" }, cos: { office: "chief_of_staff" } },
     all(
+      july(),
       crisis,
       chose("auh_c_serb_reply", "ask_more"),
       not(flag("f_auh_broke_off")),
@@ -1096,7 +1124,7 @@ const SCENES: readonly GwScene[] = [
     6,
     ["foreign", "tension_down"],
     { fm: { office: "foreign" } },
-    all(crisis, seen("auh_c_serb_reply")),
+    all(july(), crisis, seen("auh_c_serb_reply")),
     [v("halt", flag("f_auh_halt_belgrade")), base],
     {
       fallback: "refuse",
@@ -1177,7 +1205,7 @@ const SCENES: readonly GwScene[] = [
     8,
     ["war", "tension_up"],
     { fm: { office: "foreign" }, chancellor: { office: "chancellor" } },
-    all(crisis, flag("f_auh_broke_off"), not(declared)),
+    all(july(), crisis, flag("f_auh_broke_off"), not(declared)),
     [
       v("halt", flag("f_auh_halt_belgrade")),
       v("no_council", not(flag("f_auh_sign_council"))),
@@ -1324,7 +1352,14 @@ const SCENES: readonly GwScene[] = [
     7,
     ["home"],
     { chancellor: { office: "chancellor" }, war: { office: "war" } },
-    all(any(declared, inWar), chapters(0, 8)),
+    // Signed in the crisis or the war's first weeks, whenever they come.
+    all(
+      any(declared, inWar),
+      any(
+        { kind: "world", of: { is: "chain" } },
+        { kind: "world", of: { is: "war_months", own: true, max: 2 } },
+      ),
+    ),
     [v("delegations", flag("f_auh_sign_austria")), base],
     {
       fallback: "all_at_once",
@@ -1356,9 +1391,10 @@ const SCENES: readonly GwScene[] = [
   ),
 ];
 
+/** The heir is dead and July's chain has just begun. */
 const funeralTime = any(
-  all(opening("sarajevo"), chapters(0, 1)),
-  all(opening("sarajevo_delayed"), crisis, chapters(1, 4)),
+  all(opening("sarajevo"), july(0, 1)),
+  all(opening("sarajevo_delayed"), crisis, july(2, 4)),
 );
 const fmIs = (person: string): GwCond => ({
   kind: "holder",
@@ -1367,50 +1403,44 @@ const fmIs = (person: string): GwCond => ({
 });
 
 const BERCHTOLD: readonly GwScene[] = [
-  talk(
-    "auh_t_ber_funeral",
-    "auh_berchtold",
-    all(funeralTime),
-    {
-      open: node(
-        moods(p, "weary", "cunning"),
-        r("ask", "warm", "ask", [], [], "kings", {
-          gain: [K("k_ber_funeral")],
-          miss: "rules",
-        }),
-        r("press", "cold", "push", ["trust:-1"], [pt(p, -1)], "kings", {
-          gain: [K("k_ber_funeral")],
-          miss: "rules",
-        }),
-        r(
-          "deal",
-          "frank",
-          "deal",
-          ["montenuovo:-1"],
-          [K("k_ber_funeral"), pt(byName("auh_montenuovo"), -1)],
-          "kings",
-        ),
-        close("leave", "cold"),
+  talk("auh_t_ber_funeral", "auh_berchtold", all(funeralTime), {
+    open: node(
+      moods(p, "weary", "cunning"),
+      r("ask", "warm", "ask", [], [], "kings", {
+        gain: [K("k_ber_funeral")],
+        miss: "rules",
+      }),
+      r("press", "cold", "push", ["trust:-1"], [pt(p, -1)], "kings", {
+        gain: [K("k_ber_funeral")],
+        miss: "rules",
+      }),
+      r(
+        "deal",
+        "frank",
+        "deal",
+        ["montenuovo:-1"],
+        [K("k_ber_funeral"), pt(byName("auh_montenuovo"), -1)],
+        "kings",
       ),
-      kings: plain(
-        r("berlin", "frank", "ask", [], [], "wilhelm"),
-        r("enough", "warm", "leave", ["trust:+1"], [pt(p, 1)], null),
-      ),
-      wilhelm: node(
-        [v("anxious", moody(p, "anxious")), base],
-        close("end", "cold"),
-        close("end2", "frank"),
-      ),
-      rules: plain(
-        r("again", "frank", "ask", [], [], "kings", {
-          gain: [K("k_ber_funeral")],
-          miss: null,
-        }),
-        r("end", "cold", "leave", [], [reason("auh_t_ber_funeral_r1")], null),
-      ),
-    },
-    C,
-  ),
+      close("leave", "cold"),
+    ),
+    kings: plain(
+      r("berlin", "frank", "ask", [], [], "wilhelm"),
+      r("enough", "warm", "leave", ["trust:+1"], [pt(p, 1)], null),
+    ),
+    wilhelm: node(
+      [v("anxious", moody(p, "anxious")), base],
+      close("end", "cold"),
+      close("end2", "frank"),
+    ),
+    rules: plain(
+      r("again", "frank", "ask", [], [], "kings", {
+        gain: [K("k_ber_funeral")],
+        miss: null,
+      }),
+      r("end", "cold", "leave", [], [reason("auh_t_ber_funeral_r1")], null),
+    ),
+  }),
   talk(
     "auh_t_ber_clause",
     "auh_berchtold",
@@ -1836,7 +1866,7 @@ const HOYOS: readonly GwScene[] = [
   talk(
     "auh_t_hoyos_halt",
     "auh_hoyos",
-    all(crisis, flag("w_ultimatum_out")),
+    all(july(), crisis, flag("w_ultimatum_out")),
     {
       open: node(
         [
@@ -1879,7 +1909,6 @@ const HOYOS: readonly GwScene[] = [
         r("end", "cold", "leave", [], [reason("auh_t_hoyos_halt_r1")], null),
       ),
     },
-    C,
   ),
   talk(
     "auh_t_hoyos_guilt",
@@ -1983,7 +2012,7 @@ const HOYOS: readonly GwScene[] = [
 ];
 
 const BILINSKI: readonly GwScene[] = [
-  talk("auh_t_bil_bosnia", "auh_bilinski", during("c"), {
+  talk("auh_t_bil_bosnia", "auh_bilinski", july(), {
     open: node(
       moods(p, "cunning", "weary"),
       r("ask", "warm", "ask", [], [], "heard", {
@@ -2072,40 +2101,49 @@ const BILINSKI: readonly GwScene[] = [
     },
     C,
   ),
-  talk("auh_t_bil_bill", "auh_bilinski", during("c", "14"), {
-    open: node(
-      [v("war", inWar), v("cunning", moody(p, "cunning")), base],
-      r("ask", "cold", "ask", [], [], "bill", {
-        gain: [K("k_bil_bill")],
-        miss: "joke",
-      }),
-      r("warm", "warm", "ask", [], [], "bill", {
-        gain: [K("k_bil_bill")],
-        miss: "joke",
-      }),
-      r(
-        "deal",
-        "frank",
-        "deal",
-        ["hun_pm:-1"],
-        [K("k_bil_bill"), pt({ office: "hun_pm" }, -1)],
-        "bill",
+  // The bill for a war: while a crisis runs, or in the war's first months.
+  talk(
+    "auh_t_bil_bill",
+    "auh_bilinski",
+    any(
+      { kind: "world", of: { is: "chain" } },
+      { kind: "world", of: { is: "war_months", own: true, max: 5 } },
+    ),
+    {
+      open: node(
+        [v("war", inWar), v("cunning", moody(p, "cunning")), base],
+        r("ask", "cold", "ask", [], [], "bill", {
+          gain: [K("k_bil_bill")],
+          miss: "joke",
+        }),
+        r("warm", "warm", "ask", [], [], "bill", {
+          gain: [K("k_bil_bill")],
+          miss: "joke",
+        }),
+        r(
+          "deal",
+          "frank",
+          "deal",
+          ["hun_pm:-1"],
+          [K("k_bil_bill"), pt({ office: "hun_pm" }, -1)],
+          "bill",
+        ),
+        close("leave", "cold"),
       ),
-      close("leave", "cold"),
-    ),
-    bill: plain(
-      r("who", "frank", "ask", [], [], "who_pays"),
-      r("end", "cold", "leave", [], [], null),
-    ),
-    who_pays: plain(close("end", "frank"), close("end2", "cold")),
-    joke: plain(
-      r("again", "frank", "ask", [], [], "bill", {
-        gain: [K("k_bil_bill")],
-        miss: null,
-      }),
-      r("end", "cold", "leave", [], [reason("auh_t_bil_bill_r1")], null),
-    ),
-  }),
+      bill: plain(
+        r("who", "frank", "ask", [], [], "who_pays"),
+        r("end", "cold", "leave", [], [], null),
+      ),
+      who_pays: plain(close("end", "frank"), close("end2", "cold")),
+      joke: plain(
+        r("again", "frank", "ask", [], [], "bill", {
+          gain: [K("k_bil_bill")],
+          miss: null,
+        }),
+        r("end", "cold", "leave", [], [reason("auh_t_bil_bill_r1")], null),
+      ),
+    },
+  ),
   talk(
     "auh_t_bil_potiorek",
     "auh_bilinski",
@@ -2545,7 +2583,8 @@ const VISITS: readonly GwScene[] = [
   visit(
     "auh_v_ff_program",
     { person: "auh_ff" },
-    all(ffAlive, during("c", "16b")),
+    // The heir lives and is not yet on the throne.
+    all(ffAlive, not(flag("w_auh_ff_throne"))),
     6,
     ["people", "tension_up"],
     {

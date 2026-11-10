@@ -28,7 +28,6 @@ import {
   trustOf,
 } from "@openfront/engine-api/ww1914/SceneDsl";
 import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
-import { period } from "./period";
 
 /**
  * 「오스트리아-헝가리」, the crown share (plan: ww135-plan-auh.md §7, §8, §9):
@@ -87,6 +86,16 @@ const young = any(
 );
 const war = world({ is: "war" });
 const peace = not(war);
+/** Months of the seat's own war. */
+const ownWar = (min?: number, max?: number): GwCond =>
+  world({
+    is: "war_months",
+    own: true,
+    ...(min === undefined ? {} : { min }),
+    ...(max === undefined ? {} : { max }),
+  });
+/** July's chain, the Sarajevo crisis, whenever it runs. */
+const july = world({ is: "chain", short: false });
 const ent = (tag: GwTag): GwCond => world({ is: "entered", tag });
 const out = (tag: GwTag): GwCond => world({ is: "out", tag });
 const score = (r: { min?: number; max?: number }): GwCond =>
@@ -647,7 +656,14 @@ const CROWN_LETTER: readonly GwScene[] = [
   scene({
     id: "auh_k_sixtus",
     kind: "crisis",
-    when: all(K, war, any(period("17a", "17b"), all(period("16b"), young))),
+    // A new reign seeks a way out, or a long war has worn the old way thin;
+    // the channel runs to Paris, so France must be in it.
+    when: all(
+      K,
+      war,
+      world({ is: "entered", tag: "FRA", side: "entente" }),
+      any(young, ownWar(29, 41)),
+    ),
     cast: { fm: { office: "foreign" } },
     salience: 9,
     tags: ["foreign", "tension_down"],
@@ -1320,7 +1336,7 @@ const well = (d = 1): GwEffect => ({ kind: "mood", delta: d });
 const czernin: GwWho = { person: "auh_czernin" };
 
 const KARL_TALKS: readonly GwScene[] = [
-  talk("auh_t_karl_funeral", "auh_karl", all(period("c"), heirDead), {
+  talk("auh_t_karl_funeral", "auh_karl", all(july, heirDead), {
     open: node(
       [
         r("why", "frank", "ask", "kids", {
@@ -1651,7 +1667,7 @@ const ZITA_TALKS: readonly GwScene[] = [
   talk(
     "auh_t_zita_sixtus",
     "auh_zita",
-    all(K, k("k_zita_brothers"), any(period("16b", "17b"), young)),
+    all(K, k("k_zita_brothers"), any(ownWar(23, 41), young)),
     {
       open: node(
         [
@@ -2026,7 +2042,8 @@ const KAR_MET = k("k_kar_met");
 const inFrance = { kind: "chapter", min: 8 } as const;
 
 const KAROLYI_TALKS: readonly GwScene[] = [
-  talk("auh_t_kar_first", "auh_karolyi", period("c", "14"), {
+  // The first call: no state needed, the rest of the line follows it.
+  talk("auh_t_kar_first", "auh_karolyi", undefined, {
     open: node(
       [
         r("hear", "warm", "ask", "hear", { effects: [heard("k_kar_met")] }),
@@ -2229,7 +2246,7 @@ const KAROLYI_TALKS: readonly GwScene[] = [
 ];
 
 const VISITS: readonly GwScene[] = [
-  visit("auh_v_kor_may", "auh_korosec", all(K, period("17a", "17b")), 5, {
+  visit("auh_v_kor_may", "auh_korosec", all(K, ownWar(29, 41)), 5, {
     open: node(
       [
         r("show", "frank", "ask", "text", { effects: [heard("k_kor_may")] }),
@@ -2257,7 +2274,8 @@ const VISITS: readonly GwScene[] = [
   visit(
     "auh_v_lam_plan",
     "auh_lammasch",
-    all(any(K, FFT), period("17a", "18b")),
+    // A new reign's plan for the realm: in peace, or late in a long war.
+    all(any(K, FFT), any(peace, world({ is: "war_months", min: 29 }))),
     5,
     {
       open: node(
@@ -2293,7 +2311,11 @@ const VISITS: readonly GwScene[] = [
     all(
       K,
       any({ kind: "at_war", tag: "RUS" }, out("RUS")),
-      period("17b", "18b"),
+      // Russia has broken: Kiev's grain is there to be had.
+      any(
+        out("RUS"),
+        not(world({ is: "regime", tag: "RUS", of: ["tsar", "crown"] })),
+      ),
     ),
     5,
     {
@@ -2325,7 +2347,8 @@ const VISITS: readonly GwScene[] = [
       poles: node([bye("noted")]),
     },
   ),
-  visit("auh_v_koer_quota", "auh_koerber", period("16a", "17a"), 5, {
+  // The quota before a coronation: a new reign, or the war's middle years.
+  visit("auh_v_koer_quota", "auh_koerber", any(young, ownWar(17, 35)), 5, {
     open: node(
       [
         r("sum", "frank", "ask", "sum", { effects: [heard("k_koer_quota")] }),
@@ -2354,7 +2377,7 @@ const VISITS: readonly GwScene[] = [
   visit(
     "auh_v_pil_terms",
     "auh_pilsudski",
-    all({ kind: "at_war", tag: "RUS" }, period("15b", "17a")),
+    all({ kind: "at_war", tag: "RUS" }, ownWar(11, 35)),
     5,
     {
       open: node(
