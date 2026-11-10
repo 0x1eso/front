@@ -16,6 +16,7 @@ import { DEU_ACT_SCENES, DEU_ACTS, DEU_AIMS } from "./acts/deu";
 import { FRA_ACT_SCENES, FRA_ACTS, FRA_AIMS } from "./acts/fra";
 import { GBR_ACT_SCENES, GBR_ACTS, GBR_AIMS } from "./acts/gbr";
 import { RUS_ACT_SCENES, RUS_ACTS, RUS_AIMS } from "./acts/rus";
+import { GW_LADDER_POWERS, GW_LADDER_SCENES } from "./ladder";
 import { GW_PEOPLE } from "./people";
 import { AUH_PEOPLE } from "./people_auh";
 import { GW_PEOPLE_COMMON } from "./people_common";
@@ -73,6 +74,7 @@ import { withDeuReplay } from "./scenes/deu_replay";
 import { DEU_SEA_SCENES } from "./scenes/deu_sea";
 import { DEU_WAR_SCENES } from "./scenes/deu_war";
 import { gwDossierActs, gwDossierScenes } from "./scenes/dossier";
+import { GW_FILLER_SCENES } from "./scenes/filler";
 import { FRA_STORY_SCENES } from "./scenes/fra_act";
 import { FRA_CRISIS_SCENES } from "./scenes/fra_crisis";
 import { FRA_HOME_SCENES } from "./scenes/fra_home";
@@ -231,6 +233,8 @@ export const GW_CONTENT: GwContent = {
         ...AUH_PROLOGUE_SCENES,
         ...RUS_PROLOGUE_SCENES,
         ...FRA_PROLOGUE_SCENES,
+        ...GW_LADDER_SCENES,
+        ...GW_FILLER_SCENES,
       ]
         .map(withDeuReplay)
         .map(withDeuPrivate)
@@ -277,6 +281,7 @@ export const GW_CONTENT: GwContent = {
     ...AUH_POWERS,
     ...RUS_POWERS,
     ...FRA_POWERS,
+    ...GW_LADDER_POWERS,
   ],
   reactors: [
     ...DEU_REACTORS,

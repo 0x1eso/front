@@ -23,7 +23,12 @@ import {
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import type { GwWorldCond } from "@openfront/engine-api/ww1914/WorldDsl";
 import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
-import { GW_LADDER_REACH } from "@openfront/engine-lib/ww1914/content/ladder";
+import {
+  GW_LADDER_LAST,
+  GW_LADDER_NOTE,
+  GW_LADDER_REACH,
+  GW_LADDER_REFUSED,
+} from "@openfront/engine-lib/ww1914/content/ladder";
 import { civilFromDays } from "@openfront/engine-lib/ww1936/Calendar";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { closeChain } from "./Crises";
@@ -35,11 +40,6 @@ import { enter, openWar } from "./Wars";
 import { clampTo, news, other, reason, seatsOf, turn } from "./World";
 
 const P_LADDER = idHash("gw_ladder");
-
-/** The cards of the ladder (content/scenes/ladder.ts). */
-export const GW_LADDER_NOTE = "gw_ladder_note";
-export const GW_LADDER_REFUSED = "gw_ladder_refused";
-export const GW_LADDER_LAST = "gw_ladder_last";
 
 /** Who stood where when the July war came, and the neutrals' leanings. */
 const CASCADE: Readonly<Partial<Record<GwTag, GwSide>>> = {

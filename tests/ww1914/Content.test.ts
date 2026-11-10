@@ -24,6 +24,7 @@ import {
 } from "@openfront/engine-api/ww1914/SceneDsl";
 import { ScenarioDataSchema } from "@openfront/engine-api/ww1936/ScenarioTypes";
 import { GW_CONTENT } from "@openfront/engine-lib/ww1914/content/Content";
+import { GW_LADDER_CALLED } from "@openfront/engine-lib/ww1914/content/ladder";
 import { TABLE_SCENES } from "@openfront/engine-lib/ww1914/content/scenes/table";
 import { craftCalledScenes } from "@openfront/engine-lib/ww1914/CraftRows";
 import { gwEndingsOf } from "@openfront/engine-lib/ww1914/EndingRows";
@@ -108,6 +109,7 @@ describe("content", () => {
       ...craftCalledScenes(GW_CONTENT),
       ...houseCalledScenes(GW_CONTENT),
       ...powerCalledScenes(GW_CONTENT),
+      ...GW_LADDER_CALLED,
     ];
     expect(gwContentProblems(scenes, people, outside)).toEqual([]);
     const lang = json("lang/en.json").gw.reason as Record<string, string>;
