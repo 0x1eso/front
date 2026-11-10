@@ -33,6 +33,13 @@ import { govBeaten, govHeat, govHeatBy, govSoon, pollOf } from "./Government";
 import { houseEffect, houseHolds } from "./House";
 import { inspect, sendReport } from "./Intel";
 import {
+  ladderAnswer,
+  ladderPress,
+  ladderTargets,
+  monthsHold,
+  sendUltimatum,
+} from "./Ladder";
+import {
   lawCanDecree,
   lawCount,
   lawDecree,
@@ -257,6 +264,13 @@ export function worldHolds(ctx: SceneCtx, c: GwWorldCond): boolean {
       return fileHolds(ctx, c);
     case "ask":
       return askHolds(ctx, c);
+    case "war_months":
+    case "peace_months":
+    case "month":
+    case "ladder":
+      return monthsHold(gw, seat, c);
+    case "ladder_target":
+      return ladderTargets(gw, seat.tag).includes(c.tag);
   }
 }
 
@@ -533,6 +547,15 @@ export function worldEffect(ctx: SceneCtx, e: GwWorldEffect): void {
       return;
     case "stir":
       stir(ctx, e.tag, e.delta);
+      return;
+    case "ultimatum":
+      sendUltimatum(ctx.gw, ctx.seat, e.tag);
+      return;
+    case "ladder_answer":
+      ladderAnswer(ctx.gw, ctx.seat, e.yes);
+      return;
+    case "ladder_press":
+      ladderPress(ctx.gw, ctx.seat, e.on);
       return;
   }
 }

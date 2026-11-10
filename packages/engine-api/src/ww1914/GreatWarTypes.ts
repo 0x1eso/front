@@ -1212,6 +1212,38 @@ export const GwChainEndSchema = z.object({
   chapter: z.number().int(),
 });
 
+/**
+ * The crisis ladder between two countries (ww170 S3, design ww168 B4): a note
+ * sent from the 통치 tab, the answer, mobilisation, then war or a climb-down.
+ * The July chain is the first crisis; these come after it, from a seat.
+ */
+export const GW_LADDER_STEPS = [
+  "sent", // the note is out; the other side answers by next chapter
+  "rejected", // refused: the sender mobilises or climbs down
+  "mobilised", // the sender has mobilised: a last chance, then war
+  "accepted", // the other side gave way
+  "backed_down", // the sender climbed down
+  "war", // it came to war
+] as const;
+export type GwLadderStep = (typeof GW_LADDER_STEPS)[number];
+/** Steps of a ladder still running. */
+export const GW_LADDER_OPEN: readonly GwLadderStep[] = [
+  "sent",
+  "rejected",
+  "mobilised",
+];
+
+export const GwLadderSchema = z.object({
+  from: z.enum(GW_TAGS),
+  to: z.enum(GW_TAGS),
+  step: z.enum(GW_LADDER_STEPS),
+  /** Chapter the note went out. */
+  opened: z.number().int(),
+  /** Chapter of the last step. */
+  chapter: z.number().int(),
+});
+export type GwLadder = z.infer<typeof GwLadderSchema>;
+
 export const GwBattleSchema = z.object({
   theatre: z.enum(GW_THEATRES),
   chapter: z.number().int(),
@@ -1431,5 +1463,7 @@ export const GreatWarStateSchema = z.object({
   nextTelegram: z.number().int().default(1),
   treaties: z.array(GwTreatySchema).default([]),
   nextTreaty: z.number().int().default(1),
+  /** Crisis ladders from the 통치 tab, open and closed, in order (ww170). */
+  ladders: z.array(GwLadderSchema).default([]),
 });
 export type GreatWarState = z.infer<typeof GreatWarStateSchema>;

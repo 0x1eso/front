@@ -196,6 +196,7 @@ export class GreatWar {
       nextTelegram: 1,
       treaties: [],
       nextTreaty: 1,
+      ladders: [],
     };
   }
 
