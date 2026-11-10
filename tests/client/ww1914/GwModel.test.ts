@@ -12,6 +12,8 @@ import {
   dismissal,
   emptyShelf,
   endingsOf,
+  frontMove,
+  frontRead,
   gaugeLevel,
   groupReplies,
   instBand,
@@ -24,7 +26,6 @@ import {
   shelveMemoir,
   tabBadge,
   tempBand,
-  theatreSpot,
   trustIndex,
   vacantOffices,
 } from "../../../src/client/hud/ww1914/GwModel";
@@ -132,12 +133,31 @@ describe("GwModel", () => {
     expect(clock(125)).toBe("2:05");
   });
 
-  test("a front's mark sits between its lines", () => {
-    const a = theatreSpot("west", 0, 0);
-    const b = theatreSpot("west", 1, 2);
-    expect(a.at).toBe(0);
-    expect(b.at).toBeGreaterThan(1 / 6);
-    expect(theatreSpot("west", 99, 0).line).toBe(6);
+  test("a front reads from the reader's side: our end left, our gains fill", () => {
+    // West: line 3 of 7 (Somme), started at Liège: the Germans are ahead.
+    const deu = frontRead("west", 3, 0, "central");
+    const fra = frontRead("west", 3, 0, "entente");
+    expect(deu.fill + fra.fill).toBe(1);
+    expect(deu.fill).toBe(0.5);
+    expect([deu.names[0], fra.names[0]]).toEqual(["rhine", "paris"]);
+    expect([deu.names[deu.at], fra.names[fra.at]]).toEqual(["somme", "somme"]);
+    expect([deu.standing, fra.standing]).toEqual(["far_ahead", "far_behind"]);
+    expect(frontRead("west", 1, 1, "entente").standing).toBe("behind");
+    // A neutral sees the Central Powers on the left, at the start: even.
+    const n = frontRead("caucasus", 0, 0, null);
+    expect([n.left, n.right, n.standing, n.fill]).toEqual([
+      "central",
+      "entente",
+      "even",
+      1,
+    ]);
+    const last = { result: "advance", by: "central" } as const;
+    expect(frontMove(last, "central")).toBe("we_advanced");
+    expect(frontMove(last, "entente")).toBe("they_advanced");
+    expect(frontMove({ result: "repelled", by: "central" }, "entente")).toBe(
+      "they_stopped",
+    );
+    expect(frontMove(null, "entente")).toBe("quiet");
   });
 
   test("the why-log groups by chapter, newest first", () => {

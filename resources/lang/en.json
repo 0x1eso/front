@@ -4069,7 +4069,36 @@
       "fold": "Fold or unfold",
       "folded_title": "Small news meanwhile",
       "front_commander": "Commanded by {name}",
-      "front_last": "Last chapter: {result}. Our losses {ours} thousand, theirs {theirs} thousand",
+      "front_end": "{side} end",
+      "front_end_bloc": "Our side's end · {side}",
+      "front_end_them": "Enemy end · {side}",
+      "front_end_us": "Our end · {side}",
+      "front_key": "Our end is always on the left: green is the ground we hold. The white mark moving right, towards the enemy, is good for us; moving left is bad.",
+      "front_key_neutral": "Our country is neutral. Each bar has the Central Powers' end on the left and the Entente's on the right.",
+      "front_latest": "Latest fighting: {what}",
+      "front_losses": "Losses: ours {ours} thousand, theirs {theirs} thousand",
+      "front_move": {
+        "quiet": "no fighting",
+        "they_advanced": "the enemy advanced, the line fell back towards us",
+        "they_broke": "the enemy broke through, the line fell far back towards us",
+        "they_stopped": "we held off their attack, the line held",
+        "we_advanced": "we advanced, the line moved towards the enemy",
+        "we_broke": "we broke through, the line moved far towards the enemy",
+        "we_stopped": "our attack was held, the line held"
+      },
+      "front_not_ours": "Our country is not fighting here",
+      "front_now": "Line at {line} · {who}: {how}",
+      "front_standing": {
+        "ahead": "a little ahead of where the war began",
+        "behind": "pushed back a little since the war began",
+        "even": "where the war began",
+        "far_ahead": "far ahead of where the war began",
+        "far_behind": "pushed far back since the war began"
+      },
+      "front_who_bloc": "our side",
+      "front_who_us": "our army",
+      "fronts_not_ours": "Fronts our country is not fighting on",
+      "fronts_watched": "The fronts, as a neutral sees them",
       "gauge": {
         "bread": {
           "0": "Starving",
@@ -4175,6 +4204,8 @@
         }
       },
       "no_fronts": "No front is open yet.",
+      "no_fronts_neutral": "Our country is neutral and fights on no front.",
+      "no_fronts_ours": "Our country is not fighting on any front yet.",
       "no_office": "No office",
       "no_topics": "Nothing to raise with them now.",
       "notebook_broken": "Broken",
@@ -4258,7 +4289,6 @@
       "promise_due": "by {date}",
       "promise_kept": "kept",
       "promises_title": "Promises made",
-      "quiet_fronts": "Still quiet",
       "read_decide": "Read and decide",
       "read_done": "Read. Put it aside.",
       "read_on": "Read",
@@ -4389,7 +4419,7 @@
       },
       "threads_title": "Long-running matters",
       "topic_count": "{n} things to talk about now",
-      "trench": "Trench stage {n} of {max}",
+      "trench_now": "Trenches: {what}",
       "trench_word": {
         "0": "Moving front",
         "1": "First trenches",

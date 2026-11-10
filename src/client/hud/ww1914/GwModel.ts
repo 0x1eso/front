@@ -5,12 +5,17 @@ import type {
   GwMemoir,
   GwOffice,
   GwReason,
+  GwResult,
+  GwSide,
   GwTheatre,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import {
+  GW_FRONT_START,
+  GW_FRONT_UP,
   GW_GAUGE_MAX,
   GW_INST_MAX,
   GW_INST_MIN,
+  GW_LINE_STEP,
   GW_LINES,
   GW_OFFICES,
   GW_TRUST_MAX,
@@ -277,15 +282,103 @@ export function clock(seconds: number): string {
   return `${m}:${s < 10 ? "0" : ""}${s}`;
 }
 
-/** A theatre's place in its named lines: the line reached and a 0..1 fill. */
-export function theatreSpot(
+/** How a front stands against where it began, for the side on the left. */
+export type FrontStanding =
+  | "far_ahead"
+  | "ahead"
+  | "even"
+  | "behind"
+  | "far_behind";
+
+/** The latest fighting, told from the left side. */
+export type FrontMove =
+  | "we_broke"
+  | "we_advanced"
+  | "we_stopped"
+  | "they_broke"
+  | "they_advanced"
+  | "they_stopped"
+  | "quiet";
+
+/**
+ * A theatre read from one side: that side's end on the left, the enemy's on
+ * the right, so the left side's advance always moves the mark to the right.
+ */
+export interface FrontRead {
+  left: GwSide;
+  right: GwSide;
+  /** Line names, the left side's home end first. */
+  names: readonly string[];
+  /** The line held now, as an index into `names`. */
+  at: number;
+  /** 0..1: the share of the bar the left side holds. */
+  fill: number;
+  standing: FrontStanding;
+}
+
+/**
+ * `side`: the reader's side, or null for a neutral (the Central Powers then
+ * sit on the left, plainly). `line`/`progress` as the engine keeps them.
+ */
+export function frontRead(
   id: GwTheatre,
   line: number,
   progress: number,
-): { names: readonly string[]; line: number; at: number } {
-  const names = GW_LINES[id];
-  const l = Math.max(0, Math.min(names.length - 1, line));
-  return { names, line: l, at: (l + Math.min(3, progress) / 4) / names.length };
+  side: GwSide | null,
+): FrontRead {
+  const all = GW_LINES[id];
+  const top = all.length - 1;
+  const left: GwSide = side ?? "central";
+  const right: GwSide = left === "central" ? "entente" : "central";
+  // The side the line index favours starts at index 0.
+  const fromZero = GW_FRONT_UP[id] === left;
+  const pos = Math.max(
+    0,
+    Math.min(top * GW_LINE_STEP, line * GW_LINE_STEP + progress),
+  );
+  const gain = pos - GW_FRONT_START[id] * GW_LINE_STEP;
+  const ours = fromZero ? gain : -gain;
+  const l = Math.max(0, Math.min(top, line));
+  return {
+    left,
+    right,
+    names: fromZero ? all : [...all].reverse(),
+    at: fromZero ? l : top - l,
+    fill: (fromZero ? pos : top * GW_LINE_STEP - pos) / (top * GW_LINE_STEP),
+    standing:
+      ours === 0
+        ? "even"
+        : ours >= GW_LINE_STEP
+          ? "far_ahead"
+          : ours > 0
+            ? "ahead"
+            : ours <= -GW_LINE_STEP
+              ? "far_behind"
+              : "behind",
+  };
+}
+
+/** The latest battle as the side `mine` saw it. */
+export function frontMove(
+  last: { result: GwResult; by: GwSide | null } | null,
+  mine: GwSide,
+): FrontMove {
+  if (last === null || last.by === null || last.result === "quiet") {
+    return "quiet";
+  }
+  const we = last.by === mine;
+  if (last.result === "break") return we ? "we_broke" : "they_broke";
+  if (last.result === "advance") return we ? "we_advanced" : "they_advanced";
+  return we ? "we_stopped" : "they_stopped";
+}
+
+/** Good, bad or neither for the reader, to colour a line of text. */
+export function frontTone(x: FrontStanding | FrontMove): -1 | 0 | 1 {
+  if (x === "far_ahead" || x === "ahead") return 1;
+  if (x === "we_broke" || x === "we_advanced" || x === "they_stopped") return 1;
+  if (x === "far_behind" || x === "behind") return -1;
+  if (x === "they_broke" || x === "they_advanced") return -1;
+  return 0;
 }
 
 /** One entry of the why-log, newest chapter first. */

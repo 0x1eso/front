@@ -159,7 +159,7 @@ function frontRow(f: GwFrontView, c: GwCtx): TemplateResult {
             name: personName(c.pack, f.commander),
           })}
         </p>`}
-    ${lastBattle(f)}
+    ${lastBattle(f, c.seat.world.side)}
   </div>`;
 }
 

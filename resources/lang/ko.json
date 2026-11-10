@@ -15499,7 +15499,6 @@
       "fold": "접기 / 펴기",
       "folded_title": "그사이 들어온 작은 소식",
       "front_commander": "지휘 {name}",
-      "front_last": "지난 장: {result}. 아군 손실 {ours}천, 적 손실 {theirs}천",
       "gauge": {
         "bread": {
           "0": "굶주림",
@@ -15630,7 +15629,6 @@
       "promise_due": "{date}까지",
       "promise_kept": "지켰다",
       "promises_title": "한 약속",
-      "quiet_fronts": "아직 조용한 곳",
       "read_decide": "읽고 정한다",
       "read_done": "읽었다. 치워 둔다.",
       "read_on": "읽는다",
@@ -15739,7 +15737,6 @@
       },
       "threads_title": "오래 끓는 일",
       "topic_count": "지금 꺼낼 이야기 {n}개",
-      "trench": "참호 {n}/{max}단계",
       "trench_word": {
         "0": "움직이는 전선",
         "1": "참호를 파기 시작함",
@@ -15875,7 +15872,40 @@
       "prologue_skip": "첫 전보부터 시작한다",
       "paper_claimed": "이 전선의 칠한 땅: {list}",
       "dismiss_ask": "수상에게 해임을 요구한다",
-      "appoint_ask": "수상에게 {office} 자리를 권한다"
+      "appoint_ask": "수상에게 {office} 자리를 권한다",
+      "front_end": "{side} 쪽",
+      "front_end_them": "적 쪽 · {side}",
+      "front_end_us": "우리 쪽 · {side}",
+      "front_key": "막대 왼쪽 끝은 언제나 우리 쪽이고, 초록은 우리가 쥔 땅입니다. 흰 표시가 오른쪽(적 쪽)으로 가면 우리에게 좋고, 왼쪽으로 밀리면 나쁩니다.",
+      "front_key_neutral": "우리나라는 중립입니다. 막대마다 왼쪽은 동맹국 쪽, 오른쪽은 협상국 쪽입니다.",
+      "front_latest": "최근 교전: {what}",
+      "front_losses": "손실: 아군 {ours}천, 적 {theirs}천",
+      "front_move": {
+        "quiet": "교전 없음",
+        "they_advanced": "적이 전진해 전선이 우리 쪽으로 밀렸습니다",
+        "they_broke": "적이 돌파해 전선이 우리 쪽으로 크게 밀렸습니다",
+        "they_stopped": "적의 공세를 막아내 전선을 지켰습니다",
+        "we_advanced": "아군이 전진해 전선이 적 쪽으로 나아갔습니다",
+        "we_broke": "아군이 돌파해 전선이 적 쪽으로 크게 나아갔습니다",
+        "we_stopped": "아군 공세가 막혀 전선은 그대로입니다"
+      },
+      "front_not_ours": "우리나라는 여기서 싸우지 않음",
+      "front_now": "지금 전선: {line} · {who}: {how}",
+      "front_standing": {
+        "ahead": "개전 때보다 조금 앞섬",
+        "behind": "개전 때보다 조금 밀림",
+        "even": "개전 때 그 자리",
+        "far_ahead": "개전 때보다 크게 앞섬",
+        "far_behind": "개전 때보다 크게 밀림"
+      },
+      "front_who_bloc": "우리 진영",
+      "front_who_us": "아군",
+      "fronts_not_ours": "우리나라가 싸우지 않는 전선",
+      "fronts_watched": "중립국이 지켜보는 전선",
+      "no_fronts_neutral": "우리나라는 중립이라 싸우는 전선이 없습니다.",
+      "no_fronts_ours": "우리나라는 아직 어느 전선에서도 싸우지 않습니다.",
+      "trench_now": "참호: {what}",
+      "front_end_bloc": "우리 진영 쪽 · {side}"
     },
     "unknown": {
       "ai": "{country}의 원수는 {word} 인물이었다.",
