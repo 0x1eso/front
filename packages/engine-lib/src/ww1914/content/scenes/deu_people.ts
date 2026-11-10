@@ -35,6 +35,24 @@ const chapter = (min: number | null, max?: number): GwCond => ({
   kind: "chapter",
   ...range(min, max),
 });
+/** Whole months since Germany came into the war (ww170: by state, not date). */
+const own = (min: number | null, max?: number): GwCond => ({
+  kind: "world",
+  of: { is: "war_months", own: true, ...range(min, max) },
+});
+/** Whole months since the crisis closed without a war. */
+const peaceFor = (min: number | null, max?: number): GwCond => ({
+  kind: "world",
+  of: { is: "peace_months", ...range(min, max) },
+});
+const atPeace: GwCond = not({ kind: "world", of: { is: "war" } });
+/** A crisis is open: the July weeks or a later spark. */
+const chainOpen: GwCond = { kind: "world", of: { is: "chain" } };
+/** The months of the year: a season, any year. */
+const inMonths = (...of: number[]): GwCond => ({
+  kind: "world",
+  of: { is: "month", of },
+});
 const temp = (min: number | null, max?: number): GwCond => ({
   kind: "temp",
   ...range(min, max),
@@ -421,7 +439,7 @@ export const DEU_PEOPLE_SCENES: readonly GwScene[] = [
     id: "deu_p_cabinet_split",
     nation: ["DEU"],
     kind: "dispute",
-    when: chapter(7, 9),
+    when: own(1, 6),
     cast: { chancellor: { office: "chancellor" }, rival: { rival: true } },
     salience: 6,
     tags: ["people", "tension_up"],
@@ -523,7 +541,7 @@ export const DEU_PEOPLE_SCENES: readonly GwScene[] = [
     nation: ["DEU"],
     kind: "audience",
     when: all(
-      chapter(8, 9),
+      own(1),
       holds("chief_of_staff", "deu_falkenhayn"),
       holds("war", "deu_wild"),
     ),
@@ -566,7 +584,7 @@ export const DEU_PEOPLE_SCENES: readonly GwScene[] = [
     nation: ["DEU"],
     kind: "audience",
     when: all(
-      chapter(1, 10),
+      any(atPeace, own(0, 6)),
       any(
         all(memory("succeeded_chancellor"), not(flag("f_vac_chancellor"))),
         all(memory("succeeded_foreign"), not(flag("f_vac_foreign"))),
@@ -907,7 +925,7 @@ export const DEU_PEOPLE_SCENES: readonly GwScene[] = [
     id: "deu_p_year_end",
     nation: ["DEU"],
     kind: "report",
-    when: chapter(10, 10),
+    when: all(inMonths(12), any(own(1, 5), peaceFor(0, 6))),
     cast: { court: { office: "court" } },
     salience: 4,
     tags: ["people", "tension_down"],
@@ -2837,7 +2855,7 @@ export const DEU_PEOPLE_SCENES: readonly GwScene[] = [
     id: "deu_t_kuhn_navy",
     nation: ["DEU"],
     kind: "talk",
-    when: all(chapter(0, 9), holds("finance", "deu_kuhn")),
+    when: all(holds("finance", "deu_kuhn"), any(atPeace, own(0, 3))),
     cast: { who: { person: "deu_kuhn" } },
     salience: 3,
     tags: ["people"],
@@ -3553,7 +3571,7 @@ export const DEU_PEOPLE_SCENES: readonly GwScene[] = [
     id: "deu_t_muller_tirpitz",
     nation: ["DEU"],
     kind: "talk",
-    when: chapter(1, 8),
+    when: all(holds("navy", "deu_tirpitz"), any(atPeace, own(0, 6))),
     cast: { who: { person: "deu_muller" } },
     salience: 3,
     tags: ["people"],
@@ -4035,7 +4053,7 @@ export const DEU_PEOPLE_SCENES: readonly GwScene[] = [
     id: "deu_t_heir_dig",
     nation: ["DEU"],
     kind: "talk",
-    when: chapter(0, 9),
+    when: all(holds("chancellor", "deu_bethmann"), any(atPeace, own(0, 3))),
     cast: { who: { person: "deu_heir" } },
     salience: 3,
     tags: ["people"],
@@ -4735,7 +4753,7 @@ export const DEU_PEOPLE_SCENES: readonly GwScene[] = [
     id: "deu_t_heir_son",
     nation: ["DEU"],
     kind: "talk",
-    when: chapter(9, 10),
+    when: any(own(3, 11), peaceFor(3, 11)),
     cast: { who: { person: "deu_heir" } },
     salience: 3,
     tags: ["people"],
@@ -6521,7 +6539,7 @@ export const DEU_PEOPLE_SCENES: readonly GwScene[] = [
     id: "deu_v_albert_letter",
     nation: ["DEU"],
     kind: "talk",
-    when: all(chapter(4, 6), any(flag("f_west_plan"), temp(7))),
+    when: all(any(chainOpen, own(0, 0)), any(flag("f_west_plan"), temp(7))),
     cast: { who: { person: "bel_albert" } },
     salience: 9,
     tags: ["people", "foreign", "tension_up"],
@@ -7350,7 +7368,7 @@ export const DEU_PEOPLE_SCENES: readonly GwScene[] = [
         kind: "world",
         of: { is: "letter", who: { person: "deu_tirpitz" } },
       }),
-      chapter(5, 10),
+      any(atPeace, own(0, 4)),
       all(trusts(who, null, -2), proud(who, 3)),
     ),
     cast: { who: { person: "deu_tirpitz" } },
@@ -7510,7 +7528,7 @@ export const DEU_PEOPLE_SCENES: readonly GwScene[] = [
         kind: "world",
         of: { is: "letter", who: { person: "deu_moltke" } },
       }),
-      chapter(4, 7),
+      any(chainOpen, own(0, 1)),
       holds("chief_of_staff", "deu_moltke"),
       trusts(who, null, -2),
     ),
@@ -7635,7 +7653,7 @@ export const DEU_PEOPLE_SCENES: readonly GwScene[] = [
         kind: "world",
         of: { is: "letter", who: { person: "deu_bethmann" } },
       }),
-      chapter(4, 10),
+      any(atPeace, own(0, 4)),
       holds("chancellor", "deu_bethmann"),
       {
         kind: "inst",
@@ -7756,7 +7774,7 @@ export const DEU_PEOPLE_SCENES: readonly GwScene[] = [
     id: "deu_v_rival_complaint",
     nation: ["DEU"],
     kind: "talk",
-    when: all(chapter(3, 10), trusts(who, null, -1)),
+    when: all(any(atPeace, own(0, 4)), trusts(who, null, -1)),
     cast: { who: { rival: true } },
     salience: 6,
     tags: ["people"],
@@ -7885,7 +7903,7 @@ export const DEU_PEOPLE_SCENES: readonly GwScene[] = [
     nation: ["DEU"],
     kind: "talk",
     when: all(
-      chapter(7, 8),
+      own(0, 2),
       all(flag("w_marne_stopped"), holds("chief_of_staff", "deu_moltke")),
     ),
     cast: { who: { person: "deu_falkenhayn" } },
@@ -8002,7 +8020,7 @@ export const DEU_PEOPLE_SCENES: readonly GwScene[] = [
     nation: ["DEU"],
     kind: "talk",
     when: all(
-      chapter(5, 10),
+      any(chainOpen, own(0, 4)),
       any({ kind: "gauge", gauge: "order", max: 2 }, temp(8)),
     ),
     cast: { who: { person: "deu_muller" } },

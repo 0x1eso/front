@@ -45,6 +45,13 @@ import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
  * ww135-plan-deu.md sections 7, 10, 11, 12.
  */
 
+/** Whole months since Germany came into the war (ww170: by state, not date). */
+const own = (min: number, max?: number): GwCond =>
+  world(
+    max === undefined
+      ? { is: "war_months", own: true, min }
+      : { is: "war_months", own: true, min, max },
+  );
 const date = (from: string, to: string): GwCond =>
   world({ is: "date", from, to });
 const blockadeAt = (min: number): GwCond => world({ is: "blockade", min });
@@ -336,11 +343,7 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
   scene({
     id: "deu_s_liner",
     kind: "crisis",
-    when: all(
-      war,
-      any(linerSunk, all(uboatMin(1), date("1915-05", "1915-09"))),
-      date("1915-03", "1916-12"),
-    ),
+    when: all(war, any(linerSunk, all(uboatMin(1), own(9, 14))), own(7, 29)),
     cast: { fm: R_FM, navy: R_NAVY, chancellor: R_CHANCELLOR },
     salience: 9,
     tags: ["foreign", "tension_up"],
@@ -847,7 +850,7 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
       war,
       any(scoreMin(0), eastAt("warsaw")),
       not(flag("f_note_sent")),
-      date("1916-09", "1917-01"),
+      own(24, 36),
     ),
     cast: { chancellor: R_CHANCELLOR, fm: R_FM, cos: R_COS },
     salience: 8,
@@ -1412,7 +1415,7 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
   scene({
     id: "deu_s_papal_note",
     kind: "proposal",
-    when: all(war, belgiumHeld, noArmistice, date("1917-08", "1917-12")),
+    when: all(war, belgiumHeld, noArmistice, own(30)),
     cast: { fm: R_FM, chancellor: R_CHANCELLOR },
     salience: 8,
     tags: ["foreign", "tension_down"],
@@ -2598,11 +2601,7 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
   visit(
     "deu_v2_parvus_bill",
     "deu_parvus",
-    all(
-      atRUS,
-      any(memory("m_zimm_parvus"), date("1915-03", "1917-06")),
-      date("1915-01", "1917-06"),
-    ),
+    all(atRUS, any(memory("m_zimm_parvus"), own(7)), own(5, 35)),
     4,
     {
       open: node(

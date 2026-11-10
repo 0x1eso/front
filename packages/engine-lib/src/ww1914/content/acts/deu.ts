@@ -138,7 +138,11 @@ export const DEU_ACTS: readonly GwAct[] = [
   visit("deu_a_prussia", { effects: [opinion("army", 1), calmed] }),
   visit("deu_a_zeppelin", { effects: [opinion("press", 1), calmed] }),
   visit("deu_a_staff", {
-    stage: ["crisis", "y1914"],
+    // Russia's timetable matters until the seat's war is a few months old.
+    when: any(
+      not(atWar("RUS")),
+      world({ is: "war_months", own: true, max: 4 }),
+    ),
     effects: [
       doWorld({ do: "inspect", fact: "mob", tag: "RUS" }),
       find("rus_rail_ahead"),
@@ -441,22 +445,27 @@ export const DEU_ACTS: readonly GwAct[] = [
   },
 
   // 연설
-  speech("deu_a_sp_balcony", { stage: ["crisis", "y1914"] }, [
-    {
-      id: "peace",
-      effects: [opinion("workers", 1), opinion("army", -1)],
-      tell: ["opinion:+1", "opinion:-1"],
-    },
-    {
-      id: "sword",
-      effects: [
-        opinion("press", 1),
-        opinion("army", 1),
-        { kind: "temp", delta: 1 },
-      ],
-      tell: ["opinion:+1", "opinion:+1", "temp:+1"],
-    },
-  ]),
+  speech(
+    "deu_a_sp_balcony",
+    // Peace or the sword: before the seat's war, or in its first months.
+    { when: any(not(war), world({ is: "war_months", own: true, max: 3 })) },
+    [
+      {
+        id: "peace",
+        effects: [opinion("workers", 1), opinion("army", -1)],
+        tell: ["opinion:+1", "opinion:-1"],
+      },
+      {
+        id: "sword",
+        effects: [
+          opinion("press", 1),
+          opinion("army", 1),
+          { kind: "temp", delta: 1 },
+        ],
+        tell: ["opinion:+1", "opinion:+1", "temp:+1"],
+      },
+    ],
+  ),
   speech("deu_a_sp_reichstag", {}, [
     {
       id: "vote",
@@ -550,7 +559,7 @@ export const DEU_ACTS: readonly GwAct[] = [
     id: "deu_a_copenhagen",
     nation: ["DEU"],
     kind: "intrigue",
-    when: all(atWar("RUS"), { kind: "chapter", min: 8 }),
+    when: all(atWar("RUS"), world({ is: "war_months", own: true, min: 2 })),
     once: true,
     scene: "deu_a_copenhagen_r",
     wait: 2,

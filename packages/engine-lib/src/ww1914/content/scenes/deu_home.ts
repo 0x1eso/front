@@ -63,6 +63,18 @@ const SCHEID = "deu_scheidemann";
 
 const date = (from: string, to: string): GwCond =>
   world({ is: "date", from, to });
+/** Whole months since Germany came into the war (ww170: by state, not date). */
+const own = (min: number, max?: number): GwCond =>
+  world(
+    max === undefined
+      ? { is: "war_months", own: true, min }
+      : { is: "war_months", own: true, min, max },
+  );
+/** The months of the year (a season, not a date). */
+const months = (...of: number[]): GwCond => world({ is: "month", of });
+const tsarGone: GwCond = not(
+  world({ is: "regime", tag: "RUS", of: ["tsar", "crown"] }),
+);
 
 // ---- States ----
 
@@ -113,10 +125,8 @@ const foodBooks: GwCond = any(
   memory("k_erz_numbers"),
   seen("deu_h_black_market"),
 );
-const hardWinter: GwCond = any(
-  date("1916-11", "1917-03"),
-  date("1917-11", "1918-03"),
-);
+/** A war winter after the first: the coal runs short. */
+const hardWinter: GwCond = all(months(11, 12, 1, 2, 3), own(15));
 
 // ---- Effects ----
 
@@ -466,7 +476,8 @@ const SCENES: readonly GwScene[] = [
   scene({
     id: "deu_h_turnip_winter",
     kind: "crisis",
-    when: all(war, low("bread", 1), date("1916-11", "1917-03")),
+    // The harvest failed: an autumn after the first war winter.
+    when: all(war, low("bread", 1), months(10, 11, 12), own(14)),
     cast: { interior: holder("interior"), cos: holder("chief_of_staff") },
     salience: 9,
     tags: ["home", "tension_up"],
@@ -513,7 +524,8 @@ const SCENES: readonly GwScene[] = [
     when: all(
       seen("deu_h_turnip_winter"),
       low("bread", 1),
-      date("1917-01", "1917-04"),
+      // The cut that must come before the harvest (a season).
+      months(1, 2, 3),
     ),
     cast: { interior: holder("interior") },
     salience: 8,
@@ -881,7 +893,7 @@ const SCENES: readonly GwScene[] = [
       war,
       low("order", 2),
       any(unrest(1), seen("deu_h_ration_cut")),
-      date("1917-03", "1917-06"),
+      own(24),
     ),
     cast: { interior: holder("interior"), cos: holder("chief_of_staff") },
     salience: 8,
@@ -1033,7 +1045,7 @@ const SCENES: readonly GwScene[] = [
   }),
   record(
     "deu_h_fleet_record",
-    all(seen("deu_h_fleet_food"), low("order", 2), date("1917-08", "1917-12")),
+    all(seen("deu_h_fleet_food"), low("order", 2), own(24)),
   ),
   scene({
     id: "deu_h_spd_split",
@@ -1060,7 +1072,9 @@ const SCENES: readonly GwScene[] = [
     when: all(
       war,
       any(low("order", 3), memory("k_haase_met")),
-      date("1916-05", "1916-06"),
+      // May Day (a calendar scene), once the war has run a year.
+      months(5),
+      own(12),
     ),
     cast: { interior: holder("interior"), war: holder("war") },
     salience: 7,
@@ -1124,7 +1138,7 @@ const SCENES: readonly GwScene[] = [
       ),
     ],
   }),
-  record("deu_h_census_record", all(war, date("1916-10", "1916-12"))),
+  record("deu_h_census_record", all(war, own(24, 36))),
   // One sentence of record: never the result of a choice (plan section 17).
   scene({
     id: "deu_h_black_market",
@@ -1181,7 +1195,7 @@ const SCENES: readonly GwScene[] = [
       war,
       any(memory("k_tirp_party"), seen("deu_k_peace_resolution")),
       not(holds("navy", "deu_tirpitz")),
-      date("1917-09", "1917-12"),
+      own(24),
     ),
     cast: { chancellor: holder("chancellor"), interior: holder("interior") },
     salience: 7,
@@ -1684,12 +1698,7 @@ const GROE_TALKS: readonly GwScene[] = [
   talk(
     "deu_t2_groe_east",
     GROE,
-    all(
-      war,
-      not(groeOffice),
-      any(rusout, date("1917-07", "1918-06")),
-      date("1917-07", "1918-06"),
-    ),
+    all(war, not(groeOffice), any(rusout, own(41)), own(30, 52)),
     {
       open: node(
         [
@@ -2272,8 +2281,9 @@ const HAASE_TALKS: readonly GwScene[] = [
     HAASE,
     all(
       war,
-      any(seen("gw_d_stockholm"), date("1917-04", "1917-12")),
-      date("1917-03", "1917-12"),
+      // Russia's socialists speak for a peace once the tsar is gone.
+      any(seen("gw_d_stockholm"), tsarGone),
+      own(24),
     ),
     {
       open: node(

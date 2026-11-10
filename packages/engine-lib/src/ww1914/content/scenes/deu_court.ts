@@ -48,6 +48,20 @@ import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
 
 const date = (from: string, to: string): GwCond =>
   world({ is: "date", from, to });
+/** Whole months since the war began (ww170: scenes by state, not date). */
+const months = (min: number, max?: number): GwCond =>
+  world(
+    max === undefined
+      ? { is: "war_months", min }
+      : { is: "war_months", min, max },
+  );
+/** Whole months since Germany came into the war. */
+const own = (min: number, max?: number): GwCond =>
+  world(
+    max === undefined
+      ? { is: "war_months", own: true, min }
+      : { is: "war_months", own: true, min, max },
+  );
 const known = (id: GwSecret): GwCond => world({ is: "known", id });
 const reveal = (id: GwSecret): GwEffect => doWorld({ do: "reveal", id });
 const tsarGone: GwCond = not(
@@ -65,6 +79,11 @@ const sign: GwEffect[] = [doWorld({ do: "armistice", kind: "central_lost" })];
 // ---- Shorthand ----
 
 const NATION: GwScene["nation"] = ["DEU"];
+/**
+ * The close of a longer row: the 1914 row alone closes on New Year's Day
+ * (deu_w_closing), every other row in another month.
+ */
+const LONG_GAME: GwCond = not(world({ is: "month", of: [1] }));
 const WAR: GwScene["stage"] = ["war"];
 
 const who = role("who");
@@ -267,7 +286,11 @@ const noteSent: GwEffect[] = [
 export const DEU_COURT_SCENES: readonly GwScene[] = [
   // ---- The three scales, the new names ----
   scene("deu_k_new_year", "report", {
-    when: date("1915-01", "1915-06"),
+    // The first new year's reception after July (a calendar scene).
+    when: all(
+      world({ is: "month", of: [1, 2] }),
+      any(months(0, 8), world({ is: "peace_months", max: 8 })),
+    ),
     cast: { chancellor: R_CHANCELLOR, cos: R_COS },
     salience: 9,
     tags: ["people"],
@@ -387,7 +410,9 @@ export const DEU_COURT_SCENES: readonly GwScene[] = [
   scene("deu_k_easter_message", "crisis", {
     when: all(
       war,
-      date("1917-03", "1917-06"),
+      // Easter (a calendar scene), once the war has worn the country.
+      world({ is: "month", of: [3, 4] }),
+      own(20),
       any(tsarGone, unrestMin(1)),
       not(flag("f_easter_given")),
     ),
@@ -1401,8 +1426,8 @@ export const DEU_COURT_SCENES: readonly GwScene[] = [
     nation: NATION,
     kind: "ledger",
     stage: ["closing"],
-    // The 1914 row closes with deu_w_closing, at chapter 11.
-    when: { kind: "chapter", min: 12 },
+    // A long game's close; the 1914 row closes with deu_w_closing.
+    when: LONG_GAME,
     cast: { chancellor: R_CHANCELLOR },
     salience: 9,
     tags: ["home"],
@@ -1476,146 +1501,131 @@ export const DEU_COURT_SCENES: readonly GwScene[] = [
   }),
 
   // ---- Bethmann Hollweg ----
-  audience(
-    "deu_t2_beth_reform",
-    "deu_bethmann",
-    all(beth, date("1915-01", "1917-06")),
-    {
-      open: node(
-        [t("anxious"), t("weary")],
-        [
-          ask("trenches", "frank", "trenches"),
-          push("draft", "threat", "draft", {
-            tell: ["trust:-1"],
-            effects: [pt(who, -1), remember("k_beth_reform")],
-            reacts: [react(moody(who, "anxious"), "afraid", pt(who, -1))],
-          }),
-          deal("word", "warm", "word", {
-            tell: ["promise", "army:-1"],
-            effects: [
-              army(-1),
-              promise(who, "p_beth_reform", 18),
-              remember("k_beth_reform"),
-            ],
-          }),
-          leave("later", "cold"),
-        ],
-      ),
-      trenches: node(
-        [],
-        [
-          ask("herrenhaus", "cold", "lords", {
-            effects: [remember("k_beth_reform")],
-          }),
-          deal("word", "warm", "word", {
-            tell: ["promise", "army:-1"],
-            effects: [
-              army(-1),
-              promise(who, "p_beth_reform", 18),
-              remember("k_beth_reform"),
-            ],
-          }),
-          leave("enough", "warm"),
-        ],
-      ),
-      lords: last([]),
-      draft: last([]),
-      afraid: last([], "end", "cold"),
-      word: last([]),
-    },
-  ),
-  audience(
-    "deu_t2_beth_uboat",
-    "deu_bethmann",
-    all(beth, atGBR, date("1915-01", "1916-06")),
-    {
-      open: node(
-        [t("anxious")],
-        [
-          ask("sum", "frank", "sum"),
-          push("yield", "cold", "hurt", {
-            tell: ["countersign:-1"],
-            effects: [countersign(-1)],
-            reacts: [react(moody(who, "weary"), "sum")],
-          }),
-          deal("trade", "warm", "sum", {
-            tell: ["army:-1", "countersign:+1"],
-            effects: [army(-1), countersign(1), remember("k_beth_uboat")],
-          }),
-          leave("enough", "cold"),
-        ],
-      ),
-      sum: node(
-        [],
-        [
-          ask("america", "cold", "washington", {
-            effects: [remember("k_beth_uboat")],
-          }),
-          ask("admirals", "frank", "admirals"),
-          leave("noted", "warm"),
-        ],
-      ),
-      admirals: node(
-        [],
-        [
-          ask("america", "cold", "washington", {
-            effects: [remember("k_beth_uboat")],
-          }),
-          leave("noted", "warm"),
-        ],
-      ),
-      washington: last([]),
-      hurt: last([], "end", "cold"),
-    },
-  ),
-  audience(
-    "deu_t2_beth_terms",
-    "deu_bethmann",
-    all(beth, date("1916-01", "1917-06")),
-    {
-      open: node(
-        [t("weary")],
-        [
-          ask("how", "frank", "paper"),
-          push("write", "threat", "paper", {
-            tell: ["trust:-1"],
-            effects: [pt(who, -1)],
-            reacts: [react(moody(who, "anxious"), "fear")],
-          }),
-          deal("cover", "warm", "paper", {
-            tell: ["countersign:+1", "army:-1"],
-            effects: [countersign(1), army(-1), remember("k_beth_terms")],
-          }),
-          leave("not_yet", "cold"),
-        ],
-      ),
-      paper: node(
-        [],
-        [
-          ask("clause", "cold", "clause", {
-            effects: [remember("k_beth_terms")],
-          }),
-          ask("angry", "frank", "angry"),
-          leave("think", "warm"),
-        ],
-      ),
-      angry: node(
-        [],
-        [
-          ask("clause", "cold", "clause", {
-            effects: [remember("k_beth_terms")],
-          }),
-          leave("think", "warm"),
-        ],
-      ),
-      clause: last([]),
-      fear: last([], "end", "cold"),
-    },
-  ),
+  audience("deu_t2_beth_reform", "deu_bethmann", all(beth, own(5, 35)), {
+    open: node(
+      [t("anxious"), t("weary")],
+      [
+        ask("trenches", "frank", "trenches"),
+        push("draft", "threat", "draft", {
+          tell: ["trust:-1"],
+          effects: [pt(who, -1), remember("k_beth_reform")],
+          reacts: [react(moody(who, "anxious"), "afraid", pt(who, -1))],
+        }),
+        deal("word", "warm", "word", {
+          tell: ["promise", "army:-1"],
+          effects: [
+            army(-1),
+            promise(who, "p_beth_reform", 18),
+            remember("k_beth_reform"),
+          ],
+        }),
+        leave("later", "cold"),
+      ],
+    ),
+    trenches: node(
+      [],
+      [
+        ask("herrenhaus", "cold", "lords", {
+          effects: [remember("k_beth_reform")],
+        }),
+        deal("word", "warm", "word", {
+          tell: ["promise", "army:-1"],
+          effects: [
+            army(-1),
+            promise(who, "p_beth_reform", 18),
+            remember("k_beth_reform"),
+          ],
+        }),
+        leave("enough", "warm"),
+      ],
+    ),
+    lords: last([]),
+    draft: last([]),
+    afraid: last([], "end", "cold"),
+    word: last([]),
+  }),
+  audience("deu_t2_beth_uboat", "deu_bethmann", all(beth, atGBR, own(5, 23)), {
+    open: node(
+      [t("anxious")],
+      [
+        ask("sum", "frank", "sum"),
+        push("yield", "cold", "hurt", {
+          tell: ["countersign:-1"],
+          effects: [countersign(-1)],
+          reacts: [react(moody(who, "weary"), "sum")],
+        }),
+        deal("trade", "warm", "sum", {
+          tell: ["army:-1", "countersign:+1"],
+          effects: [army(-1), countersign(1), remember("k_beth_uboat")],
+        }),
+        leave("enough", "cold"),
+      ],
+    ),
+    sum: node(
+      [],
+      [
+        ask("america", "cold", "washington", {
+          effects: [remember("k_beth_uboat")],
+        }),
+        ask("admirals", "frank", "admirals"),
+        leave("noted", "warm"),
+      ],
+    ),
+    admirals: node(
+      [],
+      [
+        ask("america", "cold", "washington", {
+          effects: [remember("k_beth_uboat")],
+        }),
+        leave("noted", "warm"),
+      ],
+    ),
+    washington: last([]),
+    hurt: last([], "end", "cold"),
+  }),
+  audience("deu_t2_beth_terms", "deu_bethmann", all(beth, own(17, 35)), {
+    open: node(
+      [t("weary")],
+      [
+        ask("how", "frank", "paper"),
+        push("write", "threat", "paper", {
+          tell: ["trust:-1"],
+          effects: [pt(who, -1)],
+          reacts: [react(moody(who, "anxious"), "fear")],
+        }),
+        deal("cover", "warm", "paper", {
+          tell: ["countersign:+1", "army:-1"],
+          effects: [countersign(1), army(-1), remember("k_beth_terms")],
+        }),
+        leave("not_yet", "cold"),
+      ],
+    ),
+    paper: node(
+      [],
+      [
+        ask("clause", "cold", "clause", {
+          effects: [remember("k_beth_terms")],
+        }),
+        ask("angry", "frank", "angry"),
+        leave("think", "warm"),
+      ],
+    ),
+    angry: node(
+      [],
+      [
+        ask("clause", "cold", "clause", {
+          effects: [remember("k_beth_terms")],
+        }),
+        leave("think", "warm"),
+      ],
+    ),
+    clause: last([]),
+    fear: last([], "end", "cold"),
+  }),
   audience(
     "deu_t2_beth_pless",
     "deu_bethmann",
-    all(beth, seen("deu_s_table"), date("1916-07", "1917-06")),
+    all(beth, seen("deu_s_table"), months(23, 35)),
     {
       open: node(
         [t("anxious")],
@@ -1655,90 +1665,80 @@ export const DEU_COURT_SCENES: readonly GwScene[] = [
       held: last([]),
     },
   ),
-  audience(
-    "deu_t2_beth_sign",
-    "deu_bethmann",
-    all(beth, tied, date("1917-01", "1917-12")),
-    {
-      open: node(
-        [t("weary")],
-        [
-          ask("who", "cold", "who"),
-          push("stay", "threat", "stiff", {
-            tell: ["trust:-1"],
-            effects: [pt(who, -1)],
-            reacts: [react(moody(who, "anxious"), "who")],
-          }),
-          deal("stand", "frank", "stand", {
-            tell: ["promise", "army:-1"],
-            effects: [
-              army(-1),
-              promise(who, "p_beth_stand", 8),
-              remember("m_beth_stand"),
-            ],
-          }),
-          leave("go_on", "warm"),
-        ],
-      ),
-      who: node(
-        [v("straight", candid(who))],
-        [
-          deal("stand", "frank", "stand", {
-            tell: ["promise", "army:-1"],
-            effects: [
-              army(-1),
-              promise(who, "p_beth_stand", 8),
-              remember("m_beth_stand"),
-            ],
-          }),
-          leave("noted", "cold"),
-        ],
-      ),
-      stiff: last([], "end", "cold"),
-      stand: last([]),
-    },
-  ),
-  audience(
-    "deu_t2_beth_after",
-    "deu_bethmann",
-    all(not(beth), date("1917-07", "1918-12")),
-    {
-      open: node(
-        [v("broken", memory("broke_p_beth_stand")), t("weary")],
-        [
-          ask("heir", "frank", "weight"),
-          push("come_back", "flatter", "no_return", {
-            tell: ["reichstag:+1"],
-            effects: [reichstag(1)],
-            reacts: [react(moody(who, "anxious"), "no_return")],
-          }),
-          deal("write", "warm", "memoir", {
-            tell: ["trust:+1"],
-            effects: [pt(who, 1), remember("m_beth_memoir")],
-          }),
-          leave("trees", "warm"),
-        ],
-      ),
-      weight: node(
-        [v("max", maxIn), v("michaelis", michaelisIn)],
-        [
-          deal("write", "warm", "memoir", {
-            tell: ["trust:+1"],
-            effects: [pt(who, 1), remember("m_beth_memoir")],
-          }),
-          leave("thanks", "warm"),
-        ],
-      ),
-      no_return: last([]),
-      memoir: last([]),
-    },
-  ),
+  audience("deu_t2_beth_sign", "deu_bethmann", all(beth, tied, own(29, 41)), {
+    open: node(
+      [t("weary")],
+      [
+        ask("who", "cold", "who"),
+        push("stay", "threat", "stiff", {
+          tell: ["trust:-1"],
+          effects: [pt(who, -1)],
+          reacts: [react(moody(who, "anxious"), "who")],
+        }),
+        deal("stand", "frank", "stand", {
+          tell: ["promise", "army:-1"],
+          effects: [
+            army(-1),
+            promise(who, "p_beth_stand", 8),
+            remember("m_beth_stand"),
+          ],
+        }),
+        leave("go_on", "warm"),
+      ],
+    ),
+    who: node(
+      [v("straight", candid(who))],
+      [
+        deal("stand", "frank", "stand", {
+          tell: ["promise", "army:-1"],
+          effects: [
+            army(-1),
+            promise(who, "p_beth_stand", 8),
+            remember("m_beth_stand"),
+          ],
+        }),
+        leave("noted", "cold"),
+      ],
+    ),
+    stiff: last([], "end", "cold"),
+    stand: last([]),
+  }),
+  audience("deu_t2_beth_after", "deu_bethmann", all(not(beth), months(35)), {
+    open: node(
+      [v("broken", memory("broke_p_beth_stand")), t("weary")],
+      [
+        ask("heir", "frank", "weight"),
+        push("come_back", "flatter", "no_return", {
+          tell: ["reichstag:+1"],
+          effects: [reichstag(1)],
+          reacts: [react(moody(who, "anxious"), "no_return")],
+        }),
+        deal("write", "warm", "memoir", {
+          tell: ["trust:+1"],
+          effects: [pt(who, 1), remember("m_beth_memoir")],
+        }),
+        leave("trees", "warm"),
+      ],
+    ),
+    weight: node(
+      [v("max", maxIn), v("michaelis", michaelisIn)],
+      [
+        deal("write", "warm", "memoir", {
+          tell: ["trust:+1"],
+          effects: [pt(who, 1), remember("m_beth_memoir")],
+        }),
+        leave("thanks", "warm"),
+      ],
+    ),
+    no_return: last([]),
+    memoir: last([]),
+  }),
 
   // ---- Müller ----
   audience(
     "deu_t2_muller_night",
     "deu_muller",
-    all(any(war, tied), date("1915-01", "1918-06")),
+    all(any(war, tied), months(5, 47)),
     {
       open: node(
         [t("cunning"), t("weary")],
@@ -1783,42 +1783,37 @@ export const DEU_COURT_SCENES: readonly GwScene[] = [
       door: last([]),
     },
   ),
-  audience(
-    "deu_t2_muller_terms",
-    "deu_muller",
-    all(war, date("1916-01", "1917-06")),
-    {
-      open: node(
-        [t("cold")],
-        [
-          ask("what_was", "frank", "old"),
-          push("find_it", "cold", "old", {
-            effects: [remember("k_muller_terms")],
-            reacts: [react(moody(who, "cunning"), "rights")],
-          }),
-          deal("guard", "warm", "rights", {
-            tell: ["army:-1"],
-            effects: [army(-1), remember("k_muller_terms")],
-          }),
-          leave("leave_it", "warm"),
-        ],
-      ),
-      old: node(
-        [],
-        [
-          ask("today", "frank", "rights", {
-            effects: [remember("k_muller_terms")],
-          }),
-          leave("leave_it", "cold"),
-        ],
-      ),
-      rights: last([]),
-    },
-  ),
+  audience("deu_t2_muller_terms", "deu_muller", all(war, own(17, 35)), {
+    open: node(
+      [t("cold")],
+      [
+        ask("what_was", "frank", "old"),
+        push("find_it", "cold", "old", {
+          effects: [remember("k_muller_terms")],
+          reacts: [react(moody(who, "cunning"), "rights")],
+        }),
+        deal("guard", "warm", "rights", {
+          tell: ["army:-1"],
+          effects: [army(-1), remember("k_muller_terms")],
+        }),
+        leave("leave_it", "warm"),
+      ],
+    ),
+    old: node(
+      [],
+      [
+        ask("today", "frank", "rights", {
+          effects: [remember("k_muller_terms")],
+        }),
+        leave("leave_it", "cold"),
+      ],
+    ),
+    rights: last([]),
+  }),
   audience(
     "deu_t2_muller_valentini",
     "deu_muller",
-    all(date("1916-07", "1918-06"), not(flag("f_valentini_out"))),
+    all(own(23, 47), not(flag("f_valentini_out"))),
     {
       open: node(
         [v("tied", tied)],
@@ -1847,46 +1842,41 @@ export const DEU_COURT_SCENES: readonly GwScene[] = [
       hands: last([]),
     },
   ),
-  audience(
-    "deu_t2_muller_fleet",
-    "deu_muller",
-    all(atGBR, date("1916-01", "1918-12")),
-    {
-      open: node(
-        [v("late", date("1918-07", "1918-12"))],
-        [
-          ask("whose", "frank", "whose"),
-          push("order", "cold", "whose", {
-            effects: [remember("k_muller_fleet")],
-            reacts: [react(moody(who, "cunning"), "cabinet")],
-          }),
-          deal("your_men", "warm", "cabinet", {
-            tell: ["trust:+1", "army:-1"],
-            effects: [pt(who, 1), army(-1), remember("k_muller_fleet")],
-          }),
-          leave("noted", "cold"),
-        ],
-      ),
-      whose: node(
-        [v("oct", date("1918-07", "1918-12"))],
-        [
-          ask("orders_where", "frank", "cabinet", {
-            effects: [
-              remember("k_muller_fleet"),
-              when(date("1918-07", "1918-12"), reveal("deu_fleet_plan_oct")),
-            ],
-          }),
-          leave("noted", "warm"),
-        ],
-      ),
-      cabinet: last([v("oct", known("deu_fleet_plan_oct"))]),
-    },
-  ),
+  audience("deu_t2_muller_fleet", "deu_muller", all(atGBR, own(17)), {
+    open: node(
+      [v("late", date("1918-07", "1918-12"))],
+      [
+        ask("whose", "frank", "whose"),
+        push("order", "cold", "whose", {
+          effects: [remember("k_muller_fleet")],
+          reacts: [react(moody(who, "cunning"), "cabinet")],
+        }),
+        deal("your_men", "warm", "cabinet", {
+          tell: ["trust:+1", "army:-1"],
+          effects: [pt(who, 1), army(-1), remember("k_muller_fleet")],
+        }),
+        leave("noted", "cold"),
+      ],
+    ),
+    whose: node(
+      [v("oct", date("1918-07", "1918-12"))],
+      [
+        ask("orders_where", "frank", "cabinet", {
+          effects: [
+            remember("k_muller_fleet"),
+            when(date("1918-07", "1918-12"), reveal("deu_fleet_plan_oct")),
+          ],
+        }),
+        leave("noted", "warm"),
+      ],
+    ),
+    cabinet: last([v("oct", known("deu_fleet_plan_oct"))]),
+  }),
   audience(
     "deu_t2_muller_heir",
     "deu_muller",
     all(
-      date("1915-01", "1917-12"),
+      own(5, 41),
       any(holds("navy", "deu_tirpitz"), seen("deu_k_july_crisis")),
     ),
     {
@@ -1928,7 +1918,7 @@ export const DEU_COURT_SCENES: readonly GwScene[] = [
   audience(
     "deu_t2_muller_diary",
     "deu_muller",
-    all(date("1917-07", "1918-12"), { kind: "person_trust", who, min: 2 }),
+    all(own(35), { kind: "person_trust", who, min: 2 }),
     {
       open: node(
         [t("weary")],
@@ -1983,7 +1973,8 @@ export const DEU_COURT_SCENES: readonly GwScene[] = [
     "deu_t2_heir_verdun",
     "deu_heir",
     all(
-      date("1915-07", "1916-06"),
+      own(11, 23),
+      atFRA,
       any(flag("f_heir_army"), flag("f_heir_minder"), memory("heir_refused")),
     ),
     {
@@ -2033,7 +2024,7 @@ export const DEU_COURT_SCENES: readonly GwScene[] = [
   audience(
     "deu_t2_heir_stop",
     "deu_heir",
-    all(seen("deu_f_verdun_plan"), date("1916-01", "1916-12")),
+    all(seen("deu_f_verdun_plan"), months(17, 29)),
     {
       open: node(
         [t("arrogant")],
@@ -2066,86 +2057,72 @@ export const DEU_COURT_SCENES: readonly GwScene[] = [
       paper: last([]),
     },
   ),
-  audience(
-    "deu_t2_heir_bauer",
-    "deu_heir",
-    all(war, date("1916-01", "1917-12")),
-    {
-      open: node(
-        [t("cunning")],
-        [
-          ask("what_talk", "warm", "talk"),
-          push("drop_him", "threat", "stiff", {
-            tell: ["trust:-1"],
-            effects: [pt(who, -1)],
-            reacts: [react(moody(who, "arrogant"), "stiff", pt(who, -1))],
-          }),
-          deal("friends", "frank", "friends", {
-            tell: ["promise"],
-            effects: [promise(who, "p_heir_friends", 12)],
-          }),
-          leave("tell_mother", "warm"),
-        ],
-      ),
-      talk: node(
-        [v("straight", candid(who))],
-        [
-          ask("list", "cold", "list", {
-            effects: [reveal("deu_heir_ring")],
-          }),
-          deal("friends", "frank", "friends", {
-            tell: ["promise"],
-            effects: [promise(who, "p_heir_friends", 12)],
-          }),
-          leave("tell_mother", "cold"),
-        ],
-      ),
-      list: last([]),
-      stiff: last([], "end", "cold"),
-      friends: last([]),
-    },
-  ),
-  audience(
-    "deu_t2_heir_chancellor",
-    "deu_heir",
-    all(beth, date("1917-01", "1917-12")),
-    {
-      open: node(
-        [t("arrogant")],
-        [
-          ask("what_said", "frank", "said"),
-          push("who_sent", "cold", "bluster", {
-            reacts: [react(moody(who, "cunning"), "said")],
-          }),
-          deal("in_the_open", "warm", "open_door", {
-            tell: ["reichstag:+1", "countersign:-1"],
-            effects: [
-              reichstag(1),
-              countersign(-1),
-              remember("m_heir_deputies"),
-            ],
-          }),
-          leave("son", "warm"),
-        ],
-      ),
-      said: node(
-        [v("straight", candid(who))],
-        [
-          ask("promised", "cold", "promised", {
-            effects: [reveal("deu_heir_ring")],
-          }),
-          leave("son", "warm"),
-        ],
-      ),
-      bluster: last([], "end", "cold"),
-      promised: last([]),
-      open_door: last([]),
-    },
-  ),
+  audience("deu_t2_heir_bauer", "deu_heir", all(war, own(17, 41)), {
+    open: node(
+      [t("cunning")],
+      [
+        ask("what_talk", "warm", "talk"),
+        push("drop_him", "threat", "stiff", {
+          tell: ["trust:-1"],
+          effects: [pt(who, -1)],
+          reacts: [react(moody(who, "arrogant"), "stiff", pt(who, -1))],
+        }),
+        deal("friends", "frank", "friends", {
+          tell: ["promise"],
+          effects: [promise(who, "p_heir_friends", 12)],
+        }),
+        leave("tell_mother", "warm"),
+      ],
+    ),
+    talk: node(
+      [v("straight", candid(who))],
+      [
+        ask("list", "cold", "list", {
+          effects: [reveal("deu_heir_ring")],
+        }),
+        deal("friends", "frank", "friends", {
+          tell: ["promise"],
+          effects: [promise(who, "p_heir_friends", 12)],
+        }),
+        leave("tell_mother", "cold"),
+      ],
+    ),
+    list: last([]),
+    stiff: last([], "end", "cold"),
+    friends: last([]),
+  }),
+  audience("deu_t2_heir_chancellor", "deu_heir", all(beth, months(29, 41)), {
+    open: node(
+      [t("arrogant")],
+      [
+        ask("what_said", "frank", "said"),
+        push("who_sent", "cold", "bluster", {
+          reacts: [react(moody(who, "cunning"), "said")],
+        }),
+        deal("in_the_open", "warm", "open_door", {
+          tell: ["reichstag:+1", "countersign:-1"],
+          effects: [reichstag(1), countersign(-1), remember("m_heir_deputies")],
+        }),
+        leave("son", "warm"),
+      ],
+    ),
+    said: node(
+      [v("straight", candid(who))],
+      [
+        ask("promised", "cold", "promised", {
+          effects: [reveal("deu_heir_ring")],
+        }),
+        leave("son", "warm"),
+      ],
+    ),
+    bluster: last([], "end", "cold"),
+    promised: last([]),
+    open_door: last([]),
+  }),
   audience(
     "deu_t2_heir_father",
     "deu_heir",
-    all(date("1918-01", "1918-12"), any(lost, scoreMax(-10))),
+    all(own(41), any(lost, scoreMax(-10))),
     {
       open: node(
         [t("cunning")],
@@ -2212,137 +2189,119 @@ export const DEU_COURT_SCENES: readonly GwScene[] = [
   }),
 
   // ---- Erzberger ----
-  audience(
-    "deu_t2_erz_numbers",
-    "deu_erzberger",
-    all(war, date("1915-01", "1916-12")),
-    {
-      open: node(
-        [t("stubborn")],
-        [
-          ask("whose", "cold", "whose"),
-          push("sources", "threat", "names", {
-            tell: ["reichstag:-1"],
-            effects: [reichstag(-1), remember("k_erz_numbers")],
-            reacts: [react(moody(who, "stubborn"), "again")],
-          }),
-          deal("committee", "frank", "committee", {
-            tell: ["reichstag:+1", "army:-1"],
-            effects: [reichstag(1), army(-1), remember("k_erz_numbers")],
-          }),
-          leave("too_many", "cold"),
-        ],
-      ),
-      whose: node(
-        [
-          v("press_poor", { kind: "source_band", source: "press", max: 1 }),
-          v("straight", candid(who)),
-        ],
-        [
-          ask("bread", "frank", "bread", {
-            effects: [remember("k_erz_numbers"), reveal("deu_food_books")],
-          }),
-          leave("too_many", "warm"),
-        ],
-      ),
-      again: last([], "end", "cold"),
-      names: last([]),
-      bread: last([]),
-      committee: last([]),
-    },
-  ),
-  audience(
-    "deu_t2_erz_belgium",
-    "deu_erzberger",
-    all(war, date("1915-01", "1916-12")),
-    {
-      open: node(
-        [v("no_annex", flag("f_no_annex_belgium")), t("cunning")],
-        [
-          ask("still", "frank", "still"),
-          push("your_paper", "threat", "shame", {
-            reacts: [react(moody(who, "cunning"), "still")],
-          }),
-          deal("quiet", "cold", "quiet", {
-            tell: ["reichstag:+1", "army:-1"],
-            effects: [reichstag(1), army(-1), remember("k_erz_belgium")],
-          }),
-          leave("noted", "cold"),
-        ],
-      ),
-      still: node(
-        [],
-        [
-          ask("price", "frank", "price", {
-            effects: [remember("k_erz_belgium")],
-          }),
-          leave("noted", "warm"),
-        ],
-      ),
-      shame: last([]),
-      price: last([]),
-      quiet: last([]),
-    },
-  ),
-  audience(
-    "deu_t2_erz_vatican",
-    "deu_erzberger",
-    all(war, date("1916-01", "1917-12")),
-    {
-      open: node(
-        [t("stubborn")],
-        [
-          ask("who_hears", "frank", "rome"),
-          push("use_it", "cold", "rome", {
-            effects: [remember("k_erz_vatican")],
-            reacts: [react(moody(who, "stubborn"), "catholic")],
-          }),
-          deal("answer", "warm", "answer", {
-            tell: ["promise"],
-            effects: [
-              remember("k_erz_vatican"),
-              promise(who, "p_erz_rome", 16, {
-                keep: chosen(
-                  "deu_s_papal_note",
-                  "belgium_clear",
-                  "secret_answer",
-                ),
-              }),
-            ],
-          }),
-          leave("noted", "cold"),
-        ],
-      ),
-      rome: node(
-        [],
-        [
-          deal("answer", "warm", "answer", {
-            tell: ["promise"],
-            effects: [
-              remember("k_erz_vatican"),
-              promise(who, "p_erz_rome", 16, {
-                keep: chosen(
-                  "deu_s_papal_note",
-                  "belgium_clear",
-                  "secret_answer",
-                ),
-              }),
-            ],
-          }),
-          leave("noted", "warm", { effects: [remember("k_erz_vatican")] }),
-        ],
-      ),
-      catholic: last([], "end", "cold"),
-      answer: last([]),
-    },
-  ),
+  audience("deu_t2_erz_numbers", "deu_erzberger", all(war, own(5, 29)), {
+    open: node(
+      [t("stubborn")],
+      [
+        ask("whose", "cold", "whose"),
+        push("sources", "threat", "names", {
+          tell: ["reichstag:-1"],
+          effects: [reichstag(-1), remember("k_erz_numbers")],
+          reacts: [react(moody(who, "stubborn"), "again")],
+        }),
+        deal("committee", "frank", "committee", {
+          tell: ["reichstag:+1", "army:-1"],
+          effects: [reichstag(1), army(-1), remember("k_erz_numbers")],
+        }),
+        leave("too_many", "cold"),
+      ],
+    ),
+    whose: node(
+      [
+        v("press_poor", { kind: "source_band", source: "press", max: 1 }),
+        v("straight", candid(who)),
+      ],
+      [
+        ask("bread", "frank", "bread", {
+          effects: [remember("k_erz_numbers"), reveal("deu_food_books")],
+        }),
+        leave("too_many", "warm"),
+      ],
+    ),
+    again: last([], "end", "cold"),
+    names: last([]),
+    bread: last([]),
+    committee: last([]),
+  }),
+  audience("deu_t2_erz_belgium", "deu_erzberger", all(war, own(5, 29)), {
+    open: node(
+      [v("no_annex", flag("f_no_annex_belgium")), t("cunning")],
+      [
+        ask("still", "frank", "still"),
+        push("your_paper", "threat", "shame", {
+          reacts: [react(moody(who, "cunning"), "still")],
+        }),
+        deal("quiet", "cold", "quiet", {
+          tell: ["reichstag:+1", "army:-1"],
+          effects: [reichstag(1), army(-1), remember("k_erz_belgium")],
+        }),
+        leave("noted", "cold"),
+      ],
+    ),
+    still: node(
+      [],
+      [
+        ask("price", "frank", "price", {
+          effects: [remember("k_erz_belgium")],
+        }),
+        leave("noted", "warm"),
+      ],
+    ),
+    shame: last([]),
+    price: last([]),
+    quiet: last([]),
+  }),
+  audience("deu_t2_erz_vatican", "deu_erzberger", all(war, own(17, 41)), {
+    open: node(
+      [t("stubborn")],
+      [
+        ask("who_hears", "frank", "rome"),
+        push("use_it", "cold", "rome", {
+          effects: [remember("k_erz_vatican")],
+          reacts: [react(moody(who, "stubborn"), "catholic")],
+        }),
+        deal("answer", "warm", "answer", {
+          tell: ["promise"],
+          effects: [
+            remember("k_erz_vatican"),
+            promise(who, "p_erz_rome", 16, {
+              keep: chosen(
+                "deu_s_papal_note",
+                "belgium_clear",
+                "secret_answer",
+              ),
+            }),
+          ],
+        }),
+        leave("noted", "cold"),
+      ],
+    ),
+    rome: node(
+      [],
+      [
+        deal("answer", "warm", "answer", {
+          tell: ["promise"],
+          effects: [
+            remember("k_erz_vatican"),
+            promise(who, "p_erz_rome", 16, {
+              keep: chosen(
+                "deu_s_papal_note",
+                "belgium_clear",
+                "secret_answer",
+              ),
+            }),
+          ],
+        }),
+        leave("noted", "warm", { effects: [remember("k_erz_vatican")] }),
+      ],
+    ),
+    catholic: last([], "end", "cold"),
+    answer: last([]),
+  }),
   audience(
     "deu_t2_erz_resolution",
     "deu_erzberger",
-    all(
-      date("1917-01", "1917-12"),
-      any(scoreMax(5), world({ is: "uboat", min: 2 })),
-    ),
+    all(months(29, 41), any(scoreMax(5), world({ is: "uboat", min: 2 }))),
     {
       open: node(
         [v("signed", world({ is: "uboat", min: 2 })), t("cunning")],
@@ -2372,38 +2331,33 @@ export const DEU_COURT_SCENES: readonly GwScene[] = [
       text: last([]),
     },
   ),
-  audience(
-    "deu_t2_erz_helf",
-    "deu_erzberger",
-    all(war, date("1917-01", "1918-06")),
-    {
-      open: node(
-        [t("stubborn")],
-        [
-          ask("feud", "frank", "feud"),
-          push("drop_it", "cold", "feud", {
-            reacts: [react(moody(who, "stubborn"), "court")],
-          }),
-          deal("words", "warm", "words", {
-            tell: ["countersign:-1"],
-            effects: [countersign(-1), remember("k_erz_helf")],
-          }),
-          leave("noted", "cold"),
-        ],
-      ),
-      feud: node(
-        [],
-        [
-          ask("reading", "frank", "words", {
-            effects: [remember("k_erz_helf")],
-          }),
-          leave("noted", "warm"),
-        ],
-      ),
-      court: last([], "end", "cold"),
-      words: last([]),
-    },
-  ),
+  audience("deu_t2_erz_helf", "deu_erzberger", all(war, own(29, 47)), {
+    open: node(
+      [t("stubborn")],
+      [
+        ask("feud", "frank", "feud"),
+        push("drop_it", "cold", "feud", {
+          reacts: [react(moody(who, "stubborn"), "court")],
+        }),
+        deal("words", "warm", "words", {
+          tell: ["countersign:-1"],
+          effects: [countersign(-1), remember("k_erz_helf")],
+        }),
+        leave("noted", "cold"),
+      ],
+    ),
+    feud: node(
+      [],
+      [
+        ask("reading", "frank", "words", {
+          effects: [remember("k_erz_helf")],
+        }),
+        leave("noted", "warm"),
+      ],
+    ),
+    court: last([], "end", "cold"),
+    words: last([]),
+  }),
   audience(
     "deu_t2_erz_compiegne",
     "deu_erzberger",
@@ -2446,100 +2400,85 @@ export const DEU_COURT_SCENES: readonly GwScene[] = [
   ),
 
   // ---- Visits ----
-  visit(
-    "deu_v2_empress_table",
-    "deu_empress",
-    all(beth, date("1915-07", "1917-06")),
-    {
-      open: node(
-        [t("anxious")],
-        [
-          ask("who_told", "warm", "who"),
-          push("not_your_room", "cold", "hurt", {
-            tell: ["trust:-1"],
-            effects: [pt(who, -1)],
-          }),
-          deal("hear_both", "frank", "both", {
-            tell: ["countersign:-1"],
-            effects: [
-              countersign(-1),
-              pt({ person: "deu_bethmann" }, -1),
-              pt(who, 1),
-            ],
-          }),
-          leave("pray", "warm"),
-        ],
-      ),
-      who: node(
-        [],
-        [
-          leave("pray", "warm", {
-            tell: ["trust:+1"],
-            effects: [pt({ person: "deu_bethmann" }, 1)],
-          }),
-          leave("think", "frank", {
-            effects: [pt({ person: "deu_bethmann" }, -1)],
-          }),
-        ],
-      ),
-      hurt: last([], "end", "cold"),
-      both: last([]),
-    },
-  ),
-  visit(
-    "deu_v2_empress_heart",
-    "deu_empress",
-    all(date("1918-01", "1918-12"), scoreMax(-5)),
-    {
-      open: node(
-        [t("stubborn")],
-        [
-          ask("sleep", "warm", "room"),
-          ask("sons", "frank", "sons"),
-          leave("sit", "warm"),
-        ],
-      ),
-      room: last([]),
-      sons: last([]),
-    },
-  ),
-  visit(
-    "deu_v2_valentini_paper",
-    "deu_valentini",
-    all(war, date("1915-07", "1917-06")),
-    {
-      open: node(
-        [t("weary")],
-        [
-          ask("whose_file", "frank", "file"),
-          push("next_name", "cold", "precedent", {
-            reacts: [react(moody(who, "weary"), "file")],
-          }),
-          deal("keep_paper", "warm", "file", {
-            tell: ["countersign:+1", "army:-1"],
-            effects: [countersign(1), army(-1), remember("m_val_paper")],
-          }),
-          leave("sign_it", "cold"),
-        ],
-      ),
-      file: node(
-        [v("thin", beth)],
-        [
-          ask("after", "frank", "after", {
-            effects: [remember("m_val_next")],
-          }),
-          leave("sign_it", "warm"),
-        ],
-      ),
-      precedent: last([], "end", "cold"),
-      after: last([]),
-    },
-  ),
+  visit("deu_v2_empress_table", "deu_empress", all(beth, months(11, 35)), {
+    open: node(
+      [t("anxious")],
+      [
+        ask("who_told", "warm", "who"),
+        push("not_your_room", "cold", "hurt", {
+          tell: ["trust:-1"],
+          effects: [pt(who, -1)],
+        }),
+        deal("hear_both", "frank", "both", {
+          tell: ["countersign:-1"],
+          effects: [
+            countersign(-1),
+            pt({ person: "deu_bethmann" }, -1),
+            pt(who, 1),
+          ],
+        }),
+        leave("pray", "warm"),
+      ],
+    ),
+    who: node(
+      [],
+      [
+        leave("pray", "warm", {
+          tell: ["trust:+1"],
+          effects: [pt({ person: "deu_bethmann" }, 1)],
+        }),
+        leave("think", "frank", {
+          effects: [pt({ person: "deu_bethmann" }, -1)],
+        }),
+      ],
+    ),
+    hurt: last([], "end", "cold"),
+    both: last([]),
+  }),
+  visit("deu_v2_empress_heart", "deu_empress", all(own(41), scoreMax(-5)), {
+    open: node(
+      [t("stubborn")],
+      [
+        ask("sleep", "warm", "room"),
+        ask("sons", "frank", "sons"),
+        leave("sit", "warm"),
+      ],
+    ),
+    room: last([]),
+    sons: last([]),
+  }),
+  visit("deu_v2_valentini_paper", "deu_valentini", all(war, own(11, 35)), {
+    open: node(
+      [t("weary")],
+      [
+        ask("whose_file", "frank", "file"),
+        push("next_name", "cold", "precedent", {
+          reacts: [react(moody(who, "weary"), "file")],
+        }),
+        deal("keep_paper", "warm", "file", {
+          tell: ["countersign:+1", "army:-1"],
+          effects: [countersign(1), army(-1), remember("m_val_paper")],
+        }),
+        leave("sign_it", "cold"),
+      ],
+    ),
+    file: node(
+      [v("thin", beth)],
+      [
+        ask("after", "frank", "after", {
+          effects: [remember("m_val_next")],
+        }),
+        leave("sign_it", "warm"),
+      ],
+    ),
+    precedent: last([], "end", "cold"),
+    after: last([]),
+  }),
   visit(
     "deu_v2_buelow_opera",
     "deu_buelow",
     all(
-      date("1915-01", "1917-12"),
+      months(5, 41),
       any(flag("f_vac_chancellor"), instMax("countersign", -1)),
     ),
     {
@@ -2570,36 +2509,31 @@ export const DEU_COURT_SCENES: readonly GwScene[] = [
       wound: last([], "end", "cold"),
     },
   ),
-  visit(
-    "deu_v2_max_terms",
-    "deu_max_baden",
-    all(date("1917-07", "1918-12"), scoreMax(0)),
-    {
-      open: node(
-        [t("anxious")],
-        [
-          ask("what_saw", "frank", "camps"),
-          push("your_side", "cold", "liberal", {
-            reacts: [react(moody(who, "anxious"), "camps")],
-          }),
-          deal("terms", "warm", "terms", {
-            tell: ["reichstag:+1", "army:-1"],
-            effects: [reichstag(1), army(-1), remember("k_max_terms")],
-          }),
-          leave("thanks", "cold"),
-        ],
-      ),
-      camps: node(
-        [],
-        [
-          ask("if_called", "frank", "terms", {
-            effects: [remember("k_max_terms")],
-          }),
-          leave("thanks", "warm"),
-        ],
-      ),
-      liberal: last([], "end", "cold"),
-      terms: last([]),
-    },
-  ),
+  visit("deu_v2_max_terms", "deu_max_baden", all(own(35), scoreMax(0)), {
+    open: node(
+      [t("anxious")],
+      [
+        ask("what_saw", "frank", "camps"),
+        push("your_side", "cold", "liberal", {
+          reacts: [react(moody(who, "anxious"), "camps")],
+        }),
+        deal("terms", "warm", "terms", {
+          tell: ["reichstag:+1", "army:-1"],
+          effects: [reichstag(1), army(-1), remember("k_max_terms")],
+        }),
+        leave("thanks", "cold"),
+      ],
+    ),
+    camps: node(
+      [],
+      [
+        ask("if_called", "frank", "terms", {
+          effects: [remember("k_max_terms")],
+        }),
+        leave("thanks", "warm"),
+      ],
+    ),
+    liberal: last([], "end", "cold"),
+    terms: last([]),
+  }),
 ];

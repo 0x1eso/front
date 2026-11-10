@@ -1094,10 +1094,12 @@ export const DEU_STORY_SCENES: readonly GwScene[] = [
   silent("deu_big_aug_dawn"),
 
   // ---- 첫 겨울: the staff says it can't be finished this way ----
-  big("deu_big_winter", ["y1914"], {
+  big("deu_big_winter", ["y1914", "war"], {
     tags: ["war"],
+    // The summer war's first Christmas (a calendar scene).
     when: all(
-      { kind: "chapter", min: 10, max: 10 },
+      world({ is: "war_months", own: true, min: 2, max: 5 }),
+      world({ is: "month", of: [12] }),
       any(atWar("RUS"), atWar("FRA")),
       flag("w_summer_war"),
     ),
@@ -1554,7 +1556,13 @@ export const DEU_STORY_SCENES: readonly GwScene[] = [
   big("deu_big_peace", ["war"], {
     tags: ["home", "tension_down"],
     salience: 8,
-    when: all(not(war), world({ is: "date", from: "1915-01", to: "1915-03" })),
+    // The first new year after a crisis closed without a war (a calendar
+    // scene: snow and the new year's banquet).
+    when: all(
+      not(war),
+      world({ is: "peace_months", min: 4 }),
+      world({ is: "month", of: [1, 2, 3] }),
+    ),
     cast: {
       chan: chanBig,
       cos: { office: "chief_of_staff" },
@@ -1949,7 +1957,7 @@ export const DEU_STORY_SCENES: readonly GwScene[] = [
     ],
   }),
   press("deu_m_mittel_vienna", "deu_aim_mitteleuropa", {
-    when: all(war, from("1915-07")),
+    when: all(war, world({ is: "war_months", own: true, min: 11 })),
     tags: ["foreign"],
     options: [
       opt(
@@ -1981,7 +1989,11 @@ export const DEU_STORY_SCENES: readonly GwScene[] = [
     ],
   }),
   press("deu_m_sea_boats", "deu_aim_sea", {
-    when: all(war, atWar("GBR"), from("1915-07")),
+    when: all(
+      war,
+      atWar("GBR"),
+      world({ is: "war_months", own: true, min: 11 }),
+    ),
     tags: ["war"],
     cast: { chan: chanBig, navy: { office: "navy" } },
     options: [
@@ -1998,7 +2010,10 @@ export const DEU_STORY_SCENES: readonly GwScene[] = [
     ],
   }),
   press("deu_m_home_lords", "deu_aim_home", {
-    when: { kind: "chapter", min: 8 },
+    when: any(
+      world({ is: "war_months", own: true, min: 2 }),
+      world({ is: "peace_months", min: 2 }),
+    ),
     tags: ["home"],
     options: [
       opt(

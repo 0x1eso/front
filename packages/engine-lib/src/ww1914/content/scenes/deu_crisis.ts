@@ -748,11 +748,18 @@ export const DEU_CRISIS_SCENES: readonly GwScene[] = [
     id: "deu_c_belgium_note",
     nation: ["DEU"],
     kind: "crisis",
-    stage: ["crisis", "y1914"],
+    // When the west plan meets the war: the crisis at its last links, or the
+    // first month of Germany's war, whenever it comes.
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 5, max: 6 },
+        {
+          kind: "any",
+          of: [
+            { kind: "world", of: { is: "chain", min: 4 } },
+            { kind: "world", of: { is: "war_months", own: true, max: 0 } },
+          ],
+        },
         { kind: "flag", flag: "f_west_plan" },
       ],
     },
@@ -3269,8 +3276,16 @@ export const DEU_CRISIS_SCENES: readonly GwScene[] = [
     id: "deu_t_jagow_london",
     nation: ["DEU"],
     kind: "talk",
-    stage: ["crisis", "y1914"],
-    when: { kind: "chapter", min: 3, max: 8 },
+    // While London's word still matters: a crisis open, the first months of
+    // the war, or the months after a crisis closed in peace.
+    when: {
+      kind: "any",
+      of: [
+        { kind: "world", of: { is: "chain" } },
+        { kind: "world", of: { is: "war_months", own: true, max: 2 } },
+        { kind: "world", of: { is: "peace_months", max: 3 } },
+      ],
+    },
     cast: { p: { person: "deu_jagow" } },
     salience: 2,
     tags: ["people"],
@@ -7340,11 +7355,17 @@ export const DEU_CRISIS_SCENES: readonly GwScene[] = [
     id: "deu_c_lichnowsky_offer",
     nation: ["DEU"],
     kind: "crisis",
-    stage: ["crisis", "y1914"],
+    // The same moment as deu_c_belgium_note, before Britain is in.
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 5, max: 6 },
+        {
+          kind: "any",
+          of: [
+            { kind: "world", of: { is: "chain", min: 4 } },
+            { kind: "world", of: { is: "war_months", own: true, max: 0 } },
+          ],
+        },
         {
           kind: "all",
           of: [
