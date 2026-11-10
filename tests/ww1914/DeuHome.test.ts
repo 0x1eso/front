@@ -108,11 +108,7 @@ describe("the home share of Germany", () => {
   });
 
   test("record cards have no option and no cast", () => {
-    for (const id of [
-      "deu_h_fleet_record",
-      "deu_h_census_record",
-      "deu_h_ballin_record",
-    ]) {
+    for (const id of ["deu_h_fleet_record", "deu_h_census_record"]) {
       const s = scenes.find((x) => x.id === id)!;
       expect(s.kind).toBe("report");
       expect(s.options ?? []).toEqual([]);

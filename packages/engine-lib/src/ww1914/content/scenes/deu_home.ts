@@ -1126,7 +1126,6 @@ const SCENES: readonly GwScene[] = [
   }),
   record("deu_h_census_record", all(war, date("1916-10", "1916-12"))),
   // One sentence of record: never the result of a choice (plan section 17).
-  record("deu_h_ballin_record", date("1918-11", "1918-12")),
   scene({
     id: "deu_h_black_market",
     kind: "report",
