@@ -42,7 +42,7 @@ const effectsOf = (id: string): GwEffect[] =>
 describe("the crisis and 1914 share of 프랑스", () => {
   test("the plan's counts", () => {
     const n = (p: string) => scenes.filter((s) => s.id.startsWith(p)).length;
-    expect(n("fra_c_")).toBe(26);
+    expect(n("fra_c_")).toBe(30);
     expect(n("fra_big_")).toBe(3);
     expect(n("fra_t_")).toBe(24);
     expect(n("fra_v_")).toBe(6);
