@@ -277,6 +277,10 @@ describe("France's President", () => {
   test("a war that comes in 1915 still brings mobilisation, and no July funeral", async () => {
     const gw = await game();
     at(gw, "1915-03");
+    // A war of 1915 comes after July's crisis closed without one.
+    gw.s.chain = null;
+    gw.s.crisis = null;
+    gw.s.chains.push({ topic: "balkan", outcome: "fizzled", chapter: 6 });
     enter(gw, "DEU", "central", "test");
     enter(gw, "FRA", "entente", "test");
     const seat = seatOf(gw);

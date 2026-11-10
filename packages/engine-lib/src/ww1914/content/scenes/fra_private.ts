@@ -20,7 +20,6 @@ import {
   trustOf,
 } from "@openfront/engine-api/ww1914/SceneDsl";
 import { world } from "@openfront/engine-api/ww1914/WorldDsl";
-import { period } from "./period";
 
 /**
  * 「프랑스」, the President's private life (ww166 W9, plan §11.5). Seven lines
@@ -43,15 +42,39 @@ import { period } from "./period";
 const war: GwCond = { kind: "at_war", tag: "DEU" };
 const chapter = (min: number, max?: number): GwCond =>
   max === undefined ? { kind: "chapter", min } : { kind: "chapter", min, max };
-const date = (from: string, to?: string): GwCond =>
-  world({ is: "date", from, ...(to === undefined ? {} : { to }) });
+/** Whole months since France came into the war. */
+const own = (min?: number, max?: number): GwCond =>
+  world({
+    is: "war_months",
+    own: true,
+    ...(min === undefined ? {} : { min }),
+    ...(max === undefined ? {} : { max }),
+  });
+const month = (...of: number[]): GwCond => world({ is: "month", of });
+/** The Germans are in northern France. */
+const north = world({ is: "front", theatre: "west", from: "hindenburg" });
 const seen = (scene: string): GwCond => ({ kind: "seen", scene });
 const m = (key: string): GwCond => memory(`m_fra_${key}`);
-/** The war is over, or nearly: an armistice, or its month. */
-const over: GwCond = any(world({ is: "armistice" }), date("1918-11"));
+/** The war is over, or nearly: an armistice, or France's war past four years. */
+const over: GwCond = any(world({ is: "armistice" }), own(51));
 const tiger = flag("f_pm_clemenceau");
-/** Ashore: the crisis weeks before the voyage, or from the return to autumn. */
-const ashore: GwCond = any(chapter(0, 2), chapter(5, 9));
+/** The President sails to Petersburg (fra_c_trip); f_at_sea until he is back. */
+const sailed = seen("fra_c_trip");
+/**
+ * Ashore: the crisis weeks before the voyage, or after the return while the
+ * crisis runs and in the first months of what came of it, war or peace.
+ */
+const ashore: GwCond = any(
+  chapter(0, 2),
+  all(
+    not(flag("f_at_sea")),
+    any(
+      world({ is: "chain" }),
+      own(undefined, 3),
+      world({ is: "peace_months", max: 3 }),
+    ),
+  ),
+);
 const henSeen = seen("fra_p_hen_letter");
 
 // ---- Effects ----
@@ -167,14 +190,25 @@ const HENRIETTE: readonly GwScene[] = [
     burned: node([bye("end", "warm")]),
     police: node([bye("end", "cold", pt(-1))]),
   }),
-  visit("hen_paris", HEN, all(war, chapter(6, 7)), 5, {
-    open: node([
-      bye("with_me", "warm", rem("hen_with"), pt(1)),
-      bye("she_stays", "frank", rem("hen_stays")),
-      bye("not_yet", "cold"),
-    ]),
-  }),
-  talk("hen_rooms", HEN, all(war, period("14"), henSeen), {
+  visit(
+    "hen_paris",
+    HEN,
+    // The Germans near Paris, before the government has gone to Bordeaux.
+    all(
+      war,
+      world({ is: "front", theatre: "west", from: "somme" }),
+      not(seen("fra_big_bordeaux")),
+    ),
+    5,
+    {
+      open: node([
+        bye("with_me", "warm", rem("hen_with"), pt(1)),
+        bye("she_stays", "frank", rem("hen_stays")),
+        bye("not_yet", "cold"),
+      ]),
+    },
+  ),
+  talk("hen_rooms", HEN, all(war, own(undefined, 4), henSeen), {
     open: node(
       [
         r("all_rooms", "warm", "deal", "yes", [
@@ -194,7 +228,7 @@ const HENRIETTE: readonly GwScene[] = [
       bye("wait", "cold", pt(-1)),
     ]),
   }),
-  talk("hen_godson", HEN, all(war, period("15a", "16a"), henSeen), {
+  talk("hen_godson", HEN, all(war, own(5, 23), henSeen), {
     open: node(
       [
         r("read_it", "warm", "ask", "letter"),
@@ -208,7 +242,7 @@ const HENRIETTE: readonly GwScene[] = [
       bye("sign", "frank", rem("hen_signed")),
     ]),
   }),
-  visit("hen_noel", HEN, all(war, date("1915-11", "1916-01")), 4, {
+  visit("hen_noel", HEN, all(war, month(12), own(4)), 4, {
     open: node(
       [
         bye("go_with", "warm", rem("hen_thann"), why("hen_thann"), pt(1)),
@@ -218,7 +252,7 @@ const HENRIETTE: readonly GwScene[] = [
       v("wrote", m("hen_wrote")),
     ),
   }),
-  talk("hen_nieces", HEN, all(war, period("15b", "17a"), henSeen), {
+  talk("hen_nieces", HEN, all(war, own(11, 35), henSeen), {
     open: node([
       r("let_her", "warm", "deal", "bar", [rem("hen_niece_bar"), pt(1)]),
       r("paris", "frank", "deal", "paris", [rem("hen_niece_paris")]),
@@ -231,7 +265,7 @@ const HENRIETTE: readonly GwScene[] = [
       bye("then_paris", "frank", rem("hen_niece_paris")),
     ]),
   }),
-  talk("hen_front", HEN, all(war, period("16a", "16b"), henSeen), {
+  talk("hen_front", HEN, all(war, own(17, 29), henSeen), {
     open: node(
       [
         r("come", "warm", "deal", "coif", [pt(1)]),
@@ -245,7 +279,7 @@ const HENRIETTE: readonly GwScene[] = [
       bye("plain", "frank", rem("hen_came")),
     ]),
   }),
-  visit("hen_garden", HEN, all(war, date("1917-03", "1917-10")), 4, {
+  visit("hen_garden", HEN, all(war, own(24)), 4, {
     open: node([
       bye("bar_it", "cold", rem("hen_censored")),
       bye("laugh", "warm", rem("hen_laughed"), pt(1)),
@@ -280,27 +314,33 @@ const LUCIEN: readonly GwScene[] = [
   visit("luc_wireless", LUC, ashore, 4, {
     open: node(
       [r("how_far", "frank", "ask", "far"), bye("dinner", "warm")],
-      v("back", chapter(5)),
+      v("back", sailed),
     ),
     far: node([
       bye("thank", "warm", rem("luc_wireless"), pt(1)),
       bye("enough", "cold"),
     ]),
   }),
-  talk("luc_schools", LUC, all(war, period("14"), seen("fra_p_luc_wireless")), {
-    open: node(
-      [
-        bye("exams", "frank", rem("luc_exams")),
-        bye("close", "cold", rem("luc_closed")),
-        bye("your_call", "warm", rem("luc_free"), pt(1)),
-      ],
-      v("wireless", m("luc_wireless")),
-    ),
-  }),
+  talk(
+    "luc_schools",
+    LUC,
+    all(war, own(undefined, 4), seen("fra_p_luc_wireless")),
+    {
+      open: node(
+        [
+          bye("exams", "frank", rem("luc_exams")),
+          bye("close", "cold", rem("luc_closed")),
+          bye("your_call", "warm", rem("luc_free"), pt(1)),
+        ],
+        v("wireless", m("luc_wireless")),
+      ),
+    },
+  ),
   visit(
     "luc_henri",
     LUC,
-    all(date("1915-07", "1915-08"), seen("fra_p_luc_wireless")),
+    // Henri Poincaré died on 17 July 1912: the anniversary, in a war.
+    all(war, month(7), own(3), seen("fra_p_luc_wireless")),
     3,
     {
       open: node([
@@ -316,7 +356,14 @@ const LUCIEN: readonly GwScene[] = [
   talk(
     "luc_rector",
     LUC,
-    all(date("1917-01", "1917-12"), seen("fra_p_luc_wireless")),
+    // Liard's chair falls vacant in the game's later years, war or peace.
+    all(
+      seen("fra_p_luc_wireless"),
+      any(
+        world({ is: "war_months", min: 24 }),
+        world({ is: "peace_months", min: 24 }),
+      ),
+    ),
     {
       open: node(
         [
@@ -331,7 +378,16 @@ const LUCIEN: readonly GwScene[] = [
   visit(
     "luc_gun",
     LUC,
-    all(war, period("18a"), seen("fra_p_luc_wireless")),
+    // The long gun: the Germans in the north with the guns of the storm.
+    all(
+      war,
+      north,
+      any(
+        world({ is: "tech", id: "predicted_fire", tag: "DEU" }),
+        world({ is: "era", of: ["storm"] }),
+      ),
+      seen("fra_p_luc_wireless"),
+    ),
     5,
     {
       open: node(
@@ -350,19 +406,26 @@ const LUCIEN: readonly GwScene[] = [
 // ---- 3. 상피니의 집 ----
 
 const CLOS: readonly GwScene[] = [
-  visit("clos_august", HEN, ashore, 3, {
-    open: node(
-      [
-        bye("plan", "warm", rem("clos_august"), pt(1)),
-        bye("after_russia", "frank", rem("clos_late")),
-        bye("not_this_year", "cold", pt(-1)),
-      ],
-      v("late", chapter(5)),
-    ),
-  }),
+  // Sampigny's August: before the voyage, or an August after it.
+  visit(
+    "clos_august",
+    HEN,
+    any(chapter(0, 2), all(not(flag("f_at_sea")), sailed, month(8))),
+    3,
+    {
+      open: node(
+        [
+          bye("plan", "warm", rem("clos_august"), pt(1)),
+          bye("after_russia", "frank", rem("clos_late")),
+          bye("not_this_year", "cold", pt(-1)),
+        ],
+        v("late", sailed),
+      ),
+    },
+  ),
   paper(
     "clos_shelled",
-    all(war, date("1914-10", "1915-03")),
+    all(war, north, own(2)),
     6,
     [
       opt("say_nothing", rem("clos_silent")),
@@ -373,7 +436,7 @@ const CLOS: readonly GwScene[] = [
   ),
   paper(
     "clos_ruin",
-    all(war, period("15a", "16b"), seen("fra_p_clos_shelled")),
+    all(war, own(5), seen("fra_p_clos_shelled")),
     4,
     [
       opt("stop", rem("clos_saw")),
@@ -399,14 +462,14 @@ const CLOS: readonly GwScene[] = [
 // ---- 4. 바르투와 아들 ----
 
 const BARTHOU: readonly GwScene[] = [
-  talk("bar_max", BAR, all(war, period("14")), {
+  talk("bar_max", BAR, all(war, own(undefined, 4)), {
     open: node([r("ask", "warm", "ask", "max"), bye("work", "frank")]),
     max: node([
       bye("come_back", "warm", rem("bar_max"), pt(1)),
       bye("proud", "frank", rem("bar_max")),
     ]),
   }),
-  visit("bar_shell", BAR, all(war, date("1914-12", "1915-06")), 7, {
+  visit("bar_shell", BAR, all(war, own(4)), 7, {
     open: node(
       [
         bye("go_to_him", "warm", rem("bar_went"), why("bar_went"), pt(2)),
@@ -416,23 +479,18 @@ const BARTHOU: readonly GwScene[] = [
       v("max", m("bar_max")),
     ),
   }),
-  talk(
-    "bar_books",
-    BAR,
-    all(war, period("15b", "17b"), seen("fra_p_bar_shell")),
-    {
-      open: node(
-        [
-          r("read_letters", "warm", "ask", "letters"),
-          bye("give_work", "frank", rem("bar_work")),
-          bye("leave", "cold", pt(-1)),
-        ],
-        v("went", m("bar_went")),
-        v("wrote", m("bar_wrote")),
-      ),
-      letters: node([bye("end", "warm", rem("bar_read"), pt(1))]),
-    },
-  ),
+  talk("bar_books", BAR, all(war, own(11), seen("fra_p_bar_shell")), {
+    open: node(
+      [
+        r("read_letters", "warm", "ask", "letters"),
+        bye("give_work", "frank", rem("bar_work")),
+        bye("leave", "cold", pt(-1)),
+      ],
+      v("went", m("bar_went")),
+      v("wrote", m("bar_wrote")),
+    ),
+    letters: node([bye("end", "warm", rem("bar_read"), pt(1))]),
+  }),
 ];
 
 // ---- 5. 바레스: 같은 로렌 사람 ----
@@ -440,7 +498,7 @@ const BARTHOU: readonly GwScene[] = [
 const BAR_ = "fra_barres";
 
 const BARRES: readonly GwScene[] = [
-  talk("barres_metz", BAR_, ashore, {
+  talk("barres_metz", BAR_, all(ashore, not(war)), {
     open: node([
       r("why_now", "frank", "ask", "why"),
       bye("no_word", "cold", rem("barres_quiet"), pt(-1)),
@@ -451,7 +509,7 @@ const BARRES: readonly GwScene[] = [
       bye("one_line2", "warm", rem("barres_line"), pt(1)),
     ]),
   }),
-  visit("barres_book", BAR_, all(war, period("15a", "16b")), 4, {
+  visit("barres_book", BAR_, all(war, own(5)), 4, {
     open: node(
       [
         bye("sign", "warm", rem("barres_signed"), pt(1)),
@@ -478,14 +536,14 @@ const BARRES: readonly GwScene[] = [
 // ---- 6. 일기 ----
 
 const DIARY: readonly GwScene[] = [
-  paper("diary_first", all(war, chapter(5, 7)), 5, [
+  paper("diary_first", all(war, own(undefined, 0)), 5, [
     opt("all_of_it", rem("diary_full")),
     opt("facts_only", rem("diary_facts")),
     opt("blank", rem("diary_blank")),
   ]),
   paper(
     "diary_generals",
-    all(war, chapter(7, 10)),
+    all(war, own(1, 4)),
     4,
     [
       opt("anger", rem("diary_anger")),
@@ -496,7 +554,7 @@ const DIARY: readonly GwScene[] = [
   ),
   paper(
     "diary_names",
-    all(war, period("15b", "16b")),
+    all(war, own(11)),
     4,
     [
       opt("copy_names", rem("diary_names")),
@@ -544,7 +602,7 @@ const MEUSE: readonly GwScene[] = [
   ]),
   paper(
     "meuse_letters",
-    all(war, period("14", "15a")),
+    all(war, own(undefined, 11)),
     5,
     [
       opt("answer_each", rem("meuse_answered")),

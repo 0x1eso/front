@@ -31,7 +31,6 @@ import {
   trustOf,
 } from "@openfront/engine-api/ww1914/SceneDsl";
 import type { GwWorldEffect } from "@openfront/engine-api/ww1914/WorldDsl";
-import { sinceChapter } from "./period";
 
 /**
  * 「프랑스」, the crisis and 1914 share (lane W1 of ww166): the fra_c_ scenes,
@@ -110,8 +109,25 @@ const chapters = (min: number, max: number): GwCond => ({
   max,
 });
 const from = (min: number): GwCond => ({ kind: "chapter", min });
-/** July's state, up to about 1916. */
-const late = (min: number): GwCond => sinceChapter(min, "15b");
+/**
+ * The crisis has reached this link (eng/ww1914/Crises GW_LINKS: 3 the
+ * ultimatum, 4 the local war, 5 the general war): July's chain, or a later
+ * spark's, whenever it comes.
+ */
+const link = (min: number): GwCond => ({
+  kind: "world",
+  of: { is: "chain", min },
+});
+/** Whole months since France came into the war. */
+const ownMonths = (min?: number, max?: number): GwCond => ({
+  kind: "world",
+  of: {
+    is: "war_months",
+    own: true,
+    ...(min === undefined ? {} : { min }),
+    ...(max === undefined ? {} : { max }),
+  },
+});
 const tempMin = (min: number): GwCond => ({ kind: "temp", min });
 const seen = (scene: string): GwCond => ({ kind: "seen", scene });
 const opening = (...of: GwOpening[]): GwCond => ({ kind: "opening", of });
@@ -151,17 +167,13 @@ const bdx = flag("f_gov_bordeaux");
 const east1: GwCond = { kind: "world", of: { is: "plan", of: ["east"] } };
 const belg: GwCond = { kind: "world", of: { is: "plan", of: ["west"] } };
 const viviani = holds("chancellor", "fra_viviani");
-/**
- * The war's first months, whenever it comes (ww166 fix): the papers of a
- * war's opening wait on the war, not on August, up to the end of 1915.
- */
-const warOpening = (min: number, max?: number): GwCond =>
-  all(inWar, inWarFor(min, max), {
-    kind: "world",
-    of: { is: "date", to: "1915-12" },
-  });
-/** A war that came after the summer of 1914: July's days are long gone. */
-const lateWar: GwCond = { kind: "world", of: { is: "date", from: "1914-09" } };
+/** A war that came after a crisis had closed without one: July is long gone. */
+const lateWar: GwCond = {
+  kind: "world",
+  of: { is: "chain_end", of: ["compromise", "humiliation", "fizzled"] },
+};
+/** The Germans are in northern France. */
+const north = westFrom("hindenburg");
 
 const v = (id: string, when: GwCond): GwVariant => ({ id, when });
 const base: GwVariant = { id: "base" };
@@ -790,7 +802,7 @@ export const FRA_CRISIS_SCENES: readonly GwScene[] = [
     8,
     ["foreign", "tension_up"],
     { fm: { office: "foreign" } },
-    all(late(3), crisis),
+    all(link(3), crisis),
     [v("sea", sea), v("weary", moody(fm, "weary")), base],
     {
       stage: LATE,
@@ -812,7 +824,7 @@ export const FRA_CRISIS_SCENES: readonly GwScene[] = [
     9,
     ["war", "tension_up"],
     { war: { office: "war" }, cos: { office: "chief_of_staff" } },
-    all(late(4), crisis, tempMin(6), not(sea)),
+    all(link(4), crisis, tempMin(6), not(sea)),
     [
       v("germans", mob("DEU", 1)),
       v("russians", mob("RUS", 1)),
@@ -901,14 +913,7 @@ export const FRA_CRISIS_SCENES: readonly GwScene[] = [
     9,
     ["foreign", "tension_up"],
     { fm: { office: "foreign" } },
-    all(
-      all(
-        { kind: "chapter", min: 5 },
-        { kind: "world", of: { is: "peace_months", max: 17 } },
-      ),
-      crisis,
-      not(inWar),
-    ),
+    all(link(5), crisis, not(inWar)),
     [v("known", known("fra_toul_verdun")), v("east", east1), base],
     {
       stage: LATE,
@@ -944,7 +949,7 @@ export const FRA_CRISIS_SCENES: readonly GwScene[] = [
     // July's paper, or, whatever the chapter, the war's first days: France
     // always signs its mobilisation when its war starts.
     any(
-      all(late(4), crisis, tempMin(7), not(sea), not(mob("FRA", 2))),
+      all(link(4), crisis, tempMin(7), not(sea), not(mob("FRA", 2))),
       all(inWar, inWarFor(0, 2), not(sea)),
     ),
     [
@@ -996,7 +1001,11 @@ export const FRA_CRISIS_SCENES: readonly GwScene[] = [
     8,
     ["home"],
     { home: { office: "interior" } },
-    all(late(4), hot, tempMin(7), not(sea)),
+    all(
+      any(all(crisis, link(4)), all(inWar, inWarFor(0, 1))),
+      tempMin(7),
+      not(sea),
+    ),
     [v("soft", heard("k_carnet_soft")), v("cgt", heard("k_jou_cgt")), base],
     {
       stage: LATE,
@@ -1026,7 +1035,7 @@ export const FRA_CRISIS_SCENES: readonly GwScene[] = [
     9,
     ["home", "tension_down"],
     { pm: { office: "chancellor" } },
-    all(late(5), any(inWar, tempMin(8))),
+    any(all(inWar, ownMonths(undefined, 1)), all(crisis, link(4), tempMin(8))),
     [
       v("late_lives", all(lateWar, active("fra_jaures"))),
       v("late", all(lateWar, not(active("fra_jaures")))),
@@ -1072,14 +1081,8 @@ export const FRA_CRISIS_SCENES: readonly GwScene[] = [
     8,
     ["foreign", "war"],
     { pm: { office: "chancellor" }, fm: { office: "foreign" } },
-    all(
-      all(
-        { kind: "chapter", min: 5 },
-        { kind: "world", of: { is: "peace_months", max: 17 } },
-      ),
-      east1,
-      not(inWar),
-    ),
+    // Germany's war on Russia alone: the crisis closed in a war France isn't in.
+    all(east1, not(inWar), { kind: "world", of: { is: "war_months", max: 3 } }),
     [
       v("russians", mob("RUS", 2)),
       v("britain", { kind: "world", of: { is: "neutral", tag: "GBR" } }),
@@ -1385,10 +1388,13 @@ export const FRA_CRISIS_SCENES: readonly GwScene[] = [
     7,
     ["home"],
     { pm: { office: "chancellor" } },
-    all(from(9), {
-      kind: "world",
-      of: { is: "date", from: "1914-12", to: "1915-01" },
-    }),
+    all(
+      { kind: "world", of: { is: "month", of: [12] } },
+      any(ownMonths(undefined, 6), {
+        kind: "world",
+        of: { is: "peace_months", max: 6 },
+      }),
+    ),
     [v("bdx", all(inWar, bdx)), v("war", inWar), base],
     {
       stage: WAR,
@@ -1472,15 +1478,24 @@ export const FRA_CRISIS_SCENES: readonly GwScene[] = [
     moods: ["weary"],
     deal: [remember("k_viv_quai")],
   }),
-  talk("fra_t_viviani_union", "fra_viviani", all(chapters(5, 6), tempMin(7)), {
-    moods: ["anxious"],
-    deal: [remember("k_jau_party"), remember("m_fra_sembat_guesde")],
-    ask: [remember("m_fra_sembat_guesde")],
-  }),
+  talk(
+    "fra_t_viviani_union",
+    "fra_viviani",
+    all(
+      any(all(crisis, link(4)), all(inWar, ownMonths(undefined, 0))),
+      tempMin(7),
+    ),
+    {
+      moods: ["anxious"],
+      deal: [remember("k_jau_party"), remember("m_fra_sembat_guesde")],
+      ask: [remember("m_fra_sembat_guesde")],
+    },
+    { stage: LATE },
+  ),
   talk(
     "fra_t_viviani_chamber",
     "fra_viviani",
-    all(sinceChapter(10, "15b"), viviani),
+    all(inWar, ownMonths(4), viviani),
     {
       moods: ["weary"],
       deal: [trustOf(p, 1), chamber(1)],
@@ -1508,19 +1523,32 @@ export const FRA_CRISIS_SCENES: readonly GwScene[] = [
     moods: ["anxious"],
     deal: [remember("k_mes_uniform")],
   }),
-  talk("fra_t_messimy_joffre", "fra_messimy", chapters(3, 6), {
-    moods: ["arrogant"],
-    deal: [remember("k_jof_cover")],
-  }),
-  talk("fra_t_messimy_paris", "fra_messimy", all(chapters(6, 7), inWar), {
-    moods: ["anxious"],
-    deal: [remember("k_mes_stay")],
-    ask: [remember("m_fra_gallieni_named")],
-  }),
+  talk(
+    "fra_t_messimy_joffre",
+    "fra_messimy",
+    any(all(crisis, link(3)), all(inWar, ownMonths(undefined, 0))),
+    {
+      moods: ["arrogant"],
+      deal: [remember("k_jof_cover")],
+    },
+    { stage: LATE },
+  ),
+  // The Germans come down from the north while he is still the minister.
+  talk(
+    "fra_t_messimy_paris",
+    "fra_messimy",
+    all(inWar, north, holds("war", "fra_messimy")),
+    {
+      moods: ["anxious"],
+      deal: [remember("k_mes_stay")],
+      ask: [remember("m_fra_gallieni_named")],
+    },
+    { stage: LATE },
+  ),
   talk(
     "fra_t_messimy_front",
     "fra_messimy",
-    all(sinceChapter(8, "18b"), not(holds("war", "fra_messimy"))),
+    all(inWar, ownMonths(2), not(holds("war", "fra_messimy"))),
     {
       deal: [trustOf(p, 1)],
       ask: [remember("m_fra_division_morale")],
@@ -1530,8 +1558,10 @@ export const FRA_CRISIS_SCENES: readonly GwScene[] = [
   talk(
     "fra_t_messimy_regret",
     "fra_messimy",
+    // Soon after the reshuffle that took his office.
     all(
-      chapters(7, 8),
+      inWar,
+      inWarFor(1, 4),
       seen("fra_c_war_cabinet"),
       not(holds("war", "fra_messimy")),
     ),
@@ -1544,6 +1574,7 @@ export const FRA_CRISIS_SCENES: readonly GwScene[] = [
       ],
       press: [trustOf(p, 1)],
     },
+    { stage: LATE },
   ),
   // ---- Jaurès ----
   talk(
@@ -1596,7 +1627,7 @@ export const FRA_CRISIS_SCENES: readonly GwScene[] = [
   talk(
     "fra_t_jaures_after",
     "fra_jaures",
-    all(sinceChapter(6, "18b"), jl),
+    all(inWar, jl),
     {
       moods: ["stubborn"],
       deal: [trustOf(p, 1), heat("fra_sfio", -1)],
@@ -1622,10 +1653,17 @@ export const FRA_CRISIS_SCENES: readonly GwScene[] = [
       ask: [remember("m_fra_rubicon_hint")],
     },
   ),
-  talk("fra_t_caillaux_tax", "fra_caillaux", chapters(0, 10), {
-    moods: ["arrogant"],
-    deal: [remember("k_cai_tax")],
-  }),
+  // Peacetime's quarrel: before France is five months into a war.
+  talk(
+    "fra_t_caillaux_tax",
+    "fra_caillaux",
+    not(ownMonths(5)),
+    {
+      moods: ["arrogant"],
+      deal: [remember("k_cai_tax")],
+    },
+    { stage: LATE },
+  ),
   talk(
     "fra_t_caillaux_exile",
     "fra_caillaux",
@@ -1707,19 +1745,22 @@ export const FRA_CRISIS_SCENES: readonly GwScene[] = [
   visit(
     "fra_v_lanrezac_warn",
     "fra_lanrezac",
-    all(chapters(4, 7), hot),
+    any(all(crisis, link(4)), all(inWar, ownMonths(undefined, 1))),
     5,
     ["people", "war"],
     [remember("k_lan_warn")],
     [maybe(secret("fra_offensive_doctrine"), reveal("fra_offensive_doctrine"))],
+    { stage: LATE },
   ),
   visit(
     "fra_v_jouhaux_cgt",
     "fra_jouhaux",
-    all(chapters(4, 6), crisis),
+    all(link(4), crisis),
     5,
     ["people", "home"],
     [remember("k_jou_cgt")],
+    [],
+    { stage: LATE },
   ),
   visit(
     "fra_v_ferry_notebook",
@@ -1740,10 +1781,12 @@ export const FRA_CRISIS_SCENES: readonly GwScene[] = [
   visit(
     "fra_v_sembat_book",
     "fra_sembat",
-    chapters(0, 6),
+    // Before France has been a month at war.
+    not(ownMonths(1)),
     4,
     ["people", "home"],
     [trustOf(p, 1)],
     [remember("m_fra_sfio_majority")],
+    { stage: LATE },
   ),
 ];
