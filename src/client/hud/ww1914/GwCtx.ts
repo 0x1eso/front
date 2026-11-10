@@ -114,6 +114,8 @@ export interface GwUi {
   /** The schedule entry open, and what is picked in it so far. */
   actOpen: string | null;
   actPicks: Record<string, string[]>;
+  /** The 통치 tab: the power open, its picks, the groups unfolded; null fresh. */
+  rule?: GwRuleDraft | null;
   /** The list of aims is open to change one; the aim waiting for its word. */
   aimOpen: boolean;
   aimArmed: string | null;
@@ -146,6 +148,15 @@ export interface GwUi {
   diplo: GwDiploDraft;
   /** The memoirs side by side are open. */
   finale: boolean;
+}
+
+export interface GwRuleDraft {
+  open: string | null;
+  target: string | null;
+  /** Field id -> option id. */
+  picks: Record<string, string>;
+  /** Groups unfolded. */
+  groups: string[];
 }
 
 export interface GwDiploDraft {

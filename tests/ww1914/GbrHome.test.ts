@@ -48,6 +48,8 @@ const OTHER_SHARES = [
   "gbr_w_fisher_out",
   "gbr_w_march",
   "gbr_w_somme_first",
+  // The fall track's second paper (scenes/gov.ts), ww169's 2B gate.
+  "gov_gbr_table_2",
 ];
 
 describe("the home share of Britain", () => {
@@ -92,7 +94,11 @@ describe("the home share of Britain", () => {
   });
 
   test("a decision has three to six options, a locked one a way to open", () => {
+    // The chair given up is an ending card: its one option closes the game (2B).
+    const ending = (x: (typeof scenes)[number]) =>
+      x.options!.every((o) => o.tell.includes("ends_game"));
     for (const s of scenes.filter((x) => (x.options ?? []).length > 0)) {
+      if (ending(s)) continue;
       expect(s.options!.length, s.id).toBeGreaterThanOrEqual(3);
       expect(s.options!.length, s.id).toBeLessThanOrEqual(6);
       expect(s.fallback, s.id).toBeDefined();
@@ -111,10 +117,22 @@ describe("the home share of Britain", () => {
     };
     sets("gbr_h_coalition", "coalition", "f_coalition");
     sets("gbr_h_coalition", "own_terms", "f_coalition");
-    sets("gbr_h_new_chair", "continue_lg", "f_pm_lg");
     sets("gbr_h_ireland_talks", "lloyd_george_terms", "f_ireland_settled");
     sets("gbr_h_conscription", "single_men", "f_gbr_conscript");
     sets("gbr_h_conscription", "all_men", "f_gbr_conscript");
+  });
+
+  test("losing the chair ends the game, behind the fall track (2B)", () => {
+    const call = scenes.find((s) => s.id === "gbr_h_palace_call")!;
+    expect(call.fallback).toBe("stay_and_fight");
+    expect(JSON.stringify(call.when)).toContain("gov_gbr_table_2");
+    const chair = scenes.find((s) => s.id === "gbr_h_new_chair")!;
+    expect(chair.options!.map((o) => o.id)).toEqual(["end_memoir"]);
+    for (const s of scenes) {
+      for (const o of s.options ?? []) {
+        expect(o.effects).not.toContainEqual({ kind: "flag", flag: "f_pm_lg" });
+      }
+    }
   });
 
   test("every stop leads to a halt: no option orders a death", () => {

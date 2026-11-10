@@ -9,6 +9,7 @@ import { GwCraftStateSchema } from "./GwCraft";
 import { GwHouseStateSchema } from "./GwHouse";
 import { GwLawStateSchema } from "./GwLaw";
 import { GwPlaceSchema } from "./GwPlaces";
+import { GwPowerStateSchema } from "./GwPowers";
 import { gwPressStart, GwPressStateSchema } from "./GwPress";
 import { GwPrologueStateSchema } from "./GwPrologue";
 import { GwRulerStateSchema } from "./GwRuler";
@@ -1047,6 +1048,8 @@ export const GwSeatStateSchema = z.object({
   craft: GwCraftStateSchema.optional(),
   /** The house, its factions, files, asks, plots (GwHouse.ts); absent until any. */
   house: GwHouseStateSchema.optional(),
+  /** The ruler's powers used and sounded out (GwPowers.ts); absent until any. */
+  powers: GwPowerStateSchema.optional(),
 });
 export type GwSeatState = z.infer<typeof GwSeatStateSchema>;
 

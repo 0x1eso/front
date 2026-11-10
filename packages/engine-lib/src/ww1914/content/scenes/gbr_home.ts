@@ -2547,9 +2547,12 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
     id: "gbr_h_palace_call",
     kind: "crisis",
     stage: WAR,
+    // ww169 (owner's 2B): Asquith stays the player, so losing the chair ends
+    // the game. It comes only behind the fall track's warnings.
     when: all(
       notLg,
       during("16b"),
+      seen("gov_gbr_table_2"),
       any(chose("gbr_h_committee", "refuse"), {
         kind: "inst",
         inst: "cabinet",
@@ -2572,11 +2575,11 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
       }),
       v("base"),
     ],
-    fallback: "resign",
+    fallback: "stay_and_fight",
     options: [
       o(
         "resign",
-        ["trust:+1"],
+        ["trust:+1", "ends_game"],
         [
           maybe(
             promise_open_king,
@@ -2588,7 +2591,7 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
       ),
       o(
         "serve_under",
-        ["cabinet:+2", "authority:-2"],
+        ["cabinet:+2", "authority:-2", "ends_game"],
         [
           maybe(
             promise_open_king,
@@ -2611,39 +2614,18 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
     id: "gbr_h_new_chair",
     kind: "crisis",
     stage: WAR,
-    when: chose("gbr_h_palace_call"),
+    // Only once the chair is given up: standing and fighting keeps it.
+    when: flag("f_gbr_resigned"),
     cast: { court: holder("court") },
     salience: 9,
     tags: ["people"],
     variants: [v("under_law", flag("f_gbr_under_law")), v("base")],
-    fallback: "continue_lg",
+    fallback: "end_memoir",
     options: [
-      o(
-        "continue_lg",
-        [],
-        [
-          setFlag("f_pm_lg"),
-          appoint("gbr_lloyd_george", "chancellor"),
-          appoint("gbr_bonar_law", "finance"),
-          maybe(empty("munitions"), appoint("gbr_montagu", "munitions")),
-        ],
-      ),
       o(
         "end_memoir",
         ["ends_game"],
         [setFlag("f_gbr_memoir"), { kind: "end", ending: "home_collapse" }],
-      ),
-      o(
-        "old_friend",
-        ["authority:+1"],
-        [
-          setFlag("f_pm_lg"),
-          appoint("gbr_lloyd_george", "chancellor"),
-          appoint("gbr_bonar_law", "finance"),
-          authority(1),
-          remember("m_old_friend_visit"),
-        ],
-        memory("k_ven_after"),
       ),
     ],
   }),

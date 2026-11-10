@@ -49,6 +49,7 @@ import { peopleTab } from "./GwPeople";
 import { replayBeats } from "./GwPlaceModel";
 import { deskPinLayer, placeSheet } from "./GwPlaceSheet";
 import { GwReplay, replayOverlay } from "./GwReplay";
+import { ruleTab } from "./GwRule";
 import { scheduleTab } from "./GwSchedule";
 import { GLASS } from "./GwStyle";
 import { paintPane, paintTags, speech, tableTab, tableTags } from "./GwTable";
@@ -150,6 +151,7 @@ export class GwPanel extends LitElement implements Controller {
     pressPick: null,
     actOpen: null,
     actPicks: {},
+    rule: null,
     aimOpen: false,
     aimArmed: null,
     paint: null,
@@ -484,6 +486,8 @@ export class GwPanel extends LitElement implements Controller {
         return tableTab(c);
       case "people":
         return peopleTab(c);
+      case "rule":
+        return ruleTab(c);
       case "schedule":
         return scheduleTab(c);
       case "fronts":

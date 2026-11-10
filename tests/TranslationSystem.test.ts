@@ -48,6 +48,8 @@ const DYNAMIC_KEY_PATTERNS: RegExp[] = [
   // Great War 1914: names built from ids (gw.country.<TAG>, gw.office.<id>,
   // gw.tell.<word>) and the why-log, whose keys are in the engine's scenes.
   /^gw\.(?:country|office|reason|tell)\.[A-Za-z0-9_]+$/,
+  // The 통치 tab's words by group, kind, greyed reason and link (ww169).
+  /^gw\.power\.(?:group|kind|why|link)\.[a-z_]+$/,
   // A country's own office titles (client/ww1914/GwOffice: gw.office_by.FRA.war).
   /^gw\.office_by\.[A-Z]{3}\.[a-z_]+$/,
   // The budget's words, by line, source, lender and country (client/ww1914/GwBudget).

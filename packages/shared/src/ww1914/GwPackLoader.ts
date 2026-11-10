@@ -44,6 +44,7 @@ export const GW_PACK_SHARES: Readonly<
     "table",
     "craft",
     "house",
+    "powers",
   ],
   GBR: [
     "crisis",
@@ -62,6 +63,7 @@ export const GW_PACK_SHARES: Readonly<
     "table",
     "craft",
     "house",
+    "powers",
   ],
   AUH: [
     "crisis",
@@ -80,6 +82,7 @@ export const GW_PACK_SHARES: Readonly<
     "table",
     "craft",
     "house",
+    "powers",
   ],
   RUS: [
     "crisis",
@@ -98,6 +101,7 @@ export const GW_PACK_SHARES: Readonly<
     "table",
     "craft",
     "house",
+    "powers",
   ],
   FRA: [
     "crisis",
@@ -116,6 +120,7 @@ export const GW_PACK_SHARES: Readonly<
     "table",
     "craft",
     "house",
+    "powers",
   ],
 };
 
@@ -134,6 +139,7 @@ export const GW_COMMON_SHARES: readonly string[] = [
   "acts",
   "table",
   "house",
+  "powers",
 ];
 /**
  * Casts in files of their own. Every seat loads them: a scene can cast another

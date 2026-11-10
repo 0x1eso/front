@@ -82,7 +82,16 @@ export const GW_ENGINE_MEMORY = [
   ...GW_OFFICES.map((o) => `succeeded_${o}`),
   // A premier the head pressed into resigning (People.pressPremier).
   "premier_resigned",
+  // What a signer said when sounded out (Powers.ts, ww169).
+  "k_pw_said_yes",
+  "k_pw_said_no",
 ] as const;
+
+/**
+ * Flags nothing sets any more but scenes still read, always false. f_pm_lg:
+ * Asquith never hands the seat to Lloyd George (ww169, owner's 2B).
+ */
+export const GW_RETIRED_FLAGS: readonly string[] = ["f_pm_lg"];
 
 /**
  * References that lead nowhere, across every scene. `outside` lists flags,
@@ -96,7 +105,7 @@ export function gwContentProblems(
   const out: string[] = [];
   const ids = new Map(scenes.map((s) => [s.id, s]));
   const persons = new Set(people.map((p) => p.id));
-  const flags = new Set<string>(outside);
+  const flags = new Set<string>([...GW_RETIRED_FLAGS, ...outside]);
   const memories = new Set<string>([...GW_ENGINE_MEMORY, ...outside]);
   const called = new Set<string>(outside);
   const secrets = new Set<string>(GW_SECRETS);

@@ -8,6 +8,7 @@ import type {
   GwShortageRow,
 } from "../CraftRows";
 import type { GwHouseContent } from "../HouseRows";
+import type { GwPowerContent } from "../PowerRows";
 import { withRuler } from "../RulerRows";
 import { AUH_ACT_SCENES, AUH_ACTS, AUH_AIMS } from "./acts/auh";
 import { COMMON_ACT_SCENES, COMMON_ACTS } from "./acts/common";
@@ -26,6 +27,12 @@ import { GW_PEOPLE_MONEY } from "./people_money";
 import { GW_PEOPLE_RULER } from "./people_ruler";
 import { RUS_PEOPLE } from "./people_rus";
 import { RUS_KIN } from "./people_rus_private";
+import { AUH_POWER_SCENES, AUH_POWERS, AUH_REACTORS } from "./powers/auh";
+import { COMMON_POWER_SCENES } from "./powers/common";
+import { DEU_POWER_SCENES, DEU_POWERS, DEU_REACTORS } from "./powers/deu";
+import { FRA_POWER_SCENES, FRA_POWERS, FRA_REACTORS } from "./powers/fra";
+import { GBR_POWER_SCENES, GBR_POWERS, GBR_REACTORS } from "./powers/gbr";
+import { RUS_POWER_SCENES, RUS_POWERS, RUS_REACTORS } from "./powers/rus";
 import { AUH_STORY_SCENES } from "./scenes/auh_act";
 import { AUH_QUIET_SCENES, withAuhBodies } from "./scenes/auh_bodies";
 import { AUH_CRISIS_SCENES } from "./scenes/auh_crisis";
@@ -110,7 +117,7 @@ import { TABLE_SCENES } from "./scenes/table";
 import { WARTIME_SCENES } from "./scenes/wartime";
 import { WORLD_SCENES } from "./scenes/world";
 
-export interface GwContent extends GwHouseContent {
+export interface GwContent extends GwHouseContent, GwPowerContent {
   readonly scenes: readonly GwScene[];
   readonly people: readonly GwPersonDef[];
   /** The schedule's entries (원수의 일정); fixtures may have none. */
@@ -213,6 +220,12 @@ export const GW_CONTENT: GwContent = {
           ...RUS_ACT_SCENES,
           ...FRA_ACT_SCENES,
         ].map((s) => ({ ...s, byAct: true })),
+        ...COMMON_POWER_SCENES,
+        ...DEU_POWER_SCENES,
+        ...GBR_POWER_SCENES,
+        ...AUH_POWER_SCENES,
+        ...RUS_POWER_SCENES,
+        ...FRA_POWER_SCENES,
         ...DEU_PROLOGUE_SCENES,
         ...GBR_PROLOGUE_SCENES,
         ...AUH_PROLOGUE_SCENES,
@@ -258,6 +271,20 @@ export const GW_CONTENT: GwContent = {
   footing: GW_FOOTING,
   shortages: GW_SHORTAGE_ROWS,
   ...GW_HOUSE_CONTENT,
+  powers: [
+    ...DEU_POWERS,
+    ...GBR_POWERS,
+    ...AUH_POWERS,
+    ...RUS_POWERS,
+    ...FRA_POWERS,
+  ],
+  reactors: [
+    ...DEU_REACTORS,
+    ...GBR_REACTORS,
+    ...AUH_REACTORS,
+    ...RUS_REACTORS,
+    ...FRA_REACTORS,
+  ],
 };
 
 let current = GW_CONTENT;

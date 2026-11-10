@@ -136,6 +136,30 @@ export const GwActPackSchema = z
   .strict();
 export type GwActPack = z.infer<typeof GwActPackSchema>;
 
+/** A power's words on the 통치 tab (ww169): pack `powers.<id>`. */
+export const GwPowerPackSchema = z
+  .object({
+    /** What the power is, as the ruler does it: "제국의회를 해산한다". */
+    name: Text,
+    /** One plain line under it: a fact, never a result. */
+    note: Text.optional(),
+    /** The procedure in the row's own words, over the generated line. */
+    needs: Text.optional(),
+    /** Greyed: reason key -> the fact line ("의회가 열려 있지 않다"). */
+    why: ById.optional(),
+    /** An `option` target's words, by option id. */
+    opt: ById.optional(),
+    /** A further field: its heading and its options' words. */
+    fields: z
+      .record(
+        GwIdSchema,
+        z.object({ label: Text, opt: ById.optional() }).strict(),
+      )
+      .optional(),
+  })
+  .strict();
+export type GwPowerPack = z.infer<typeof GwPowerPackSchema>;
+
 /** An invention's or a project's name on the country tab: pack `craft.<id>`. */
 export const GwCraftPackSchema = z
   .object({
@@ -296,6 +320,8 @@ export const GwPackSchema = z
      * `house_split`, `house_joined`; `<story>_<faction>` wins). Holds {faction}, {who}.
      */
     heads: z.record(GwIdSchema, GwHeadPackSchema).optional(),
+    /** Power id -> its words on the 통치 tab (ww169). */
+    powers: z.record(GwIdSchema, GwPowerPackSchema).optional(),
   })
   .strict();
 export type GwPack = z.infer<typeof GwPackSchema>;
@@ -320,6 +346,7 @@ export function mergeGwPacks(packs: readonly GwPack[]): GwPack {
     plots: {},
     asks: {},
     heads: {},
+    powers: {},
   };
   for (const p of packs) {
     Object.assign(out.scenes, p.scenes);
@@ -340,6 +367,7 @@ export function mergeGwPacks(packs: readonly GwPack[]): GwPack {
     Object.assign(out.plots!, p.plots);
     Object.assign(out.asks!, p.asks);
     Object.assign(out.heads!, p.heads);
+    Object.assign(out.powers!, p.powers);
     if (p.press !== undefined) out.press = p.press;
     if (p.table !== undefined) out.table = { ...out.table, ...p.table };
   }
@@ -421,6 +449,7 @@ export function gwPackOverlaps(packs: readonly GwPack[]): string[] {
       ...Object.keys(p.plots ?? {}).map((x) => `plot ${x}`),
       ...Object.keys(p.asks ?? {}).map((x) => `ask ${x}`),
       ...Object.keys(p.heads ?? {}).map((x) => `head ${x}`),
+      ...Object.keys(p.powers ?? {}).map((x) => `power ${x}`),
     ];
     for (const id of ids) {
       if (seen.has(id)) out.add(id);

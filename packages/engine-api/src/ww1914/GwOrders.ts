@@ -184,6 +184,22 @@ export const GwOrderSchema = z.discriminatedUnion("kind", [
     kind: z.literal("close_chapter"),
     chapter: zb.uint({ max: 1000 }),
   }),
+  /**
+   * A power from the 통치 tab (ww169). `target`: the picked id (a person, a
+   * tag, a theatre, a chamber, an option), null with no list. `picks`: the
+   * further fields' option ids in field order. `without`: past the signer, in
+   * its beyond form. `sound`: only sound the signer out (spends an audience).
+   */
+  z.object({
+    kind: z.literal("power"),
+    id: Id,
+    target: zb
+      .string({ min: 1, max: 48, regex: /^[A-Za-z][A-Za-z0-9_]*$/ })
+      .nullable(),
+    picks: z.array(Id).max(6),
+    without: z.boolean(),
+    sound: z.boolean(),
+  }),
 ]);
 export type GwOrder = z.infer<typeof GwOrderSchema>;
 
@@ -239,5 +255,12 @@ export const GW_ORDER_BLOCKS = [
   "at_war",
   // France: a premier falls in the house, not by the President's hand.
   "premier_house",
+  // The 통치 tab (ww169).
+  "no_power",
+  "power_closed",
+  "no_target",
+  "no_signer",
+  "no_beyond",
+  "sounded",
 ] as const;
 export type GwOrderBlock = (typeof GW_ORDER_BLOCKS)[number];
