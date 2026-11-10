@@ -20,7 +20,6 @@
  *   coup    owner, target (a successful op_coup)
  *   nuke    owner, region, dropped|intercepted
  *   atomic  country (sp_atomic done)
- *   p6flag  region, what (Korea or Taiwan holds P6 data or was struck)
  * Then the final-balance brief's targets (P6 Task 22 Step 2 as ranges and
  * the open P5 targets), each with its value and PASS/OPEN.
  *
@@ -32,7 +31,6 @@
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import { SPECIAL_PROJECTS } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
-  BUILDING_IDS,
   equipKey,
   RESOURCE_IDS,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
@@ -113,8 +111,6 @@ interface DepthResult {
   >;
   nukes: { day: number; owner: string; region: number; hit: boolean }[];
   coups: { day: number; owner: string; target: string }[];
-  /** Korea/Taiwan: P6 data held or struck (first day of each). */
-  p6flags: { day: number; region: number; what: string }[];
   /** Max atomic stock any country held, and who. */
   atomicStockMax: { tag: string; n: number };
   /**
@@ -141,7 +137,6 @@ function depthExtension(perfAcc: PerfAcc | null): SimExtension {
   let c!: SimContext;
   let d!: WwDepth;
   const majors: number[] = [];
-  const noStrike = new Set<number>();
   const res: DepthResult = {
     deuArmor194106: -1,
     sunInf194106: -1,
@@ -153,18 +148,9 @@ function depthExtension(perfAcc: PerfAcc | null): SimExtension {
     energy1940: {},
     nukes: [],
     coups: [],
-    p6flags: [],
     atomicStockMax: { tag: "-", n: 0 },
     wars: [],
     pairs: { POL: [], FRA: [] },
-  };
-  const flagged = new Set<string>();
-  const flag = (day: number, region: number, what: string) => {
-    const k = `${region}:${what}`;
-    if (flagged.has(k)) return;
-    flagged.add(k);
-    res.p6flags.push({ day, region, what });
-    c.row(day, "p6flag", region, what);
   };
   const d194106 = dayOfDate("1941-06-22");
   const d194206 = dayOfDate("1942-06-30");
@@ -176,15 +162,6 @@ function depthExtension(perfAcc: PerfAcc | null): SimExtension {
       c = ctx;
       d = ctx.ww.depth;
       for (const t of MAJORS) majors.push(ctx.idOf(t));
-      const pol = ctx.ww.politics;
-      for (const g of ["korea_north", "korea_south", "taiwan"]) {
-        for (const r of pol.content.groupIdx.get(g)?.regions ?? []) {
-          noStrike.add(r);
-        }
-      }
-      for (const r of ctx.ww.scenario.landRegions) {
-        if (d.noStrike(r.id)) noStrike.add(r.id);
-      }
       // Successful coups: the owner's "operation done" line for op_coup.
       const msg = d.message.bind(d);
       d.message = (to, key, params = {}) => {
@@ -228,11 +205,6 @@ function depthExtension(perfAcc: PerfAcc | null): SimExtension {
           ctx.row(day, "nuke", owner, region, "dropped");
         }
         news(id, params);
-      };
-      const fx = d.addFx.bind(d);
-      d.addFx = (f) => {
-        if (noStrike.has(f.region)) flag(ctx.today(), f.region, `fx ${f.kind}`);
-        fx(f);
       };
       // Pol/Fra lane: the war pairs with Germany, Poland or France in them.
       const watch = new Set(
@@ -359,42 +331,6 @@ function depthExtension(perfAcc: PerfAcc | null): SimExtension {
           );
         const ci = d.country(ita);
         if (!deal && ci !== null) energyNoDeal.push(ci.mech.energyPm);
-      }
-      // ---- Korea and Taiwan: no P6 data, never struck ----
-      for (const r of noStrike) {
-        const nb = BUILDING_IDS.length;
-        for (let b = 0; b < nb; b++) {
-          if ((econ.damage[r * nb + b] ?? 0) > 0) {
-            flag(done, r, `damage ${BUILDING_IDS[b]}`);
-          }
-        }
-        if (d.nuked.has(r)) flag(done, r, "nuked");
-        if (d.resistBoostIndex.has(r)) flag(done, r, "resistBoost");
-        if (d.regionStatusIndex.has(r)) flag(done, r, "regionStatus");
-        if (d.facilityIndex.has(r)) flag(done, r, "facility");
-      }
-      const w = d.world;
-      const tuples: [string, readonly (readonly number[])[]][] = [
-        ["flood", w.floodUntil],
-        ["scorchQueue", w.scorchQueue],
-        ["scorched", w.scorchedUntil],
-        ["harbor", w.harbors],
-        ["exhausted", w.exhaustedUntil],
-      ];
-      for (const [name, rows] of tuples) {
-        for (const t of rows) if (noStrike.has(t[0])) flag(done, t[0], name);
-      }
-      for (const g of w.railGuns) {
-        if (noStrike.has(g[3])) flag(done, g[3], "railGun");
-      }
-      for (const q of d.nukeQueue) {
-        if (noStrike.has(q.region)) flag(done, q.region, "nukeQueue");
-      }
-      for (const q of d.rocketQueue) {
-        if (noStrike.has(q.target)) flag(done, q.target, "rocketQueue");
-      }
-      for (const q of d.raids) {
-        if (noStrike.has(q.target)) flag(done, q.target, "raid");
       }
       // ---- Pol/Fra lane: the DEU–POL and DEU–FRA wars ----
       const eg = ww.endgame;
@@ -793,31 +729,7 @@ function checksOn(rs: DepthRun[]): Check[] {
     value: `${sigs.size} distinct, largest ${top}`,
     ok: sigs.size >= sc(6) && top <= sc(6),
   });
-  out.push(koreaCheck(rs));
   return out;
-}
-
-function koreaCheck(rs: DepthRun[]): Check {
-  const bad = rs.filter(
-    (r) =>
-      r.sensitive.some((x) => !x.what.startsWith("taiwan legal CHN")) ||
-      r.depth.p6flags.length > 0,
-  );
-  const tw = rs.filter((r) =>
-    r.sensitive.some((x) => x.what.startsWith("taiwan legal CHN")),
-  ).length;
-  const what = bad
-    .map(
-      (r) =>
-        `${r.seed}: ${[...r.sensitive.map((x) => x.what), ...r.depth.p6flags.map((x) => `${x.region} ${x.what}`)].join("; ")}`,
-    )
-    .join(" | ");
-  return {
-    target:
-      "Korea/Taiwan: legal owner unchanged, no P6 data, never struck (daily)",
-    value: `${bad.length}/${rs.length} flagged${tw > 0 ? ` (Taiwan to CHN by treaty: ${tw})` : ""}${bad.length > 0 ? ` (${what})` : ""}`,
-    ok: bad.length === 0,
-  };
 }
 
 /**
@@ -910,7 +822,6 @@ function checksOff(rs: DepthRun[]): Check[] {
       value: `[${rs.map((r) => r.depth.nukes.filter((x) => x.hit).length).join(" ")}]`,
       ok: true,
     },
-    koreaCheck(rs),
   ];
 }
 
@@ -929,7 +840,6 @@ function depthTable(xs: readonly DepthRun[]): string {
       "ITA nodeal",
       "nukes",
       "coups",
-      "p6flags",
     ],
     xs.map((r) => {
       const dp = r.depth;
@@ -956,7 +866,6 @@ function depthTable(xs: readonly DepthRun[]): string {
           .map((x) => `${x.owner}${x.hit ? "" : "(x)"} ${iso(x.day)}`)
           .join(", ") || "0",
         dp.coups.map((x) => `${x.owner}>${x.target}`).join(" ") || "0",
-        String(dp.p6flags.length),
       ];
     }),
   );

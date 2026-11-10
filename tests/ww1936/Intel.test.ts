@@ -397,7 +397,7 @@ describe("World War 1936 P6: intelligence (lane I)", () => {
     ).toBe("op_unavailable");
   });
 
-  it("support resistance never targets Korean or Taiwanese regions", async () => {
+  it("support resistance targets only administered regions", async () => {
     const r = await game();
     const ww = r.game.worldWar()!;
     const d = ww.depth;
@@ -405,8 +405,8 @@ describe("World War 1936 P6: intelligence (lane I)", () => {
     const { paris, lyon, berlin, munich } = DEEP.region;
     takeRegion(r.game, paris, "DEU");
     takeRegion(r.game, lyon, "DEU");
-    // A region no one else holds a core on is never administered (P5
-    // decision 32: Korea and Taiwan), even when taken.
+    // A region no one else holds a core on is never administered, even when
+    // taken.
     eg.removeCore(FRA, lyon);
     expect(eg.isAdministered(paris)).toBe(true);
     expect(eg.isAdministered(lyon)).toBe(false);

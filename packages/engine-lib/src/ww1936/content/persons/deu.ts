@@ -181,7 +181,6 @@ export const PERSONS_DEU: PersonDef[] = [
     from: "1936-10-18",
     source: "title card (spec §8.4-3); Four Year Plan decree 1936-10-18",
   },
-  // The propaganda minister is on the banned list (plan Sensitivity).
   {
     id: "title_deu_propaganda_chief",
     nameKey: "ww1936.title.deu_propaganda_chief",

@@ -1,6 +1,4 @@
 // World War 1936 P3 — Soviet advisors by name (spec §19.9, lane K4).
-// Not here (spec §8.4-2, BANNED_PERSON_IDS): the NKVD chiefs Yagoda, Yezhov
-// and Beria, and the purge-trial prosecutor and judge Vyshinsky and Ulrikh.
 // Dates were checked against English and Russian Wikipedia (and a third
 // source where noted); an `until` that a purge event takes over is left out
 // (plan Task 13 Step 4).

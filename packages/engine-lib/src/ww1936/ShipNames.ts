@@ -316,7 +316,7 @@ export const SHIP_NAMES: Readonly<
     // Project 26-bis (Kirov and Voroshilov were on the slips in 1936:
     // StartNavy lines); Petropavlovsk (ex-Lützow):
     // en.wikipedia Kirov-class cruiser / German cruiser Lützow (1939);
-    // Conway's 1922-46. Lazar Kaganovich left out (sensitivity).
+    // Conway's 1922-46.
     ca: ["sun_maxim_gorky", "sun_molotov", "sun_kalinin", "sun_petropavlovsk"],
     // Chapayev class: en.wikipedia Chapayev-class cruiser; Conway's 1922-46
     cl: [

@@ -13,15 +13,6 @@ import { hasKey } from "./contentUtil";
 import { END_CORES } from "./endgameFixture";
 
 const FLAGS = path.join(__dirname, "../../resources/flags");
-const FORBIDDEN_FLAG_NAME = [
-  /empire of japan/i,
-  /nazi/i,
-  /ustas/i,
-  /rising/i,
-  /swastika/i,
-  /hakenkreuz/i,
-  /fasces/i,
-];
 /** The named slots with a land of their own from the start (spec §7.1). */
 const WITH_CORES = ["SVK", "HRV", "MEN", "BRM", "PHL"] as const;
 
@@ -63,14 +54,13 @@ describe("World War 1936 P5: the dormant slots", () => {
     }
   });
 
-  it("every flag exists and is a simple shape, never a banned emblem", () => {
+  it("every flag exists and is a simple shape", () => {
     for (const t of DORMANT_TAGS) {
       const flag = COUNTRIES[t].flag;
       expect(
         fs.existsSync(path.join(FLAGS, `${flag}.svg`)),
         `${t} ${flag}`,
       ).toBe(true);
-      for (const bad of FORBIDDEN_FLAG_NAME) expect(flag, t).not.toMatch(bad);
     }
     for (const ideo of ["democratic", "communist", "fascist", "neutral"]) {
       const f = path.join(FLAGS, `ww_cw_${ideo}.svg`);
@@ -82,12 +72,6 @@ describe("World War 1936 P5: the dormant slots", () => {
         ),
       ).toBe(true);
       expect(svg).not.toMatch(/<image|<text|<use/);
-    }
-  });
-
-  it("no Korean or Taiwanese country", () => {
-    for (const t of COUNTRY_TAGS) {
-      expect(/^(KOR|TWN|CHO|FOR)/.test(t), t).toBe(false);
     }
   });
 

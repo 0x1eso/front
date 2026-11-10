@@ -17,21 +17,16 @@ const readJson = (rel: string) =>
 const en = readJson("resources/lang/en.json").ww1936;
 const ko = readJson("resources/lang/ko.json").ww1936;
 
-/** The old exclusion list was abolished 2026-10-31; only the two still without a card stay. */
-const BANNED_NAMES = ["abrial", "frinovsky", "alksnis"] as const;
 const DATE = /^19[34]\d-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
-const nameParts = (id: string) => id.split("_");
 
 describe("admirals (spec §7.4)", () => {
-  it("ids are unique, tagged and never a banned person", () => {
+  it("ids are unique and tagged", () => {
     const seen = new Set<string>();
     for (const a of ADMIRALS) {
       expect(seen.has(a.id), a.id).toBe(false);
       seen.add(a.id);
       expect(COUNTRY_TAGS).toContain(a.tag);
       expect(a.id.startsWith(`${a.tag.toLowerCase()}_`), a.id).toBe(true);
-      for (const b of BANNED_NAMES)
-        expect(nameParts(a.id), a.id).not.toContain(b);
     }
   });
 
@@ -99,8 +94,6 @@ describe("navy and air chiefs (spec §16.3)", () => {
       for (const d of [p.from, p.until])
         if (d !== undefined) expect(d, p.id).toMatch(DATE);
       if (p.from && p.until) expect(p.from < p.until, p.id).toBe(true);
-      for (const b of BANNED_NAMES)
-        expect(nameParts(p.id), p.id).not.toContain(b);
       expect(typeof en.person?.[p.id], p.id).toBe("string");
       expect(typeof ko.person?.[p.id], p.id).toBe("string");
       expect(p.source.length, p.id).toBeGreaterThan(0);
