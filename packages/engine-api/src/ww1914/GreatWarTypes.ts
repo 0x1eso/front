@@ -193,6 +193,8 @@ export const GwPersonStateSchema = z.object({
   letter: z.number().int().nullable(),
   /** Chapter they began to fail; null when well. The warning comes first. */
   ailing: z.number().int().nullable(),
+  /** People a feud set against them (ww169): rivals as their own are. Sorted. */
+  feuds: z.array(GwIdSchema).optional(),
 });
 export type GwPersonState = z.infer<typeof GwPersonStateSchema>;
 
@@ -692,6 +694,10 @@ export const GwReasonSchema = z.object({
   who: GwIdSchema.nullable().optional(),
   /** The country it is about: the text's {country}. */
   tag: z.enum(GW_TAGS).optional(),
+  /** What it moved (ww169): the text's {what}, named by the key's family. */
+  what: GwIdSchema.optional(),
+  /** The schedule act it came from: the desk note lists it under the act. */
+  act: GwIdSchema.optional(),
 });
 export type GwReason = z.infer<typeof GwReasonSchema>;
 

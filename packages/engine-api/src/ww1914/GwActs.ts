@@ -71,6 +71,11 @@ export const GwActSchema = z
     /** 0: on the desk at once. 1: next chapter. A letter's reply: 1 or more. */
     wait: z.number().int().min(0),
     fields: z.array(GwActFieldSchema).optional(),
+    /**
+     * The cast role a tone field is written to (ww169 GW_TONE_EFFECTS);
+     * absent: the scene's `who`, else its first role.
+     */
+    to: GwIdSchema.optional(),
     /** Shown after the pick. */
     tell: z.array(TellSchema).optional(),
     /** Run at the pick. */

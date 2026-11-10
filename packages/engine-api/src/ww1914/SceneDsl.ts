@@ -283,7 +283,9 @@ export type GwEffect =
   /** Prologue: a mark toward what the ruler becomes. */
   | { kind: "temper"; of: GwRulerTemper }
   /** Prologue: makes that person likelier (or less) to become the rival. */
-  | { kind: "rival_lean"; who: GwWho; delta: number };
+  | { kind: "rival_lean"; who: GwWho; delta: number }
+  /** A grudge between two of the seat's people: each counts as the other's rival. */
+  | { kind: "feud"; a: GwWho; b: GwWho };
 
 const int = z.number().int();
 const range = { min: int.optional(), max: int.optional() };
@@ -476,6 +478,7 @@ export const GwEffectSchema: z.ZodType<GwEffect> = z.lazy(() =>
     obj("ruler_start", { side: z.enum(GW_RULER_SIDES), delta: int }),
     obj("temper", { of: z.enum(GW_RULER_TEMPERS) }),
     obj("rival_lean", { who: GwWhoSchema, delta: int }),
+    obj("feud", { a: GwWhoSchema, b: GwWhoSchema }),
   ]),
 ) as z.ZodType<GwEffect>;
 
@@ -950,6 +953,7 @@ export const memory = (key: string, who?: GwWho): GwCond =>
 export const role = (r: string): GwWho => ({ role: r });
 export const holder = (o: GwOffice): GwCastRule => ({ office: o });
 export const setFlag = (f: string): GwEffect => ({ kind: "flag", flag: f });
+export const feud = (a: GwWho, b: GwWho): GwEffect => ({ kind: "feud", a, b });
 export const inst_ = (i: GwInstitution, delta: number): GwEffect => ({
   kind: "inst",
   inst: i,

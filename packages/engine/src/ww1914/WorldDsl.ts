@@ -4,6 +4,7 @@ import {
   GW_SEA_MAX,
   GwPersonState,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import type {
   GwWorldCond,
   GwWorldEffect,
@@ -11,6 +12,8 @@ import type {
 } from "@openfront/engine-api/ww1914/WorldDsl";
 import { tilted } from "@openfront/engine-lib/ww1914/BudgetRules";
 import { civilFromDays } from "@openfront/engine-lib/ww1936/Calendar";
+import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
+import { noteFx } from "./ActNote";
 import { askEffect, askHolds } from "./Asks";
 import { holdVote, voteCount } from "./Authority";
 import {
@@ -48,7 +51,7 @@ import { changeRegime, regimeRow } from "./Regimes";
 import { SceneCtx, whoIn } from "./SceneRun";
 import { setUboats } from "./Sea";
 import { enter, leaveWar } from "./Wars";
-import { clampTo, lastOf, news, other, reason } from "./World";
+import { clampTo, lastOf, moveGauge, news, other, reason } from "./World";
 
 const inRange = (v: number, c: { min?: number; max?: number }) =>
   v >= (c.min ?? -Infinity) && v <= (c.max ?? Infinity);
@@ -380,7 +383,7 @@ export function worldEffect(ctx: SceneCtx, e: GwWorldEffect): void {
         nation.unrest = Math.max(0, nation.unrest - 1);
         nation.lowOrder = Math.max(0, nation.lowOrder - 2);
         nation.gauges.order = Math.min(5, nation.gauges.order + 1);
-        reason(gw, seat, "concession_made");
+        reason(gw, seat, e.key ?? "concession_made");
       }
       return;
     case "result": {
@@ -528,5 +531,30 @@ export function worldEffect(ctx: SceneCtx, e: GwWorldEffect): void {
     case "ask":
       askEffect(ctx, e);
       return;
+    case "stir":
+      stir(ctx, e.tag, e.delta);
+      return;
   }
+}
+
+const P_STIR = idHash("gw_stir");
+/** The best odds agitation has, against a country at the end of its tether. */
+const STIR_MOST = 90;
+
+/**
+ * Agitation in another country: the steadier it is, the likelier its police
+ * answer first. Either way the seat is told; the country's own seat sees its
+ * order fall as a gauge line.
+ */
+function stir(ctx: SceneCtx, tag: GwTag, delta: number): void {
+  const { gw, seat } = ctx;
+  const n = gw.nation(tag);
+  if (n === null || n.out || tag === seat.tag) return;
+  const odds = Math.min(STIR_MOST, 30 + 12 * (5 - n.gauges.order));
+  const roll = wwRoll(gw.s.seed, P_STIR, gw.s.chapter, idHash(tag)) % 100;
+  const worked = roll < odds && n.gauges.order > 0;
+  if (worked) moveGauge(gw, tag, "order", -delta, "order_stirred");
+  const key = worked ? "fx_stir" : "fx_stir_answered";
+  if (ctx.fx !== undefined) noteFx(seat, gw.s.chapter, ctx.fx, key, { tag });
+  else seat.log.push({ key, chapter: gw.s.chapter, tag });
 }

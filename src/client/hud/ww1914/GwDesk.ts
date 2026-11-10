@@ -54,7 +54,25 @@ const REASONS_SHOWN = 6;
  * The reasons that came with the last chapter's close, newest first. What
  * comes every month says nothing new here: the country tab keeps the whole log.
  */
+/** Acts whose desk note of this chapter or the last lists their lines. */
+function noted(c: GwCtx): Set<string> {
+  return new Set(
+    c.ui.notes
+      .filter((n) => n.chapter >= c.data.chapter - 1 && n.act !== undefined)
+      .map((n) => `${n.act}@${n.chapter}`),
+  );
+}
+
+/** What an act did, line by line, under its note. */
+function actLines(c: GwCtx, n: GwResultNote): string[] {
+  if (n.act === undefined) return [];
+  return c.seat.log
+    .filter((r) => r.act === n.act && r.chapter === n.chapter)
+    .map((r) => reasonText(c.pack, r));
+}
+
 export function lastReasons(c: GwCtx): string[] {
+  const listed = noted(c);
   const before = new Set(
     c.seat.log
       .filter((r) => r.chapter === c.data.chapter - 2)
@@ -63,7 +81,11 @@ export function lastReasons(c: GwCtx): string[] {
   return c.seat.log
     .filter(
       (r) =>
-        r.chapter >= c.data.chapter - 1 && !/^talk_(fit|clash)_/.test(r.key),
+        r.chapter >= c.data.chapter - 1 &&
+        !/^talk_(fit|clash)_/.test(r.key) &&
+        (r.act === undefined ||
+          r.act === null ||
+          !listed.has(`${r.act}@${r.chapter}`)),
     )
     .map((r) => reasonText(c.pack, r))
     .filter((t) => !before.has(t))
@@ -244,6 +266,12 @@ function resultsBox(c: GwCtx): TemplateResult | typeof nothing {
           ${n.rest === ""
             ? nothing
             : html`<p class="text-sm text-white/75">${rich(c, n.rest)}</p>`}
+          ${actLines(c, n).map(
+            (t) =>
+              html`<p class="text-sm text-white/75" data-gw-act-line>
+                ${rich(c, t)}
+              </p>`,
+          )}
           ${n.tell.length === 0
             ? nothing
             : html`<div class="flex flex-wrap gap-1">
