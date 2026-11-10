@@ -11,7 +11,6 @@ import { world } from "@openfront/engine-api/ww1914/WorldDsl";
 import {
   called,
   closeBy,
-  date,
   life,
   low,
   node,
@@ -91,7 +90,11 @@ export const RULER_FRA: readonly GwScene[] = [
     nation: NATION,
     kind: "proposal",
     stage,
-    when: all(self, war, date("1914-09", "1916-12")),
+    when: all(
+      self,
+      war,
+      world({ is: "war_months", own: true, min: 1, max: 29 }),
+    ),
     cast: near,
     fallback: "read_all",
     options: [
@@ -130,7 +133,11 @@ export const RULER_FRA: readonly GwScene[] = [
     nation: NATION,
     kind: "proposal",
     stage,
-    when: all(self, war, date("1914-10", "1917-10")),
+    when: all(
+      self,
+      war,
+      world({ is: "war_months", own: true, min: 2, max: 39 }),
+    ),
     cast: near,
     fallback: "no_answer",
     options: [
@@ -150,7 +157,7 @@ export const RULER_FRA: readonly GwScene[] = [
     nation: NATION,
     kind: "proposal",
     stage,
-    when: all(self, war, date("1915-01", "1918-11")),
+    when: all(self, war, world({ is: "war_months", own: true, min: 5 })),
     cast: near,
     variants: [v("tiger", tiger), v("base")],
     fallback: "drawer",
@@ -168,7 +175,11 @@ export const RULER_FRA: readonly GwScene[] = [
     nation: NATION,
     kind: "proposal",
     stage,
-    when: all(self, war, date("1916-02", "1916-12")),
+    when: all(
+      self,
+      war,
+      world({ is: "war_months", own: true, min: 18, max: 29 }),
+    ),
     cast: near,
     salience: 7,
     fallback: "go_bar",

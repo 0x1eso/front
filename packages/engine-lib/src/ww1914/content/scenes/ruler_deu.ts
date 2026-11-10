@@ -81,7 +81,11 @@ export const RULER_DEU: readonly GwScene[] = [
     nation: NATION,
     kind: "audience",
     stage,
-    when: all(self, { kind: "at_war", tag: "GBR" }, date("1915-05", "1915-10")),
+    when: all(
+      self,
+      { kind: "at_war", tag: "GBR" },
+      { kind: "world", of: { is: "war_months", own: true, min: 9, max: 15 } },
+    ),
     cast: { court },
     tags: ["people", "foreign"],
     fallback: "say_nothing",
@@ -170,7 +174,10 @@ export const RULER_DEU: readonly GwScene[] = [
     nation: NATION,
     kind: "proposal",
     stage,
-    when: all(self, war, date("1914-09", "1916-06")),
+    when: all(self, war, {
+      kind: "world",
+      of: { is: "war_months", own: true, min: 1, max: 23 },
+    }),
     cast: { empress: { person: "deu_empress" } },
     fallback: "leave_them",
     options: [
@@ -189,7 +196,11 @@ export const RULER_DEU: readonly GwScene[] = [
     nation: NATION,
     kind: "audience",
     stage,
-    when: all(self, { kind: "at_war", tag: "GBR" }, date("1917-07", "1917-12")),
+    when: all(
+      self,
+      { kind: "at_war", tag: "GBR" },
+      { kind: "world", of: { is: "war_months", own: true, min: 35, max: 41 } },
+    ),
     cast: { court },
     fallback: "joke",
     options: [
@@ -202,7 +213,10 @@ export const RULER_DEU: readonly GwScene[] = [
     nation: NATION,
     kind: "proposal",
     stage,
-    when: all(self, war, date("1918-05", "1918-11")),
+    when: all(self, war, {
+      kind: "world",
+      of: { is: "war_months", own: true, min: 45 },
+    }),
     cast: { court, chancellor },
     tags: ["people", "home"],
     variants: [v("hungry", low("reputation", 2)), v("base")],

@@ -869,14 +869,7 @@ export const DEU_PRIVATE_SCENES: readonly GwScene[] = [
     id: "deu_pv_bet_isa",
     nation: ["DEU"],
     kind: "talk",
-    when: {
-      kind: "world",
-      of: {
-        is: "date",
-        from: "1915-03",
-        to: "1915-12",
-      },
-    },
+    when: { kind: "world", of: { is: "war_months", min: 7, max: 17 } },
     cast: {
       who: {
         person: "deu_bethmann",
@@ -1041,13 +1034,7 @@ export const DEU_PRIVATE_SCENES: readonly GwScene[] = [
             },
           ],
         },
-        {
-          kind: "world",
-          of: {
-            is: "date",
-            from: "1917-01",
-          },
-        },
+        { kind: "world", of: { is: "war_months", min: 29 } },
       ],
     },
     cast: {
@@ -1447,14 +1434,7 @@ export const DEU_PRIVATE_SCENES: readonly GwScene[] = [
             person: "deu_moltke",
           },
         },
-        {
-          kind: "world",
-          of: {
-            is: "date",
-            from: "1914-09",
-            to: "1915-06",
-          },
-        },
+        { kind: "world", of: { is: "war_months", own: true, min: 1, max: 11 } },
       ],
     },
     cast: {
@@ -1614,14 +1594,7 @@ export const DEU_PRIVATE_SCENES: readonly GwScene[] = [
           kind: "seen",
           scene: "deu_pv_mol_eliza",
         },
-        {
-          kind: "world",
-          of: {
-            is: "date",
-            from: "1915-02",
-            to: "1916-05",
-          },
-        },
+        { kind: "world", of: { is: "war_months", min: 6, max: 22 } },
       ],
     },
     cast: {
@@ -1980,13 +1953,7 @@ export const DEU_PRIVATE_SCENES: readonly GwScene[] = [
             },
           ],
         },
-        {
-          kind: "world",
-          of: {
-            is: "date",
-            from: "1916-09",
-          },
-        },
+        { kind: "world", of: { is: "war_months", min: 25 } },
       ],
     },
     cast: {
@@ -2168,14 +2135,7 @@ export const DEU_PRIVATE_SCENES: readonly GwScene[] = [
             is: "war",
           },
         },
-        {
-          kind: "world",
-          of: {
-            is: "date",
-            from: "1914-09",
-            to: "1915-02",
-          },
-        },
+        { kind: "world", of: { is: "war_months", own: true, min: 1, max: 7 } },
         {
           kind: "at_war",
           tag: "GBR",
@@ -2366,14 +2326,7 @@ export const DEU_PRIVATE_SCENES: readonly GwScene[] = [
             is: "war",
           },
         },
-        {
-          kind: "world",
-          of: {
-            is: "date",
-            from: "1915-03",
-            to: "1917-06",
-          },
-        },
+        { kind: "world", of: { is: "war_months", own: true, min: 7, max: 35 } },
       ],
     },
     cast: {
@@ -2577,13 +2530,7 @@ export const DEU_PRIVATE_SCENES: readonly GwScene[] = [
             person: "deu_tirpitz",
           },
         },
-        {
-          kind: "world",
-          of: {
-            is: "date",
-            from: "1916-04",
-          },
-        },
+        { kind: "world", of: { is: "war_months", min: 20 } },
       ],
     },
     cast: {
@@ -2729,13 +2676,7 @@ export const DEU_PRIVATE_SCENES: readonly GwScene[] = [
             },
           ],
         },
-        {
-          kind: "world",
-          of: {
-            is: "date",
-            from: "1918-01",
-          },
-        },
+        { kind: "world", of: { is: "war_months", min: 41 } },
       ],
     },
     cast: {
@@ -2833,14 +2774,7 @@ export const DEU_PRIVATE_SCENES: readonly GwScene[] = [
     id: "deu_pv_eul_letter",
     nation: ["DEU"],
     kind: "talk",
-    when: {
-      kind: "world",
-      of: {
-        is: "date",
-        from: "1914-06",
-        to: "1914-07",
-      },
-    },
+    when: { kind: "chapter", max: 5 },
     cast: {
       who: {
         person: "deu_muller",
@@ -3025,14 +2959,7 @@ export const DEU_PRIVATE_SCENES: readonly GwScene[] = [
             is: "war",
           },
         },
-        {
-          kind: "world",
-          of: {
-            is: "date",
-            from: "1914-11",
-            to: "1915-05",
-          },
-        },
+        { kind: "world", of: { is: "war_months", own: true, min: 3, max: 10 } },
       ],
     },
     cast: {
@@ -3301,14 +3228,7 @@ export const DEU_PRIVATE_SCENES: readonly GwScene[] = [
           kind: "memory",
           key: "pv_eul_wrote",
         },
-        {
-          kind: "world",
-          of: {
-            is: "date",
-            from: "1915-09",
-            to: "1918-06",
-          },
-        },
+        { kind: "world", of: { is: "war_months", min: 13, max: 47 } },
       ],
     },
     cast: {
@@ -3542,13 +3462,7 @@ export const DEU_PRIVATE_SCENES: readonly GwScene[] = [
             },
           ],
         },
-        {
-          kind: "world",
-          of: {
-            is: "date",
-            from: "1917-03",
-          },
-        },
+        { kind: "world", of: { is: "war_months", min: 31 } },
       ],
     },
     cast: {
@@ -3745,14 +3659,7 @@ export const DEU_PRIVATE_SCENES: readonly GwScene[] = [
           kind: "at_war",
           tag: "GBR",
         },
-        {
-          kind: "world",
-          of: {
-            is: "date",
-            from: "1914-10",
-            to: "1914-12",
-          },
-        },
+        { kind: "world", of: { is: "war_months", own: true, max: 4 } },
       ],
     },
     cast: {
@@ -3928,14 +3835,7 @@ export const DEU_PRIVATE_SCENES: readonly GwScene[] = [
           kind: "seen",
           scene: "deu_pv_mar_max",
         },
-        {
-          kind: "world",
-          of: {
-            is: "date",
-            from: "1915-01",
-            to: "1915-10",
-          },
-        },
+        { kind: "world", of: { is: "war_months", min: 5, max: 15 } },
       ],
     },
     cast: {
@@ -4178,11 +4078,7 @@ export const DEU_PRIVATE_SCENES: readonly GwScene[] = [
         },
         {
           kind: "world",
-          of: {
-            is: "date",
-            from: "1915-06",
-            to: "1916-08",
-          },
+          of: { is: "war_months", own: true, min: 10, max: 25 },
         },
       ],
     },
@@ -4524,13 +4420,7 @@ export const DEU_PRIVATE_SCENES: readonly GwScene[] = [
           kind: "seen",
           scene: "deu_pv_mar_max",
         },
-        {
-          kind: "world",
-          of: {
-            is: "date",
-            from: "1918-07",
-          },
-        },
+        { kind: "world", of: { is: "war_months", min: 47 } },
       ],
     },
     cast: {
@@ -4730,14 +4620,7 @@ export const DEU_PRIVATE_SCENES: readonly GwScene[] = [
             is: "war",
           },
         },
-        {
-          kind: "world",
-          of: {
-            is: "date",
-            from: "1915-03",
-            to: "1915-09",
-          },
-        },
+        { kind: "world", of: { is: "war_months", own: true, min: 7, max: 14 } },
       ],
     },
     cast: {
@@ -4901,14 +4784,7 @@ export const DEU_PRIVATE_SCENES: readonly GwScene[] = [
           kind: "seen",
           scene: "deu_pv_bal_lunch",
         },
-        {
-          kind: "world",
-          of: {
-            is: "date",
-            from: "1916-03",
-            to: "1917-02",
-          },
-        },
+        { kind: "world", of: { is: "war_months", min: 19, max: 31 } },
       ],
     },
     cast: {
@@ -5061,14 +4937,7 @@ export const DEU_PRIVATE_SCENES: readonly GwScene[] = [
           kind: "seen",
           scene: "deu_pv_bal_lunch",
         },
-        {
-          kind: "world",
-          of: {
-            is: "date",
-            from: "1917-02",
-            to: "1918-03",
-          },
-        },
+        { kind: "world", of: { is: "war_months", min: 30, max: 44 } },
       ],
     },
     cast: {
@@ -5241,13 +5110,7 @@ export const DEU_PRIVATE_SCENES: readonly GwScene[] = [
           kind: "seen",
           scene: "deu_pv_bal_lunch",
         },
-        {
-          kind: "world",
-          of: {
-            is: "date",
-            from: "1918-04",
-          },
-        },
+        { kind: "world", of: { is: "war_months", min: 44 } },
       ],
     },
     cast: {
@@ -5397,14 +5260,7 @@ export const DEU_PRIVATE_SCENES: readonly GwScene[] = [
     id: "deu_pv_gra_birth",
     nation: ["DEU"],
     kind: "talk",
-    when: {
-      kind: "world",
-      of: {
-        is: "date",
-        from: "1915-04",
-        to: "1915-09",
-      },
-    },
+    when: { kind: "world", of: { is: "war_months", min: 8, max: 14 } },
     cast: {
       who: {
         person: "deu_heir",
@@ -5608,14 +5464,7 @@ export const DEU_PRIVATE_SCENES: readonly GwScene[] = [
           kind: "seen",
           scene: "deu_pv_gra_birth",
         },
-        {
-          kind: "world",
-          of: {
-            is: "date",
-            from: "1915-10",
-            to: "1916-12",
-          },
-        },
+        { kind: "world", of: { is: "war_months", min: 14, max: 29 } },
       ],
     },
     cast: {
@@ -5790,14 +5639,7 @@ export const DEU_PRIVATE_SCENES: readonly GwScene[] = [
           kind: "seen",
           scene: "deu_pv_gra_photo",
         },
-        {
-          kind: "world",
-          of: {
-            is: "date",
-            from: "1917-03",
-            to: "1918-09",
-          },
-        },
+        { kind: "world", of: { is: "war_months", min: 31, max: 50 } },
       ],
     },
     cast: {
@@ -5957,13 +5799,7 @@ export const DEU_PRIVATE_SCENES: readonly GwScene[] = [
           kind: "seen",
           scene: "deu_pv_gra_birth",
         },
-        {
-          kind: "world",
-          of: {
-            is: "date",
-            from: "1918-08",
-          },
-        },
+        { kind: "world", of: { is: "war_months", min: 48 } },
       ],
     },
     cast: {
@@ -6409,13 +6245,7 @@ export const DEU_PRIVATE_SCENES: readonly GwScene[] = [
           kind: "seen",
           scene: "deu_pv_lud_erich",
         },
-        {
-          kind: "world",
-          of: {
-            is: "date",
-            from: "1918-08",
-          },
-        },
+        { kind: "world", of: { is: "war_months", min: 48 } },
       ],
     },
     cast: {
@@ -6583,13 +6413,7 @@ export const DEU_PRIVATE_SCENES: readonly GwScene[] = [
           kind: "memory",
           key: "pv_lud_heinz_grounded",
         },
-        {
-          kind: "world",
-          of: {
-            is: "date",
-            from: "1918-09",
-          },
-        },
+        { kind: "world", of: { is: "war_months", min: 49 } },
       ],
     },
     cast: {
@@ -6935,14 +6759,7 @@ export const DEU_PRIVATE_SCENES: readonly GwScene[] = [
             },
           ],
         },
-        {
-          kind: "world",
-          of: {
-            is: "date",
-            from: "1917-08",
-            to: "1918-10",
-          },
-        },
+        { kind: "world", of: { is: "war_months", min: 36, max: 51 } },
       ],
     },
     cast: {
@@ -7150,13 +6967,7 @@ export const DEU_PRIVATE_SCENES: readonly GwScene[] = [
             },
           ],
         },
-        {
-          kind: "world",
-          of: {
-            is: "date",
-            from: "1918-09",
-          },
-        },
+        { kind: "world", of: { is: "war_months", min: 49 } },
       ],
     },
     cast: {
@@ -7505,14 +7316,7 @@ export const DEU_PRIVATE_SCENES: readonly GwScene[] = [
             is: "war",
           },
         },
-        {
-          kind: "world",
-          of: {
-            is: "date",
-            from: "1915-01",
-            to: "1917-12",
-          },
-        },
+        { kind: "world", of: { is: "war_months", own: true, min: 5, max: 41 } },
         {
           kind: "seen",
           scene: "deu_pv_mul_walk",
@@ -7725,14 +7529,7 @@ export const DEU_PRIVATE_SCENES: readonly GwScene[] = [
           kind: "seen",
           scene: "deu_pv_mul_walk",
         },
-        {
-          kind: "world",
-          of: {
-            is: "date",
-            from: "1916-06",
-            to: "1918-06",
-          },
-        },
+        { kind: "world", of: { is: "war_months", min: 22, max: 47 } },
       ],
     },
     cast: {
@@ -7906,13 +7703,7 @@ export const DEU_PRIVATE_SCENES: readonly GwScene[] = [
           kind: "seen",
           scene: "deu_pv_mul_walk",
         },
-        {
-          kind: "world",
-          of: {
-            is: "date",
-            from: "1918-01",
-          },
-        },
+        { kind: "world", of: { is: "war_months", min: 41 } },
       ],
     },
     cast: {
@@ -8111,14 +7902,7 @@ export const DEU_PRIVATE_SCENES: readonly GwScene[] = [
           kind: "seen",
           scene: "deu_pv_mul_walk",
         },
-        {
-          kind: "world",
-          of: {
-            is: "date",
-            from: "1915-10",
-            to: "1917-11",
-          },
-        },
+        { kind: "world", of: { is: "war_months", min: 14, max: 40 } },
       ],
     },
     cast: {

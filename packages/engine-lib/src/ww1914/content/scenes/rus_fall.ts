@@ -587,13 +587,7 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
             },
           ],
         },
-        {
-          kind: "world",
-          of: {
-            is: "date",
-            from: "1916-06",
-          },
-        },
+        { kind: "world", of: { is: "war_months", own: true, min: 22 } },
         {
           kind: "world",
           of: {
@@ -786,13 +780,7 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
             of: ["tsar", "crown"],
           },
         },
-        {
-          kind: "world",
-          of: {
-            is: "date",
-            from: "1916-10",
-          },
-        },
+        { kind: "world", of: { is: "war_months", min: 26 } },
         {
           kind: "any",
           of: [
@@ -1204,13 +1192,7 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
             of: ["tsar"],
           },
         },
-        {
-          kind: "world",
-          of: {
-            is: "date",
-            from: "1916-11",
-          },
-        },
+        { kind: "world", of: { is: "war_months", min: 27 } },
         {
           kind: "any",
           of: [
@@ -1776,7 +1758,7 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
             of: ["tsar"],
           },
         },
-        { kind: "world", of: { is: "date", from: "1916-02" } },
+        { kind: "world", of: { is: "war_months", min: 18 } },
         {
           kind: "any",
           of: [

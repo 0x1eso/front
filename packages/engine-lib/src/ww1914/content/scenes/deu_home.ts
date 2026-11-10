@@ -309,7 +309,11 @@ const SCENES: readonly GwScene[] = [
   scene({
     id: "deu_h_bread_report",
     kind: "report",
-    when: all(war, low("bread", 2), date("1915-01", "1918-12")),
+    when: all(
+      war,
+      low("bread", 2),
+      world({ is: "war_months", own: true, min: 5 }),
+    ),
     cast: {},
     salience: 7,
     tags: ["home"],
@@ -328,7 +332,12 @@ const SCENES: readonly GwScene[] = [
   scene({
     id: "deu_h_pig_cull",
     kind: "proposal",
-    when: all(war, atWar("GBR"), low("bread", 3), date("1915-01", "1915-06")),
+    when: all(
+      war,
+      atWar("GBR"),
+      low("bread", 3),
+      world({ is: "war_months", own: true, min: 5, max: 11 }),
+    ),
     cast: { interior: holder("interior") },
     salience: 7,
     tags: ["home", "tension_up"],
@@ -361,7 +370,11 @@ const SCENES: readonly GwScene[] = [
   scene({
     id: "deu_h_price_caps",
     kind: "proposal",
-    when: all(war, low("bread", 2), date("1915-01", "1915-12")),
+    when: all(
+      war,
+      low("bread", 2),
+      world({ is: "war_months", own: true, min: 5, max: 17 }),
+    ),
     cast: { interior: holder("interior"), finance: holder("finance") },
     salience: 6,
     tags: ["home"],
@@ -395,7 +408,11 @@ const SCENES: readonly GwScene[] = [
   scene({
     id: "deu_h_butter_queue",
     kind: "report",
-    when: all(war, low("bread", 2), date("1915-07", "1915-12")),
+    when: all(
+      war,
+      low("bread", 2),
+      world({ is: "war_months", own: true, min: 11, max: 17 }),
+    ),
     cast: {},
     salience: 5,
     tags: ["home", "tension_up"],
@@ -409,7 +426,7 @@ const SCENES: readonly GwScene[] = [
     when: all(
       war,
       low("bread", 2),
-      date("1916-01", "1916-06"),
+      world({ is: "war_months", own: true, min: 17, max: 23 }),
       not(flag("f_food_office")),
     ),
     cast: { interior: holder("interior"), chancellor: holder("chancellor") },
@@ -531,7 +548,7 @@ const SCENES: readonly GwScene[] = [
   scene({
     id: "deu_h_loan_drive",
     kind: "proposal",
-    when: all(war, date("1915-07", "1918-06")),
+    when: all(war, world({ is: "war_months", own: true, min: 11, max: 47 })),
     cast: { finance: holder("finance") },
     salience: 6,
     tags: ["home"],
@@ -561,7 +578,11 @@ const SCENES: readonly GwScene[] = [
   scene({
     id: "deu_h_war_profits",
     kind: "proposal",
-    when: all(war, low("money", 2), date("1915-07", "1917-06")),
+    when: all(
+      war,
+      low("money", 2),
+      world({ is: "war_months", own: true, min: 11, max: 35 }),
+    ),
     cast: { finance: holder("finance"), interior: holder("interior") },
     salience: 6,
     tags: ["home"],
@@ -594,7 +615,7 @@ const SCENES: readonly GwScene[] = [
     when: all(
       war,
       world({ is: "manpower", max: 50 }),
-      date("1916-01", "1917-06"),
+      world({ is: "war_months", own: true, min: 17, max: 35 }),
     ),
     cast: { war: holder("war"), interior: holder("interior") },
     salience: 6,
@@ -624,7 +645,11 @@ const SCENES: readonly GwScene[] = [
   scene({
     id: "deu_h_hindenburg_programme",
     kind: "crisis",
-    when: all(war, date("1916-07", "1916-12"), any(ohl3, low("shells", 1))),
+    when: all(
+      war,
+      world({ is: "war_months", own: true, min: 23, max: 29 }),
+      any(ohl3, low("shells", 1)),
+    ),
     cast: { war: holder("war"), cos: holder("chief_of_staff") },
     salience: 9,
     tags: ["home", "tension_up"],
@@ -681,7 +706,10 @@ const SCENES: readonly GwScene[] = [
   scene({
     id: "deu_h_war_office",
     kind: "proposal",
-    when: all(seen("deu_h_hindenburg_programme"), date("1916-07", "1917-02")),
+    when: all(
+      seen("deu_h_hindenburg_programme"),
+      world({ is: "war_months", min: 23, max: 31 }),
+    ),
     cast: { war: holder("war"), chancellor: holder("chancellor") },
     salience: 8,
     tags: ["people"],
@@ -725,7 +753,10 @@ const SCENES: readonly GwScene[] = [
   scene({
     id: "deu_h_aux_service",
     kind: "crisis",
-    when: all(seen("deu_h_war_office"), date("1916-07", "1917-03")),
+    when: all(
+      seen("deu_h_war_office"),
+      world({ is: "war_months", min: 23, max: 32 }),
+    ),
     cast: { chancellor: holder("chancellor"), interior: holder("interior") },
     salience: 9,
     tags: ["home", "tension_up"],
@@ -768,7 +799,7 @@ const SCENES: readonly GwScene[] = [
     when: all(
       chose("deu_h_aux_service", "unions_text"),
       groeOffice,
-      date("1917-01", "1917-09"),
+      world({ is: "war_months", min: 29, max: 38 }),
     ),
     cast: { war: holder("war"), interior: holder("interior") },
     salience: 7,
@@ -895,7 +926,7 @@ const SCENES: readonly GwScene[] = [
       war,
       low("order", 2),
       any(seen("deu_h_strike_april"), unrest(2)),
-      date("1918-01", "1918-06"),
+      world({ is: "war_months", own: true, min: 41, max: 47 }),
     ),
     cast: {
       interior: holder("interior"),
@@ -969,7 +1000,12 @@ const SCENES: readonly GwScene[] = [
   scene({
     id: "deu_h_fleet_food",
     kind: "proposal",
-    when: all(war, atWar("GBR"), low("bread", 1), date("1917-01", "1917-10")),
+    when: all(
+      war,
+      atWar("GBR"),
+      low("bread", 1),
+      world({ is: "war_months", own: true, min: 29, max: 39 }),
+    ),
     cast: { navy: holder("navy") },
     salience: 6,
     tags: ["home", "tension_up"],
@@ -1005,7 +1041,7 @@ const SCENES: readonly GwScene[] = [
     when: all(
       war,
       any(seen("gw_credits"), reichstagMax(0)),
-      date("1915-12", "1916-06"),
+      world({ is: "war_months", own: true, min: 16, max: 23 }),
     ),
     cast: {},
     salience: 7,
@@ -1063,7 +1099,7 @@ const SCENES: readonly GwScene[] = [
   scene({
     id: "deu_h_censor",
     kind: "proposal",
-    when: all(war, date("1915-07", "1915-12")),
+    when: all(war, world({ is: "war_months", own: true, min: 11, max: 17 })),
     cast: { interior: holder("interior"), cos: holder("chief_of_staff") },
     salience: 5,
     tags: ["home"],
@@ -1090,11 +1126,14 @@ const SCENES: readonly GwScene[] = [
   }),
   record("deu_h_census_record", all(war, date("1916-10", "1916-12"))),
   // One sentence of record: never the result of a choice (plan section 17).
-  record("deu_h_ballin_record", date("1918-11", "1918-12")),
   scene({
     id: "deu_h_black_market",
     kind: "report",
-    when: all(war, low("bread", 1), date("1916-07", "1918-06")),
+    when: all(
+      war,
+      low("bread", 1),
+      world({ is: "war_months", own: true, min: 23, max: 47 }),
+    ),
     cast: {},
     salience: 5,
     tags: ["home"],
@@ -1113,7 +1152,7 @@ const SCENES: readonly GwScene[] = [
     when: all(
       war,
       world({ is: "casualties", min: 500 }),
-      date("1916-01", "1917-12"),
+      world({ is: "war_months", own: true, min: 17, max: 41 }),
     ),
     cast: { interior: holder("interior") },
     salience: 4,
@@ -1175,7 +1214,7 @@ const SCENES: readonly GwScene[] = [
       war,
       foodBooks,
       known("k_helf_books", "k_erz_numbers", "m_food_books"),
-      date("1917-07", "1918-06"),
+      world({ is: "war_months", own: true, min: 35, max: 47 }),
     ),
     cast: { interior: holder("interior"), chancellor: holder("chancellor") },
     salience: 7,
@@ -1199,56 +1238,65 @@ const SCENES: readonly GwScene[] = [
 ];
 
 const HELF_TALKS: readonly GwScene[] = [
-  talk("deu_t2_helf_debt", HELF, all(war, date("1915-01", "1915-12")), {
-    open: node(
-      [v("cold", mood("cold")), v("base")],
-      r("ask", "flatter", "ask", "sum", {
-        gain: [remember("k_helf_debt")],
-        miss: "brief",
-      }),
-      r("frank", "frank", "ask", "sum", {
-        gain: [remember("k_helf_debt")],
-        miss: "brief",
-      }),
-      r("push", "threat", "push", "brief", {
-        tell: ["trust:-1"],
-        effects: [T(-1)],
-        reacts: [react(mood("cold"), "sum", remember("k_helf_debt"))],
-      }),
-      r("seat", "warm", "deal", "sum", {
-        tell: ["money:+1", "trust:+1"],
-        effects: [
-          money(1),
-          T(1),
-          maybe(not(holds("finance", HELF)), {
-            kind: "appoint",
-            who: byName(HELF),
-            office: "finance",
-          }),
-          remember("k_helf_debt"),
-        ],
-      }),
-      r("later", "cold", "leave", null),
-    ),
-    sum: node(
-      one,
-      r("who", "cold", "ask", "loser"),
-      r("mark", "frank", "leave", null),
-    ),
-    loser: node(one, r("mark", "frank", "leave", null), bye("smile", "warm")),
-    brief: node(
-      one,
-      r("again", "cold", "push", "sum", {
-        effects: [remember("k_helf_debt")],
-        reacts: [react(sour, null, reason("h_helf_shut"))],
-      }),
-      bye(),
-    ),
-  }),
+  talk(
+    "deu_t2_helf_debt",
+    HELF,
+    all(war, world({ is: "war_months", own: true, min: 5, max: 17 })),
+    {
+      open: node(
+        [v("cold", mood("cold")), v("base")],
+        r("ask", "flatter", "ask", "sum", {
+          gain: [remember("k_helf_debt")],
+          miss: "brief",
+        }),
+        r("frank", "frank", "ask", "sum", {
+          gain: [remember("k_helf_debt")],
+          miss: "brief",
+        }),
+        r("push", "threat", "push", "brief", {
+          tell: ["trust:-1"],
+          effects: [T(-1)],
+          reacts: [react(mood("cold"), "sum", remember("k_helf_debt"))],
+        }),
+        r("seat", "warm", "deal", "sum", {
+          tell: ["money:+1", "trust:+1"],
+          effects: [
+            money(1),
+            T(1),
+            maybe(not(holds("finance", HELF)), {
+              kind: "appoint",
+              who: byName(HELF),
+              office: "finance",
+            }),
+            remember("k_helf_debt"),
+          ],
+        }),
+        r("later", "cold", "leave", null),
+      ),
+      sum: node(
+        one,
+        r("who", "cold", "ask", "loser"),
+        r("mark", "frank", "leave", null),
+      ),
+      loser: node(one, r("mark", "frank", "leave", null), bye("smile", "warm")),
+      brief: node(
+        one,
+        r("again", "cold", "push", "sum", {
+          effects: [remember("k_helf_debt")],
+          reacts: [react(sour, null, reason("h_helf_shut"))],
+        }),
+        bye(),
+      ),
+    },
+  ),
   talk(
     "deu_t2_helf_books",
     HELF,
-    all(war, low("money", 2), date("1915-07", "1917-06")),
+    all(
+      war,
+      low("money", 2),
+      world({ is: "war_months", own: true, min: 11, max: 35 }),
+    ),
     {
       open: node(
         [v("cold", mood("cold")), v("base")],
@@ -1291,7 +1339,7 @@ const HELF_TALKS: readonly GwScene[] = [
       war,
       atWar("GBR"),
       world({ is: "uboat", max: 1 }),
-      date("1916-01", "1917-06"),
+      world({ is: "war_months", own: true, min: 17, max: 35 }),
     ),
     {
       open: node(
@@ -1334,79 +1382,89 @@ const HELF_TALKS: readonly GwScene[] = [
       ),
     },
   ),
-  talk("deu_t2_helf_indemnity", HELF, all(war, date("1916-01", "1917-12")), {
-    open: node(
-      [v("lost", score(-10)), v("cold", mood("cold")), v("base")],
-      r("ask", "cold", "ask", "ledger", { miss: "line" }),
-      r("flat", "flatter", "ask", "ledger", { miss: "line" }),
-      r("push", "threat", "push", "line", {
-        tell: ["trust:-1"],
-        effects: [T(-1)],
-        reacts: [react(mood("cold"), "ledger")],
-      }),
-      r("deal", "frank", "deal", "ledger", {
-        tell: ["money:-1", "trust:+1"],
-        effects: [money(-1), T(1), remember("k_helf_indemnity")],
-      }),
-      r("later", "warm", "leave", null),
-    ),
-    line: node(one, r("again", "frank", "ask", "ledger"), bye()),
-    ledger: node(
-      one,
-      r("mark", "cold", "leave", null, {
-        effects: [remember("k_helf_indemnity")],
-      }),
-      r("grain", "frank", "ask", "grain", {
-        effects: [remember("k_helf_indemnity")],
-      }),
-    ),
-    grain: node(
-      [v("straight", candid(who)), v("base")],
-      r("note", "cold", "leave", null, {
-        effects: [
-          remember("m_food_books"),
-          doWorld({ do: "reveal", id: "deu_food_books" }),
-          reason("h_books_found"),
-        ],
-      }),
-      bye("drop", "warm"),
-    ),
-  }),
-  talk("deu_t2_helf_erz", HELF, all(war, date("1916-07", "1917-12")), {
-    open: node(
-      [v("cold", mood("cold")), v("base")],
-      r("ask", "cold", "ask", "what", { miss: "file" }),
-      r("flat", "flatter", "ask", "what", { miss: "file" }),
-      r("push", "threat", "push", "file", {
-        tell: ["trust:-1"],
-        effects: [T(-1)],
-        reacts: [react(mood("cold"), "what")],
-      }),
-      r("deal", "warm", "deal", "bargain", {
-        tell: ["trust:+1"],
-        effects: [T(1), helfErzPromise],
-      }),
-      r("later", "frank", "leave", null),
-    ),
-    file: node(
-      one,
-      r("read", "cold", "ask", "what", {
-        effects: [remember("m_helf_erz_quarrel")],
-      }),
-      bye(),
-    ),
-    what: node(
-      one,
-      r("mark", "frank", "leave", null, {
-        effects: [remember("m_helf_erz_quarrel")],
-      }),
-      r("deal", "warm", "deal", "bargain", {
-        tell: ["trust:+1"],
-        effects: [T(1), helfErzPromise],
-      }),
-    ),
-    bargain: node(one, bye("end", "frank")),
-  }),
+  talk(
+    "deu_t2_helf_indemnity",
+    HELF,
+    all(war, world({ is: "war_months", own: true, min: 17, max: 41 })),
+    {
+      open: node(
+        [v("lost", score(-10)), v("cold", mood("cold")), v("base")],
+        r("ask", "cold", "ask", "ledger", { miss: "line" }),
+        r("flat", "flatter", "ask", "ledger", { miss: "line" }),
+        r("push", "threat", "push", "line", {
+          tell: ["trust:-1"],
+          effects: [T(-1)],
+          reacts: [react(mood("cold"), "ledger")],
+        }),
+        r("deal", "frank", "deal", "ledger", {
+          tell: ["money:-1", "trust:+1"],
+          effects: [money(-1), T(1), remember("k_helf_indemnity")],
+        }),
+        r("later", "warm", "leave", null),
+      ),
+      line: node(one, r("again", "frank", "ask", "ledger"), bye()),
+      ledger: node(
+        one,
+        r("mark", "cold", "leave", null, {
+          effects: [remember("k_helf_indemnity")],
+        }),
+        r("grain", "frank", "ask", "grain", {
+          effects: [remember("k_helf_indemnity")],
+        }),
+      ),
+      grain: node(
+        [v("straight", candid(who)), v("base")],
+        r("note", "cold", "leave", null, {
+          effects: [
+            remember("m_food_books"),
+            doWorld({ do: "reveal", id: "deu_food_books" }),
+            reason("h_books_found"),
+          ],
+        }),
+        bye("drop", "warm"),
+      ),
+    },
+  ),
+  talk(
+    "deu_t2_helf_erz",
+    HELF,
+    all(war, world({ is: "war_months", own: true, min: 23, max: 41 })),
+    {
+      open: node(
+        [v("cold", mood("cold")), v("base")],
+        r("ask", "cold", "ask", "what", { miss: "file" }),
+        r("flat", "flatter", "ask", "what", { miss: "file" }),
+        r("push", "threat", "push", "file", {
+          tell: ["trust:-1"],
+          effects: [T(-1)],
+          reacts: [react(mood("cold"), "what")],
+        }),
+        r("deal", "warm", "deal", "bargain", {
+          tell: ["trust:+1"],
+          effects: [T(1), helfErzPromise],
+        }),
+        r("later", "frank", "leave", null),
+      ),
+      file: node(
+        one,
+        r("read", "cold", "ask", "what", {
+          effects: [remember("m_helf_erz_quarrel")],
+        }),
+        bye(),
+      ),
+      what: node(
+        one,
+        r("mark", "frank", "leave", null, {
+          effects: [remember("m_helf_erz_quarrel")],
+        }),
+        r("deal", "warm", "deal", "bargain", {
+          tell: ["trust:+1"],
+          effects: [T(1), helfErzPromise],
+        }),
+      ),
+      bargain: node(one, bye("end", "frank")),
+    },
+  ),
   talk(
     "deu_t2_helf_after",
     HELF,
@@ -1414,7 +1472,7 @@ const HELF_TALKS: readonly GwScene[] = [
       war,
       not(holds("interior", HELF)),
       not(holds("finance", HELF)),
-      date("1917-07", "1918-12"),
+      world({ is: "war_months", own: true, min: 35 }),
     ),
     {
       open: node(
@@ -1441,45 +1499,54 @@ const HELF_TALKS: readonly GwScene[] = [
 ];
 
 const GROE_TALKS: readonly GwScene[] = [
-  talk("deu_t2_groe_rails", GROE, all(war, date("1915-01", "1916-12")), {
-    open: node(
-      [v("stubborn", mood("stubborn")), v("base")],
-      r("ask", "cold", "ask", "wagons", {
-        gain: [remember("k_groe_rails")],
-        miss: "table",
-      }),
-      r("frank", "frank", "ask", "wagons", {
-        gain: [remember("k_groe_rails")],
-      }),
-      r("push", "threat", "push", "table", {
-        tell: ["trust:-1"],
-        effects: [T(-1)],
-        reacts: [react(mood("cold"), "wagons", remember("k_groe_rails"))],
-      }),
-      r("deal", "warm", "deal", "wagons", {
-        tell: ["army:-1", "trust:+1"],
-        effects: [army(-1), T(1), remember("k_groe_rails")],
-      }),
-      r("later", "warm", "leave", null),
-    ),
-    table: node(
-      one,
-      r("again", "frank", "ask", "wagons", {
-        effects: [remember("k_groe_rails")],
-      }),
-      bye(),
-    ),
-    wagons: node(
-      one,
-      r("grain", "frank", "ask", "grain"),
-      r("mark", "cold", "leave", null),
-    ),
-    grain: node(one, bye("end", "frank")),
-  }),
+  talk(
+    "deu_t2_groe_rails",
+    GROE,
+    all(war, world({ is: "war_months", own: true, min: 5, max: 29 })),
+    {
+      open: node(
+        [v("stubborn", mood("stubborn")), v("base")],
+        r("ask", "cold", "ask", "wagons", {
+          gain: [remember("k_groe_rails")],
+          miss: "table",
+        }),
+        r("frank", "frank", "ask", "wagons", {
+          gain: [remember("k_groe_rails")],
+        }),
+        r("push", "threat", "push", "table", {
+          tell: ["trust:-1"],
+          effects: [T(-1)],
+          reacts: [react(mood("cold"), "wagons", remember("k_groe_rails"))],
+        }),
+        r("deal", "warm", "deal", "wagons", {
+          tell: ["army:-1", "trust:+1"],
+          effects: [army(-1), T(1), remember("k_groe_rails")],
+        }),
+        r("later", "warm", "leave", null),
+      ),
+      table: node(
+        one,
+        r("again", "frank", "ask", "wagons", {
+          effects: [remember("k_groe_rails")],
+        }),
+        bye(),
+      ),
+      wagons: node(
+        one,
+        r("grain", "frank", "ask", "grain"),
+        r("mark", "cold", "leave", null),
+      ),
+      grain: node(one, bye("end", "frank")),
+    },
+  ),
   talk(
     "deu_t2_groe_unions",
     GROE,
-    all(war, any(flag("f_war_office"), ohl3), date("1916-07", "1917-06")),
+    all(
+      war,
+      any(flag("f_war_office"), ohl3),
+      world({ is: "war_months", own: true, min: 23, max: 35 }),
+    ),
     {
       open: node(
         [v("stubborn", mood("stubborn")), v("base")],
@@ -1519,7 +1586,7 @@ const GROE_TALKS: readonly GwScene[] = [
   talk(
     "deu_t2_groe_numbers",
     GROE,
-    all(war, ohl3, date("1916-07", "1917-12")),
+    all(war, ohl3, world({ is: "war_months", own: true, min: 23, max: 41 })),
     {
       open: node(
         [
@@ -1564,7 +1631,11 @@ const GROE_TALKS: readonly GwScene[] = [
   talk(
     "deu_t2_groe_profits",
     GROE,
-    all(war, groeOffice, date("1917-01", "1917-08")),
+    all(
+      war,
+      groeOffice,
+      world({ is: "war_months", own: true, min: 29, max: 37 }),
+    ),
     {
       open: node(
         [v("stubborn", mood("stubborn")), v("base")],
@@ -1653,7 +1724,7 @@ const GROE_TALKS: readonly GwScene[] = [
   talk(
     "deu_t2_groe_truth",
     GROE,
-    all(war, score(0), date("1917-07", "1918-12")),
+    all(war, score(0), world({ is: "war_months", own: true, min: 35 })),
     {
       open: node(
         [v("lost", score(-20)), v("stubborn", mood("stubborn")), v("base")],
@@ -1700,7 +1771,7 @@ const EBERT_TALKS: readonly GwScene[] = [
     all(
       war,
       any(memory("k_delb_bridge"), reichstagMax(1)),
-      date("1915-01", "1916-06"),
+      world({ is: "war_months", own: true, min: 5, max: 23 }),
     ),
     {
       open: node(
@@ -1748,7 +1819,11 @@ const EBERT_TALKS: readonly GwScene[] = [
   talk(
     "deu_t2_ebert_split",
     EBERT,
-    all(war, memory("k_ebert_first"), date("1915-07", "1916-12")),
+    all(
+      war,
+      memory("k_ebert_first"),
+      world({ is: "war_months", own: true, min: 11, max: 29 }),
+    ),
     {
       open: node(
         [
@@ -1793,7 +1868,11 @@ const EBERT_TALKS: readonly GwScene[] = [
   talk(
     "deu_t2_ebert_franchise",
     EBERT,
-    all(war, memory("k_ebert_first"), date("1916-01", "1917-12")),
+    all(
+      war,
+      memory("k_ebert_first"),
+      world({ is: "war_months", own: true, min: 17, max: 41 }),
+    ),
     {
       open: node(
         [
@@ -1861,7 +1940,11 @@ const EBERT_TALKS: readonly GwScene[] = [
   talk(
     "deu_t2_ebert_sons",
     EBERT,
-    all(war, memory("k_ebert_first"), date("1917-03", "1917-12")),
+    all(
+      war,
+      memory("k_ebert_first"),
+      world({ is: "war_months", own: true, min: 31, max: 41 }),
+    ),
     {
       open: node(
         [v("both", date("1917-06", "1917-12")), v("base")],
@@ -1888,7 +1971,7 @@ const EBERT_TALKS: readonly GwScene[] = [
       war,
       memory("k_ebert_first"),
       any(unrest(1), seen("deu_h_ration_cut")),
-      date("1917-01", "1918-06"),
+      world({ is: "war_months", own: true, min: 29, max: 47 }),
     ),
     {
       open: node(
@@ -1942,7 +2025,11 @@ const EBERT_TALKS: readonly GwScene[] = [
   talk(
     "deu_t2_ebert_breach",
     EBERT,
-    all(war, any(score(-25), seen("deu_k_spa")), date("1918-07", "1918-12")),
+    all(
+      war,
+      any(score(-25), seen("deu_k_spa")),
+      world({ is: "war_months", own: true, min: 47 }),
+    ),
     {
       open: node(
         [v("spa", seen("deu_k_spa")), v("weary", mood("weary")), v("base")],
@@ -1991,7 +2078,7 @@ const HAASE_TALKS: readonly GwScene[] = [
     all(
       war,
       any(memory("k_haase_met"), reichstagMax(0)),
-      date("1915-01", "1915-12"),
+      world({ is: "war_months", own: true, min: 5, max: 17 }),
     ),
     {
       open: node(
@@ -2042,7 +2129,7 @@ const HAASE_TALKS: readonly GwScene[] = [
     all(
       war,
       any(memory("k_haase_met"), seen("deu_h_spd_split")),
-      date("1915-07", "1916-06"),
+      world({ is: "war_months", own: true, min: 11, max: 23 }),
     ),
     {
       open: node(
@@ -2087,7 +2174,7 @@ const HAASE_TALKS: readonly GwScene[] = [
     all(
       war,
       any(flag("f_aims_full"), flag("f_no_annex_belgium")),
-      date("1915-01", "1916-06"),
+      world({ is: "war_months", own: true, min: 5, max: 23 }),
     ),
     {
       open: node(
@@ -2138,7 +2225,11 @@ const HAASE_TALKS: readonly GwScene[] = [
   talk(
     "deu_t2_haase_out",
     HAASE,
-    all(war, seen("deu_h_spd_split"), date("1916-01", "1917-06")),
+    all(
+      war,
+      seen("deu_h_spd_split"),
+      world({ is: "war_months", own: true, min: 17, max: 35 }),
+    ),
     {
       open: node(
         [v("anxious", mood("anxious")), v("weary", mood("weary")), v("base")],
@@ -2223,7 +2314,7 @@ const HAASE_TALKS: readonly GwScene[] = [
     all(
       war,
       any(seen("deu_h_fleet_food"), low("bread", 1)),
-      date("1917-01", "1918-12"),
+      world({ is: "war_months", own: true, min: 29 }),
     ),
     {
       open: node(
@@ -2273,7 +2364,7 @@ const VISITS: readonly GwScene[] = [
   visit(
     "deu_v2_rathenau_office",
     RATH,
-    all(war, date("1915-01", "1916-12")),
+    all(war, world({ is: "war_months", own: true, min: 5, max: 29 })),
     6,
     {
       open: node(
@@ -2322,7 +2413,11 @@ const VISITS: readonly GwScene[] = [
   visit(
     "deu_v2_rathenau_census",
     RATH,
-    all(war, seen("deu_h_census_record"), date("1916-11", "1917-06")),
+    all(
+      war,
+      seen("deu_h_census_record"),
+      world({ is: "war_months", own: true, min: 27, max: 35 }),
+    ),
     6,
     {
       open: node(
@@ -2343,7 +2438,11 @@ const VISITS: readonly GwScene[] = [
   visit(
     "deu_v2_ballin_ships",
     BALLIN,
-    all(war, atWar("GBR"), date("1915-01", "1916-12")),
+    all(
+      war,
+      atWar("GBR"),
+      world({ is: "war_months", own: true, min: 5, max: 29 }),
+    ),
     6,
     {
       open: node(
@@ -2393,7 +2492,7 @@ const VISITS: readonly GwScene[] = [
   visit(
     "deu_v2_ballin_last",
     BALLIN,
-    all(war, score(0), date("1917-07", "1918-12")),
+    all(war, score(0), world({ is: "war_months", own: true, min: 35 })),
     7,
     {
       open: node(
@@ -2429,7 +2528,11 @@ const VISITS: readonly GwScene[] = [
   visit(
     "deu_v2_scheidemann_corridor",
     SCHEID,
-    all(war, memory("k_ebert_first"), date("1916-07", "1917-12")),
+    all(
+      war,
+      memory("k_ebert_first"),
+      world({ is: "war_months", own: true, min: 23, max: 41 }),
+    ),
     5,
     {
       open: node(

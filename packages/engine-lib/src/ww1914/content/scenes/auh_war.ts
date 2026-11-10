@@ -63,7 +63,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("14", "14"),
+        { kind: "world", of: { is: "war_months", own: true, max: 4 } },
         {
           kind: "world",
           of: {
@@ -156,7 +156,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("15a", "15b"),
+        { kind: "world", of: { is: "war_months", own: true, min: 5, max: 17 } },
         {
           kind: "world",
           of: {
@@ -258,7 +258,10 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("16a", "16b"),
+        {
+          kind: "world",
+          of: { is: "war_months", own: true, min: 17, max: 29 },
+        },
         {
           kind: "world",
           of: {
@@ -353,7 +356,10 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("17a", "17b"),
+        {
+          kind: "world",
+          of: { is: "war_months", own: true, min: 29, max: 41 },
+        },
         {
           kind: "world",
           of: {
@@ -454,7 +460,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("18a", "18b"),
+        { kind: "world", of: { is: "war_months", own: true, min: 41 } },
         {
           kind: "world",
           of: {
@@ -552,7 +558,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("14", "14"),
+        { kind: "world", of: { is: "war_months", own: true, max: 4 } },
         {
           kind: "at_war",
           tag: "SRB",
@@ -600,7 +606,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("14", "14"),
+        { kind: "world", of: { is: "war_months", own: true, max: 4 } },
         {
           kind: "at_war",
           tag: "RUS",
@@ -745,7 +751,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("14", "14"),
+        { kind: "world", of: { is: "war_months", own: true, max: 4 } },
         {
           kind: "at_war",
           tag: "RUS",
@@ -876,7 +882,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("14", "14"),
+        { kind: "world", of: { is: "war_months", own: true, max: 4 } },
         {
           kind: "at_war",
           tag: "SRB",
@@ -1047,7 +1053,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("14", "14"),
+        { kind: "world", of: { is: "war_months", max: 4 } },
         {
           kind: "world",
           of: {
@@ -1088,7 +1094,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("14", "15a"),
+        { kind: "world", of: { is: "war_months", own: true, max: 11 } },
         {
           kind: "at_war",
           tag: "RUS",
@@ -1213,7 +1219,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("15a", "15a"),
+        { kind: "world", of: { is: "war_months", own: true, min: 5, max: 11 } },
         {
           kind: "at_war",
           tag: "RUS",
@@ -1367,7 +1373,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("15a", "15a"),
+        { kind: "world", of: { is: "war_months", own: true, min: 5, max: 11 } },
         {
           kind: "at_war",
           tag: "RUS",
@@ -1530,7 +1536,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("15a", "15b"),
+        { kind: "world", of: { is: "war_months", min: 5, max: 17 } },
         {
           kind: "world",
           of: {
@@ -1677,7 +1683,10 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("15b", "15b"),
+        {
+          kind: "world",
+          of: { is: "war_months", own: true, min: 11, max: 17 },
+        },
         {
           kind: "at_war",
           tag: "SRB",
@@ -1852,7 +1861,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("15b", "16a"),
+        { kind: "world", of: { is: "war_months", min: 11, max: 23 } },
         {
           kind: "any",
           of: [
@@ -1901,7 +1910,10 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("16a", "16a"),
+        {
+          kind: "world",
+          of: { is: "war_months", own: true, min: 17, max: 23 },
+        },
         {
           kind: "world",
           of: {
@@ -2136,7 +2148,10 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("16a", "16b"),
+        {
+          kind: "world",
+          of: { is: "war_months", own: true, min: 17, max: 29 },
+        },
         {
           kind: "at_war",
           tag: "RUS",
@@ -2301,7 +2316,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("16b", "16b"),
+        { kind: "world", of: { is: "war_months", min: 23, max: 29 } },
         {
           kind: "any",
           of: [
@@ -2450,7 +2465,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("16b", "16b"),
+        { kind: "world", of: { is: "war_months", min: 23, max: 29 } },
         {
           kind: "world",
           of: {
@@ -2602,7 +2617,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("15a", "17b"),
+        { kind: "world", of: { is: "war_months", min: 5, max: 41 } },
         {
           kind: "world",
           of: {
@@ -2726,7 +2741,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("15a", "18a"),
+        { kind: "world", of: { is: "war_months", own: true, min: 5, max: 47 } },
         {
           kind: "world",
           of: {
@@ -2763,16 +2778,10 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     nation: ["AUH"],
     kind: "report",
     when: {
-      kind: "all",
-      of: [
-        during("14", "18b"),
-        {
-          kind: "world",
-          of: {
-            is: "war",
-          },
-        },
-      ],
+      kind: "world",
+      of: {
+        is: "war",
+      },
     },
     cast: {},
     salience: 6,
@@ -2803,11 +2812,8 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("14", "14"),
-        {
-          kind: "chapter",
-          min: 7,
-        },
+        { kind: "world", of: { is: "war_months", own: true, max: 4 } },
+        { kind: "world", of: { is: "war_months", own: true, min: 1 } },
         {
           kind: "at_war",
           tag: "SRB",
@@ -2833,7 +2839,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("15a", "15a"),
+        { kind: "world", of: { is: "war_months", own: true, min: 5, max: 11 } },
         {
           kind: "at_war",
           tag: "RUS",
@@ -2859,7 +2865,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("17b", "17b"),
+        { kind: "world", of: { is: "war_months", min: 35, max: 41 } },
         {
           kind: "world",
           of: {
@@ -3033,7 +3039,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("18a", "18a"),
+        { kind: "world", of: { is: "war_months", min: 41, max: 47 } },
         {
           kind: "world",
           of: {
@@ -3239,7 +3245,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("18b", "18b"),
+        { kind: "world", of: { is: "war_months", own: true, min: 47 } },
         {
           kind: "world",
           of: {
@@ -3406,7 +3412,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("c", "c"),
+        { kind: "world", of: { is: "chain", short: false, max: 5 } },
         {
           kind: "crisis",
           topic: "balkan",
@@ -3949,7 +3955,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     id: "auh_t_con_gina",
     nation: ["AUH"],
     kind: "talk",
-    when: during("14", "15b"),
+    when: { kind: "world", of: { is: "war_months", own: true, max: 17 } },
     cast: {
       who: {
         person: "auh_conrad",
@@ -4219,7 +4225,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("14", "15a"),
+        { kind: "world", of: { is: "war_months", own: true, max: 11 } },
         {
           kind: "world",
           of: {
@@ -4462,7 +4468,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("15b", "16a"),
+        { kind: "world", of: { is: "war_months", min: 11, max: 23 } },
         {
           kind: "world",
           of: {
@@ -4757,7 +4763,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("17a", "18a"),
+        { kind: "world", of: { is: "war_months", min: 29, max: 47 } },
         {
           kind: "not",
           of: {
@@ -5016,7 +5022,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("c", "c"),
+        { kind: "world", of: { is: "chain", short: false, max: 5 } },
         {
           kind: "crisis",
           topic: "balkan",
@@ -5236,7 +5242,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     id: "auh_t_krob_rail",
     nation: ["AUH"],
     kind: "talk",
-    when: during("c", "c"),
+    when: { kind: "chapter", max: 5 },
     cast: {
       who: {
         person: "auh_krobatin",
@@ -5459,7 +5465,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("14", "15a"),
+        { kind: "world", of: { is: "war_months", own: true, max: 11 } },
         {
           kind: "world",
           of: {
@@ -5699,7 +5705,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("15a", "16b"),
+        { kind: "world", of: { is: "war_months", own: true, min: 5, max: 29 } },
         {
           kind: "world",
           of: {
@@ -5922,7 +5928,10 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("16a", "17a"),
+        {
+          kind: "world",
+          of: { is: "war_months", own: true, min: 17, max: 35 },
+        },
         {
           kind: "world",
           of: {
@@ -6182,7 +6191,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("17b", "18b"),
+        { kind: "world", of: { is: "war_months", min: 35 } },
         {
           kind: "not",
           of: {
@@ -6416,7 +6425,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("14", "14"),
+        { kind: "world", of: { is: "war_months", own: true, max: 4 } },
         {
           kind: "at_war",
           tag: "RUS",
@@ -6649,7 +6658,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("14", "15a"),
+        { kind: "world", of: { is: "war_months", own: true, max: 11 } },
         {
           kind: "at_war",
           tag: "RUS",
@@ -6893,7 +6902,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("15a", "15b"),
+        { kind: "world", of: { is: "war_months", own: true, min: 5, max: 17 } },
         {
           kind: "any",
           of: [
@@ -7154,7 +7163,10 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("16a", "17b"),
+        {
+          kind: "world",
+          of: { is: "war_months", own: true, min: 17, max: 41 },
+        },
         {
           kind: "world",
           of: {
@@ -7427,7 +7439,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("17b", "18a"),
+        { kind: "world", of: { is: "war_months", min: 35, max: 47 } },
         {
           kind: "any",
           of: [
@@ -7679,7 +7691,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("18b", "18b"),
+        { kind: "world", of: { is: "war_months", own: true, min: 47 } },
         {
           kind: "world",
           of: {
@@ -8147,7 +8159,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("c", "c"),
+        { kind: "world", of: { is: "chain", short: false, max: 5 } },
         {
           kind: "crisis",
           topic: "balkan",
@@ -8372,7 +8384,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     id: "auh_t_bol_names",
     nation: ["AUH"],
     kind: "talk",
-    when: during("14", "16a"),
+    when: { kind: "world", of: { is: "war_months", own: true, max: 23 } },
     cast: {
       who: {
         person: "auh_bolfras",
@@ -8610,7 +8622,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("14", "15b"),
+        { kind: "world", of: { is: "war_months", own: true, max: 17 } },
         {
           kind: "world",
           of: {
@@ -8848,7 +8860,10 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     id: "auh_t_bol_conrad",
     nation: ["AUH"],
     kind: "talk",
-    when: during("15a", "17a"),
+    when: {
+      kind: "world",
+      of: { is: "war_months", own: true, min: 5, max: 35 },
+    },
     cast: {
       who: {
         person: "auh_bolfras",
@@ -9115,7 +9130,10 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("15b", "16b"),
+        {
+          kind: "world",
+          of: { is: "war_months", own: true, min: 11, max: 29 },
+        },
         {
           kind: "not",
           of: {
@@ -9340,7 +9358,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("14", "15a"),
+        { kind: "world", of: { is: "war_months", own: true, max: 11 } },
         {
           kind: "at_war",
           tag: "RUS",
@@ -9476,7 +9494,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("17b", "18b"),
+        { kind: "world", of: { is: "war_months", min: 35 } },
         {
           kind: "world",
           of: {
@@ -9970,7 +9988,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("16b", "18b"),
+        { kind: "world", of: { is: "war_months", min: 23 } },
         {
           kind: "flag",
           flag: "w_auh_karl",

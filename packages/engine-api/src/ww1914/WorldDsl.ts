@@ -12,6 +12,7 @@ import {
   GW_FACT_KINDS,
   GW_FIELDS,
   GW_ISSUES,
+  GW_LADDER_STEPS,
   GW_OFFICES,
   GW_PLANS,
   GW_RESULTS,
@@ -30,6 +31,7 @@ import {
   GwField,
   GwIdSchema,
   GwIssue,
+  GwLadderStep,
   GwOffice,
   GwPlan,
   GwResult,
@@ -250,7 +252,30 @@ export type GwWorldCond =
    * The police have reported this plot astir in its present round, with one of
    * these stamps (confirmed if absent): what making it public needs.
    */
-  | { is: "plot_report"; id: string; of?: GwStamp[] };
+  | { is: "plot_report"; id: string; of?: GwStamp[] }
+  // ---- Scenes by state, not date (ww170 S3) ----
+  /**
+   * Whole months of war: since the war began, or with `own` since the seat's
+   * country came in. False while there has been no war (or it never came in).
+   */
+  | ({ is: "war_months"; own?: boolean } & Range)
+  /**
+   * Whole months since the last crisis closed without a war, while the seat's
+   * country has never been at war. False before any crisis has closed.
+   */
+  | ({ is: "peace_months" } & Range)
+  /** The month of the year, 1..12: seasons, Christmas, any year. */
+  | { is: "month"; of: number[] }
+  /** A crisis of the ladder (ultimatum) between the seat's country and another. */
+  | {
+      is: "ladder";
+      /** The seat's part: it sent the note, or it was sent one. */
+      role?: "from" | "to";
+      tag?: GwTag;
+      of?: GwLadderStep[];
+    }
+  /** The seat could send this country a note now (eng/ww1914/Ladder). */
+  | { is: "ladder_target"; tag: GwTag };
 
 export type GwWorldEffect =
   /** Germany's plan for the war to come. */
@@ -402,7 +427,14 @@ export type GwWorldEffect =
    * Agitation in another country (ww169): its order falls by `delta`, unless
    * its police answer it first (a seeded roll on how steady it is).
    */
-  | { do: "stir"; tag: GwTag; delta: number };
+  | { do: "stir"; tag: GwTag; delta: number }
+  // ---- The crisis ladder (ww170 S3) ----
+  /** The seat's country sends `tag` an ultimatum. */
+  | { do: "ultimatum"; tag: GwTag }
+  /** The seat that was sent a note gives way (`yes`) or refuses. */
+  | { do: "ladder_answer"; yes: boolean }
+  /** The sender, refused: mobilises (`on`) or climbs down. */
+  | { do: "ladder_press"; on: boolean };
 
 const int = z.number().int();
 const yearMonth = z.string().regex(/^19[0-9]{2}-[01][0-9]$/);
@@ -538,6 +570,15 @@ export const GwWorldCondSchema = z.union([
     id: GwIdSchema,
     of: z.array(z.enum(GW_STAMPS)).optional(),
   }),
+  is("war_months", { own: z.boolean().optional(), ...range }),
+  is("peace_months", range),
+  is("month", { of: z.array(int.min(1).max(12)).min(1) }),
+  is("ladder", {
+    role: z.enum(["from", "to"]).optional(),
+    tag: tag.optional(),
+    of: z.array(z.enum(GW_LADDER_STEPS)).optional(),
+  }),
+  is("ladder_target", { tag }),
 ]) as unknown as z.ZodType<GwWorldCond>;
 
 export const GwWorldEffectSchema = z.union([
@@ -629,6 +670,9 @@ export const GwWorldEffectSchema = z.union([
   act("use_file", { who }),
   act("ask", { id: GwIdSchema, answer: z.enum(["yes", "no"]) }),
   act("stir", { tag, delta: int.min(1).max(2) }),
+  act("ultimatum", { tag }),
+  act("ladder_answer", { yes: z.boolean() }),
+  act("ladder_press", { on: z.boolean() }),
 ]) as unknown as z.ZodType<GwWorldEffect>;
 
 // ---- Authoring helpers ----

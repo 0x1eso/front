@@ -498,7 +498,7 @@ export const BUDGET_SCENES: readonly GwScene[] = [
     "gw_bt_deu_profits",
     "DEU",
     financeHolder,
-    since("1915-03"),
+    all(world({ is: "war" }), world({ is: "war_months", own: true, min: 7 })),
     "b_deu_profits",
     { tell: [], effects: [reason("budget_heard_profits")] },
     trade("cold", coin, cost("army")),
@@ -519,7 +519,13 @@ export const BUDGET_SCENES: readonly GwScene[] = [
     "gw_bt_deu_after",
     "DEU",
     financeHolder,
-    all(since("1916-01"), heavy),
+    all(
+      all(
+        world({ is: "war" }),
+        world({ is: "war_months", own: true, min: 17 }),
+      ),
+      heavy,
+    ),
     "b_deu_after",
     { tell: [], effects: [reason("budget_heard_after")] },
     trade("weary", gain("reichstag"), {
@@ -531,7 +537,7 @@ export const BUDGET_SCENES: readonly GwScene[] = [
     "gw_bt_deu_notes",
     "DEU",
     { person: "deu_havenstein" },
-    since("1915-06"),
+    all(world({ is: "war" }), world({ is: "war_months", own: true, min: 10 })),
     "b_deu_notes",
     { tell: [], effects: [reason("budget_heard_notes")] },
     trade("stubborn", cheaper, cost("reichstag")),
@@ -633,7 +639,7 @@ export const BUDGET_SCENES: readonly GwScene[] = [
     "gw_bt_gbr_allies",
     "GBR",
     financeHolder,
-    since("1915-06"),
+    all(world({ is: "war" }), world({ is: "war_months", own: true, min: 10 })),
     "b_gbr_allies",
     { tell: [], effects: [reason("budget_heard_allies")] },
     trade("cold", coin, {
@@ -645,7 +651,7 @@ export const BUDGET_SCENES: readonly GwScene[] = [
     "gw_bt_gbr_loan",
     "GBR",
     financeHolder,
-    since("1916-01"),
+    all(world({ is: "war" }), world({ is: "war_months", own: true, min: 17 })),
     "b_gbr_loan",
     {
       tell: [],
@@ -776,7 +782,7 @@ export const BUDGET_SCENES: readonly GwScene[] = [
     "gw_bt_auh_grain",
     "AUH",
     { person: "auh_teleszky" },
-    since("1915-03"),
+    all(world({ is: "war" }), world({ is: "war_months", own: true, min: 7 })),
     "b_auh_grain",
     { tell: ["hungary:+1"], effects: [inst("hungary", 1)] },
     trade("stubborn", loaf, cost("hungary"), "auh_hun_grain_hidden"),
@@ -785,7 +791,13 @@ export const BUDGET_SCENES: readonly GwScene[] = [
     "gw_bt_auh_halves",
     "AUH",
     financeHolder,
-    all(since("1916-01"), any(dear, hungry)),
+    all(
+      all(
+        world({ is: "war" }),
+        world({ is: "war_months", own: true, min: 17 }),
+      ),
+      any(dear, hungry),
+    ),
     "b_auh_halves",
     { tell: [], effects: [reason("budget_heard_halves")] },
     trade("weary", loaf, cost("council")),
@@ -902,7 +914,7 @@ export const BUDGET_SCENES: readonly GwScene[] = [
     "gw_bt_rus_gold",
     "RUS",
     financeHolder,
-    since("1915-01"),
+    all(world({ is: "war" }), world({ is: "war_months", own: true, min: 5 })),
     "b_rus_gold",
     {
       tell: ["money:+1"],
@@ -917,7 +929,13 @@ export const BUDGET_SCENES: readonly GwScene[] = [
     "gw_bt_rus_paper",
     "RUS",
     financeHolder,
-    all(since("1915-06"), dear),
+    all(
+      all(
+        world({ is: "war" }),
+        world({ is: "war_months", own: true, min: 10 }),
+      ),
+      dear,
+    ),
     "b_rus_paper",
     { tell: [], effects: [reason("budget_heard_paper")] },
     trade("weary", cheaper, { tell: "shells:-1", effect: gauge("shells", -1) }),
@@ -927,7 +945,10 @@ export const BUDGET_SCENES: readonly GwScene[] = [
     "RUS",
     { person: "rus_shingarev" },
     all(
-      since("1915-06"),
+      all(
+        world({ is: "war" }),
+        world({ is: "war_months", own: true, min: 10 }),
+      ),
       not(world({ is: "regime", of: ["provisional", "rep"] })),
     ),
     "b_rus_committee",
@@ -1053,7 +1074,7 @@ export const BUDGET_SCENES: readonly GwScene[] = [
     "gw_bt_fra_morgan",
     "FRA",
     financeHolder,
-    since("1915-03"),
+    all(world({ is: "war" }), world({ is: "war_months", own: true, min: 7 })),
     "b_fra_morgan",
     { tell: [], effects: [reason("budget_heard_fra_morgan")] },
     trade(
@@ -1070,7 +1091,7 @@ export const BUDGET_SCENES: readonly GwScene[] = [
     "gw_bt_fra_income",
     "FRA",
     financeHolder,
-    since("1915-06"),
+    all(world({ is: "war" }), world({ is: "war_months", own: true, min: 10 })),
     "b_fra_income",
     { tell: [], effects: [reason("budget_heard_fra_income")] },
     trade("stubborn", coin, cost("senate")),
@@ -1079,7 +1100,7 @@ export const BUDGET_SCENES: readonly GwScene[] = [
     "gw_bt_fra_gold",
     "FRA",
     financeHolder,
-    since("1916-03"),
+    all(world({ is: "war" }), world({ is: "war_months", own: true, min: 19 })),
     "b_fra_gold",
     { tell: [], effects: [reason("budget_heard_fra_gold")] },
     trade("anxious", coin, {

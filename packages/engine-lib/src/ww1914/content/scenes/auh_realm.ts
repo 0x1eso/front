@@ -49,11 +49,10 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     id: "auh_h_quota",
     nation: ["AUH"],
     kind: "proposal",
-    stage: ["y1914"],
     when: {
       kind: "all",
       of: [
-        during("14", "14"),
+        { kind: "world", of: { is: "war_months", own: true, max: 4 } },
         {
           kind: "world",
           of: {
@@ -182,7 +181,7 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("14", "15a"),
+        { kind: "world", of: { is: "war_months", own: true, max: 11 } },
         {
           kind: "all",
           of: [
@@ -307,7 +306,7 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("15a", "15a"),
+        { kind: "world", of: { is: "war_months", own: true, min: 5, max: 11 } },
         {
           kind: "all",
           of: [
@@ -449,7 +448,7 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("15a", "17b"),
+        { kind: "world", of: { is: "war_months", own: true, min: 5, max: 41 } },
         {
           kind: "all",
           of: [
@@ -674,7 +673,7 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("15a", "15b"),
+        { kind: "world", of: { is: "war_months", own: true, min: 5, max: 17 } },
         {
           kind: "all",
           of: [
@@ -711,7 +710,7 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("15a", "15a"),
+        { kind: "world", of: { is: "war_months", own: true, min: 5, max: 11 } },
         {
           kind: "all",
           of: [
@@ -999,7 +998,7 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("14", "16a"),
+        { kind: "world", of: { is: "war_months", own: true, max: 23 } },
         {
           kind: "all",
           of: [
@@ -1181,7 +1180,7 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("15a", "16a"),
+        { kind: "world", of: { is: "war_months", own: true, min: 5, max: 23 } },
         {
           kind: "all",
           of: [
@@ -1328,7 +1327,7 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("15b", "16b"),
+        { kind: "world", of: { is: "war_months", min: 11, max: 29 } },
         {
           kind: "all",
           of: [
@@ -1512,7 +1511,10 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     nation: ["AUH"],
     kind: "wire",
     stage: ["war"],
-    when: during("16b", "16b"),
+    when: {
+      kind: "world",
+      of: { is: "war_months", own: true, min: 23, max: 29 },
+    },
     cast: {},
     salience: 6,
     tags: ["foreign"],
@@ -1539,7 +1541,7 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("16b", "17b"),
+        { kind: "world", of: { is: "war_months", min: 23, max: 41 } },
         {
           kind: "any",
           of: [
@@ -1656,7 +1658,7 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("14", "15a"),
+        { kind: "world", of: { is: "war_months", own: true, max: 11 } },
         {
           kind: "world",
           of: {
@@ -1786,7 +1788,7 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("15a", "15a"),
+        { kind: "world", of: { is: "war_months", own: true, min: 5, max: 11 } },
         {
           kind: "world",
           of: {
@@ -2015,7 +2017,7 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("16a", "16b"),
+        { kind: "world", of: { is: "war_months", min: 17, max: 29 } },
         {
           kind: "flag",
           flag: "f_auh_kramar_held",
@@ -2149,7 +2151,7 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("15a", "15b"),
+        { kind: "world", of: { is: "war_months", own: true, min: 5, max: 17 } },
         {
           kind: "all",
           of: [
@@ -2313,7 +2315,10 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("15b", "16b"),
+        {
+          kind: "world",
+          of: { is: "war_months", own: true, min: 11, max: 29 },
+        },
         {
           kind: "all",
           of: [
@@ -2435,7 +2440,10 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("15b", "16b"),
+        {
+          kind: "world",
+          of: { is: "war_months", own: true, min: 11, max: 29 },
+        },
         {
           kind: "all",
           of: [
@@ -2572,7 +2580,10 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("16a", "17a"),
+        {
+          kind: "world",
+          of: { is: "war_months", own: true, min: 17, max: 35 },
+        },
         {
           kind: "all",
           of: [
@@ -2723,7 +2734,10 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("15b", "17b"),
+        {
+          kind: "world",
+          of: { is: "war_months", own: true, min: 11, max: 41 },
+        },
         {
           kind: "all",
           of: [
@@ -2863,7 +2877,7 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("15b", "16b"),
+        { kind: "world", of: { is: "war_months", min: 11, max: 29 } },
         {
           kind: "any",
           of: [
@@ -3013,7 +3027,10 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("15b", "16b"),
+        {
+          kind: "world",
+          of: { is: "war_months", own: true, min: 11, max: 29 },
+        },
         {
           kind: "all",
           of: [
@@ -3182,7 +3199,7 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("16b", "16b"),
+        { kind: "world", of: { is: "war_months", min: 23, max: 29 } },
         {
           kind: "flag",
           flag: "w_auh_sturgkh_shot",
@@ -3216,7 +3233,7 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("16b", "17a"),
+        { kind: "world", of: { is: "war_months", min: 23, max: 35 } },
         {
           kind: "seen",
           scene: "auh_h_sturgkh_shot",
@@ -3334,7 +3351,7 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("15b", "18b"),
+        { kind: "world", of: { is: "war_months", min: 11 } },
         {
           kind: "world",
           of: {
@@ -3458,7 +3475,7 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("16b", "18b"),
+        { kind: "world", of: { is: "war_months", min: 23 } },
         {
           kind: "world",
           of: {
@@ -3586,7 +3603,7 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("17a", "18b"),
+        { kind: "world", of: { is: "war_months", min: 29 } },
         {
           kind: "world",
           of: {
@@ -3725,7 +3742,10 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("17a", "18a"),
+        {
+          kind: "world",
+          of: { is: "war_months", own: true, min: 29, max: 47 },
+        },
         {
           kind: "all",
           of: [
@@ -3861,7 +3881,7 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("16a", "17b"),
+        { kind: "world", of: { is: "peace_months", min: 17, max: 41 } },
         {
           kind: "not",
           of: {
@@ -3985,11 +4005,10 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     id: "auh_t_tisza_terms",
     nation: ["AUH"],
     kind: "talk",
-    stage: ["crisis"],
     when: {
       kind: "all",
       of: [
-        during("c", "c"),
+        { kind: "world", of: { is: "chain", short: false, max: 5 } },
         {
           kind: "crisis",
           topic: "balkan",
@@ -4966,7 +4985,7 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("15a", "17a"),
+        { kind: "world", of: { is: "war_months", own: true, min: 5, max: 35 } },
         {
           kind: "all",
           of: [
@@ -5332,7 +5351,7 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     nation: ["AUH"],
     kind: "talk",
     stage: ["war"],
-    when: during("16a", "17a"),
+    when: { kind: "world", of: { is: "war_months", min: 17, max: 35 } },
     cast: {
       p: {
         person: "auh_tisza",
@@ -5594,7 +5613,13 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     stage: ["war"],
     when: {
       kind: "all",
-      of: [during("16b", "17b"), KARL],
+      of: [
+        {
+          kind: "world",
+          of: { is: "war_months", own: true, min: 23, max: 41 },
+        },
+        KARL,
+      ],
     },
     cast: {
       p: {
@@ -5813,11 +5838,10 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     id: "auh_t_bur_between",
     nation: ["AUH"],
     kind: "talk",
-    stage: ["crisis"],
     when: {
       kind: "all",
       of: [
-        during("c", "c"),
+        { kind: "world", of: { is: "chain", short: false, max: 5 } },
         {
           kind: "crisis",
           topic: "balkan",
@@ -6072,7 +6096,7 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("15a", "15a"),
+        { kind: "world", of: { is: "war_months", own: true, min: 5, max: 11 } },
         {
           kind: "not",
           of: {
@@ -6339,7 +6363,7 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("15b", "16b"),
+        { kind: "world", of: { is: "war_months", min: 11, max: 29 } },
         {
           kind: "any",
           of: [
@@ -6604,7 +6628,7 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("15b", "16b"),
+        { kind: "world", of: { is: "war_months", min: 11, max: 29 } },
         {
           kind: "world",
           of: {
@@ -6806,7 +6830,10 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     nation: ["AUH"],
     kind: "talk",
     stage: ["war"],
-    when: during("16b", "18a"),
+    when: {
+      kind: "world",
+      of: { is: "war_months", own: true, min: 23, max: 47 },
+    },
     cast: {
       p: {
         person: "auh_burian",
@@ -7053,7 +7080,7 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("18a", "18b"),
+        { kind: "world", of: { is: "war_months", own: true, min: 41 } },
         {
           kind: "world",
           of: {
@@ -7248,11 +7275,10 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     id: "auh_t_kra_first",
     nation: ["AUH"],
     kind: "talk",
-    stage: ["y1914"],
     when: {
       kind: "all",
       of: [
-        during("14", "14"),
+        { kind: "world", of: { is: "war_months", own: true, max: 4 } },
         {
           kind: "world",
           of: {
@@ -7791,7 +7817,7 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("15a", "15b"),
+        { kind: "world", of: { is: "war_months", min: 5, max: 17 } },
         {
           kind: "any",
           of: [
@@ -8052,7 +8078,7 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("15b", "17a"),
+        { kind: "world", of: { is: "war_months", min: 11, max: 35 } },
         {
           kind: "flag",
           flag: "f_auh_kramar_held",
@@ -8276,7 +8302,7 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     stage: ["war"],
     when: {
       kind: "all",
-      of: [during("16b", "17b"), KARL],
+      of: [{ kind: "world", of: { is: "war_months", min: 23, max: 41 } }, KARL],
     },
     cast: {
       p: {
@@ -8477,7 +8503,7 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     nation: ["AUH"],
     kind: "talk",
     stage: ["war"],
-    when: during("17a", "18b"),
+    when: { kind: "world", of: { is: "war_months", min: 29 } },
     cast: {
       p: {
         person: "auh_kramar",
@@ -8867,7 +8893,7 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("15a", "16b"),
+        { kind: "world", of: { is: "war_months", own: true, min: 5, max: 29 } },
         {
           kind: "world",
           of: {
@@ -9083,7 +9109,13 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     stage: ["war"],
     when: {
       kind: "all",
-      of: [during("15b", "16b"), OLD_EMPEROR],
+      of: [
+        {
+          kind: "world",
+          of: { is: "war_months", own: true, min: 11, max: 29 },
+        },
+        OLD_EMPEROR,
+      ],
     },
     cast: {
       p: {
@@ -9288,7 +9320,7 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("16b", "17a"),
+        { kind: "world", of: { is: "war_months", min: 23, max: 35 } },
         {
           kind: "flag",
           flag: "w_auh_sturgkh_shot",
@@ -9506,7 +9538,7 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("17a", "18a"),
+        { kind: "world", of: { is: "war_months", min: 29, max: 47 } },
         {
           kind: "world",
           of: {
@@ -9760,7 +9792,7 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     stage: ["war"],
     when: {
       kind: "all",
-      of: [during("17a", "18b"), KARL],
+      of: [{ kind: "world", of: { is: "war_months", min: 29 } }, KARL],
     },
     cast: {
       p: {
@@ -10732,7 +10764,10 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("16b", "18a"),
+        {
+          kind: "world",
+          of: { is: "war_months", own: true, min: 23, max: 47 },
+        },
         {
           kind: "gauge",
           gauge: "bread",

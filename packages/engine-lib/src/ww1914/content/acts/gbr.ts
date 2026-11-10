@@ -73,7 +73,7 @@ const VISITS: GwAct[] = [
   visit("gbr_a_fleet", undefined, [inspect("force", "GBR", "sea")]),
   visit("gbr_a_woolwich", undefined, [inspect("shells", "GBR")]),
   visit("gbr_a_clyde", undefined),
-  visit("gbr_a_gq", all(atDeu, { kind: "chapter", min: 6 }), [
+  visit("gbr_a_gq", atDeu, [
     inspect("morale", "GBR"),
     inspect("force", "GBR", "west"),
     inspect("force", "DEU", "west"),
@@ -82,12 +82,16 @@ const VISITS: GwAct[] = [
   visit("gbr_a_dublin", undefined),
   visit("gbr_a_belfast", all(notWar, not(flag("f_home_rule_lives")))),
   visit("gbr_a_city", undefined),
-  visit("gbr_a_room40", all(atDeu, { kind: "chapter", min: 8 }), [
-    maybe(
-      all({ kind: "secret", id: "deu_zimmermann_wire" }, from("1917-01")),
-      doWorld({ do: "reveal", id: "deu_zimmermann_wire" }),
-    ),
-  ]),
+  visit(
+    "gbr_a_room40",
+    all(atDeu, world({ is: "war_months", own: true, min: 2 })),
+    [
+      maybe(
+        all({ kind: "secret", id: "deu_zimmermann_wire" }, from("1917-01")),
+        doWorld({ do: "reveal", id: "deu_zimmermann_wire" }),
+      ),
+    ],
+  ),
   visit("gbr_a_dover", all(war, world({ is: "uboat", min: 1 })), [
     inspect("force", "GBR", "sea"),
   ]),
@@ -98,7 +102,11 @@ const VISITS: GwAct[] = [
     ),
   ]),
   visit("gbr_a_salisbury", atDeu, [inspect("force", "GBR", "west")]),
-  visit("gbr_a_gretna", all(war, from("1916-04")), [inspect("shells", "GBR")]),
+  visit(
+    "gbr_a_gretna",
+    all(war, world({ is: "war_months", own: true, min: 20 })),
+    [inspect("shells", "GBR")],
+  ),
   visit("gbr_a_seat", undefined, [inspect("morale", "GBR")]),
 ];
 
@@ -243,7 +251,7 @@ const ORDERS: GwAct[] = [
     nation: NATION,
     kind: "order",
     once: true,
-    when: all(war, from("1915-07")),
+    when: all(war, world({ is: "war_months", own: true, min: 11 })),
     scene: "gbr_a_o_commission_r",
     wait: 2,
     fields: [

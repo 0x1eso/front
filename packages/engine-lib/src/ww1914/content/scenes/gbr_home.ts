@@ -336,7 +336,11 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
     id: "gbr_h_shells",
     kind: "crisis",
     stage: WAR,
-    when: all(war, during("15a"), gaugeAt("shells", 1)),
+    when: all(
+      war,
+      world({ is: "war_months", own: true, min: 5, max: 11 }),
+      gaugeAt("shells", 1),
+    ),
     cast: { sec: holder("war"), finance: holder("finance") },
     salience: 9,
     tags: ["home", "tension_up"],
@@ -413,9 +417,8 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
     when: all(
       war,
       notLg,
-      // The 통치 tab's coalition power may have formed it already.
       not(co),
-      during("15a", "15b"),
+      world({ is: "war_months", own: true, min: 5, max: 17 }),
       any(oppHigh, seen("gbr_w_fisher_out"), chose("gbr_h_shells")),
     ),
     cast: {
@@ -475,7 +478,7 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
     id: "gbr_h_seats",
     kind: "proposal",
     stage: WAR,
-    when: all(co, notLg, during("15a", "15b")),
+    when: all(co, notLg, world({ is: "war_months", min: 5, max: 17 })),
     cast: { fm: holder("foreign"), law: { person: "gbr_bonar_law" } },
     salience: 8,
     tags: ["people"],
@@ -687,7 +690,11 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
     id: "gbr_h_ireland_talks",
     kind: "proposal",
     stage: WAR,
-    when: all(war, notHr, during("16a", "17b")),
+    when: all(
+      war,
+      notHr,
+      world({ is: "war_months", own: true, min: 17, max: 41 }),
+    ),
     cast: { ireland: holder("ireland") },
     salience: 7,
     tags: ["home"],
@@ -728,7 +735,12 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
     id: "gbr_h_committee",
     kind: "crisis",
     stage: WAR,
-    when: all(war, notLg, during("16b"), any(oppHigh, co)),
+    when: all(
+      war,
+      notLg,
+      world({ is: "war_months", own: true, min: 23, max: 29 }),
+      any(oppHigh, co),
+    ),
     cast: {
       lg: { person: "gbr_lloyd_george" },
       law: { person: "gbr_bonar_law" },
@@ -800,7 +812,11 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
     id: "gbr_h_food",
     kind: "proposal",
     stage: WAR,
-    when: all(war, during("17a", "18a"), gaugeAt("bread", 1)),
+    when: all(
+      war,
+      world({ is: "war_months", own: true, min: 29, max: 47 }),
+      gaugeAt("bread", 1),
+    ),
     cast: { home: holder("interior") },
     salience: 7,
     tags: ["home"],
@@ -833,7 +849,10 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
     id: "gbr_h_coupon",
     kind: "proposal",
     stage: WAR,
-    when: all(during("18b"), world({ is: "war_age", min: 1 })),
+    when: all(
+      world({ is: "war_months", min: 47 }),
+      world({ is: "war_age", min: 1 }),
+    ),
     cast: { law: { person: "gbr_bonar_law" } },
     salience: 7,
     tags: ["home"],
@@ -912,7 +931,10 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
     "gbr_t_lg_belgium",
     "gbr_lloyd_george",
     CRISIS,
-    all(chapter(3, 5), notLg, { kind: "crisis", topic: "balkan" }),
+    all(world({ is: "chain", short: false, min: 3, max: 5 }), notLg, {
+      kind: "crisis",
+      topic: "balkan",
+    }),
     {
       open: node(
         [
@@ -1017,7 +1039,14 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
     "gbr_t_lg_balkans",
     "gbr_lloyd_george",
     Y14_ON,
-    all(war, notLg, since(10, "15a")),
+    all(
+      war,
+      notLg,
+      all(
+        world({ is: "war_months", own: true, min: 4 }),
+        world({ is: "war_months", own: true, max: 11 }),
+      ),
+    ),
     {
       open: node(
         [
@@ -1067,7 +1096,7 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
     "gbr_t_lg_munitions",
     "gbr_lloyd_george",
     WAR,
-    all(war, notLg, during("15a")),
+    all(war, notLg, world({ is: "war_months", own: true, min: 5, max: 11 })),
     {
       open: node(
         [
@@ -1121,7 +1150,7 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
     "gbr_t_lg_ambition",
     "gbr_lloyd_george",
     WAR,
-    all(war, notLg, during("15b", "16b")),
+    all(war, notLg, world({ is: "war_months", own: true, min: 11, max: 29 })),
     {
       open: node(
         [
@@ -1239,7 +1268,7 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
     "gbr_t_law_truce",
     "gbr_bonar_law",
     Y14_ON,
-    all(war, notLg, since(6, "15a")),
+    all(war, notLg, world({ is: "war_months", own: true, max: 11 })),
     {
       open: node(
         [v("cold", mood("cold")), v("stubborn", mood("stubborn")), v("base")],
@@ -1280,7 +1309,7 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
     "gbr_t_law_shells",
     "gbr_bonar_law",
     WAR,
-    all(war, notLg, during("15a")),
+    all(war, notLg, world({ is: "war_months", own: true, min: 5, max: 11 })),
     {
       open: node(
         [v("cold", mood("cold")), v("weary", mood("weary")), v("base")],
@@ -1328,7 +1357,12 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
     "gbr_t_law_backbench",
     "gbr_bonar_law",
     WAR,
-    all(war, co, notLg, during("15b", "16b")),
+    all(
+      war,
+      co,
+      notLg,
+      world({ is: "war_months", own: true, min: 11, max: 29 }),
+    ),
     {
       open: node(
         [
@@ -1376,7 +1410,12 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
     "gbr_t_law_december",
     "gbr_bonar_law",
     WAR,
-    all(war, co, notLg, during("16b")),
+    all(
+      war,
+      co,
+      notLg,
+      world({ is: "war_months", own: true, min: 23, max: 29 }),
+    ),
     {
       open: node(
         [
@@ -1422,41 +1461,57 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
       shut: node([v("base")], r("end", "cold", "leave", null)),
     },
   ),
-  talk("gbr_t_law_loan", "gbr_bonar_law", WAR, all(war, during("16b", "17a")), {
-    open: node(
-      [v("cold", mood("cold")), v("stubborn", mood("stubborn")), v("base")],
-      r("ask", "frank", "ask", "plan", {
-        reacts: [when_(sour, "shut", reason("law_shut"))],
-      }),
-      r("push", "cold", "push", "plan", {
-        tell: ["trust:-1"],
-        effects: [trustOf(who, -1)],
-        reacts: [when_(mood("stubborn"), "shut")],
-      }),
-      r("deal", "warm", "deal", "plan", {
-        tell: ["money:-1"],
-        effects: [gauge("money", -1), remember("k_law_loan"), trustOf(who, 1)],
-      }),
-      r("later", "cold", "leave", null),
-    ),
-    plan: node(
-      [v("base")],
-      r("yes", "frank", "leave", null, { effects: [remember("k_law_loan")] }),
-      r("no", "cold", "leave", null),
-      r("mck", "frank", "ask", "mck"),
-    ),
-    shut: node([v("base")], r("end", "cold", "leave", null)),
-    mck: node(
-      [v("base")],
-      r("yes", "frank", "leave", null, { effects: [remember("k_law_loan")] }),
-      r("no", "cold", "leave", null),
-    ),
-  }),
+  talk(
+    "gbr_t_law_loan",
+    "gbr_bonar_law",
+    WAR,
+    all(war, world({ is: "war_months", own: true, min: 23, max: 35 })),
+    {
+      open: node(
+        [v("cold", mood("cold")), v("stubborn", mood("stubborn")), v("base")],
+        r("ask", "frank", "ask", "plan", {
+          reacts: [when_(sour, "shut", reason("law_shut"))],
+        }),
+        r("push", "cold", "push", "plan", {
+          tell: ["trust:-1"],
+          effects: [trustOf(who, -1)],
+          reacts: [when_(mood("stubborn"), "shut")],
+        }),
+        r("deal", "warm", "deal", "plan", {
+          tell: ["money:-1"],
+          effects: [
+            gauge("money", -1),
+            remember("k_law_loan"),
+            trustOf(who, 1),
+          ],
+        }),
+        r("later", "cold", "leave", null),
+      ),
+      plan: node(
+        [v("base")],
+        r("yes", "frank", "leave", null, { effects: [remember("k_law_loan")] }),
+        r("no", "cold", "leave", null),
+        r("mck", "frank", "ask", "mck"),
+      ),
+      shut: node([v("base")], r("end", "cold", "leave", null)),
+      mck: node(
+        [v("base")],
+        r("yes", "frank", "leave", null, { effects: [remember("k_law_loan")] }),
+        r("no", "cold", "leave", null),
+      ),
+    },
+  ),
   talk(
     "gbr_t_henderson_truce",
     "gbr_henderson",
     Y14_ON,
-    all(war, since(9, "15a")),
+    all(
+      war,
+      all(
+        world({ is: "war_months", own: true, min: 3 }),
+        world({ is: "war_months", own: true, max: 11 }),
+      ),
+    ),
     {
       open: node(
         [v("stubborn", mood("stubborn")), v("weary", mood("weary")), v("base")],
@@ -1508,7 +1563,7 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
     "gbr_t_henderson_cabinet",
     "gbr_henderson",
     WAR,
-    all(war, notLg, during("15a")),
+    all(war, notLg, world({ is: "war_months", own: true, min: 5, max: 11 })),
     {
       open: node(
         [v("stubborn", mood("stubborn")), v("weary", mood("weary")), v("base")],
@@ -1549,7 +1604,7 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
     "gbr_t_henderson_dilution",
     "gbr_henderson",
     WAR,
-    all(war, during("15b")),
+    all(war, world({ is: "war_months", own: true, min: 11, max: 17 })),
     {
       open: node(
         [v("stubborn", mood("stubborn")), v("weary", mood("weary")), v("base")],
@@ -1595,7 +1650,7 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
     "gbr_t_henderson_cons",
     "gbr_henderson",
     WAR,
-    all(war, during("15b", "16a")),
+    all(war, world({ is: "war_months", own: true, min: 11, max: 23 })),
     {
       open: node(
         [v("stubborn", mood("stubborn")), v("weary", mood("weary")), v("base")],
@@ -1645,7 +1700,11 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
     "gbr_t_henderson_russia",
     "gbr_henderson",
     WAR,
-    all(war, during("17a", "17b"), revolution),
+    all(
+      war,
+      world({ is: "war_months", own: true, min: 29, max: 41 }),
+      revolution,
+    ),
     {
       open: node(
         [v("stubborn", mood("stubborn")), v("weary", mood("weary")), v("base")],
@@ -1686,7 +1745,7 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
     "gbr_t_henderson_after",
     "gbr_henderson",
     WAR,
-    all(war, during("17b", "18a")),
+    all(war, world({ is: "war_months", own: true, min: 35, max: 47 })),
     {
       open: node(
         [
@@ -1866,7 +1925,11 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
     "gbr_t_venetia_wards",
     "gbr_venetia",
     WAR,
-    all(war, during("15a"), not(seen("gbr_h_engagement"))),
+    all(
+      war,
+      world({ is: "war_months", own: true, min: 5, max: 11 }),
+      not(seen("gbr_h_engagement")),
+    ),
     {
       open: node(
         [
@@ -1913,7 +1976,14 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
     "gbr_t_venetia_letters",
     "gbr_venetia",
     Y14_ON,
-    all(war, since(7, "15a"), not(seen("gbr_h_engagement"))),
+    all(
+      war,
+      all(
+        world({ is: "war_months", own: true, min: 1 }),
+        world({ is: "war_months", own: true, max: 11 }),
+      ),
+      not(seen("gbr_h_engagement")),
+    ),
     {
       open: node(
         [
@@ -1972,7 +2042,10 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
     "gbr_t_venetia_montagu",
     "gbr_venetia",
     WAR,
-    all(during("15a"), not(seen("gbr_h_engagement"))),
+    all(
+      world({ is: "war_months", min: 5, max: 11 }),
+      not(seen("gbr_h_engagement")),
+    ),
     {
       open: node(
         [
@@ -2008,7 +2081,7 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
     "gbr_t_venetia_after",
     "gbr_venetia",
     WAR,
-    all(seen("gbr_h_engagement"), notLg, during("16b", "18b")),
+    all(seen("gbr_h_engagement"), notLg, world({ is: "war_months", min: 23 })),
     {
       open: node(
         [
@@ -2053,7 +2126,7 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
     "gbr_v_montagu_asks",
     "gbr_montagu",
     WAR,
-    all(during("15a"), notLg),
+    all(world({ is: "war_months", min: 5, max: 11 }), notLg),
     5,
     {
       open: node(
@@ -2089,7 +2162,10 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
     "gbr_v_simon_resign",
     "gbr_simon",
     WAR,
-    all(during("15b", "16a"), not(seen("gbr_h_conscription"))),
+    all(
+      world({ is: "war_months", min: 11, max: 23 }),
+      not(seen("gbr_h_conscription")),
+    ),
     6,
     {
       open: node(
@@ -2128,7 +2204,12 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
     "gbr_v_northcliffe_call",
     "gbr_northcliffe",
     WAR,
-    all(war, notLg, during("15a", "16b"), oppHigh),
+    all(
+      war,
+      notLg,
+      world({ is: "war_months", own: true, min: 5, max: 29 }),
+      oppHigh,
+    ),
     5,
     {
       open: node(
@@ -2181,7 +2262,7 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
     "gbr_v_asquith_old",
     "gbr_asquith",
     WAR,
-    all(lg, during("17a", "18a")),
+    all(lg, world({ is: "war_months", min: 29, max: 47 })),
     6,
     {
       open: node(
@@ -2280,7 +2361,7 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
     id: "gbr_h_pledge",
     kind: "proposal",
     stage: WAR,
-    when: all(war, during("15a")),
+    when: all(war, world({ is: "war_months", own: true, min: 5, max: 11 })),
     cast: { finance: holder("finance"), court: holder("court") },
     salience: 5,
     tags: ["home", "tension_down"],
@@ -2338,7 +2419,11 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
     id: "gbr_h_rents",
     kind: "proposal",
     stage: WAR,
-    when: all(war, during("15b"), gaugeAt("order", 3)),
+    when: all(
+      war,
+      world({ is: "war_months", own: true, min: 11, max: 17 }),
+      gaugeAt("order", 3),
+    ),
     cast: {
       home: holder("interior"),
       mun: { any_of: [{ office: "munitions" }, { office: "finance" }] },
@@ -2376,7 +2461,12 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
     id: "gbr_h_election_due",
     kind: "proposal",
     stage: WAR,
-    when: all(war, notLg, during("15b", "16b"), commonsLow),
+    when: all(
+      war,
+      notLg,
+      world({ is: "war_months", own: true, min: 11, max: 29 }),
+      commonsLow,
+    ),
     cast: { fm: holder("foreign") },
     salience: 6,
     tags: ["home"],
@@ -2412,7 +2502,7 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
     id: "gbr_h_irish_division",
     kind: "proposal",
     stage: WAR,
-    when: all(war, during("15a", "15b"), {
+    when: all(war, world({ is: "war_months", own: true, min: 5, max: 17 }), {
       kind: "promise",
       who: byName("gbr_redmond"),
       key: "p_redmond_badge",
@@ -2510,7 +2600,7 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
     id: "gbr_h_home_rule_lives",
     kind: "proposal",
     stage: WAR,
-    when: all(hr, during("15a", "18a")),
+    when: all(hr, world({ is: "war_months", min: 5, max: 47 })),
     cast: { ireland: holder("ireland") },
     salience: 8,
     tags: ["home", "tension_down"],
@@ -2537,7 +2627,7 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
     when: all(
       notLg,
       war,
-      during("16b"),
+      world({ is: "war_months", own: true, min: 23, max: 29 }),
       any(seen("gbr_w_somme_first"), world({ is: "main", of: ["west"] })),
     ),
     cast: {},
@@ -2553,7 +2643,7 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
     // the game. It comes only behind the fall track's warnings.
     when: all(
       notLg,
-      during("16b"),
+      world({ is: "war_months", min: 23, max: 29 }),
       seen("gov_gbr_table_2"),
       any(chose("gbr_h_committee", "refuse"), {
         kind: "inst",
@@ -2635,7 +2725,12 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
     id: "gbr_h_stockholm",
     kind: "crisis",
     stage: WAR,
-    when: all(war, during("17b"), labourIn, revolution),
+    when: all(
+      war,
+      world({ is: "war_months", own: true, min: 35, max: 41 }),
+      labourIn,
+      revolution,
+    ),
     cast: { fm: holder("foreign"), hen: { person: "gbr_henderson" } },
     salience: 7,
     tags: ["home", "tension_up"],
@@ -2680,7 +2775,7 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
     id: "gbr_h_franchise",
     kind: "proposal",
     stage: WAR,
-    when: all(war, during("17a", "18a")),
+    when: all(war, world({ is: "war_months", own: true, min: 29, max: 47 })),
     cast: { home: holder("interior") },
     salience: 6,
     tags: ["home", "tension_down"],
@@ -2727,7 +2822,11 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
     id: "gbr_h_lansdowne",
     kind: "proposal",
     stage: WAR,
-    when: all(war, during("17b"), bigLoss),
+    when: all(
+      war,
+      world({ is: "war_months", own: true, min: 35, max: 41 }),
+      bigLoss,
+    ),
     cast: { fm: holder("foreign") },
     salience: 7,
     tags: ["foreign", "tension_down"],
@@ -2760,7 +2859,11 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
     id: "gbr_h_irish_draft",
     kind: "crisis",
     stage: WAR,
-    when: all(war, during("18a"), any(seen("gbr_w_march"), manLow)),
+    when: all(
+      war,
+      world({ is: "war_months", own: true, min: 41, max: 47 }),
+      any(seen("gbr_w_march"), manLow),
+    ),
     cast: { ireland: holder("ireland"), sec: holder("war") },
     salience: 8,
     tags: ["home", "tension_up"],
@@ -2805,7 +2908,11 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
     id: "gbr_h_maurice",
     kind: "crisis",
     stage: WAR,
-    when: all(any(co, lg), during("18a"), westBack),
+    when: all(
+      any(co, lg),
+      world({ is: "war_months", min: 41, max: 47 }),
+      westBack,
+    ),
     cast: { sec: holder("war") },
     salience: 8,
     tags: ["home", "tension_up"],
@@ -2897,7 +3004,11 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
     id: "gbr_h_unions",
     kind: "proposal",
     stage: WAR,
-    when: all(war, during("17a", "18a"), unrestAt(1)),
+    when: all(
+      war,
+      world({ is: "war_months", own: true, min: 29, max: 47 }),
+      unrestAt(1),
+    ),
     cast: { mun: { any_of: [{ office: "munitions" }, { office: "finance" }] } },
     salience: 6,
     tags: ["home", "tension_up"],

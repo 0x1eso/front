@@ -33,7 +33,6 @@ import {
   trustOf,
 } from "@openfront/engine-api/ww1914/SceneDsl";
 import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
-import { period } from "./period";
 
 /**
  * 「영국」, ww151: what the Prime Minister starts himself. The scenes of the
@@ -983,7 +982,7 @@ const AIM_SCENES: GwScene[] = [
     all(
       aim("gbr_aim_belgium"),
       war,
-      period("15a", "17b"),
+      world({ is: "war_months", own: true, min: 5, max: 41 }),
       world({ is: "score", max: 0 }),
     ),
     { fm: holder("foreign") },
@@ -1019,7 +1018,11 @@ const AIM_SCENES: GwScene[] = [
   ),
   aimScene(
     "gbr_aim_p_sea",
-    all(aim("gbr_aim_sea"), war, period("15b", "18a")),
+    all(
+      aim("gbr_aim_sea"),
+      war,
+      world({ is: "war_months", own: true, min: 11, max: 47 }),
+    ),
     { navy: holder("navy") },
     [
       o(
@@ -1079,7 +1082,7 @@ const AIM_SCENES: GwScene[] = [
     all(
       aim("gbr_aim_liberal"),
       war,
-      period("15b", "16b"),
+      world({ is: "war_months", own: true, min: 11, max: 29 }),
       world({ is: "manpower", max: 55 }),
     ),
     { home: holder("interior") },
@@ -1245,7 +1248,12 @@ const BIG_SCENES: GwScene[] = [
   ),
   big(
     "gbr_big_nicky",
-    all(crisis, tempAt(5), chapters(4, 4), not(atDeu)),
+    all(
+      crisis,
+      tempAt(5),
+      world({ is: "chain", short: false, min: 4, max: 4 }),
+      not(atDeu),
+    ),
     { fm: holder("foreign"), king: { person: "gbr_george_v" } },
     "fm",
     {
@@ -1320,7 +1328,12 @@ const BIG_SCENES: GwScene[] = [
   ),
   big(
     "gbr_big_sunday",
-    all(crisis, tempAt(6), chapters(5, 5), not(atDeu)),
+    all(
+      crisis,
+      tempAt(6),
+      world({ is: "chain", short: false, min: 5, max: 5 }),
+      not(atDeu),
+    ),
     {
       fm: holder("foreign"),
       fin: holder("finance"),
@@ -1455,7 +1468,7 @@ const BIG_SCENES: GwScene[] = [
     all(
       atDeu,
       notLg,
-      world({ is: "date", from: "1915-03", to: "1915-09" }),
+      world({ is: "war_months", own: true, min: 7, max: 14 }),
       any(
         seen("gbr_w_fisher_out"),
         chose("gbr_h_shells"),
@@ -1522,7 +1535,7 @@ const BIG_SCENES: GwScene[] = [
     all(
       seen("gbr_h_easter"),
       notLg,
-      world({ is: "date", from: "1916-04", to: "1916-09" }),
+      world({ is: "war_months", min: 20, max: 26 }),
     ),
     { red: { person: "gbr_redmond" }, law: { person: "gbr_bonar_law" } },
     "red",
@@ -1571,7 +1584,7 @@ const BIG_SCENES: GwScene[] = [
     all(
       atDeu,
       notLg,
-      period("16b"),
+      world({ is: "war_months", own: true, min: 23, max: 29 }),
       any(flag("f_coalition"), { kind: "inst", inst: "opposition", min: 2 }),
     ),
     {
@@ -1631,7 +1644,7 @@ const BIG_SCENES: GwScene[] = [
     "gbr_big_wheat",
     all(
       war,
-      period("17a", "17b"),
+      world({ is: "war_months", own: true, min: 29, max: 41 }),
       any(world({ is: "uboat", min: 2 }), gaugeAt("bread", undefined, 1)),
     ),
     {
@@ -2147,7 +2160,7 @@ const COUSIN_LETTERS: GwScene[] = [
         wrote(1),
         atDeu,
         world({ is: "entered", tag: "RUS", side: "entente" }),
-        period("15a", "16b"),
+        world({ is: "war_months", own: true, min: 5, max: 29 }),
       ),
     },
   ),

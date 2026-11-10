@@ -113,10 +113,15 @@ const VISITS: GwAct[] = [
   ]),
   visit("fra_a_reims", war, [opinion("press", 1), calmed]),
   visit("fra_a_creusot", undefined, [inspect("shells", "FRA")]),
-  visit("fra_a_refugees", all(war, chapters(8))),
-  visit("fra_a_colonial", all(war, from("1915-07")), [
-    inspect("morale", "FRA"),
-  ]),
+  visit(
+    "fra_a_refugees",
+    all(war, world({ is: "war_months", own: true, min: 2 })),
+  ),
+  visit(
+    "fra_a_colonial",
+    all(war, world({ is: "war_months", own: true, min: 11 })),
+    [inspect("morale", "FRA")],
+  ),
   visit("fra_a_nancy", undefined, [inspect("morale", "FRA")]),
   visit("fra_a_dunkirk", war, [inspect("force", "FRA", "west")]),
   visit("fra_a_barleduc", undefined, [
@@ -129,15 +134,30 @@ const VISITS: GwAct[] = [
     calmed,
   ]),
   visit("fra_a_sampigny", undefined, [opinion("press", 1), calmed]),
-  visit("fra_a_thann", all(war, chapters(7), westNotPast("aisne"))),
-  visit("fra_a_factory", all(war, from("1915-01")), [inspect("shells", "FRA")]),
+  visit(
+    "fra_a_thann",
+    all(
+      war,
+      world({ is: "war_months", own: true, min: 1 }),
+      westNotPast("aisne"),
+    ),
+  ),
+  visit(
+    "fra_a_factory",
+    all(war, world({ is: "war_months", own: true, min: 5 })),
+    [inspect("shells", "FRA")],
+  ),
   visit("fra_a_hospital", war, [inspect("morale", "FRA")]),
   visit("fra_a_bordeaux", war, [opinion("parliament", 1), calmed]),
-  visit("fra_a_chantilly", all(atDeu, chapters(9)), [
-    inspect("morale", "FRA"),
-    inspect("force", "FRA", "west"),
-    inspect("force", "DEU", "west"),
-  ]),
+  visit(
+    "fra_a_chantilly",
+    all(atDeu, world({ is: "war_months", own: true, min: 3 })),
+    [
+      inspect("morale", "FRA"),
+      inspect("force", "FRA", "west"),
+      inspect("force", "DEU", "west"),
+    ],
+  ),
 ];
 
 // ---- 친서: to the cousins' thrones, and to two men of his own ----
@@ -356,7 +376,7 @@ const ORDERS: GwAct[] = [
     id: "fra_a_o_mission",
     nation: NATION,
     kind: "order",
-    when: all(war, chapters(8)),
+    when: all(war, world({ is: "war_months", own: true, min: 2 })),
     scene: "fra_a_o_mission_r",
     wait: 1,
     fields: [
@@ -404,7 +424,7 @@ const ORDERS: GwAct[] = [
     id: "fra_a_o_pardons",
     nation: NATION,
     kind: "order",
-    when: all(war, from("1915-01")),
+    when: all(war, world({ is: "war_months", own: true, min: 5 })),
     scene: "fra_a_o_pardons_r",
     wait: 1,
     fields: [
@@ -477,19 +497,27 @@ const SPEECHES: GwAct[] = [
       options: [{ id: "right" }, { id: "allies", when: war }, { id: "youth" }],
     },
   ]),
-  speech("fra_a_s_thann", all(war, chapters(7), westNotPast("aisne")), [
-    {
-      id: "place",
-      options: [
-        { id: "thann", effects: [gauge("morale", 1)] },
-        { id: "belfort", effects: [opinion("army", 1)] },
-      ],
-    },
-    {
-      id: "on",
-      options: [{ id: "return" }, { id: "schools" }],
-    },
-  ]),
+  speech(
+    "fra_a_s_thann",
+    all(
+      war,
+      world({ is: "war_months", own: true, min: 1 }),
+      westNotPast("aisne"),
+    ),
+    [
+      {
+        id: "place",
+        options: [
+          { id: "thann", effects: [gauge("morale", 1)] },
+          { id: "belfort", effects: [opinion("army", 1)] },
+        ],
+      },
+      {
+        id: "on",
+        options: [{ id: "return" }, { id: "schools" }],
+      },
+    ],
+  ),
   speech("fra_a_s_nancy", undefined, [
     {
       id: "place",
@@ -603,7 +631,7 @@ const INTRIGUES: GwAct[] = [
     id: "fra_a_i_general",
     nation: NATION,
     kind: "intrigue",
-    when: all(war, chapters(7)),
+    when: all(war, world({ is: "war_months", own: true, min: 1 })),
     scene: "fra_a_i_general_r",
     wait: 1,
     fields: [

@@ -286,11 +286,10 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     id: "rus_c_poincare",
     nation: ["RUS"],
     kind: "crisis",
-    stage: ["crisis"],
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 3, max: 4 },
+        { kind: "world", of: { is: "chain", short: false, min: 3, max: 4 } },
         { kind: "crisis", topic: "balkan" },
       ],
     },
@@ -934,7 +933,7 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 5, max: 8 },
+        { kind: "world", of: { is: "war_months", own: true, max: 2 } },
         { kind: "world", of: { is: "war" } },
         {
           kind: "any",
@@ -966,7 +965,7 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 5, max: 8 },
+        { kind: "world", of: { is: "war_months", own: true, max: 2 } },
         { kind: "world", of: { is: "war" } },
       ],
     },
@@ -1052,7 +1051,7 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 5, max: 8 },
+        { kind: "world", of: { is: "war_months", own: true, max: 2 } },
         { kind: "world", of: { is: "war" } },
       ],
     },
@@ -1135,7 +1134,7 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 5, max: 8 },
+        { kind: "world", of: { is: "war_months", own: true, max: 2 } },
         { kind: "world", of: { is: "war" } },
         { kind: "at_war", tag: "DEU" },
       ],
@@ -1234,7 +1233,7 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 7, max: 9 },
+        { kind: "world", of: { is: "war_months", own: true, min: 1, max: 3 } },
         { kind: "world", of: { is: "war" } },
       ],
     },
@@ -1384,7 +1383,7 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        date("1914-11", "1915-04"),
+        { kind: "world", of: { is: "war_months", own: true, min: 3, max: 9 } },
         { kind: "world", of: { is: "war" } },
         { kind: "gauge", gauge: "shells", max: 1 },
       ],
@@ -1604,11 +1603,10 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     id: "rus_c_regent_plea",
     nation: ["RUS"],
     kind: "proposal",
-    stage: ["crisis"],
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 3, max: 5 },
+        { kind: "world", of: { is: "chain", short: false, min: 3, max: 5 } },
         { kind: "flag", flag: "w_ultimatum_out" },
         { kind: "crisis", topic: "balkan" },
       ],
@@ -1664,7 +1662,7 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 7, max: 9 },
+        { kind: "world", of: { is: "war_months", own: true, min: 1, max: 3 } },
         { kind: "world", of: { is: "war" } },
       ],
     },
@@ -1732,7 +1730,7 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 7, max: 9 },
+        { kind: "world", of: { is: "war_months", own: true, min: 1, max: 3 } },
         { kind: "world", of: { is: "war" } },
       ],
     },
@@ -1765,7 +1763,7 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 6, max: 9 },
+        { kind: "world", of: { is: "war_months", own: true, max: 3 } },
         { kind: "world", of: { is: "war" } },
         { kind: "seen", scene: "rus_c_declaration" },
       ],
@@ -2152,7 +2150,10 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
             {
               kind: "all",
               of: [
-                { kind: "chapter", min: 2, max: 3 },
+                {
+                  kind: "world",
+                  of: { is: "chain", short: false, min: 2, max: 3 },
+                },
                 { kind: "crisis", topic: "balkan" },
               ],
             },
@@ -2328,7 +2329,10 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
             {
               kind: "all",
               of: [
-                { kind: "chapter", min: 3, max: 5 },
+                {
+                  kind: "world",
+                  of: { is: "chain", short: false, min: 3, max: 5 },
+                },
                 { kind: "flag", flag: "w_ultimatum_out" },
                 { kind: "crisis", topic: "balkan" },
               ],
@@ -2473,7 +2477,10 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
             {
               kind: "all",
               of: [
-                date("1914-11", "1915-12"),
+                {
+                  kind: "world",
+                  of: { is: "war_months", own: true, min: 3, max: 17 },
+                },
                 { kind: "at_war", tag: "OTT" },
                 atDesk,
               ],
@@ -2664,7 +2671,7 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
             {
               kind: "all",
               of: [
-                date("1915-01", "1916-12"),
+                { kind: "world", of: { is: "war_months", min: 5, max: 29 } },
                 {
                   kind: "world",
                   of: { is: "front", theatre: "east", from: "vistula" },
@@ -3068,7 +3075,10 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
             {
               kind: "all",
               of: [
-                { kind: "chapter", min: 3, max: 5 },
+                {
+                  kind: "world",
+                  of: { is: "chain", short: false, min: 3, max: 5 },
+                },
                 { kind: "crisis", topic: "balkan" },
               ],
             },
@@ -3240,7 +3250,10 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
             {
               kind: "all",
               of: [
-                { kind: "chapter", min: 3, max: 5 },
+                {
+                  kind: "world",
+                  of: { is: "chain", short: false, min: 3, max: 5 },
+                },
                 { kind: "crisis", topic: "balkan" },
               ],
             },
@@ -3531,8 +3544,8 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
             {
               kind: "all",
               of: [
-                { kind: "chapter", min: 8 },
-                date(undefined, "1915-12"),
+                { kind: "world", of: { is: "war_months", own: true, min: 2 } },
+                { kind: "world", of: { is: "war_months", own: true, max: 17 } },
                 { kind: "world", of: { is: "war" } },
                 { kind: "holder", office: "war", person: "rus_sukhomlinov" },
                 atDesk,
@@ -3659,7 +3672,7 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
             {
               kind: "all",
               of: [
-                date("1915-01", "1915-12"),
+                { kind: "world", of: { is: "war_months", min: 5, max: 17 } },
                 { kind: "holder", office: "war", person: "rus_sukhomlinov" },
                 atDesk,
               ],
@@ -4000,7 +4013,7 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
         {
           kind: "all",
           of: [
-            { kind: "chapter", min: 5, max: 8 },
+            { kind: "world", of: { is: "war_months", own: true, max: 2 } },
             { kind: "world", of: { is: "war" } },
             { kind: "not", of: { kind: "seen", scene: "rus_c_supreme" } },
           ],
@@ -4169,7 +4182,7 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
             {
               kind: "all",
               of: [
-                { kind: "chapter", min: 5, max: 8 },
+                { kind: "world", of: { is: "war_months", own: true, max: 2 } },
                 { kind: "world", of: { is: "war" } },
                 { kind: "at_war", tag: "DEU" },
               ],
@@ -4325,7 +4338,7 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
         {
           kind: "all",
           of: [
-            date("1915-01", "1915-12"),
+            { kind: "world", of: { is: "war_months", min: 5, max: 17 } },
             {
               kind: "holder",
               office: "supreme_commander",
@@ -4468,7 +4481,7 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
             {
               kind: "all",
               of: [
-                date("1915-01", "1915-12"),
+                { kind: "world", of: { is: "war_months", min: 5, max: 17 } },
                 {
                   kind: "world",
                   of: { is: "front", theatre: "east", from: "vistula" },
@@ -4621,7 +4634,7 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
         {
           kind: "all",
           of: [
-            date("1915-01", undefined),
+            { kind: "world", of: { is: "war_months", own: true, min: 5 } },
             {
               kind: "not",
               of: {
@@ -5323,7 +5336,7 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
         {
           kind: "all",
           of: [
-            date("1915-01", "1915-12"),
+            { kind: "world", of: { is: "war_months", min: 5, max: 17 } },
             {
               kind: "any",
               of: [
@@ -5495,7 +5508,7 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
         {
           kind: "all",
           of: [
-            date("1915-01", "1915-12"),
+            { kind: "world", of: { is: "war_months", min: 5, max: 17 } },
             {
               kind: "any",
               of: [
@@ -5636,7 +5649,7 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
             {
               kind: "all",
               of: [
-                date("1915-01", "1915-12"),
+                { kind: "world", of: { is: "war_months", min: 5, max: 17 } },
                 { kind: "seen", scene: "rus_w_command" },
                 atDesk,
               ],
@@ -6273,7 +6286,10 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
         {
           kind: "all",
           of: [
-            { kind: "chapter", min: 2, max: 3 },
+            {
+              kind: "world",
+              of: { is: "chain", short: false, min: 2, max: 3 },
+            },
             { kind: "crisis", topic: "balkan" },
           ],
         },
@@ -6477,7 +6493,7 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
         {
           kind: "all",
           of: [
-            { kind: "chapter", min: 5, max: 8 },
+            { kind: "world", of: { is: "war_months", own: true, max: 2 } },
             { kind: "world", of: { is: "war" } },
             { kind: "at_war", tag: "DEU" },
           ],
@@ -6798,7 +6814,10 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
         {
           kind: "all",
           of: [
-            { kind: "chapter", min: 4, max: 5 },
+            {
+              kind: "world",
+              of: { is: "chain", short: false, min: 4, max: 5 },
+            },
             { kind: "crisis", topic: "balkan" },
           ],
         },

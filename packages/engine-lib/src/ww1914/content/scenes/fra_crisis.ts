@@ -31,7 +31,7 @@ import {
   trustOf,
 } from "@openfront/engine-api/ww1914/SceneDsl";
 import type { GwWorldEffect } from "@openfront/engine-api/ww1914/WorldDsl";
-import { period, sinceChapter } from "./period";
+import { sinceChapter } from "./period";
 
 /**
  * 「프랑스」, the crisis and 1914 share (lane W1 of ww166): the fra_c_ scenes,
@@ -434,7 +434,11 @@ const BIG_BORDEAUX: GwScene = {
   tags: ["home", "war", "tension_up"],
   stage: WAR,
   place: "bordeaux",
-  when: all(late(6), inWar, westFrom("aisne")),
+  when: all(
+    { kind: "world", of: { is: "war_months", own: true, max: 17 } },
+    inWar,
+    westFrom("aisne"),
+  ),
   cast: {
     pm: { office: "chancellor" },
     war: { office: "war" },
@@ -501,7 +505,10 @@ const BIG_MARNE: GwScene = {
   stage: WAR,
   place: "meaux",
   when: all(
-    late(7),
+    all(
+      { kind: "world", of: { is: "war_months", own: true, min: 1 } },
+      { kind: "world", of: { is: "war_months", own: true, max: 17 } },
+    ),
     inWar,
     any(seen("fra_big_bordeaux"), flag("w_marne_stopped")),
   ),
@@ -735,7 +742,11 @@ export const FRA_CRISIS_SCENES: readonly GwScene[] = [
     9,
     ["foreign", "tension_up"],
     { pm: { office: "chancellor" }, amb: { office: "ambassador_petersburg" } },
-    all(chapters(3, 3), crisis, seen("fra_c_trip")),
+    all(
+      { kind: "world", of: { is: "chain", short: false, min: 3, max: 3 } },
+      crisis,
+      seen("fra_c_trip"),
+    ),
     [
       v("ultimatum", flag("w_ultimatum_out")),
       v("short", flag("f_trip_short")),
@@ -839,7 +850,11 @@ export const FRA_CRISIS_SCENES: readonly GwScene[] = [
     6,
     ["home"],
     { home: { office: "interior" } },
-    all(chapters(3, 4), crisis, active("fra_jaures")),
+    all(
+      { kind: "world", of: { is: "chain", short: false, min: 3, max: 4 } },
+      crisis,
+      active("fra_jaures"),
+    ),
     [v("cunning", moody(home, "cunning")), base],
     {
       fallback: "usual_watch",
@@ -886,7 +901,14 @@ export const FRA_CRISIS_SCENES: readonly GwScene[] = [
     9,
     ["foreign", "tension_up"],
     { fm: { office: "foreign" } },
-    all(late(5), crisis, not(inWar)),
+    all(
+      all(
+        { kind: "chapter", min: 5 },
+        { kind: "world", of: { is: "peace_months", max: 17 } },
+      ),
+      crisis,
+      not(inWar),
+    ),
     [v("known", known("fra_toul_verdun")), v("east", east1), base],
     {
       stage: LATE,
@@ -1050,7 +1072,14 @@ export const FRA_CRISIS_SCENES: readonly GwScene[] = [
     8,
     ["foreign", "war"],
     { pm: { office: "chancellor" }, fm: { office: "foreign" } },
-    all(late(5), east1, not(inWar)),
+    all(
+      all(
+        { kind: "chapter", min: 5 },
+        { kind: "world", of: { is: "peace_months", max: 17 } },
+      ),
+      east1,
+      not(inWar),
+    ),
     [
       v("russians", mob("RUS", 2)),
       v("britain", { kind: "world", of: { is: "neutral", tag: "GBR" } }),
@@ -1090,7 +1119,11 @@ export const FRA_CRISIS_SCENES: readonly GwScene[] = [
     8,
     ["war"],
     {},
-    warOpening(1, 2),
+    all(
+      { kind: "at_war", tag: "DEU" },
+      { kind: "world", of: { is: "in_war", min: 1, max: 2 } },
+      { kind: "world", of: { is: "war_months", own: true, max: 17 } },
+    ),
     [v("doctrine", secret("fra_offensive_doctrine")), v("belg", belg), base],
     { stamp: "unconfirmed", source: "staff", stage: LATE },
   ),
@@ -1100,7 +1133,14 @@ export const FRA_CRISIS_SCENES: readonly GwScene[] = [
     8,
     ["people", "home"],
     { pm: { office: "chancellor" } },
-    all(warOpening(1, 2), holds("war", "fra_messimy")),
+    all(
+      all(
+        { kind: "at_war", tag: "DEU" },
+        { kind: "world", of: { is: "in_war", min: 1, max: 2 } },
+        { kind: "world", of: { is: "war_months", own: true, max: 17 } },
+      ),
+      holds("war", "fra_messimy"),
+    ),
     [v("lives", jl), v("union", us), base],
     {
       stage: LATE,
@@ -1140,7 +1180,15 @@ export const FRA_CRISIS_SCENES: readonly GwScene[] = [
     7,
     ["war"],
     { war: { office: "war" } },
-    all(warOpening(1, 2), westFrom("somme"), active("fra_gallieni")),
+    all(
+      all(
+        { kind: "at_war", tag: "DEU" },
+        { kind: "world", of: { is: "in_war", min: 1, max: 2 } },
+        { kind: "world", of: { is: "war_months", own: true, max: 17 } },
+      ),
+      westFrom("somme"),
+      active("fra_gallieni"),
+    ),
     [v("messimy", holds("war", "fra_messimy")), base],
     {
       stage: LATE,
@@ -1163,7 +1211,11 @@ export const FRA_CRISIS_SCENES: readonly GwScene[] = [
     7,
     ["people", "war"],
     { cos: { office: "chief_of_staff" } },
-    warOpening(2, 3),
+    all(
+      { kind: "at_war", tag: "DEU" },
+      { kind: "world", of: { is: "in_war", min: 2, max: 3 } },
+      { kind: "world", of: { is: "war_months", own: true, max: 17 } },
+    ),
     [
       v("free", flag("f_joffre_free")),
       v("stubborn", moody(cos, "stubborn")),
@@ -1194,7 +1246,11 @@ export const FRA_CRISIS_SCENES: readonly GwScene[] = [
     7,
     ["home"],
     { home: { office: "interior" } },
-    warOpening(1, 3),
+    all(
+      { kind: "at_war", tag: "DEU" },
+      { kind: "world", of: { is: "in_war", min: 1, max: 3 } },
+      { kind: "world", of: { is: "war_months", own: true, max: 17 } },
+    ),
     [v("union", us), v("cunning", moody(home, "cunning")), base],
     {
       stage: LATE,
@@ -1220,7 +1276,14 @@ export const FRA_CRISIS_SCENES: readonly GwScene[] = [
     7,
     ["home", "war"],
     {},
-    all(warOpening(2, 4), westFrom("somme")),
+    all(
+      all(
+        { kind: "at_war", tag: "DEU" },
+        { kind: "world", of: { is: "in_war", min: 2, max: 4 } },
+        { kind: "world", of: { is: "war_months", own: true, max: 17 } },
+      ),
+      westFrom("somme"),
+    ),
     [v("bdx", bdx), base],
     { stamp: "estimate", source: "staff", place: "lille", stage: LATE },
   ),
@@ -1278,7 +1341,11 @@ export const FRA_CRISIS_SCENES: readonly GwScene[] = [
     6,
     ["war"],
     {},
-    warOpening(2, 6),
+    all(
+      { kind: "at_war", tag: "DEU" },
+      { kind: "world", of: { is: "in_war", min: 2, max: 6 } },
+      { kind: "world", of: { is: "war_months", own: true, max: 17 } },
+    ),
     [v("held", flag("w_marne_stopped")), base],
     { stamp: "confirmed", source: "staff", stage: LATE },
   ),
@@ -1288,7 +1355,11 @@ export const FRA_CRISIS_SCENES: readonly GwScene[] = [
     7,
     ["war", "home"],
     { war: { office: "war" } },
-    warOpening(2, 8),
+    all(
+      { kind: "at_war", tag: "DEU" },
+      { kind: "world", of: { is: "in_war", min: 2, max: 8 } },
+      { kind: "world", of: { is: "war_months", own: true, max: 17 } },
+    ),
     [
       v("thin", { kind: "gauge", gauge: "shells", max: 1 }),
       v("coal", westFrom("somme")),
@@ -1340,10 +1411,12 @@ export const FRA_CRISIS_SCENES: readonly GwScene[] = [
     6,
     ["war", "tension_down"],
     { war: { office: "war" }, cos: { office: "chief_of_staff" } },
-    all(from(8), not(inWar), not(crisis), {
-      kind: "world",
-      of: { is: "date", to: "1915-02" },
-    }),
+    all(
+      { kind: "world", of: { is: "peace_months", min: 2 } },
+      not(inWar),
+      not(crisis),
+      { kind: "world", of: { is: "peace_months", max: 7 } },
+    ),
     [v("mobbed", mob("FRA", 1)), base],
     {
       stage: WAR,
@@ -1379,7 +1452,11 @@ export const FRA_CRISIS_SCENES: readonly GwScene[] = [
   talk(
     "fra_t_viviani_nerves",
     "fra_viviani",
-    all(chapters(3, 5), crisis, not(sea)),
+    all(
+      { kind: "world", of: { is: "chain", short: false, min: 3, max: 5 } },
+      crisis,
+      not(sea),
+    ),
     {
       moods: ["anxious"],
       deal: [
@@ -1414,7 +1491,7 @@ export const FRA_CRISIS_SCENES: readonly GwScene[] = [
   talk(
     "fra_t_viviani_after",
     "fra_viviani",
-    all(period("15b", "18b"), not(viviani)),
+    all({ kind: "world", of: { is: "war_months", min: 11 } }, not(viviani)),
     {
       moods: ["weary"],
       deal: [remember("k_viv_after")],
@@ -1532,11 +1609,19 @@ export const FRA_CRISIS_SCENES: readonly GwScene[] = [
     moods: ["arrogant"],
     deal: [remember("k_cai_letters")],
   }),
-  talk("fra_t_caillaux_berlin", "fra_caillaux", all(chapters(3, 5), crisis), {
-    moods: ["cunning"],
-    deal: [trustOf(p, 1), remember("m_fra_rubicon_hint")],
-    ask: [remember("m_fra_rubicon_hint")],
-  }),
+  talk(
+    "fra_t_caillaux_berlin",
+    "fra_caillaux",
+    all(
+      { kind: "world", of: { is: "chain", short: false, min: 3, max: 5 } },
+      crisis,
+    ),
+    {
+      moods: ["cunning"],
+      deal: [trustOf(p, 1), remember("m_fra_rubicon_hint")],
+      ask: [remember("m_fra_rubicon_hint")],
+    },
+  ),
   talk("fra_t_caillaux_tax", "fra_caillaux", chapters(0, 10), {
     moods: ["arrogant"],
     deal: [remember("k_cai_tax")],
@@ -1544,7 +1629,13 @@ export const FRA_CRISIS_SCENES: readonly GwScene[] = [
   talk(
     "fra_t_caillaux_exile",
     "fra_caillaux",
-    all(sinceChapter(7, "15b"), inWar),
+    all(
+      all(
+        { kind: "world", of: { is: "war_months", own: true, min: 1 } },
+        { kind: "world", of: { is: "war_months", own: true, max: 17 } },
+      ),
+      inWar,
+    ),
     {
       moods: ["cunning"],
       deal: [
@@ -1559,7 +1650,10 @@ export const FRA_CRISIS_SCENES: readonly GwScene[] = [
   talk(
     "fra_t_caillaux_peace",
     "fra_caillaux",
-    all(period("16a", "17b"), inWar),
+    all(
+      { kind: "world", of: { is: "war_months", own: true, min: 17, max: 41 } },
+      inWar,
+    ),
     {
       moods: ["cunning"],
       deal: [remember("k_cai_peace")],
@@ -1570,7 +1664,10 @@ export const FRA_CRISIS_SCENES: readonly GwScene[] = [
   talk(
     "fra_t_caillaux_warn",
     "fra_caillaux",
-    all(period("17b", "18a"), seen("fra_h_bolo")),
+    all(
+      { kind: "world", of: { is: "war_months", min: 35, max: 47 } },
+      seen("fra_h_bolo"),
+    ),
     {
       moods: ["arrogant"],
       deal: [remember("k_cai_warned")],
@@ -1627,7 +1724,13 @@ export const FRA_CRISIS_SCENES: readonly GwScene[] = [
   visit(
     "fra_v_ferry_notebook",
     "fra_ferry",
-    all(sinceChapter(8, "18a"), inWar),
+    all(
+      all(
+        { kind: "world", of: { is: "war_months", own: true, min: 2 } },
+        { kind: "world", of: { is: "war_months", own: true, max: 47 } },
+      ),
+      inWar,
+    ),
     5,
     ["people", "war"],
     [remember("k_fer_front")],

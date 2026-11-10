@@ -1216,17 +1216,6 @@ const SMALL: GwScene[] = [
       opt("pay_khans", ["money:-1"], [money(-1), why("o_per_khans")]),
     ],
   ),
-  report(
-    "gw_o_prt_ships",
-    "1916-02",
-    "1916-06",
-    [war],
-    3,
-    ["foreign"],
-    "confirmed",
-    "press",
-    [v("central", central), v("base")],
-  ),
 ];
 
 /** The neutrals' bargains are the war's: a ceasefire closes them all. */

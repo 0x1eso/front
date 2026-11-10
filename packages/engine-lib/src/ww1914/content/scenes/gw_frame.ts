@@ -1617,7 +1617,7 @@ const END: readonly GwScene[] = [
     "gw_e_continue",
     {
       when: all(
-        dated("1915-01", "1918-12"),
+        world({ is: "war_months", min: 5 }),
         w({ is: "unrest", min: 4 }),
         HAS_NEXT,
         LADDER_ANSWERED,
@@ -1653,7 +1653,7 @@ const END: readonly GwScene[] = [
     nation: everyone,
     kind: "wire",
     stage: ["closing"],
-    when: all(dated("1918-07", "1919-12"), BIG_WAR, not(ARMISTICE)),
+    when: all(world({ is: "war_months", min: 47 }), BIG_WAR, not(ARMISTICE)),
     cast: {},
     salience: 7,
     tags: ["war"],

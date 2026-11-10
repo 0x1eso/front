@@ -78,17 +78,25 @@ const VISITS: GwAct[] = [
   visit("rus_a_v_sevastopol", reign, [see("force", "sea")]),
   visit("rus_a_v_kronstadt", reign, [see("morale")]),
   visit("rus_a_v_hospital", inWar),
-  visit("rus_a_v_depots", all(inWar, date("1915-06")), [
-    see("morale"),
-    {
-      kind: "maybe",
-      when: { kind: "secret", id: "rus_garrison_rotten" },
-      then: [doWorld({ do: "reveal", id: "rus_garrison_rotten" })],
-    },
-  ]),
+  visit(
+    "rus_a_v_depots",
+    all(inWar, world({ is: "war_months", own: true, min: 10 })),
+    [
+      see("morale"),
+      {
+        kind: "maybe",
+        when: { kind: "secret", id: "rus_garrison_rotten" },
+        then: [doWorld({ do: "reveal", id: "rus_garrison_rotten" })],
+      },
+    ],
+  ),
   visit("rus_a_v_moscow", reign),
   visit("rus_a_v_volga", reign),
-  visit("rus_a_v_archangel", all(inWar, date("1915-01")), [see("shells")]),
+  visit(
+    "rus_a_v_archangel",
+    all(inWar, world({ is: "war_months", own: true, min: 5 })),
+    [see("shells")],
+  ),
   visit("rus_a_v_lavra", reign, [opinion("court", 1), calmed]),
   visit("rus_a_v_don", reign, [see("mob")]),
 ];
@@ -274,7 +282,7 @@ const ORDERS: GwAct[] = [
     ],
   }),
   act("rus_a_o_pension", "order", "rus_a_o_pension_s", 1, {
-    when: all(inWar, date("1914-10")),
+    when: all(inWar, world({ is: "war_months", own: true, min: 2 })),
     once: true,
     fields: [
       {
@@ -328,7 +336,7 @@ const speech = (
 const SPEECHES: GwAct[] = [
   speech(
     "rus_a_s_duma",
-    all(reign, date("1914-08")),
+    reign,
     [
       {
         id: "place",
@@ -484,7 +492,7 @@ const INTRIGUES: GwAct[] = [
     caught: { pct: 35, scene: "rus_a_i_paper_out", wait: 3 },
   }),
   act("rus_a_i_feeler", "intrigue", "rus_a_i_feeler_s", 2, {
-    when: all(inWar, date("1915-03")),
+    when: all(inWar, world({ is: "war_months", own: true, min: 7 })),
     cooldown: 8,
     effects: [
       {

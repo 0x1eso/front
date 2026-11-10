@@ -950,7 +950,11 @@ const AIM_SCENES: GwScene[] = [
   ),
   pressed(
     "rus_ap_tsargrad_corps",
-    all(aim("rus_aim_tsargrad"), inWar, date("1915-02")),
+    all(
+      aim("rus_aim_tsargrad"),
+      inWar,
+      world({ is: "war_months", own: true, min: 6 }),
+    ),
     { fm: { office: "foreign" }, cos: { office: "chief_of_staff" } },
     ["war", "foreign"],
     [v("thin", low("shells", 1)), v("base")],
@@ -974,7 +978,7 @@ const AIM_SCENES: GwScene[] = [
   ),
   pressed(
     "rus_ap_throne_men",
-    all(aim("rus_aim_throne"), reign, date("1915-06")),
+    all(aim("rus_aim_throne"), reign, world({ is: "war_months", min: 10 })),
     { ch: { office: "chancellor" }, ag: { office: "agriculture" } },
     ["home", "people"],
     [v("war", war), v("base")],
@@ -993,7 +997,7 @@ const AIM_SCENES: GwScene[] = [
   ),
   pressed(
     "rus_ap_trust_her",
-    all(aim("rus_aim_trust"), reign, date("1915-01")),
+    all(aim("rus_aim_trust"), reign, world({ is: "war_months", min: 5 })),
     { empress: { person: "rus_alexandra" } },
     ["home", "people"],
     [v("hard", earAt("court", { max: -1 })), v("base")],
@@ -1201,7 +1205,7 @@ const BIG_SCENES: GwScene[] = [
     "rus_b_narew",
     all(
       inWar,
-      date("1914-08", "1915-02"),
+      world({ is: "war_months", own: true, max: 7 }),
       world({
         is: "battle",
         theatre: "east",
@@ -1284,7 +1288,7 @@ const BIG_SCENES: GwScene[] = [
     "rus_b_lemberg",
     all(
       inWar,
-      date("1914-08", "1915-05"),
+      world({ is: "war_months", own: true, max: 10 }),
       world({ is: "front", theatre: "east", to: "east_prussia" }),
       high("morale", 3),
       world({
@@ -1367,7 +1371,7 @@ const BIG_SCENES: GwScene[] = [
     "rus_b_august",
     all(
       inWar,
-      date("1915-05", "1916-06"),
+      world({ is: "war_months", own: true, min: 9, max: 23 }),
       any(
         world({ is: "front", theatre: "east", from: "warsaw" }),
         flag("w_warsaw_lost"),
@@ -1514,7 +1518,7 @@ const BIG_SCENES: GwScene[] = [
     all(
       world({ is: "regime", of: ["tsar"] }),
       war,
-      date("1916-11", "1917-04"),
+      world({ is: "war_months", own: true, min: 27, max: 33 }),
       any(low("order", 3), earAt("duma", { max: 0 })),
     ),
     {
@@ -1618,7 +1622,7 @@ const BIG_SCENES: GwScene[] = [
     all(
       world({ is: "regime", of: ["tsar"] }),
       war,
-      date("1916-02"),
+      world({ is: "war_months", own: true, min: 18 }),
       unrest(2),
       not({ kind: "seen", scene: "rus_r_train" }),
     ),
@@ -1688,7 +1692,10 @@ const BIG_SCENES: GwScene[] = [
 
   big(
     "rus_b_quiet_year",
-    all(atPeace, date("1915-01", "1916-06"), { kind: "temp", max: 5 }),
+    all(atPeace, world({ is: "peace_months", min: 5, max: 23 }), {
+      kind: "temp",
+      max: 5,
+    }),
     {
       fm: { office: "foreign" },
       war: { office: "war" },
@@ -1998,7 +2005,7 @@ const THREAD_SCENES: GwScene[] = [
     "rus_lt_willy_3",
     "kaiser",
     "DEU",
-    all(atWarKaiser, reign, date("1915-01")),
+    all(atWarKaiser, reign, world({ is: "war_months", own: true, min: 5 })),
     [v("sly", slyKaiser), v("hard", hardKaiser), v("base")],
     [
       o("burn", ["fra:+1"], [trust("FRA", 1)]),
@@ -2069,7 +2076,11 @@ const THREAD_SCENES: GwScene[] = [
     "rus_lt_georgie_3",
     "king",
     "GBR",
-    all(inWar, date("1915-03"), world({ is: "entered", tag: "GBR" })),
+    all(
+      inWar,
+      world({ is: "war_months", own: true, min: 7 }),
+      world({ is: "entered", tag: "GBR" }),
+    ),
     [
       v("shells", low("shells", 1)),
       v("straits", { kind: "chose", scene: "rus_h_straits_note" }),
@@ -2088,7 +2099,11 @@ const THREAD_SCENES: GwScene[] = [
     "rus_lt_georgie_4",
     "king",
     "GBR",
-    all(reign, any(unrest(2), world({ is: "armistice" })), date("1916-06")),
+    all(
+      reign,
+      any(unrest(2), world({ is: "armistice" })),
+      world({ is: "war_months", min: 22 }),
+    ),
     [v("peace", world({ is: "armistice" })), v("base")],
     [
       o("reply_warm", ["gbr:+1"], [wrote("king", "warm"), trust("GBR", 1)]),
