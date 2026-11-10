@@ -15,6 +15,15 @@
 // B1.4, checked there): the Parliament and Registration Act of Jan 1916,
 // Asquith at the War Office Mar-Aug 1914, the coalition of May 1915, Morley
 // and Burns resigning in Aug 1914.
+// Phase 2, checked on the web (lane XG, 2026-11-10): about 1,800 men held at
+// Frongoch after the 1916 rising, the last freed before Christmas 1916; the
+// Clyde shop stewards deported to Edinburgh under DORA in late March 1916,
+// reporting to the police three times a day; objectors "deemed enlisted" by
+// the Military Service Act, some sent to France in May 1916, sentenced to
+// death there and commuted to ten years; the first British gas at Loos on
+// 25 Sep 1915, blown back on part of the line; Freiburg bombed on 14 Apr 1917
+// as an announced reprisal for the hospital ships, the Archbishop of
+// Canterbury protesting; the Globe suppressed under DORA in Nov 1915.
 import type {
   GwCond,
   GwEffect,
