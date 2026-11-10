@@ -36,6 +36,7 @@ import {
   pressPremier,
 } from "./People";
 import { postGeneral } from "./Post";
+import { takePower } from "./Powers";
 import { pressCensor, pressInvite, pressLeak } from "./Press";
 import { prologueRefuses } from "./Prologue";
 import {
@@ -228,6 +229,8 @@ export function applyGwOrder(
       return breakOrder(gw, seat, o.treaty);
     case "close_chapter":
       return closeByHost(gw, seat, o.chapter);
+    case "power":
+      return takePower(gw, seat, o);
   }
 }
 

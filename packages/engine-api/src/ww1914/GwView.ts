@@ -1,6 +1,7 @@
 // Great War 1914: what the screens read (GameUpdateType.GreatWar). Only what
 // the seat may know: no competence, health, temperament, strength band or
 // source band. Text is looked up in the pack by these ids.
+import type { GwPowerView } from "./GwPowers";
 import type {
   GwAlloc,
   GwAskClause,
@@ -274,6 +275,8 @@ export interface GwSeatView {
   /** Schedule slots left this chapter, and what is on the schedule. */
   actsLeft?: number;
   acts?: readonly GwActView[];
+  /** The 통치 tab: the powers this seat holds now (ww169). */
+  powers?: readonly GwPowerView[];
   /** Null where the country has no list: its three tasks stand. */
   aims?: GwAimsView | null;
   /** The land painted as the war's aim. */

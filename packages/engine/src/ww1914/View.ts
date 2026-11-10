@@ -33,6 +33,7 @@ import {
 } from "@openfront/engine-lib/ww1936/Calendar";
 import { idHash } from "@openfront/engine-lib/ww1936/Roll";
 import { actViews } from "./Acts";
+import { powerViews } from "./Powers";
 import { aimsView } from "./Aims";
 import { claimsView } from "./Claims";
 import { govView, pollView } from "./Government";
@@ -168,6 +169,7 @@ function seatView(gw: GreatWar, seat: GwSeatState): GwSeatView {
     privates: seat.privates,
     actsLeft: seat.acts,
     acts: actViews(gw, seat),
+    powers: powerViews(gw, seat),
     aims: aimsView(gw, seat),
     claims: claimsView(gw, seat),
     table: tableView(gw, seat),

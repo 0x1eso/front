@@ -515,7 +515,7 @@ function countIn(
   seat: GwSeatState,
   n: GwNationState,
   bill: GwBillRow,
-  row: GwLawRow,
+  lean: number,
   st: GwLawState,
   c: GwChamberRow,
   table: number,
@@ -526,7 +526,7 @@ function countIn(
   }
   let count =
     (c.inst === undefined ? 0 : (n.inst[c.inst] ?? 0)) +
-    row.lean +
+    lean +
     st.support +
     table;
   for (const f of factionRows(seat.tag)) {
@@ -575,7 +575,55 @@ export function houseCounts(
   const gone = [...skip, ...closedRound(gw, seat, house, bill)];
   return chambersOf(house, bill)
     .filter((c) => !gone.includes(c.id))
-    .map((c) => countIn(gw, seat, n, bill, row, live, c, table));
+    .map((c) => countIn(gw, seat, n, bill, row.lean, live, c, table));
+}
+
+/** A law state for a count with no bill moving (a power's question). */
+function idleLaw(id: string): GwLawState {
+  return {
+    id,
+    stage: "idle",
+    since: -99,
+    support: 0,
+    how: "none",
+    text: null,
+    lost: 0,
+    after: false,
+    origin: "seat",
+    by: null,
+    sponsor: null,
+    deals: [],
+    whip: -1,
+    delayTo: -1,
+    warm: [],
+  };
+}
+
+/**
+ * A power put to the house (ww169): each chamber counted as for a bill, by
+ * the factions' `stance`, nothing rolled. Null when the seat has no house.
+ */
+export function questionCount(
+  gw: GreatWar,
+  seat: GwSeatState,
+  id: string,
+  stance: Readonly<Record<string, -1 | 0 | 1>>,
+  houses: readonly GwChamber[] | undefined,
+  lean: number,
+): { count: number; stops: GwChamber | null } | null {
+  const n = gw.nation(seat.tag);
+  const house = houseRow(seat.tag);
+  if (n === null || house === null) return null;
+  const bill: GwBillRow = {
+    law: id,
+    stance,
+    ...(houses === undefined ? {} : { houses }),
+  };
+  const counts = chambersOf(house, bill)
+    .filter((c) => c.kind !== "lords")
+    .map((c) => countIn(gw, seat, n, bill, lean, idleLaw(id), c, 0));
+  const t = houseTally(counts);
+  return { count: t.count, stops: t.stops };
 }
 
 /**

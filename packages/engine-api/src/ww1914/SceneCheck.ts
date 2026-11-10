@@ -82,6 +82,9 @@ export const GW_ENGINE_MEMORY = [
   ...GW_OFFICES.map((o) => `succeeded_${o}`),
   // A premier the head pressed into resigning (People.pressPremier).
   "premier_resigned",
+  // What a signer said when sounded out (Powers.ts, ww169).
+  "k_pw_said_yes",
+  "k_pw_said_no",
 ] as const;
 
 /**
