@@ -1,10 +1,45 @@
-import type { GwScene } from "@openfront/engine-api/ww1914/SceneDsl";
+import type { GwCond, GwScene } from "@openfront/engine-api/ww1914/SceneDsl";
 
 /**
  * 「러시아」, the 전선 share: `rus_w_` scenes, the summoned talks of Alekseyev,
  * Brusilov, Polivanov and Guchkov, and five visits. Data only. Text is in
  * resources/ww1914/ko/RUS.front.json. Plan: ww135-plan-rus.md sections 5, 8, 9.
  */
+/** Whole months since our country came into the war. */
+const ownMonths = (min?: number, max?: number): GwCond => ({
+  kind: "world",
+  of: {
+    is: "war_months",
+    own: true,
+    ...(min === undefined ? {} : { min }),
+    ...(max === undefined ? {} : { max }),
+  },
+});
+/** The calendar month: the season the text is in, any year. */
+const inMonth = (...of: number[]): GwCond => ({
+  kind: "world",
+  of: { is: "month", of },
+});
+/** Up to `months` months of our war, or of peace after a crisis. */
+const until = (months: number): GwCond => ({
+  kind: "all",
+  of: [
+    { kind: "not", of: ownMonths(months + 1) },
+    {
+      kind: "not",
+      of: { kind: "world", of: { is: "peace_months", min: months + 1 } },
+    },
+  ],
+});
+/** Our line is still forward: not yet back on the Vistula. */
+const forward: GwCond = {
+  kind: "not",
+  of: {
+    kind: "world",
+    of: { is: "front", theatre: "east", from: "vistula" },
+  },
+};
+
 export const RUS_FRONT_SCENES: readonly GwScene[] = [
   {
     id: "rus_w_ledger",
@@ -140,19 +175,8 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
       of: [
         { kind: "world", of: { is: "open", theatre: "caucasus" } },
         { kind: "world", of: { is: "era", of: ["movement", "trenches"] } },
-        {
-          kind: "any",
-          of: [
-            {
-              kind: "world",
-              of: { is: "date", from: "1914-11", to: "1915-03" },
-            },
-            {
-              kind: "world",
-              of: { is: "date", from: "1915-11", to: "1916-03" },
-            },
-          ],
-        },
+        // The mountain winter: the text's snow and twenty below.
+        inMonth(11, 12, 1, 2, 3),
       ],
     },
     cast: {},
@@ -202,17 +226,10 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
           kind: "all",
           of: [
             { kind: "world", of: { is: "war" } },
-            {
-              kind: "world",
-              of: { is: "date", from: "1914-12", to: "1915-04" },
-            },
-            {
-              kind: "not",
-              of: {
-                kind: "world",
-                of: { is: "front", theatre: "east", from: "vistula" },
-              },
-            },
+            // A winter of the war with our line still forward.
+            ownMonths(3),
+            inMonth(12, 1, 2, 3),
+            forward,
           ],
         },
         { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
@@ -741,10 +758,9 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
             { kind: "world", of: { is: "war" } },
             { kind: "world", of: { is: "entered", tag: "FRA" } },
             { kind: "trench", theatre: "west", min: 2 },
-            {
-              kind: "world",
-              of: { is: "date", from: "1916-02", to: "1916-04" },
-            },
+            // The lake ice before the thaw, a year and more into the war.
+            ownMonths(12),
+            inMonth(2, 3, 4),
           ],
         },
         {
@@ -1254,17 +1270,9 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
           kind: "all",
           of: [
             { kind: "world", of: { is: "war" } },
-            {
-              kind: "world",
-              of: { is: "date", from: "1915-03", to: "1915-06" },
-            },
-            {
-              kind: "not",
-              of: {
-                kind: "world",
-                of: { is: "front", theatre: "east", from: "vistula" },
-              },
-            },
+            // The siege has run its months and our line held forward.
+            ownMonths(6, 14),
+            forward,
           ],
         },
         { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
@@ -1608,19 +1616,9 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
       of: [
         { kind: "world", of: { is: "open", theatre: "caucasus" } },
         { kind: "world", of: { is: "war" } },
-        {
-          kind: "any",
-          of: [
-            {
-              kind: "world",
-              of: { is: "date", from: "1915-10", to: "1916-02" },
-            },
-            {
-              kind: "world",
-              of: { is: "date", from: "1916-10", to: "1917-02" },
-            },
-          ],
-        },
+        // A second winter or later in the mountains.
+        ownMonths(12),
+        inMonth(10, 11, 12, 1, 2),
       ],
     },
     cast: { cos: { office: "chief_of_staff" } },
@@ -3222,7 +3220,13 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 1, max: 7 },
+        {
+          kind: "any",
+          of: [
+            { kind: "world", of: { is: "chain", short: false, min: 1 } },
+            ownMonths(undefined, 1),
+          ],
+        },
         { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
@@ -3395,10 +3399,10 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
         {
           kind: "all",
           of: [
-            {
-              kind: "world",
-              of: { is: "date", from: "1914-12", to: "1915-04" },
-            },
+            // Winter in the passes, with our line still in Galicia.
+            ownMonths(3),
+            inMonth(12, 1, 2, 3),
+            forward,
             { kind: "not", of: { kind: "seen", scene: "rus_w_carpathians" } },
           ],
         },
@@ -3587,16 +3591,16 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
               kind: "all",
               of: [
                 { kind: "world", of: { is: "war" } },
-                { kind: "world", of: { is: "date", to: "1916-12" } },
+                ownMonths(undefined, 29),
                 {
                   kind: "any",
                   of: [
-                    { kind: "world", of: { is: "date", from: "1916-01" } },
+                    ownMonths(17),
                     {
                       kind: "all",
                       of: [
                         { kind: "memory", key: "k_brus_met" },
-                        { kind: "world", of: { is: "date", from: "1915-10" } },
+                        ownMonths(14),
                       ],
                     },
                   ],
@@ -4315,7 +4319,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
                     { kind: "flag", flag: "f_rus_in_capital" },
                   ],
                 },
-                { kind: "world", of: { is: "date", to: "1916-01" } },
+                until(18),
                 {
                   kind: "not",
                   of: {
@@ -5395,7 +5399,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
               ],
             },
             { kind: "chapter", min: 1 },
-            { kind: "world", of: { is: "date", to: "1916-01" } },
+            until(18),
             {
               kind: "any",
               of: [
@@ -6575,8 +6579,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
             {
               kind: "all",
               of: [
-                { kind: "chapter", min: 9 },
-                { kind: "world", of: { is: "date", to: "1916-01" } },
+                ownMonths(3, 18),
                 { kind: "gauge", gauge: "shells", max: 1 },
               ],
             },

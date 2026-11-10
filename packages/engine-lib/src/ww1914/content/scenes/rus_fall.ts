@@ -1552,14 +1552,12 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
             },
             {
               kind: "world",
-              of: {
-                is: "date",
-                from: "1917-01",
-                to: "1917-03",
-              },
+              of: { is: "war_months", own: true, min: 29 },
             },
           ],
         },
+        // The mission comes by the winter ports: the text's frozen pipes.
+        { kind: "world", of: { is: "month", of: [12, 1, 2, 3] } },
       ],
     },
     cast: {

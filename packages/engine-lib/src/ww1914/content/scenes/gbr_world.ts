@@ -34,7 +34,6 @@ import {
   trustOf,
 } from "@openfront/engine-api/ww1914/SceneDsl";
 import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
-import { period, sinceChapter } from "./period";
 
 /**
  * Britain, the world share: the `gbr_f_` scenes, the summoned talks of McKenna,
@@ -47,12 +46,19 @@ const NATION: GwScene["nation"] = ["GBR"];
 const who = role("who");
 
 const CRISIS: GwStage[] = ["crisis"];
-const Y14: GwStage[] = ["y1914"];
 const Y14_ON: GwStage[] = ["y1914", "war"];
 const WAR: GwStage[] = ["war"];
 
-const during = period;
-const since = sinceChapter;
+/** Whole months since the war began; `own`: since the seat's country came in. */
+const warMonths = (min?: number, max?: number, own = false): GwCond => ({
+  kind: "world",
+  of: {
+    is: "war_months",
+    ...(own ? { own } : {}),
+    ...(min === undefined ? {} : { min }),
+    ...(max === undefined ? {} : { max }),
+  },
+});
 
 const ch = (min: number, max: number): GwCond => ({
   kind: "chapter",
@@ -2136,7 +2142,7 @@ export const GBR_WORLD_SCENES: readonly GwScene[] = [
     nation: NATION,
     kind: "talk",
     stage: Y14_ON,
-    when: all(since(6, "16b")),
+    when: warMonths(undefined, 29, true),
     cast: { who: { person: "gbr_hankey" } },
     salience: 3,
     tags: ["people"],
@@ -4625,8 +4631,8 @@ export const GBR_WORLD_SCENES: readonly GwScene[] = [
     id: "gbr_f_neutral_line",
     nation: NATION,
     kind: "crisis",
-    stage: Y14,
-    when: all(neutral, ch(6, 10), not(entryOpen)),
+    stage: Y14_ON,
+    when: all(neutral, warMonths(undefined, 4), not(entryOpen)),
     cast: { fm: { office: "foreign" }, navy: { office: "navy" } },
     salience: 9,
     tags: ["foreign"],
@@ -4676,7 +4682,7 @@ export const GBR_WORLD_SCENES: readonly GwScene[] = [
     nation: NATION,
     kind: "proposal",
     stage: Y14_ON,
-    when: all(neutral, since(8, "16a")),
+    when: all(neutral, warMonths(2, 23)),
     cast: { fin: { office: "finance" } },
     salience: 7,
     tags: ["home"],
@@ -4767,7 +4773,7 @@ export const GBR_WORLD_SCENES: readonly GwScene[] = [
     stage: Y14_ON,
     when: all(
       neutral,
-      since(8, "16a"),
+      warMonths(2, 23),
       any(franceFalling, belg),
       world({ is: "war_age", min: 3 }),
     ),
@@ -4866,8 +4872,16 @@ export const GBR_WORLD_SCENES: readonly GwScene[] = [
     id: "gbr_f_peace_ulster",
     nation: NATION,
     kind: "crisis",
-    stage: Y14,
-    when: all(any(peace, noSarajevo), ch(7, 11)),
+    stage: Y14_ON,
+    // A few months after a crisis closed in peace; with no shot at all, the
+    // autumn session (the text's season) with no crisis running.
+    when: any(
+      all(peace, { kind: "world", of: { is: "peace_months", min: 1, max: 5 } }),
+      all(noSarajevo, not({ kind: "world", of: { is: "chain" } }), {
+        kind: "world",
+        of: { is: "month", of: [9, 10, 11] },
+      }),
+    ),
     cast: {
       irl: { any_of: [{ office: "ireland" }, { office: "foreign" }] },
       fm: { office: "foreign" },
@@ -4875,7 +4889,8 @@ export const GBR_WORLD_SCENES: readonly GwScene[] = [
     salience: 8,
     tags: ["home", "tension_up"],
     variants: [
-      { id: "n", when: noSarajevo },
+      // A quiet summer: no crisis has come and gone.
+      { id: "n", when: all(noSarajevo, not(peace)) },
       { id: "rifles", when: pressure("ireland", 4) },
       { id: "base" },
     ],

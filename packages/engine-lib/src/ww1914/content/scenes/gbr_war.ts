@@ -36,7 +36,7 @@ import {
   trustOf,
 } from "@openfront/engine-api/ww1914/SceneDsl";
 import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
-import { period, sinceChapter } from "./period";
+import { period } from "./period";
 
 /**
  * Britain, the war share: the `gbr_w_` scenes, the summoned talks of Kitchener,
@@ -56,7 +56,6 @@ const Y14_ON: GwStage[] = ["y1914", "war"];
 const WAR: GwStage[] = ["war"];
 
 const during = period;
-const since = sinceChapter;
 
 const war: GwCond = { kind: "at_war", tag: "DEU" };
 const FORTS_SHORT: GwCond = { kind: "secret", id: "ott_forts_short" };
@@ -710,8 +709,11 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     stage: WAR,
     when: all(
       war,
-      during("17b", "18a"),
-      any(world({ is: "manpower", max: 50 }), during("18a")),
+      world({ is: "war_months", own: true, min: 35, max: 47 }),
+      any(
+        world({ is: "manpower", max: 50 }),
+        world({ is: "war_months", own: true, min: 41, max: 47 }),
+      ),
     ),
     cast: {
       war: { any_of: [{ office: "war" }, { office: "foreign" }] },
@@ -1691,8 +1693,8 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
   talk(
     "gbr_t_kitchener_long",
     "gbr_kitchener",
-    ["crisis", "y1914"],
-    all(war, { kind: "chapter", min: 5, max: 7 }),
+    CRISIS_ON,
+    all(war, world({ is: "war_months", own: true, max: 1 })),
     {
       open: node(
         moods("cold", "arrogant"),
@@ -1739,10 +1741,17 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
   talk(
     "gbr_t_kitchener_paris",
     "gbr_kitchener",
-    ["crisis", "y1914"],
+    CRISIS_ON,
+    // The first weeks, and the west going the enemy's way: French wants out.
     all(
       war,
-      { kind: "chapter", min: 6, max: 7 },
+      world({ is: "war_months", own: true, max: 1 }),
+      world({
+        is: "battle",
+        theatre: "west",
+        of: ["break", "advance"],
+        by: "foe",
+      }),
       holds("war", "gbr_kitchener"),
     ),
     {
@@ -1782,7 +1791,10 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     "gbr_t_kitchener_shells",
     "gbr_kitchener",
     Y14_ON,
-    all(since(9, "15a"), holds("war", "gbr_kitchener")),
+    all(
+      world({ is: "war_months", own: true, min: 3, max: 11 }),
+      holds("war", "gbr_kitchener"),
+    ),
     {
       open: node(
         line(
@@ -2499,40 +2511,49 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
   ),
 
   // ---- Jellicoe ----
-  talk("gbr_t_jellicoe_risk", "gbr_jellicoe", CRISIS_ON, since(3, "15a"), {
-    open: node(
-      moods("anxious", "weary"),
-      r("what_lose", "warm", "ask", "count", {
-        reacts: [ifMood("count", [{ kind: "mood", delta: 1 }], "anxious")],
-      }),
-      r("nelson", "cold", "push", "nelson", {
-        tell: ["trust:-1"],
-        effects: [trustOf(who, -1)],
-        miss: "nelson",
-      }),
-      r("no_blame", "warm", "deal", "promise", {
-        tell: ["promise", "trust:+1"],
-        effects: [
-          trustOf(who, 1),
-          remember("k_jel_risk"),
-          promise(who, "p_jel_no_blame", 30, {
-            keep: chose("gbr_w_jutland", "no_blame"),
-          }),
-        ],
-      }),
-      bye("later", "warm"),
+  talk(
+    "gbr_t_jellicoe_risk",
+    "gbr_jellicoe",
+    CRISIS_ON,
+    any(
+      world({ is: "chain", min: 3 }),
+      world({ is: "war_months", own: true, max: 11 }),
     ),
-    count: plain(
-      r("understood", "frank", "deal", null, {
-        effects: [remember("k_jel_risk")],
-      }),
-      r("chu_knows", "cold", "ask", "first_lord"),
-      bye("end"),
-    ),
-    nelson: plain(r("go_on", "frank", "ask", "count"), bye("end")),
-    promise: plain(bye("end", "warm")),
-    first_lord: node(moods("anxious"), bye("end")),
-  }),
+    {
+      open: node(
+        moods("anxious", "weary"),
+        r("what_lose", "warm", "ask", "count", {
+          reacts: [ifMood("count", [{ kind: "mood", delta: 1 }], "anxious")],
+        }),
+        r("nelson", "cold", "push", "nelson", {
+          tell: ["trust:-1"],
+          effects: [trustOf(who, -1)],
+          miss: "nelson",
+        }),
+        r("no_blame", "warm", "deal", "promise", {
+          tell: ["promise", "trust:+1"],
+          effects: [
+            trustOf(who, 1),
+            remember("k_jel_risk"),
+            promise(who, "p_jel_no_blame", 30, {
+              keep: chose("gbr_w_jutland", "no_blame"),
+            }),
+          ],
+        }),
+        bye("later", "warm"),
+      ),
+      count: plain(
+        r("understood", "frank", "deal", null, {
+          effects: [remember("k_jel_risk")],
+        }),
+        r("chu_knows", "cold", "ask", "first_lord"),
+        bye("end"),
+      ),
+      nelson: plain(r("go_on", "frank", "ask", "count"), bye("end")),
+      promise: plain(bye("end", "warm")),
+      first_lord: node(moods("anxious"), bye("end")),
+    },
+  ),
 
   talk(
     "gbr_t_jellicoe_scapa",

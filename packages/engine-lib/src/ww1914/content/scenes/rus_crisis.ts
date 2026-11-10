@@ -46,6 +46,33 @@ const atDesk: GwCond = {
   ],
 };
 
+/** July's crisis from this link, or our war's first `months` months. */
+const julyOn = (min: number, months: number): GwCond => ({
+  kind: "any",
+  of: [
+    { kind: "world", of: { is: "chain", short: false, min } },
+    { kind: "world", of: { is: "war_months", own: true, max: months } },
+  ],
+});
+
+/** Up to `months` months of our war, or of peace after a crisis. */
+const until = (months: number): GwCond => ({
+  kind: "all",
+  of: [
+    {
+      kind: "not",
+      of: {
+        kind: "world",
+        of: { is: "war_months", own: true, min: months + 1 },
+      },
+    },
+    {
+      kind: "not",
+      of: { kind: "world", of: { is: "peace_months", min: months + 1 } },
+    },
+  ],
+});
+
 export const RUS_CRISIS_SCENES: readonly GwScene[] = [
   {
     id: "rus_c_door",
@@ -362,11 +389,10 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     id: "rus_c_ultimatum_out",
     nation: ["RUS"],
     kind: "wire",
-    stage: ["crisis"],
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 3, max: 7 },
+        { kind: "world", of: { is: "chain", short: false, min: 3 } },
         { kind: "flag", flag: "w_ultimatum_out" },
       ],
     },
@@ -393,11 +419,10 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     id: "rus_c_council",
     nation: ["RUS"],
     kind: "crisis",
-    stage: ["crisis"],
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 3, max: 7 },
+        { kind: "world", of: { is: "chain", short: false, min: 3 } },
         { kind: "flag", flag: "w_ultimatum_out" },
         { kind: "crisis", topic: "balkan" },
       ],
@@ -518,11 +543,10 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     id: "rus_c_prep_period",
     nation: ["RUS"],
     kind: "crisis",
-    stage: ["crisis"],
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 4, max: 6 },
+        { kind: "world", of: { is: "chain", short: false, min: 4 } },
         { kind: "crisis", topic: "balkan" },
         { kind: "temp", min: 4 },
         { kind: "seen", scene: "rus_c_council" },
@@ -577,11 +601,10 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     id: "rus_c_willy",
     nation: ["RUS"],
     kind: "crisis",
-    stage: ["crisis"],
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 4, max: 6 },
+        { kind: "world", of: { is: "chain", short: false, min: 4 } },
         { kind: "crisis", topic: "balkan" },
         { kind: "temp", min: 5 },
       ],
@@ -643,17 +666,16 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     id: "rus_c_partial",
     nation: ["RUS"],
     kind: "crisis",
-    stage: ["crisis"],
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 4, max: 6 },
+        { kind: "world", of: { is: "chain", short: false, min: 4 } },
         { kind: "crisis", topic: "balkan" },
         { kind: "not", of: { kind: "flag", flag: "f_rus_general" } },
         {
           kind: "any",
           of: [
-            { kind: "chapter", max: 4 },
+            { kind: "world", of: { is: "chain", max: 4 } },
             { kind: "temp", max: 7 },
           ],
         },
@@ -771,11 +793,10 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     id: "rus_c_general_mob",
     nation: ["RUS"],
     kind: "crisis",
-    stage: ["crisis"],
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 4, max: 6 },
+        { kind: "world", of: { is: "chain", short: false, min: 4 } },
         { kind: "crisis", topic: "balkan" },
         { kind: "temp", min: 6 },
         { kind: "not", of: { kind: "flag", flag: "f_rus_general" } },
@@ -786,7 +807,7 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
             {
               kind: "all",
               of: [
-                { kind: "chapter", min: 5 },
+                { kind: "world", of: { is: "chain", short: false, min: 5 } },
                 { kind: "temp", min: 8 },
               ],
             },
@@ -876,11 +897,10 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     id: "rus_c_cancel_night",
     nation: ["RUS"],
     kind: "dispute",
-    stage: ["crisis"],
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 5, max: 6 },
+        { kind: "world", of: { is: "chain", short: false, min: 5 } },
         {
           kind: "any",
           of: [
@@ -1291,13 +1311,13 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 7, max: 10 },
+        { kind: "world", of: { is: "war_months", own: true, min: 1, max: 4 } },
         { kind: "world", of: { is: "war" } },
         {
           kind: "any",
           of: [
             { kind: "seen", scene: "rus_c_both_fronts" },
-            { kind: "chapter", min: 8 },
+            { kind: "world", of: { is: "war_months", own: true, min: 2 } },
           ],
         },
       ],
@@ -1323,9 +1343,9 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 7 },
-        date(undefined, "1915-06"),
-        { kind: "world", of: { is: "entered", tag: "OTT" } },
+        // The Turks come in against us, whenever that is.
+        { kind: "world", of: { is: "war_months", own: true, min: 1 } },
+        { kind: "at_war", tag: "OTT" },
       ],
     },
     cast: { fm: { office: "foreign" }, navy: { office: "navy" } },
@@ -3379,7 +3399,7 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
             {
               kind: "all",
               of: [
-                { kind: "chapter", min: 4, max: 8 },
+                julyOn(4, 2),
                 {
                   kind: "any",
                   of: [
@@ -3828,7 +3848,7 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
         {
           kind: "all",
           of: [
-            { kind: "chapter", min: 0, max: 7 },
+            julyOn(0, 1),
             { kind: "not", of: { kind: "seen", scene: "rus_c_poland_word" } },
           ],
         },
@@ -4978,7 +4998,7 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
         {
           kind: "all",
           of: [
-            { kind: "all", of: [{ kind: "chapter", min: 1, max: 7 }, atDesk] },
+            { kind: "all", of: [julyOn(1, 1), atDesk] },
             { kind: "not", of: { kind: "seen", scene: "rus_c_balcony" } },
           ],
         },
@@ -5172,7 +5192,7 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
       of: [
         {
           kind: "all",
-          of: [{ kind: "chapter", min: 3 }, date(undefined, "1915-12"), atDesk],
+          of: [{ kind: "chapter", min: 3 }, until(17), atDesk],
         },
         { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
@@ -6053,7 +6073,7 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
         {
           kind: "all",
           of: [
-            { kind: "chapter", min: 3, max: 6 },
+            { kind: "world", of: { is: "chain", short: false, min: 3 } },
             {
               kind: "any",
               of: [
@@ -6650,7 +6670,7 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
         {
           kind: "all",
           of: [
-            { kind: "chapter", min: 4, max: 8 },
+            julyOn(4, 2),
             {
               kind: "any",
               of: [

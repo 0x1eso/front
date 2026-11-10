@@ -3,7 +3,6 @@ import { all, any, memory, not } from "@openfront/engine-api/ww1914/SceneDsl";
 import {
   called,
   closeBy,
-  date,
   life,
   low,
   node,
@@ -137,7 +136,11 @@ export const RULER_RUS: readonly GwScene[] = [
     id: "rus_life_her_letter",
     nation: NATION,
     kind: "audience",
-    when: all(self, war, { kind: "stage", stage: "war" }),
+    // He is away at the war long enough for her to write every morning.
+    when: all(self, war, {
+      kind: "world",
+      of: { is: "war_months", own: true, min: 5 },
+    }),
     cast: { empress },
     once: false,
     cooldown: 10,
@@ -175,7 +178,13 @@ export const RULER_RUS: readonly GwScene[] = [
     id: "rus_life_measles",
     nation: NATION,
     kind: "audience",
-    when: all(self, war, date("1917-01", "1917-03")),
+    // He commands at Mogilev; the war is long and the capital queues for bread.
+    when: all(
+      self,
+      war,
+      { kind: "world", of: { is: "command" } },
+      { kind: "world", of: { is: "war_months", own: true, min: 24 } },
+    ),
     cast: { court, fedorov },
     salience: 7,
     fallback: "stay_a_week",

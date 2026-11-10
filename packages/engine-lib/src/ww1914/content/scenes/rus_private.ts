@@ -2948,14 +2948,7 @@ export const RUS_PRIVATE_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        {
-          kind: "world",
-          of: {
-            is: "date",
-            from: "1914-08",
-            to: "1914-10",
-          },
-        },
+        { kind: "world", of: { is: "war_months", own: true, max: 3 } },
         {
           kind: "world",
           of: {
@@ -3253,14 +3246,7 @@ export const RUS_PRIVATE_SCENES: readonly GwScene[] = [
           kind: "seen",
           scene: "rus_p_kr_2",
         },
-        {
-          kind: "world",
-          of: {
-            is: "date",
-            from: "1914-09",
-            to: "1915-01",
-          },
-        },
+        { kind: "world", of: { is: "war_months", own: true, max: 6 } },
         {
           kind: "world",
           of: {
@@ -3361,14 +3347,9 @@ export const RUS_PRIVATE_SCENES: readonly GwScene[] = [
           kind: "seen",
           scene: "rus_p_kr_3",
         },
-        {
-          kind: "world",
-          of: {
-            is: "date",
-            from: "1915-02",
-            to: "1915-06",
-          },
-        },
+        // Some months after Oleg, and the son-in-law fell in the Caucasus.
+        { kind: "not", of: { kind: "chose", scene: "rus_p_kr_3", within: 3 } },
+        { kind: "world", of: { is: "open", theatre: "caucasus" } },
         {
           kind: "world",
           of: {
@@ -4312,13 +4293,17 @@ export const RUS_PRIVATE_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
+        // Up to 11 months of our war, or of peace after a crisis.
         {
-          kind: "world",
+          kind: "not",
           of: {
-            is: "date",
-            from: "1914-06",
-            to: "1915-06",
+            kind: "world",
+            of: { is: "war_months", own: true, min: 12 },
           },
+        },
+        {
+          kind: "not",
+          of: { kind: "world", of: { is: "peace_months", min: 12 } },
         },
         {
           kind: "world",
@@ -5156,13 +5141,17 @@ export const RUS_PRIVATE_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
+        // Up to 5 months of our war, or of peace after a crisis.
         {
-          kind: "world",
+          kind: "not",
           of: {
-            is: "date",
-            from: "1914-06",
-            to: "1914-12",
+            kind: "world",
+            of: { is: "war_months", own: true, min: 6 },
           },
+        },
+        {
+          kind: "not",
+          of: { kind: "world", of: { is: "peace_months", min: 6 } },
         },
         {
           kind: "world",

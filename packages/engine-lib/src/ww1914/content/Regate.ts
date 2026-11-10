@@ -14,6 +14,9 @@ import { GW_REGATE_PENDING_IDS } from "./RegatePending";
 export const GW_CALENDAR_SCENES: readonly string[] = [
   // FRA: the year's close, the 1914 table's last chapter (New Year's Day 1915).
   "fra_c_closing",
+  // The y1914 game's last page, on 1 January 1915: the year really ends.
+  "gbr_c_closing",
+  "rus_c_closing",
 ];
 
 /**

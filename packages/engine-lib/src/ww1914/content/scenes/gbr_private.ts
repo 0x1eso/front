@@ -25,7 +25,6 @@ import {
   setFlag,
   trustOf,
 } from "@openfront/engine-api/ww1914/SceneDsl";
-import { period, sinceChapter } from "./period";
 
 /**
  * 「영국」, people's private stories: ten lines in the Prime Minister's circle,
@@ -50,18 +49,33 @@ const CRISIS: GwStage[] = ["crisis"];
 const Y14_ON: GwStage[] = ["y1914", "war"];
 const WAR: GwStage[] = ["war"];
 
-const during = period;
-const since = sinceChapter;
 const chapter = (min: number, max: number): GwCond => ({
   kind: "chapter",
   min,
   max,
 });
-/** Two dates, YYYY-MM, on any calendar. */
-const between = (from: string, to: string): GwCond => ({
+/** Whole months of the war: since the seat's country came in (`own`). */
+const warMonths = (min?: number, max?: number, own = true): GwCond => ({
   kind: "world",
-  of: { is: "date", from, to },
+  of: {
+    is: "war_months",
+    ...(own ? { own } : {}),
+    ...(min === undefined ? {} : { min }),
+    ...(max === undefined ? {} : { max }),
+  },
 });
+const peaceMonths = (min: number, max: number): GwCond => ({
+  kind: "world",
+  of: { is: "peace_months", min, max },
+});
+/** The calendar month: a season, or the day a man died, any year. */
+const inMonth = (...of: number[]): GwCond => ({
+  kind: "world",
+  of: { is: "month", of },
+});
+/** Not within `chapters` chapters of a pick in this scene: some time on. */
+const longAfter = (scene: string, chapters: number): GwCond =>
+  not({ kind: "chose", scene, within: chapters });
 
 const notLg = not(flag("f_pm_lg"));
 const war: GwCond = { kind: "at_war", tag: "DEU" };
@@ -297,7 +311,7 @@ const GREY: readonly GwScene[] = [
     "gbr_p_grey_book",
     "gbr_grey",
     Y14_ON,
-    since(6, "15b"),
+    not(warMonths(18)),
     {
       open: node(
         says(["cold", cold], ["war", war], "base"),
@@ -367,7 +381,7 @@ const GREY: readonly GwScene[] = [
       stay: node(base, end("end", "frank", 0)),
     },
   ),
-  comes("gbr_p_grey_fire", "gbr_grey", WAR, between("1917-05", "1917-09"), 5, {
+  comes("gbr_p_grey_fire", "gbr_grey", WAR, warMonths(33, 38, false), 5, {
     open: node(
       says(["read", greyRead], ["cold", cold], "base"),
       r("book", "warm", "ask", "book", { when: greyRead }),
@@ -633,7 +647,7 @@ const BIRRELL: readonly GwScene[] = [
     off: node(base, end("end", "warm", 0)),
     resign: node(base, end("end", "warm", 1)),
   }),
-  comes("gbr_p_bir_winter", "gbr_birrell", Y14_ON, since(8, "15a"), 4, {
+  comes("gbr_p_bir_winter", "gbr_birrell", Y14_ON, warMonths(2, 11), 4, {
     open: node(
       says(["home", memory("m_p_bir_home")], "base"),
       r("stay", "warm", "deal", "stay", {
@@ -664,7 +678,7 @@ const BIRRELL: readonly GwScene[] = [
     "gbr_p_bir_march",
     "gbr_birrell",
     WAR,
-    between("1915-01", "1915-04"),
+    warMonths(5, 9),
     6,
     {
       open: node(
@@ -875,7 +889,7 @@ const stamSat = memory("m_p_stam_sat");
 const stamWork = memory("m_p_stam_work");
 
 const STAMFORDHAM: readonly GwScene[] = [
-  meet("gbr_p_stam_boots", "gbr_stamfordham", Y14_ON, since(7, "15a"), {
+  meet("gbr_p_stam_boots", "gbr_stamfordham", Y14_ON, warMonths(1, 11), {
     open: node(
       says(["warm", warm], "base"),
       r("offer", "warm", "deal", "offer", {
@@ -897,7 +911,8 @@ const STAMFORDHAM: readonly GwScene[] = [
     "gbr_p_stam_may",
     "gbr_stamfordham",
     WAR,
-    between("1915-05", "1915-07"),
+    // Festubert's dead are named on 15 May: the note comes that month.
+    all(inMonth(5, 6), warMonths(3)),
     7,
     {
       open: node(
@@ -918,26 +933,19 @@ const STAMFORDHAM: readonly GwScene[] = [
       ),
     },
   ),
-  comes(
-    "gbr_p_king_mare",
-    "gbr_george_v",
-    WAR,
-    between("1915-10", "1916-02"),
-    5,
-    {
-      open: node(
-        base,
-        r("pain", "warm", "ask", "pain"),
-        r("glass", "frank", "ask", "glass"),
-        end("papers", "cold", 0),
-      ),
-      pain: node(
-        says(["sat", stamSat], "base"),
-        end("end", "warm", 1, "m_p_king_pain"),
-      ),
-      glass: node(base, end("end", "warm", 1)),
-    },
-  ),
+  comes("gbr_p_king_mare", "gbr_george_v", WAR, warMonths(14, 19), 5, {
+    open: node(
+      base,
+      r("pain", "warm", "ask", "pain"),
+      r("glass", "frank", "ask", "glass"),
+      end("papers", "cold", 0),
+    ),
+    pain: node(
+      says(["sat", stamSat], "base"),
+      end("end", "warm", 1, "m_p_king_pain"),
+    ),
+    glass: node(base, end("end", "warm", 1)),
+  }),
   meet(
     "gbr_p_king_john",
     "gbr_george_v",
@@ -958,7 +966,7 @@ const STAMFORDHAM: readonly GwScene[] = [
     "gbr_p_king_nicky",
     "gbr_george_v",
     WAR,
-    all(between("1918-07", "1918-10"), seen("gbr_t_king_tsar"), {
+    all(seen("gbr_t_king_tsar"), longAfter("gbr_t_king_tsar", 4), {
       kind: "world",
       of: { is: "regime", tag: "RUS", of: ["soviet"] },
     }),
@@ -979,12 +987,10 @@ const STAMFORDHAM: readonly GwScene[] = [
     "gbr_stamfordham",
     WAR,
     all(
-      any(
-        between("1916-05", "1916-06"),
-        between("1917-05", "1917-06"),
-        between("1918-05", "1918-06"),
-      ),
+      // The day comes round: May, a year or more on.
+      inMonth(5, 6),
       seen("gbr_p_stam_may"),
+      longAfter("gbr_p_stam_may", 2),
     ),
     7,
     {
@@ -1036,19 +1042,25 @@ const LAW: readonly GwScene[] = [
       play: node(base, end("end", "warm", 0)),
     },
   ),
-  meet("gbr_p_law_note", "gbr_bonar_law", Y14_ON, all(chess, since(8, "15b")), {
-    open: node(
-      says(["warm", warm], ["cold", cold], "base"),
-      r("sons", "warm", "ask", "sons"),
-      r("house", "frank", "deal", "house", {
-        tell: [paid(1)],
-        effects: [trust(1), remember("m_p_law_board_apart")],
-      }),
-      end("resign", "frank", 0, "m_p_law_resigned"),
-    ),
-    sons: node(base, end("end", "warm", 1)),
-    house: node(base, end("end", "warm", 0)),
-  }),
+  meet(
+    "gbr_p_law_note",
+    "gbr_bonar_law",
+    Y14_ON,
+    all(chess, warMonths(2, 17)),
+    {
+      open: node(
+        says(["warm", warm], ["cold", cold], "base"),
+        r("sons", "warm", "ask", "sons"),
+        r("house", "frank", "deal", "house", {
+          tell: [paid(1)],
+          effects: [trust(1), remember("m_p_law_board_apart")],
+        }),
+        end("resign", "frank", 0, "m_p_law_resigned"),
+      ),
+      sons: node(base, end("end", "warm", 1)),
+      house: node(base, end("end", "warm", 0)),
+    },
+  ),
   comes(
     "gbr_p_law_not_urgent",
     "gbr_bonar_law",
@@ -1073,7 +1085,10 @@ const LAW: readonly GwScene[] = [
     "gbr_p_law_gaza",
     "gbr_bonar_law",
     WAR,
-    between("1917-04", "1917-07"),
+    all(
+      { kind: "world", of: { is: "open", theatre: "palestine" } },
+      warMonths(24),
+    ),
     6,
     {
       open: node(
@@ -1096,7 +1111,10 @@ const LAW: readonly GwScene[] = [
     "gbr_p_law_confirmed",
     "gbr_bonar_law",
     WAR,
-    all(memory("m_p_law_rome"), between("1917-05", "1917-09")),
+    all(
+      memory("m_p_law_rome"),
+      not({ kind: "memory", key: "m_p_law_rome", within: 1 }),
+    ),
     7,
     {
       open: node(
@@ -1157,7 +1175,7 @@ const LLOYD_GEORGE: readonly GwScene[] = [
     "gbr_p_lg_stones",
     "gbr_lloyd_george",
     WAR,
-    all(war, between("1915-03", "1915-05")),
+    all(war, warMonths(7, 10)),
     6,
     {
       open: node(
@@ -1235,7 +1253,7 @@ const LLOYD_GEORGE: readonly GwScene[] = [
     "gbr_p_lg_uncle",
     "gbr_lloyd_george",
     WAR,
-    between("1917-02", "1917-04"),
+    any(warMonths(30, 33, false), peaceMonths(30, 33)),
     5,
     {
       open: node(
@@ -1492,30 +1510,23 @@ const REDMOND: readonly GwScene[] = [
       stay: node(base, end("end", "warm", 1, "m_p_red_lodge")),
     },
   ),
-  comes(
-    "gbr_p_red_esther",
-    "gbr_redmond",
-    WAR,
-    between("1917-01", "1917-03"),
-    5,
-    {
-      open: node(
-        base,
-        r("house", "frank", "deal", "house", {
-          tell: ["irish:+1"],
-          effects: [{ kind: "inst", inst: "irish", delta: 1 }],
-        }),
-        end("write", "warm", 1, "m_p_red_esther"),
-        end("none", "cold", 0),
-      ),
-      house: node(base, end("end", "warm", 1, "m_p_red_esther")),
-    },
-  ),
+  comes("gbr_p_red_esther", "gbr_redmond", WAR, warMonths(29, 32, false), 5, {
+    open: node(
+      base,
+      r("house", "frank", "deal", "house", {
+        tell: ["irish:+1"],
+        effects: [{ kind: "inst", inst: "irish", delta: 1 }],
+      }),
+      end("write", "warm", 1, "m_p_red_esther"),
+      end("none", "cold", 0),
+    ),
+    house: node(base, end("end", "warm", 1, "m_p_red_esther")),
+  }),
   comes(
     "gbr_p_red_speech",
     "gbr_redmond",
     WAR,
-    all(war, between("1917-03", "1917-05")),
+    all(war, warMonths(31, 34)),
     5,
     {
       open: node(
@@ -1534,7 +1545,7 @@ const REDMOND: readonly GwScene[] = [
     "gbr_p_red_messines",
     "gbr_redmond",
     WAR,
-    all(war, between("1917-06", "1917-08")),
+    all(war, warMonths(34, 37)),
     7,
     {
       open: node(
@@ -1561,7 +1572,7 @@ const REDMOND: readonly GwScene[] = [
     "gbr_p_red_nursing",
     "gbr_redmond",
     WAR,
-    all(seen("gbr_p_red_messines"), between("1918-01", "1918-04")),
+    all(seen("gbr_p_red_messines"), longAfter("gbr_p_red_messines", 5)),
     6,
     {
       open: node(

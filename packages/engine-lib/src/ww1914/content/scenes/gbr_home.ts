@@ -39,7 +39,7 @@ import {
   trustOf,
 } from "@openfront/engine-api/ww1914/SceneDsl";
 import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
-import { period, sinceChapter } from "./period";
+import { period } from "./period";
 
 /**
  * Britain, the share at home: the `gbr_h_` scenes, the summoned talks of Lloyd
@@ -57,7 +57,6 @@ const Y14_ON: GwStage[] = ["y1914", "war"];
 const WAR: GwStage[] = ["war"];
 
 const during = period;
-const since = sinceChapter;
 
 const chapter = (min: number, max: number): GwCond => ({
   kind: "chapter",
@@ -189,10 +188,10 @@ const promise_open_king: GwCond = {
   kept: false,
   broken: false,
 };
-/** There is no Ministry of Munitions to fill before the shells of 1915. */
+/** There is no Ministry of Munitions to fill before the shells make one. */
 const vacant = (office: GwOffice): GwCond =>
   office === "munitions"
-    ? all(empty(office), world({ is: "date", from: "1915-05" }))
+    ? all(empty(office), flag("f_gbr_munitions_ministry"))
     : empty(office);
 type VacancyRow = (typeof VACANCIES)[number];
 const active = (person: string): GwCond => ({ kind: "person_active", person });
@@ -560,7 +559,11 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
     id: "gbr_h_conscription",
     kind: "crisis",
     stage: WAR,
-    when: all(war, during("15b", "16a"), any(manLow, during("16a"))),
+    when: all(
+      war,
+      world({ is: "war_months", own: true, min: 11, max: 23 }),
+      any(manLow, world({ is: "war_months", own: true, min: 17, max: 23 })),
+    ),
     cast: { sec: holder("war"), home: holder("interior") },
     salience: 9,
     tags: ["home", "tension_up"],
@@ -633,11 +636,13 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
     id: "gbr_h_easter",
     kind: "crisis",
     stage: WAR,
-    // Easter has its date: the record card names it.
+    // Easter keeps its season (the text names Easter Monday); the year is
+    // the state's: Ireland hot, Home Rule shelved, a war over a year old.
     when: all(
       war,
       notHr,
-      world({ is: "date", from: "1916-04", to: "1916-07" }),
+      world({ is: "month", of: [3, 4] }),
+      world({ is: "war_months", own: true, min: 12 }),
       pressAt("ireland", 3),
     ),
     cast: { ireland: holder("ireland"), sec: holder("war") },
@@ -1827,7 +1832,12 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
     "gbr_t_venetia_friday",
     "gbr_venetia",
     CRISIS_ON,
-    all(since(0, "15a"), notLg, not(seen("gbr_h_engagement"))),
+    all(
+      // Until the war is a year old: by then she has married.
+      not(world({ is: "war_months", own: true, min: 12 })),
+      notLg,
+      not(seen("gbr_h_engagement")),
+    ),
     {
       open: node(
         [
@@ -2396,10 +2406,7 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
     stage: WAR,
     when: all(
       notLg,
-      any(
-        seen("gbr_h_shells"),
-        world({ is: "date", from: "1915-05", to: "1915-06" }),
-      ),
+      any(seen("gbr_h_shells"), world({ is: "war_months", min: 9, max: 11 })),
     ),
     cast: {},
     salience: 7,
@@ -2950,7 +2957,7 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
     id: "gbr_h_vacant",
     kind: "audience",
     stage: Y14_ON,
-    when: all(since(6, "18b"), any(anyEmpty, greyWaits)),
+    when: any(anyEmpty, greyWaits),
     cast: {
       fm: {
         any_of: [

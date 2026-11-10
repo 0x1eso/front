@@ -6374,13 +6374,17 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
             },
           ],
         },
+        // Up to 17 months of our war, or of peace after a crisis.
         {
-          kind: "world",
+          kind: "not",
           of: {
-            is: "date",
-            from: "1914-06",
-            to: "1915-12",
+            kind: "world",
+            of: { is: "war_months", own: true, min: 18 },
           },
+        },
+        {
+          kind: "not",
+          of: { kind: "world", of: { is: "peace_months", min: 18 } },
         },
       ],
     },
@@ -9755,10 +9759,10 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
         {
           kind: "all",
           of: [
+            // The shops shut with the mobilisation: our war's first weeks.
             {
-              kind: "chapter",
-              min: 5,
-              max: 6,
+              kind: "world",
+              of: { is: "war_months", own: true, max: 1 },
             },
             {
               kind: "world",
@@ -11063,13 +11067,17 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
             of: ["tsar", "crown"],
           },
         },
+        // Up to 29 months of our war, or of peace after a crisis.
         {
-          kind: "world",
+          kind: "not",
           of: {
-            is: "date",
-            from: "1914-07",
-            to: "1916-12",
+            kind: "world",
+            of: { is: "war_months", own: true, min: 30 },
           },
+        },
+        {
+          kind: "not",
+          of: { kind: "world", of: { is: "peace_months", min: 30 } },
         },
         {
           kind: "chapter",
