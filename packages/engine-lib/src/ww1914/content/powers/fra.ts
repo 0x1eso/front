@@ -5,8 +5,9 @@
 // The seat is Raymond Poincaré, President of the Republic (design ww168 B1.5).
 // Every act of his needs a minister's countersignature (law of 25 Feb 1875
 // art. 3: "Chacun des actes du président de la République doit être
-// contresigné par un ministre"), so every row but the Vienna letter and his own
-// resignation has a signer. Checked this session (conseil-constitutionnel.fr,
+// contresigné par un ministre"), so every lawful row but the Vienna letter,
+// the mutineers' sentences and his threat to go has a signer. (His resignation
+// is common.ts's `fra_pw_resign`.) Checked this session (conseil-constitutionnel.fr,
 // the 1875 laws): he disposes of the armed force and pardons (25 Feb art. 3);
 // closes the session, may convene the chambers extraordinarily, and may
 // adjourn them for a month at most, twice a session at most (16 Jul art. 2);
@@ -45,7 +46,7 @@ import {
 import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
 import type { GwSide } from "../../HouseRows";
 import type { GwPowerOption, GwPowerRow, GwReactorRow } from "../../PowerRows";
-import { beatPlot, heat, heatPlot, startLaw, warAge } from "../house/kit";
+import { beatPlot, heat, startLaw, warAge } from "../house/kit";
 
 // ---- Words ----
 
@@ -149,6 +150,18 @@ const general = (person: string, when?: GwCond): GwPowerOption => ({
 });
 const another = (person: string): GwCond =>
   all(active(person), not(commands(person)));
+const gaugeAt = (
+  g: "order" | "morale",
+  r: { min?: number; max?: number },
+): GwCond => ({ kind: "gauge", gauge: g, ...r });
+const instAt = (
+  i: "chamber" | "senate" | "army",
+  r: { min?: number; max?: number },
+): GwCond => ({ kind: "inst", inst: i, ...r });
+const unrest = (min: number): GwCond => world({ is: "unrest", min });
+const usaOut = neutral("USA");
+const leave = (office: "chancellor" | "war"): GwEffect =>
+  doWorld({ do: "leave", who: { office } });
 
 // ---- The powers ----
 
@@ -277,10 +290,10 @@ export const FRA_POWERS: readonly GwPowerRow[] = [
       then: [
         heat("fra_tiger", 2),
         inst("countersign", -2),
-        heatPlot("fra_pl_elysee", 2),
         trust("ITA", -1),
         reason("fra_pw_vienna_out"),
       ],
+      heats: [{ id: "fra_pl_elysee", by: 2 }],
     },
     scene: "fra_pw_vienna_r",
   },
@@ -360,6 +373,7 @@ export const FRA_POWERS: readonly GwPowerRow[] = [
     kind: "lawful",
     shows: ours,
     needs: { office: "war" },
+    beyond: "fra_pw_commander_b",
     authority: 10,
     cooldown: 4,
     target: {
@@ -421,6 +435,7 @@ export const FRA_POWERS: readonly GwPowerRow[] = [
       },
     },
     against: ["radical", "socialist"],
+    beyond: "fra_pw_dissolve_b",
     authority: 20,
     cooldown: 12,
     tags: ["dissolve"],
@@ -429,6 +444,8 @@ export const FRA_POWERS: readonly GwPowerRow[] = [
       heat("fra_radicals", 1),
       heat("fra_sfio", 1),
     ],
+    // It reads as 16 May 1877: the Élysée threat jumps.
+    heats: [{ id: "fra_elysee", by: 3 }],
     scene: "fra_pw_dissolve_r",
   },
   // 내각
@@ -487,6 +504,7 @@ export const FRA_POWERS: readonly GwPowerRow[] = [
       },
     ],
     needs: { office: "interior" },
+    beyond: "fra_pw_siege_b",
     once: true,
     authority: 10,
     tags: ["decree", "army_over_civil"],
@@ -512,6 +530,7 @@ export const FRA_POWERS: readonly GwPowerRow[] = [
     ],
     needs: { office: "interior" },
     against: ["moderate", "socialist"],
+    beyond: "fra_pw_carnet_b_b",
     once: true,
     authority: 5,
     tags: ["arrests"],
@@ -533,9 +552,9 @@ export const FRA_POWERS: readonly GwPowerRow[] = [
           doWorld({ do: "regime", to: "fra_republic" }),
           reason("fra_pw_carnet_union"),
         ]),
-        heatPlot("fra_pl_cgt", 2),
         reason("fra_pw_carnet_strike"),
       ],
+      heats: [{ id: "fra_pl_cgt", by: 2 }],
     },
     scene: "fra_pw_carnet_b_r",
   },
@@ -598,33 +617,433 @@ export const FRA_POWERS: readonly GwPowerRow[] = [
     },
     scene: "fra_pw_threaten_r",
   },
-  // The player's own ending: the row says so as a fact.
+
+  // ---- 법 밖의 일 (phase 2, design B1.5's B rows) ----
+  // The MacMahon road: he sends away a premier the Chamber still trusts. No
+  // minister signs his own dismissal; the act stands on nothing but the man.
   {
-    id: "fra_pw_resign",
+    id: "fra_pw_majority_b",
+    tag: "FRA",
+    group: "cabinet",
+    kind: "beyond",
+    shows: ours,
+    opens: [
+      {
+        when: not({ kind: "office_empty", office: "chancellor" }),
+        why: "no_premier",
+      },
+    ],
+    authority: 20,
+    cooldown: 12,
+    tags: ["cabinet_change"],
+    effects: [
+      trustOf({ office: "chancellor" }, -3),
+      leave("chancellor"),
+      inst("chamber", -2),
+      inst("countersign", -1),
+      heat("fra_radicals", 2),
+      heat("fra_sfio", 2),
+      heat("fra_fed_rep", -1),
+      reason("fra_pw_majority_sent"),
+    ],
+    heats: [
+      { id: "fra_elysee", by: 3 },
+      { id: "fra_chamber", by: 2 },
+    ],
+    risk: {
+      pct: 30,
+      mods: [
+        { when: instAt("chamber", { min: 1 }), add: 20 },
+        { when: tiger, add: 20 },
+        { when: union, add: -10 },
+      ],
+      then: [
+        inst("countersign", -2),
+        { kind: "opinion", bloc: "parliament", delta: -1 },
+        reason("fra_pw_majority_refused"),
+      ],
+      heats: [
+        { id: "fra_elysee", by: 2 },
+        { id: "fra_pl_elysee", by: 3 },
+      ],
+      scene: "fra_pw_majority_b_bad",
+    },
+    scene: "fra_pw_majority_b_r",
+  },
+  // He goes to the GQG and gives Joffre orders himself. The government
+  // commands the armies; the President only presides over it.
+  {
+    id: "fra_pw_order_front_b",
+    tag: "FRA",
+    group: "army",
+    kind: "beyond",
+    shows: ours,
+    opens: [{ when: war, why: "no_war" }],
+    slot: true,
+    authority: 10,
+    cooldown: 6,
+    tags: ["command_self"],
+    effects: [
+      { kind: "pride", who: { office: "chief_of_staff" }, delta: -2 },
+      { kind: "person_trust", who: { office: "chief_of_staff" }, delta: -1 },
+      trustOf({ office: "chancellor" }, -1),
+      inst("army", -1),
+      inst("countersign", -1),
+      gauge("morale", 1),
+      reason("fra_pw_front_orders"),
+    ],
+    heats: [
+      { id: "fra_senate", by: 1 },
+      { id: "fra_chamber", by: 1 },
+    ],
+    risk: {
+      pct: 25,
+      mods: [
+        {
+          when: { kind: "pride", who: { office: "chief_of_staff" }, min: 4 },
+          add: 20,
+        },
+        { when: tiger, add: 15 },
+        { when: instAt("army", { min: 2 }), add: 10 },
+      ],
+      then: [
+        { kind: "person_trust", who: { office: "chief_of_staff" }, delta: -2 },
+        inst("army", -1),
+        {
+          kind: "ruler",
+          side: "reputation",
+          delta: -1,
+          key: "fra_pw_front_ignored",
+        },
+      ],
+      heats: [{ id: "fra_elysee", by: 2 }],
+      scene: "fra_pw_order_front_b_bad",
+    },
+    scene: "fra_pw_order_front_b_r",
+  },
+  // Carnet B past the Interior: he wires the prefects himself.
+  {
+    id: "fra_pw_carnet_b_b",
+    tag: "FRA",
+    group: "home",
+    kind: "beyond",
+    formOnly: true,
+    shows: ours,
+    once: true,
+    authority: 10,
+    tags: ["arrests", "harsh_home"],
+    effects: [
+      setFlag("f_carnet_b_used"),
+      gauge("order", 1),
+      gauge("morale", -1),
+      heat("fra_sfio", 3),
+      inst("chamber", -1),
+      inst("countersign", -1),
+      reason("fra_pw_carnet_wired"),
+    ],
+    heats: [{ id: "fra_chamber", by: 2 }],
+    risk: {
+      pct: 35,
+      mods: [
+        { when: unrest(1), add: 20 },
+        { when: union, add: 10 },
+      ],
+      then: [
+        maybe(union, [
+          doWorld({ do: "regime", to: "fra_republic" }),
+          reason("fra_pw_carnet_union"),
+        ]),
+        reason("fra_pw_carnet_strike"),
+      ],
+      heats: [
+        { id: "fra_pl_cgt", by: 3 },
+        { id: "fra_elysee", by: 1 },
+      ],
+      scene: "fra_pw_carnet_b_b_bad",
+    },
+    scene: "fra_pw_carnet_b_b_r",
+  },
+  // The siege by his order alone, the chambers sitting or not: the 1878 law
+  // allows a decree only in the Council and only while they are adjourned.
+  {
+    id: "fra_pw_siege_b",
+    tag: "FRA",
+    group: "home",
+    kind: "beyond",
+    formOnly: true,
+    shows: ours,
+    once: true,
+    authority: 15,
+    tags: ["decree", "army_over_civil"],
+    effects: [
+      inst("army", 1),
+      gauge("order", 1),
+      { kind: "censor", delta: 1 },
+      inst("chamber", -2),
+      inst("senate", -1),
+      inst("countersign", -1),
+      setFlag("f_fra_pw_siege"),
+      startLaw("fra_law_siege", "seat"),
+      reason("fra_pw_siege_alone"),
+    ],
+    heats: [
+      { id: "fra_chamber", by: 2 },
+      { id: "fra_senate", by: 2 },
+    ],
+    risk: {
+      pct: 30,
+      mods: [
+        { when: not(war), add: 25 },
+        { when: instAt("chamber", { min: 1 }), add: 15 },
+      ],
+      then: [
+        inst("chamber", -1),
+        gauge("order", -1),
+        reason("fra_pw_siege_contested"),
+      ],
+      heats: [{ id: "fra_elysee", by: 3 }],
+      scene: "fra_pw_siege_b_bad",
+    },
+    scene: "fra_pw_siege_b_r",
+  },
+  // A commander in chief named with no war minister's name under the decree.
+  {
+    id: "fra_pw_commander_b",
+    tag: "FRA",
+    group: "army",
+    kind: "beyond",
+    formOnly: true,
+    shows: ours,
+    authority: 15,
+    cooldown: 4,
+    tags: [],
+    effects: [inst("army", -1), inst("countersign", -1)],
+    heats: [
+      { id: "fra_chamber", by: 1 },
+      { id: "fra_senate", by: 1 },
+    ],
+    risk: {
+      pct: 20,
+      mods: [
+        { when: tiger, add: 20 },
+        { when: not(war), add: 10 },
+      ],
+      then: [leave("war"), reason("fra_pw_commander_war_quits")],
+      heats: [{ id: "fra_elysee", by: 2 }],
+      scene: "fra_pw_commander_b_bad",
+    },
+    scene: "fra_pw_commander_b_r",
+  },
+  // Dissolution with neither the premier's name nor the Senate's vote.
+  {
+    id: "fra_pw_dissolve_b",
+    tag: "FRA",
+    group: "house",
+    kind: "beyond",
+    formOnly: true,
+    shows: ours,
+    authority: 25,
+    cooldown: 12,
+    tags: ["dissolve", "decree", "house_closed"],
+    effects: [
+      inst("chamber", -3),
+      inst("senate", -2),
+      inst("countersign", -2),
+      heat("fra_radicals", 2),
+      heat("fra_sfio", 2),
+      heat("fra_caillaux", 1),
+      reason("fra_pw_dissolve_alone"),
+    ],
+    heats: [
+      { id: "fra_elysee", by: 4 },
+      { id: "fra_chamber", by: 2 },
+    ],
+    risk: {
+      pct: 40,
+      mods: [
+        { when: war, add: 10 },
+        { when: unrest(1), add: 15 },
+      ],
+      then: [
+        inst("senate", -1),
+        { kind: "opinion", bloc: "parliament", delta: -1 },
+        gauge("order", -1),
+        reason("fra_pw_dissolve_defied"),
+      ],
+      heats: [{ id: "fra_pl_elysee", by: 3 }],
+      scene: "fra_pw_dissolve_b_bad",
+    },
+    scene: "fra_pw_dissolve_b_r",
+  },
+
+  // ---- Harsh measures (phase 2): lawful as the war's law then read ----
+  // Special courts martial, three judges in each regiment and no appeal: a
+  // decree of the war's first weeks, signed by the President and the war
+  // minister; a law of 1916 abolished them.
+  {
+    id: "fra_pw_special_courts",
+    tag: "FRA",
+    group: "army",
+    kind: "lawful",
+    shows: ours,
+    opens: [{ when: war, why: "no_war" }],
+    needs: { office: "war" },
+    against: ["socialist"],
+    once: true,
+    authority: 5,
+    tags: ["harsh_war"],
+    effects: [
+      inst("army", 1),
+      { kind: "pride", who: { office: "chief_of_staff" }, delta: 1 },
+      heat("fra_sfio", 1),
+      heat("fra_minority", 1),
+    ],
+    risk: {
+      pct: 20,
+      mods: [
+        { when: warAge(18), add: 20 },
+        { when: gaugeAt("morale", { max: 2 }), add: 20 },
+      ],
+      then: [
+        gauge("morale", -1),
+        inst("chamber", -1),
+        reason("fra_pw_courts_named"),
+      ],
+      heats: [{ id: "fra_chamber", by: 2 }],
+      scene: "fra_pw_special_courts_bad",
+    },
+    scene: "fra_pw_special_courts_r",
+  },
+  // The mutineers' death sentences come to him: he lets them stand. Refusing a
+  // pardon is no act, so no minister signs it.
+  {
+    id: "fra_pw_mutineers",
+    tag: "FRA",
+    group: "army",
+    kind: "lawful",
+    shows: ours,
+    opens: [
+      {
+        when: any(
+          { kind: "seen", scene: "fra_big_mutiny" },
+          all(war, gaugeAt("morale", { max: 1 })),
+        ),
+        why: "no_mutiny",
+      },
+    ],
+    cooldown: 6,
+    tags: ["harsh_war"],
+    effects: [
+      inst("army", 1),
+      { kind: "pride", who: { office: "chief_of_staff" }, delta: 1 },
+      heat("fra_sfio", 1),
+      heat("fra_minority", 1),
+      inst("chamber", -1),
+    ],
+    risk: {
+      pct: 25,
+      mods: [{ when: gaugeAt("morale", { max: 1 }), add: 25 }],
+      then: [gauge("morale", -1), reason("fra_pw_mutineers_known")],
+      heats: [{ id: "fra_chamber", by: 2 }],
+      scene: "fra_pw_mutineers_bad",
+    },
+    scene: "fra_pw_mutineers_r",
+  },
+  // The enemy's subjects behind wire (August 1914): Germans, Austrians,
+  // Hungarians, and Alsatians and Lorrainers the police doubted.
+  {
+    id: "fra_pw_intern",
     tag: "FRA",
     group: "home",
     kind: "lawful",
     shows: ours,
+    opens: [{ when: any(war, mob({ min: 2 })), why: "no_peril" }],
+    needs: { office: "interior" },
     once: true,
-    tags: [],
+    authority: 5,
+    tags: ["harsh_home"],
+    effects: [gauge("order", 1), heat("fra_af", -1)],
+    risk: {
+      pct: 15,
+      mods: [{ when: warAge(12), add: 15 }],
+      then: [
+        maybe(usaOut, [doWorld({ do: "readiness", tag: "USA", delta: -5 })]),
+        { kind: "opinion", bloc: "press", delta: -1 },
+        reason("fra_pw_intern_letters"),
+      ],
+      heats: [{ id: "fra_chamber", by: 1 }],
+      scene: "fra_pw_intern_bad",
+    },
+    scene: "fra_pw_intern_r",
+  },
+  // Bombers over a German town behind the Rhine, in answer (Karlsruhe was
+  // bombed by French aircraft in June 1915 and June 1916).
+  {
+    id: "fra_pw_reprisal",
+    tag: "FRA",
+    group: "army",
+    kind: "lawful",
+    shows: ours,
+    opens: [{ when: atWar("DEU"), why: "no_war" }],
+    needs: { office: "war" },
+    against: ["socialist"],
+    cooldown: 6,
+    authority: 5,
+    tags: ["harsh_war"],
+    effects: [gauge("morale", 1), { kind: "opinion", bloc: "army", delta: 1 }],
+    risk: {
+      pct: 30,
+      mods: [{ when: usaOut, add: 10 }],
+      then: [
+        maybe(usaOut, [doWorld({ do: "readiness", tag: "USA", delta: -10 })]),
+        gauge("morale", -1),
+        reason("fra_pw_reprisal_answered"),
+      ],
+      scene: "fra_pw_reprisal_bad",
+    },
+    scene: "fra_pw_reprisal_r",
+  },
+  // Mobilised workers who strike are soldiers on loan: back to the front with
+  // them (the Loire, May 1918).
+  {
+    id: "fra_pw_strikers_front",
+    tag: "FRA",
+    group: "home",
+    kind: "lawful",
+    shows: ours,
+    opens: [{ when: all(war, warAge(12), unrest(1)), why: "no_strike" }],
+    needs: { office: "war" },
+    against: ["socialist"],
+    cooldown: 6,
+    authority: 5,
+    tags: ["harsh_home"],
     effects: [
-      reason("fra_pw_resigned"),
-      { kind: "end", ending: "fra_end_resigned" },
+      gauge("order", 1),
+      { kind: "gauge", gauge: "shells", delta: -1 },
+      heat("fra_sfio", 1),
     ],
-    scene: "fra_pw_resign_r",
+    heats: [{ id: "fra_pl_cgt", by: -1 }],
+    risk: {
+      pct: 30,
+      mods: [{ when: unrest(2), add: 25 }],
+      then: [gauge("order", -1), reason("fra_pw_strikers_walkout")],
+      heats: [{ id: "fra_pl_cgt", by: 3 }],
+      scene: "fra_pw_strikers_front_bad",
+    },
+    scene: "fra_pw_strikers_front_r",
   },
 ];
 
 /** FRA's own reactors, on top of GW_REACTORS (`nation: "FRA"`). */
 export const FRA_REACTORS: readonly GwReactorRow[] = [
-  // A dissolution reads as 16 May 1877: the Élysée threat jumps.
+  // A dissolution reads as 16 May 1877 (the Élysée threat: the row's heats).
   {
     tag: "dissolve",
     nation: "FRA",
     actor: "other",
     delta: -1,
     key: "fra_react_coup",
-    does: [doWorld({ do: "gov_heat", id: "fra_elysee", delta: 3 })],
+    does: [{ kind: "opinion", bloc: "press", delta: -1 }],
   },
   // London stays out of a war France begins.
   {
@@ -643,6 +1062,26 @@ export const FRA_REACTORS: readonly GwReactorRow[] = [
     actor: "cabinet",
     of: ["socialist"],
     delta: -1,
+  },
+  // The union's socialist ministers answer for every harsh act at home.
+  {
+    tag: "harsh_home",
+    nation: "FRA",
+    actor: "cabinet",
+    by: union,
+    of: ["socialist"],
+    delta: -1,
+    key: "fra_react_socialist_ministers",
+  },
+  // Longuet's minority grows on each harsh act of war.
+  {
+    tag: "harsh_war",
+    nation: "FRA",
+    actor: "other",
+    by: war,
+    delta: -1,
+    key: "fra_react_minority",
+    does: [heat("fra_minority", 1)],
   },
 ];
 
@@ -695,5 +1134,35 @@ export const FRA_POWER_SCENES: readonly GwScene[] = [
   card("fra_pw_carnet_b_r", ["home"], [v("war", war), v("base")]),
   card("fra_pw_high_court_r", ["home"], [v("base")]),
   card("fra_pw_threaten_r", ["home"], [v("tiger", tiger), v("base")]),
-  card("fra_pw_resign_r", ["home"], [v("base")]),
+  // Phase 2: each beyond row and harsh measure, and its card when it goes wrong.
+  card("fra_pw_majority_b_r", ["home"], [v("war", war), v("base")]),
+  card("fra_pw_majority_b_bad", ["home"], [v("base")]),
+  card("fra_pw_order_front_b_r", ["war"], [v("base")], {
+    cos: { office: "chief_of_staff" },
+  }),
+  card("fra_pw_order_front_b_bad", ["war"], [v("base")], {
+    cos: { office: "chief_of_staff" },
+  }),
+  card("fra_pw_carnet_b_b_r", ["home"], [v("war", war), v("base")]),
+  card("fra_pw_carnet_b_b_bad", ["home"], [v("base")]),
+  card("fra_pw_siege_b_r", ["home"], [v("war", war), v("base")]),
+  card("fra_pw_siege_b_bad", ["home"], [v("base")]),
+  card("fra_pw_commander_b_r", ["war"], [v("base")], {
+    cos: { office: "chief_of_staff" },
+  }),
+  card("fra_pw_commander_b_bad", ["war"], [v("base")], {
+    cos: { office: "chief_of_staff" },
+  }),
+  card("fra_pw_dissolve_b_r", ["home"], [v("war", war), v("base")]),
+  card("fra_pw_dissolve_b_bad", ["home"], [v("base")]),
+  card("fra_pw_special_courts_r", ["war"], [v("base")]),
+  card("fra_pw_special_courts_bad", ["war"], [v("base")]),
+  card("fra_pw_mutineers_r", ["war"], [v("base")]),
+  card("fra_pw_mutineers_bad", ["war"], [v("base")]),
+  card("fra_pw_intern_r", ["home"], [v("base")]),
+  card("fra_pw_intern_bad", ["home"], [v("usa", usaOut), v("base")]),
+  card("fra_pw_reprisal_r", ["war"], [v("base")]),
+  card("fra_pw_reprisal_bad", ["war"], [v("usa", usaOut), v("base")]),
+  card("fra_pw_strikers_front_r", ["home"], [v("base")]),
+  card("fra_pw_strikers_front_bad", ["home"], [v("base")]),
 ];
