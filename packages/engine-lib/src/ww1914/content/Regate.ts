@@ -11,7 +11,11 @@ import { GW_REGATE_PENDING_IDS } from "./RegatePending";
  * budget year). Anything seasonal should use world `month` instead, which is
  * always allowed. Add an id here with the reason beside it.
  */
-export const GW_CALENDAR_SCENES: readonly string[] = [];
+export const GW_CALENDAR_SCENES: readonly string[] = [
+  // The y1914 game's last page, on 1 January 1915: the year really ends.
+  "gbr_c_closing",
+  "rus_c_closing",
+];
 
 /**
  * Scenes and acts the script left for the five hand lanes, listed in

@@ -1064,7 +1064,6 @@ const AIM_SCENES: GwScene[] = [
       aim("gbr_aim_ireland"),
       not(flag("f_home_rule_lives")),
       not(flag("f_ireland_settled")),
-      chapters(6),
     ),
     { ire: holder("ireland") },
     [
@@ -1406,7 +1405,8 @@ const BIG_SCENES: GwScene[] = [
     all(
       world({ is: "neutral", tag: "GBR" }),
       world({ is: "entered", tag: "FRA" }),
-      chapters(6, 10),
+      // France's first months: its fleet is south, its coast open.
+      world({ is: "war_months", max: 4 }),
     ),
     {
       fm: holder("foreign"),
@@ -1699,12 +1699,16 @@ const BIG_SCENES: GwScene[] = [
   big(
     "gbr_big_march",
     all(
-      war,
-      world({ is: "date", from: "1918-03", to: "1918-06" }),
-      any(
-        world({ is: "battle", theatre: "west", of: ["break", "advance"] }),
-        world({ is: "out", tag: "RUS" }),
-      ),
+      atDeu,
+      // Russia is out, the east's divisions came west, and they broke us.
+      world({ is: "out", tag: "RUS" }),
+      world({
+        is: "battle",
+        theatre: "west",
+        of: ["break", "advance"],
+        by: "foe",
+      }),
+      world({ is: "war_months", own: true, min: 12 }),
     ),
     {
       cos: holder("chief_of_staff"),
@@ -2095,7 +2099,7 @@ const COUSIN_LETTERS: GwScene[] = [
           all(
             not(atWarHim),
             not(crisis),
-            world({ is: "date", from: "1915-01" }),
+            world({ is: "peace_months", min: 5 }),
           ),
         ),
       ),
@@ -2179,7 +2183,11 @@ const COUSIN_LETTERS: GwScene[] = [
     {
       when: all(
         wrote(2),
-        any(world({ is: "date", from: "1916-10" }), world({ is: "armistice" })),
+        any(
+          world({ is: "war_months", min: 26 }),
+          world({ is: "peace_months", min: 26 }),
+          world({ is: "armistice" }),
+        ),
       ),
     },
   ),

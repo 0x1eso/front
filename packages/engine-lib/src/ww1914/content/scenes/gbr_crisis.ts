@@ -31,7 +31,6 @@ import {
   trustOf,
 } from "@openfront/engine-api/ww1914/SceneDsl";
 import type { GwWorldEffect } from "@openfront/engine-api/ww1914/WorldDsl";
-import { period, sinceChapter } from "./period";
 
 /**
  * 「영국」, the crisis share: the gbr_c_ scenes, the talks of Grey, the King,
@@ -78,14 +77,18 @@ const vote = (issue: Issue): GwEffect => act({ do: "vote", issue });
 /** The count is enough: who has been told shows in `v_<issue>`. */
 const votes = (issue: Issue): GwCond => world({ is: "votes", issue, min: 0 });
 
-const during = period;
 const chapters = (min: number, max: number): GwCond => ({
   kind: "chapter",
   min,
   max,
 });
-/** July's state, up to about 1916. */
-const late = (min: number): GwCond => sinceChapter(min, "15b");
+/**
+ * July's state, while it lasts: the crisis at this link of the chain, or a war
+ * still under a year and a half old (the cabinet may sit on after the crisis
+ * closed into a war on the continent).
+ */
+const late = (min: number): GwCond =>
+  any(world({ is: "chain", min }), world({ is: "war_months", max: 17 }));
 const from = (min: number): GwCond => ({ kind: "chapter", min });
 
 const temp = (delta: number): GwEffect => ({ kind: "temp", delta });
@@ -401,13 +404,17 @@ export const GBR_CRISIS_SCENES: readonly GwScene[] = [
       king: { person: "gbr_george_v" },
     },
     all(
-      // Five new faces at once: a first game has the room a chapter later.
-      any(chapters(3, 3), all(chapters(2, 2), not({ kind: "first_game" }))),
+      // Five new faces at once: a first game has the room a link later.
+      world({ is: "chain", short: false, min: 2, max: 3 }),
+      any(
+        world({ is: "chain", short: false, min: 3, max: 3 }),
+        not({ kind: "first_game" }),
+      ),
       any(
         heardFrom("k_king_conf"),
         irishPress(3),
         chose("gbr_c_amending", "palace_talk"),
-        chapters(3, 3),
+        world({ is: "chain", short: false, min: 3, max: 3 }),
       ),
     ),
     [
@@ -1420,9 +1427,14 @@ export const GBR_CRISIS_SCENES: readonly GwScene[] = [
     6,
     ["home"],
     { fin: { office: "finance" } },
-    all(chapters(4, 6), hot),
+    // The City shuts as the crisis comes to its last week, or the war's first.
+    all(
+      any(world({ is: "chain", min: 4 }), world({ is: "war_months", max: 0 })),
+      hot,
+    ),
     [v("sly", moody(fin, "cunning")), base],
     {
+      stage: LATE,
       fallback: "bank_holiday",
       options: [
         opt(
@@ -1518,13 +1530,18 @@ export const GBR_CRISIS_SCENES: readonly GwScene[] = [
     7,
     ["people", "war"],
     { navy: { office: "navy" }, lord: { office: "sea_lord" } },
-    all(chapters(8, 10), inWar, holds("sea_lord", "gbr_battenberg")),
+    all(
+      inWar,
+      world({ is: "war_months", own: true, min: 2, max: 4 }),
+      holds("sea_lord", "gbr_battenberg"),
+    ),
     [
       v("antwerp", flag("f_chu_antwerp")),
       v("weary", moody(lord, "weary")),
       base,
     ],
     {
+      stage: LATE,
       fallback: "keep_him",
       options: [
         opt(

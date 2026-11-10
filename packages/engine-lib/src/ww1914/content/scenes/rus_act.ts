@@ -57,8 +57,6 @@ const earAt = (inst: Ear, r: { min?: number; max?: number }): GwCond => ({
   inst,
   ...r,
 });
-const date = (from?: string, to?: string): GwCond =>
-  world({ is: "date", from, to });
 const temp = (delta: number): GwEffect => ({ kind: "temp", delta });
 const trust = (tag: "DEU" | "GBR" | "FRA" | "SRB" | "AUH" | "BGR", d: number) =>
   ({ kind: "trust", tag, delta: d }) as GwEffect;
@@ -1121,7 +1119,7 @@ const BIG_SCENES: GwScene[] = [
   big(
     "rus_b_peterhof",
     all(
-      { kind: "chapter", min: 3, max: 6 },
+      world({ is: "chain", short: false, min: 3 }),
       { kind: "crisis", topic: "balkan" },
       { kind: "temp", min: 5 },
       flag("w_ultimatum_out"),
@@ -1435,9 +1433,10 @@ const BIG_SCENES: GwScene[] = [
       war,
       any(
         { kind: "seen", scene: "rus_w_lutsk" },
-        // Our own push in the east broke the Austrian line, in the 1916 campaign.
+        // Our own push in the east broke the Austrian line, after a year and
+        // more of reports of retreat.
         all(
-          date("1916-03", "1916-10"),
+          world({ is: "war_months", own: true, min: 12 }),
           { kind: "at_war", tag: "AUH" },
           world({
             is: "battle",
@@ -1762,11 +1761,22 @@ const BIG_SCENES: GwScene[] = [
 const rivalCast: Cast = { rival_man: { rival_man: true } };
 const him = role("rival_man");
 
+/**
+ * The opening weeks by chapter; past them, months of war or of peace (the
+ * censor's summaries come monthly).
+ */
+const after = (chapter: number): GwCond =>
+  chapter <= 5
+    ? { kind: "chapter", min: chapter }
+    : any(
+        world({ is: "war_months", own: true, min: chapter - 6 }),
+        world({ is: "peace_months", min: chapter - 6 }),
+      );
 const sign = (id: string, min: number): GwScene => ({
   id,
   nation: ["RUS"],
   kind: "report",
-  when: all(rivalStage(1, 1), reign, { kind: "chapter", min }),
+  when: all(rivalStage(1, 1), reign, after(min)),
   cast: rivalCast,
   salience: 4,
   tags: ["people"],
