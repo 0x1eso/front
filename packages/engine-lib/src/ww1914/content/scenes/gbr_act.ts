@@ -206,7 +206,7 @@ const VISITS: GwScene[] = [
       tags: ["war"],
       fallback: "note_it",
       options: [
-        o("note_it", [], [remember("m_gbr_saw_woolwich")]),
+        o("note_it", [], [trustOf(role("fin"), 1)]),
         o(
           "night_shift",
           ["shells:+1", "money:-1"],
@@ -234,7 +234,7 @@ const VISITS: GwScene[] = [
     {
       fallback: "yard_only",
       options: [
-        o("yard_only", [], [remember("m_gbr_saw_clyde")]),
+        o("yard_only", [], [trustOf(role("home"), 1)]),
         o(
           "hear_stewards",
           ["order:+1", "opposition:+1"],
@@ -267,15 +267,11 @@ const VISITS: GwScene[] = [
       tags: ["war"],
       fallback: "with_staff",
       options: [
-        o("with_staff", [], [remember("m_gbr_saw_gq")]),
+        o("with_staff", [], [trustOf(role("cos"), 1)]),
         o(
           "to_the_line",
           ["morale:+1", "cos:-1"],
-          [
-            gauge("morale", 1),
-            trustOf(role("cos"), -1),
-            remember("m_gbr_saw_line"),
-          ],
+          [gauge("morale", 1), trustOf(role("cos"), -1)],
         ),
       ],
     },
@@ -294,12 +290,8 @@ const VISITS: GwScene[] = [
     {
       fallback: "castle",
       options: [
-        o("castle", [], [remember("m_gbr_saw_dublin")]),
-        o(
-          "walk_city",
-          ["ireland:-1", "irish:+1"],
-          [ireland(-1), irish(1), remember("m_gbr_saw_dublin")],
-        ),
+        o("castle", [], [trustOf(role("ire"), 1)]),
+        o("walk_city", ["ireland:-1", "irish:+1"], [ireland(-1), irish(1)]),
       ],
     },
   ),

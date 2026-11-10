@@ -11,6 +11,7 @@ import type { GwAct, GwAim } from "@openfront/engine-api/ww1914/GwActs";
 import {
   all,
   any,
+  feud,
   flag,
   GwCond,
   GwEffect,
@@ -75,6 +76,19 @@ const reveal = (
 ): GwEffect =>
   maybe(all({ kind: "secret", id }, when), doWorld({ do: "reveal", id }));
 
+/** A visit steadies the streets where they had stirred (ww169). */
+const calmed = maybe(
+  world({ is: "unrest", min: 1 }),
+  doWorld({ do: "calm", key: "visit_calmed" }),
+);
+/** A contact abroad who can carry peace: the terms can ask a neutral to mediate. */
+const mediator: GwEffect = { kind: "flag", flag: "gw_mediator" };
+const thinks = (person: string, delta: number): GwEffect => ({
+  kind: "person_trust",
+  who: { person },
+  delta,
+});
+
 // ---- 시찰: one entry a place ----
 
 const visit = (
@@ -97,7 +111,7 @@ const VISITS: GwAct[] = [
     inspect("force", "FRA", "west"),
     inspect("morale", "FRA"),
   ]),
-  visit("fra_a_reims", war),
+  visit("fra_a_reims", war, [opinion("press", 1), calmed]),
   visit("fra_a_creusot", undefined, [inspect("shells", "FRA")]),
   visit("fra_a_refugees", all(war, chapters(8))),
   visit("fra_a_colonial", all(war, from("1915-07")), [
@@ -105,12 +119,20 @@ const VISITS: GwAct[] = [
   ]),
   visit("fra_a_nancy", undefined, [inspect("morale", "FRA")]),
   visit("fra_a_dunkirk", war, [inspect("force", "FRA", "west")]),
-  visit("fra_a_barleduc", undefined),
-  visit("fra_a_sampigny", undefined),
+  visit("fra_a_barleduc", undefined, [
+    opinion("army", 1),
+    maybe(war, {
+      kind: "person_trust",
+      who: { office: "chief_of_staff" },
+      delta: 1,
+    }),
+    calmed,
+  ]),
+  visit("fra_a_sampigny", undefined, [opinion("press", 1), calmed]),
   visit("fra_a_thann", all(war, chapters(7), westNotPast("aisne"))),
   visit("fra_a_factory", all(war, from("1915-01")), [inspect("shells", "FRA")]),
   visit("fra_a_hospital", war, [inspect("morale", "FRA")]),
-  visit("fra_a_bordeaux", war),
+  visit("fra_a_bordeaux", war, [opinion("parliament", 1), calmed]),
   visit("fra_a_chantilly", all(atDeu, chapters(9)), [
     inspect("morale", "FRA"),
     inspect("force", "FRA", "west"),
@@ -547,6 +569,7 @@ const INTRIGUES: GwAct[] = [
     scene: "fra_a_i_set_on_r",
     wait: 1,
     fields: [{ id: "pair", people: "cabinet", count: 2 }],
+    effects: [feud(role("a"), role("b"))],
     caught: { pct: 35, scene: "fra_a_i_set_on_out", wait: 2 },
   },
   {
@@ -559,15 +582,18 @@ const INTRIGUES: GwAct[] = [
       {
         id: "who",
         options: [
+          // Sounded for the next government, the man takes it as a mark of favour.
           {
             id: "briand",
             when: all(active("fra_briand"), not(flag("f_pm_briand"))),
+            effects: [thinks("fra_briand", 1)],
           },
           {
             id: "ribot",
             when: all(active("fra_ribot"), not(flag("f_pm_ribot"))),
+            effects: [thinks("fra_ribot", 1)],
           },
-          { id: "barthou" },
+          { id: "barthou", effects: [thinks("fra_barthou", 1)] },
         ],
       },
     ],
@@ -584,9 +610,22 @@ const INTRIGUES: GwAct[] = [
       {
         id: "who",
         options: [
-          { id: "castelnau", when: active("fra_castelnau") },
-          { id: "foch", when: active("fra_foch") },
-          { id: "army_doctor" },
+          {
+            id: "castelnau",
+            when: active("fra_castelnau"),
+            effects: [
+              doWorld({ do: "file", who: { person: "fra_castelnau" } }),
+            ],
+          },
+          {
+            id: "foch",
+            when: active("fra_foch"),
+            effects: [doWorld({ do: "file", who: { person: "fra_foch" } })],
+          },
+          {
+            id: "army_doctor",
+            effects: [doWorld({ do: "inspect", fact: "morale", tag: "FRA" })],
+          },
         ],
       },
     ],
@@ -605,6 +644,7 @@ const INTRIGUES: GwAct[] = [
         options: [{ id: "geneva" }, { id: "madrid" }, { id: "berne" }],
       },
     ],
+    effects: [mediator],
     caught: { pct: 20, scene: "fra_a_i_geneva_out", wait: 3 },
   },
 ];

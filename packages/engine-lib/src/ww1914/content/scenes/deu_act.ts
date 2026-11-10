@@ -173,7 +173,10 @@ export const DEU_ACT_SCENES: readonly GwScene[] = [
         ["conscience:+1"],
       ),
       opt("medals", [gauge("morale", 1)], ["morale:+1"]),
-      opt("list", [remember("k_a_ward_list"), reason("a_ward_list")]),
+      opt("list", [
+        doWorld({ do: "inspect", fact: "morale", tag: "DEU" }),
+        reason("a_ward_list"),
+      ]),
     ],
   }),
   act("deu_a_ruhr_v", "audience", {
@@ -268,11 +271,7 @@ export const DEU_ACT_SCENES: readonly GwScene[] = [
     cast: { heir: { person: "deu_heir" } },
     variants: [{ id: "ring", when: secret("deu_heir_ring") }, { id: "base" }],
     options: [
-      opt(
-        "warn",
-        [trustOf(role("heir"), -1), remember("k_a_heir_warned")],
-        ["trust:-1"],
-      ),
+      opt("warn", [trustOf(role("heir"), -1)], ["trust:-1"]),
       opt(
         "praise",
         [trustOf(role("heir"), 1), gauge("morale", 1)],

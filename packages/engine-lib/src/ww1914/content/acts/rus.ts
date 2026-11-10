@@ -5,6 +5,7 @@ import type { GwAct, GwAim } from "@openfront/engine-api/ww1914/GwActs";
 import {
   all,
   any,
+  feud,
   GwCond,
   GwEffect,
   not,
@@ -51,6 +52,12 @@ const see = (
   );
 
 const VISIT_REST = 8;
+/** A visit steadies the streets where they had stirred (ww169). */
+const calmed: GwEffect = {
+  kind: "maybe",
+  when: world({ is: "unrest", min: 1 }),
+  then: [doWorld({ do: "calm", key: "visit_calmed" })],
+};
 const visit = (id: string, when: GwCond, effects: GwEffect[] = []): GwAct =>
   act(id, "visit", `${id}_s`, 0, { when, cooldown: VISIT_REST, effects });
 
@@ -82,7 +89,7 @@ const VISITS: GwAct[] = [
   visit("rus_a_v_moscow", reign),
   visit("rus_a_v_volga", reign),
   visit("rus_a_v_archangel", all(inWar, date("1915-01")), [see("shells")]),
-  visit("rus_a_v_lavra", reign),
+  visit("rus_a_v_lavra", reign, [opinion("court", 1), calmed]),
   visit("rus_a_v_don", reign, [see("mob")]),
 ];
 
@@ -415,17 +422,19 @@ const INTRIGUES: GwAct[] = [
   act("rus_a_i_mail", "intrigue", "rus_a_i_mail_s", 1, {
     when: reign,
     fields: [{ id: "who", people: "cabinet" }],
+    // What the opened letters held goes to the police's file on him.
+    effects: [doWorld({ do: "file", who: { role: "t" } })],
     caught: { pct: 25, scene: "rus_a_i_mail_out", wait: 2 },
   }),
   act("rus_a_i_set_on", "intrigue", "rus_a_i_set_on_s", 1, {
     when: reign,
     fields: [{ id: "pair", people: "cabinet", count: 2 }],
+    effects: [feud(role("a"), role("b"))],
     caught: { pct: 30, scene: "rus_a_i_set_on_out", wait: 2 },
   }),
   act("rus_a_i_rumour", "intrigue", "rus_a_i_rumour_s", 1, {
     when: inWar,
     effects: [rumour(1)],
-    tell: ["opinion:+1"],
     fields: [
       {
         id: "which",

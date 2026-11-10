@@ -81,6 +81,14 @@ const inspect = (
       : { do: "inspect", fact, tag, theatre },
   );
 
+/** A visit steadies the streets where they had stirred (ww169). */
+const calmed = maybe(
+  world({ is: "unrest", min: 1 }),
+  doWorld({ do: "calm", key: "visit_calmed" }),
+);
+/** A mediator stands ready: the terms can ask a neutral to carry peace. */
+const mediator = setFlag("gw_mediator");
+
 const VISITS: GwAct[] = [
   act("auh_a_skoda", "visit", "auh_a_skoda_v", 0, {
     cooldown: 8,
@@ -129,7 +137,10 @@ const VISITS: GwAct[] = [
     cooldown: 8,
     effects: [inspect("force", "SRB", "balkan")],
   }),
-  act("auh_a_pola", "visit", "auh_a_pola_v", 0, { cooldown: 10 }),
+  act("auh_a_pola", "visit", "auh_a_pola_v", 0, {
+    cooldown: 10,
+    effects: [trustOf(role("navy"), 1), opinion("army", 1), calmed],
+  }),
   act("auh_a_ward", "visit", "auh_a_ward_v", 0, {
     when: world({ is: "casualties", min: 50 }),
     cooldown: 6,
@@ -163,7 +174,11 @@ const LETTERS: GwAct[] = [
     when: inWar,
     cooldown: 8,
     fields: [
-      list("subject", "peace", "prisoners"),
+      list(
+        "subject",
+        { id: "peace", effects: [mediator] },
+        { id: "prisoners", effects: [opinion("court", 1)] },
+      ),
       { id: "tone", tones: ["warm", "frank"] },
     ],
   }),
@@ -172,7 +187,11 @@ const LETTERS: GwAct[] = [
     cooldown: 8,
     effects: [{ kind: "letter", who: to }],
     fields: [
-      list("subject", "prisoners", "mediate"),
+      list(
+        "subject",
+        { id: "prisoners", effects: [opinion("press", 1)] },
+        { id: "mediate", effects: [mediator] },
+      ),
       { id: "tone", tones: ["warm", "frank"] },
     ],
   }),
@@ -260,8 +279,14 @@ const ORDERS: GwAct[] = [
     cooldown: 6,
     fields: [
       { id: "envoy", people: "own" },
-      list("ask", "divisions", "grain", "aims"),
+      list(
+        "ask",
+        { id: "divisions", effects: [inst("berlin", 1)] },
+        { id: "grain", effects: [gauge("bread", 1), inst("berlin", 1)] },
+        "aims",
+      ),
     ],
+    effects: [trust("DEU", 1)],
   }),
   act("auh_a_o_nations", "order", "auh_a_o_nations_m", 1, {
     cooldown: 8,
@@ -393,13 +418,28 @@ const INTRIGUES: GwAct[] = [
     when: all(inWar, since("1916-01")),
     cooldown: 10,
     fields: [list("through", "banker", "prince")],
-    effects: [setFlag("f_auh_a_swiss")],
+    effects: [
+      mediator,
+      doWorld({ do: "report", fact: "morale", tag: "FRA", source: "agents" }),
+    ],
     caught: { pct: 40, scene: "auh_a_i_swiss_out", wait: 3 },
   }),
   act("auh_a_i_cipher", "intrigue", "auh_a_i_cipher_r", 1, {
     when: inWar,
     cooldown: 8,
-    fields: [list("whose", "rome", "berlin")],
+    fields: [
+      list(
+        "whose",
+        {
+          id: "rome",
+          effects: [doWorld({ do: "inspect", fact: "lean", tag: "ITA" })],
+        },
+        {
+          id: "berlin",
+          effects: [inspect("force", "DEU", "east")],
+        },
+      ),
+    ],
     caught: { pct: 25, scene: "auh_a_i_cipher_out", wait: 2 },
   }),
   act("auh_a_i_opposition", "intrigue", "auh_a_i_opposition_r", 1, {

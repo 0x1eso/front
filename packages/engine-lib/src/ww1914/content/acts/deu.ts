@@ -10,6 +10,7 @@ import type {
 import {
   all,
   any,
+  feud,
   flag,
   GwCond,
   GwEffect,
@@ -49,6 +50,20 @@ const good = (who: string): GwCond => ({
   who: role(who),
   field: "politics",
   min: 3,
+});
+
+/** A visit steadies the streets where they had stirred (ww169). */
+const calmed: GwEffect = {
+  kind: "maybe",
+  when: world({ is: "unrest", min: 1 }),
+  then: [doWorld({ do: "calm", key: "visit_calmed" })],
+};
+
+/** What the declared aim makes the people who care about it say of a talk. */
+const aimSays = (aim: string, ...moves: GwEffect[]): GwEffect => ({
+  kind: "maybe",
+  when: { kind: "aim", of: [aim] },
+  then: moves,
 });
 
 const visit = (
@@ -117,11 +132,11 @@ export const DEU_ACTS: readonly GwAct[] = [
   visit("deu_a_ruhr", {
     effects: [doWorld({ do: "inspect", fact: "morale", tag: "DEU" })],
   }),
-  visit("deu_a_hamburg", {}),
+  visit("deu_a_hamburg", { effects: [opinion("business", 1), calmed] }),
   visit("deu_a_market", { when: war, effects: [find("deu_food_books")] }),
   visit("deu_a_alsace", {}),
-  visit("deu_a_prussia", {}),
-  visit("deu_a_zeppelin", {}),
+  visit("deu_a_prussia", { effects: [opinion("army", 1), calmed] }),
+  visit("deu_a_zeppelin", { effects: [opinion("press", 1), calmed] }),
   visit("deu_a_staff", {
     stage: ["crisis", "y1914"],
     effects: [
@@ -353,6 +368,20 @@ export const DEU_ACTS: readonly GwAct[] = [
     scene: "deu_a_aimtalk_r",
     wait: 1,
     cooldown: 6,
+    effects: [
+      aimSays("deu_aim_peace", opinion("workers", 1), opinion("army", -1)),
+      aimSays("deu_aim_win", opinion("army", 1)),
+      aimSays("deu_aim_mitteleuropa", opinion("business", 1)),
+      aimSays("deu_aim_east", opinion("army", 1), opinion("court", 1)),
+      aimSays("deu_aim_sea", opinion("business", 1), opinion("press", 1)),
+      aimSays(
+        "deu_aim_home",
+        opinion("parliament", 1),
+        opinion("workers", 1),
+        opinion("court", -1),
+      ),
+      aimSays("deu_aim_crown", opinion("court", 1), opinion("parliament", -1)),
+    ],
   },
   {
     id: "deu_a_table",
@@ -514,6 +543,7 @@ export const DEU_ACTS: readonly GwAct[] = [
     scene: "deu_a_set_on_r",
     wait: 1,
     fields: [{ id: "pair", people: "cabinet", count: 2 }],
+    effects: [feud(role("a"), role("b"))],
     caught: { pct: 30, scene: "deu_a_set_on_out", wait: 2 },
   },
   {
@@ -580,9 +610,23 @@ export const DEU_ACTS: readonly GwAct[] = [
       {
         id: "where",
         options: [
-          { id: "ireland", when: atWar("GBR") },
-          { id: "russia", when: atWar("RUS") },
-          { id: "india" },
+          {
+            id: "ireland",
+            when: atWar("GBR"),
+            effects: [
+              doWorld({ do: "stir", tag: "GBR", delta: 1 }),
+              { kind: "pressure", topic: "ireland", delta: 1 },
+            ],
+          },
+          {
+            id: "russia",
+            when: atWar("RUS"),
+            effects: [doWorld({ do: "stir", tag: "RUS", delta: 1 })],
+          },
+          {
+            id: "india",
+            effects: [doWorld({ do: "stir", tag: "GBR", delta: 1 })],
+          },
         ],
       },
     ],
