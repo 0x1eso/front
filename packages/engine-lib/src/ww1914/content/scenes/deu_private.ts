@@ -5234,7 +5234,15 @@ export const DEU_PRIVATE_SCENES: readonly GwScene[] = [
     id: "deu_pv_gra_birth",
     nation: ["DEU"],
     kind: "talk",
-    when: { kind: "world", of: { is: "war_months", min: 8, max: 14 } },
+    // The daughter comes early in April (the text says so): a spring card,
+    // in the war's first two years whenever it began.
+    when: {
+      kind: "all",
+      of: [
+        { kind: "world", of: { is: "war_months", min: 8, max: 19 } },
+        { kind: "world", of: { is: "month", of: [4, 5] } },
+      ],
+    },
     cast: {
       who: {
         person: "deu_heir",
