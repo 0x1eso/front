@@ -17,6 +17,8 @@ export const GW_CALENDAR_SCENES: readonly string[] = [
   // The y1914 game's last page, on 1 January 1915: the year really ends.
   "gbr_c_closing",
   "rus_c_closing",
+  // The American presidential election of November 1916: a fixed day.
+  "gw_o_usa_election",
 ];
 
 /**

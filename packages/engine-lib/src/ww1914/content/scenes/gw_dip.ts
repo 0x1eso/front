@@ -41,7 +41,6 @@ const any = (...of: Loose[]): Loose => ({ kind: "any", of });
 const not = (of: Loose): Loose => ({ kind: "not", of });
 const flag = (f: string): Loose => ({ kind: "flag", flag: f });
 const memory = (key: string): Loose => ({ kind: "memory", key });
-const seen = (scene: string): Loose => ({ kind: "seen", scene });
 const chose = (scene: string, pick?: string): Loose =>
   pick === undefined
     ? { kind: "chose", scene }
@@ -55,7 +54,6 @@ const entente = w({ is: "side", of: ["entente"] });
 const inWar = (tag: GwTag): Loose => w({ is: "entered", tag });
 const out = (tag: GwTag): Loose => w({ is: "out", tag });
 const neutral = (tag: GwTag): Loose => w({ is: "neutral", tag });
-const atWar = (tag: GwTag): Loose => ({ kind: "at_war", tag });
 const low = (tag: GwTag, gauge: string): Loose => ({
   kind: "nation_gauge",
   tag,
@@ -91,21 +89,6 @@ const seatFRA = w({
 });
 /** Scenes France's own seat writes for itself (lane ww166 W4): not for FRA. */
 const noFra = (tags: GwTag[]): GwTag[] => tags.filter((t) => t !== "FRA");
-
-/** Plan's `regime:RUS=soviet`: Y has no such form, an AI Russia only leaves. */
-const redRussia = any(
-  w({ is: "regime", tag: "RUS", of: ["soviet"] }),
-  out("RUS"),
-);
-const americaNear = any(flag("w_america_in"), w({ is: "america", min: 70 }));
-
-const trustAny = (tags: GwTag[], max: number): Loose =>
-  any(...tags.map((tag) => ({ kind: "trust", tag, max })));
-/** Our own tag is never below 0, so the list serves both of that side's seats. */
-const allyCold = any(
-  all(central, trustAny(CENTRAL, -1)),
-  all(entente, trustAny(["FRA", "GBR", "RUS", "ITA"], -1)),
-);
 
 const maybe = (when: Loose, then: Loose[]): Loose => ({
   kind: "maybe",
@@ -743,7 +726,12 @@ const RAW: Loose[] = [
     but("DEU"),
     7,
     foreignDown,
-    all(war, date("1917-08", "1917-12"), not(w({ is: "armistice" }))),
+    // The Pope's note marks three years of a war nobody is winning.
+    all(
+      war,
+      w({ is: "war_months", min: 36, max: 41 }),
+      not(w({ is: "armistice" })),
+    ),
     { fm },
     [
       v("fra", all(seatFRA, not(memory("k_benedict_line")))),
