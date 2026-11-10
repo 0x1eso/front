@@ -36,7 +36,6 @@ import {
   trustOf,
 } from "@openfront/engine-api/ww1914/SceneDsl";
 import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
-import { period, sinceChapter } from "./period";
 
 /**
  * France, the world share (plan ww166-plan-fra-scenes.md §8, §9 W4, §10 W4):
@@ -51,12 +50,10 @@ const NATION: GwScene["nation"] = ["FRA"];
 const who = role("who");
 
 const CRISIS: GwStage[] = ["crisis"];
-const C_Y14: GwStage[] = ["crisis", "y1914"];
+const LATE: GwStage[] = ["crisis", "y1914", "war"];
 const Y14_ON: GwStage[] = ["y1914", "war"];
 const END: GwStage[] = ["war", "conference", "closing"];
 
-const during = period;
-const since = sinceChapter;
 const ch = (min: number, max: number): GwCond => ({
   kind: "chapter",
   min,
@@ -107,10 +104,11 @@ const holds = (office: GwOffice, person: string): GwCond => ({
   office,
   person,
 });
-const date = (from: string, to?: string): GwCond =>
-  to === undefined
-    ? world({ is: "date", from })
-    : world({ is: "date", from, to });
+/** Whole months of war: since it began, or with `own` since France came in. */
+const months = (range: { min?: number; max?: number }, own = true): GwCond =>
+  world({ is: "war_months", ...(own ? { own } : {}), ...range });
+/** The crisis has reached this link: July's chain, or a later spark's. */
+const link = (min: number): GwCond => world({ is: "chain", min });
 
 /** The country's promises to other countries (plan §13), read at the table. */
 const PLEDGES = [
@@ -340,8 +338,10 @@ const SCENES: GwScene[] = [
   reading(
     "fra_f_belgium_call",
     "wire",
-    C_Y14,
-    all(belg, ch(5, 6)),
+    LATE,
+    // Germany's road through Belgium: the crisis at its last link, or the
+    // war's first weeks.
+    all(belg, any(link(5), months({ max: 0 }, false))),
     6,
     ["foreign", "tension_up"],
     [v("war", warOn), v("base")],
@@ -401,7 +401,11 @@ const SCENES: GwScene[] = [
     "fra_f_ottoman",
     "wire",
     Y14_ON,
-    all(world({ is: "entered", tag: "OTT", side: "central" }), since(8, "15b")),
+    // The news of the Ottoman entry, while it is news.
+    all(
+      world({ is: "entered", tag: "OTT", side: "central" }),
+      world({ is: "in_war", tag: "OTT", max: 2 }),
+    ),
     5,
     ["foreign"],
     [v("war", atWar("OTT")), v("base")],
@@ -551,7 +555,7 @@ const SCENES: GwScene[] = [
     7,
     ["foreign"],
     [
-      v("schism", date("1916-09")),
+      v("schism", months({ min: 25 })),
       v("landed", chose("fra_w_salonika")),
       v("base"),
     ],
@@ -667,7 +671,11 @@ const SCENES: GwScene[] = [
     { fm },
     8,
     ["foreign", "tension_up"],
-    [v("fall", memory("k_pal_fall")), v("late", date("1917-04")), v("base")],
+    [
+      v("fall", memory("k_pal_fall")),
+      v("late", months({ min: 32 })),
+      v("base"),
+    ],
     [
       opt("recognise", [
         nation("RUS", 1),
@@ -958,8 +966,9 @@ const SCENES: GwScene[] = [
   paper(
     "fra_f_alone",
     "crisis",
-    C_Y14,
-    all(alone, ch(6, 10)),
+    LATE,
+    // Germany's war on Russia, France standing aside, in its first months.
+    all(alone, months({ min: 1, max: 4 }, false)),
     { fm },
     8,
     ["foreign", "tension_up"],
@@ -986,8 +995,9 @@ const SCENES: GwScene[] = [
   paper(
     "fra_f_peace_summer",
     "crisis",
-    C_Y14,
-    all(peace, ch(6, 10)),
+    LATE,
+    // The first months after a crisis closed without a war.
+    all(peace, world({ is: "peace_months", max: 4 })),
     { pm },
     8,
     ["home", "tension_down"],
@@ -1067,7 +1077,7 @@ const TALKS: GwScene[] = [
   talk(
     "fra_t_cambon_bef",
     "fra_paul_cambon",
-    { stage: C_Y14, when: all(warOn, ch(5, 7)) },
+    { stage: Y14_ON, when: all(warOn, months({ max: 1 })) },
     {
       open: node(
         [mood("anxious"), v("base")],
@@ -1091,7 +1101,7 @@ const TALKS: GwScene[] = [
   talk(
     "fra_t_cambon_old",
     "fra_paul_cambon",
-    { stage: Y14_ON, when: all(warOn, since(6, "18b")), cooldown: 8 },
+    { stage: Y14_ON, when: warOn, cooldown: 8 },
     {
       open: node(
         [v("tiger", tiger), mood("weary"), v("base")],
@@ -1109,7 +1119,10 @@ const TALKS: GwScene[] = [
   talk(
     "fra_t_cambon_levant",
     "fra_paul_cambon",
-    { stage: Y14_ON, when: all(atWar("OTT"), during("15b", "16a")) },
+    {
+      stage: Y14_ON,
+      when: all(atWar("OTT"), months({ min: 11, max: 23 })),
+    },
     {
       open: node(
         [mood("stubborn"), v("base")],
@@ -1133,7 +1146,7 @@ const TALKS: GwScene[] = [
   talk(
     "fra_t_cambon_brother",
     "fra_paul_cambon",
-    { stage: Y14_ON, when: all(warOn, ch(6, 8)) },
+    { stage: Y14_ON, when: all(warOn, months({ max: 2 })) },
     {
       open: node(
         [mood("cold"), v("base")],
@@ -1171,7 +1184,10 @@ const TALKS: GwScene[] = [
   talk(
     "fra_t_delcasse_italy",
     "fra_delcasse",
-    { stage: Y14_ON, when: all(warOn, during("15a")) },
+    {
+      stage: Y14_ON,
+      when: all(warOn, neutralOf("ITA"), months({ min: 3 })),
+    },
     {
       open: node(
         [mood("stubborn"), v("base")],
@@ -1195,7 +1211,10 @@ const TALKS: GwScene[] = [
   talk(
     "fra_t_delcasse_balkans",
     "fra_delcasse",
-    { stage: Y14_ON, when: all(warOn, during("15b"), neutralOf("BGR")) },
+    {
+      stage: Y14_ON,
+      when: all(warOn, neutralOf("BGR"), months({ min: 9 })),
+    },
     {
       open: node(
         [mood("anxious"), v("base")],
@@ -1215,7 +1234,15 @@ const TALKS: GwScene[] = [
     "fra_delcasse",
     {
       stage: Y14_ON,
-      when: all(holds("foreign", "fra_delcasse"), during("15b")),
+      // He goes when Sofia is lost, or worn out after a long year.
+      when: all(
+        holds("foreign", "fra_delcasse"),
+        warOn,
+        any(
+          world({ is: "entered", tag: "BGR", side: "central" }),
+          months({ min: 14 }),
+        ),
+      ),
     },
     {
       open: node(
@@ -1235,7 +1262,11 @@ const TALKS: GwScene[] = [
   talk(
     "fra_t_delcasse_navy",
     "fra_delcasse",
-    { stage: Y14_ON, when: all(warOn, since(6, "15a")), cooldown: 8 },
+    {
+      stage: Y14_ON,
+      when: all(warOn, holds("foreign", "fra_delcasse")),
+      cooldown: 8,
+    },
     {
       open: node(
         [mood("arrogant"), v("base")],
@@ -1258,7 +1289,6 @@ const TALKS: GwScene[] = [
       when: all(
         not(holds("foreign", "fra_delcasse")),
         seen("fra_t_delcasse_tired"),
-        during("16a", "18b"),
       ),
     },
     {
@@ -1282,7 +1312,10 @@ const TALKS: GwScene[] = [
   talk(
     "fra_t_ribot_loans",
     "fra_ribot",
-    { stage: Y14_ON, when: all(warOn, since(6, "16b")) },
+    {
+      stage: Y14_ON,
+      when: all(warOn, holds("finance", "fra_ribot")),
+    },
     {
       open: node(
         [mood("weary"), v("base")],
@@ -1306,7 +1339,17 @@ const TALKS: GwScene[] = [
   talk(
     "fra_t_ribot_gold",
     "fra_ribot",
-    { stage: Y14_ON, when: all(warOn, since(6, "17a")), cooldown: 8 },
+    {
+      stage: Y14_ON,
+      // Gold still crossing to New York: America lends but hasn't come in.
+      when: all(
+        warOn,
+        holds("finance", "fra_ribot"),
+        months({ min: 6 }),
+        not(fighting("USA")),
+      ),
+      cooldown: 8,
+    },
     {
       open: node(
         [v("low", gaugeAt("money", 1)), mood("stubborn"), v("base")],
@@ -1324,7 +1367,12 @@ const TALKS: GwScene[] = [
   talk(
     "fra_t_ribot_stockholm",
     "fra_ribot",
-    { stage: Y14_ON, when: all(russiaBroke, during("17a")) },
+    // Petrograd's soviet calls the socialists to Stockholm: a Russia that has
+    // lost its Tsar but still fights.
+    {
+      stage: Y14_ON,
+      when: all(russiaBroke, warOn, fighting("RUS"), not(isOut("RUS"))),
+    },
     {
       open: node(
         [mood("weary"), v("base")],
@@ -1350,7 +1398,8 @@ const TALKS: GwScene[] = [
     "fra_ribot",
     {
       stage: Y14_ON,
-      when: all(seen("fra_f_rhine_russia"), during("17a", "17b")),
+      // The Tsar's note outlives the Tsar.
+      when: all(seen("fra_f_rhine_russia"), russiaBroke),
     },
     {
       open: node(
@@ -1371,11 +1420,11 @@ const TALKS: GwScene[] = [
     "fra_ribot",
     {
       stage: Y14_ON,
-      when: all(
-        not(holds("chancellor", "fra_ribot")),
-        { kind: "inst", inst: "chamber", max: 0 },
-        during("16b", "17a"),
-      ),
+      when: all(not(holds("chancellor", "fra_ribot")), {
+        kind: "inst",
+        inst: "chamber",
+        max: 0,
+      }),
     },
     {
       open: node(
@@ -1456,7 +1505,11 @@ const TALKS: GwScene[] = [
   talk(
     "fra_t_paleologue_court",
     "fra_paleologue",
-    { stage: Y14_ON, when: all(warOn, since(6, "16b")), cooldown: 8 },
+    {
+      stage: Y14_ON,
+      when: all(warOn, fighting("RUS"), not(russiaBroke)),
+      cooldown: 8,
+    },
     {
       open: node(
         [v("broke", russiaBroke), mood("cunning"), v("base")],
@@ -1474,7 +1527,13 @@ const TALKS: GwScene[] = [
   talk(
     "fra_t_paleologue_rasputin",
     "fra_paleologue",
-    { stage: Y14_ON, when: all(warOn, not(russiaBroke), during("15b", "16b")) },
+    {
+      stage: Y14_ON,
+      when: all(warOn, fighting("RUS"), not(russiaBroke), {
+        kind: "person_active",
+        person: "rus_rasputin",
+      }),
+    },
     {
       open: node(
         [mood("cunning"), v("base")],
@@ -1498,8 +1557,9 @@ const TALKS: GwScene[] = [
         warOn,
         fighting("RUS"),
         not(russiaBroke),
-        during("16b", "17a"),
         low("RUS", "order"),
+        // Petrograd's long winter.
+        world({ is: "month", of: [11, 12, 1, 2, 3] }),
       ),
     },
     {
@@ -1525,7 +1585,8 @@ const TALKS: GwScene[] = [
   talk(
     "fra_t_paleologue_recall",
     "fra_paleologue",
-    { stage: Y14_ON, when: all(russiaBroke, during("17a")) },
+    // The Tsar's friend, once the Tsar has gone.
+    { stage: Y14_ON, when: russiaBroke },
     {
       open: node(
         [mood("weary"), v("base")],
@@ -1552,7 +1613,7 @@ const TALKS: GwScene[] = [
     "fra_barrere",
     {
       stage: Y14_ON,
-      when: all(warOn, neutralOf("ITA"), since(6, "15a")),
+      when: all(warOn, neutralOf("ITA")),
       summon: false,
     },
     {
@@ -1580,7 +1641,7 @@ const TALKS: GwScene[] = [
     "fra_jusserand",
     {
       stage: Y14_ON,
-      when: all(warOn, not(fighting("USA")), since(8, "17a")),
+      when: all(warOn, not(fighting("USA")), months({ min: 2 })),
       summon: false,
       cooldown: 10,
     },
@@ -1603,7 +1664,13 @@ const TALKS: GwScene[] = [
     "fra_doumergue",
     {
       stage: Y14_ON,
-      when: all(warOn, fighting("RUS"), not(russiaBroke), during("16b", "17a")),
+      // Russia tiring: an allied mission to keep it in the war.
+      when: all(
+        warOn,
+        fighting("RUS"),
+        not(russiaBroke),
+        any(low("RUS", "morale"), low("RUS", "order")),
+      ),
       summon: false,
     },
     {
@@ -1630,7 +1697,8 @@ const TALKS: GwScene[] = [
     "fra_lyautey",
     {
       stage: Y14_ON,
-      when: all(warOn, since(6, "16b")),
+      // The governor in Paris, while Morocco still has him.
+      when: all(warOn, not(holds("war", "fra_lyautey"))),
       summon: false,
       cooldown: 12,
     },

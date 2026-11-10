@@ -39,7 +39,7 @@ import {
   trustOf,
 } from "@openfront/engine-api/ww1914/SceneDsl";
 import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
-import { period, sinceChapter } from "./period";
+import { period } from "./period";
 
 /**
  * France, the war share (plan ww166-plan-fra-scenes.md §6, §9 W2, §10 W2,
@@ -59,10 +59,6 @@ const CRISIS_ON: GwStage[] = ["crisis", "y1914", "war"];
 const Y14_ON: GwStage[] = ["y1914", "war"];
 
 const during = period;
-/** Months named in a scene's own text ("1916-10" .. "1916-12"). */
-const between = (from: string, to: string): GwCond =>
-  world({ is: "date", from, to });
-const since = sinceChapter;
 
 // ---- Conditions ----
 
@@ -563,13 +559,14 @@ const DESK: GwScene[] = [
     ],
   }),
 
-  // Dated 22 April 1915 in its text: not before that month, and only in a
-  // war that was already some months old by then.
+  // The first cloud: Germany has the heavy gas, its army is in Belgium, and
+  // France's war is some months old.
   record(
     "fra_w_gas",
     all(
       war,
-      world({ is: "date", from: "1915-04", to: "1915-06" }),
+      world({ is: "tech", id: "gas_heavy", tag: "DEU" }),
+      world({ is: "front", theatre: "west", from: "liege" }),
       world({ is: "in_war", min: 4 }),
     ),
     [v("british", fighting("GBR")), v("base")],
@@ -756,7 +753,8 @@ const DESK: GwScene[] = [
 
   record(
     "fra_w_douaumont",
-    all(war, between("1916-10", "1916-12"), seen("fra_big_verdun")),
+    // Verdun held, and a French attack in the west went forward.
+    all(war, seen("fra_big_verdun"), flag("f_verdun_held"), westFwd),
     [v("petain", flag("f_petain_verdun")), v("base")],
     "confirmed",
   ),
@@ -850,11 +848,7 @@ const DESK: GwScene[] = [
     id: "fra_w_nivelle_doubts",
     kind: "crisis",
     stage: Y14_ON,
-    when: all(
-      war,
-      between("1917-01", "1917-04"),
-      holds("chief_of_staff", "fra_nivelle"),
-    ),
+    when: all(war, holds("chief_of_staff", "fra_nivelle")),
     cast: { cos: holder("chief_of_staff"), war: holder("war") },
     salience: 9,
     essential: true,
@@ -1006,7 +1000,15 @@ const DESK: GwScene[] = [
     id: "fra_w_paris_gun",
     kind: "report",
     stage: Y14_ON,
-    when: all(war, between("1918-03", "1918-06")),
+    // The long gun: the Germans in the north with the guns of the storm.
+    when: all(
+      war,
+      world({ is: "front", theatre: "west", from: "hindenburg" }),
+      any(
+        world({ is: "tech", id: "predicted_fire", tag: "DEU" }),
+        world({ is: "era", of: ["storm"] }),
+      ),
+    ),
     cast: {},
     salience: 7,
     tags: ["home", "tension_up"],
@@ -1092,10 +1094,16 @@ const DESK: GwScene[] = [
 
   record(
     "fra_w_hundred_days",
+    // The last advance: the line goes forward once the Americans are in or
+    // the storm's year has come.
     all(
       war,
-      between("1918-08", "1918-12"),
-      any(westFwd, world({ is: "front", theatre: "west", to: "somme" })),
+      westFwd,
+      world({ is: "front", theatre: "west", from: "hindenburg" }),
+      any(
+        world({ is: "entered", tag: "USA", side: "entente" }),
+        world({ is: "era", of: ["storm"] }),
+      ),
     ),
     [v("foch", flag("f_foch_over_all")), v("base")],
     "confirmed",

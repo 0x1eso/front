@@ -38,7 +38,6 @@ import {
 } from "@openfront/engine-api/ww1914/SceneDsl";
 import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
 import { callPremier } from "./gov_fra";
-import { period } from "./period";
 
 /**
  * France, the share at home (lane W3 of ww166): the `fra_h_` scenes, the top
@@ -57,13 +56,11 @@ const NATION: GwScene["nation"] = ["FRA"];
 const who = role("who");
 
 const CRISIS: GwStage[] = ["crisis"];
-const CRISIS_ON: GwStage[] = ["crisis", "y1914"];
 const Y14_ON: GwStage[] = ["y1914", "war"];
 const WAR: GwStage[] = ["war"];
 const ANY: GwStage[] = ["crisis", "y1914", "war"];
 const AFTER: GwStage[] = ["war", "conference", "closing"];
 
-const during = period;
 const chapter = (min: number, max?: number): GwCond =>
   max === undefined ? { kind: "chapter", min } : { kind: "chapter", min, max };
 const dates = (from?: string, to?: string): GwCond =>
@@ -350,9 +347,16 @@ const VACANCIES: readonly (readonly [GwOffice, string, string])[] = [
   ["navy", "fra_lacaze", "fra_augagneur"],
 ];
 type VacancyRow = (typeof VACANCIES)[number];
+/** Munitions wants a minister once the shells run short, or a year of war. */
 const vacant = (office: GwOffice): GwCond =>
   office === "munitions"
-    ? all({ kind: "office_empty", office }, dates("1915-05"))
+    ? all(
+        { kind: "office_empty", office },
+        any(
+          gaugeAt("shells", 1),
+          world({ is: "war_months", own: true, min: 9 }),
+        ),
+      )
     : { kind: "office_empty", office };
 const offered = (row: VacancyRow): GwCond =>
   all(vacant(row[0]), active(row[1]), active(row[2]));
@@ -699,10 +703,12 @@ export const FRA_HOME_SCENES: readonly GwScene[] = [
     id: "fra_h_first_winter",
     kind: "proposal",
     stage: Y14_ON,
+    // The war's first winter, whenever it falls.
     when: all(
       war,
-      dates("1914-11", "1915-02"),
       world({ is: "in_war", min: 2 }),
+      world({ is: "war_months", own: true, max: 7 }),
+      world({ is: "month", of: [11, 12, 1, 2] }),
     ),
     cast: { war: holder("war") },
     salience: 6,
@@ -739,7 +745,8 @@ export const FRA_HOME_SCENES: readonly GwScene[] = [
     id: "fra_h_coal_cities",
     kind: "proposal",
     stage: Y14_ON,
-    when: all(war, westBack, dates("1914-11", "1915-03")),
+    // The north's pits are lost, and the cold months come.
+    when: all(war, westBack, world({ is: "month", of: [10, 11, 12, 1] })),
     cast: { interior: holder("interior") },
     salience: 6,
     tags: ["home"],
@@ -1219,7 +1226,7 @@ export const FRA_HOME_SCENES: readonly GwScene[] = [
     id: "fra_h_vacant",
     kind: "audience",
     stage: Y14_ON,
-    when: all(chapter(6), anyEmpty),
+    when: anyEmpty,
     cast: { chancellor: holder("chancellor") },
     salience: 7,
     cooldown: 4,
@@ -1278,9 +1285,9 @@ export const FRA_HOME_SCENES: readonly GwScene[] = [
     kind: "wire",
     stage: Y14_ON,
     when: all(
+      war,
       seen("fra_c_censorship"),
       not(chose("fra_c_censorship", "spare_clemenceau")),
-      chapter(7, 9),
     ),
     cast: {},
     salience: 5,
@@ -1305,8 +1312,8 @@ export const FRA_HOME_SCENES: readonly GwScene[] = [
   talk(
     "fra_t_malvy_cgt",
     "fra_malvy",
-    CRISIS_ON,
-    all(chapter(4, 6), { kind: "crisis", topic: "balkan" }),
+    ANY,
+    all(world({ is: "chain", min: 4 }), { kind: "crisis", topic: "balkan" }),
     std({
       gift: [remember("k_carnet_soft")],
       price: [army(-1)],
@@ -1318,11 +1325,7 @@ export const FRA_HOME_SCENES: readonly GwScene[] = [
     "fra_t_malvy_weekly",
     "fra_malvy",
     Y14_ON,
-    all(
-      holds("interior", "fra_malvy"),
-      chapter(6),
-      dates(undefined, "1917-06"),
-    ),
+    all(holds("interior", "fra_malvy"), war),
     std({
       gift: [remember("k_mal_weekly")],
       price: [gauge("money", -1)],
@@ -1548,7 +1551,7 @@ export const FRA_HOME_SCENES: readonly GwScene[] = [
     "fra_t_clemenceau_old",
     "fra_clemenceau",
     ANY,
-    all(notTiger, dates(undefined, "1917-12")),
+    notTiger,
     std({
       gift: [remember("k_cle_1913")],
       price: [],
@@ -1659,7 +1662,7 @@ export const FRA_HOME_SCENES: readonly GwScene[] = [
     "fra_v_deschanel_chamber",
     "fra_deschanel",
     Y14_ON,
-    all(chapter(6), shaky),
+    shaky,
     6,
     std({
       gift: [remember("k_des_chamber")],
@@ -1672,7 +1675,7 @@ export const FRA_HOME_SCENES: readonly GwScene[] = [
     "fra_v_dubost_senate",
     "fra_dubost",
     Y14_ON,
-    all(chapter(6), shaky),
+    shaky,
     6,
     std({
       gift: [remember("k_dub_senate")],

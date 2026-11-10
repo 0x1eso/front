@@ -1377,13 +1377,41 @@ const HEAD_LETTERS: GwScene[] = [
   thread(
     "fra_l_george_4",
     "GBR",
-    moods(v("done", world({ is: "armistice" }))),
+    // The cautious king grieves for his cousin only once the Tsar has gone, and
+    // the opportunist speaks of the Americans only once they have come.
+    [
+      v("done", world({ is: "armistice" })),
+      v("hard", character(head, "hardline")),
+      v(
+        "wary",
+        all(
+          character(head, "cautious"),
+          world({
+            is: "regime",
+            tag: "RUS",
+            of: ["provisional", "rep", "soviet"],
+          }),
+        ),
+      ),
+      v(
+        "sly",
+        all(
+          character(head, "opportunist"),
+          world({ is: "entered", tag: "USA", side: "entente" }),
+        ),
+      ),
+      v("base"),
+    ],
     [
       o("reply_warm", [toHead("warm"), trust("GBR", 1)]),
       o("reply_short", [toHead("cold")]),
     ],
     {
-      when: all(wrote(2), any(world({ is: "armistice" }), from("1917-10"))),
+      // The war's last stretch: an armistice, or more than three years of it.
+      when: all(
+        wrote(2),
+        any(world({ is: "armistice" }), world({ is: "war_months", min: 38 })),
+      ),
     },
   ),
   thread(
