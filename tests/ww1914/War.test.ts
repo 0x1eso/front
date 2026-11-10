@@ -292,16 +292,28 @@ describe("who can say no", () => {
     expect(proposalsFor(gw, seat).some((p) => p.open)).toBe(true);
   });
 
-  test("the old emperor dies inside the seed's range, the heir takes the seat", async () => {
+  test("a seat's old emperor dies by his health, never by the date (2B)", async () => {
     const { gw, runner, seat } = await war("AUH", "GWY13");
     const row = GW_SUCCESSIONS[0];
     const day = successionDay(gw, row);
     const karl = gw.person("auh_karl")!;
     gw.person("auh_ff")!.status = "dead";
-    while (gw.s.day < day && gw.s.ended === null) pass(gw, runner, 1);
+    while (gw.s.day < day && gw.s.ended === null) {
+      seat.ruler.health = 3;
+      pass(gw, runner, 1);
+    }
     pass(gw, runner, 1);
+    expect(gw.nation("AUH")!.regime).toBe("dual_monarchy");
+    // The doctors come and are not heeded: no rest, so the clock runs out.
+    for (let i = 0; i < 16 && gw.nation("AUH")!.regime !== "karl"; i++) {
+      seat.ruler.health = 0;
+      seat.desk = seat.desk.filter((c) => c.scene !== "auh_life_doctors");
+      pass(gw, runner, 1);
+    }
+    expect(gw.s.ended).toBeNull();
     expect(gw.nation("AUH")!.regime).toBe("karl");
     expect(karl.status).toBe("crowned");
+    pass(gw, runner, 1);
     expect(seat.flags).toContain("w_auh_karl");
   });
 });

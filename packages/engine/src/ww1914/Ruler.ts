@@ -24,6 +24,7 @@ import { civilFromDays } from "@openfront/engine-lib/ww1936/Calendar";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { closeSeat } from "./Endings";
 import type { GreatWar } from "./GreatWar";
+import { succeed, successionOf } from "./Regimes";
 import { chapterOf, clampTo, reason, turn } from "./World";
 
 const P_START = idHash("gw_ruler_start");
@@ -298,6 +299,13 @@ function watch(gw: GreatWar, seat: GwSeatState, row: GwRulerRow): void {
   const dying = bottom(gw, seat, r.failing, row.doctors);
   if (dying && row.mortal) {
     rulerGone(gw, seat, "death");
+    return;
+  }
+  // Not mortal: his end is the written succession, and it comes only so
+  // (ww169, owner's 2B: Franz Joseph dies by his health, never by a date).
+  const heirs = dying ? successionOf(gw, seat.tag) : null;
+  if (heirs !== null && succeed(gw, heirs)) {
+    r.failing = null;
     return;
   }
   const out = bottom(gw, seat, r.shaken, row.shaken);

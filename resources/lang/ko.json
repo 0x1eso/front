@@ -15125,7 +15125,32 @@
       "chamber_shaken": "전선을 잃어 하원이 흔들렸다.",
       "gqg_grows": "총사령부가 일을 더 쥐었다.",
       "premier_pressed": "수상은 자기 장관 일로 압박받은 것을 언짢아했다.",
-      "premier_resigned": "거듭된 압박에 수상이 사표를 냈다."
+      "premier_resigned": "거듭된 압박에 수상이 사표를 냈다.",
+      "power_refused": "{who}이(가) 서명을 거부했다.",
+      "power_no_consent": "법이 요구하는 동의를 얻지 못했다.",
+      "power_house_lost": "의회가 표결로 막았다.",
+      "power_house_carried": "의회가 표결로 통과시켰다.",
+      "power_without": "{who}의 서명 없이 일을 밀어붙였다.",
+      "react_allies_up": "동맹국들이 우리를 더 믿게 되었다.",
+      "react_allies_down": "동맹국들이 우리를 덜 믿게 되었다.",
+      "react_neutrals_up": "중립국 수도들이 좋게 받아들였다.",
+      "react_neutrals_down": "중립국 수도들이 언짢게 받아들였다.",
+      "react_factions_up": "의회의 정파들이 누그러졌다.",
+      "react_factions_down": "의회의 정파들이 더 달아올랐다.",
+      "react_cabinet_up": "그 계파의 대신들이 우리 쪽으로 기울었다.",
+      "react_cabinet_down": "그 계파의 대신들이 등을 돌렸다.",
+      "react_people_army_up": "군이 반겼다.",
+      "react_people_army_down": "군이 못마땅해했다.",
+      "react_people_court_up": "궁정이 반겼다.",
+      "react_people_court_down": "궁정이 못마땅해했다.",
+      "react_people_parliament_up": "의회 사람들이 반겼다.",
+      "react_people_parliament_down": "의회 사람들이 못마땅해했다.",
+      "react_people_business_up": "재계가 반겼다.",
+      "react_people_business_down": "재계가 못마땅해했다.",
+      "react_people_workers_up": "노동자들이 반겼다.",
+      "react_people_workers_down": "노동자들이 못마땅해했다.",
+      "react_people_press_up": "언론이 반겼다.",
+      "react_people_press_down": "언론이 못마땅해했다."
     },
     "result": {
       "advance": "전진",
@@ -15455,7 +15480,13 @@
         "bad_clause": "조항이 맞지 않는다.",
         "not_asked": "청한 자리가 없다.",
         "too_many": "이 장에는 더 할 수 없다.",
-        "premier_house": "대통령은 수상을 해임할 수 없다. 수상은 하원에서 물러난다."
+        "premier_house": "대통령은 수상을 해임할 수 없다. 수상은 하원에서 물러난다.",
+        "no_power": "지금은 그 권한이 없습니다.",
+        "power_closed": "지금은 할 수 없는 일입니다.",
+        "no_target": "누구에게, 어디에 할지 먼저 고르십시오.",
+        "no_signer": "서명할 사람이 없습니다.",
+        "no_beyond": "그 일은 서명을 건너뛸 길이 없습니다.",
+        "sounded": "이번 장에 이미 그의 의견을 들었습니다."
       },
       "brief_label": "비서의 메모",
       "calendar": {
@@ -15711,7 +15742,8 @@
         "blocs": "정국",
         "schedule": "일정",
         "table": "강화 회의",
-        "diplo": "외교"
+        "diplo": "외교",
+        "rule": "통치"
       },
       "talk_done": "자리를 일어선다",
       "talk_ended": "대화가 끝났다.",
@@ -16803,6 +16835,53 @@
         "chief_of_staff": "총사령관",
         "agriculture": "농업장관"
       }
+    },
+    "power": {
+      "beyond_tag": "법 밖",
+      "go": "명한다",
+      "group": {
+        "army": "군",
+        "beyond": "법 밖의 일",
+        "cabinet": "내각",
+        "home": "국내",
+        "house": "의회",
+        "schedule": "일정",
+        "treaty": "동맹과 조약",
+        "war": "전쟁과 평화"
+      },
+      "hint": "자리가 허락하는 일들이다. 누가 서명하고 누가 표결하는지는 보이지만, 무엇이 따라올지는 보이지 않는다.",
+      "kind": {
+        "beyond": "법 밖",
+        "custom": "관례에 어긋남"
+      },
+      "link": {
+        "cabinet": "임명과 해임은 사람 탭에서 한다",
+        "house": "법안은 나라 탭에서 의회에 낸다",
+        "schedule": "시찰, 친서, 연설은 일정 탭에서 고른다",
+        "treaty": "조건과 조약은 따로 된 탭에서 짠다"
+      },
+      "needs": {
+        "consent": "{faction}의 동의가 필요하다.",
+        "council": "내각의 표결이 필요하다.",
+        "house": "{house}의 표결이 필요하다.",
+        "house_all": "의회의 표결이 필요하다.",
+        "office": "{office}의 부서가 필요하다.",
+        "office_who": "{office} {who}의 부서가 필요하다.",
+        "slot": "일정 하나를 쓴다."
+      },
+      "said_no": "{who}은(는) 서명하지 않겠다고 했다.",
+      "said_yes": "{who}은(는) 서명하겠다고 했다.",
+      "sound": "{who}의 의견을 먼저 듣는다",
+      "target": "누구에게, 어디에",
+      "why": {
+        "no_authority": "지금 권위로는 거기까지 닿지 않는다.",
+        "no_signer": "서명할 자리가 비어 있다.",
+        "no_slot": "이번 장의 일정이 다 찼다.",
+        "no_target": "대상으로 삼을 사람도 곳도 없다.",
+        "used": "얼마 전에 한 일이다."
+      },
+      "without": "{who}의 서명 없이 한다",
+      "without_note": "서명 없이 하면 법 밖의 일이 된다."
     }
   }
 }

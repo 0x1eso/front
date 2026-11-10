@@ -28,6 +28,11 @@ import { TABLE_SCENES } from "@openfront/engine-lib/ww1914/content/scenes/table"
 import { craftCalledScenes } from "@openfront/engine-lib/ww1914/CraftRows";
 import { gwEndingsOf } from "@openfront/engine-lib/ww1914/EndingRows";
 import { houseCalledScenes } from "@openfront/engine-lib/ww1914/HouseRows";
+import {
+  gwPowerPackProblems,
+  gwPowerProblems,
+  powerCalledScenes,
+} from "@openfront/engine-lib/ww1914/PowerRows";
 import { gwRulerScenes } from "@openfront/engine-lib/ww1914/RulerRows";
 import { gwOwnerOf, gwWorldOf } from "@openfront/engine-lib/ww1914/World1914";
 import { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
@@ -102,6 +107,7 @@ describe("content", () => {
       ...TABLE_SCENES.map((x) => x.id),
       ...craftCalledScenes(GW_CONTENT),
       ...houseCalledScenes(GW_CONTENT),
+      ...powerCalledScenes(GW_CONTENT),
     ];
     expect(gwContentProblems(scenes, people, outside)).toEqual([]);
     const lang = json("lang/en.json").gw.reason as Record<string, string>;
@@ -110,6 +116,17 @@ describe("content", () => {
       expect(gwPackProblems(scenesOf(tag), pack, Object.keys(lang))).toEqual(
         [],
       );
+    }
+  });
+
+  test("every power row holds together and has its words (ww169)", async () => {
+    const scenes = new Map(GW_CONTENT.scenes.map((s) => [s.id, s]));
+    expect(gwPowerProblems(GW_CONTENT, scenes)).toEqual([]);
+    const why = Object.keys(json("lang/en.json").gw.power.why);
+    for (const tag of SEATS) {
+      const pack = await loadGwPack(tag, async (p) => json(p));
+      const rows = (GW_CONTENT.powers ?? []).filter((p) => p.tag === tag);
+      expect(gwPowerPackProblems(rows, pack, why)).toEqual([]);
     }
   });
 

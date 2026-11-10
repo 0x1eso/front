@@ -88,6 +88,12 @@ export const GW_ENGINE_MEMORY = [
 ] as const;
 
 /**
+ * Flags nothing sets any more but scenes still read, always false. f_pm_lg:
+ * Asquith never hands the seat to Lloyd George (ww169, owner's 2B).
+ */
+export const GW_RETIRED_FLAGS: readonly string[] = ["f_pm_lg"];
+
+/**
  * References that lead nowhere, across every scene. `outside` lists flags,
  * memory keys and scene ids set or called by code rather than by a scene.
  */
@@ -99,7 +105,7 @@ export function gwContentProblems(
   const out: string[] = [];
   const ids = new Map(scenes.map((s) => [s.id, s]));
   const persons = new Set(people.map((p) => p.id));
-  const flags = new Set<string>(outside);
+  const flags = new Set<string>([...GW_RETIRED_FLAGS, ...outside]);
   const memories = new Set<string>([...GW_ENGINE_MEMORY, ...outside]);
   const called = new Set<string>(outside);
   const secrets = new Set<string>(GW_SECRETS);

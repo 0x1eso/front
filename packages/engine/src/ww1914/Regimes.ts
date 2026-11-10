@@ -235,26 +235,52 @@ export function successionDay(
   );
 }
 
-/** Chapter step: age does what it does, war or no war. */
+/**
+ * The old emperor is gone: the first heir still alive takes the throne and
+ * the seat reads it next chapter. False when nobody is left to take it.
+ */
+export function succeed(
+  gw: GreatWar,
+  row: (typeof GW_SUCCESSIONS)[number],
+): boolean {
+  const heir = row.heirs.find((h) => {
+    const p = gw.person(h.person);
+    return p === null || p.status === "active";
+  });
+  if (heir === undefined) return false;
+  const p = gw.person(heir.person);
+  if (p !== null) {
+    p.status = "crowned";
+    p.office = null;
+  }
+  changeRegime(gw, row.tag, heir.regime);
+  for (const seat of seatsOf(gw, row.tag)) {
+    seat.scheduled.push({ scene: row.scene, chapter: gw.s.chapter + 1 });
+  }
+  return true;
+}
+
+/** The succession row of a country whose first regime it ends, if any. */
+export function successionOf(
+  gw: GreatWar,
+  tag: GwTag,
+): (typeof GW_SUCCESSIONS)[number] | null {
+  const row = GW_SUCCESSIONS.find((r) => r.tag === tag);
+  const n = gw.nation(tag);
+  if (row === undefined || n === null || n.out) return null;
+  return n.regime === GW_REGIMES[tag]?.[0].id ? row : null;
+}
+
+/**
+ * Chapter step: age does what it does, war or no war. A seat's old emperor
+ * dies only by his health on the ruler card (ww169, owner's 2B: Ruler.ts calls
+ * `succeed`); the seed's day is for a country nobody plays.
+ */
 export function successionStep(gw: GreatWar): void {
   for (const row of GW_SUCCESSIONS) {
-    const n = gw.nation(row.tag);
-    if (n === null || n.out) continue;
-    const first = GW_REGIMES[row.tag]?.[0].id;
-    if (n.regime !== first || gw.s.day < successionDay(gw, row)) continue;
-    const heir = row.heirs.find((h) => {
-      const p = gw.person(h.person);
-      return p === null || p.status === "active";
-    });
-    if (heir === undefined) continue;
-    const p = gw.person(heir.person);
-    if (p !== null) {
-      p.status = "crowned";
-      p.office = null;
-    }
-    changeRegime(gw, row.tag, heir.regime);
-    for (const seat of seatsOf(gw, row.tag)) {
-      seat.scheduled.push({ scene: row.scene, chapter: gw.s.chapter + 1 });
-    }
+    if (seatsOf(gw, row.tag).length > 0) continue;
+    if (successionOf(gw, row.tag) === null) continue;
+    if (gw.s.day < successionDay(gw, row)) continue;
+    succeed(gw, row);
   }
 }

@@ -44,7 +44,14 @@ import {
   SceneCtx,
   sceneOf,
 } from "./SceneRun";
-import { clampTo, defOf, ownPeople, reason, reasonOf, seatPerson } from "./World";
+import {
+  clampTo,
+  defOf,
+  ownPeople,
+  reason,
+  reasonOf,
+  seatPerson,
+} from "./World";
 
 const P_RISK = idHash("gw_power_risk");
 /** A signer's answer stands this many chapters. */
@@ -84,7 +91,8 @@ function signerOf(gw: GreatWar, seat: GwSeatState, row: GwPowerRow) {
   if (office === undefined) return { needed: false, p: null };
   const p = holderOf(gw, seat, office);
   // The head of state holding it signs for himself (Asquith at the War Office).
-  if (p !== null && p.id === seatPerson(seat)) return { needed: false, p: null };
+  if (p !== null && p.id === seatPerson(seat))
+    return { needed: false, p: null };
   return { needed: true, p: p ?? null };
 }
 
@@ -109,7 +117,8 @@ const open = (ctx: SceneCtx, o: GwPowerOption) =>
 function targetIds(ctx: SceneCtx, row: GwPowerRow): string[] {
   const t = row.target;
   if (t === undefined) return [];
-  if (t.kind !== "person") return t.of.filter((o) => open(ctx, o)).map((o) => o.id);
+  if (t.kind !== "person")
+    return t.of.filter((o) => open(ctx, o)).map((o) => o.id);
   const self = seatPerson(ctx.seat);
   return ownPeople(ctx.gw, ctx.seat.tag)
     .filter((p) => p.status === "active" && p.id !== self)
@@ -138,7 +147,9 @@ export function powerViews(gw: GreatWar, seat: GwSeatState): GwPowerView[] {
     const n = row.needs;
     const said = lastSounded(gw, seat, row);
     const ids = targetIds(ctx, row);
-    const why = gateWhy(ctx, row) ?? (row.target && ids.length === 0 ? "no_target" : null);
+    const why =
+      gateWhy(ctx, row) ??
+      (row.target && ids.length === 0 ? "no_target" : null);
     return [
       {
         id: row.id,
@@ -147,10 +158,11 @@ export function powerViews(gw: GreatWar, seat: GwSeatState): GwPowerView[] {
         needs: {
           ...(n?.office === undefined
             ? {}
-            : { office: n.office, signer: s.needed ? (s.p?.id ?? null) : null }),
-          ...(n?.house === undefined
-            ? {}
-            : { houses: n.house.houses ?? [] }),
+            : {
+                office: n.office,
+                signer: s.needed ? (s.p?.id ?? null) : null,
+              }),
+          ...(n?.house === undefined ? {} : { houses: n.house.houses ?? [] }),
           ...(n?.council === undefined ? {} : { council: true }),
           ...(n?.consent === undefined ? {} : { consent: n.consent }),
         },
@@ -162,7 +174,8 @@ export function powerViews(gw: GreatWar, seat: GwSeatState): GwPowerView[] {
           options: f.options.filter((o) => open(ctx, o)).map((o) => o.id),
         })),
         without: row.beyond !== undefined && s.needed,
-        sounded: said === null ? null : { person: said.person, said: said.said },
+        sounded:
+          said === null ? null : { person: said.person, said: said.said },
         slot: row.slot === true,
       },
     ];
@@ -235,14 +248,16 @@ function answers(ctx: SceneCtx, r: GwReactorRow): GwEffect[] {
         delta: r.delta,
       }));
     case "factions":
-      return (gwContent().factions ?? [])
-        .filter((f) => f.tag === seat.tag && of.includes(f.bloc))
-        .filter((f) => factionOf(seat, f.id)?.status === "in")
-        // Heat is the other way round: a good answer cools them.
-        .map((f) => ({
-          kind: "world",
-          of: { do: "faction", id: f.id, delta: -r.delta },
-        }));
+      return (
+        (gwContent().factions ?? [])
+          .filter((f) => f.tag === seat.tag && of.includes(f.bloc))
+          .filter((f) => factionOf(seat, f.id)?.status === "in")
+          // Heat is the other way round: a good answer cools them.
+          .map((f) => ({
+            kind: "world",
+            of: { do: "faction", id: f.id, delta: -r.delta },
+          }))
+      );
     case "cabinet":
       return ownPeople(gw, seat.tag)
         .filter((p) => p.status === "active" && p.office !== null)
@@ -394,7 +409,9 @@ function goThrough(
       (risk.mods ?? [])
         .filter((m) => holds(ctx, m.when))
         .reduce((a, m) => a + m.add, 0);
-    const uses = (seat.powers?.used ?? []).filter((u) => u.id === row.id).length;
+    const uses = (seat.powers?.used ?? []).filter(
+      (u) => u.id === row.id,
+    ).length;
     const roll =
       wwRoll(gw.s.seed, P_RISK, idHash(row.id), gw.s.chapter, uses) % 100;
     if (roll < pct) runEffects(ctx, risk.then);
@@ -441,7 +458,8 @@ export function takePower(
   }
   const s = signerOf(gw, seat, row);
   const cast: Record<string, string> = {};
-  if (row.target?.kind === "person" && o.target !== null) cast.target = o.target;
+  if (row.target?.kind === "person" && o.target !== null)
+    cast.target = o.target;
   if (s.p !== null) cast.signer = s.p.id;
   const ctx: SceneCtx = { gw, seat, cast };
   if (o.without) {

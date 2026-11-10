@@ -42,6 +42,7 @@ import { SHELF_KEY } from "../../GwRecentRuns";
 export const GW_TABS = [
   "desk",
   "people",
+  "rule",
   "schedule",
   "fronts",
   "country",

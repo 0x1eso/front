@@ -33,12 +33,12 @@ import {
 } from "@openfront/engine-lib/ww1936/Calendar";
 import { idHash } from "@openfront/engine-lib/ww1936/Roll";
 import { actViews } from "./Acts";
-import { powerViews } from "./Powers";
 import { aimsView } from "./Aims";
 import { claimsView } from "./Claims";
 import { govView, pollView } from "./Government";
 import type { GreatWar } from "./GreatWar";
 import { openTopics, readyBlock } from "./Orders";
+import { powerViews } from "./Powers";
 import { prologueView } from "./Prologue";
 import { rulerView } from "./Ruler";
 import {

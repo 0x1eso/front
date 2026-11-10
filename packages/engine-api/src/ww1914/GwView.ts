@@ -1,7 +1,6 @@
 // Great War 1914: what the screens read (GameUpdateType.GreatWar). Only what
 // the seat may know: no competence, health, temperament, strength band or
 // source band. Text is looked up in the pack by these ids.
-import type { GwPowerView } from "./GwPowers";
 import type {
   GwAlloc,
   GwAskClause,
@@ -27,6 +26,7 @@ import type { GwActKind } from "./GwActs";
 import type { GwTag } from "./GwCountries";
 import type { GwOrderBlock } from "./GwOrders";
 import type { GwPlace } from "./GwPlaces";
+import type { GwPowerView } from "./GwPowers";
 import type { GwPrologueView } from "./GwPrologue";
 import type { GwRulerView } from "./GwRuler";
 import type { GwClaimsView, GwTableView } from "./GwTable";
