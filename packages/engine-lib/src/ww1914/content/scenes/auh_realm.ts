@@ -4369,7 +4369,7 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("c", "c"),
+        { kind: "world", of: { is: "chain", short: false } },
         {
           kind: "crisis",
           topic: "balkan",
@@ -4695,7 +4695,14 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     nation: ["AUH"],
     kind: "talk",
     stage: ["crisis", "y1914", "war"],
-    when: during("c", "15b"),
+    // Bucharest still stands aside, and he is the one who talks to its priests.
+    when: {
+      kind: "all",
+      of: [
+        { kind: "world", of: { is: "neutral", tag: "ROU" } },
+        { kind: "holder", office: "hun_pm", person: "auh_tisza" },
+      ],
+    },
     cast: {
       p: {
         person: "auh_tisza",
@@ -7537,7 +7544,8 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("14", "15a"),
+        { kind: "at_war", tag: "RUS" },
+        { kind: "world", of: { is: "war_months", own: true, max: 10 } },
         {
           kind: "memory",
           key: "k_kra_met",
@@ -8682,8 +8690,15 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     id: "auh_t_adl_pulse",
     nation: ["AUH"],
     kind: "talk",
-    stage: ["crisis", "y1914"],
-    when: during("c", "14"),
+    // The first months, in a crisis, a war or the peace after it.
+    when: {
+      kind: "any",
+      of: [
+        { kind: "world", of: { is: "chain" } },
+        { kind: "world", of: { is: "war_months", own: true, max: 5 } },
+        { kind: "world", of: { is: "peace_months", max: 5 } },
+      ],
+    },
     cast: {
       p: {
         person: "auh_adler",
@@ -10019,7 +10034,6 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("c", "17a"),
         {
           kind: "all",
           of: [

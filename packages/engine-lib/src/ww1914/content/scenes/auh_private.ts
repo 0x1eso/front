@@ -21,7 +21,6 @@ import {
   trustOf,
 } from "@openfront/engine-api/ww1914/SceneDsl";
 import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
-import { period } from "./period";
 
 /**
  * 「오스트리아-헝가리」, time outside work (ww143): ten story lines of the Emperor's
@@ -49,8 +48,29 @@ const ffAlive: GwCond = {
   of: ["sarajevo_survived", "sarajevo_failed", "no_sarajevo"],
 };
 const war = world({ is: "war" });
-const date = (from: string, to?: string): GwCond =>
-  world({ is: "date", from, ...(to === undefined ? {} : { to }) });
+const range = (min?: number, max?: number) => ({
+  ...(min === undefined ? {} : { min }),
+  ...(max === undefined ? {} : { max }),
+});
+/** Months of the seat's own war (ww170: the story's clock, not the calendar). */
+const ownWar = (min?: number, max?: number): GwCond =>
+  world({ is: "war_months", own: true, ...range(min, max) });
+/** Months since the war began, whoever began it. */
+const warFor = (min?: number, max?: number): GwCond =>
+  world({ is: "war_months", ...range(min, max) });
+/** Months on, war or peace: of the war, or of the peace since the crisis. */
+const monthsOn = (min?: number, max?: number): GwCond =>
+  any(warFor(min, max), world({ is: "peace_months", ...range(min, max) }));
+/** The July crisis has closed, however it closed. */
+const afterJuly: GwCond = world({
+  is: "chain_end",
+  of: ["war", "compromise", "humiliation", "fizzled"],
+});
+const tiszaPm: GwCond = {
+  kind: "holder",
+  office: "hun_pm",
+  person: "auh_tisza",
+};
 /** The new reign's first chapters, whoever came. */
 const fresh = (within: number): GwCond =>
   any(
@@ -170,7 +190,8 @@ const SCHRATT: readonly GwScene[] = [
   talk(
     "sch_ischl",
     "auh_schratt",
-    all(FJ, period("c")),
+    // The game's opening weeks: Ischl in summer.
+    all(FJ, { kind: "chapter", max: 5 }),
     {
       open: node([
         r("theatre", "warm", "ask", "gossip"),
@@ -186,7 +207,7 @@ const SCHRATT: readonly GwScene[] = [
     },
     { variants: [v("news", heirDead), v("base")] },
   ),
-  talk("sch_kammer", "auh_schratt", all(FJ, war, period("14")), {
+  talk("sch_kammer", "auh_schratt", all(FJ, war, ownWar(undefined, 4)), {
     open: node(
       [
         r("weekly", "warm", "deal", "promised", {
@@ -223,7 +244,7 @@ const SCHRATT: readonly GwScene[] = [
       v("lost", world({ is: "score", max: -10 })),
     ),
   }),
-  talk("sch_bread", "auh_schratt", all(FJ, war, period("15a", "17a")), {
+  talk("sch_bread", "auh_schratt", all(FJ, war, ownWar(5, 35)), {
     open: node(
       [
         r("eat", "warm", "ask", "queue", { gain: [pt(1)] }),
@@ -243,7 +264,7 @@ const SCHRATT: readonly GwScene[] = [
   talk(
     "sch_ribbon",
     "auh_schratt",
-    all(FJ, seen("auh_p_sch_bread"), date("1915-07")),
+    all(FJ, seen("auh_p_sch_bread"), warFor(11)),
     {
       open: node([
         r("schlenther", "cold", "ask", "cool"),
@@ -307,7 +328,7 @@ const SCHRATT: readonly GwScene[] = [
 // ---- 2. 베크: 다섯 달 먼저 난 사람 ----
 
 const BECK: readonly GwScene[] = [
-  talk("beck_walk", "auh_beck", all(FJ, period("c")), {
+  talk("beck_walk", "auh_beck", all(FJ, { kind: "chapter", max: 5 }), {
     open: node([
       r("not_rain", "frank", "ask", "young"),
       bye("rain"),
@@ -327,7 +348,7 @@ const BECK: readonly GwScene[] = [
       v("muddle", { kind: "secret", id: "auh_rail_muddle" }),
     ),
   }),
-  talk("beck_wire", "auh_beck", all(FJ, war, period("14", "15a")), {
+  talk("beck_wire", "auh_beck", all(FJ, war, ownWar(undefined, 10)), {
     open: node([
       r("impossible", "frank", "ask", "wire", { gain: [pt(1)] }),
       r("forgot", "cold", "ask", "forgot"),
@@ -344,20 +365,15 @@ const BECK: readonly GwScene[] = [
       v("high", all(isCos("auh_conrad"), conradAt({ min: 3 }))),
     ),
   }),
-  talk(
-    "beck_name",
-    "auh_beck",
-    all(FJ, seen("auh_p_beck_walk"), date("1915-01")),
-    {
-      open: node([
-        r("why_name", "warm", "ask", "name", { gain: [pt(1)] }),
-        r("long_name", "warm", "ask", "name"),
-        bye("sign_it"),
-      ]),
-      name: node([r("my_name", "frank", "ask", "mine"), bye("understood")]),
-      mine: node([bye("enough_names")]),
-    },
-  ),
+  talk("beck_name", "auh_beck", all(FJ, seen("auh_p_beck_walk"), monthsOn(5)), {
+    open: node([
+      r("why_name", "warm", "ask", "name", { gain: [pt(1)] }),
+      r("long_name", "warm", "ask", "name"),
+      bye("sign_it"),
+    ]),
+    name: node([r("my_name", "frank", "ask", "mine"), bye("understood")]),
+    mine: node([bye("enough_names")]),
+  }),
   talk(
     "beck_fear",
     "auh_beck",
@@ -401,11 +417,13 @@ const CONRAD: readonly GwScene[] = [
   visit(
     "con_list",
     "auh_bolfras",
-    all(FJ, world({ is: "entered", tag: "RUS" }), isCos("auh_conrad"), {
-      kind: "chapter",
-      min: 3,
-      max: 8,
-    }),
+    // The dragoons ride out on patrol: the war's first weeks.
+    all(
+      FJ,
+      world({ is: "entered", tag: "RUS" }),
+      isCos("auh_conrad"),
+      warFor(undefined, 2),
+    ),
     6,
     {
       open: node([
@@ -472,7 +490,7 @@ const CONRAD: readonly GwScene[] = [
   talk(
     "con_marry",
     "auh_conrad",
-    all(FJ, isCos("auh_conrad"), period("15a", "15b")),
+    all(FJ, isCos("auh_conrad"), monthsOn(5, 17)),
     {
       open: node(
         [
@@ -506,7 +524,7 @@ const CONRAD: readonly GwScene[] = [
   visit(
     "con_church",
     "auh_bolfras",
-    all(FJ, seen("auh_p_con_marry"), date("1915-09", "1916-03")),
+    all(FJ, seen("auh_p_con_marry"), monthsOn(13, 20)),
     4,
     {
       open: node(
@@ -523,7 +541,8 @@ const CONRAD: readonly GwScene[] = [
   talk(
     "con_trunk",
     "auh_conrad",
-    any(REIGN, all(not(isCos("auh_conrad")), date("1915-07"))),
+    // He has lost the post, or the old reign is over.
+    any(REIGN, not(isCos("auh_conrad"))),
     {
       open: node(
         [
@@ -562,7 +581,8 @@ const VALERIE: readonly GwScene[] = [
   talk(
     "val_table",
     "auh_valerie",
-    all(FJ, { kind: "chapter", min: 2, max: 7 }),
+    // Her sons go back to their regiments: a crisis, or the war's first weeks.
+    all(FJ, any(world({ is: "chain" }), ownWar(undefined, 2))),
     {
       open: node([
         r("how_old", "warm", "ask", "age"),
@@ -576,7 +596,7 @@ const VALERIE: readonly GwScene[] = [
   visit(
     "val_hubert",
     "auh_valerie",
-    all(FJ, war, seen("auh_p_val_table"), period("14", "15a")),
+    all(FJ, war, seen("auh_p_val_table"), ownWar(undefined, 10)),
     4,
     {
       open: node([
@@ -596,7 +616,7 @@ const VALERIE: readonly GwScene[] = [
       kept: node([bye("yes2")]),
     },
   ),
-  talk("val_ward", "auh_valerie", all(FJ, war, period("15a", "16b")), {
+  talk("val_ward", "auh_valerie", all(FJ, war, ownWar(5, 29)), {
     open: node(
       [
         r("you_give", "frank", "push", "water", { effects: [rem("val_went")] }),
@@ -610,24 +630,19 @@ const VALERIE: readonly GwScene[] = [
     water: node([bye("well_done")]),
     water2: node([bye("well_done2")]),
   }),
-  talk(
-    "val_name",
-    "auh_valerie",
-    all(FJ, seen("auh_p_val_ward"), date("1915-03")),
-    {
-      open: node([
-        bye("wont_ask", pt(1), rem("val_unsaid")),
-        r("speak_to_him", "frank", "push", "dont"),
-        r("diary", "warm", "ask", "diary"),
-      ]),
-      dont: node([bye("wont_ask2", rem("val_unsaid"))]),
-      diary: node([bye("read_it")]),
-    },
-  ),
+  talk("val_name", "auh_valerie", all(FJ, seen("auh_p_val_ward"), warFor(7)), {
+    open: node([
+      bye("wont_ask", pt(1), rem("val_unsaid")),
+      r("speak_to_him", "frank", "push", "dont"),
+      r("diary", "warm", "ask", "diary"),
+    ]),
+    dont: node([bye("wont_ask2", rem("val_unsaid"))]),
+    diary: node([bye("read_it")]),
+  }),
   talk(
     "val_letter",
     "auh_valerie",
-    all(FJ, seen("auh_p_val_table"), date("1915-07")),
+    all(FJ, seen("auh_p_val_table"), monthsOn(11)),
     {
       open: node(
         [
@@ -679,7 +694,7 @@ const KETTERL: readonly GwScene[] = [
     ]),
     phone: node([bye("put_it_in2", rem("ket_phone")), bye("no_thanks2")]),
   }),
-  talk("ket_button", "auh_ketterl", all(FJ, war, period("14", "15b")), {
+  talk("ket_button", "auh_ketterl", all(FJ, war, ownWar(undefined, 16)), {
     open: node([
       r("where", "warm", "ask", "where"),
       r("find_him", "warm", "deal", "find", {
@@ -698,7 +713,7 @@ const KETTERL: readonly GwScene[] = [
   talk(
     "ket_shoes",
     "auh_ketterl",
-    all(FJ, war, seen("auh_p_ket_button"), date("1915-03")),
+    all(FJ, war, seen("auh_p_ket_button"), ownWar(7)),
     {
       open: node(
         [
@@ -748,7 +763,8 @@ const KETTERL: readonly GwScene[] = [
 // ---- 6. 치타: 쇤브룬의 아이 ----
 
 const ZITA: readonly GwScene[] = [
-  talk("zit_hand", "auh_zita", all(FJ, heirDead, { kind: "chapter", min: 6 }), {
+  // Front reports on the desk: the war is on.
+  talk("zit_hand", "auh_zita", all(FJ, heirDead, war), {
     open: node([
       r("let_him", "warm", "ask", "stay"),
       r("will_he", "frank", "ask", "fear", {
@@ -767,7 +783,8 @@ const ZITA: readonly GwScene[] = [
   talk(
     "zit_evening",
     "auh_zita",
-    all(FJ, heirDead, seen("auh_p_zit_hand"), date("1915-01")),
+    // Karl is at headquarters.
+    all(FJ, heirDead, seen("auh_p_zit_hand"), war, ownWar(5)),
     {
       open: node(
         [
@@ -818,7 +835,8 @@ const ZITA: readonly GwScene[] = [
     day: node([bye("enough")], v("walked", m("zit_walked"))),
     father: node([bye("enough2")]),
   }),
-  talk("zit_otto", "auh_zita", all(K, date("1918-01")), {
+  // Past the new reign's first year.
+  talk("zit_otto", "auh_zita", all(K, not(fresh(12))), {
     open: node(
       [
         r("tell_him", "frank", "ask", "tell", { effects: [rem("zit_answer")] }),
@@ -835,7 +853,7 @@ const ZITA: readonly GwScene[] = [
 // ---- 7. 아들러: 그 낱말 ----
 
 const ADLER: readonly GwScene[] = [
-  talk("adl_klessheim", "auh_adler", all(FJ, period("15a", "16b")), {
+  talk("adl_klessheim", "auh_adler", all(FJ, monthsOn(5, 29)), {
     open: node([
       r("court_doctors", "frank", "ask", "brother", { gain: [pt(1)] }),
       r("my_brother", "frank", "ask", "brother", { gain: [pt(1)] }),
@@ -916,7 +934,7 @@ const ADLER: readonly GwScene[] = [
 // ---- 8. 티서: 두 딸 ----
 
 const TISZA: readonly GwScene[] = [
-  talk("tis_sunday", "auh_tisza", all(FJ, period("c", "15a")), {
+  talk("tis_sunday", "auh_tisza", all(FJ, tiszaPm), {
     open: node([
       r("father", "warm", "ask", "father", { gain: [pt(1)] }),
       r("what_read", "warm", "ask", "book"),
@@ -930,7 +948,8 @@ const TISZA: readonly GwScene[] = [
     "auh_tisza",
     all(
       FJ,
-      any(date("1915-05", "1915-06"), date("1916-05", "1916-06")),
+      // May on the calendar: the month his daughter died.
+      world({ is: "month", of: [5] }),
       seen("auh_p_tis_sunday"),
     ),
     6,
@@ -948,8 +967,9 @@ const TISZA: readonly GwScene[] = [
     "tis_colonel",
     "auh_tisza",
     all(
-      not({ kind: "holder", office: "hun_pm", person: "auh_tisza" }),
-      date("1916-06"),
+      // Out of office, with an Italian front to go to.
+      not(tiszaPm),
+      world({ is: "open", theatre: "italy" }),
     ),
     {
       open: node(
@@ -966,7 +986,8 @@ const TISZA: readonly GwScene[] = [
       seat: node([bye("go")]),
     },
   ),
-  talk("tis_villa", "auh_tisza", date("1918-07"), {
+  // Soldiers come home from a lost or ending war.
+  talk("tis_villa", "auh_tisza", any(warFor(47), world({ is: "armistice" })), {
     open: node(
       [
         r("order", "threat", "push", "no", { miss: "no" }),
@@ -987,7 +1008,7 @@ const BERCHTOLD: readonly GwScene[] = [
   talk(
     "ber_race",
     "auh_berchtold",
-    all(FJ, fmIs("auh_berchtold"), period("c")),
+    all(FJ, fmIs("auh_berchtold"), { kind: "chapter", max: 5 }),
     {
       open: node([
         r("you_refused", "frank", "ask", "thrice"),
@@ -1004,7 +1025,7 @@ const BERCHTOLD: readonly GwScene[] = [
   talk(
     "ber_nandine",
     "auh_berchtold",
-    all(FJ, fmIs("auh_berchtold"), war, period("14", "15a")),
+    all(FJ, fmIs("auh_berchtold"), war, ownWar(undefined, 10)),
     {
       open: node(
         [
@@ -1023,7 +1044,8 @@ const BERCHTOLD: readonly GwScene[] = [
   visit(
     "ber_pheasant",
     "auh_berchtold",
-    all(not(fmIs("auh_berchtold")), date("1915-02"), not(K)),
+    // Out of office: the state is the date he left.
+    all(not(fmIs("auh_berchtold")), not(K)),
     4,
     {
       open: node(
@@ -1081,7 +1103,7 @@ const SOPHIE: readonly GwScene[] = [
   visit(
     "sop_ledger",
     "auh_bolfras",
-    all(FJ, heirDead, seen("auh_p_sop_room"), period("14", "15a")),
+    all(FJ, heirDead, seen("auh_p_sop_room"), afterJuly),
     3,
     {
       open: node([
@@ -1098,7 +1120,7 @@ const SOPHIE: readonly GwScene[] = [
   visit(
     "sop_letter",
     "auh_sophie",
-    all(FJ, heirDead, seen("auh_p_sop_room"), date("1915-06", "1916-09")),
+    all(FJ, heirDead, seen("auh_p_sop_room"), monthsOn(10, 26)),
     4,
     {
       open: node(
@@ -1127,7 +1149,7 @@ const SOPHIE: readonly GwScene[] = [
     grave: node([bye("go_well2")]),
     need: node([bye("go_well3")]),
   }),
-  talk("ff_table", "auh_ff", all(FJ, ffAlive, period("c", "15a")), {
+  talk("ff_table", "auh_ff", all(FJ, ffAlive), {
     open: node([
       r("both", "warm", "deal", "both", { effects: [rem("ff_dined")] }),
       r("rule", "cold", "leave", null, { effects: [rem("ff_barred")] }),
@@ -1139,24 +1161,19 @@ const SOPHIE: readonly GwScene[] = [
     ]),
     both: node([bye("eight")]),
   }),
-  talk(
-    "ff_roses",
-    "auh_ff",
-    all(FJ, ffAlive, seen("auh_p_ff_table"), date("1914-08")),
-    {
-      open: node(
-        [
-          r("children", "warm", "ask", "kids"),
-          r("after_me", "frank", "ask", "after"),
-          bye("thanks"),
-        ],
-        v("dined", m("ff_dined")),
-        v("barred", m("ff_barred")),
-      ),
-      kids: node([r("after_me2", "frank", "ask", "after"), bye("thanks2")]),
-      after: node([bye("hold_tongue")]),
-    },
-  ),
+  talk("ff_roses", "auh_ff", all(FJ, ffAlive, seen("auh_p_ff_table")), {
+    open: node(
+      [
+        r("children", "warm", "ask", "kids"),
+        r("after_me", "frank", "ask", "after"),
+        bye("thanks"),
+      ],
+      v("dined", m("ff_dined")),
+      v("barred", m("ff_barred")),
+    ),
+    kids: node([r("after_me2", "frank", "ask", "after"), bye("thanks2")]),
+    after: node([bye("hold_tongue")]),
+  }),
   visit("ff_step", "auh_montenuovo", all(FFT, fresh(6)), 6, {
     open: node(
       [
@@ -1182,26 +1199,21 @@ const SOPHIE: readonly GwScene[] = [
 // ---- The lines' other turns: what only some games reach ----
 
 const TURNS: readonly GwScene[] = [
-  talk(
-    "sch_notice",
-    "auh_schratt",
-    all(FJ, war, m("sch_toni"), date("1915-07")),
-    {
-      open: node([
-        r("stop", "warm", "deal", "stop", { effects: [rem("sch_toni_saved")] }),
-        r("want", "warm", "ask", "want"),
-        r("same", "frank", "ask", "same", { effects: [rem("sch_toni_went")] }),
-      ]),
-      want: node([
-        r("stop2", "warm", "deal", "stop", {
-          effects: [rem("sch_toni_saved")],
-        }),
-        r("same2", "frank", "ask", "same", { effects: [rem("sch_toni_went")] }),
-      ]),
-      stop: node([bye("yes")]),
-      same: node([bye("yes2")]),
-    },
-  ),
+  talk("sch_notice", "auh_schratt", all(FJ, war, m("sch_toni"), ownWar(11)), {
+    open: node([
+      r("stop", "warm", "deal", "stop", { effects: [rem("sch_toni_saved")] }),
+      r("want", "warm", "ask", "want"),
+      r("same", "frank", "ask", "same", { effects: [rem("sch_toni_went")] }),
+    ]),
+    want: node([
+      r("stop2", "warm", "deal", "stop", {
+        effects: [rem("sch_toni_saved")],
+      }),
+      r("same2", "frank", "ask", "same", { effects: [rem("sch_toni_went")] }),
+    ]),
+    stop: node([bye("yes")]),
+    same: node([bye("yes2")]),
+  }),
   talk(
     "sch_chair",
     "auh_schratt",
@@ -1226,7 +1238,8 @@ const TURNS: readonly GwScene[] = [
   talk(
     "beck_hunt",
     "auh_beck",
-    all(FJ, seen("auh_p_beck_walk"), not(m("beck_shut")), date("1914-09")),
+    // The beaters are at the front.
+    all(FJ, seen("auh_p_beck_walk"), not(m("beck_shut")), war, ownWar(1)),
     {
       open: node([
         r("hit", "frank", "ask", "hit", { gain: [pt(1)] }),
@@ -1258,28 +1271,34 @@ const TURNS: readonly GwScene[] = [
     ]),
     how: node([bye("enough3")]),
   }),
-  talk("adl_last", "auh_adler", all(date("1918-08"), m("adl_word")), {
-    open: node(
-      [
-        r("son", "frank", "ask", "son"),
-        r("wrong", "warm", "ask", "wrong"),
-        bye("rest"),
-      ],
-      v("amnesty", m("adl_amnesty")),
-    ),
-    son: node([bye("rest2")]),
-    wrong: node([bye("rest3")]),
-  }),
+  // The end: a war in its last months, or the guns stopped.
+  talk(
+    "adl_last",
+    "auh_adler",
+    all(any(warFor(47), world({ is: "armistice" })), m("adl_word")),
+    {
+      open: node(
+        [
+          r("son", "frank", "ask", "son"),
+          r("wrong", "warm", "ask", "wrong"),
+          bye("rest"),
+        ],
+        v("amnesty", m("adl_amnesty")),
+      ),
+      son: node([bye("rest2")]),
+      wrong: node([bye("rest3")]),
+    },
+  ),
   talk(
     "val_munich",
     "auh_valerie",
-    all(FJ, war, seen("auh_p_val_table"), date("1915-08")),
+    all(FJ, war, seen("auh_p_val_table"), ownWar(12)),
     {
       open: node([r("mama", "frank", "ask", "mama"), bye("answer")]),
       mama: node([bye("enough")]),
     },
   ),
-  talk("val_wallsee", "auh_valerie", all(K, date("1918-07")), {
+  talk("val_wallsee", "auh_valerie", all(K, war, warFor(41)), {
     open: node(
       [
         r("come", "warm", "deal", "come", { effects: [rem("val_called")] }),
@@ -1291,7 +1310,7 @@ const TURNS: readonly GwScene[] = [
     beds: node([bye("thanks2")]),
     come: node([bye("thanks3")]),
   }),
-  talk("beck_rain", "auh_beck", all(REIGN, m("beck_stays"), date("1916-01")), {
+  talk("beck_rain", "auh_beck", all(REIGN, m("beck_stays")), {
     open: node(
       [bye("thanks", pt(1))],
       v("low", world({ is: "score", max: -10 })),

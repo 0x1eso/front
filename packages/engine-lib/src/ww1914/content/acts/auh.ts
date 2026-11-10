@@ -37,7 +37,6 @@ import {
   picked,
   reveal,
   trust,
-  until,
 } from "../scenes/auh_act";
 
 export { AUH_ACT_SCENES } from "../scenes/auh_act";
@@ -134,7 +133,12 @@ const VISITS: GwAct[] = [
     effects: [inspect("force", "ITA", "italy")],
   }),
   act("auh_a_semlin", "visit", "auh_a_semlin_v", 0, {
-    when: any({ kind: "stage", stage: "crisis" }, atWar("SRB")),
+    // A crisis with Serbia, July's or a later note's, or the war with it.
+    when: any(
+      { kind: "crisis", topic: "balkan" },
+      world({ is: "ladder", tag: "SRB" }),
+      atWar("SRB"),
+    ),
     cooldown: 8,
     effects: [inspect("force", "SRB", "balkan")],
   }),
@@ -238,7 +242,8 @@ const ORDERS: GwAct[] = [
     ],
   }),
   act("auh_a_o_rail", "order", "auh_a_o_rail_r", 1, {
-    when: until("1914-12"),
+    // Before the war, or in its first months: while the tables still matter.
+    when: any(peace, world({ is: "war_months", own: true, max: 5 })),
     once: true,
     fields: [list("subject", "north", "south")],
     effects: [reveal("auh_rail_muddle")],
