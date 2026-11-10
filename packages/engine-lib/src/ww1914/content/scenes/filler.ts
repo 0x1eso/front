@@ -22,6 +22,21 @@ const neutralInWar = (min: number): GwCond => ({
     { kind: "not", of: world({ is: "war" }) },
   ],
 });
+/**
+ * A crisis outside July is open: a later spark (straits, colonies, the
+ * Balkans again) runs the short ladder from its note, link `min` and on. The
+ * July chain is the long one, so `short` keeps these off its desk.
+ */
+const laterCrisis = (min: number): GwCond =>
+  world({ is: "chain", short: true, min });
+const WIRE = "gw_fill_crisis_wire";
+/** The card names the question and the country it turns on. */
+const byTopic: GwScene["variants"] = [
+  { id: "straits", when: { kind: "crisis", topic: "straits" } },
+  { id: "colonial", when: { kind: "crisis", topic: "colonial" } },
+  { id: "balkan", when: { kind: "crisis", topic: "balkan" } },
+  { id: "base" },
+];
 /** The seat's country came into a war that was half a year old. */
 const lateWar = (min: number, max: number): GwCond => ({
   kind: "all",
@@ -143,4 +158,44 @@ export const GW_FILLER_SCENES: readonly GwScene[] = [
     ],
   },
   base("gw_fill_late_trains", "report", lateWar(0, 1), ["war"]),
+  // An open crisis outside July, a card each month it stays open (ww171):
+  // the wire at the note, the streets the month after (a held link too), the
+  // council once it is answered.
+  {
+    ...base(WIRE, "wire", laterCrisis(3), ["foreign"]),
+    variants: byTopic,
+  },
+  {
+    ...base("gw_fill_crisis_line", "proposal", laterCrisis(4), ["foreign"]),
+    variants: byTopic,
+    fallback: "wait",
+    options: [
+      {
+        id: "calm",
+        tell: [],
+        effects: [
+          { kind: "temp", delta: -1 },
+          { kind: "opinion", bloc: "army", delta: -1 },
+        ],
+      },
+      {
+        id: "firm",
+        tell: [],
+        effects: [
+          { kind: "temp", delta: 1 },
+          { kind: "opinion", bloc: "press", delta: 1 },
+        ],
+      },
+      { id: "wait", tell: [], effects: [] },
+    ],
+  },
+  {
+    ...base(
+      "gw_fill_crisis_streets",
+      "report",
+      { kind: "all", of: [laterCrisis(3), { kind: "seen", scene: WIRE }] },
+      ["home"],
+    ),
+    variants: byTopic,
+  },
 ];
