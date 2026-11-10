@@ -9,24 +9,27 @@ import { world } from "@openfront/engine-api/ww1914/WorldDsl";
 
 const SEATS: GwScene["nation"] = ["DEU", "GBR", "AUH", "RUS", "FRA"];
 
-/** The seat has never fought and the last crisis is two months behind. */
-const longPeace: GwCond = world({ is: "peace_months", min: 2 });
-/** The world is at war a while; the seat's country stands out of it. */
-const neutralInWar: GwCond = {
+// The rows of a state come a month apart, not all on one desk: with one
+// cooldown, rows that open together would come together every time and leave
+// the months between them quiet (ww170 merge).
+/** The seat has never fought and the last crisis is `min` months behind. */
+const longPeace = (min: number): GwCond => world({ is: "peace_months", min });
+/** The world is at war `min` months; the seat's country stands out of it. */
+const neutralInWar = (min: number): GwCond => ({
   kind: "all",
   of: [
-    world({ is: "war_months", min: 1 }),
+    world({ is: "war_months", min }),
     { kind: "not", of: world({ is: "war" }) },
   ],
-};
+});
 /** The seat's country came into a war that was half a year old. */
-const lateWar: GwCond = {
+const lateWar = (min: number, max: number): GwCond => ({
   kind: "all",
   of: [
     world({ is: "war_months", min: 6 }),
-    world({ is: "war_months", own: true, max: 3 }),
+    world({ is: "war_months", own: true, min, max }),
   ],
-};
+});
 
 const base = (
   id: string,
@@ -48,7 +51,7 @@ const base = (
 
 export const GW_FILLER_SCENES: readonly GwScene[] = [
   {
-    ...base("gw_fill_peace_reserves", "proposal", longPeace, ["home"]),
+    ...base("gw_fill_peace_reserves", "proposal", longPeace(2), ["home"]),
     fallback: "send_home",
     options: [
       {
@@ -69,9 +72,9 @@ export const GW_FILLER_SCENES: readonly GwScene[] = [
       },
     ],
   },
-  base("gw_fill_peace_markets", "report", longPeace, ["home"]),
+  base("gw_fill_peace_markets", "report", longPeace(1), ["home"]),
   {
-    ...base("gw_fill_peace_spring", "proposal", longPeace, ["foreign"]),
+    ...base("gw_fill_peace_spring", "proposal", longPeace(3), ["foreign"]),
     fallback: "wait",
     options: [
       {
@@ -94,7 +97,7 @@ export const GW_FILLER_SCENES: readonly GwScene[] = [
     ],
   },
   {
-    ...base("gw_fill_neutral_trade", "proposal", neutralInWar, ["foreign"]),
+    ...base("gw_fill_neutral_trade", "proposal", neutralInWar(2), ["foreign"]),
     fallback: "both",
     options: [
       {
@@ -115,10 +118,10 @@ export const GW_FILLER_SCENES: readonly GwScene[] = [
       },
     ],
   },
-  base("gw_fill_neutral_volunteers", "report", neutralInWar, ["home"]),
-  base("gw_fill_neutral_papers", "wire", neutralInWar, ["foreign"]),
+  base("gw_fill_neutral_volunteers", "report", neutralInWar(3), ["home"]),
+  base("gw_fill_neutral_papers", "wire", neutralInWar(1), ["foreign"]),
   {
-    ...base("gw_fill_late_officers", "proposal", lateWar, ["war"]),
+    ...base("gw_fill_late_officers", "proposal", lateWar(1, 3), ["war"]),
     fallback: "own_way",
     options: [
       {
@@ -139,5 +142,5 @@ export const GW_FILLER_SCENES: readonly GwScene[] = [
       },
     ],
   },
-  base("gw_fill_late_trains", "report", lateWar, ["war"]),
+  base("gw_fill_late_trains", "report", lateWar(0, 1), ["war"]),
 ];
