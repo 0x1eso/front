@@ -12,6 +12,12 @@
 // (Art. 119). No house votes on any of these: the Duma could only ask
 // questions (Art. 108). Article 87 decrees are the bills tab's way round
 // (houses.ts), so no row here.
+//
+// Phase 2 (ww169 XR): the harsh measures he could order (hostages, scorched
+// earth, the Bolshevik deputies, the Central Asian labour draft) and the acts
+// beyond the law: the two "서명 없이" forms, the election law by decree (3
+// June 1907), abolishing the Duma, and field courts-martial for the rear.
+// Each beyond row heats a threat or a plot through `heats`, never `gov_heat`.
 import type {
   GwCond,
   GwEffect,
@@ -27,7 +33,7 @@ import {
 } from "@openfront/engine-api/ww1914/SceneDsl";
 import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
 import type { GwPowerRow, GwReactorRow } from "../../PowerRows";
-import { cool, heat, heatPlot } from "../house/kit";
+import { cool, faction, grow, heat, under } from "../house/kit";
 
 /** Nicholas still reigns: his own rule, or with a ministry the Duma trusts. */
 const reigns = world({ is: "regime", of: ["tsar", "crown"] });
@@ -53,8 +59,6 @@ const trust = (tag: "FRA" | "GBR" | "USA", delta: number): GwEffect => ({
   tag,
   delta,
 });
-const govHeat = (id: string, delta: number): GwEffect =>
-  doWorld({ do: "gov_heat", id, delta });
 const active = (person: string): GwCond => ({ kind: "person_active", person });
 const appoint = (person: string): GwEffect => ({
   kind: "appoint",
@@ -70,6 +74,13 @@ const blocAt = (
 // read one.
 const retreat = world({ is: "front", theatre: "east", from: "vistula" });
 const shellsLow: GwCond = { kind: "gauge", gauge: "shells", max: 0 };
+/** The Duma was abolished by the row beyond the law below. */
+const abolished = flag("f_rus_duma_abolished");
+const unrest = (min: number): GwCond => world({ is: "unrest", min });
+const gaugeAt = (
+  g: "shells" | "bread" | "money" | "morale" | "order",
+  max: number,
+): GwCond => ({ kind: "gauge", gauge: g, max });
 
 export const RUS_POWERS: readonly GwPowerRow[] = [
   // ---- 전쟁과 평화 ----
@@ -197,6 +208,7 @@ export const RUS_POWERS: readonly GwPowerRow[] = [
     opens: [{ when: not(flag("gw_talks_open")), why: "talks_open" }],
     needs: { office: "foreign" },
     against: ["duma"],
+    beyond: "rus_pw_peace_b",
     authority: 5,
     cooldown: 4,
     tags: ["peace_white"],
@@ -238,11 +250,12 @@ export const RUS_POWERS: readonly GwPowerRow[] = [
         { when: blocAt("court", { max: -1 }), add: 20 },
         { when: blocAt("army", { max: -2 }), add: 20 },
       ],
-      then: [
-        heatPlot("rus_pl_palace", 3),
-        heatPlot("rus_pl_generals", 2),
-        reason("rus_pw_separate_split"),
+      then: [reason("rus_pw_separate_split")],
+      heats: [
+        { id: "rus_pl_palace", by: 3 },
+        { id: "rus_pl_generals", by: 2 },
       ],
+      scene: "rus_pw_separate_bad",
     },
     scene: "rus_pw_separate_r",
   },
@@ -368,6 +381,7 @@ export const RUS_POWERS: readonly GwPowerRow[] = [
       pct: 20,
       mods: [{ when: retreat, add: 20 }],
       then: [gauge("bread", -1), reason("rus_pw_rails")],
+      scene: "rus_pw_deport_bad",
     },
     scene: "rus_pw_deport_r",
   },
@@ -383,6 +397,7 @@ export const RUS_POWERS: readonly GwPowerRow[] = [
     opens: [{ when: sitting, why: "not_sitting" }],
     needs: { office: "chancellor" },
     against: ["duma"],
+    beyond: "rus_pw_duma_close_b",
     authority: 5,
     fields: [
       {
@@ -412,11 +427,9 @@ export const RUS_POWERS: readonly GwPowerRow[] = [
     risk: {
       pct: 0,
       mods: [{ when: all(retreat, shellsLow), add: 30 }],
-      then: [
-        heatPlot("rus_pl_palace", 2),
-        gauge("order", -1),
-        reason("rus_pw_duma_street"),
-      ],
+      then: [gauge("order", -1), reason("rus_pw_duma_street")],
+      heats: [{ id: "rus_pl_palace", by: 2 }],
+      scene: "rus_pw_duma_close_bad",
     },
     scene: "rus_pw_duma_close_r",
   },
@@ -427,15 +440,15 @@ export const RUS_POWERS: readonly GwPowerRow[] = [
     group: "house",
     kind: "lawful",
     shows: reigns,
-    opens: [{ when: not(sitting), why: "sitting" }],
+    opens: [
+      { when: not(abolished), why: "abolished" },
+      { when: not(sitting), why: "sitting" },
+    ],
     needs: { office: "chancellor" },
     against: ["court"],
     tags: ["house_opened"],
-    effects: [
-      setFlag("f_gov_rus_session"),
-      inst("duma", 1),
-      govHeat("rus_duma", -1),
-    ],
+    effects: [setFlag("f_gov_rus_session"), inst("duma", 1)],
+    heats: [{ id: "rus_duma", by: -1 }],
     scene: "rus_pw_duma_open_r",
   },
   // ---- 내각 ----
@@ -493,8 +506,8 @@ export const RUS_POWERS: readonly GwPowerRow[] = [
     effects: [
       inst("court", -1),
       { kind: "ruler", side: "family", delta: -1, key: "rus_pw_household" },
-      govHeat("rus_court", -1),
     ],
+    heats: [{ id: "rus_court", by: -1 }],
     scene: "rus_pw_favourite_r",
   },
   // ---- 국내 ----
@@ -527,14 +540,373 @@ export const RUS_POWERS: readonly GwPowerRow[] = [
         { when: blocAt("army", { max: -2 }), add: 20 },
         { when: { kind: "gauge", gauge: "bread", max: 0 }, add: 15 },
       ],
-      then: [
-        gauge("order", -3),
-        heatPlot("rus_pl_red", 2),
-        govHeat("rus_court", 2),
-        reason("rus_pw_troops_broke"),
+      then: [gauge("order", -3), reason("rus_pw_troops_broke")],
+      heats: [
+        { id: "rus_pl_red", by: 2 },
+        { id: "rus_court", by: 2 },
       ],
+      scene: "rus_pw_troops_bad",
     },
     scene: "rus_pw_troops_r",
+  },
+  // ---- 군: harsh measures of war (phase 2) ----
+  {
+    // Stavka took hostages from the Jewish communities of the front zone
+    // (1915): rabbis, merchants, elders, held against the town's loyalty.
+    id: "rus_pw_hostages",
+    tag: "RUS",
+    group: "army",
+    kind: "lawful",
+    shows: all(reigns, war),
+    cooldown: 6,
+    tags: ["harsh_war"],
+    effects: [
+      inst("stavka", 1),
+      trust("USA", -1),
+      gauge("money", -1),
+      reason("rus_pw_hostages_done"),
+    ],
+    risk: {
+      pct: 10,
+      mods: [
+        { when: retreat, add: 20 },
+        { when: gaugeAt("order", 1), add: 10 },
+      ],
+      then: [
+        gauge("order", -1),
+        opinion("parliament", -1),
+        reason("rus_pw_hostages_lost"),
+      ],
+      scene: "rus_pw_hostages_bad",
+    },
+    scene: "rus_pw_hostages_r",
+  },
+  {
+    // The Great Retreat of 1915: crops and villages burnt behind the army,
+    // the people driven east with it.
+    id: "rus_pw_scorched",
+    tag: "RUS",
+    group: "army",
+    kind: "lawful",
+    shows: all(reigns, war),
+    opens: [{ when: retreat, why: "no_retreat" }],
+    once: true,
+    authority: 5,
+    tags: ["harsh_war"],
+    effects: [
+      {
+        kind: "maybe",
+        when: { kind: "at_war", tag: "DEU" },
+        then: [
+          doWorld({ do: "force", tag: "DEU", theatre: "east", delta: -1 }),
+        ],
+      },
+      {
+        kind: "maybe",
+        when: not({ kind: "at_war", tag: "DEU" }),
+        then: [
+          doWorld({ do: "force", tag: "AUH", theatre: "east", delta: -1 }),
+        ],
+      },
+      inst("stavka", 1),
+      gauge("bread", -1),
+      { kind: "pressure", topic: "home", delta: 1 },
+      reason("rus_pw_scorched_done"),
+    ],
+    risk: {
+      pct: 20,
+      mods: [
+        { when: gaugeAt("bread", 0), add: 20 },
+        { when: gaugeAt("order", 1), add: 10 },
+      ],
+      then: [
+        gauge("bread", -1),
+        gauge("order", -1),
+        reason("rus_pw_scorched_cities"),
+      ],
+      heats: [{ id: "rus_pl_red", by: 1 }],
+      scene: "rus_pw_scorched_bad",
+    },
+    scene: "rus_pw_scorched_r",
+  },
+  // ---- 국내: harsh measures at home (phase 2) ----
+  {
+    // November 1914: the five Bolshevik deputies taken at a meeting, tried
+    // in February 1915 and sent to Siberia for life. Petrovsky was one.
+    id: "rus_pw_bolsheviks",
+    tag: "RUS",
+    group: "home",
+    kind: "lawful",
+    shows: reigns,
+    opens: [{ when: faction("rus_bolsh", { of: ["in"] }), why: "bolsh_gone" }],
+    once: true,
+    authority: 5,
+    tags: ["harsh_home", "arrests"],
+    effects: [
+      under("rus_bolsh"),
+      heat("rus_sd", 1),
+      heat("rus_trud", 1),
+      opinion("parliament", -1),
+      reason("rus_pw_bolsheviks_done"),
+    ],
+    scene: "rus_pw_bolsheviks_r",
+  },
+  {
+    // The decree of 25 June 1916 (O.S.): the men of Turkestan and the Steppe,
+    // never called before, drafted to dig behind the front. The revolt
+    // followed within weeks.
+    id: "rus_pw_labour_draft",
+    tag: "RUS",
+    group: "home",
+    kind: "lawful",
+    shows: all(reigns, war),
+    once: true,
+    authority: 5,
+    tags: ["harsh_home", "decree"],
+    effects: [
+      doWorld({ do: "manpower", delta: 2 }),
+      { kind: "pressure", topic: "home", delta: 1 },
+      reason("rus_pw_labour_done"),
+    ],
+    risk: {
+      pct: 30,
+      mods: [
+        { when: gaugeAt("order", 1), add: 15 },
+        { when: unrest(1), add: 10 },
+        { when: retreat, add: 10 },
+      ],
+      then: [
+        gauge("order", -2),
+        doWorld({ do: "manpower", delta: -1 }),
+        inst("stavka", -1),
+        reason("rus_pw_labour_rising"),
+      ],
+      scene: "rus_pw_labour_draft_bad",
+    },
+    scene: "rus_pw_labour_draft_r",
+  },
+  // ---- 법 밖의 일 (phase 2) ----
+  {
+    // The overture by the court's own envoy, past the foreign minister: no
+    // minister's word stands behind it, and the allies hear of it late.
+    id: "rus_pw_peace_b",
+    tag: "RUS",
+    group: "war",
+    kind: "beyond",
+    formOnly: true,
+    opens: [{ when: not(flag("gw_talks_open")), why: "talks_open" }],
+    authority: 10,
+    tags: ["peace_white"],
+    effects: [
+      doWorld({ do: "talks" }),
+      trust("FRA", -2),
+      trust("GBR", -2),
+      inst("ministers", -1),
+      reason("rus_pw_peace_b_done"),
+    ],
+    heats: [{ id: "rus_cabinet", by: 2 }],
+    risk: {
+      pct: 20,
+      mods: [
+        { when: blocAt("parliament", { max: -1 }), add: 15 },
+        { when: { kind: "rumour", min: 2 }, add: 20 },
+        { when: blocAt("army", { max: -2 }), add: 10 },
+      ],
+      then: [
+        opinion("press", -1),
+        opinion("army", -1),
+        { kind: "rumour", delta: 1 },
+        heat("rus_bloc", 1),
+        reason("rus_pw_peace_b_leak"),
+      ],
+      heats: [{ id: "rus_pl_palace", by: 2 }],
+      scene: "rus_pw_peace_b_bad",
+    },
+    scene: "rus_pw_peace_b_r",
+  },
+  {
+    // Art. 24 wants the chairman's or a minister's countersignature under a
+    // decree of state; this one goes out with the space empty. The lawful
+    // row's pick (recess or dissolution) still runs.
+    id: "rus_pw_duma_close_b",
+    tag: "RUS",
+    group: "house",
+    kind: "beyond",
+    formOnly: true,
+    opens: [{ when: sitting, why: "not_sitting" }],
+    authority: 10,
+    tags: ["house_closed", "decree"],
+    effects: [
+      { kind: "unflag", flag: "f_gov_rus_session" },
+      inst("duma", -2),
+      inst("ministers", -1),
+      inst("court", 1),
+      reason("rus_pw_duma_close_b_done"),
+    ],
+    heats: [
+      { id: "rus_duma", by: 2 },
+      { id: "rus_cabinet", by: 2 },
+    ],
+    risk: {
+      pct: 20,
+      mods: [
+        { when: blocAt("parliament", { max: -2 }), add: 20 },
+        { when: all(retreat, shellsLow), add: 20 },
+        { when: unrest(2), add: 10 },
+      ],
+      then: [
+        doWorld({ do: "leave", who: { office: "chancellor" } }),
+        gauge("order", -1),
+        heat("rus_kadets", 1),
+        heat("rus_octob", 1),
+        reason("rus_pw_duma_close_b_quit"),
+      ],
+      heats: [{ id: "rus_pl_palace", by: 2 }],
+      scene: "rus_pw_duma_close_b_bad",
+    },
+    scene: "rus_pw_duma_close_b_r",
+  },
+  {
+    // The 3 June 1907 precedent: the Duma dissolved and a new election law
+    // issued by manifesto, though no law could pass without the Duma and the
+    // State Council (Art. 86) and an Art. 87 decree couldn't touch it.
+    id: "rus_pw_election_law",
+    tag: "RUS",
+    group: "house",
+    kind: "beyond",
+    shows: world({ is: "regime", of: ["tsar"] }),
+    opens: [
+      { when: not(abolished), why: "abolished" },
+      { when: not(sitting), why: "sitting" },
+    ],
+    once: true,
+    authority: 15,
+    tags: ["decree"],
+    effects: [
+      inst("duma", -1),
+      opinion("parliament", -2),
+      opinion("workers", -1),
+      opinion("court", 1),
+      grow("rus_rights", 1),
+      grow("rus_kadets", -1),
+      grow("rus_trud", -1),
+      heat("rus_kadets", 2),
+      heat("rus_progress", 1),
+      heat("rus_trud", 1),
+      cool("rus_rights", 1),
+      reason("rus_pw_election_law_done"),
+    ],
+    heats: [{ id: "rus_duma", by: 2 }],
+    risk: {
+      pct: 20,
+      mods: [
+        { when: unrest(2), add: 20 },
+        { when: blocAt("workers", { max: -2 }), add: 15 },
+        { when: gaugeAt("order", 1), add: 15 },
+      ],
+      then: [
+        gauge("order", -1),
+        heat("rus_bolsh", 1),
+        heat("rus_sd", 1),
+        reason("rus_pw_election_law_strike"),
+      ],
+      heats: [{ id: "rus_pl_red", by: 2 }],
+      scene: "rus_pw_election_law_bad",
+    },
+    scene: "rus_pw_election_law_r",
+  },
+  {
+    // The Duma came from the October Manifesto and the Fundamental Laws of
+    // 1906; nothing in them lets the Tsar take it back.
+    id: "rus_pw_abolish_duma",
+    tag: "RUS",
+    group: "house",
+    kind: "beyond",
+    shows: world({ is: "regime", of: ["tsar"] }),
+    opens: [{ when: not(abolished), why: "abolished" }],
+    once: true,
+    authority: 20,
+    tags: ["house_closed", "decree"],
+    effects: [
+      { kind: "unflag", flag: "f_gov_rus_session" },
+      setFlag("f_rus_duma_abolished"),
+      inst("duma", -3),
+      inst("ministers", -1),
+      inst("court", 1),
+      opinion("parliament", -2),
+      opinion("business", -1),
+      trust("FRA", -1),
+      trust("GBR", -1),
+      trust("USA", -1),
+      heat("rus_kadets", 2),
+      heat("rus_octob", 2),
+      heat("rus_progress", 2),
+      heat("rus_bloc", 2),
+      cool("rus_rights", 1),
+      reason("rus_pw_abolish_done"),
+    ],
+    heats: [
+      { id: "rus_duma", by: 2 },
+      { id: "rus_court", by: 2 },
+      { id: "rus_pl_palace", by: 3 },
+    ],
+    risk: {
+      pct: 25,
+      mods: [
+        { when: gaugeAt("morale", 1), add: 20 },
+        { when: unrest(2), add: 20 },
+        { when: blocAt("army", { max: -2 }), add: 15 },
+        { when: all(war, retreat), add: 10 },
+      ],
+      then: [
+        gauge("order", -2),
+        heat("rus_bolsh", 1),
+        reason("rus_pw_abolish_garrison"),
+      ],
+      heats: [
+        { id: "rus_pl_red", by: 2 },
+        { id: "rus_pl_generals", by: 2 },
+      ],
+      scene: "rus_pw_abolish_duma_bad",
+    },
+    scene: "rus_pw_abolish_duma_r",
+  },
+  {
+    // Field courts-martial: officers judging civilians, the sentence carried
+    // out at once. Set up by an Art. 87 decree in August 1906, gone by April
+    // 1907; brought back now for the rear, past the Duma.
+    id: "rus_pw_field_courts",
+    tag: "RUS",
+    group: "home",
+    kind: "beyond",
+    shows: reigns,
+    cooldown: 6,
+    authority: 10,
+    tags: ["harsh_home", "arrests", "decree"],
+    effects: [
+      gauge("order", 1),
+      opinion("parliament", -1),
+      heat("rus_kadets", 1),
+      heat("rus_trud", 1),
+      reason("rus_pw_field_courts_done"),
+    ],
+    heats: [{ id: "rus_duma", by: 2 }],
+    risk: {
+      pct: 15,
+      mods: [
+        { when: unrest(2), add: 20 },
+        { when: gaugeAt("bread", 0), add: 15 },
+        { when: blocAt("army", { max: -2 }), add: 10 },
+      ],
+      then: [
+        gauge("order", -2),
+        heat("rus_bolsh", 1),
+        reason("rus_pw_field_courts_strike"),
+      ],
+      heats: [{ id: "rus_pl_red", by: 2 }],
+      scene: "rus_pw_field_courts_bad",
+    },
+    scene: "rus_pw_field_courts_r",
   },
 ];
 
@@ -633,4 +1005,26 @@ export const RUS_POWER_SCENES: readonly GwScene[] = [
   card("rus_pw_confidence_r", ["home"]),
   card("rus_pw_favourite_r", ["people"]),
   card("rus_pw_troops_r", ["home"]),
+  // Phase 2: the risk cards of the lawful rows, then the new rows' cards.
+  card("rus_pw_separate_bad", ["war"]),
+  card("rus_pw_deport_bad", ["home"]),
+  card("rus_pw_duma_close_bad", ["home"]),
+  card("rus_pw_troops_bad", ["home"]),
+  card("rus_pw_hostages_r", ["war"]),
+  card("rus_pw_hostages_bad", ["war"]),
+  card("rus_pw_scorched_r", ["war"]),
+  card("rus_pw_scorched_bad", ["war"]),
+  card("rus_pw_bolsheviks_r", ["home"]),
+  card("rus_pw_labour_draft_r", ["home"]),
+  card("rus_pw_labour_draft_bad", ["home"]),
+  card("rus_pw_peace_b_r", ["war"]),
+  card("rus_pw_peace_b_bad", ["war"]),
+  card("rus_pw_duma_close_b_r", ["home"]),
+  card("rus_pw_duma_close_b_bad", ["home"]),
+  card("rus_pw_election_law_r", ["home"]),
+  card("rus_pw_election_law_bad", ["home"]),
+  card("rus_pw_abolish_duma_r", ["home"]),
+  card("rus_pw_abolish_duma_bad", ["home"]),
+  card("rus_pw_field_courts_r", ["home"]),
+  card("rus_pw_field_courts_bad", ["home"]),
 ];
