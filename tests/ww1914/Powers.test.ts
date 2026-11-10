@@ -5,7 +5,10 @@ import {
   GW_CONTENT,
   useGwContent,
 } from "@openfront/engine-lib/ww1914/content/Content";
-import type { GwPowerRow } from "@openfront/engine-lib/ww1914/PowerRows";
+import {
+  type GwPowerRow,
+  gwPowerProblems,
+} from "@openfront/engine-lib/ww1914/PowerRows";
 import type { GameRunner } from "@openfront/engine/GameRunner";
 import type { GreatWar } from "@openfront/engine/ww1914/GreatWar";
 import { takePower, willSign } from "@openfront/engine/ww1914/Powers";
@@ -77,6 +80,24 @@ const ROWS: GwPowerRow[] = [
     effects: [],
   },
   {
+    id: "deu_pw_t_closed",
+    tag: "DEU",
+    group: "home",
+    kind: "lawful",
+    target: { kind: "option", of: [{ id: "a", when: flag("f_never") }] },
+    tags: [],
+    effects: [],
+  },
+  {
+    id: "deu_pw_t_field_shut",
+    tag: "DEU",
+    group: "home",
+    kind: "lawful",
+    fields: [{ id: "how", options: [{ id: "x", when: flag("f_never") }] }],
+    tags: [],
+    effects: [],
+  },
+  {
     id: "gbr_pw_t_other",
     tag: "GBR",
     group: "war",
@@ -115,6 +136,16 @@ describe("the 통치 tab", () => {
     expect(signed.needs.office).toBe("chancellor");
     expect(signed.without).toBe(true);
     expect(JSON.stringify(v)).not.toContain("f_t_");
+  });
+
+  test("a list whose every entry is closed greys the row, target or field", () => {
+    const v = seatView(runner).powers!;
+    expect(v.find((p) => p.id === "deu_pw_t_closed")!.why).toBe("no_target");
+    expect(v.find((p) => p.id === "deu_pw_t_field_shut")!.why).toBe(
+      "no_target",
+    );
+    const closed = ROWS.filter((r) => r.id === "deu_pw_t_closed");
+    expect(gwPowerProblems({ powers: closed }, new Map())).toEqual([]);
   });
 
   test("a plain power runs through the order, with the world's answer, then rests", () => {

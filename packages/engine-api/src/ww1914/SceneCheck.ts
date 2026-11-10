@@ -19,7 +19,8 @@ function walkCond(c: GwCond | undefined, f: (x: GwCond) => void): void {
   if (c.kind === "not") walkCond(c.of, f);
 }
 
-function walkEffects(
+/** Every effect in a list, the nested ones (`maybe`, `roll`) included. */
+export function walkEffects(
   list: readonly GwEffect[],
   f: (e: GwEffect) => void,
 ): void {

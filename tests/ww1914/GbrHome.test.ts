@@ -135,6 +135,16 @@ describe("the home share of Britain", () => {
     }
   });
 
+  test("the coalition crisis waits on no coalition formed by the 통치 tab", () => {
+    const crisis = scenes.find((s) => s.id === "gbr_h_coalition")!;
+    expect(JSON.stringify(crisis.when)).toContain(
+      JSON.stringify({
+        kind: "not",
+        of: { kind: "flag", flag: "f_coalition" },
+      }),
+    );
+  });
+
   test("every stop leads to a halt: no option orders a death", () => {
     const stop = scenes.find((s) => s.id === "gbr_h_stop")!;
     expect(stop.options!.map((o) => o.id)).toEqual([

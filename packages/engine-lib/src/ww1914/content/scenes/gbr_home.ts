@@ -413,6 +413,8 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
     when: all(
       war,
       notLg,
+      // The 통치 tab's coalition power may have formed it already.
+      not(co),
       during("15a", "15b"),
       any(oppHigh, seen("gbr_w_fisher_out"), chose("gbr_h_shells")),
     ),

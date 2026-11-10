@@ -16,6 +16,7 @@ import type {
   GwReactorActor,
 } from "@openfront/engine-api/ww1914/GwPowers";
 import type { GwBloc } from "@openfront/engine-api/ww1914/GwPress";
+import { walkEffects } from "@openfront/engine-api/ww1914/SceneCheck";
 import type {
   GwCond,
   GwEffect,
@@ -202,13 +203,37 @@ export interface GwPowerContent {
 
 /**
  * Scenes the powers lay themselves: result cards and the sounding-out talk. A
- * scheduledOnly scene here has its scheduler (SceneCheck's `outside`).
+ * scheduledOnly scene here has its scheduler (SceneCheck's `outside`). Also
+ * the flags, memories and scenes the rows' own effects set, write or lay, so a
+ * card may read the pick or the risk that came out.
  */
 export function powerCalledScenes(rows: GwPowerContent): string[] {
-  return [
-    GW_POWER_SOUND,
-    ...(rows.powers ?? []).flatMap((p) => (p.scene ? [p.scene] : [])),
-  ];
+  const out = new Set<string>([GW_POWER_SOUND]);
+  const lists: (readonly GwEffect[] | undefined)[] = [];
+  for (const p of rows.powers ?? []) {
+    if (p.scene) out.add(p.scene);
+    lists.push(p.effects, p.failed, p.risk?.then);
+    if (p.target !== undefined && p.target.kind !== "person") {
+      for (const o of p.target.of) lists.push(o.effects);
+    }
+    for (const f of p.fields ?? []) {
+      for (const o of f.options) lists.push(o.effects);
+    }
+  }
+  for (const r of rows.reactors ?? []) lists.push(r.does);
+  for (const list of lists) {
+    walkEffects(list ?? [], (e) => {
+      if (e.kind === "flag") out.add(e.flag);
+      if (e.kind === "remember") out.add(e.key);
+      if (e.kind === "schedule") out.add(e.scene);
+      if (e.kind === "promise") {
+        out.add(`kept_${e.key}`);
+        out.add(`broke_${e.key}`);
+        if (e.back !== undefined) out.add(e.back);
+      }
+    });
+  }
+  return [...out];
 }
 
 /** The talk a signer is sounded out in: content/powers/common.ts. */
@@ -247,10 +272,8 @@ export function gwPowerProblems(
     }
     const t = p.target;
     if (t !== undefined && t.kind !== "person") {
+      // Every entry may close: the tab greys the row `no_target` then.
       if (t.of.length === 0) out.push(`${p.id}: an empty target list`);
-      if (t.of.every((o) => o.when !== undefined)) {
-        out.push(`${p.id}: every target can close`);
-      }
     }
   }
   return out;

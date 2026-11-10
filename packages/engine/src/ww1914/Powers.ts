@@ -147,9 +147,15 @@ export function powerViews(gw: GreatWar, seat: GwSeatState): GwPowerView[] {
     const n = row.needs;
     const said = lastSounded(gw, seat, row);
     const ids = targetIds(ctx, row);
-    const why =
-      gateWhy(ctx, row) ??
-      (row.target && ids.length === 0 ? "no_target" : null);
+    const fields = (row.fields ?? []).map((f) => ({
+      id: f.id,
+      options: f.options.filter((o) => open(ctx, o)).map((o) => o.id),
+    }));
+    // A list with nothing open to pick, target or field, greys the row.
+    const empty =
+      (row.target !== undefined && ids.length === 0) ||
+      fields.some((f) => f.options.length === 0);
+    const why = gateWhy(ctx, row) ?? (empty ? "no_target" : null);
     return [
       {
         id: row.id,
@@ -169,10 +175,7 @@ export function powerViews(gw: GreatWar, seat: GwSeatState): GwPowerView[] {
         why,
         target:
           row.target === undefined ? null : { kind: row.target.kind, ids },
-        fields: (row.fields ?? []).map((f) => ({
-          id: f.id,
-          options: f.options.filter((o) => open(ctx, o)).map((o) => o.id),
-        })),
+        fields,
         without: row.beyond !== undefined && s.needed,
         sounded:
           said === null ? null : { person: said.person, said: said.said },
