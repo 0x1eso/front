@@ -1,14 +1,28 @@
 // ww169: the 통치 tab's powers. Fixture rows on the real content; the seats'
 // own rows are written by the W1 lanes.
 import { flag, not } from "@openfront/engine-api/ww1914/SceneDsl";
+import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
 import {
   GW_CONTENT,
   useGwContent,
 } from "@openfront/engine-lib/ww1914/content/Content";
-import type { GwPowerRow } from "@openfront/engine-lib/ww1914/PowerRows";
+import { GW_PLOT_WARN_GAP } from "@openfront/engine-lib/ww1914/HouseRows";
+import {
+  GW_BEYOND_AGAIN,
+  gwPowerProblems,
+  type GwPowerRow,
+} from "@openfront/engine-lib/ww1914/PowerRows";
 import type { GameRunner } from "@openfront/engine/GameRunner";
+import { govEntry, govStep } from "@openfront/engine/ww1914/Government";
+import { GW_GOV } from "@openfront/engine/ww1914/GovTable";
 import type { GreatWar } from "@openfront/engine/ww1914/GreatWar";
-import { takePower, willSign } from "@openfront/engine/ww1914/Powers";
+import { plotsStep } from "@openfront/engine/ww1914/Plots";
+import {
+  powerRow,
+  riskPct,
+  takePower,
+  willSign,
+} from "@openfront/engine/ww1914/Powers";
 import { holderOf } from "@openfront/engine/ww1914/SceneRun";
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import { gwRunner, order, seat as seatView } from "./util";
@@ -76,6 +90,41 @@ const ROWS: GwPowerRow[] = [
     tags: [],
     effects: [],
   },
+  // Phase 2: beyond the law, harsh measures, the person's own end.
+  {
+    id: "deu_pw_t_coup",
+    tag: "DEU",
+    group: "house",
+    kind: "beyond",
+    cooldown: 0,
+    tags: ["decree"],
+    effects: [{ kind: "flag", flag: "f_t_coup" }],
+    heats: [{ id: "deu_parliament", by: 30 }],
+    risk: {
+      pct: 100,
+      then: [{ kind: "flag", flag: "f_t_caught" }],
+      heats: [{ id: "deu_pl_army", by: 30 }],
+    },
+  },
+  {
+    id: "deu_pw_t_harsh",
+    tag: "DEU",
+    group: "home",
+    kind: "lawful",
+    cooldown: 0,
+    tags: ["harsh_home"],
+    effects: [],
+  },
+  {
+    id: "deu_pw_t_abdicate",
+    tag: "DEU",
+    group: "home",
+    kind: "lawful",
+    once: true,
+    tags: [],
+    effects: [],
+    ends: "deu_end_abdicated",
+  },
   {
     id: "gbr_pw_t_other",
     tag: "GBR",
@@ -95,7 +144,7 @@ const st = () => gw.s.seats[0];
 
 beforeEach(async () => {
   useGwContent({ ...GW_CONTENT, powers: ROWS });
-  ({ runner } = await gwRunner({}, "GWPW1"));
+  ({ runner } = await gwRunner({ greatWar1914Calendar: "full" }, "GWPW1"));
   gw = runner.game.greatWar()!;
 });
 afterEach(() => useGwContent(null));
@@ -198,5 +247,161 @@ describe("the 통치 tab", () => {
       takePower(gw, st(), { id: "deu_pw_t_person", ...plain, target: chan.id }),
     ).toBeNull();
     expect(chan.trust).toBe(was + 1);
+  });
+});
+
+/** A month-long chapter past every threat's and plot's first date. */
+function late(): void {
+  const list = gwChapters(gw.s.calendar);
+  gw.s.chapter = list.findIndex((c) => c.spanDays >= 28 && c.day > 0) + 40;
+  gw.s.day = list[gw.s.chapter].day;
+}
+
+/** The next chapter: what was scheduled for it is read, then the threats move. */
+function month(): string[] {
+  gw.s.chapter++;
+  gw.s.day = gwChapters(gw.s.calendar)[gw.s.chapter].day;
+  const due = st().scheduled.filter((q) => q.chapter <= gw.s.chapter);
+  st().scheduled = st().scheduled.filter((q) => q.chapter > gw.s.chapter);
+  for (const q of due) st().seen[q.scene] = gw.s.chapter;
+  govStep(gw);
+  return due.map((q) => q.scene);
+}
+
+describe("phase 2: beyond the law and harsh measures", () => {
+  test("no click loses the game: a fatal threat's last step waits for its warning", () => {
+    late();
+    const row = GW_GOV.find((r) => r.id === "deu_parliament")!;
+    const n = row.steps.length;
+    const warn = row.steps[n - 2].scene;
+    const last = row.steps[n - 1].scene;
+    // The warning was read long ago; the threat sits a step from the end.
+    st().seen[warn] = gw.s.chapter - 20;
+    Object.assign(govEntry(st(), row.id), { heat: 0, step: n - 1, rest: -1 });
+    expect(takePower(gw, st(), { id: "deu_pw_t_coup", ...plain })).toBeNull();
+    expect(st().flags).toEqual(
+      expect.arrayContaining(["f_t_coup", "f_t_caught"]),
+    );
+    expect(gw.s.ended).toBeNull();
+    expect(st().memoir).toBeNull();
+    const e = govEntry(st(), row.id);
+    expect(e.heat).toBe(row.steps[n - 1].at - 1);
+    expect(st().scheduled.map((q) => q.scene)).toContain(warn);
+    // Chapter by chapter, the last step comes only GW_PLOT_WARN_GAP after
+    // the warning was read again, and the plot never ends the seat unwarned.
+    // The Reichstag hostile: the threat feeds, so the last step does come.
+    gw.nation("DEU")!.inst.reichstag = -3;
+    let warnedAt = -1;
+    let sawLast = false;
+    for (let i = 0; i < 8; i++) {
+      const read = month();
+      if (read.includes(warn)) warnedAt = gw.s.chapter;
+      if (st().scheduled.some((q) => q.scene === last)) {
+        sawLast = true;
+        expect(warnedAt).toBeGreaterThan(0);
+        expect(gw.s.chapter - warnedAt).toBeGreaterThanOrEqual(
+          GW_PLOT_WARN_GAP,
+        );
+      }
+      expect(gw.s.ended).toBeNull();
+    }
+    expect(sawLast).toBe(true);
+  });
+
+  test("a fresh warning lets the heat stand; the plot is heated but never named", () => {
+    late();
+    const row = GW_GOV.find((r) => r.id === "deu_parliament")!;
+    const n = row.steps.length;
+    st().seen[row.steps[n - 2].scene] = gw.s.chapter - 1;
+    Object.assign(govEntry(st(), row.id), { heat: 0, step: n - 1, rest: -1 });
+    takePower(gw, st(), { id: "deu_pw_t_coup", ...plain });
+    expect(govEntry(st(), row.id).heat).toBe(row.steps[n - 1].at);
+    expect(govEntry(st(), "deu_pl_army").heat).toBeGreaterThan(0);
+    const keys = st().log.map((l) => l.key);
+    expect(keys).toContain("power_threat_up");
+    expect(keys).toContain("power_went_wrong");
+    expect(keys.some((k) => k.includes("pl_army"))).toBe(false);
+    // The plot's last step needs its signs and warning: months pass, no end.
+    for (let i = 0; i < 6; i++) {
+      gw.s.chapter++;
+      plotsStep(gw, st());
+      expect(gw.s.ended).toBeNull();
+      expect(st().memoir).toBeNull();
+    }
+  });
+
+  test("the content check refuses a power that could end a seat in one click", () => {
+    const bad: GwPowerRow = {
+      id: "deu_pw_t_bad",
+      tag: "DEU",
+      group: "home",
+      kind: "beyond",
+      tags: [],
+      effects: [
+        { kind: "end", ending: "home_collapse" },
+        {
+          kind: "maybe",
+          when: flag("f_x"),
+          then: [
+            {
+              kind: "world",
+              of: { do: "gov_heat", id: "deu_parliament", delta: 9 },
+            },
+          ],
+        },
+      ],
+      heats: [{ id: "deu_nothing", by: 1 }],
+    };
+    const out = gwPowerProblems(
+      { powers: [bad] },
+      new Map(),
+      new Set(GW_GOV.map((r) => r.id)),
+    ).join("\n");
+    expect(out).toContain(": end");
+    expect(out).toContain(": gov_heat");
+    expect(out).toContain("heats no threat or plot deu_nothing");
+  });
+
+  test("risk grows with every act beyond the law lately", () => {
+    const ctx = { gw, seat: st(), cast: {} };
+    const row = powerRow("deu_pw_t_coup")!;
+    const plainRow = { ...row, risk: { ...row.risk!, pct: 10 } };
+    expect(riskPct(ctx, plainRow)).toBe(10);
+    takePower(gw, st(), { id: "deu_pw_t_coup", ...plain });
+    expect(riskPct(ctx, plainRow)).toBe(10 + GW_BEYOND_AGAIN);
+  });
+
+  test("a harsh measure is answered, each line naming the power; again, louder", () => {
+    takePower(gw, st(), { id: "deu_pw_t_harsh", ...plain });
+    const lines = st().log.filter((l) => l.power === "deu_pw_t_harsh");
+    const keys = lines.map((l) => l.key);
+    expect(keys).toEqual(
+      expect.arrayContaining([
+        "react_people_workers_down",
+        "react_people_court_up",
+        "react_harsh_conscience",
+      ]),
+    );
+    expect(
+      keys.includes("react_harsh_quiet") ||
+        keys.includes("react_harsh_streets"),
+    ).toBe(true);
+    expect(keys).not.toContain("react_harsh_again");
+    gw.s.chapter++;
+    takePower(gw, st(), { id: "deu_pw_t_harsh", ...plain });
+    expect(st().log.map((l) => l.key)).toContain("react_harsh_again");
+  });
+
+  test("abdication is the person's own end: said as a fact, and it ends the game", () => {
+    const v = seatView(runner).powers!.find(
+      (p) => p.id === "deu_pw_t_abdicate",
+    )!;
+    expect(v.ends).toBe(true);
+    expect(
+      seatView(runner).powers!.find((p) => p.id === "deu_pw_t_plain")!.ends,
+    ).toBe(false);
+    expect(gw.s.ended).toBeNull();
+    order(runner, { kind: "power", id: "deu_pw_t_abdicate", ...plain });
+    expect(gw.s.ended).toBe("deu_end_abdicated");
   });
 });
