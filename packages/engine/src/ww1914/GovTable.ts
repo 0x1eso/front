@@ -254,6 +254,8 @@ export const GW_GOV: readonly GwGovRow[] = [
     tag: "RUS",
     regimes: ["tsar"],
     from: "1914-12",
+    // An abolished Duma can't bring a ministry down (rus_pw_abolish_duma).
+    unless: "f_rus_duma_abolished",
     feeds: [
       { when: inst("duma", { max: -1 }), key: "rus_duma" },
       { when: gaugeMax("shells", 1), key: "rus_shells" },

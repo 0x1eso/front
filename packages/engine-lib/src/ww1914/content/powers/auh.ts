@@ -374,7 +374,13 @@ export const AUH_POWERS: readonly GwPowerRow[] = [
       ],
     },
     tags: ["army_over_civil", "harsh_home"],
-    effects: [inst("army", 1), gauge("order", 1), reason("auh_pw_martial_set")],
+    // The exceptional laws: the army's courts and its censor in the province.
+    effects: [
+      inst("army", 1),
+      gauge("order", 1),
+      { kind: "censor", delta: 1 },
+      reason("auh_pw_martial_set"),
+    ],
     risk: {
       pct: 20,
       mods: [
@@ -712,6 +718,7 @@ export const AUH_POWERS: readonly GwPowerRow[] = [
       inst("army", 1),
       inst("council", -1),
       gauge("order", 1),
+      { kind: "censor", delta: 1 },
       reason("auh_pw_martial_b_set"),
     ],
     heats: [

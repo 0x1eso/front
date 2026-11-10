@@ -71,7 +71,11 @@ export function planOf(c: GwCtx): GwBudgetPlan {
 
 export function voteOf(c: GwCtx, plan: GwBudgetPlan): GwBudgetVote {
   const v = c.seat.world.budget;
-  const body = GW_BUDGET_BODIES[c.seat.world.war.regime] ?? null;
+  // No body in the view: the budget goes by decree (ww171), nobody votes it.
+  const body =
+    v.body === null
+      ? null
+      : (GW_BUDGET_BODIES[c.seat.world.war.regime] ?? null);
   return budgetVote(body, c.seat.inst, v.basis, plan);
 }
 

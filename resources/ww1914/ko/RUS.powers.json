@@ -377,7 +377,10 @@
     },
     "rus_pw_confidence": {
       "name": "두마가 믿는 내각을 세운다",
-      "note": "대신은 황제에게만 책임진다. 두마가 믿는 사람들로 내각을 채우는 일을 법은 막지 않지만, 전제정의 관례에는 어긋난다."
+      "note": "대신은 황제에게만 책임진다. 두마가 믿는 사람들로 내각을 채우는 일을 법은 막지 않지만, 전제정의 관례에는 어긋난다.",
+      "why": {
+        "abolished": "두마가 이미 폐지되었다."
+      }
     },
     "rus_pw_favourite": {
       "name": "궁정 사람을 정사에서 떼어 놓는다",
@@ -468,7 +471,7 @@
     "rus_pw_r_court_glad": "궁정과 우파가 두마가 닫힌 것을 반겼다.",
     "rus_pw_r_court_cold": "궁정이 두마가 고른 대신들에게 등을 돌렸다.",
     "rus_pw_r_treason": "신문들이 단독 강화를 배신이라 불렀다.",
-    "rus_pw_hostages_done": "전선 지대 유대인 공동체에서 인질을 잡았다.",
+    "rus_pw_hostages_done": "전선 지대 유대인 공동체에서 인질을 잡았다. 사령부는 전선 뒤가 조용해졌다고 보고한다.",
     "rus_pw_hostages_lost": "퇴각길에 끌려간 인질들 가운데 돌아오지 못한 사람이 나왔다.",
     "rus_pw_scorched_done": "퇴각하는 군대 뒤로 곡식과 마을을 태웠다.",
     "rus_pw_scorched_cities": "쫓겨난 주민들이 후방의 도시로 밀려들어 빵이 모자랐다.",
@@ -484,6 +487,8 @@
     "rus_pw_abolish_done": "두마를 없앴다.",
     "rus_pw_abolish_garrison": "두마가 없어진 뒤 수비대 병영이 술렁였다.",
     "rus_pw_field_courts_done": "후방의 민간인을 야전 군법회의에 세웠다.",
-    "rus_pw_field_courts_strike": "군법회의 판결이 집행된 다음 날 공장 지대가 일손을 놓았다."
+    "rus_pw_field_courts_strike": "군법회의 판결이 집행된 다음 날 공장 지대가 일손을 놓았다.",
+    "rus_pw_deport_done": "전선 지대에서 사령부가 믿지 못하는 사람들을 내보냈다. 사령부는 이제 첩자 걱정을 덜었다고 말한다.",
+    "rus_pw_abolish_decree": "이제 두마도 국가평의회도 법을 표결하지 않는다. 법안과 예산은 황제의 칙령으로 나간다."
   }
 }

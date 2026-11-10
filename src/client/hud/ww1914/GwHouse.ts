@@ -134,12 +134,30 @@ function billBox(c: GwCtx, h: GwHouseView, b: GwBillView): TemplateResult {
   </div>`;
 }
 
+/** What doesn't sit now, and whether every bill goes the way round (ww171). */
+function sittingLines(h: GwHouseView): TemplateResult | typeof nothing {
+  if (h.closed.length === 0 && !h.gone) return nothing;
+  const list = h.closed
+    .map((x) => translateText(`gw.house.chamber.${x}`))
+    .join(", ");
+  return html`${h.gone && h.around !== null
+    ? html`<p class="text-sm text-amber-100/90" data-gw-house-gone>
+        ${translateText(`gw.house.gone.${h.around}`)}
+      </p>`
+    : nothing}${h.closed.length === 0
+    ? nothing
+    : html`<p class=${MUTED} data-gw-house-closed>
+        ${translateText("gw.house.closed", { list })}
+      </p>`}`;
+}
+
 /** The country tab's "의회" box: only the moving bill's house, folded short. */
 export function houseSection(c: GwCtx): TemplateResult | typeof nothing {
   const h = houseOf(c);
   if (h === null) return nothing;
   return html`<section class=${BOX} data-gw-house>
     <h3 class=${HEAD}>${translateText("gw.house.title")}</h3>
+    ${sittingLines(h)}
     ${h.bill === null
       ? html`<p class=${MUTED}>${translateText("gw.house.none")}</p>`
       : billBox(c, h, h.bill)}

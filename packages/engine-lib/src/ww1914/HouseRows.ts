@@ -51,6 +51,12 @@ export interface GwAroundRow {
   readonly id: GwAround;
   /** The door is open now: the Duma not sitting, the Reichsrat closed. */
   readonly when?: GwCond;
+  /**
+   * The house is gone or sent home (ww171): while this holds the door is open
+   * whatever `when` says, and every bill may go round, not only those marked
+   * `around`. The abolished Duma, a prorogued Parliament.
+   */
+  readonly all?: GwCond;
   /** Authority it costs. */
   readonly price: number;
   /** The chamber's weight it costs. */

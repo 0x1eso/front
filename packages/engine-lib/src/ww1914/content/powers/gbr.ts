@@ -331,7 +331,11 @@ export const GBR_POWERS: readonly GwPowerRow[] = [
     authority: 10,
     once: true,
     tags: ["dissolve"],
-    effects: [setFlag("f_gov_writ")],
+    // The writs go out: a prorogued Parliament ends with it (ww171).
+    effects: [
+      setFlag("f_gov_writ"),
+      { kind: "unflag", flag: "f_gbr_prorogued" },
+    ],
     heats: [{ id: "gbr_election", by: 1 }],
     scene: "gbr_pw_dissolve_r",
   },
@@ -630,7 +634,9 @@ export const GBR_POWERS: readonly GwPowerRow[] = [
             id: "courts_martial",
             when: rising,
             tags: ["harsh_home"],
+            // The rising's leaders are gone; the dead make the next ones.
             effects: [
+              { kind: "pressure", topic: "ireland", delta: -1 },
               doWorld({ do: "faction_grow", id: "gbr_sinn_fein", delta: 1 }),
               inst("irish", -2),
               nation("USA", -1),
@@ -922,10 +928,11 @@ export const GBR_POWERS: readonly GwPowerRow[] = [
           heats: [{ id: "gbr_pl_red", by: 2 }],
         },
         {
+          // The agitation loses its voice for a while; the party is angry.
           id: "irish",
           effects: [
             inst("irish", -2),
-            { kind: "pressure", topic: "ireland", delta: 1 },
+            { kind: "pressure", topic: "ireland", delta: -1 },
             heat("gbr_irish", 2),
           ],
         },
@@ -969,7 +976,10 @@ export const GBR_POWERS: readonly GwPowerRow[] = [
     once: true,
     authority: 15,
     tags: ["house_closed", "decree"],
+    // Neither House sits (houses.ts GBR_PROROGUED): bills and supply go by
+    // Order in Council until a dissolution calls a new Parliament.
     effects: [
+      setFlag("f_gbr_prorogued"),
       inst("commons", -2),
       inst("opposition", -2),
       opinion("parliament", -2),
@@ -988,7 +998,9 @@ export const GBR_POWERS: readonly GwPowerRow[] = [
         { when: { kind: "inst", inst: "commons", max: -2 }, add: 15 },
         { when: kingCold, add: 15 },
       ],
+      // The King balks: the House meets after all.
       then: [
+        { kind: "unflag", flag: "f_gbr_prorogued" },
         trustIn("gbr_george_v", -1),
         opinion("court", -1),
         reason("gbr_pw_b_prorogue_no"),
@@ -1116,7 +1128,12 @@ export const GBR_POWERS: readonly GwPowerRow[] = [
       },
     ],
     tags: ["harsh_home"],
-    effects: [heat("gbr_ilp", 2), reason("gbr_pw_cos_sent")],
+    // The tribunals' word holds: fewer men claim conscience.
+    effects: [
+      doWorld({ do: "manpower", delta: 1 }),
+      heat("gbr_ilp", 2),
+      reason("gbr_pw_cos_sent"),
+    ],
     // Liberal ministers take it to the cabinet table.
     risk: {
       pct: 10,

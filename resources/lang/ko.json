@@ -15232,7 +15232,8 @@
       "react_harsh_conscience": "그 일이 양심을 짓눌렀다.",
       "react_harsh_quiet": "거리는 당분간 조용해졌다.",
       "react_harsh_streets": "이미 들끓던 거리는 그것을 싸움을 거는 일로 받아들였다.",
-      "react_harsh_again": "가혹한 조치가 거듭되자 중립국 수도들이 귀를 닫았다."
+      "react_harsh_again": "가혹한 조치가 거듭되자 중립국 수도들이 귀를 닫았다.",
+      "budget_by_decree": "예산이 의회를 거치지 않고 칙령으로 나갔다."
     },
     "result": {
       "advance": "전진",
@@ -16802,7 +16803,12 @@
         "press": "신문이 공격 중"
       },
       "pick_sponsor": "누구에게 기초를 맡기겠소?",
-      "sponsor_default": "늘 맡던 대신에게"
+      "sponsor_default": "늘 맡던 대신에게",
+      "closed": "열리지 않는 곳: {list}",
+      "gone": {
+        "art87": "두마가 없다. 모든 법안과 예산은 황제의 칙령으로 나간다.",
+        "dora": "의회가 정회되었다. 법안과 예산은 추밀원령으로 나간다."
+      }
     },
     "dossier": {
       "title": "서류철",
@@ -16988,7 +16994,8 @@
         "house_all": "의회의 표결이 필요하다.",
         "office": "{office}의 부서가 필요하다.",
         "office_who": "{office} {who}의 부서가 필요하다.",
-        "slot": "일정 하나를 쓴다."
+        "slot": "일정 하나를 쓴다.",
+        "instead": "{instead} 대신 {office}이(가) 서명한다."
       },
       "said_no": "{who}은(는) 서명하지 않겠다고 했다.",
       "said_yes": "{who}은(는) 서명하겠다고 했다.",

@@ -148,6 +148,47 @@ export interface GwPowerRow {
   readonly scene?: string;
 }
 
+/**
+ * While a seat flag holds, a row of these groups that wants this office's
+ * signature asks it of another office instead (ww171): the OHL's rule takes
+ * the Chancellor's say over war and the army.
+ */
+export interface GwSignForRow {
+  readonly tag: GwTag;
+  readonly flag: string;
+  readonly from: GwOffice;
+  readonly to: GwOffice;
+  readonly groups: readonly GwPowerRow["group"][];
+}
+
+export const GW_SIGN_FOR: readonly GwSignForRow[] = [
+  {
+    tag: "DEU",
+    flag: "f_deu_ohl_rule",
+    from: "chancellor",
+    to: "chief_of_staff",
+    groups: ["war", "army"],
+  },
+];
+
+/** The office whose holder signs the row now, if it wants one. */
+export function signOffice(
+  tag: GwTag,
+  flags: readonly string[],
+  row: GwPowerRow,
+): GwOffice | undefined {
+  const office = row.needs?.office;
+  if (office === undefined) return undefined;
+  const by = GW_SIGN_FOR.find(
+    (s) =>
+      s.tag === tag &&
+      s.from === office &&
+      s.groups.includes(row.group) &&
+      flags.includes(s.flag),
+  );
+  return by?.to ?? office;
+}
+
 /** With no cooldown of its own, chapters before a power can be used again. */
 export const GW_POWER_COOLDOWN = 2;
 /** Risk added for each beyond use lately: the state remembers. */

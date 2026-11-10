@@ -345,6 +345,31 @@ export const GW_BUDGET_BODIES: Readonly<Record<string, GwBudgetBody>> = {
   fra_defeat: chambre,
 };
 
+/**
+ * Seat flags under which the budget goes by decree (ww171): nobody votes it
+ * and nobody can refuse it. `once`: it carries one budget, then lapses.
+ */
+export const GW_BUDGET_DECREE: readonly {
+  readonly flag: string;
+  readonly once?: boolean;
+}[] = [
+  // The Duma abolished: the Tsar's budget is his own.
+  { flag: "f_rus_duma_abolished" },
+  // Parliament prorogued: supply by Order in Council.
+  { flag: "f_gbr_prorogued" },
+  // The Prussian conflict's way: this year's budget spent without a vote.
+  { flag: "f_deu_no_budget", once: true },
+];
+
+/** Who votes the budget now: the regime's body, or nobody by decree. */
+export function budgetBody(
+  regime: string,
+  flags: readonly string[],
+): GwBudgetBody | null {
+  if (GW_BUDGET_DECREE.some((d) => flags.includes(d.flag))) return null;
+  return GW_BUDGET_BODIES[regime] ?? null;
+}
+
 /** A gauge step is this many point-days: 100 points held for a 360-day year. */
 export const GW_DRIFT_STEP = 36000;
 

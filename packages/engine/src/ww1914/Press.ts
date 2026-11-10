@@ -54,7 +54,14 @@ export function censorCap(gw: GreatWar, seat: GwSeatState): number {
   const n = gw.nation(seat.tag);
   if (row === undefined || n === null) return 0;
   if (row.free.includes(n.regime)) return 0;
-  return n.atWar.length > 0 ? GW_CENSOR_MAX : row.peaceCap;
+  return n.atWar.length > 0 || underSiege(seat, row)
+    ? GW_CENSOR_MAX
+    : row.peaceCap;
+}
+
+/** A state of siege holds (ww171): the army's censor, not the house's. */
+function underSiege(seat: GwSeatState, row: GwPressRow): boolean {
+  return (row.siege ?? []).some((f) => seat.flags.includes(f));
 }
 
 export function moveCensor(
@@ -71,7 +78,9 @@ export function moveCensor(
 
 /** The body that won't have a tighter censor, or null. */
 function censorBar(gw: GreatWar, seat: GwSeatState): string | null {
-  const bar = GW_PRESS_ROWS[seat.tag]?.bar;
+  const row = GW_PRESS_ROWS[seat.tag];
+  if (row !== undefined && underSiege(seat, row)) return null;
+  const bar = row?.bar;
   const v = bar === undefined ? undefined : gw.nation(seat.tag)?.inst[bar.inst];
   if (bar === undefined || v === undefined) return null;
   return v < bar.min ? bar.why : null;

@@ -2700,8 +2700,13 @@
         "senat": "Senate"
       },
       "chambers": "Must pass: {list}",
+      "closed": "Not sitting: {list}",
       "deal": "deal struck",
       "delay": "The Lords have put it off until chapter {n}",
+      "gone": {
+        "art87": "The Duma is gone: every bill and the budget go out by the Tsar's decree.",
+        "dora": "Parliament is prorogued: bills and supply go by Order in Council."
+      },
       "leader": "Led by {name}",
       "none": "No bill is before the house.",
       "origin": {
@@ -3329,6 +3334,7 @@
         "council": "The cabinet must vote on it.",
         "house": "{house} must vote on it.",
         "house_all": "The house must vote on it.",
+        "instead": "The {office} signs in the {instead}'s place.",
         "office": "The {office} must countersign.",
         "office_who": "The {office} ({who}) must countersign.",
         "slot": "It takes a place on the schedule."
@@ -3363,6 +3369,7 @@
       "bad_luck": "The attack had bad luck.",
       "blockade_kept": "The contraband list stayed as it was.",
       "budget_alone": "The budget was signed over the body's head.",
+      "budget_by_decree": "The budget went out by decree, past the house.",
       "budget_forced": "The budget was forced through.",
       "budget_navy_down": "The fleet fell behind on repairs.",
       "budget_navy_up": "The fleet's yards caught up.",

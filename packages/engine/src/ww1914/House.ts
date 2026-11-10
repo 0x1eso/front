@@ -637,12 +637,32 @@ export function closedRound(
   bill: GwBillRow,
 ): GwChamber[] {
   const around = house.around;
-  if (around === undefined || bill.around !== true) return [];
+  if (around === undefined || !aroundOpen(gw, seat, around, bill)) return [];
   const ctx = ctxOf(gw, seat);
-  if (around.when !== undefined && !holds(ctx, around.when)) return [];
   return chambersOf(house, bill)
     .filter((c) => !sits(ctx, c) && around.skips.includes(c.id))
     .map((c) => c.id);
+}
+
+/** The house is gone or sent home: every bill may go round (ww171). */
+export function houseGone(
+  gw: GreatWar,
+  seat: GwSeatState,
+  around: GwHouseRow["around"],
+): boolean {
+  return around?.all !== undefined && holds(ctxOf(gw, seat), around.all);
+}
+
+/** The way round is open for this bill now. */
+function aroundOpen(
+  gw: GreatWar,
+  seat: GwSeatState,
+  around: NonNullable<GwHouseRow["around"]>,
+  bill: GwBillRow,
+): boolean {
+  if (houseGone(gw, seat, around)) return true;
+  if (bill.around !== true) return false;
+  return around.when === undefined || holds(ctxOf(gw, seat), around.when);
 }
 
 /** The count the bill stands at: the worst chamber that can stop it. */
@@ -918,10 +938,8 @@ export function houseCanRound(
   if (bill === null) return null;
   const around = houseRow(seat.tag)?.around;
   const n = gw.nation(seat.tag);
-  if (around === undefined || n === null || bill.around !== true) return false;
-  if (around.when !== undefined && !holds(ctxOf(gw, seat), around.when)) {
-    return false;
-  }
+  if (around === undefined || n === null) return false;
+  if (!aroundOpen(gw, seat, around, bill)) return false;
   return n.authority >= around.price;
 }
 
@@ -1079,11 +1097,14 @@ function opensNow(gw: GreatWar, seat: GwSeatState, law: string): boolean {
   return holds(ctxOf(gw, seat), row.opens);
 }
 
-function canStart(seat: GwSeatState, row: GwFactionRow): boolean {
+function canStart(gw: GreatWar, seat: GwSeatState, row: GwFactionRow): boolean {
   const house = houseRow(seat.tag);
   if (house === null) return false;
+  // A chamber that doesn't sit brings no bill (the abolished Duma, ww171).
+  const ctx = ctxOf(gw, seat);
   return house.chambers.some(
-    (c) => c.starts === true && (seatsNow(seat, row)[c.id] ?? 0) > 0,
+    (c) =>
+      c.starts === true && sits(ctx, c) && (seatsNow(seat, row)[c.id] ?? 0) > 0,
   );
 }
 
@@ -1120,7 +1141,7 @@ function asksStep(gw: GreatWar, seat: GwSeatState): void {
     if (
       st.ignored >= GW_IGNORED_LIMIT &&
       st.strength >= GW_BRING_STRENGTH &&
-      canStart(seat, row)
+      canStart(gw, seat, row)
     ) {
       if (houseBring(gw, seat, bill, "house", row.id)) {
         st.ignored = 0;
@@ -1481,6 +1502,10 @@ export function houseView(
     factions,
     out: out === undefined ? null : { id: out.id, bloc: out.bloc },
     around: house.around?.id ?? null,
+    closed: house.chambers
+      .filter((c) => c.sits !== undefined && !sits(ctxOf(gw, seat), c))
+      .map((c) => c.id),
+    gone: houseGone(gw, seat, house.around),
   };
 }
 

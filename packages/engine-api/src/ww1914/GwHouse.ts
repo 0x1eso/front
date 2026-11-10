@@ -278,6 +278,10 @@ export interface GwHouseView {
   out: { id: string; bloc: string } | null;
   /** The way round, if the constitution has one. */
   around: GwAround | null;
+  /** Chambers that don't sit now (closed, abolished, prorogued). */
+  closed: readonly GwChamber[];
+  /** The house is gone or sent home: every bill goes the way round. */
+  gone: boolean;
 }
 
 // ---- S2: what the notebook reads ----
