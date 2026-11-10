@@ -63,9 +63,16 @@ const MOLTKE = byName("deu_moltke");
 
 const date = (from: string, to: string): GwCond =>
   world({ is: "date", from, to });
-/** Research reached, or the month it could be there at the latest. */
-const tech = (id: GwTech, from: string): GwCond =>
-  any(world({ is: "tech", id }), date(from, "1918-12"));
+/** Whole months since Germany came into the war (ww170: by state, not date). */
+const own = (min: number, max?: number): GwCond =>
+  world(
+    max === undefined
+      ? { is: "war_months", own: true, min }
+      : { is: "war_months", own: true, min, max },
+  );
+/** Research reached, or the month of the war it could be there at the latest. */
+const tech = (id: GwTech, months: number): GwCond =>
+  any(world({ is: "tech", id }), own(months));
 const soviet: GwCond = world({ is: "out", tag: "RUS" });
 const signChief: GwEffect[] = [doWorld({ do: "sign_chief" })];
 const FRONTS_SCREEN = { screen: "fronts" as const };
@@ -89,6 +96,11 @@ const serbiaOut: GwCond = world({ is: "out", tag: "SRB" });
 const score = (max: number): GwCond => world({ is: "score", max });
 const scoreUp = (min: number): GwCond => world({ is: "score", min });
 const men_ = (max: number): GwCond => world({ is: "manpower", max });
+/** The months a spring offensive is drawn up in (a season, not a year). */
+const SPRING_PLANNING: GwCond = world({
+  is: "month",
+  of: [11, 12, 1, 2, 3, 4],
+});
 const front = (theatre: GwTheatre, from: string): GwCond =>
   world({ is: "front", theatre, from });
 const low = (g: GwGauge, max: number): GwCond => ({
@@ -507,12 +519,7 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
   }),
   record(
     "deu_f_gas_record",
-    all(
-      war,
-      front("west", "liege"),
-      tech("gas_heavy", "1915-04"),
-      date("1915-04", "1915-12"),
-    ),
+    all(war, front("west", "liege"), tech("gas_heavy", 8), own(3, 17)),
     [v("base")],
     "staff",
   ),
@@ -1118,7 +1125,9 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
       auhIn,
       not(flag("f_joint_command")),
       { kind: "trust", tag: "AUH", max: 1 },
-      date("1916-07", "1916-11"),
+      // Vienna asks once a new front strains it, or the war has run two years.
+      own(12, 35),
+      any(romaniaIn, own(23)),
     ),
     cast: {
       cos: holder("chief_of_staff"),
@@ -1258,11 +1267,7 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
   scene({
     id: "deu_f_new_arms",
     kind: "proposal",
-    when: all(
-      war,
-      tech("depth_defence", "1916-10"),
-      date("1916-10", "1918-06"),
-    ),
+    when: all(war, tech("depth_defence", 26), own(14, 47)),
     cast: { cos: holder("chief_of_staff"), war: holder("war") },
     salience: 7,
     tags: ["war"],
@@ -1305,8 +1310,11 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
     kind: "crisis",
     when: all(
       atWar("FRA"),
-      any(rusout, date("1918-01", "1918-06")),
-      date("1917-07", "1918-06"),
+      // A spring offensive, planned over the winter, once the east is quiet
+      // or the war is long.
+      any(rusout, own(41)),
+      own(30, 52),
+      SPRING_PLANNING,
     ),
     cast: { cos: holder("chief_of_staff"), chancellor: holder("chancellor") },
     salience: 9,
@@ -2319,7 +2327,7 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
   talk(
     "deu_t2_lud_spring",
     "deu_ludendorff",
-    all(any(rusout, date("1918-01", "1918-06")), date("1917-07", "1918-06")),
+    all(any(rusout, own(41)), own(30, 52), SPRING_PLANNING),
     {
       open: node(
         moods("stubborn", "anxious"),

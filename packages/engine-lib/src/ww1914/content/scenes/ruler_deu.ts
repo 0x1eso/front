@@ -7,10 +7,10 @@ import {
   not,
   role,
 } from "@openfront/engine-api/ww1914/SceneDsl";
+import { world } from "@openfront/engine-api/ww1914/WorldDsl";
 import {
   called,
   closeBy,
-  date,
   life,
   low,
   node,
@@ -327,7 +327,7 @@ export const RULER_DEU: readonly GwScene[] = [
     id: "deu_life_t_muller",
     nation: NATION,
     person: "deu_muller",
-    when: all(self, any(pair, date("1916-09", "1918-11"))),
+    when: all(self, any(pair, world({ is: "war_months", min: 25, max: 52 }))),
     nodes: {
       open: node([
         reply("who_knew", "cold", "ask", "knew"),

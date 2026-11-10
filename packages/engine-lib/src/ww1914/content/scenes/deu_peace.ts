@@ -44,12 +44,35 @@ const crisisOpen: GwCond = any(
 );
 /** The summer has passed: a run on the delayed visit may still be in it. */
 const calm: GwCond = all(peace, not(crisisOpen));
-const chapter = (min: number, max: number): GwCond => ({
-  kind: "chapter",
-  min,
-  max,
+/**
+ * Whole months since the crisis closed without a war (ww170: by state, not
+ * date). The July weeks end about chapter 6, so month 0 is August's peace.
+ */
+const peaceMonths = (min: number, max: number): GwCond => ({
+  kind: "world",
+  of: { is: "peace_months", min, max },
 });
-const fromChapter = (min: number): GwCond => ({ kind: "chapter", min });
+/** A promise's time is up: that many months of peace, or a war came. */
+const monthsOn = (min: number): GwCond =>
+  any(
+    { kind: "world", of: { is: "peace_months", min } },
+    { kind: "world", of: { is: "war_months", min: 0 } },
+  );
+/** The months of the year: a season, any year. */
+const inMonths = (...of: number[]): GwCond => ({
+  kind: "world",
+  of: { is: "month", of },
+});
+const FIRST_LEDGER: GwCond = { kind: "world", of: { is: "war_age", max: 1 } };
+const WINTER: GwCond = {
+  kind: "world",
+  of: { is: "month", of: [11, 12, 1, 2, 3] },
+};
+/** A crisis closed without a war before this one: the late spark. */
+const lateSpark: GwCond = {
+  kind: "world",
+  of: { is: "chain_end", of: ["compromise", "humiliation", "fizzled"] },
+};
 const seen = (scene: string): GwCond => ({ kind: "seen", scene });
 const holder = (o: GwOffice) => ({ office: o });
 const humiliated: GwCond = {
@@ -84,7 +107,6 @@ const decision = (
   id,
   nation: ["DEU"],
   kind: "proposal",
-  stage: ["y1914"],
   tags: ["home"],
   once: true,
   variants: [{ id: "base" }],
@@ -94,7 +116,7 @@ const decision = (
 const SCENES: readonly GwScene[] = [
   decision("deu_w_peace_summer", {
     kind: "wire",
-    when: all(chapter(6, 6), calm),
+    when: all(peaceMonths(0, 0), calm, inMonths(7, 8, 9)),
     cast: { court: holder("court") },
     salience: 8,
     tags: ["home", "tension_down"],
@@ -105,7 +127,8 @@ const SCENES: readonly GwScene[] = [
     ],
   }),
   decision("deu_w_peace_congress", {
-    when: all(chapter(6, 6), calm),
+    // The International meets at the end of August (a calendar scene).
+    when: all(peaceMonths(0, 0), calm, inMonths(7, 8)),
     cast: { interior: holder("interior"), chancellor: holder("chancellor") },
     salience: 7,
     tags: ["home", "foreign"],
@@ -122,7 +145,8 @@ const SCENES: readonly GwScene[] = [
   }),
   decision("deu_w_peace_manoeuvre", {
     kind: "audience",
-    when: all(chapter(7, 7), peace),
+    // The Kaiser's manoeuvres are in September (a calendar scene).
+    when: all(peaceMonths(1, 1), peace, inMonths(8, 9)),
     cast: { cos: holder("chief_of_staff"), court: holder("court") },
     salience: 7,
     tags: ["war", "people"],
@@ -137,7 +161,7 @@ const SCENES: readonly GwScene[] = [
     ],
   }),
   decision("deu_w_peace_franchise", {
-    when: all(chapter(7, 8), peace),
+    when: all(peaceMonths(1, 2), peace),
     cast: { interior: holder("interior"), chancellor: holder("chancellor") },
     salience: 8,
     tags: ["home", "tension_up"],
@@ -153,7 +177,7 @@ const SCENES: readonly GwScene[] = [
     ],
   }),
   decision("deu_w_peace_alsace", {
-    when: all(chapter(8, 8), peace),
+    when: all(peaceMonths(2, 2), peace),
     cast: { interior: holder("interior"), war: holder("war") },
     salience: 6,
     tags: ["home"],
@@ -169,7 +193,7 @@ const SCENES: readonly GwScene[] = [
   }),
   decision("deu_w_peace_novelle", {
     kind: "dispute",
-    when: all(chapter(8, 8), peace),
+    when: all(peaceMonths(2, 2), peace),
     cast: {
       navy: holder("navy"),
       chancellor: holder("chancellor"),
@@ -193,7 +217,7 @@ const SCENES: readonly GwScene[] = [
     ],
   }),
   decision("deu_w_peace_trade", {
-    when: all(chapter(8, 9), peace),
+    when: all(peaceMonths(2, 3), peace),
     cast: { foreign: holder("foreign") },
     salience: 6,
     tags: ["foreign", "tension_down"],
@@ -208,7 +232,7 @@ const SCENES: readonly GwScene[] = [
   }),
   decision("deu_w_peace_memo", {
     kind: "dispute",
-    when: all(chapter(9, 9), peace),
+    when: all(peaceMonths(3, 3), peace),
     cast: { cos: holder("chief_of_staff"), chancellor: holder("chancellor") },
     salience: 8,
     tags: ["war", "tension_up"],
@@ -226,7 +250,7 @@ const SCENES: readonly GwScene[] = [
     ],
   }),
   decision("deu_w_peace_vienna", {
-    when: all(chapter(10, 10), peace),
+    when: all(peaceMonths(4, 4), peace),
     cast: {
       foreign: holder("foreign"),
       ambassador: holder("ambassador_vienna"),
@@ -245,7 +269,7 @@ const SCENES: readonly GwScene[] = [
   }),
   decision("deu_w_peace_papers", {
     kind: "report",
-    when: all(chapter(6, 10), peace),
+    when: all(peaceMonths(0, 4), peace),
     cast: {},
     salience: 4,
     tags: ["foreign", "tension_down"],
@@ -264,7 +288,7 @@ const SCENES: readonly GwScene[] = [
   decision("deu_w_late_mobilise", {
     kind: "crisis",
     when: all(
-      chapter(6, 10),
+      lateSpark,
       crisisOpen,
       { kind: "temp", min: 6 },
       { kind: "world", of: { is: "chain", min: 4 } },
@@ -303,14 +327,20 @@ const SCENES: readonly GwScene[] = [
   }),
   decision("deu_w_late_ledger", {
     kind: "ledger",
-    when: all(chapter(7, 10), war, not(flag(SUMMER_WAR))),
+    when: all(war, not(flag(SUMMER_WAR)), {
+      kind: "world",
+      of: { is: "war_months", own: true, max: 4 },
+    }),
     cast: { cos: holder("chief_of_staff") },
     salience: 9,
     tags: ["war"],
     once: false,
     cooldown: 0,
+    // A late war may start in any season: the frozen roads only in winter.
     variants: [
-      { id: "first", when: { kind: "world", of: { is: "war_age", max: 1 } } },
+      { id: "first", when: all(FIRST_LEDGER, WINTER) },
+      { id: "first_open", when: FIRST_LEDGER },
+      { id: "winter", when: WINTER },
       { id: "base" },
     ],
     fallback: "sign_chief",
@@ -326,6 +356,7 @@ const SCENES: readonly GwScene[] = [
 interface PeaceTalk {
   id: string;
   who: string;
+  /** Months of peace after the crisis closed: the talk's window. */
   from: number;
   to: number;
   temper: GwTemperament;
@@ -340,8 +371,8 @@ const TALKS: readonly PeaceTalk[] = [
   {
     id: "beth",
     who: "deu_bethmann",
-    from: 6,
-    to: 9,
+    from: 0,
+    to: 3,
     temper: "anxious",
     key: "k_beth_peace",
     promise: "beth_peace_word",
@@ -349,58 +380,58 @@ const TALKS: readonly PeaceTalk[] = [
     keep: any(
       chose("deu_w_peace_franchise", "small_step"),
       chose("deu_w_peace_franchise", "full_word"),
-      fromChapter(9),
+      monthsOn(3),
     ),
   },
   {
     id: "moltke",
     who: "deu_moltke",
-    from: 6,
-    to: 8,
+    from: 0,
+    to: 2,
     temper: "anxious",
     key: "k_moltke_memo",
     promise: "moltke_memo_read",
     chapters: 3,
-    keep: any(seen("deu_w_peace_memo"), fromChapter(10)),
+    keep: any(seen("deu_w_peace_memo"), monthsOn(4)),
   },
   {
     id: "lich",
     who: "deu_lichnowsky",
-    from: 6,
-    to: 9,
+    from: 0,
+    to: 3,
     temper: "arrogant",
     key: "k_lich_angola",
     promise: "lich_peace_read",
     chapters: 2,
-    keep: any(seen("deu_w_peace_novelle"), fromChapter(9)),
+    keep: any(seen("deu_w_peace_novelle"), monthsOn(3)),
   },
   {
     id: "delb",
     who: "deu_delbruck",
-    from: 7,
-    to: 10,
+    from: 1,
+    to: 4,
     temper: "cold",
     key: "k_delb_alsace",
     promise: "delb_grain_bill",
     chapters: 2,
-    keep: fromChapter(10),
+    keep: monthsOn(4),
   },
   {
     id: "kuhn",
     who: "deu_kuhn",
-    from: 6,
-    to: 10,
+    from: 0,
+    to: 4,
     temper: "stubborn",
     key: "k_kuhn_ledger",
     promise: "kuhn_ledger_word",
     chapters: 2,
-    keep: fromChapter(9),
+    keep: monthsOn(3),
   },
   {
     id: "haase",
     who: "deu_haase",
-    from: 6,
-    to: 6,
+    from: 0,
+    to: 0,
     temper: "stubborn",
     key: "k_haase_congress",
     promise: "haase_no_police",
@@ -408,42 +439,42 @@ const TALKS: readonly PeaceTalk[] = [
     keep: any(
       chose("deu_w_peace_congress", "let_be"),
       chose("deu_w_peace_congress", "greet"),
-      fromChapter(8),
+      monthsOn(2),
     ),
     when: any(memory("k_haase_met"), memory("k_delb_bridge")),
   },
   {
     id: "pour",
     who: "deu_pourtales",
-    from: 7,
-    to: 10,
+    from: 1,
+    to: 4,
     temper: "weary",
     key: "k_pour_trade",
     promise: "pour_numbers",
     chapters: 2,
-    keep: fromChapter(10),
+    keep: monthsOn(4),
   },
   {
     id: "tsch",
     who: "deu_tschirschky",
-    from: 8,
-    to: 10,
+    from: 2,
+    to: 4,
     temper: "cold",
     key: "k_tsch_bill",
     promise: "tsch_line",
     chapters: 2,
-    keep: any(chose("deu_w_peace_vienna", "read_bill"), fromChapter(11)),
+    keep: any(chose("deu_w_peace_vienna", "read_bill"), monthsOn(5)),
   },
   {
     id: "heir",
     who: "deu_heir",
-    from: 6,
-    to: 7,
+    from: 0,
+    to: 1,
     temper: "arrogant",
     key: "k_heir_manoeuvre",
     promise: "heir_behave",
     chapters: 2,
-    keep: fromChapter(9),
+    keep: monthsOn(3),
   },
 ];
 
@@ -460,9 +491,8 @@ function peaceTalk(t: PeaceTalk): GwScene {
     id: `deu_t_${t.id}_peace`,
     nation: ["DEU"],
     kind: "talk",
-    stage: ["y1914"],
     when: all(
-      chapter(t.from, t.to),
+      peaceMonths(t.from, t.to),
       peace,
       ...(t.when === undefined ? [] : [t.when]),
     ),

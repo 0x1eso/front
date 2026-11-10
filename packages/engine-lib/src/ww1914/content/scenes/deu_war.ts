@@ -565,11 +565,9 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     nation: ["DEU"],
     kind: "ledger",
     stage: ["closing"],
-    when: {
-      kind: "chapter",
-      min: 11,
-      max: 11,
-    },
+    // The 1914 row's close, on New Year's Day 1915 (a calendar fact: every
+    // longer row closes in another month; deu_k_closing is theirs).
+    when: { kind: "world", of: { is: "month", of: [1] } },
     cast: {
       chancellor: {
         office: "chancellor",
@@ -3997,25 +3995,11 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     id: "deu_w_peace_spark",
     nation: ["DEU"],
     kind: "crisis",
-    stage: ["y1914"],
+    // A second spark within months of a crisis that closed without a war.
     when: {
       kind: "all",
       of: [
-        {
-          kind: "not",
-          of: {
-            kind: "all",
-            of: [
-              { kind: "opening", of: ["sarajevo_delayed"] },
-              { kind: "chapter", max: 6 },
-            ],
-          },
-        },
-        {
-          kind: "chapter",
-          min: 6,
-          max: 10,
-        },
+        { kind: "world", of: { is: "peace_months", max: 4 } },
         {
           kind: "all",
           of: [
@@ -4478,15 +4462,13 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     id: "deu_w_christmas",
     nation: ["DEU"],
     kind: "report",
-    stage: ["y1914", "closing"],
+    stage: ["y1914", "war", "closing"],
+    // The first war Christmas, reported at the new year (a calendar scene).
     when: {
       kind: "all",
       of: [
-        {
-          kind: "chapter",
-          min: 11,
-          max: 11,
-        },
+        { kind: "world", of: { is: "month", of: [1] } },
+        { kind: "world", of: { is: "war_months", own: true, min: 3, max: 6 } },
         {
           kind: "all",
           of: [
@@ -8847,11 +8829,19 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     id: "deu_t_hind_letter",
     nation: ["DEU"],
     kind: "talk",
-    stage: ["crisis", "y1914"],
+    // Before the war, while a crisis runs, or in its first weeks.
     when: {
-      kind: "chapter",
-      min: 0,
-      max: 6,
+      kind: "all",
+      of: [
+        {
+          kind: "any",
+          of: [
+            { kind: "world", of: { is: "chain" } },
+            { kind: "world", of: { is: "war_months", own: true, max: 0 } },
+          ],
+        },
+        { kind: "not", of: { kind: "in_office", who: { role: "who" } } },
+      ],
     },
     cast: {
       who: {
@@ -9107,11 +9097,13 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     id: "deu_t_hind_masuria",
     nation: ["DEU"],
     kind: "talk",
-    stage: ["crisis", "y1914"],
+    // Before the war, while a crisis runs, or in its first weeks.
     when: {
-      kind: "chapter",
-      min: 2,
-      max: 6,
+      kind: "any",
+      of: [
+        { kind: "world", of: { is: "chain" } },
+        { kind: "world", of: { is: "war_months", own: true, max: 0 } },
+      ],
     },
     cast: {
       who: {
@@ -12817,11 +12809,13 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     id: "deu_t_tirp_britain",
     nation: ["DEU"],
     kind: "talk",
-    stage: ["crisis", "y1914"],
+    // Before the war, while a crisis runs, or in its first weeks.
     when: {
-      kind: "chapter",
-      min: 1,
-      max: 8,
+      kind: "any",
+      of: [
+        { kind: "world", of: { is: "chain" } },
+        { kind: "world", of: { is: "war_months", own: true, max: 2 } },
+      ],
     },
     cast: {
       who: {
