@@ -50,7 +50,14 @@ const NOT_CENTRAL = everyone.filter((t) => !CENTRAL_SEATS.includes(t));
 const side = (...of: string[]) => w({ is: "side", of });
 const central = side("central");
 const entente = side("entente");
-const dated = (from: string, to: string) => w({ is: "date", from, to });
+/** Whole months of war; `own`: since the seat's country came in (ww170). */
+const months = (min?: number, max?: number) =>
+  w({ is: "war_months", min, max });
+const ownMonths = (min?: number, max?: number) =>
+  w({ is: "war_months", own: true, min, max });
+/** Chapters since a country came in. */
+const inWar = (tag: GwTag, min?: number, max?: number) =>
+  w({ is: "in_war", tag, min, max });
 const neutral = (tag: GwTag) => w({ is: "neutral", tag });
 const entered = (tag: GwTag) => w({ is: "entered", tag });
 const out = (tag: GwTag) => w({ is: "out", tag });
@@ -73,7 +80,6 @@ const ARMISTICE = w({ is: "armistice" });
 const COMPROMISE = w({ is: "armistice", of: ["compromise"] });
 const WON = w({ is: "peace_side", of: ["won"] });
 const LOST = w({ is: "peace_side", of: ["lost"] });
-const CLOSING: GwCond = { kind: "stage", stage: "closing" };
 
 const fm: GwCastRule = { any_of: [{ office: "foreign" }, { favourite: true }] };
 const cos: GwCastRule = {
@@ -181,8 +187,7 @@ const STRAIGHT = candid(who);
 
 interface TalkOpts {
   nation?: GwTag[];
-  from: string;
-  to: string;
+  /** The state the visit needs; months of war stand for how far on it is. */
   when: GwCond[];
   salience: number;
   tags?: GwScene["tags"];
@@ -201,7 +206,7 @@ function talk(id: string, person: string, o: TalkOpts): GwScene {
       (t) => t !== person.slice(0, 3).toUpperCase(),
     ),
     kind: "talk",
-    when: all(dated(o.from, o.to), not(ARMISTICE), ...o.when),
+    when: all(not(ARMISTICE), ...o.when),
     cast: { who: { person } },
     salience: o.salience,
     tags: o.tags ?? ["foreign"],
@@ -244,9 +249,7 @@ const houseCliff = learn(
 
 const AMERICA: readonly GwScene[] = [
   talk("gw_f_house_visit", "usa_house", {
-    from: "1915-01",
-    to: "1916-06",
-    when: [neutral("USA"), BIG_WAR],
+    when: [neutral("USA"), BIG_WAR, months(5)],
     salience: 7,
     tags: ["foreign", "tension_down"],
     nodes: {
@@ -288,9 +291,7 @@ const AMERICA: readonly GwScene[] = [
     },
   }),
   talk("gw_f_house_second", "usa_house", {
-    from: "1916-01",
-    to: "1917-06",
-    when: [seen("gw_f_house_visit"), neutral("USA"), BIG_WAR],
+    when: [seen("gw_f_house_visit"), neutral("USA"), BIG_WAR, months(14)],
     salience: 7,
     tags: ["foreign", "tension_down"],
     nodes: {
@@ -328,9 +329,7 @@ const AMERICA: readonly GwScene[] = [
     },
   }),
   talk("gw_f_wilson_note", "usa_wilson", {
-    from: "1918-01",
-    to: "1918-12",
-    when: [any(USA_IN, america(70))],
+    when: [any(USA_IN, america(70)), months(36)],
     salience: 7,
     nodes: {
       open: n(
@@ -372,9 +371,7 @@ const AMERICA: readonly GwScene[] = [
     },
   }),
   talk("gw_f_lansing_law", "usa_lansing", {
-    from: "1915-07",
-    to: "1916-12",
-    when: [neutral("USA"), BIG_WAR, any(atGbr, seatGbr)],
+    when: [neutral("USA"), BIG_WAR, any(atGbr, seatGbr), months(11)],
     salience: 4,
     variants: [v("seat", seatGbr), v("base")],
     nodes: {
@@ -410,9 +407,7 @@ const AMERICA: readonly GwScene[] = [
     },
   }),
   talk("gw_f_bryan_goes", "usa_bryan", {
-    from: "1915-01",
-    to: "1915-07",
-    when: [flagged("w_liner_sunk"), neutral("USA")],
+    when: [flagged("w_liner_sunk"), neutral("USA"), months(5, 17)],
     salience: 4,
     tags: ["foreign", "tension_down"],
     variants: [v("central", central), v("base")],
@@ -443,12 +438,10 @@ const AMERICA: readonly GwScene[] = [
   }),
   talk("gw_f_pershing_no", "usa_pershing", {
     nation: ENTENTE_SEATS,
-    from: "1917-07",
-    to: "1918-06",
-    when: [USA_IN, entente],
+    when: [USA_IN, entente, inWar("USA", 0, 12)],
     salience: 5,
     tags: ["war"],
-    variants: [v("late", dated("1918-01", "1918-06")), v("base")],
+    variants: [v("late", inWar("USA", 6)), v("base")],
     nodes: {
       open: n(
         [["stubborn", mood("stubborn")], "base"],
@@ -483,18 +476,12 @@ const AMERICA: readonly GwScene[] = [
 
 const GO_BETWEENS: readonly GwScene[] = [
   talk("gw_f_benedict_letter", "vat_benedict", {
-    from: "1915-01",
-    to: "1917-12",
-    when: [BIG_WAR],
+    when: [BIG_WAR, months(5)],
     salience: 5,
     tags: ["foreign", "tension_down"],
     nodes: {
       open: n(
-        [
-          ["late", dated("1917-01", "1917-12")],
-          ["weary", mood("weary")],
-          "base",
-        ],
+        [["late", months(24)], ["weary", mood("weary")], "base"],
         ask("line", "frank", "line", { gain: [key("k_benedict_line")] }),
         push("sides", "cold", "sides", {
           effects: [trustOf(who, -1)],
@@ -520,9 +507,7 @@ const GO_BETWEENS: readonly GwScene[] = [
     },
   }),
   talk("gw_f_alfonso_office", "esp_alfonso", {
-    from: "1915-01",
-    to: "1918-06",
-    when: [BIG_WAR],
+    when: [BIG_WAR, months(5)],
     salience: 5,
     tags: ["foreign", "tension_down"],
     cooldown: 16,
@@ -556,9 +541,7 @@ const GO_BETWEENS: readonly GwScene[] = [
     },
   }),
   talk("gw_f_ador_lists", "che_ador", {
-    from: "1915-01",
-    to: "1918-06",
-    when: [BIG_WAR],
+    when: [BIG_WAR, months(5)],
     salience: 5,
     tags: ["foreign", "tension_down"],
     cooldown: 16,
@@ -590,9 +573,7 @@ const GO_BETWEENS: readonly GwScene[] = [
     },
   }),
   talk("gw_f_andersen_cousins", "dnk_andersen", {
-    from: "1915-01",
-    to: "1916-12",
-    when: [BIG_WAR, not(seen("deu_v2_andersen_call"))],
+    when: [BIG_WAR, not(seen("deu_v2_andersen_call")), months(5)],
     salience: 5,
     tags: ["foreign", "tension_down"],
     variants: [v("central", central), v("base")],
@@ -618,12 +599,10 @@ const GO_BETWEENS: readonly GwScene[] = [
 const FRANCE: readonly GwScene[] = [
   talk("gw_f_joffre_plan", "fra_joffre", {
     nation: ENTENTE_SEATS,
-    from: "1915-01",
-    to: "1916-12",
-    when: [entente, not(out("FRA"))],
+    when: [entente, not(out("FRA")), ownMonths(5, 29)],
     salience: 5,
     tags: ["war"],
-    variants: [v("late", dated("1916-01", "1916-12")), v("base")],
+    variants: [v("late", ownMonths(17)), v("base")],
     nodes: {
       open: n(
         [["cold", mood("cold")], "base"],
@@ -646,24 +625,27 @@ const FRANCE: readonly GwScene[] = [
   }),
   talk("gw_f_foch_unity", "fra_foch", {
     nation: ENTENTE_SEATS,
-    from: "1917-07",
-    to: "1918-06",
+    // One command comes out of a breach in the west, late in a long war.
     when: [
       entente,
       not(out("FRA")),
-      any(
-        w({
-          is: "battle",
-          theatre: "west",
-          of: ["break", "advance"],
-          by: "foe",
-        }),
-        dated("1918-03", "1918-06"),
-      ),
+      months(30),
+      w({
+        is: "battle",
+        theatre: "west",
+        of: ["break", "advance"],
+        by: "foe",
+      }),
     ],
     salience: 6,
     tags: ["war"],
-    variants: [v("spring", dated("1918-03", "1918-06")), v("base")],
+    variants: [
+      v(
+        "spring",
+        w({ is: "battle", theatre: "west", of: ["break"], by: "foe" }),
+      ),
+      v("base"),
+    ],
     nodes: {
       open: n(
         [
@@ -695,13 +677,13 @@ const FRANCE: readonly GwScene[] = [
     },
   }),
   talk("gw_f_clemenceau_tiger", "fra_clemenceau", {
-    from: "1917-07",
-    to: "1918-12",
+    // The Tiger: France's morale at the bottom, or his cabinet already in.
     when: [
       not(out("FRA")),
+      months(30),
       any(
         { kind: "nation_gauge", tag: "FRA", gauge: "morale", max: 2 },
-        dated("1917-11", "1918-12"),
+        w({ is: "regime", tag: "FRA", of: ["fra_tiger"] }),
       ),
     ],
     salience: 6,
@@ -751,9 +733,7 @@ const treatyDead = learn(
 
 const PRICES: readonly GwScene[] = [
   talk("gw_f_sonnino_bill", "ita_sonnino", {
-    from: "1914-11",
-    to: "1915-05",
-    when: [neutral("ITA"), BIG_WAR],
+    when: [neutral("ITA"), BIG_WAR, months(3)],
     salience: 6,
     nodes: {
       open: n(
@@ -789,9 +769,7 @@ const PRICES: readonly GwScene[] = [
     },
   }),
   talk("gw_f_giolitti_word", "ita_giolitti", {
-    from: "1914-10",
-    to: "1915-05",
-    when: [neutral("ITA"), BIG_WAR],
+    when: [neutral("ITA"), BIG_WAR, months(2)],
     salience: 5,
     variants: [v("central", central), v("base")],
     nodes: {
@@ -849,8 +827,6 @@ const PRICES: readonly GwScene[] = [
     },
   }),
   talk("gw_f_talat_hedge", "ott_talat", {
-    from: "1914-08",
-    to: "1915-06",
     when: [neutral("OTT"), BIG_WAR],
     salience: 5,
     variants: [v("central", central), v("base")],
@@ -875,10 +851,9 @@ const PRICES: readonly GwScene[] = [
     },
   }),
   talk("gw_f_talat_late", "ott_talat", {
-    from: "1917-01",
-    to: "1918-06",
     when: [
       entered("OTT"),
+      inWar("OTT", 24),
       not(out("OTT")),
       any(all(central, score(undefined, -15)), all(entente, score(15))),
     ],
@@ -903,16 +878,20 @@ const PRICES: readonly GwScene[] = [
     },
   }),
   talk("gw_f_venizelos_call", "grc_venizelos", {
-    from: "1915-01",
-    to: "1916-12",
-    when: [neutral("GRC"), BIG_WAR],
+    when: [neutral("GRC"), BIG_WAR, months(5)],
     salience: 5,
     variants: [v("central", central), v("base")],
     nodes: {
       open: n(
         [
           ["heard_king", memory("k_constantine_no")],
-          ["thessaloniki", dated("1916-09", "1916-12")],
+          [
+            "thessaloniki",
+            all(
+              months(24),
+              any(seen("gw_o_grc_schism"), flagged("w_serbia_fallen")),
+            ),
+          ],
           ["stubborn", mood("stubborn")],
           "base",
         ],
@@ -932,9 +911,7 @@ const PRICES: readonly GwScene[] = [
     },
   }),
   talk("gw_f_constantine_no", "grc_constantine", {
-    from: "1915-01",
-    to: "1916-12",
-    when: [neutral("GRC"), BIG_WAR],
+    when: [neutral("GRC"), BIG_WAR, months(5)],
     salience: 5,
     variants: [v("central", central), v("base")],
     nodes: {
@@ -967,9 +944,7 @@ const PRICES: readonly GwScene[] = [
     },
   }),
   talk("gw_f_ferdinand_bargain", "bgr_ferdinand", {
-    from: "1915-01",
-    to: "1915-12",
-    when: [neutral("BGR"), BIG_WAR],
+    when: [neutral("BGR"), BIG_WAR, months(5)],
     salience: 6,
     nodes: {
       open: n(
@@ -1009,9 +984,7 @@ const PRICES: readonly GwScene[] = [
     },
   }),
   talk("gw_f_bratianu_maps", "rou_bratianu", {
-    from: "1915-01",
-    to: "1916-06",
-    when: [neutral("ROU"), BIG_WAR],
+    when: [neutral("ROU"), BIG_WAR, months(5)],
     salience: 6,
     nodes: {
       open: n(
@@ -1058,11 +1031,9 @@ const PRICES: readonly GwScene[] = [
   }),
   talk("gw_f_marie_letter", "rou_marie", {
     nation: ENTENTE_SEATS,
-    from: "1915-07",
-    to: "1916-12",
-    when: [neutral("ROU"), entente],
+    when: [neutral("ROU"), entente, ownMonths(11)],
     salience: 5,
-    variants: [v("late", dated("1916-03", "1916-12")), v("base")],
+    variants: [v("late", months(19)), v("base")],
     nodes: {
       open: n(
         [
@@ -1097,9 +1068,7 @@ const chinaList = learn(
 
 const SMALL_KINGS: readonly GwScene[] = [
   talk("gw_f_small_kings_albert", "bel_albert", {
-    from: "1915-01",
-    to: "1918-06",
-    when: [BIG_WAR, entered("BEL"), not(out("DEU"))],
+    when: [BIG_WAR, entered("BEL"), not(out("DEU")), months(5)],
     salience: 5,
     nodes: {
       open: n(
@@ -1122,9 +1091,7 @@ const SMALL_KINGS: readonly GwScene[] = [
   }),
   talk("gw_f_small_kings_pasic", "srb_pasic", {
     nation: NOT_CENTRAL,
-    from: "1915-01",
-    to: "1918-06",
-    when: [not(central), BIG_WAR],
+    when: [not(central), BIG_WAR, months(5)],
     salience: 5,
     variants: [v("corfu", flagged("w_serbia_fallen")), v("base")],
     nodes: {
@@ -1158,9 +1125,7 @@ const SMALL_KINGS: readonly GwScene[] = [
   }),
   talk("gw_f_small_kings_kato", "jpn_kato", {
     nation: NOT_CENTRAL,
-    from: "1914-11",
-    to: "1915-08",
-    when: [not(central), entered("JPN")],
+    when: [not(central), entered("JPN"), inWar("JPN", 2, 10)],
     salience: 5,
     variants: [v("entente", entente), v("base")],
     nodes: {
@@ -1188,11 +1153,9 @@ const SMALL_KINGS: readonly GwScene[] = [
   }),
   talk("gw_f_small_kings_hussein", "ott_hussein", {
     nation: ENTENTE_SEATS,
-    from: "1915-07",
-    to: "1916-12",
-    when: [entente, { kind: "at_war", tag: "OTT" }],
+    when: [entente, { kind: "at_war", tag: "OTT" }, ownMonths(11)],
     salience: 5,
-    variants: [v("risen", dated("1916-06", "1916-12")), v("base")],
+    variants: [v("risen", months(22)), v("base")],
     nodes: {
       open: n(
         [["stubborn", mood("stubborn")], ["cunning", mood("cunning")], "base"],
@@ -1210,11 +1173,18 @@ const SMALL_KINGS: readonly GwScene[] = [
   }),
   talk("gw_f_small_kings_enver", "ott_enver", {
     nation: CENTRAL_SEATS,
-    from: "1915-01",
-    to: "1918-06",
-    when: [central, entered("OTT"), not(out("OTT"))],
+    when: [central, entered("OTT"), not(out("OTT")), ownMonths(5)],
     salience: 5,
-    variants: [v("late", dated("1917-01", "1918-06")), v("base")],
+    variants: [
+      v(
+        "late",
+        any(
+          out("RUS"),
+          w({ is: "regime", tag: "RUS", of: ["provisional", "rep", "soviet"] }),
+        ),
+      ),
+      v("base"),
+    ],
     nodes: {
       open: n(
         [
@@ -1257,7 +1227,10 @@ const STOPPED: GwVariant[] = [
 ];
 
 /** After the conference opens: each of these waits for the seat at the table. */
-const AT_THE_TABLE = all(ARMISTICE, any(seen("gw_e_conference_seat"), CLOSING));
+const AT_THE_TABLE = all(
+  ARMISTICE,
+  any(seen("gw_e_conference_seat"), seen("gw_e_terms_read")),
+);
 
 const opt = (
   id: string,
@@ -1538,10 +1511,7 @@ const END: readonly GwScene[] = [
     id: "gw_e_new_nations",
     nation: everyone,
     kind: "report",
-    when: any(
-      ARMISTICE,
-      all(dated("1917-01", "1918-12"), any(out("AUH"), out("RUS"))),
-    ),
+    when: any(ARMISTICE, out("AUH"), out("RUS")),
     cast: {},
     salience: 6,
     tags: ["foreign"],
@@ -1561,18 +1531,14 @@ const END: readonly GwScene[] = [
     id: "gw_e_prisoners_home",
     nation: everyone,
     kind: "report",
-    when: any(ARMISTICE, all(dated("1917-06", "1918-12"), out("RUS"))),
+    when: any(ARMISTICE, out("RUS")),
     cast: {},
     salience: 5,
     tags: ["home", "tension_down"],
     once: true,
     stamp: "confirmed",
     source: "press",
-    variants: [
-      v("east", not(ARMISTICE)),
-      v("long", dated("1917-07", "1919-12")),
-      v("base"),
-    ],
+    variants: [v("east", not(ARMISTICE)), v("long", months(35)), v("base")],
   },
   decision(
     "gw_e_demobilise",

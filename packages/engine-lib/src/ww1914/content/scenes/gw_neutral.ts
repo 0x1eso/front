@@ -56,7 +56,16 @@ const noFra = (tags: GwTag[]): GwTag[] => tags.filter((t) => t !== "FRA");
 const seatIs = (tag: GwTag) =>
   w({ is: "regime", of: [...(REGIMES[tag] ?? [])] });
 
+/** Calendar only: a fixed day of the year (the US election). */
 const dated = (from: string, to: string) => w({ is: "date", from, to });
+/** Whole months of war; `own`: since the seat's country came in (ww170). */
+const months = (min?: number, max?: number) =>
+  w({ is: "war_months", min, max });
+const ownMonths = (min?: number, max?: number) =>
+  w({ is: "war_months", own: true, min, max });
+/** Chapters since a country came in: news of an entry is fresh. */
+const inWar = (tag: GwTag, min?: number, max?: number) =>
+  w({ is: "in_war", tag, min, max });
 const neutral = (tag: GwTag) => w({ is: "neutral", tag });
 const entered = (tag: GwTag, side?: GwSide) =>
   w(side === undefined ? { is: "entered", tag } : { is: "entered", tag, side });
@@ -147,12 +156,10 @@ const opt = (
 const v = (id: string, when?: GwCond): GwVariant =>
   when === undefined ? { id } : { id, when };
 
-/** A decision: once a game, inside its dates, the first option by default. */
+/** A decision: once a game, when its state holds, the first option by default. */
 function decision(
   id: string,
   nation: GwTag[],
-  from: string,
-  to: string,
   when: GwCond[],
   cast: GwScene["cast"],
   salience: number,
@@ -164,7 +171,7 @@ function decision(
     id,
     nation,
     kind: "proposal",
-    when: all(dated(from, to), ...when),
+    when: all(...when),
     cast,
     salience,
     tags,
@@ -189,8 +196,6 @@ function again(scene: GwScene, fresh: GwCond, cooldown: number): GwScene {
 /** Read only: what reached every desk, stamped. */
 function report(
   id: string,
-  from: string,
-  to: string,
   when: GwCond[],
   salience: number,
   tags: GwScene["tags"],
@@ -202,7 +207,7 @@ function report(
     id,
     nation: everyone,
     kind: "report",
-    when: all(dated(from, to), ...when),
+    when: all(...when),
     cast: {},
     salience,
     tags,
@@ -217,9 +222,7 @@ const ITALY: GwScene[] = [
   decision(
     "gw_o_ita_asks",
     everyone,
-    "1914-11",
-    "1915-05",
-    [neutral("ITA"), war],
+    [months(3), neutral("ITA"), war],
     { fm },
     8,
     ["foreign"],
@@ -258,15 +261,13 @@ const ITALY: GwScene[] = [
     decision(
       "gw_o_ita_trentino",
       CENTRAL,
-      "1915-01",
-      "1915-05",
-      [neutral("ITA"), central],
+      [ownMonths(5), neutral("ITA"), central],
       { fm },
       8,
       ["foreign"],
       [
         v("vienna_seat", all(seatIs("AUH"), neutral("ITA"))),
-        v("late", dated("1915-04", "1915-05")),
+        v("late", ownMonths(8)),
         v("base"),
       ],
       [
@@ -292,18 +293,13 @@ const ITALY: GwScene[] = [
         ),
       ],
     ),
-    all(
-      dated("1915-04", "1915-05"),
-      not(chose("gw_o_ita_trentino", "press_vienna")),
-    ),
+    all(ownMonths(8), not(chose("gw_o_ita_trentino", "press_vienna"))),
     3,
   ),
   decision(
     "gw_o_ita_london",
     noFra(ENTENTE),
-    "1915-02",
-    "1915-05",
-    [neutral("ITA"), entente],
+    [months(6), neutral("ITA"), entente],
     { fm },
     8,
     ["foreign"],
@@ -338,9 +334,7 @@ const ITALY: GwScene[] = [
   ),
   report(
     "gw_o_ita_square",
-    "1915-04",
-    "1915-06",
-    [neutral("ITA")],
+    [months(7, 12), neutral("ITA")],
     6,
     ["foreign", "tension_up"],
     "unconfirmed",
@@ -349,9 +343,7 @@ const ITALY: GwScene[] = [
   ),
   report(
     "gw_o_ita_in",
-    "1915-01",
-    "1915-12",
-    [entered("ITA")],
+    [inWar("ITA", 0, 3), entered("ITA")],
     8,
     ["foreign", "tension_up"],
     "confirmed",
@@ -373,9 +365,7 @@ const ITALY: GwScene[] = [
   ),
   report(
     "gw_o_ita_stays",
-    "1915-09",
-    "1916-06",
-    [neutral("ITA"), w({ is: "offered", tag: "ITA", max: 2 })],
+    [months(13), neutral("ITA"), w({ is: "offered", tag: "ITA", max: 2 })],
     6,
     ["foreign", "tension_down"],
     "confirmed",
@@ -388,9 +378,7 @@ const OTTOMAN: GwScene[] = [
   decision(
     "gw_o_ott_ships",
     ["GBR", "DEU"],
-    "1914-07",
-    "1914-10",
-    [neutral("OTT"), any(war, { kind: "temp", min: 5 })],
+    [neutral("OTT"), any(months(undefined, 3), { kind: "temp", min: 5 })],
     { fm },
     8,
     ["foreign", "tension_up"],
@@ -449,9 +437,7 @@ const OTTOMAN: GwScene[] = [
   decision(
     "gw_o_ott_price",
     everyone,
-    "1914-08",
-    "1914-12",
-    [neutral("OTT"), any(fighting, dated("1914-10", "1914-12"))],
+    [months(undefined, 5), neutral("OTT"), any(fighting, months(2))],
     { fm },
     7,
     ["foreign"],
@@ -484,9 +470,7 @@ const OTTOMAN: GwScene[] = [
   ),
   report(
     "gw_o_ott_in",
-    "1914-10",
-    "1915-06",
-    [entered("OTT", "central")],
+    [inWar("OTT", 0, 3), entered("OTT", "central")],
     7,
     ["foreign", "tension_up"],
     "confirmed",
@@ -500,9 +484,8 @@ const OTTOMAN: GwScene[] = [
   decision(
     "gw_o_ott_peace",
     ENTENTE,
-    "1917-07",
-    "1918-12",
     [
+      months(30),
       exists("ott_peace_feelers"),
       memory("k_talat_feelers"),
       entered("OTT", "central"),
@@ -532,9 +515,7 @@ const BULGARIA: GwScene[] = [
   decision(
     "gw_o_bgr_macedonia",
     everyone,
-    "1915-01",
-    "1915-10",
-    [neutral("BGR"), fighting],
+    [ownMonths(5), neutral("BGR"), fighting],
     { fm },
     7,
     ["foreign"],
@@ -571,9 +552,7 @@ const BULGARIA: GwScene[] = [
   ),
   report(
     "gw_o_bgr_loan",
-    "1915-01",
-    "1915-08",
-    [neutral("BGR")],
+    [months(5, 13), neutral("BGR")],
     4,
     ["foreign"],
     "unconfirmed",
@@ -582,9 +561,7 @@ const BULGARIA: GwScene[] = [
   ),
   report(
     "gw_o_bgr_in",
-    "1915-08",
-    "1916-06",
-    [entered("BGR")],
+    [inWar("BGR", 0, 3), entered("BGR")],
     7,
     ["foreign", "tension_up"],
     "confirmed",
@@ -592,11 +569,7 @@ const BULGARIA: GwScene[] = [
     [
       v(
         "after_serbia",
-        all(
-          entered("BGR", "central"),
-          w({ is: "out", tag: "SRB" }),
-          dated("1915-08", "1916-06"),
-        ),
+        all(entered("BGR", "central"), w({ is: "out", tag: "SRB" })),
       ),
       v("with_entente", entered("BGR", "entente")),
       v("central", all(entered("BGR", "central"), central)),
@@ -614,9 +587,7 @@ const ROMANIA: GwScene[] = [
   decision(
     "gw_o_rou_transylvania",
     everyone,
-    "1915-01",
-    "1916-06",
-    [neutral("ROU"), fighting],
+    [ownMonths(5), neutral("ROU"), fighting],
     { fm },
     7,
     ["foreign"],
@@ -648,9 +619,8 @@ const ROMANIA: GwScene[] = [
   decision(
     "gw_o_rou_grain",
     everyone,
-    "1915-01",
-    "1916-06",
     [
+      ownMonths(5),
       neutral("ROU"),
       fighting,
       any({ kind: "gauge", gauge: "bread", max: 2 }, entente),
@@ -680,15 +650,11 @@ const ROMANIA: GwScene[] = [
   decision(
     "gw_o_rou_moment",
     everyone,
-    "1916-03",
-    "1916-10",
     [
+      ownMonths(12),
       neutral("ROU"),
       fighting,
-      any(
-        w({ is: "battle", theatre: "east", of: ["advance", "break"] }),
-        dated("1916-06", "1916-10"),
-      ),
+      w({ is: "battle", theatre: "east", of: ["advance", "break"] }),
     ],
     { fm, cos },
     8,
@@ -721,9 +687,7 @@ const ROMANIA: GwScene[] = [
   ),
   report(
     "gw_o_rou_in",
-    "1916-05",
-    "1917-03",
-    [entered("ROU")],
+    [inWar("ROU", 0, 3), entered("ROU")],
     8,
     ["foreign", "tension_up"],
     "confirmed",
@@ -737,8 +701,6 @@ const ROMANIA: GwScene[] = [
   ),
   report(
     "gw_o_rou_falls",
-    "1916-09",
-    "1917-08",
     [entered("ROU", "entente"), w({ is: "out", tag: "ROU" })],
     6,
     ["foreign"],
@@ -762,9 +724,11 @@ const GREECE: GwScene[] = [
   decision(
     "gw_o_grc_salonika",
     noFra(ENTENTE),
-    "1915-08",
-    "1916-03",
-    [entente, any(flag("w_serbia_fallen"), entered("BGR", "central"))],
+    [
+      neutral("GRC"),
+      entente,
+      any(flag("w_serbia_fallen"), entered("BGR", "central")),
+    ],
     { fm, cos },
     7,
     ["foreign", "tension_up"],
@@ -805,9 +769,7 @@ const GREECE: GwScene[] = [
   decision(
     "gw_o_grc_king",
     everyone,
-    "1915-03",
-    "1916-10",
-    [neutral("GRC"), fighting],
+    [ownMonths(7), neutral("GRC"), fighting],
     { fm },
     6,
     ["foreign"],
@@ -845,9 +807,11 @@ const GREECE: GwScene[] = [
   ),
   report(
     "gw_o_grc_schism",
-    "1916-08",
-    "1917-03",
-    [neutral("GRC")],
+    [
+      months(20),
+      any(flag("w_serbia_fallen"), entered("BGR", "central")),
+      neutral("GRC"),
+    ],
     5,
     ["foreign"],
     "unconfirmed",
@@ -860,9 +824,7 @@ const GREECE: GwScene[] = [
   ),
   report(
     "gw_o_grc_in",
-    "1917-03",
-    "1917-12",
-    [entered("GRC", "entente")],
+    [inWar("GRC", 0, 3), entered("GRC", "entente")],
     5,
     ["foreign", "tension_up"],
     "confirmed",
@@ -878,9 +840,7 @@ const GREECE: GwScene[] = [
 const JAPAN: GwScene[] = [
   report(
     "gw_o_jpn_tsingtao",
-    "1914-08",
-    "1914-12",
-    [entered("JPN")],
+    [inWar("JPN", 0, 4), entered("JPN")],
     6,
     ["foreign", "tension_up"],
     "confirmed",
@@ -890,9 +850,7 @@ const JAPAN: GwScene[] = [
   decision(
     "gw_o_jpn_list",
     everyone,
-    "1915-01",
-    "1915-06",
-    [entered("JPN", "entente"), fighting],
+    [inWar("JPN", 3), entered("JPN", "entente"), fighting],
     { fm },
     5,
     ["foreign"],
@@ -926,8 +884,6 @@ const JAPAN: GwScene[] = [
   decision(
     "gw_o_jpn_ships",
     ENTENTE,
-    "1917-01",
-    "1917-06",
     [entered("JPN", "entente"), entente, w({ is: "uboat", min: 2 })],
     { fm },
     5,
@@ -960,15 +916,18 @@ const AMERICA: GwScene[] = [
     decision(
       "gw_o_usa_loans",
       everyone,
-      "1915-01",
-      "1917-03",
-      [neutral("USA"), fighting, { kind: "gauge", gauge: "money", max: 2 }],
+      [
+        ownMonths(5),
+        neutral("USA"),
+        fighting,
+        { kind: "gauge", gauge: "money", max: 2 },
+      ],
       { fin, fm },
       8,
       ["foreign"],
       [
         v("cliff", all(known("usa_credit_cliff"), entente, neutral("USA"))),
-        v("deep", all(entente, dated("1916-07", "1917-03"))),
+        v("deep", all(entente, ownMonths(23))),
         v("central", central),
         v("base"),
       ],
@@ -992,24 +951,18 @@ const AMERICA: GwScene[] = [
         ),
       ],
     ),
-    all(entente, dated("1916-07", "1917-03")),
+    all(entente, ownMonths(23)),
     12,
   ),
   again(
     decision(
       "gw_o_usa_arms",
       CENTRAL,
-      "1915-01",
-      "1916-06",
-      [neutral("USA"), central],
+      [ownMonths(5), neutral("USA"), central],
       { fm },
       6,
       ["foreign", "tension_up"],
-      [
-        v("liner", flag("w_liner_sunk")),
-        v("second", dated("1915-07", "1916-06")),
-        v("base"),
-      ],
+      [v("liner", flag("w_liner_sunk")), v("second", ownMonths(11)), v("base")],
       [
         opt(
           "protest",
@@ -1034,14 +987,12 @@ const AMERICA: GwScene[] = [
         ),
       ],
     ),
-    dated("1915-07", "1916-06"),
+    ownMonths(11),
     12,
   ),
   report(
     "gw_o_usa_election",
-    "1916-11",
-    "1917-01",
-    [neutral("USA")],
+    [dated("1916-11", "1917-01"), war, neutral("USA")],
     5,
     ["foreign"],
     "confirmed",
@@ -1059,9 +1010,7 @@ const SMALL: GwScene[] = [
     decision(
       "gw_o_nld_food",
       everyone,
-      "1915-01",
-      "1917-12",
-      [fighting, w({ is: "blockade", min: 2 })],
+      [ownMonths(5), fighting, w({ is: "blockade", min: 2 })],
       { fm, fin },
       5,
       ["foreign"],
@@ -1090,9 +1039,7 @@ const SMALL: GwScene[] = [
   decision(
     "gw_o_swe_iron",
     everyone,
-    "1915-01",
-    "1917-12",
-    [war, fighting],
+    [ownMonths(5), war, fighting],
     { fm },
     5,
     ["foreign"],
@@ -1114,9 +1061,7 @@ const SMALL: GwScene[] = [
   decision(
     "gw_o_che_coal",
     everyone,
-    "1915-10",
-    "1918-06",
-    [war, fighting],
+    [ownMonths(14), war, fighting],
     { fm, fin },
     4,
     ["foreign"],
@@ -1139,9 +1084,7 @@ const SMALL: GwScene[] = [
   decision(
     "gw_o_dnk_belt",
     everyone,
-    "1914-08",
-    "1915-06",
-    [any(atGbr, seatIs("GBR"))],
+    [months(undefined, 11), any(atGbr, seatIs("GBR"))],
     { fm },
     5,
     ["foreign"],
@@ -1161,9 +1104,7 @@ const SMALL: GwScene[] = [
     decision(
       "gw_o_nor_tonnage",
       everyone,
-      "1916-07",
-      "1917-12",
-      [fighting, w({ is: "shipping", min: 3 })],
+      [ownMonths(12), fighting, w({ is: "shipping", min: 3 })],
       { fm },
       5,
       ["foreign"],
@@ -1193,9 +1134,8 @@ const SMALL: GwScene[] = [
   decision(
     "gw_o_per_oil",
     everyone,
-    "1915-01",
-    "1916-12",
     [
+      ownMonths(5),
       fighting,
       any(
         w({ is: "open", theatre: "mesopotamia" }),
@@ -1215,17 +1155,6 @@ const SMALL: GwScene[] = [
       ),
       opt("pay_khans", ["money:-1"], [money(-1), why("o_per_khans")]),
     ],
-  ),
-  report(
-    "gw_o_prt_ships",
-    "1916-02",
-    "1916-06",
-    [war],
-    3,
-    ["foreign"],
-    "confirmed",
-    "press",
-    [v("central", central), v("base")],
   ),
 ];
 

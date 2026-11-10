@@ -11,7 +11,10 @@ import { GW_REGATE_PENDING_IDS } from "./RegatePending";
  * budget year). Anything seasonal should use world `month` instead, which is
  * always allowed. Add an id here with the reason beside it.
  */
-export const GW_CALENDAR_SCENES: readonly string[] = [];
+export const GW_CALENDAR_SCENES: readonly string[] = [
+  // The American presidential election of November 1916: a fixed day.
+  "gw_o_usa_election",
+];
 
 /**
  * Scenes and acts the script left for the five hand lanes, listed in

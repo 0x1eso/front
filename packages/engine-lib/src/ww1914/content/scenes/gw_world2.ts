@@ -32,6 +32,13 @@ const except = (...tags: GwTag[]): GwTag[] =>
 
 // A seat out of the war reads the base text, whatever side it left.
 const WAR = w({ is: "war" });
+/** Whole months of war; `own`: since the seat's country came in (ww170). */
+const months = (min?: number, max?: number) =>
+  w({ is: "war_months", min, max });
+const ownMonths = (min?: number, max?: number) =>
+  w({ is: "war_months", own: true, min, max });
+/** The calendar month: seasons and feasts keep their time of year. */
+const inMonth = (...of: number[]) => w({ is: "month", of });
 const CENTRAL = all(w({ is: "side", of: ["central"] }), WAR);
 const ENTENTE = all(w({ is: "side", of: ["entente"] }), WAR);
 /** The base is the neutral's: it must also hold for a seat that left the war. */
@@ -130,7 +137,10 @@ const NEWS: readonly GwScene[] = [
     nation: except("GBR"),
     when: all(
       { kind: "pressure", topic: "ireland", min: 6 },
-      date("1916-03", "1916-06"),
+      WAR,
+      months(12),
+      // Easter Monday, and the news of it.
+      inMonth(3, 4, 5),
     ),
     salience: 5,
     tags: ["foreign"],
@@ -165,7 +175,8 @@ const NEWS: readonly GwScene[] = [
     when: all(
       w({ is: "entered", tag: "GBR", side: "entente" }),
       w({ is: "entered", tag: "DEU", side: "central" }),
-      date("1916-05", "1916-08"),
+      // The fleets come out once the blockade has held a year and a half.
+      months(18),
     ),
     salience: 5,
     tags: ["war"],
@@ -334,7 +345,8 @@ const NEWS: readonly GwScene[] = [
 const WARTIME_READS: readonly GwScene[] = [
   report("gw_x_flu_spring", {
     nation: [...GW_TAGS],
-    when: date("1918-04", "1918-08"),
+    // The fever of a long war's camps and troopships, in the spring.
+    when: all(months(36), inMonth(3, 4, 5, 6)),
     salience: 6,
     tags: ["home"],
     variants: SIDES,
@@ -389,21 +401,15 @@ const WARTIME_READS: readonly GwScene[] = [
   }),
   report("gw_x_christmas", {
     nation: [...GW_TAGS],
-    when: all(
-      WAR,
-      any(
-        date("1915-12", "1915-12"),
-        date("1916-12", "1916-12"),
-        date("1917-12", "1917-12"),
-      ),
-    ),
+    // The war's second, third and fourth Christmas for the seat's own men.
+    when: all(WAR, inMonth(12), ownMonths(12, 47)),
     salience: 4,
     tags: ["war", "tension_down"],
     repeats: true,
     cooldown: 10,
     variants: [
-      { id: "y15", when: date("1915-12", "1915-12") },
-      { id: "y16", when: date("1916-12", "1916-12") },
+      { id: "y15", when: ownMonths(12, 23) },
+      { id: "y16", when: ownMonths(24, 35) },
       { id: "base" },
     ],
   }),
@@ -452,7 +458,7 @@ const WARTIME_READS: readonly GwScene[] = [
   }),
 ];
 
-const FLU_AFTER = all(ARMISTICE, date("1918-09", "1918-12"), not(WAR));
+const FLU_AFTER = all(ARMISTICE, not(WAR));
 
 const DECISIONS: readonly GwScene[] = [
   {
@@ -460,7 +466,8 @@ const DECISIONS: readonly GwScene[] = [
     nation: [...GW_TAGS],
     kind: "proposal",
     stage: ["war"],
-    when: all(WAR, date("1916-12", "1917-03")),
+    // A hard winter on railways worn by two years of war.
+    when: all(WAR, months(24), inMonth(12, 1, 2, 3)),
     cast: { fm: FM, fin: FIN },
     salience: 7,
     tags: ["home", "tension_up"],
@@ -468,11 +475,7 @@ const DECISIONS: readonly GwScene[] = [
     variants: [
       {
         id: "hungry",
-        when: all(
-          WAR,
-          { kind: "gauge", gauge: "bread", max: 1 },
-          date("1916-12", "1917-03"),
-        ),
+        when: all(WAR, { kind: "gauge", gauge: "bread", max: 1 }),
       },
       { id: "central", when: CENTRAL },
       { id: "entente", when: ENTENTE },
@@ -515,7 +518,11 @@ const DECISIONS: readonly GwScene[] = [
     nation: [...GW_TAGS],
     kind: "proposal",
     stage: ["war", "conference", "closing"],
-    when: date("1918-08", "1918-12"),
+    // The spring's fever comes back in the autumn, and this time it kills.
+    when: all(
+      any({ kind: "seen", scene: "gw_x_flu_spring" }, months(44)),
+      inMonth(8, 9, 10, 11, 12),
+    ),
     cast: { fin: FIN },
     salience: 8,
     tags: ["home", "tension_up"],
