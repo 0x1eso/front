@@ -225,7 +225,7 @@ const CROWN_THRONE: readonly GwScene[] = [
   scene({
     id: "auh_k_old_age",
     kind: "report",
-    when: all(FJ, period("15b", "16b")),
+    when: all(FJ, world({ is: "war_months", min: 11, max: 29 })),
     cast: { court: { office: "court" } },
     salience: 6,
     tags: ["people", "tension_down"],
@@ -479,7 +479,11 @@ const CROWN_THRONE: readonly GwScene[] = [
   scene({
     id: "auh_k_tisza_out",
     kind: "dispute",
-    when: all(K, holds("hun_pm", "auh_tisza"), period("17a", "17b")),
+    when: all(
+      K,
+      holds("hun_pm", "auh_tisza"),
+      world({ is: "war_months", min: 29, max: 41 }),
+    ),
     cast: { hun: { office: "hun_pm" } },
     salience: 8,
     tags: ["home", "tension_up"],
@@ -526,7 +530,7 @@ const CROWN_THRONE: readonly GwScene[] = [
     when: all(
       K,
       any(k("k_kra_prison"), chose("auh_h_kramar_verdict")),
-      period("17a", "17b"),
+      world({ is: "war_months", min: 29, max: 41 }),
     ),
     cast: {
       chancellor: { office: "chancellor" },
@@ -564,7 +568,7 @@ const CROWN_THRONE: readonly GwScene[] = [
   scene({
     id: "auh_k_reichsrat_opens",
     kind: "crisis",
-    when: all(K, war, period("17a")),
+    when: all(K, war, world({ is: "war_months", own: true, min: 29, max: 35 })),
     cast: { chancellor: { office: "chancellor" } },
     salience: 8,
     tags: ["home", "tension_up"],
@@ -603,7 +607,7 @@ const CROWN_THRONE: readonly GwScene[] = [
     kind: "proposal",
     when: all(
       { kind: "seen", scene: "auh_k_reichsrat_opens" },
-      period("17a", "17b"),
+      world({ is: "war_months", min: 29, max: 41 }),
     ),
     cast: { chancellor: { office: "chancellor" }, hun: { office: "hun_pm" } },
     salience: 7,
@@ -690,7 +694,10 @@ const CROWN_LETTER: readonly GwScene[] = [
   scene({
     id: "auh_k_bread_peace",
     kind: "crisis",
-    when: all(any(out("RUS"), k("k_cz_bread")), period("17b", "18a")),
+    when: all(
+      any(out("RUS"), k("k_cz_bread")),
+      world({ is: "war_months", min: 35, max: 47 }),
+    ),
     cast: { fm: { office: "foreign" }, hun: { office: "hun_pm" } },
     salience: 8,
     tags: ["foreign"],
@@ -734,7 +741,12 @@ const CROWN_LETTER: readonly GwScene[] = [
   scene({
     id: "auh_k_jan_strike",
     kind: "crisis",
-    when: all(K, war, gaugeAt("bread", 1), period("18a")),
+    when: all(
+      K,
+      war,
+      gaugeAt("bread", 1),
+      world({ is: "war_months", own: true, min: 41, max: 47 }),
+    ),
     cast: { chancellor: { office: "chancellor" } },
     salience: 9,
     tags: ["home", "tension_up"],
@@ -792,7 +804,12 @@ const CROWN_LETTER: readonly GwScene[] = [
   scene({
     id: "auh_k_cattaro",
     kind: "proposal",
-    when: all(K, war, unrest(1), period("18a")),
+    when: all(
+      K,
+      war,
+      unrest(1),
+      world({ is: "war_months", own: true, min: 41, max: 47 }),
+    ),
     cast: { navy: { office: "navy" } },
     salience: 7,
     tags: ["war", "tension_up"],
@@ -825,7 +842,7 @@ const CROWN_LETTER: readonly GwScene[] = [
       K,
       chose("auh_k_sixtus"),
       holds("foreign", "auh_czernin"),
-      period("18a"),
+      world({ is: "war_months", min: 41, max: 47 }),
     ),
     cast: { fm: { office: "foreign" } },
     salience: 8,
@@ -867,7 +884,7 @@ const CROWN_LETTER: readonly GwScene[] = [
       K,
       any(COPY, { kind: "seen", scene: "auh_k_czernin_speech" }),
       chose("auh_k_sixtus", "letter_alsace"),
-      period("18a", "18b"),
+      world({ is: "war_months", min: 41 }),
     ),
     cast: { fm: { office: "foreign" } },
     salience: 9,
@@ -922,7 +939,7 @@ const CROWN_LETTER: readonly GwScene[] = [
       K,
       war,
       any(DEBT2, { kind: "seen", scene: "auh_k_word_of_honour" }),
-      period("18a", "18b"),
+      world({ is: "war_months", own: true, min: 41 }),
     ),
     cast: { fm: { office: "foreign" } },
     salience: 8,
@@ -968,7 +985,7 @@ const CROWN_LETTER: readonly GwScene[] = [
   scene({
     id: "auh_k_mutinies",
     kind: "report",
-    when: all(out("RUS"), unrest(1), period("18a", "18b")),
+    when: all(out("RUS"), unrest(1), world({ is: "war_months", min: 41 })),
     cast: {},
     salience: 7,
     tags: ["war", "tension_up"],
@@ -1004,7 +1021,7 @@ const CROWN_END: readonly GwScene[] = [
     when: all(
       K,
       any(score({ max: -15 }), nationsAt({ max: -3 })),
-      period("18b"),
+      world({ is: "war_months", min: 47 }),
     ),
     cast: { chancellor: { office: "chancellor" }, hun: { office: "hun_pm" } },
     salience: 9,
@@ -1045,7 +1062,11 @@ const CROWN_END: readonly GwScene[] = [
   scene({
     id: "auh_k_wilson",
     kind: "crisis",
-    when: all(K, any(score({ max: -20 }), out("BGR")), period("18b")),
+    when: all(
+      K,
+      any(score({ max: -20 }), out("BGR")),
+      world({ is: "war_months", min: 47 }),
+    ),
     cast: { fm: { office: "foreign" } },
     salience: 9,
     tags: ["foreign", "tension_down"],
@@ -1095,7 +1116,7 @@ const CROWN_END: readonly GwScene[] = [
     when: all(
       war,
       any(score({ max: -30 }), { kind: "seen", scene: "auh_k_wilson" }),
-      period("18b"),
+      world({ is: "war_months", own: true, min: 47 }),
     ),
     cast: { cos: { office: "chief_of_staff" }, fm: { office: "foreign" } },
     salience: 9,
@@ -1179,7 +1200,7 @@ const CROWN_END: readonly GwScene[] = [
       nationsAt({ min: 1 }),
       hungaryAt({ min: -1 }),
       k("k_lam_federal"),
-      period("17a", "18b"),
+      world({ is: "war_months", min: 29 }),
     ),
     cast: { chancellor: { office: "chancellor" }, hun: { office: "hun_pm" } },
     salience: 8,
@@ -1200,7 +1221,7 @@ const CROWN_END: readonly GwScene[] = [
   scene({
     id: "auh_k_personal_union",
     kind: "crisis",
-    when: all(hungaryAt({ max: -4 }), period("17b", "18b")),
+    when: all(hungaryAt({ max: -4 }), world({ is: "war_months", min: 35 })),
     cast: { hun: { office: "hun_pm" } },
     salience: 8,
     tags: ["home", "tension_up"],
@@ -1233,7 +1254,12 @@ const CROWN_END: readonly GwScene[] = [
   scene({
     id: "auh_k_vasyl",
     kind: "proposal",
-    when: all(K, k("k_wil_vasyl"), out("RUS"), period("18a", "18b")),
+    when: all(
+      K,
+      k("k_wil_vasyl"),
+      out("RUS"),
+      world({ is: "war_months", min: 41 }),
+    ),
     cast: { fm: { office: "foreign" } },
     salience: 6,
     tags: ["foreign"],
@@ -1257,7 +1283,7 @@ const CROWN_END: readonly GwScene[] = [
   scene({
     id: "auh_k_peace_vote",
     kind: "crisis",
-    when: all(peace, period("16b", "18b")),
+    when: all(peace, world({ is: "peace_months", min: 23 })),
     cast: { hun: { office: "hun_pm" }, chancellor: { office: "chancellor" } },
     salience: 7,
     tags: ["home"],
@@ -1328,124 +1354,142 @@ const KARL_TALKS: readonly GwScene[] = [
     fold: node([bye("kind"), bye("done", "cold")]),
     bargain: node([bye("ok")]),
   }),
-  talk("auh_t_karl_teschen", "auh_karl", all(FJ, war, period("14", "15a")), {
-    open: node(
-      [
-        r("ask", "frank", "ask", "hq", {
-          reacts: [rx(T("anxious"), "hq", well())],
-        }),
-        r("praise", "flatter", "ask", "polite", { miss: "polite" }),
-        r("report", "warm", "deal", "direct", {
-          tell: ["court:-1"],
-          effects: [
-            { kind: "person_trust", who: { office: "court" }, delta: -1 },
-            setFlag("f_auh_karl_reports"),
-          ],
-        }),
-        bye(),
-      ],
-      v("ff", ffAlive),
-    ),
-    hq: node(
-      [
-        r("conrad", "cold", "ask", "con", {
-          reacts: [rx(T("stubborn"), "con", well())],
-        }),
-        r("distance", "frank", "ask", "far"),
-        bye(),
-      ],
-      v("stub", T("stubborn")),
-      v("anx", T("anxious")),
-    ),
-    polite: node([r("really", "frank", "ask", "hq"), bye("fine", "cold")]),
-    direct: node([bye("good")]),
-    con: node([bye("thanks"), bye("careful", "cold")]),
-    far: node([bye("noted"), bye("hush", "cold")]),
-  }),
-  talk("auh_t_karl_front", "auh_karl", all(FJ, war, period("15a", "16a")), {
-    open: node(
-      [
-        r("say", "warm", "ask", "words", {
-          effects: [heard("k_karl_front")],
-        }),
-        r("numbers", "cold", "ask", "count", {
-          reacts: [rx(T("anxious"), "shaken")],
-        }),
-        r("swap", "frank", "deal", "swap_t", {
-          tell: ["audiences:-1"],
-          effects: [{ kind: "audiences", delta: -1 }, heard("k_karl_front")],
-        }),
-        bye(),
-      ],
-      v("ff", ffAlive),
-    ),
-    words: node(
-      [
-        r("peace", "frank", "ask", "peace", {
-          reacts: [rx(T("stubborn"), "peace", well())],
-        }),
-        bye("enough"),
-      ],
-      v("anx", T("anxious")),
-    ),
-    count: node([
-      r("and", "frank", "ask", "words", { effects: [heard("k_karl_front")] }),
-      bye("enough", "cold"),
-    ]),
-    shaken: node([
-      r("sit", "warm", "ask", "words", { effects: [heard("k_karl_front")] }),
-      bye("off", "cold"),
-    ]),
-    swap_t: node([bye("go")]),
-    peace: node([bye("keep"), bye("silent", "threat")], v("anx", T("anxious"))),
-  }),
-  talk("auh_t_karl_xx", "auh_karl", all(FJ, ent("ITA"), period("15b", "16a")), {
-    open: node(
-      [
-        r("why", "frank", "ask", "why"),
-        r("no", "cold", "push", "sulk", {
+  talk(
+    "auh_t_karl_teschen",
+    "auh_karl",
+    all(FJ, war, world({ is: "war_months", own: true, max: 11 })),
+    {
+      open: node(
+        [
+          r("ask", "frank", "ask", "hq", {
+            reacts: [rx(T("anxious"), "hq", well())],
+          }),
+          r("praise", "flatter", "ask", "polite", { miss: "polite" }),
+          r("report", "warm", "deal", "direct", {
+            tell: ["court:-1"],
+            effects: [
+              { kind: "person_trust", who: { office: "court" }, delta: -1 },
+              setFlag("f_auh_karl_reports"),
+            ],
+          }),
+          bye(),
+        ],
+        v("ff", ffAlive),
+      ),
+      hq: node(
+        [
+          r("conrad", "cold", "ask", "con", {
+            reacts: [rx(T("stubborn"), "con", well())],
+          }),
+          r("distance", "frank", "ask", "far"),
+          bye(),
+        ],
+        v("stub", T("stubborn")),
+        v("anx", T("anxious")),
+      ),
+      polite: node([r("really", "frank", "ask", "hq"), bye("fine", "cold")]),
+      direct: node([bye("good")]),
+      con: node([bye("thanks"), bye("careful", "cold")]),
+      far: node([bye("noted"), bye("hush", "cold")]),
+    },
+  ),
+  talk(
+    "auh_t_karl_front",
+    "auh_karl",
+    all(FJ, war, world({ is: "war_months", own: true, min: 5, max: 23 })),
+    {
+      open: node(
+        [
+          r("say", "warm", "ask", "words", {
+            effects: [heard("k_karl_front")],
+          }),
+          r("numbers", "cold", "ask", "count", {
+            reacts: [rx(T("anxious"), "shaken")],
+          }),
+          r("swap", "frank", "deal", "swap_t", {
+            tell: ["audiences:-1"],
+            effects: [{ kind: "audiences", delta: -1 }, heard("k_karl_front")],
+          }),
+          bye(),
+        ],
+        v("ff", ffAlive),
+      ),
+      words: node(
+        [
+          r("peace", "frank", "ask", "peace", {
+            reacts: [rx(T("stubborn"), "peace", well())],
+          }),
+          bye("enough"),
+        ],
+        v("anx", T("anxious")),
+      ),
+      count: node([
+        r("and", "frank", "ask", "words", { effects: [heard("k_karl_front")] }),
+        bye("enough", "cold"),
+      ]),
+      shaken: node([
+        r("sit", "warm", "ask", "words", { effects: [heard("k_karl_front")] }),
+        bye("off", "cold"),
+      ]),
+      swap_t: node([bye("go")]),
+      peace: node(
+        [bye("keep"), bye("silent", "threat")],
+        v("anx", T("anxious")),
+      ),
+    },
+  ),
+  talk(
+    "auh_t_karl_xx",
+    "auh_karl",
+    all(FJ, ent("ITA"), world({ is: "war_months", min: 11, max: 23 })),
+    {
+      open: node(
+        [
+          r("why", "frank", "ask", "why"),
+          r("no", "cold", "push", "sulk", {
+            tell: ["trust:-1"],
+            effects: [pt("p", -1)],
+            reacts: [rx(T("stubborn"), "again")],
+          }),
+          r("give", "warm", "deal", "given", {
+            tell: ["cos:-1"],
+            effects: [
+              {
+                kind: "person_trust",
+                who: { office: "chief_of_staff" },
+                delta: -1,
+              },
+              heard("k_karl_xx"),
+            ],
+          }),
+          bye(),
+        ],
+        v("stub", T("stubborn")),
+      ),
+      why: node([
+        r("ok", "warm", "ask", "given", { effects: [heard("k_karl_xx")] }),
+        r("conrad", "cold", "ask", "con"),
+        bye("later"),
+      ]),
+      sulk: node([bye("good"), bye("out", "cold")]),
+      again: node([
+        r("yield", "frank", "ask", "given", { effects: [heard("k_karl_xx")] }),
+        r("order", "threat", "push", null, {
           tell: ["trust:-1"],
           effects: [pt("p", -1)],
-          reacts: [rx(T("stubborn"), "again")],
         }),
-        r("give", "warm", "deal", "given", {
-          tell: ["cos:-1"],
-          effects: [
-            {
-              kind: "person_trust",
-              who: { office: "chief_of_staff" },
-              delta: -1,
-            },
-            heard("k_karl_xx"),
-          ],
-        }),
-        bye(),
-      ],
-      v("stub", T("stubborn")),
-    ),
-    why: node([
-      r("ok", "warm", "ask", "given", { effects: [heard("k_karl_xx")] }),
-      r("conrad", "cold", "ask", "con"),
-      bye("later"),
-    ]),
-    sulk: node([bye("good"), bye("out", "cold")]),
-    again: node([
-      r("yield", "frank", "ask", "given", { effects: [heard("k_karl_xx")] }),
-      r("order", "threat", "push", null, {
-        tell: ["trust:-1"],
-        effects: [pt("p", -1)],
-      }),
-    ]),
-    con: node([
-      r("then", "frank", "ask", "given", { effects: [heard("k_karl_xx")] }),
-      bye("drop"),
-    ]),
-    given: node([bye("go")]),
-  }),
+      ]),
+      con: node([
+        r("then", "frank", "ask", "given", { effects: [heard("k_karl_xx")] }),
+        bye("drop"),
+      ]),
+      given: node([bye("go")]),
+    },
+  ),
   talk(
     "auh_t_karl_peace",
     "auh_karl",
-    all(FJ, heirDead, period("15b", "16b")),
+    all(FJ, heirDead, world({ is: "war_months", min: 11, max: 29 })),
     {
       open: node(
         [
@@ -1485,7 +1529,7 @@ const KARL_TALKS: readonly GwScene[] = [
   talk(
     "auh_t_karl_hungary",
     "auh_karl",
-    all(any(FJ, FFT), period("16a", "16b")),
+    all(any(FJ, FFT), world({ is: "war_months", min: 17, max: 29 })),
     {
       open: node(
         [
@@ -1518,45 +1562,50 @@ const KARL_TALKS: readonly GwScene[] = [
 ];
 
 const ZITA_TALKS: readonly GwScene[] = [
-  talk("auh_t_zita_brothers", "auh_zita", period("15a", "17a"), {
-    open: node(
-      [
-        r("how", "warm", "ask", "news", {
+  talk(
+    "auh_t_zita_brothers",
+    "auh_zita",
+    world({ is: "war_months", own: true, min: 5, max: 35 }),
+    {
+      open: node(
+        [
+          r("how", "warm", "ask", "news", {
+            effects: [heard("k_zita_brothers")],
+          }),
+          r("whose", "cold", "push", "edge", {
+            tell: ["trust:-1"],
+            effects: [pt("p", -1)],
+            reacts: [rx(T("cold"), "news", heard("k_zita_brothers"))],
+          }),
+          r("post", "frank", "deal", "post", {
+            tell: ["court:-1"],
+            effects: [
+              { kind: "person_trust", who: { office: "court" }, delta: -1 },
+              heard("k_zita_brothers"),
+            ],
+          }),
+          bye(),
+        ],
+        v("k", K),
+      ),
+      news: node(
+        [r("sixtus", "frank", "ask", "six"), bye("thanks")],
+        v("cold", T("cold")),
+      ),
+      edge: node([
+        r("sorry", "warm", "ask", "news", {
           effects: [heard("k_zita_brothers")],
         }),
-        r("whose", "cold", "push", "edge", {
-          tell: ["trust:-1"],
-          effects: [pt("p", -1)],
-          reacts: [rx(T("cold"), "news", heard("k_zita_brothers"))],
-        }),
-        r("post", "frank", "deal", "post", {
-          tell: ["court:-1"],
-          effects: [
-            { kind: "person_trust", who: { office: "court" }, delta: -1 },
-            heard("k_zita_brothers"),
-          ],
-        }),
-        bye(),
-      ],
-      v("k", K),
-    ),
-    news: node(
-      [r("sixtus", "frank", "ask", "six"), bye("thanks")],
-      v("cold", T("cold")),
-    ),
-    edge: node([
-      r("sorry", "warm", "ask", "news", {
-        effects: [heard("k_zita_brothers")],
-      }),
-      bye("end", "cold"),
-    ]),
-    post: node([bye("done")]),
-    six: node([bye("careful"), bye("noted", "cold")]),
-  }),
+        bye("end", "cold"),
+      ]),
+      post: node([bye("done")]),
+      six: node([bye("careful"), bye("noted", "cold")]),
+    },
+  ),
   talk(
     "auh_t_zita_italian",
     "auh_zita",
-    all(ent("ITA"), period("15a", "16b")),
+    all(ent("ITA"), world({ is: "war_months", min: 5, max: 29 })),
     {
       open: node(
         [
@@ -1631,58 +1680,63 @@ const ZITA_TALKS: readonly GwScene[] = [
       fm: node([bye("think"), bye("hide", "cold")]),
     },
   ),
-  talk("auh_t_zita_czernin", "auh_zita", all(K, period("17a", "18a")), {
-    open: node(
-      [
-        r("trust", "frank", "ask", "judge", {
-          reacts: [
-            rx(
-              { kind: "temperament", who: czernin, of: ["anxious"] },
-              "nerves",
-              heard("k_zita_czernin"),
-            ),
-          ],
-        }),
-        r("defend", "cold", "push", "firm", {
-          tell: ["trust:-1"],
-          effects: [pt("p", -1)],
-        }),
-        r("watch", "warm", "deal", "watch", {
-          effects: [heard("k_zita_czernin"), setFlag("f_auh_zita_reads_fm")],
-        }),
-        bye(),
-      ],
-      v("out", not(holds("foreign", "auh_czernin"))),
-      v("stub", T("stubborn")),
-    ),
-    judge: node(
-      [
-        r("paris", "frank", "ask", "paris", {
-          effects: [heard("k_zita_czernin")],
-        }),
-        bye("enough"),
-      ],
-      v("vain", { kind: "temperament", who: czernin, of: ["arrogant"] }),
-      v("sly", { kind: "temperament", who: czernin, of: ["cunning"] }),
-    ),
-    nerves: node([r("paris", "frank", "ask", "paris"), bye("enough")]),
-    firm: node([r("then", "frank", "ask", "judge"), bye("end", "cold")]),
-    watch: node([bye("yes")]),
-    paris: node(
-      [
-        bye("hm"),
-        r("copy", "frank", "ask", null, {
-          when: COPY,
-          effects: [heard("k_knows_copy")],
-        }),
-      ],
-      v("copy", COPY),
-    ),
-  }),
+  talk(
+    "auh_t_zita_czernin",
+    "auh_zita",
+    all(K, world({ is: "war_months", min: 29, max: 47 })),
+    {
+      open: node(
+        [
+          r("trust", "frank", "ask", "judge", {
+            reacts: [
+              rx(
+                { kind: "temperament", who: czernin, of: ["anxious"] },
+                "nerves",
+                heard("k_zita_czernin"),
+              ),
+            ],
+          }),
+          r("defend", "cold", "push", "firm", {
+            tell: ["trust:-1"],
+            effects: [pt("p", -1)],
+          }),
+          r("watch", "warm", "deal", "watch", {
+            effects: [heard("k_zita_czernin"), setFlag("f_auh_zita_reads_fm")],
+          }),
+          bye(),
+        ],
+        v("out", not(holds("foreign", "auh_czernin"))),
+        v("stub", T("stubborn")),
+      ),
+      judge: node(
+        [
+          r("paris", "frank", "ask", "paris", {
+            effects: [heard("k_zita_czernin")],
+          }),
+          bye("enough"),
+        ],
+        v("vain", { kind: "temperament", who: czernin, of: ["arrogant"] }),
+        v("sly", { kind: "temperament", who: czernin, of: ["cunning"] }),
+      ),
+      nerves: node([r("paris", "frank", "ask", "paris"), bye("enough")]),
+      firm: node([r("then", "frank", "ask", "judge"), bye("end", "cold")]),
+      watch: node([bye("yes")]),
+      paris: node(
+        [
+          bye("hm"),
+          r("copy", "frank", "ask", null, {
+            when: COPY,
+            effects: [heard("k_knows_copy")],
+          }),
+        ],
+        v("copy", COPY),
+      ),
+    },
+  ),
   talk(
     "auh_t_zita_word",
     "auh_zita",
-    all(K, chose("auh_k_sixtus"), period("17b", "18b")),
+    all(K, chose("auh_k_sixtus"), world({ is: "war_months", min: 35 })),
     {
       open: node(
         [
@@ -1711,79 +1765,91 @@ const ZITA_TALKS: readonly GwScene[] = [
       god: node([bye("amen")]),
     },
   ),
-  talk("auh_t_zita_stay", "auh_zita", all(K, period("18a", "18b")), {
-    open: node(
-      [
-        r("what", "frank", "ask", "stay", { effects: [heard("k_zita_stay")] }),
-        r("tired", "warm", "ask", "tired", {
-          reacts: [rx(T("stubborn"), "stay", heard("k_zita_stay"))],
-        }),
-        r("vow", "warm", "deal", "vow", {
-          effects: [heard("k_zita_stay"), setFlag("f_auh_zita_vow")],
-        }),
-        bye(),
-      ],
-      v("late", score({ max: -20 })),
-    ),
-    stay: node(
-      [r("kids", "frank", "ask", "kids"), bye("hear")],
-      v("cold", T("cold")),
-    ),
-    tired: node([
-      r("again", "frank", "ask", "stay", { effects: [heard("k_zita_stay")] }),
-      bye("enough"),
-    ]),
-    vow: node([bye("yes")]),
-    kids: node([bye("hm"), bye("end", "cold")]),
-  }),
+  talk(
+    "auh_t_zita_stay",
+    "auh_zita",
+    all(K, world({ is: "war_months", min: 41 })),
+    {
+      open: node(
+        [
+          r("what", "frank", "ask", "stay", {
+            effects: [heard("k_zita_stay")],
+          }),
+          r("tired", "warm", "ask", "tired", {
+            reacts: [rx(T("stubborn"), "stay", heard("k_zita_stay"))],
+          }),
+          r("vow", "warm", "deal", "vow", {
+            effects: [heard("k_zita_stay"), setFlag("f_auh_zita_vow")],
+          }),
+          bye(),
+        ],
+        v("late", score({ max: -20 })),
+      ),
+      stay: node(
+        [r("kids", "frank", "ask", "kids"), bye("hear")],
+        v("cold", T("cold")),
+      ),
+      tired: node([
+        r("again", "frank", "ask", "stay", { effects: [heard("k_zita_stay")] }),
+        bye("enough"),
+      ]),
+      vow: node([bye("yes")]),
+      kids: node([bye("hm"), bye("end", "cold")]),
+    },
+  ),
 ];
 
 const reveal = (id: "rou_treaty_dead"): GwEffect =>
   doWorld({ do: "reveal", id });
 
 const CZERNIN_TALKS: readonly GwScene[] = [
-  talk("auh_t_cz_bucharest", "auh_czernin", period("c"), {
-    open: node(
-      [
-        r("treaty", "frank", "ask", "treaty", {
-          reacts: [
-            rx(
-              { kind: "candid", who: P },
-              "treaty_true",
-              heard("k_cz_bucharest"),
-              reveal("rou_treaty_dead"),
-            ),
-          ],
-        }),
-        r("flatter", "flatter", "ask", "show", {
+  talk(
+    "auh_t_cz_bucharest",
+    "auh_czernin",
+    { kind: "chapter", max: 5 },
+    {
+      open: node(
+        [
+          r("treaty", "frank", "ask", "treaty", {
+            reacts: [
+              rx(
+                { kind: "candid", who: P },
+                "treaty_true",
+                heard("k_cz_bucharest"),
+                reveal("rou_treaty_dead"),
+              ),
+            ],
+          }),
+          r("flatter", "flatter", "ask", "show", {
+            effects: [heard("k_cz_bucharest")],
+          }),
+          r("pay", "warm", "deal", "paid", {
+            tell: ["money:-1"],
+            effects: [gauge("money", -1), heard("k_cz_bucharest")],
+          }),
+          bye(),
+        ],
+        v("arr", T("arrogant")),
+        v("anx", T("anxious")),
+      ),
+      treaty: node([
+        r("really", "cold", "ask", "treaty_true", {
           effects: [heard("k_cz_bucharest")],
         }),
-        r("pay", "warm", "deal", "paid", {
-          tell: ["money:-1"],
-          effects: [gauge("money", -1), heard("k_cz_bucharest")],
-        }),
-        bye(),
-      ],
-      v("arr", T("arrogant")),
-      v("anx", T("anxious")),
-    ),
-    treaty: node([
-      r("really", "cold", "ask", "treaty_true", {
-        effects: [heard("k_cz_bucharest")],
-      }),
-      bye("enough"),
-    ]),
-    treaty_true: node(
-      [bye("thanks")],
-      v("dead", { kind: "secret", id: "rou_treaty_dead" }),
-    ),
-    show: node([bye("good"), bye("less", "cold")]),
-    paid: node([bye("go")]),
-  }),
+        bye("enough"),
+      ]),
+      treaty_true: node(
+        [bye("thanks")],
+        v("dead", { kind: "secret", id: "rou_treaty_dead" }),
+      ),
+      show: node([bye("good"), bye("less", "cold")]),
+      paid: node([bye("go")]),
+    },
+  ),
   talk(
     "auh_t_cz_king",
     "auh_czernin",
-    all(not(ent("ROU")), period("14", "15b")),
+    all(not(ent("ROU")), world({ is: "war_months", own: true, max: 17 })),
     {
       open: node(
         [
@@ -1815,7 +1881,10 @@ const CZERNIN_TALKS: readonly GwScene[] = [
   talk(
     "auh_t_cz_price",
     "auh_czernin",
-    all(not(ent("ROU")), period("15a", "16a")),
+    all(
+      not(ent("ROU")),
+      world({ is: "war_months", own: true, min: 5, max: 23 }),
+    ),
     {
       open: node(
         [
@@ -1842,66 +1911,80 @@ const CZERNIN_TALKS: readonly GwScene[] = [
       tisza: node([bye("know")]),
     },
   ),
-  talk("auh_t_cz_rout", "auh_czernin", all(ent("ROU"), period("16b")), {
-    open: node(
-      [
-        r("why", "frank", "ask", "why", {
-          reacts: [rx(T("arrogant"), "blame")],
-          effects: [heard("k_cz_king")],
-        }),
-        r("charge", "threat", "push", "blame", {
-          tell: ["trust:-1"],
-          effects: [pt("p", -1)],
-          miss: "blame",
-        }),
-        r("post", "warm", "deal", "post", {
-          tell: ["hungary:-1"],
-          effects: [hungary(-1), heard("k_cz_king")],
-        }),
-        bye(),
-      ],
-      v("anx", T("anxious")),
-    ),
-    why: node(
-      [bye("thanks"), bye("cold", "cold")],
-      v("anx", T("anxious")),
-      v("cun", T("cunning")),
-    ),
-    blame: node([
-      r("again", "frank", "ask", "why", { effects: [heard("k_cz_king")] }),
-      bye("end", "cold"),
-    ]),
-    post: node([bye("go")]),
-  }),
-  talk("auh_t_cz_bread", "auh_czernin", all(K, period("17b", "18a")), {
-    open: node(
-      [
-        r("seen", "frank", "ask", "seen", { effects: [heard("k_cz_bread")] }),
-        r("sum", "cold", "ask", "sum", {
-          reacts: [rx(T("anxious"), "seen", heard("k_cz_bread"))],
-          effects: [heard("k_cz_bread")],
-        }),
-        r("hand", "warm", "deal", "hand", {
-          tell: ["authority:-5"],
-          effects: [authority(-5), heard("k_cz_bread")],
-        }),
-        bye(),
-      ],
-      v("cun", T("cunning")),
-    ),
-    seen: node([r("chelm", "frank", "ask", "chelm"), bye("go")]),
-    sum: node([r("chelm", "frank", "ask", "chelm"), bye("go", "cold")]),
-    hand: node([bye("go")]),
-    chelm: node(
-      [bye("hm"), bye("noted", "cold")],
-      v("anx", T("anxious")),
-      v("arr", T("arrogant")),
-    ),
-  }),
+  talk(
+    "auh_t_cz_rout",
+    "auh_czernin",
+    all(ent("ROU"), world({ is: "war_months", min: 23, max: 29 })),
+    {
+      open: node(
+        [
+          r("why", "frank", "ask", "why", {
+            reacts: [rx(T("arrogant"), "blame")],
+            effects: [heard("k_cz_king")],
+          }),
+          r("charge", "threat", "push", "blame", {
+            tell: ["trust:-1"],
+            effects: [pt("p", -1)],
+            miss: "blame",
+          }),
+          r("post", "warm", "deal", "post", {
+            tell: ["hungary:-1"],
+            effects: [hungary(-1), heard("k_cz_king")],
+          }),
+          bye(),
+        ],
+        v("anx", T("anxious")),
+      ),
+      why: node(
+        [bye("thanks"), bye("cold", "cold")],
+        v("anx", T("anxious")),
+        v("cun", T("cunning")),
+      ),
+      blame: node([
+        r("again", "frank", "ask", "why", { effects: [heard("k_cz_king")] }),
+        bye("end", "cold"),
+      ]),
+      post: node([bye("go")]),
+    },
+  ),
+  talk(
+    "auh_t_cz_bread",
+    "auh_czernin",
+    all(K, world({ is: "war_months", min: 35, max: 47 })),
+    {
+      open: node(
+        [
+          r("seen", "frank", "ask", "seen", { effects: [heard("k_cz_bread")] }),
+          r("sum", "cold", "ask", "sum", {
+            reacts: [rx(T("anxious"), "seen", heard("k_cz_bread"))],
+            effects: [heard("k_cz_bread")],
+          }),
+          r("hand", "warm", "deal", "hand", {
+            tell: ["authority:-5"],
+            effects: [authority(-5), heard("k_cz_bread")],
+          }),
+          bye(),
+        ],
+        v("cun", T("cunning")),
+      ),
+      seen: node([r("chelm", "frank", "ask", "chelm"), bye("go")]),
+      sum: node([r("chelm", "frank", "ask", "chelm"), bye("go", "cold")]),
+      hand: node([bye("go")]),
+      chelm: node(
+        [bye("hm"), bye("noted", "cold")],
+        v("anx", T("anxious")),
+        v("arr", T("arrogant")),
+      ),
+    },
+  ),
   talk(
     "auh_t_cz_speech",
     "auh_czernin",
-    all(K, holds("foreign", "auh_czernin"), period("18a")),
+    all(
+      K,
+      holds("foreign", "auh_czernin"),
+      world({ is: "war_months", min: 41, max: 47 }),
+    ),
     {
       open: node(
         [
@@ -1975,116 +2058,144 @@ const KAROLYI_TALKS: readonly GwScene[] = [
     seat: node([bye("go")]),
     berlin: node([bye("noted"), bye("careful", "cold")]),
   }),
-  talk("auh_t_kar_paris", "auh_karolyi", all(KAR_MET, period("14", "15b")), {
-    open: node(
-      [
-        r("terms", "frank", "ask", "terms"),
-        r("spy", "threat", "push", "stiff", {
-          tell: ["trust:-1"],
-          effects: [pt("p", -1)],
+  talk(
+    "auh_t_kar_paris",
+    "auh_karolyi",
+    all(KAR_MET, world({ is: "war_months", own: true, max: 17 })),
+    {
+      open: node(
+        [
+          r("terms", "frank", "ask", "terms"),
+          r("spy", "threat", "push", "stiff", {
+            tell: ["trust:-1"],
+            effects: [pt("p", -1)],
+          }),
+          r("letter", "warm", "deal", "letter", {
+            effects: [setFlag("f_auh_kar_paris")],
+          }),
+          bye(),
+        ],
+        v("anx", T("anxious")),
+      ),
+      terms: node(
+        [bye("thanks"), bye("noted", "cold")],
+        v("candid", { kind: "candid", who: P }),
+      ),
+      stiff: node([bye("end", "cold")]),
+      letter: node([bye("go")]),
+    },
+  ),
+  talk(
+    "auh_t_kar_land",
+    "auh_karolyi",
+    all(KAR_MET, world({ is: "war_months", min: 11, max: 35 })),
+    {
+      open: node(
+        [
+          r("how", "frank", "ask", "how", { effects: [heard("k_kar_land")] }),
+          r("own", "cold", "ask", "own", {
+            reacts: [rx(T("stubborn"), "how", heard("k_kar_land"))],
+            effects: [heard("k_kar_land")],
+          }),
+          r("draft", "warm", "deal", "draft", {
+            effects: [heard("k_kar_land"), setFlag("f_auh_land_draft")],
+          }),
+          bye(),
+        ],
+        v("arr", T("arrogant")),
+      ),
+      how: node(
+        [r("tisza", "frank", "ask", "tisza"), bye("thanks")],
+        v("arr", T("arrogant")),
+      ),
+      own: node([bye("hm"), r("how", "frank", "ask", "how")]),
+      draft: node([bye("go")]),
+      tisza: node([bye("noted")]),
+    },
+  ),
+  talk(
+    "auh_t_kar_split",
+    "auh_karolyi",
+    all(KAR_MET, world({ is: "war_months", min: 17, max: 35 })),
+    {
+      open: node(
+        [
+          r("count", "frank", "ask", "count"),
+          r("stay", "warm", "push", "stay", {
+            reacts: [
+              rx(T("stubborn"), "stay", well(-1), reason("auh_t_kar_left")),
+            ],
+          }),
+          r("sound", "frank", "deal", "sound", {
+            tell: ["promise"],
+            effects: [
+              promise(P, "kar_peace", 16, {
+                keep: any(
+                  chose("auh_k_sixtus", "general_words"),
+                  chose("auh_k_sixtus", "letter_alsace"),
+                  chose("auh_k_sixtus", "tell_czernin"),
+                  chose("auh_h_mitteleuropa", "refuse"),
+                ),
+              }),
+            ],
+          }),
+          bye(),
+        ],
+        v("anx", T("anxious")),
+      ),
+      count: node(
+        [bye("thanks"), bye("noted", "cold")],
+        v("low", hungaryAt({ max: -1 })),
+        v("high", hungaryAt({ min: 2 })),
+      ),
+      stay: node([bye("end", "cold"), r("count", "frank", "ask", "count")]),
+      sound: node([bye("yes")]),
+    },
+  ),
+  talk(
+    "auh_t_kar_vote",
+    "auh_karolyi",
+    all(KAR_MET, world({ is: "war_months", min: 23, max: 47 })),
+    {
+      open: node(
+        [
+          r("how", "frank", "ask", "trench", {
+            effects: [heard("k_kar_vote")],
+          }),
+          r("doubt", "cold", "ask", "doubt", {
+            reacts: [rx(T("anxious"), "trench", heard("k_kar_vote"))],
+          }),
+          r("say", "warm", "deal", "said", {
+            tell: ["hungary:-1"],
+            effects: [hungary(-1), heard("k_kar_vote")],
+          }),
+          bye(),
+        ],
+        v("k", K),
+      ),
+      trench: node(
+        [r("tisza", "frank", "ask", "tisza"), bye("thanks")],
+        v("anx", T("anxious")),
+        v("stub", T("stubborn")),
+      ),
+      doubt: node([
+        r("again", "frank", "ask", "trench", {
+          effects: [heard("k_kar_vote")],
         }),
-        r("letter", "warm", "deal", "letter", {
-          effects: [setFlag("f_auh_kar_paris")],
-        }),
-        bye(),
-      ],
-      v("anx", T("anxious")),
-    ),
-    terms: node(
-      [bye("thanks"), bye("noted", "cold")],
-      v("candid", { kind: "candid", who: P }),
-    ),
-    stiff: node([bye("end", "cold")]),
-    letter: node([bye("go")]),
-  }),
-  talk("auh_t_kar_land", "auh_karolyi", all(KAR_MET, period("15b", "17a")), {
-    open: node(
-      [
-        r("how", "frank", "ask", "how", { effects: [heard("k_kar_land")] }),
-        r("own", "cold", "ask", "own", {
-          reacts: [rx(T("stubborn"), "how", heard("k_kar_land"))],
-          effects: [heard("k_kar_land")],
-        }),
-        r("draft", "warm", "deal", "draft", {
-          effects: [heard("k_kar_land"), setFlag("f_auh_land_draft")],
-        }),
-        bye(),
-      ],
-      v("arr", T("arrogant")),
-    ),
-    how: node(
-      [r("tisza", "frank", "ask", "tisza"), bye("thanks")],
-      v("arr", T("arrogant")),
-    ),
-    own: node([bye("hm"), r("how", "frank", "ask", "how")]),
-    draft: node([bye("go")]),
-    tisza: node([bye("noted")]),
-  }),
-  talk("auh_t_kar_split", "auh_karolyi", all(KAR_MET, period("16a", "17a")), {
-    open: node(
-      [
-        r("count", "frank", "ask", "count"),
-        r("stay", "warm", "push", "stay", {
-          reacts: [
-            rx(T("stubborn"), "stay", well(-1), reason("auh_t_kar_left")),
-          ],
-        }),
-        r("sound", "frank", "deal", "sound", {
-          tell: ["promise"],
-          effects: [
-            promise(P, "kar_peace", 16, {
-              keep: any(
-                chose("auh_k_sixtus", "general_words"),
-                chose("auh_k_sixtus", "letter_alsace"),
-                chose("auh_k_sixtus", "tell_czernin"),
-                chose("auh_h_mitteleuropa", "refuse"),
-              ),
-            }),
-          ],
-        }),
-        bye(),
-      ],
-      v("anx", T("anxious")),
-    ),
-    count: node(
-      [bye("thanks"), bye("noted", "cold")],
-      v("low", hungaryAt({ max: -1 })),
-      v("high", hungaryAt({ min: 2 })),
-    ),
-    stay: node([bye("end", "cold"), r("count", "frank", "ask", "count")]),
-    sound: node([bye("yes")]),
-  }),
-  talk("auh_t_kar_vote", "auh_karolyi", all(KAR_MET, period("16b", "18a")), {
-    open: node(
-      [
-        r("how", "frank", "ask", "trench", { effects: [heard("k_kar_vote")] }),
-        r("doubt", "cold", "ask", "doubt", {
-          reacts: [rx(T("anxious"), "trench", heard("k_kar_vote"))],
-        }),
-        r("say", "warm", "deal", "said", {
-          tell: ["hungary:-1"],
-          effects: [hungary(-1), heard("k_kar_vote")],
-        }),
-        bye(),
-      ],
-      v("k", K),
-    ),
-    trench: node(
-      [r("tisza", "frank", "ask", "tisza"), bye("thanks")],
-      v("anx", T("anxious")),
-      v("stub", T("stubborn")),
-    ),
-    doubt: node([
-      r("again", "frank", "ask", "trench", { effects: [heard("k_kar_vote")] }),
-      bye("end", "cold"),
-    ]),
-    said: node([bye("go")]),
-    tisza: node([bye("noted")]),
-  }),
+        bye("end", "cold"),
+      ]),
+      said: node([bye("go")]),
+      tisza: node([bye("noted")]),
+    },
+  ),
   talk(
     "auh_t_kar_pm",
     "auh_karolyi",
-    all(KAR_MET, score({ max: -10 }), period("18a", "18b")),
+    all(
+      KAR_MET,
+      score({ max: -10 }),
+      world({ is: "war_months", own: true, min: 41 }),
+    ),
     {
       open: node(
         [

@@ -15,7 +15,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
       kind: "all",
       of: [
         { kind: "world", of: { is: "war" } },
-        { kind: "chapter", min: 7 },
+        { kind: "world", of: { is: "war_months", own: true, min: 1 } },
       ],
     },
     cast: { cos: { office: "chief_of_staff" } },
@@ -278,7 +278,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
       of: [
         { kind: "world", of: { is: "war" } },
         { kind: "world", of: { is: "era", of: ["trenches"] } },
-        { kind: "world", of: { is: "date", from: "1915-03" } },
+        { kind: "world", of: { is: "war_months", own: true, min: 7 } },
         { kind: "not", of: { kind: "seen", scene: "rus_w_berlin_road" } },
         {
           kind: "any",
@@ -573,7 +573,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
       kind: "all",
       of: [
         { kind: "world", of: { is: "war" } },
-        { kind: "world", of: { is: "date", from: "1915-06" } },
+        { kind: "world", of: { is: "war_months", own: true, min: 10 } },
         {
           kind: "world",
           of: { is: "front", theatre: "east", from: "vistula" },
@@ -1894,7 +1894,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
       kind: "all",
       of: [
         { kind: "seen", scene: "rus_h_wagons" },
-        { kind: "world", of: { is: "date", from: "1916-12" } },
+        { kind: "world", of: { is: "war_months", min: 28 } },
       ],
     },
     cast: {},
@@ -2152,10 +2152,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
             {
               kind: "all",
               of: [
-                {
-                  kind: "world",
-                  of: { is: "date", from: "1914-12", to: "1916-01" },
-                },
+                { kind: "world", of: { is: "war_months", min: 4, max: 18 } },
                 {
                   kind: "any",
                   of: [
@@ -2397,10 +2394,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
         {
           kind: "all",
           of: [
-            {
-              kind: "world",
-              of: { is: "date", from: "1915-02", to: "1916-02" },
-            },
+            { kind: "world", of: { is: "war_months", min: 6, max: 19 } },
             {
               kind: "any",
               of: [
@@ -2690,7 +2684,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
                 { kind: "world", of: { is: "war" } },
                 {
                   kind: "world",
-                  of: { is: "date", from: "1916-01", to: "1916-12" },
+                  of: { is: "war_months", own: true, min: 17, max: 29 },
                 },
               ],
             },
@@ -2877,7 +2871,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        { kind: "world", of: { is: "date", from: "1916-02" } },
+        { kind: "world", of: { is: "war_months", min: 18 } },
         { kind: "not", of: { kind: "seen", scene: "rus_w_depots" } },
       ],
     },
@@ -3064,10 +3058,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
         {
           kind: "all",
           of: [
-            {
-              kind: "world",
-              of: { is: "date", from: "1916-11", to: "1917-12" },
-            },
+            { kind: "world", of: { is: "war_months", min: 27, max: 41 } },
             {
               kind: "world",
               of: { is: "regime", of: ["tsar", "crown", "regency"] },
@@ -3995,7 +3986,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        { kind: "world", of: { is: "date", from: "1916-02", to: "1917-12" } },
+        { kind: "world", of: { is: "war_months", min: 18, max: 41 } },
         { kind: "not", of: { kind: "seen", scene: "rus_w_depots" } },
       ],
     },
@@ -4139,7 +4130,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        { kind: "world", of: { is: "date", from: "1917-01" } },
+        { kind: "world", of: { is: "war_months", min: 29 } },
         {
           kind: "any",
           of: [
@@ -4739,10 +4730,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
                     { kind: "flag", flag: "f_rus_in_capital" },
                   ],
                 },
-                {
-                  kind: "world",
-                  of: { is: "date", from: "1914-12", to: "1916-01" },
-                },
+                { kind: "world", of: { is: "war_months", min: 4, max: 18 } },
                 {
                   kind: "world",
                   of: { is: "front", theatre: "east", from: "vistula" },
@@ -4917,10 +4905,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
                     { kind: "flag", flag: "f_rus_in_capital" },
                   ],
                 },
-                {
-                  kind: "world",
-                  of: { is: "date", from: "1914-12", to: "1916-01" },
-                },
+                { kind: "world", of: { is: "war_months", min: 4, max: 18 } },
                 { kind: "gauge", gauge: "shells", max: 1 },
               ],
             },
@@ -5084,10 +5069,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
                   ],
                 },
                 { kind: "not", of: { kind: "world", of: { is: "command" } } },
-                {
-                  kind: "world",
-                  of: { is: "date", from: "1915-01", to: "1916-01" },
-                },
+                { kind: "world", of: { is: "war_months", min: 5, max: 18 } },
                 {
                   kind: "world",
                   of: { is: "front", theatre: "east", from: "warsaw" },
@@ -5254,10 +5236,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
                 { kind: "flag", flag: "f_rus_in_capital" },
               ],
             },
-            {
-              kind: "world",
-              of: { is: "date", from: "1916-01", to: "1916-12" },
-            },
+            { kind: "world", of: { is: "war_months", min: 17, max: 29 } },
             { kind: "holder", office: "war", person: "rus_polivanov" },
             { kind: "inst", inst: "court", min: 1 },
           ],
@@ -5640,10 +5619,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
                 { kind: "flag", flag: "f_rus_in_capital" },
               ],
             },
-            {
-              kind: "world",
-              of: { is: "date", from: "1915-04", to: "1916-01" },
-            },
+            { kind: "world", of: { is: "war_months", min: 8, max: 18 } },
             { kind: "memory", key: "k_guch_met" },
           ],
         },
@@ -5836,10 +5812,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
                     { kind: "flag", flag: "f_rus_in_capital" },
                   ],
                 },
-                {
-                  kind: "world",
-                  of: { is: "date", from: "1915-03", to: "1916-01" },
-                },
+                { kind: "world", of: { is: "war_months", min: 7, max: 18 } },
                 { kind: "memory", key: "k_guch_met" },
               ],
             },
@@ -5991,10 +5964,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
                     { kind: "flag", flag: "f_rus_in_capital" },
                   ],
                 },
-                {
-                  kind: "world",
-                  of: { is: "date", from: "1915-08", to: "1917-01" },
-                },
+                { kind: "world", of: { is: "war_months", min: 12, max: 30 } },
                 { kind: "memory", key: "k_guch_met" },
               ],
             },
@@ -6139,10 +6109,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
                 { kind: "flag", flag: "f_rus_in_capital" },
               ],
             },
-            {
-              kind: "world",
-              of: { is: "date", from: "1916-02", to: "1917-01" },
-            },
+            { kind: "world", of: { is: "war_months", min: 18, max: 30 } },
             { kind: "memory", key: "k_guch_met" },
           ],
         },
@@ -6297,7 +6264,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
             { kind: "flag", flag: "f_rus_in_capital" },
           ],
         },
-        { kind: "world", of: { is: "date", from: "1917-01" } },
+        { kind: "world", of: { is: "war_months", min: 29 } },
         { kind: "memory", key: "k_guch_met" },
         { kind: "world", of: { is: "unrest", min: 1 } },
         { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
@@ -6420,7 +6387,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
       of: [
         { kind: "world", of: { is: "war" } },
         { kind: "chapter", min: 5 },
-        { kind: "world", of: { is: "date", to: "1916-01" } },
+        { kind: "world", of: { is: "war_months", own: true, max: 18 } },
       ],
     },
     cast: { p: { person: "rus_danilov" } },
@@ -6783,10 +6750,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
           kind: "all",
           of: [
             { kind: "world", of: { is: "open", theatre: "caucasus" } },
-            {
-              kind: "world",
-              of: { is: "date", from: "1915-01", to: "1917-01" },
-            },
+            { kind: "world", of: { is: "war_months", min: 5, max: 30 } },
           ],
         },
         { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
@@ -6948,7 +6912,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        { kind: "world", of: { is: "date", from: "1916-02", to: "1917-12" } },
+        { kind: "world", of: { is: "war_months", min: 18, max: 41 } },
         { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
@@ -7097,7 +7061,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
             { kind: "world", of: { is: "war" } },
             {
               kind: "world",
-              of: { is: "date", from: "1916-01", to: "1916-12" },
+              of: { is: "war_months", own: true, min: 17, max: 29 },
             },
           ],
         },

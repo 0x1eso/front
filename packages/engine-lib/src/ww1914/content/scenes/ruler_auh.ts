@@ -3,7 +3,6 @@ import { all, memory, not } from "@openfront/engine-api/ww1914/SceneDsl";
 import {
   called,
   closeBy,
-  date,
   life,
   low,
   node,
@@ -76,7 +75,10 @@ export const RULER_AUH: readonly GwScene[] = [
     id: "auh_life_crypt",
     nation: NATION,
     kind: "audience",
-    when: all(fj, war, date("1915-01", "1916-11")),
+    when: all(fj, war, {
+      kind: "world",
+      of: { is: "war_months", own: true, min: 5, max: 28 },
+    }),
     cast: { court },
     fallback: "go_down",
     options: [

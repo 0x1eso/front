@@ -10,15 +10,10 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     id: "deu_w_ledger_aug",
     nation: ["DEU"],
     kind: "ledger",
-    stage: ["y1914"],
     when: {
       kind: "all",
       of: [
-        {
-          kind: "chapter",
-          min: 6,
-          max: 6,
-        },
+        { kind: "world", of: { is: "war_months", own: true, max: 0 } },
         {
           kind: "any",
           of: [
@@ -119,15 +114,10 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     id: "deu_w_ledger_sep",
     nation: ["DEU"],
     kind: "ledger",
-    stage: ["y1914"],
     when: {
       kind: "all",
       of: [
-        {
-          kind: "chapter",
-          min: 7,
-          max: 7,
-        },
+        { kind: "world", of: { is: "war_months", own: true, min: 1, max: 1 } },
         {
           kind: "any",
           of: [
@@ -250,15 +240,10 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     id: "deu_w_ledger_oct",
     nation: ["DEU"],
     kind: "ledger",
-    stage: ["y1914"],
     when: {
       kind: "all",
       of: [
-        {
-          kind: "chapter",
-          min: 8,
-          max: 8,
-        },
+        { kind: "world", of: { is: "war_months", own: true, min: 2, max: 2 } },
         {
           kind: "any",
           of: [
@@ -371,15 +356,10 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     id: "deu_w_ledger_nov",
     nation: ["DEU"],
     kind: "ledger",
-    stage: ["y1914"],
     when: {
       kind: "all",
       of: [
-        {
-          kind: "chapter",
-          min: 9,
-          max: 9,
-        },
+        { kind: "world", of: { is: "war_months", own: true, min: 3, max: 3 } },
         {
           kind: "any",
           of: [
@@ -480,15 +460,10 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     id: "deu_w_ledger_dec",
     nation: ["DEU"],
     kind: "ledger",
-    stage: ["y1914"],
     when: {
       kind: "all",
       of: [
-        {
-          kind: "chapter",
-          min: 10,
-          max: 10,
-        },
+        { kind: "world", of: { is: "war_months", own: true, min: 4, max: 4 } },
         {
           kind: "any",
           of: [
@@ -730,15 +705,10 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     id: "deu_w_east_relief",
     nation: ["DEU"],
     kind: "dispute",
-    stage: ["y1914"],
     when: {
       kind: "all",
       of: [
-        {
-          kind: "chapter",
-          min: 6,
-          max: 6,
-        },
+        { kind: "world", of: { is: "war_months", own: true, max: 0 } },
         {
           kind: "all",
           of: [
@@ -877,15 +847,10 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     id: "deu_w_marne_order",
     nation: ["DEU"],
     kind: "crisis",
-    stage: ["y1914"],
     when: {
       kind: "all",
       of: [
-        {
-          kind: "chapter",
-          min: 7,
-          max: 7,
-        },
+        { kind: "world", of: { is: "war_months", own: true, min: 1, max: 1 } },
         {
           kind: "all",
           of: [
@@ -1089,15 +1054,10 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     id: "deu_w_new_chief",
     nation: ["DEU"],
     kind: "audience",
-    stage: ["y1914"],
     when: {
       kind: "all",
       of: [
-        {
-          kind: "chapter",
-          min: 7,
-          max: 8,
-        },
+        { kind: "world", of: { is: "war_months", own: true, min: 1, max: 2 } },
         {
           kind: "all",
           of: [
@@ -1315,15 +1275,10 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     id: "deu_w_war_aims",
     nation: ["DEU"],
     kind: "proposal",
-    stage: ["y1914"],
     when: {
       kind: "all",
       of: [
-        {
-          kind: "chapter",
-          min: 7,
-          max: 7,
-        },
+        { kind: "world", of: { is: "war_months", own: true, min: 1, max: 1 } },
         {
           kind: "any",
           of: [
@@ -1533,15 +1488,10 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     id: "deu_w_shell_crisis",
     nation: ["DEU"],
     kind: "proposal",
-    stage: ["y1914"],
     when: {
       kind: "all",
       of: [
-        {
-          kind: "chapter",
-          min: 8,
-          max: 8,
-        },
+        { kind: "world", of: { is: "war_months", own: true, min: 2, max: 2 } },
         {
           kind: "all",
           of: [
@@ -1728,15 +1678,10 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     id: "deu_w_separate_peace",
     nation: ["DEU"],
     kind: "proposal",
-    stage: ["y1914"],
     when: {
       kind: "all",
       of: [
-        {
-          kind: "chapter",
-          min: 9,
-          max: 9,
-        },
+        { kind: "world", of: { is: "war_months", own: true, min: 3, max: 3 } },
         {
           kind: "any",
           of: [
@@ -1956,15 +1901,10 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     id: "deu_w_prittwitz",
     nation: ["DEU"],
     kind: "proposal",
-    stage: ["y1914"],
     when: {
       kind: "all",
       of: [
-        {
-          kind: "chapter",
-          min: 6,
-          max: 7,
-        },
+        { kind: "world", of: { is: "war_months", own: true, max: 1 } },
         {
           kind: "all",
           of: [
@@ -2117,15 +2057,10 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     id: "deu_w_east_broken",
     nation: ["DEU"],
     kind: "proposal",
-    stage: ["y1914"],
     when: {
       kind: "all",
       of: [
-        {
-          kind: "chapter",
-          min: 7,
-          max: 8,
-        },
+        { kind: "world", of: { is: "war_months", own: true, min: 1, max: 2 } },
         {
           kind: "flag",
           flag: "w_bad_luck_east",
@@ -2223,15 +2158,10 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     id: "deu_w_raw_materials",
     nation: ["DEU"],
     kind: "proposal",
-    stage: ["y1914"],
     when: {
       kind: "all",
       of: [
-        {
-          kind: "chapter",
-          min: 6,
-          max: 6,
-        },
+        { kind: "world", of: { is: "war_months", own: true, max: 0 } },
         {
           kind: "any",
           of: [
@@ -2361,15 +2291,10 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     id: "deu_w_first_loan",
     nation: ["DEU"],
     kind: "proposal",
-    stage: ["y1914"],
     when: {
       kind: "all",
       of: [
-        {
-          kind: "chapter",
-          min: 7,
-          max: 8,
-        },
+        { kind: "world", of: { is: "war_months", own: true, min: 1, max: 2 } },
         {
           kind: "any",
           of: [
@@ -2486,15 +2411,10 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     id: "deu_w_ypres_boys",
     nation: ["DEU"],
     kind: "dispute",
-    stage: ["y1914"],
     when: {
       kind: "all",
       of: [
-        {
-          kind: "chapter",
-          min: 8,
-          max: 8,
-        },
+        { kind: "world", of: { is: "war_months", own: true, min: 2, max: 2 } },
         {
           kind: "all",
           of: [
@@ -2630,15 +2550,10 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     id: "deu_w_fleet_out",
     nation: ["DEU"],
     kind: "dispute",
-    stage: ["y1914"],
     when: {
       kind: "all",
       of: [
-        {
-          kind: "chapter",
-          min: 8,
-          max: 8,
-        },
+        { kind: "world", of: { is: "war_months", own: true, min: 2, max: 2 } },
         {
           kind: "at_war",
           tag: "GBR",
@@ -2761,15 +2676,10 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     id: "deu_w_sub_note",
     nation: ["DEU"],
     kind: "proposal",
-    stage: ["y1914"],
     when: {
       kind: "all",
       of: [
-        {
-          kind: "chapter",
-          min: 9,
-          max: 10,
-        },
+        { kind: "world", of: { is: "war_months", own: true, min: 3, max: 4 } },
         {
           kind: "at_war",
           tag: "GBR",
@@ -2914,15 +2824,10 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     id: "deu_w_bread_cards",
     nation: ["DEU"],
     kind: "proposal",
-    stage: ["y1914"],
     when: {
       kind: "all",
       of: [
-        {
-          kind: "chapter",
-          min: 9,
-          max: 10,
-        },
+        { kind: "world", of: { is: "war_months", own: true, min: 3, max: 4 } },
         {
           kind: "all",
           of: [
@@ -3042,15 +2947,10 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     id: "deu_w_east_west",
     nation: ["DEU"],
     kind: "dispute",
-    stage: ["y1914"],
     when: {
       kind: "all",
       of: [
-        {
-          kind: "chapter",
-          min: 9,
-          max: 9,
-        },
+        { kind: "world", of: { is: "war_months", own: true, min: 3, max: 3 } },
         {
           kind: "all",
           of: [
@@ -3195,15 +3095,10 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     id: "deu_w_conrad_help",
     nation: ["DEU"],
     kind: "proposal",
-    stage: ["y1914"],
     when: {
       kind: "all",
       of: [
-        {
-          kind: "chapter",
-          min: 7,
-          max: 9,
-        },
+        { kind: "world", of: { is: "war_months", own: true, min: 1, max: 3 } },
         {
           kind: "all",
           of: [
@@ -3349,15 +3244,10 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     id: "deu_w_revolution_policy",
     nation: ["DEU"],
     kind: "proposal",
-    stage: ["y1914"],
     when: {
       kind: "all",
       of: [
-        {
-          kind: "chapter",
-          min: 8,
-          max: 9,
-        },
+        { kind: "world", of: { is: "war_months", own: true, min: 2, max: 3 } },
         {
           kind: "at_war",
           tag: "GBR",
@@ -3435,15 +3325,10 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     id: "deu_w_second_credit",
     nation: ["DEU"],
     kind: "proposal",
-    stage: ["y1914"],
     when: {
       kind: "all",
       of: [
-        {
-          kind: "chapter",
-          min: 9,
-          max: 10,
-        },
+        { kind: "world", of: { is: "war_months", own: true, min: 3, max: 4 } },
         {
           kind: "any",
           of: [
@@ -3579,15 +3464,10 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     id: "deu_w_east_first",
     nation: ["DEU"],
     kind: "proposal",
-    stage: ["y1914"],
     when: {
       kind: "all",
       of: [
-        {
-          kind: "chapter",
-          min: 6,
-          max: 7,
-        },
+        { kind: "world", of: { is: "war_months", own: true, max: 1 } },
         {
           kind: "flag",
           flag: "f_east_first",
@@ -3709,15 +3589,10 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     id: "deu_w_gbr_neutral",
     nation: ["DEU"],
     kind: "proposal",
-    stage: ["y1914"],
     when: {
       kind: "all",
       of: [
-        {
-          kind: "chapter",
-          min: 7,
-          max: 9,
-        },
+        { kind: "world", of: { is: "war_months", own: true, min: 1, max: 3 } },
         {
           kind: "all",
           of: [
@@ -3842,7 +3717,6 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     id: "deu_w_peace_conference",
     nation: ["DEU"],
     kind: "crisis",
-    stage: ["y1914"],
     when: {
       kind: "all",
       of: [
@@ -3850,11 +3724,7 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
           kind: "world",
           of: { is: "chain_end", of: ["compromise", "humiliation"] },
         },
-        {
-          kind: "chapter",
-          min: 6,
-          max: 8,
-        },
+        { kind: "world", of: { is: "peace_months", max: 2 } },
         {
           kind: "not",
           of: {
@@ -3871,6 +3741,7 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
             ],
           },
         },
+        { kind: "world", of: { is: "peace_months", max: 4 } },
       ],
     },
     cast: {
@@ -3988,15 +3859,10 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     id: "deu_w_peace_arms",
     nation: ["DEU"],
     kind: "proposal",
-    stage: ["y1914"],
     when: {
       kind: "all",
       of: [
-        {
-          kind: "chapter",
-          min: 7,
-          max: 9,
-        },
+        { kind: "world", of: { is: "peace_months", min: 1, max: 3 } },
         {
           kind: "not",
           of: {
@@ -4013,6 +3879,7 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
             ],
           },
         },
+        { kind: "world", of: { is: "peace_months", max: 4 } },
       ],
     },
     cast: {
@@ -4287,15 +4154,10 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     id: "deu_w_liege",
     nation: ["DEU"],
     kind: "report",
-    stage: ["y1914"],
     when: {
       kind: "all",
       of: [
-        {
-          kind: "chapter",
-          min: 6,
-          max: 6,
-        },
+        { kind: "world", of: { is: "war_months", own: true, max: 0 } },
         {
           kind: "all",
           of: [
@@ -4346,15 +4208,10 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     id: "deu_w_tannenberg",
     nation: ["DEU"],
     kind: "report",
-    stage: ["y1914"],
     when: {
       kind: "all",
       of: [
-        {
-          kind: "chapter",
-          min: 6,
-          max: 7,
-        },
+        { kind: "world", of: { is: "war_months", own: true, max: 1 } },
         {
           kind: "flag",
           flag: "w_tannenberg",
@@ -4393,15 +4250,10 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     id: "deu_w_louvain_record",
     nation: ["DEU"],
     kind: "report",
-    stage: ["y1914"],
     when: {
       kind: "all",
       of: [
-        {
-          kind: "chapter",
-          min: 6,
-          max: 7,
-        },
+        { kind: "world", of: { is: "war_months", own: true, max: 1 } },
         {
           kind: "all",
           of: [
@@ -4455,15 +4307,10 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     id: "deu_w_lists",
     nation: ["DEU"],
     kind: "report",
-    stage: ["y1914"],
     when: {
       kind: "all",
       of: [
-        {
-          kind: "chapter",
-          min: 6,
-          max: 9,
-        },
+        { kind: "world", of: { is: "war_months", own: true, max: 3 } },
         {
           kind: "any",
           of: [
@@ -4510,15 +4357,10 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     id: "deu_w_antwerp",
     nation: ["DEU"],
     kind: "report",
-    stage: ["y1914"],
     when: {
       kind: "all",
       of: [
-        {
-          kind: "chapter",
-          min: 8,
-          max: 8,
-        },
+        { kind: "world", of: { is: "war_months", own: true, min: 2, max: 2 } },
         {
           kind: "all",
           of: [
@@ -4569,15 +4411,10 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     id: "deu_w_ottoman_in",
     nation: ["DEU"],
     kind: "report",
-    stage: ["y1914"],
     when: {
       kind: "all",
       of: [
-        {
-          kind: "chapter",
-          min: 8,
-          max: 8,
-        },
+        { kind: "world", of: { is: "war_months", own: true, min: 2, max: 2 } },
         {
           kind: "flag",
           flag: "f_ottoman_signed",
@@ -4607,15 +4444,10 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     id: "deu_w_blockade",
     nation: ["DEU"],
     kind: "report",
-    stage: ["y1914"],
     when: {
       kind: "all",
       of: [
-        {
-          kind: "chapter",
-          min: 8,
-          max: 10,
-        },
+        { kind: "world", of: { is: "war_months", own: true, min: 2, max: 4 } },
         {
           kind: "at_war",
           tag: "GBR",
@@ -4705,15 +4537,10 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     id: "deu_w_west_quiet",
     nation: ["DEU"],
     kind: "report",
-    stage: ["y1914"],
     when: {
       kind: "all",
       of: [
-        {
-          kind: "chapter",
-          min: 6,
-          max: 8,
-        },
+        { kind: "world", of: { is: "war_months", own: true, max: 2 } },
         {
           kind: "all",
           of: [
@@ -4753,15 +4580,10 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     id: "deu_w_gbr_breaks",
     nation: ["DEU"],
     kind: "report",
-    stage: ["y1914"],
     when: {
       kind: "all",
       of: [
-        {
-          kind: "chapter",
-          min: 8,
-          max: 10,
-        },
+        { kind: "world", of: { is: "war_months", own: true, min: 2, max: 4 } },
         {
           kind: "all",
           of: [
@@ -5465,15 +5287,10 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     id: "deu_t_moltke_east",
     nation: ["DEU"],
     kind: "talk",
-    stage: ["crisis"],
     when: {
       kind: "all",
       of: [
-        {
-          kind: "chapter",
-          min: 3,
-          max: 4,
-        },
+        { kind: "world", of: { is: "chain", short: false, min: 3, max: 4 } },
         {
           kind: "all",
           of: [
@@ -6219,15 +6036,10 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     id: "deu_t_moltke_nerves",
     nation: ["DEU"],
     kind: "talk",
-    stage: ["y1914"],
     when: {
       kind: "all",
       of: [
-        {
-          kind: "chapter",
-          min: 6,
-          max: 7,
-        },
+        { kind: "world", of: { is: "war_months", own: true, max: 1 } },
         {
           kind: "any",
           of: [
@@ -6606,15 +6418,10 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     id: "deu_t_moltke_after",
     nation: ["DEU"],
     kind: "talk",
-    stage: ["y1914"],
     when: {
       kind: "all",
       of: [
-        {
-          kind: "chapter",
-          min: 7,
-          max: 10,
-        },
+        { kind: "world", of: { is: "war_months", own: true, min: 1, max: 4 } },
         {
           kind: "not",
           of: {
@@ -7685,15 +7492,10 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     id: "deu_t_falk_shells",
     nation: ["DEU"],
     kind: "talk",
-    stage: ["crisis", "y1914"],
     when: {
       kind: "all",
       of: [
-        {
-          kind: "chapter",
-          min: 5,
-          max: 7,
-        },
+        { kind: "world", of: { is: "war_months", own: true, max: 1 } },
         {
           kind: "any",
           of: [
@@ -7977,11 +7779,9 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     id: "deu_t_falk_chief",
     nation: ["DEU"],
     kind: "talk",
-    stage: ["y1914"],
     when: {
-      kind: "chapter",
-      min: 7,
-      max: 9,
+      kind: "world",
+      of: { is: "war_months", own: true, min: 1, max: 3 },
     },
     cast: {
       who: {
@@ -8334,15 +8134,10 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     id: "deu_t_falk_ypres",
     nation: ["DEU"],
     kind: "talk",
-    stage: ["y1914"],
     when: {
       kind: "all",
       of: [
-        {
-          kind: "chapter",
-          min: 8,
-          max: 9,
-        },
+        { kind: "world", of: { is: "war_months", own: true, min: 2, max: 3 } },
         {
           kind: "all",
           of: [
@@ -8656,16 +8451,11 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     id: "deu_t_falk_peace",
     nation: ["DEU"],
     kind: "talk",
-    stage: ["y1914"],
     when: {
       kind: "all",
       of: [
         { kind: "holder", office: "chief_of_staff", person: "deu_falkenhayn" },
-        {
-          kind: "chapter",
-          min: 9,
-          max: 10,
-        },
+        { kind: "world", of: { is: "war_months", own: true, min: 3, max: 4 } },
         {
           kind: "any",
           of: [
@@ -9659,15 +9449,10 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     id: "deu_t_hind_ludendorff",
     nation: ["DEU"],
     kind: "talk",
-    stage: ["y1914"],
     when: {
       kind: "all",
       of: [
-        {
-          kind: "chapter",
-          min: 7,
-          max: 8,
-        },
+        { kind: "world", of: { is: "war_months", own: true, min: 1, max: 2 } },
         {
           kind: "any",
           of: [
@@ -10027,15 +9812,10 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     id: "deu_t_hind_victory",
     nation: ["DEU"],
     kind: "talk",
-    stage: ["y1914"],
     when: {
       kind: "all",
       of: [
-        {
-          kind: "chapter",
-          min: 7,
-          max: 9,
-        },
+        { kind: "world", of: { is: "war_months", own: true, min: 1, max: 3 } },
         {
           kind: "flag",
           flag: "w_tannenberg",
@@ -10294,15 +10074,10 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     id: "deu_t_hind_falk",
     nation: ["DEU"],
     kind: "talk",
-    stage: ["y1914"],
     when: {
       kind: "all",
       of: [
-        {
-          kind: "chapter",
-          min: 8,
-          max: 9,
-        },
+        { kind: "world", of: { is: "war_months", own: true, min: 2, max: 3 } },
         {
           kind: "any",
           of: [
@@ -10591,11 +10366,9 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     id: "deu_t_hind_baton",
     nation: ["DEU"],
     kind: "talk",
-    stage: ["y1914"],
     when: {
-      kind: "chapter",
-      min: 9,
-      max: 10,
+      kind: "world",
+      of: { is: "war_months", own: true, min: 3, max: 4 },
     },
     cast: {
       who: {
@@ -11192,15 +10965,10 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     id: "deu_t_lud_rail",
     nation: ["DEU"],
     kind: "talk",
-    stage: ["crisis"],
     when: {
       kind: "all",
       of: [
-        {
-          kind: "chapter",
-          min: 3,
-          max: 4,
-        },
+        { kind: "world", of: { is: "chain", short: false, min: 3, max: 4 } },
         {
           kind: "crisis",
           topic: "balkan",
@@ -11512,15 +11280,10 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     id: "deu_t_lud_liege",
     nation: ["DEU"],
     kind: "talk",
-    stage: ["crisis"],
     when: {
       kind: "all",
       of: [
-        {
-          kind: "chapter",
-          min: 3,
-          max: 4,
-        },
+        { kind: "world", of: { is: "chain", short: false, min: 3, max: 4 } },
         {
           kind: "crisis",
           topic: "balkan",
@@ -11814,15 +11577,10 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     id: "deu_t_lud_east",
     nation: ["DEU"],
     kind: "talk",
-    stage: ["crisis", "y1914"],
     when: {
       kind: "all",
       of: [
-        {
-          kind: "chapter",
-          min: 5,
-          max: 6,
-        },
+        { kind: "world", of: { is: "war_months", own: true, max: 0 } },
         {
           kind: "any",
           of: [
@@ -12076,11 +11834,9 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     id: "deu_t_lud_nerves",
     nation: ["DEU"],
     kind: "talk",
-    stage: ["y1914"],
     when: {
-      kind: "chapter",
-      min: 7,
-      max: 8,
+      kind: "world",
+      of: { is: "war_months", own: true, min: 1, max: 2 },
     },
     cast: {
       who: {
@@ -12413,11 +12169,9 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     id: "deu_t_lud_politics",
     nation: ["DEU"],
     kind: "talk",
-    stage: ["y1914"],
     when: {
-      kind: "chapter",
-      min: 8,
-      max: 10,
+      kind: "world",
+      of: { is: "war_months", own: true, min: 2, max: 4 },
     },
     cast: {
       who: {
@@ -13685,15 +13439,10 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     id: "deu_t_tirp_command",
     nation: ["DEU"],
     kind: "talk",
-    stage: ["crisis", "y1914"],
     when: {
       kind: "all",
       of: [
-        {
-          kind: "chapter",
-          min: 5,
-          max: 8,
-        },
+        { kind: "world", of: { is: "war_months", own: true, max: 2 } },
         {
           kind: "at_war",
           tag: "GBR",
@@ -14054,15 +13803,10 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     id: "deu_t_tirp_sub",
     nation: ["DEU"],
     kind: "talk",
-    stage: ["y1914"],
     when: {
       kind: "all",
       of: [
-        {
-          kind: "chapter",
-          min: 8,
-          max: 10,
-        },
+        { kind: "world", of: { is: "war_months", own: true, min: 2, max: 4 } },
         {
           kind: "at_war",
           tag: "GBR",
@@ -14409,11 +14153,9 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     id: "deu_t_tirp_chancellor",
     nation: ["DEU"],
     kind: "talk",
-    stage: ["y1914"],
     when: {
-      kind: "chapter",
-      min: 8,
-      max: 10,
+      kind: "world",
+      of: { is: "war_months", own: true, min: 2, max: 4 },
     },
     cast: {
       who: {

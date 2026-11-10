@@ -2,7 +2,6 @@ import type { GwScene } from "@openfront/engine-api/ww1914/SceneDsl";
 import { all, memory, role } from "@openfront/engine-api/ww1914/SceneDsl";
 import {
   called,
-  date,
   life,
   low,
   node,
@@ -33,7 +32,10 @@ export const RULER_GBR: readonly GwScene[] = [
     nation: NATION,
     kind: "audience",
     stage,
-    when: all(self, war, date("1914-10", "1916-10")),
+    when: all(self, war, {
+      kind: "world",
+      of: { is: "war_months", own: true, min: 2, max: 27 },
+    }),
     cast: { margot },
     tags: ["people", "home"],
     fallback: "let_her",
@@ -54,7 +56,10 @@ export const RULER_GBR: readonly GwScene[] = [
     nation: NATION,
     kind: "proposal",
     stage,
-    when: all(self, war, date("1915-05", "1916-03")),
+    when: all(self, war, {
+      kind: "world",
+      of: { is: "war_months", own: true, min: 9, max: 20 },
+    }),
     cast: { margot },
     tags: ["people", "home"],
     fallback: "go_to_court",
@@ -134,7 +139,10 @@ export const RULER_GBR: readonly GwScene[] = [
     nation: NATION,
     kind: "audience",
     stage,
-    when: all(self, war, date("1915-02", "1916-08")),
+    when: all(self, war, {
+      kind: "world",
+      of: { is: "war_months", own: true, min: 6, max: 25 },
+    }),
     cast: { margot },
     fallback: "leave_him",
     options: [

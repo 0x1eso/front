@@ -273,7 +273,11 @@ const SCENES: readonly GwScene[] = [
     ["people", "tension_up"],
     { fm: { office: "foreign" } },
     // The wire is the first paper of the crisis; this one answers it.
-    all(crisis, during("c"), chapters(1, 5)),
+    all(
+      crisis,
+      { kind: "world", of: { is: "chain", short: false, max: 5 } },
+      { kind: "world", of: { is: "chain", short: false, min: 1, max: 5 } },
+    ),
     [v("weary", moody(fm, "weary")), base],
     { stamp: "confirmed", source: "staff" },
   ),
@@ -392,7 +396,7 @@ const SCENES: readonly GwScene[] = [
     7,
     ["people", "tension_up"],
     { court: { office: "court" }, ff: { person: "auh_ff" } },
-    all(ffAlive, not(crisis), during("c")),
+    all(ffAlive, not(crisis), { kind: "chapter", max: 5 }),
     [
       v("after", {
         kind: "world",
@@ -436,7 +440,7 @@ const SCENES: readonly GwScene[] = [
     all(
       any(opening("no_sarajevo"), not(crisis)),
       { kind: "pressure", topic: "balkan", min: 1 },
-      during("c"),
+      { kind: "chapter", max: 5 },
     ),
     [v("wire", { kind: "trust", tag: "ITA", max: -1 }), base],
     {
@@ -1226,7 +1230,7 @@ const SCENES: readonly GwScene[] = [
     7,
     ["foreign", "tension_down"],
     { fm: { office: "foreign" } },
-    all(declared, not(atWar("RUS")), during("c")),
+    all(declared, not(atWar("RUS")), { kind: "chapter", max: 5 }),
     [v("halt", flag("f_auh_halt_belgrade")), base],
     {
       fallback: "ignore",
@@ -1247,11 +1251,10 @@ const SCENES: readonly GwScene[] = [
     8,
     ["war", "tension_up"],
     { cos: { office: "chief_of_staff" }, war: { office: "war" } },
-    all(
-      declared,
-      any(flag("w_rus_general"), flag("w_rus_partial")),
-      during("c"),
-    ),
+    all(declared, any(flag("w_rus_general"), flag("w_rus_partial")), {
+      kind: "chapter",
+      max: 5,
+    }),
     [
       v("muddle", hasSecret("auh_rail_muddle")),
       v("plan_r", flag("f_auh_plan_r")),
@@ -1411,7 +1414,7 @@ const BERCHTOLD: readonly GwScene[] = [
   talk(
     "auh_t_ber_clause",
     "auh_berchtold",
-    all(crisis, during("c")),
+    all(crisis, { kind: "world", of: { is: "chain", short: false, max: 5 } }),
     {
       open: node(
         moods(p, "anxious", "cunning"),
@@ -1457,59 +1460,68 @@ const BERCHTOLD: readonly GwScene[] = [
     },
     C,
   ),
-  talk("auh_t_ber_rome", "auh_berchtold", during("c"), {
-    open: node(
-      moods(p, "weary"),
-      r("ask", "warm", "ask", [], [], "article", {
-        gain: [K("k_ber_rome")],
-        miss: "merey",
-      }),
-      r("flat", "flatter", "ask", [], [], "article", {
-        gain: [K("k_ber_rome")],
-        miss: "merey",
-      }),
-      r(
-        "deal",
-        "frank",
-        "deal",
-        ["cos:-1"],
-        [K("k_ber_rome"), pt({ office: "chief_of_staff" }, -1)],
-        "article",
+  talk(
+    "auh_t_ber_rome",
+    "auh_berchtold",
+    { kind: "chapter", max: 5 },
+    {
+      open: node(
+        moods(p, "weary"),
+        r("ask", "warm", "ask", [], [], "article", {
+          gain: [K("k_ber_rome")],
+          miss: "merey",
+        }),
+        r("flat", "flatter", "ask", [], [], "article", {
+          gain: [K("k_ber_rome")],
+          miss: "merey",
+        }),
+        r(
+          "deal",
+          "frank",
+          "deal",
+          ["cos:-1"],
+          [K("k_ber_rome"), pt({ office: "chief_of_staff" }, -1)],
+          "article",
+        ),
+        close("leave", "cold"),
       ),
-      close("leave", "cold"),
-    ),
-    article: plain(
-      r(
-        "truth",
-        "frank",
-        "ask",
-        [],
-        [reveal("ita_fra_understanding")],
-        "paris",
+      article: plain(
+        r(
+          "truth",
+          "frank",
+          "ask",
+          [],
+          [reveal("ita_fra_understanding")],
+          "paris",
+        ),
+        r("end", "warm", "leave", [], [], null),
       ),
-      r("end", "warm", "leave", [], [], null),
-    ),
-    paris: node(
-      [
-        v("known", all(hasSecret("ita_fra_understanding"), candid(p))),
-        v("hedged", hasSecret("ita_fra_understanding")),
-        base,
-      ],
-      close("end", "frank"),
-      close("end2", "cold"),
-    ),
-    merey: plain(
-      r("again", "frank", "ask", [], [], "article", {
-        gain: [K("k_ber_rome")],
-        miss: null,
-      }),
-      r("end", "cold", "leave", [], [reason("auh_t_ber_rome_r1")], null),
-    ),
-  }),
+      paris: node(
+        [
+          v("known", all(hasSecret("ita_fra_understanding"), candid(p))),
+          v("hedged", hasSecret("ita_fra_understanding")),
+          base,
+        ],
+        close("end", "frank"),
+        close("end2", "cold"),
+      ),
+      merey: plain(
+        r("again", "frank", "ask", [], [], "article", {
+          gain: [K("k_ber_rome")],
+          miss: null,
+        }),
+        r("end", "cold", "leave", [], [reason("auh_t_ber_rome_r1")], null),
+      ),
+    },
+  ),
   talk(
     "auh_t_ber_brake",
     "auh_berchtold",
-    all(crisis, { kind: "temp", min: 5 }, during("c")),
+    all(
+      crisis,
+      { kind: "temp", min: 5 },
+      { kind: "world", of: { is: "chain", short: false, max: 5 } },
+    ),
     {
       open: node(
         moods(p, "anxious", "weary"),
@@ -1560,7 +1572,7 @@ const BERCHTOLD: readonly GwScene[] = [
     "auh_t_ber_trentino",
     "auh_berchtold",
     all(
-      during("14", "15a"),
+      { kind: "world", of: { is: "war_months", own: true, max: 11 } },
       inWar,
       not({ kind: "world", of: { is: "entered", tag: "ITA" } }),
       inOffice(p),
@@ -1614,7 +1626,10 @@ const BERCHTOLD: readonly GwScene[] = [
   talk(
     "auh_t_ber_after",
     "auh_berchtold",
-    all(during("15a", "17b"), not(fmIs("auh_berchtold"))),
+    all(
+      { kind: "world", of: { is: "war_months", min: 5, max: 41 } },
+      not(fmIs("auh_berchtold")),
+    ),
     {
       open: node(
         moods(p, "weary", "cunning"),
@@ -1669,7 +1684,7 @@ const HOYOS: readonly GwScene[] = [
   talk(
     "auh_t_hoyos_term",
     "auh_hoyos",
-    all(crisis, during("c")),
+    all(crisis, { kind: "world", of: { is: "chain", short: false, max: 5 } }),
     {
       open: node(
         moods(p, "arrogant"),
@@ -1718,7 +1733,7 @@ const HOYOS: readonly GwScene[] = [
   talk(
     "auh_t_hoyos_partition",
     "auh_hoyos",
-    all(crisis, during("c")),
+    all(crisis, { kind: "world", of: { is: "chain", short: false, max: 5 } }),
     {
       open: node(
         [
@@ -1777,7 +1792,7 @@ const HOYOS: readonly GwScene[] = [
   talk(
     "auh_t_hoyos_young",
     "auh_hoyos",
-    during("c"),
+    { kind: "chapter", max: 5 },
     {
       open: node(
         moods(p, "cunning"),
@@ -1866,92 +1881,105 @@ const HOYOS: readonly GwScene[] = [
     },
     C,
   ),
-  talk("auh_t_hoyos_guilt", "auh_hoyos", all(during("14", "15b"), inWar), {
-    open: node(
-      moods(p, "arrogant", "cunning"),
-      r("ask", "warm", "ask", [], [], "bag", { miss: "stiff" }),
-      r("cold", "cold", "ask", [], [], "bag", { miss: "stiff" }),
-      r(
-        "deal",
-        "frank",
-        "deal",
-        [],
-        [
-          promise(p, "hoyos_post", 12, {
-            keep: any(
-              memory("k_hoyos_zoll_heard"),
-              chose("auh_k_new_men", "new_court"),
-            ),
-          }),
-        ],
-        "post",
+  talk(
+    "auh_t_hoyos_guilt",
+    "auh_hoyos",
+    all({ kind: "world", of: { is: "war_months", own: true, max: 17 } }, inWar),
+    {
+      open: node(
+        moods(p, "arrogant", "cunning"),
+        r("ask", "warm", "ask", [], [], "bag", { miss: "stiff" }),
+        r("cold", "cold", "ask", [], [], "bag", { miss: "stiff" }),
+        r(
+          "deal",
+          "frank",
+          "deal",
+          [],
+          [
+            promise(p, "hoyos_post", 12, {
+              keep: any(
+                memory("k_hoyos_zoll_heard"),
+                chose("auh_k_new_men", "new_court"),
+              ),
+            }),
+          ],
+          "post",
+        ),
+        close("leave", "cold"),
       ),
-      close("leave", "cold"),
-    ),
-    bag: plain(
-      r(
-        "deal",
-        "frank",
-        "deal",
-        [],
-        [
-          promise(p, "hoyos_post", 12, {
-            keep: any(
-              memory("k_hoyos_zoll_heard"),
-              chose("auh_k_new_men", "new_court"),
-            ),
-          }),
-        ],
-        "post",
+      bag: plain(
+        r(
+          "deal",
+          "frank",
+          "deal",
+          [],
+          [
+            promise(p, "hoyos_post", 12, {
+              keep: any(
+                memory("k_hoyos_zoll_heard"),
+                chose("auh_k_new_men", "new_court"),
+              ),
+            }),
+          ],
+          "post",
+        ),
+        r("absolve", "warm", "leave", ["trust:+1"], [pt(p, 1)], null),
+        close("end", "cold"),
       ),
-      r("absolve", "warm", "leave", ["trust:+1"], [pt(p, 1)], null),
-      close("end", "cold"),
-    ),
-    post: plain(close("end", "warm")),
-    stiff: plain(
-      r("end", "cold", "leave", [], [reason("auh_t_hoyos_guilt_r1")], null),
-    ),
-  }),
-  talk("auh_t_hoyos_zoll", "auh_hoyos", all(during("15b", "17a"), inWar), {
-    open: node(
-      moods(p, "arrogant"),
-      r("ask", "frank", "ask", [], [], "dinner", {
-        gain: [K("k_hoyos_zoll")],
-        miss: "tables",
-      }),
-      r("flat", "flatter", "ask", [], [], "dinner", {
-        gain: [K("k_hoyos_zoll")],
-        miss: "tables",
-      }),
-      r(
-        "deal",
-        "cold",
-        "deal",
-        ["deu:-1"],
-        [K("k_hoyos_zoll"), trust("DEU", -1)],
-        "dinner",
+      post: plain(close("end", "warm")),
+      stiff: plain(
+        r("end", "cold", "leave", [], [reason("auh_t_hoyos_guilt_r1")], null),
       ),
-      close("leave", "cold"),
+    },
+  ),
+  talk(
+    "auh_t_hoyos_zoll",
+    "auh_hoyos",
+    all(
+      { kind: "world", of: { is: "war_months", own: true, min: 11, max: 35 } },
+      inWar,
     ),
-    dinner: plain(
-      r("how", "frank", "ask", [], [], "slow"),
-      r("end", "cold", "leave", [], [], null),
-    ),
-    slow: plain(
-      r(
-        "send",
-        "warm",
-        "leave",
-        [],
-        [K("k_hoyos_zoll_heard"), keepPromise(p, "hoyos_post")],
-        null,
+    {
+      open: node(
+        moods(p, "arrogant"),
+        r("ask", "frank", "ask", [], [], "dinner", {
+          gain: [K("k_hoyos_zoll")],
+          miss: "tables",
+        }),
+        r("flat", "flatter", "ask", [], [], "dinner", {
+          gain: [K("k_hoyos_zoll")],
+          miss: "tables",
+        }),
+        r(
+          "deal",
+          "cold",
+          "deal",
+          ["deu:-1"],
+          [K("k_hoyos_zoll"), trust("DEU", -1)],
+          "dinner",
+        ),
+        close("leave", "cold"),
       ),
-      close("end", "cold"),
-    ),
-    tables: plain(
-      r("end", "cold", "leave", [], [reason("auh_t_hoyos_zoll_r1")], null),
-    ),
-  }),
+      dinner: plain(
+        r("how", "frank", "ask", [], [], "slow"),
+        r("end", "cold", "leave", [], [], null),
+      ),
+      slow: plain(
+        r(
+          "send",
+          "warm",
+          "leave",
+          [],
+          [K("k_hoyos_zoll_heard"), keepPromise(p, "hoyos_post")],
+          null,
+        ),
+        close("end", "cold"),
+      ),
+      tables: plain(
+        r("end", "cold", "leave", [], [reason("auh_t_hoyos_zoll_r1")], null),
+      ),
+    },
+  ),
 ];
 
 const BILINSKI: readonly GwScene[] = [
@@ -2007,7 +2035,7 @@ const BILINSKI: readonly GwScene[] = [
   talk(
     "auh_t_bil_inquiry",
     "auh_bilinski",
-    all(crisis, during("c")),
+    all(crisis, { kind: "world", of: { is: "chain", short: false, max: 5 } }),
     {
       open: node(
         moods(p, "cunning"),
@@ -2078,44 +2106,55 @@ const BILINSKI: readonly GwScene[] = [
       r("end", "cold", "leave", [], [reason("auh_t_bil_bill_r1")], null),
     ),
   }),
-  talk("auh_t_bil_potiorek", "auh_bilinski", all(during("14"), atWar("SRB")), {
-    open: node(
-      moods(p, "cunning", "weary"),
-      r("ask", "frank", "ask", [], [], "man", {
-        gain: [K("k_bil_potiorek")],
-        miss: "careful",
-      }),
-      r("flat", "flatter", "ask", [], [], "man", {
-        gain: [K("k_bil_potiorek")],
-        miss: "careful",
-      }),
-      r(
-        "deal",
-        "cold",
-        "deal",
-        ["potiorek:-1", "cos:+1"],
-        [
-          K("k_bil_potiorek"),
-          pt(byName("auh_potiorek"), -1),
-          pt({ office: "chief_of_staff" }, 1),
-        ],
-        "man",
+  talk(
+    "auh_t_bil_potiorek",
+    "auh_bilinski",
+    all(
+      { kind: "world", of: { is: "war_months", own: true, max: 4 } },
+      atWar("SRB"),
+    ),
+    {
+      open: node(
+        moods(p, "cunning", "weary"),
+        r("ask", "frank", "ask", [], [], "man", {
+          gain: [K("k_bil_potiorek")],
+          miss: "careful",
+        }),
+        r("flat", "flatter", "ask", [], [], "man", {
+          gain: [K("k_bil_potiorek")],
+          miss: "careful",
+        }),
+        r(
+          "deal",
+          "cold",
+          "deal",
+          ["potiorek:-1", "cos:+1"],
+          [
+            K("k_bil_potiorek"),
+            pt(byName("auh_potiorek"), -1),
+            pt({ office: "chief_of_staff" }, 1),
+          ],
+          "man",
+        ),
+        close("leave", "cold"),
       ),
-      close("leave", "cold"),
-    ),
-    man: plain(
-      r("june", "frank", "ask", [], [], "june"),
-      r("end", "cold", "leave", [], [], null),
-    ),
-    june: plain(close("end", "frank"), close("end2", "cold")),
-    careful: plain(
-      r("end", "cold", "leave", [], [reason("auh_t_bil_potiorek_r1")], null),
-    ),
-  }),
+      man: plain(
+        r("june", "frank", "ask", [], [], "june"),
+        r("end", "cold", "leave", [], [], null),
+      ),
+      june: plain(close("end", "frank"), close("end2", "cold")),
+      careful: plain(
+        r("end", "cold", "leave", [], [reason("auh_t_bil_potiorek_r1")], null),
+      ),
+    },
+  ),
   talk(
     "auh_t_bil_poland",
     "auh_bilinski",
-    all(during("14", "15a"), atWar("RUS")),
+    all(
+      { kind: "world", of: { is: "war_months", own: true, max: 11 } },
+      atWar("RUS"),
+    ),
     {
       open: node(
         [v("pushed", eastPushed), v("weary", moody(p, "weary")), base],
@@ -2160,10 +2199,13 @@ const BILINSKI: readonly GwScene[] = [
   talk(
     "auh_t_bil_crown",
     "auh_bilinski",
-    all(during("15b", "16b"), {
-      kind: "world",
-      of: { is: "front", theatre: "east", from: "vistula" },
-    }),
+    all(
+      { kind: "world", of: { is: "war_months", min: 11, max: 29 } },
+      {
+        kind: "world",
+        of: { is: "front", theatre: "east", from: "vistula" },
+      },
+    ),
     {
       open: node(
         [
@@ -2205,44 +2247,49 @@ const BILINSKI: readonly GwScene[] = [
 ];
 
 const STURGKH: readonly GwScene[] = [
-  talk("auh_t_stu_closed", "auh_sturgkh", during("c"), {
-    open: node(
-      moods(p, "cold"),
-      r("ask", "frank", "ask", [], [], "why_shut", {
-        gain: [K("k_stu_closed")],
-        miss: "for_now",
-      }),
-      r("cold", "cold", "ask", [], [], "why_shut", {
-        gain: [K("k_stu_closed")],
-        miss: "for_now",
-      }),
-      r(
-        "deal",
-        "warm",
-        "deal",
-        ["chancellor:+1", "nations:-1"],
-        [K("k_stu_closed"), pt(p, 1), nations(-1)],
-        "why_shut",
+  talk(
+    "auh_t_stu_closed",
+    "auh_sturgkh",
+    { kind: "chapter", max: 5 },
+    {
+      open: node(
+        moods(p, "cold"),
+        r("ask", "frank", "ask", [], [], "why_shut", {
+          gain: [K("k_stu_closed")],
+          miss: "for_now",
+        }),
+        r("cold", "cold", "ask", [], [], "why_shut", {
+          gain: [K("k_stu_closed")],
+          miss: "for_now",
+        }),
+        r(
+          "deal",
+          "warm",
+          "deal",
+          ["chancellor:+1", "nations:-1"],
+          [K("k_stu_closed"), pt(p, 1), nations(-1)],
+          "why_shut",
+        ),
+        close("leave", "cold"),
       ),
-      close("leave", "cold"),
-    ),
-    why_shut: plain(
-      r("delegations", "frank", "ask", [], [], "delegations"),
-      r("end", "cold", "leave", [], [], null),
-    ),
-    delegations: plain(close("end", "frank"), close("end2", "cold")),
-    for_now: plain(
-      r("again", "threat", "push", ["trust:-1"], [pt(p, -1)], "why_shut", {
-        gain: [K("k_stu_closed")],
-        miss: null,
-      }),
-      r("end", "cold", "leave", [], [reason("auh_t_stu_closed_r1")], null),
-    ),
-  }),
+      why_shut: plain(
+        r("delegations", "frank", "ask", [], [], "delegations"),
+        r("end", "cold", "leave", [], [], null),
+      ),
+      delegations: plain(close("end", "frank"), close("end2", "cold")),
+      for_now: plain(
+        r("again", "threat", "push", ["trust:-1"], [pt(p, -1)], "why_shut", {
+          gain: [K("k_stu_closed")],
+          miss: null,
+        }),
+        r("end", "cold", "leave", [], [reason("auh_t_stu_closed_r1")], null),
+      ),
+    },
+  ),
   talk(
     "auh_t_stu_decree",
     "auh_sturgkh",
-    all(any(crisis, inWar), during("c")),
+    all(any(crisis, inWar), { kind: "chapter", max: 5 }),
     {
       open: node(
         moods(p, "stubborn"),
@@ -2278,7 +2325,11 @@ const STURGKH: readonly GwScene[] = [
   talk(
     "auh_t_stu_bohemia",
     "auh_sturgkh",
-    all(during("14", "15a"), inWar, inOffice(p)),
+    all(
+      { kind: "world", of: { is: "war_months", own: true, max: 11 } },
+      inWar,
+      inOffice(p),
+    ),
     {
       open: node(
         moods(p, "cold", "stubborn"),
@@ -2313,11 +2364,16 @@ const STURGKH: readonly GwScene[] = [
   talk(
     "auh_t_stu_grain",
     "auh_sturgkh",
-    all(during("15a", "15b"), inWar, inOffice(p), {
-      kind: "gauge",
-      gauge: "bread",
-      max: 2,
-    }),
+    all(
+      { kind: "world", of: { is: "war_months", own: true, min: 5, max: 17 } },
+      inWar,
+      inOffice(p),
+      {
+        kind: "gauge",
+        gauge: "bread",
+        max: 2,
+      },
+    ),
     {
       open: node(
         moods(p, "cold"),
@@ -2352,7 +2408,10 @@ const STURGKH: readonly GwScene[] = [
   talk(
     "auh_t_stu_open",
     "auh_sturgkh",
-    all(during("15b", "16b"), inOffice(p)),
+    all(
+      { kind: "world", of: { is: "war_months", own: true, min: 11, max: 29 } },
+      inOffice(p),
+    ),
     {
       open: node(
         moods(p, "stubborn", "cold"),
@@ -2393,10 +2452,14 @@ const STURGKH: readonly GwScene[] = [
   talk(
     "auh_t_stu_letters",
     "auh_sturgkh",
-    all(during("16a", "16b"), inOffice(p), {
-      kind: "world",
-      of: { is: "unrest", min: 0 },
-    }),
+    all(
+      { kind: "world", of: { is: "war_months", own: true, min: 17, max: 29 } },
+      inOffice(p),
+      {
+        kind: "world",
+        of: { is: "unrest", min: 0 },
+      },
+    ),
     {
       open: node(
         moods(p, "cold", "stubborn"),
@@ -2523,7 +2586,7 @@ const VISITS: readonly GwScene[] = [
   visit(
     "auh_v_ff_no_war",
     { person: "auh_ff" },
-    all(ffAlive, { kind: "temp", min: 3 }, during("c")),
+    all(ffAlive, { kind: "temp", min: 3 }, { kind: "chapter", max: 5 }),
     7,
     ["foreign", "tension_down"],
     {

@@ -22,7 +22,6 @@ import {
   able,
   atWar,
   berlinAt,
-  between,
   ffThrone,
   fits,
   gauge,
@@ -37,7 +36,6 @@ import {
   peace,
   picked,
   reveal,
-  since,
   trust,
   until,
 } from "../scenes/auh_act";
@@ -104,7 +102,7 @@ const VISITS: GwAct[] = [
     effects: [reveal("auh_hun_grain_hidden")],
   }),
   act("auh_a_queue", "visit", "auh_a_queue_v", 0, {
-    when: all(inWar, since("1915-01")),
+    when: all(inWar, world({ is: "war_months", own: true, min: 5 })),
     cooldown: 6,
     effects: [inspect("morale", "AUH"), seen("auh_a_seen_queue")],
   }),
@@ -118,12 +116,15 @@ const VISITS: GwAct[] = [
     effects: [inspect("force", "AUH", "east")],
   }),
   act("auh_a_przemysl", "visit", "auh_a_przemysl_v", 0, {
-    when: all(atWar("RUS"), until("1915-03")),
+    when: all(atWar("RUS"), world({ is: "war_months", own: true, max: 8 })),
     once: true,
     effects: [inspect("force", "RUS", "east")],
   }),
   act("auh_a_pass", "visit", "auh_a_pass_v", 0, {
-    when: all(atWar("RUS"), between("1914-11", "1915-06")),
+    when: all(
+      atWar("RUS"),
+      world({ is: "war_months", own: true, min: 3, max: 11 }),
+    ),
     once: true,
     effects: [inspect("morale", "AUH")],
   }),
@@ -147,7 +148,7 @@ const VISITS: GwAct[] = [
     effects: [seen("auh_a_seen_ward")],
   }),
   act("auh_a_barracks", "visit", "auh_a_barracks_v", 0, {
-    when: all(atWar("RUS"), since("1915-01")),
+    when: all(atWar("RUS"), world({ is: "war_months", own: true, min: 5 })),
     cooldown: 10,
     effects: [seen("auh_a_seen_barracks")],
   }),
@@ -359,7 +360,7 @@ const SPEECHES: GwAct[] = [
     ],
   }),
   act("auh_a_s_vienna", "speech", "auh_a_s_vienna_r", 0, {
-    when: since("1914-09"),
+    when: world({ is: "war_months", min: 1 }),
     cooldown: 8,
     fields: [
       list(
@@ -372,7 +373,7 @@ const SPEECHES: GwAct[] = [
     effects: [spoken],
   }),
   act("auh_a_s_house", "speech", "auh_a_s_house_r", 0, {
-    when: since("1915-01"),
+    when: world({ is: "war_months", min: 5 }),
     once: true,
     fields: [
       list(
@@ -415,7 +416,7 @@ const INTRIGUES: GwAct[] = [
     caught: { pct: 35, scene: "auh_a_i_agent_out", wait: 2 },
   }),
   act("auh_a_i_swiss", "intrigue", "auh_a_i_swiss_r", 2, {
-    when: all(inWar, since("1916-01")),
+    when: all(inWar, world({ is: "war_months", own: true, min: 17 })),
     cooldown: 10,
     fields: [list("through", "banker", "prince")],
     effects: [

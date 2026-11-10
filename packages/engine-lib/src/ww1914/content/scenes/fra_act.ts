@@ -916,7 +916,7 @@ const AIM_SCENES: GwScene[] = [
     all(
       aim("fra_aim_alsace"),
       war,
-      period("15b", "17b"),
+      world({ is: "war_months", own: true, min: 11, max: 41 }),
       world({ is: "score", max: 0 }),
     ),
     { fm: holder("foreign") },
@@ -932,7 +932,11 @@ const AIM_SCENES: GwScene[] = [
   ),
   aimScene(
     "fra_aim_p_rhine",
-    all(aim("fra_aim_rhine"), war, from("1917-01")),
+    all(
+      aim("fra_aim_rhine"),
+      war,
+      world({ is: "war_months", own: true, min: 29 }),
+    ),
     { cos: holder("chief_of_staff") },
     [
       o("keep_it", [inst("army", 1), trust("GBR", -1), trust("USA", -1)]),
@@ -941,7 +945,12 @@ const AIM_SCENES: GwScene[] = [
   ),
   aimScene(
     "fra_aim_p_guarantee",
-    all(aim("fra_aim_guarantee"), war, not(entered("USA")), from("1915-07")),
+    all(
+      aim("fra_aim_guarantee"),
+      war,
+      not(entered("USA")),
+      world({ is: "war_months", own: true, min: 11 }),
+    ),
     { fm: holder("foreign") },
     [
       o("press_washington", [gauge("money", -1), trust("USA", 1)]),
@@ -955,7 +964,7 @@ const AIM_SCENES: GwScene[] = [
       aim("fra_aim_levant"),
       war,
       world({ is: "entered", tag: "OTT" }),
-      from("1915-07"),
+      world({ is: "war_months", own: true, min: 11 }),
     ),
     { fm: holder("foreign") },
     [
@@ -966,7 +975,11 @@ const AIM_SCENES: GwScene[] = [
   ),
   aimScene(
     "fra_aim_p_reparations",
-    all(aim("fra_aim_reparations"), war, from("1916-07")),
+    all(
+      aim("fra_aim_reparations"),
+      war,
+      world({ is: "war_months", own: true, min: 23 }),
+    ),
     { fin: holder("finance") },
     [
       o("count_now", [gauge("money", -1), inst("chamber", 1)]),
@@ -1353,7 +1366,12 @@ const HEAD_LETTERS: GwScene[] = [
       o("reply_ask", [toHead("frank"), trust("GBR", -1), gauge("morale", 1)]),
     ],
     {
-      when: all(wrote(1), atDeu, entered("GBR"), period("15a", "17a")),
+      when: all(
+        wrote(1),
+        atDeu,
+        entered("GBR"),
+        world({ is: "war_months", own: true, min: 5, max: 35 }),
+      ),
     },
   ),
   thread(
@@ -1419,7 +1437,12 @@ const HEAD_LETTERS: GwScene[] = [
       o("reply_words", [toHead("frank"), trust("RUS", -1)]),
     ],
     {
-      when: all(wrote(1), atDeu, entered("RUS"), period("15a", "16b")),
+      when: all(
+        wrote(1),
+        atDeu,
+        entered("RUS"),
+        world({ is: "war_months", own: true, min: 5, max: 29 }),
+      ),
     },
   ),
   thread(
@@ -1434,7 +1457,7 @@ const HEAD_LETTERS: GwScene[] = [
         remember("m_fra_told_tsar"),
       ]),
     ],
-    { when: all(wrote(2), from("1916-10")) },
+    { when: all(wrote(2), world({ is: "war_months", min: 26 })) },
   ),
   thread(
     "fra_l_wilson_1",
@@ -1448,7 +1471,7 @@ const HEAD_LETTERS: GwScene[] = [
         trust("USA", -1),
       ]),
     ],
-    { when: all(atDeu, from("1917-03")) },
+    { when: all(atDeu, world({ is: "war_months", own: true, min: 31 })) },
   ),
 ];
 

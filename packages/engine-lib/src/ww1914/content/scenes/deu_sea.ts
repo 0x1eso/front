@@ -295,7 +295,7 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
       war,
       atGBR,
       any(flag("f_zone_declared"), uboatMin(1)),
-      date("1915-02", "1915-12"),
+      world({ is: "war_months", own: true, min: 6, max: 17 }),
     ),
     cast: { navy: R_NAVY, fm: R_FM },
     salience: 6,
@@ -402,7 +402,7 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
       war,
       seen("deu_s_liner"),
       uboatMin(1),
-      date("1915-05", "1916-06"),
+      world({ is: "war_months", own: true, min: 9, max: 23 }),
     ),
     cast: { chancellor: R_CHANCELLOR, navy: R_NAVY },
     salience: 8,
@@ -460,7 +460,11 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
   scene({
     id: "deu_s_blockade_numbers",
     kind: "report",
-    when: all(atGBR, blockadeAt(3), date("1915-01", "1918-06")),
+    when: all(
+      atGBR,
+      blockadeAt(3),
+      world({ is: "war_months", own: true, min: 5, max: 47 }),
+    ),
     cast: {},
     salience: 6,
     tags: ["home", "tension_up"],
@@ -480,7 +484,11 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
   scene({
     id: "deu_s_fleet_out",
     kind: "dispute",
-    when: all(war, any(atGBR, atFRA), date("1916-01", "1916-06")),
+    when: all(
+      war,
+      any(atGBR, atFRA),
+      world({ is: "war_months", own: true, min: 17, max: 23 }),
+    ),
     cast: { navy: R_NAVY, court: R_COURT, scheer: { person: "deu_scheer" } },
     salience: 7,
     tags: ["war"],
@@ -532,7 +540,7 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
     when: all(
       war,
       chosen("deu_s_fleet_out", "let_scheer", "sortie_with_limit"),
-      date("1916-02", "1916-12"),
+      world({ is: "war_months", own: true, min: 18, max: 29 }),
     ),
     cast: {},
     salience: 8,
@@ -552,7 +560,7 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
       war,
       uboatMin(1),
       americaAt({ min: 15 }),
-      date("1916-03", "1916-08"),
+      world({ is: "war_months", own: true, min: 19, max: 25 }),
     ),
     cast: { chancellor: R_CHANCELLOR, navy: R_NAVY },
     salience: 8,
@@ -611,7 +619,7 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
         memory("broke_p_tirp_uboat_seat"),
         memory("m_tirp_letter_known"),
       ),
-      date("1915-10", "1916-08"),
+      world({ is: "war_months", min: 14, max: 25 }),
     ),
     cast: { navy: R_NAVY, court: R_COURT },
     salience: 8,
@@ -682,7 +690,7 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
       belgiumHeld,
       not(usIn),
       americaAt({ max: 60 }),
-      date("1916-01", "1916-12"),
+      world({ is: "war_months", own: true, min: 17, max: 29 }),
     ),
     cast: { fm: R_FM, chancellor: R_CHANCELLOR },
     salience: 7,
@@ -724,7 +732,11 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
   scene({
     id: "deu_s_table",
     kind: "report",
-    when: all(atGBR, blockadeAt(5), date("1916-08", "1917-01")),
+    when: all(
+      atGBR,
+      blockadeAt(5),
+      world({ is: "war_months", own: true, min: 24, max: 30 }),
+    ),
     cast: { holtz: { person: "deu_holtzendorff" } },
     salience: 7,
     tags: ["foreign", "tension_up"],
@@ -739,7 +751,7 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
       atGBR,
       uboatMax(1),
       any(seen("deu_s_table"), tied),
-      date("1916-08", "1917-12"),
+      world({ is: "war_months", own: true, min: 24, max: 41 }),
     ),
     cast: { chancellor: R_CHANCELLOR, navy: R_NAVY, cos: R_COS },
     salience: 9,
@@ -936,7 +948,7 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
       any(uboatMin(2), seen("deu_s_pless")),
       any(holds("foreign", "deu_zimmermann"), memory("k_zimm_mexico")),
       not(usIn),
-      date("1916-10", "1917-06"),
+      world({ is: "war_months", min: 26, max: 35 }),
     ),
     cast: { fm: R_FM },
     salience: 7,
@@ -1013,7 +1025,7 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
   scene({
     id: "deu_s_america_in",
     kind: "report",
-    when: all(usIn, date("1916-11", "1918-12")),
+    when: all(usIn, world({ is: "war_months", min: 27 })),
     cast: {},
     salience: 9,
     tags: ["foreign", "tension_up"],
@@ -1028,7 +1040,7 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
   scene({
     id: "deu_s_america_counts",
     kind: "report",
-    when: all(usIn, date("1917-07", "1918-12")),
+    when: all(usIn, world({ is: "war_months", min: 35 })),
     cast: {},
     salience: 7,
     tags: ["war", "tension_up"],
@@ -1051,7 +1063,7 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
       atRUS,
       not(rusOut),
       any(flag("f_sounding_russia"), flag("f_denmark_channel"), scoreMin(5)),
-      date("1915-07", "1916-12"),
+      world({ is: "war_months", own: true, min: 11, max: 29 }),
     ),
     cast: { fm: R_FM, chancellor: R_CHANCELLOR },
     salience: 8,
@@ -1105,7 +1117,11 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
   scene({
     id: "deu_s_poland_kingdom",
     kind: "proposal",
-    when: all(eastAt("warsaw"), not(rusOut), date("1916-04", "1917-03")),
+    when: all(
+      eastAt("warsaw"),
+      not(rusOut),
+      world({ is: "war_months", min: 20, max: 32 }),
+    ),
     cast: { chancellor: R_CHANCELLOR, cos: R_COS, vienna: R_VIENNA },
     salience: 7,
     tags: ["foreign"],
@@ -1160,7 +1176,11 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
   scene({
     id: "deu_s_lenin_train",
     kind: "crisis",
-    when: all(russiaProvisional, atRUS, date("1917-03", "1917-08")),
+    when: all(
+      russiaProvisional,
+      atRUS,
+      world({ is: "war_months", own: true, min: 31, max: 37 }),
+    ),
     cast: { fm: R_FM, cos: R_COS },
     salience: 8,
     tags: ["foreign"],
@@ -1207,7 +1227,7 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
   scene({
     id: "deu_s_brest_opens",
     kind: "crisis",
-    when: all(russiaDone, date("1917-03", "1918-10")),
+    when: all(russiaDone, world({ is: "war_months", min: 31, max: 51 })),
     cast: { fm: R_FM, cos: R_COS },
     salience: 9,
     tags: ["foreign"],
@@ -1262,7 +1282,7 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
   scene({
     id: "deu_s_brest_no_peace",
     kind: "crisis",
-    when: all(seen("deu_s_brest_opens"), date("1917-04", "1918-11")),
+    when: all(seen("deu_s_brest_opens"), world({ is: "war_months", min: 32 })),
     cast: { fm: R_FM, cos: R_COS },
     salience: 8,
     tags: ["foreign", "tension_up"],
@@ -1307,7 +1327,11 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
   scene({
     id: "deu_s_ukraine_bread",
     kind: "proposal",
-    when: all(rusOut, gaugeMax("bread", 2), date("1918-01", "1918-10")),
+    when: all(
+      rusOut,
+      gaugeMax("bread", 2),
+      world({ is: "war_months", min: 41, max: 51 }),
+    ),
     cast: { interior: R_INTERIOR, cos: R_COS },
     salience: 7,
     tags: ["home"],
@@ -1356,7 +1380,7 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
   scene({
     id: "deu_s_baltic_thrones",
     kind: "proposal",
-    when: all(rusOut, date("1918-01", "1918-11")),
+    when: all(rusOut, world({ is: "war_months", min: 41 })),
     cast: { fm: R_FM, court: R_COURT },
     salience: 4,
     tags: ["foreign"],
@@ -1439,7 +1463,7 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
       atGBR,
       belgiumHeld,
       any(not(flag("f_aims_full")), memory("k_kuhl_belgium")),
-      date("1917-07", "1918-03"),
+      world({ is: "war_months", own: true, min: 35, max: 44 }),
     ),
     cast: { fm: R_FM, cos: R_COS },
     salience: 8,
@@ -1489,7 +1513,7 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
       scoreMax(0),
       atFRA,
       memory("k_kuhl_paris"),
-      date("1917-01", "1918-06"),
+      world({ is: "war_months", own: true, min: 29, max: 47 }),
     ),
     cast: { fm: R_FM, chancellor: R_CHANCELLOR },
     salience: 5,
@@ -1526,7 +1550,7 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
         { kind: "nation_gauge", tag: "AUH", gauge: "order", max: 2 },
         known("auh_sixtus_copy"),
       ),
-      date("1917-01", "1918-06"),
+      world({ is: "war_months", min: 29, max: 47 }),
     ),
     cast: { fm: R_FM, vienna: R_VIENNA },
     salience: 7,
@@ -1561,7 +1585,10 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
   scene({
     id: "deu_s_vienna_chain",
     kind: "proposal",
-    when: all(seen("deu_s_vienna_wavers"), date("1918-01", "1918-09")),
+    when: all(
+      seen("deu_s_vienna_wavers"),
+      world({ is: "war_months", min: 41, max: 50 }),
+    ),
     cast: { fm: R_FM, cos: R_COS },
     salience: 6,
     tags: ["foreign"],
@@ -1601,7 +1628,7 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
   talk(
     "deu_t2_tirp_line",
     "deu_tirpitz",
-    all(atGBR, date("1915-01", "1915-12")),
+    all(atGBR, world({ is: "war_months", own: true, min: 5, max: 17 })),
     {
       open: node(
         moods("stubborn", "arrogant"),
@@ -1634,7 +1661,10 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
   talk(
     "deu_t2_tirp_stay",
     "deu_tirpitz",
-    all(holds("navy", "deu_tirpitz"), date("1915-07", "1916-06")),
+    all(
+      holds("navy", "deu_tirpitz"),
+      world({ is: "war_months", own: true, min: 11, max: 23 }),
+    ),
     {
       open: node(
         moods("arrogant", "cunning"),
@@ -1672,7 +1702,7 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
   talk(
     "deu_t2_tirp_press",
     "deu_tirpitz",
-    all(war, date("1915-01", "1916-06")),
+    all(war, world({ is: "war_months", own: true, min: 5, max: 23 })),
     {
       open: node(
         moods("cunning", "stubborn"),
@@ -1713,7 +1743,7 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
   talk(
     "deu_t2_tirp_son",
     "deu_tirpitz",
-    all(atGBR, date("1915-01", "1916-12")),
+    all(atGBR, world({ is: "war_months", own: true, min: 5, max: 29 })),
     {
       open: node(
         [v("base")],
@@ -1745,7 +1775,10 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
   talk(
     "deu_t2_tirp_party",
     "deu_tirpitz",
-    all(not(holds("navy", "deu_tirpitz")), date("1916-07", "1917-12")),
+    all(
+      not(holds("navy", "deu_tirpitz")),
+      world({ is: "war_months", min: 23, max: 41 }),
+    ),
     {
       open: node(
         moods("arrogant", "stubborn"),
@@ -1781,7 +1814,10 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
   talk(
     "deu_t2_tirp_after",
     "deu_tirpitz",
-    all(not(holds("navy", "deu_tirpitz")), date("1917-07", "1918-12")),
+    all(
+      not(holds("navy", "deu_tirpitz")),
+      world({ is: "war_months", min: 35 }),
+    ),
     {
       open: node(
         [
@@ -1812,7 +1848,7 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
   talk(
     "deu_t2_holtz_table",
     "deu_holtzendorff",
-    all(atGBR, date("1916-07", "1917-06")),
+    all(atGBR, world({ is: "war_months", own: true, min: 23, max: 35 })),
     {
       open: node(
         moods("cold", "anxious"),
@@ -1857,7 +1893,7 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
   talk(
     "deu_t2_holtz_neutrals",
     "deu_holtzendorff",
-    all(atGBR, date("1916-01", "1917-06")),
+    all(atGBR, world({ is: "war_months", own: true, min: 17, max: 35 })),
     {
       open: node(
         moods("cold"),
@@ -1884,7 +1920,10 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
   talk(
     "deu_t2_holtz_tirpitz",
     "deu_holtzendorff",
-    all(holds("navy", "deu_tirpitz"), date("1915-09", "1916-06")),
+    all(
+      holds("navy", "deu_tirpitz"),
+      world({ is: "war_months", own: true, min: 13, max: 23 }),
+    ),
     {
       open: node(
         moods("anxious", "cold"),
@@ -1918,7 +1957,7 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
   talk(
     "deu_t2_holtz_convoy",
     "deu_holtzendorff",
-    all(uboatMin(2), date("1917-03", "1917-12")),
+    all(uboatMin(2), world({ is: "war_months", min: 31, max: 41 })),
     {
       open: node(
         [
@@ -1950,7 +1989,7 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
   talk(
     "deu_t2_holtz_months",
     "deu_holtzendorff",
-    all(uboatMin(2), date("1917-07", "1918-06")),
+    all(uboatMin(2), world({ is: "war_months", min: 35, max: 47 })),
     {
       open: node(
         moods("cold", "anxious"),
@@ -1988,7 +2027,7 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
   talk(
     "deu_t2_holtz_out",
     "deu_holtzendorff",
-    all(scoreMax(0), atGBR, date("1918-01", "1918-12")),
+    all(scoreMax(0), atGBR, world({ is: "war_months", own: true, min: 41 })),
     {
       open: node(
         moods("anxious"),
@@ -2024,7 +2063,10 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
   talk(
     "deu_t2_zimm_jagow",
     "deu_zimmermann",
-    all(holds("foreign", "deu_jagow"), date("1915-07", "1916-12")),
+    all(
+      holds("foreign", "deu_jagow"),
+      world({ is: "war_months", own: true, min: 11, max: 29 }),
+    ),
     {
       open: node(
         moods("cunning", "arrogant"),
@@ -2053,7 +2095,10 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
   talk(
     "deu_t2_zimm_casement",
     "deu_zimmermann",
-    all(any(flag("f_back_rebels"), atGBR), date("1915-01", "1916-06")),
+    all(
+      any(flag("f_back_rebels"), atGBR),
+      world({ is: "war_months", min: 5, max: 23 }),
+    ),
     {
       open: node(
         moods("arrogant"),
@@ -2085,7 +2130,10 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
   talk(
     "deu_t2_zimm_sofia",
     "deu_zimmermann",
-    all(not(world({ is: "entered", tag: "BGR" })), date("1915-01", "1915-12")),
+    all(
+      not(world({ is: "entered", tag: "BGR" })),
+      world({ is: "war_months", own: true, min: 5, max: 17 }),
+    ),
     {
       open: node(
         moods("cunning"),
@@ -2116,7 +2164,7 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
   talk(
     "deu_t2_zimm_straits",
     "deu_zimmermann",
-    all(atRUS, date("1915-07", "1916-12")),
+    all(atRUS, world({ is: "war_months", own: true, min: 11, max: 29 })),
     {
       open: node(
         moods("cunning", "arrogant"),
@@ -2151,7 +2199,7 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
   talk(
     "deu_t2_zimm_mexico",
     "deu_zimmermann",
-    all(uboatMin(1), date("1916-07", "1917-06")),
+    all(uboatMin(1), world({ is: "war_months", min: 23, max: 35 })),
     {
       open: node(
         moods("cunning", "arrogant"),
@@ -2192,7 +2240,7 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
   talk(
     "deu_t2_zimm_admit",
     "deu_zimmermann",
-    all(seen("deu_s_wire_out"), date("1917-01", "1917-12")),
+    all(seen("deu_s_wire_out"), world({ is: "war_months", min: 29, max: 41 })),
     {
       open: node(
         moods("arrogant", "cunning"),
@@ -2228,7 +2276,7 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
   talk(
     "deu_t2_kuhl_hague",
     "deu_kuhlmann",
-    all(war, date("1915-04", "1916-12")),
+    all(war, world({ is: "war_months", own: true, min: 8, max: 29 })),
     {
       open: node(
         moods("cunning", "cold"),
@@ -2260,7 +2308,7 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
   talk(
     "deu_t2_kuhl_paris",
     "deu_kuhlmann",
-    all(atFRA, date("1915-04", "1917-12")),
+    all(atFRA, world({ is: "war_months", own: true, min: 8, max: 41 })),
     {
       open: node(
         [
@@ -2305,7 +2353,11 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
   talk(
     "deu_t2_kuhl_belgium",
     "deu_kuhlmann",
-    all(atGBR, belgiumHeld, date("1916-07", "1917-12")),
+    all(
+      atGBR,
+      belgiumHeld,
+      world({ is: "war_months", own: true, min: 23, max: 41 }),
+    ),
     {
       open: node(
         moods("cunning", "cold"),
@@ -2332,7 +2384,7 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
   talk(
     "deu_t2_kuhl_brest",
     "deu_kuhlmann",
-    all(russiaDone, date("1917-03", "1918-10")),
+    all(russiaDone, world({ is: "war_months", min: 31, max: 51 })),
     {
       open: node(
         moods("cunning", "cold"),
@@ -2367,7 +2419,7 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
   talk(
     "deu_t2_kuhl_arms",
     "deu_kuhlmann",
-    all(atFRA, date("1918-01", "1918-06")),
+    all(atFRA, world({ is: "war_months", own: true, min: 41, max: 47 })),
     {
       open: node(
         moods("cunning", "cold"),
@@ -2414,7 +2466,7 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
     all(
       memory("k_kuhl_arms"),
       not(holds("foreign", "deu_kuhlmann")),
-      date("1918-03", "1918-12"),
+      world({ is: "war_months", min: 43 }),
     ),
     {
       open: node(
@@ -2445,7 +2497,7 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
     all(
       atGBR,
       any(linerSunk, flag("f_zone_declared"), uboatMin(1)),
-      date("1915-01", "1916-06"),
+      world({ is: "war_months", own: true, min: 5, max: 23 }),
     ),
     5,
     {
@@ -2477,7 +2529,12 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
   visit(
     "deu_v2_bernstorff_house",
     "deu_bernstorff",
-    all(atGBR, americaAt({ min: 25 }), not(usIn), date("1916-07", "1917-04")),
+    all(
+      atGBR,
+      americaAt({ min: 25 }),
+      not(usIn),
+      world({ is: "war_months", own: true, min: 23, max: 33 }),
+    ),
     6,
     {
       open: node(
@@ -2509,7 +2566,7 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
     all(
       atRUS,
       any(flag("f_denmark_channel"), memory("m_andersen")),
-      date("1915-01", "1916-06"),
+      world({ is: "war_months", own: true, min: 5, max: 23 }),
     ),
     5,
     {
@@ -2579,7 +2636,7 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
     "deu_hintze",
     all(
       any(scoreMax(-10), memory("m_kuhl_hintze")),
-      date("1918-01", "1918-12"),
+      world({ is: "war_months", min: 41 }),
     ),
     6,
     {

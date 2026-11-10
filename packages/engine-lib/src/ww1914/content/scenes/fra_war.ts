@@ -417,7 +417,7 @@ const DESK: GwScene[] = [
     id: "fra_w_ledger",
     kind: "ledger",
     stage: Y14_ON,
-    when: all(war, since(6, "18b")),
+    when: war,
     cast: { cos: holder("chief_of_staff") },
     salience: 9,
     tags: ["war"],
@@ -451,7 +451,11 @@ const DESK: GwScene[] = [
     id: "fra_w_plan_1915",
     kind: "crisis",
     stage: Y14_ON,
-    when: all(war, during("15a"), trench(2)),
+    when: all(
+      war,
+      world({ is: "war_months", own: true, min: 5, max: 11 }),
+      trench(2),
+    ),
     cast: { cos: holder("chief_of_staff"), war: holder("war") },
     salience: 9,
     tags: ["war", "tension_up"],
@@ -494,7 +498,11 @@ const DESK: GwScene[] = [
     id: "fra_w_deputies_front",
     kind: "dispute",
     stage: Y14_ON,
-    when: all(war, during("15a"), joffreFree),
+    when: all(
+      war,
+      world({ is: "war_months", own: true, min: 5, max: 11 }),
+      joffreFree,
+    ),
     cast: { cos: holder("chief_of_staff"), war: holder("war") },
     salience: 8,
     tags: ["home", "tension_up"],
@@ -531,7 +539,11 @@ const DESK: GwScene[] = [
     id: "fra_w_dardanelles",
     kind: "proposal",
     stage: Y14_ON,
-    when: all(war, during("15a"), open("straits")),
+    when: all(
+      war,
+      world({ is: "war_months", own: true, min: 5, max: 11 }),
+      open("straits"),
+    ),
     cast: { navy: holder("navy") },
     salience: 7,
     tags: ["war"],
@@ -568,7 +580,7 @@ const DESK: GwScene[] = [
     id: "fra_w_champagne",
     kind: "crisis",
     stage: Y14_ON,
-    when: all(war, during("15b")),
+    when: all(war, world({ is: "war_months", own: true, min: 11, max: 17 })),
     cast: { cos: holder("chief_of_staff") },
     salience: 8,
     tags: ["war", "tension_up"],
@@ -611,7 +623,7 @@ const DESK: GwScene[] = [
     stage: Y14_ON,
     when: all(
       war,
-      during("15b", "16a"),
+      world({ is: "war_months", own: true, min: 11, max: 23 }),
       world({ is: "entered", tag: "BGR", side: "central" }),
     ),
     cast: { war: holder("war"), foreign: holder("foreign") },
@@ -645,7 +657,7 @@ const DESK: GwScene[] = [
     id: "fra_w_sarrail_case",
     kind: "audience",
     stage: Y14_ON,
-    when: all(war, during("15b"), {
+    when: all(war, world({ is: "war_months", own: true, min: 11, max: 17 }), {
       kind: "person_active",
       person: "fra_sarrail",
     }),
@@ -679,7 +691,11 @@ const DESK: GwScene[] = [
     id: "fra_w_verdun_warning",
     kind: "report",
     stage: Y14_ON,
-    when: all(war, during("15b", "16a"), not(seen("fra_big_verdun"))),
+    when: all(
+      war,
+      world({ is: "war_months", own: true, min: 11, max: 23 }),
+      not(seen("fra_big_verdun")),
+    ),
     cast: {},
     salience: 7,
     tags: ["war"],
@@ -691,7 +707,11 @@ const DESK: GwScene[] = [
     id: "fra_w_noria",
     kind: "proposal",
     stage: Y14_ON,
-    when: all(war, during("16a", "16b"), seen("fra_big_verdun")),
+    when: all(
+      war,
+      world({ is: "war_months", own: true, min: 17, max: 29 }),
+      seen("fra_big_verdun"),
+    ),
     cast: { cos: holder("chief_of_staff") },
     salience: 6,
     tags: ["war"],
@@ -713,7 +733,11 @@ const DESK: GwScene[] = [
     id: "fra_w_somme",
     kind: "crisis",
     stage: Y14_ON,
-    when: all(war, during("16b"), fighting("GBR")),
+    when: all(
+      war,
+      world({ is: "war_months", own: true, min: 23, max: 29 }),
+      fighting("GBR"),
+    ),
     cast: { cos: holder("chief_of_staff") },
     salience: 8,
     tags: ["war", "foreign"],
@@ -798,7 +822,7 @@ const DESK: GwScene[] = [
     stage: Y14_ON,
     when: all(
       war,
-      during("17a"),
+      world({ is: "war_months", own: true, min: 29, max: 35 }),
       holds("chief_of_staff", "fra_nivelle"),
       fighting("GBR"),
     ),
@@ -876,7 +900,11 @@ const DESK: GwScene[] = [
 
   record(
     "fra_w_chemin_record",
-    all(war, between("1917-04", "1917-12"), flag("f_nivelle_goes")),
+    all(
+      war,
+      world({ is: "war_months", own: true, min: 32, max: 41 }),
+      flag("f_nivelle_goes"),
+    ),
     [v("limited", flag("f_nivelle_limited")), v("base")],
     "confirmed",
     { salience: 7 },
@@ -886,7 +914,11 @@ const DESK: GwScene[] = [
     id: "fra_w_mutiny_record",
     kind: "report",
     stage: Y14_ON,
-    when: all(war, during("17a", "18a"), seen("fra_big_mutiny")),
+    when: all(
+      war,
+      world({ is: "war_months", own: true, min: 29, max: 47 }),
+      seen("fra_big_mutiny"),
+    ),
     cast: {},
     salience: 7,
     tags: ["war"],
@@ -903,7 +935,11 @@ const DESK: GwScene[] = [
     id: "fra_w_americans",
     kind: "proposal",
     stage: Y14_ON,
-    when: all(war, during("17b", "18a"), fighting("USA")),
+    when: all(
+      war,
+      world({ is: "war_months", own: true, min: 35, max: 47 }),
+      fighting("USA"),
+    ),
     cast: { cos: holder("chief_of_staff") },
     salience: 7,
     tags: ["foreign", "war"],
@@ -926,7 +962,7 @@ const DESK: GwScene[] = [
     stage: Y14_ON,
     when: all(
       war,
-      during("17b", "18a"),
+      world({ is: "war_months", own: true, min: 35, max: 47 }),
       fighting("ITA"),
       any(
         world({ is: "front", theatre: "italy", from: "piave" }),
@@ -949,7 +985,11 @@ const DESK: GwScene[] = [
     id: "fra_w_supreme_council",
     kind: "crisis",
     stage: Y14_ON,
-    when: all(war, during("17b", "18a"), fighting("GBR")),
+    when: all(
+      war,
+      world({ is: "war_months", own: true, min: 35, max: 47 }),
+      fighting("GBR"),
+    ),
     cast: { pm: holder("chancellor") },
     salience: 7,
     tags: ["foreign"],
@@ -981,7 +1021,7 @@ const DESK: GwScene[] = [
     stage: Y14_ON,
     when: all(
       war,
-      during("18a"),
+      world({ is: "war_months", own: true, min: 41, max: 47 }),
       any(westBack, world({ is: "out", tag: "RUS" })),
     ),
     cast: { cos: holder("chief_of_staff"), pm: holder("chancellor") },
@@ -1017,7 +1057,7 @@ const DESK: GwScene[] = [
     stage: Y14_ON,
     when: all(
       war,
-      during("18a", "18b"),
+      world({ is: "war_months", own: true, min: 41 }),
       seen("fra_w_doullens"),
       world({ is: "front", theatre: "west", from: "aisne" }),
     ),
@@ -1064,7 +1104,7 @@ const DESK: GwScene[] = [
 
   record(
     "fra_w_colonial_front",
-    all(war, during("16a", "18b")),
+    all(war, world({ is: "war_months", own: true, min: 17 })),
     [v("verdun", seen("fra_big_verdun")), v("base")],
     "confirmed",
     { salience: 5, once: false, cooldown: 8 },
@@ -1078,7 +1118,11 @@ const b = [v("base")];
 const BIG: GwScene[] = [
   big(
     "fra_big_verdun",
-    all(war, during("16a"), any(westHit, trench(2))),
+    all(
+      war,
+      world({ is: "war_months", own: true, min: 17, max: 23 }),
+      any(westHit, trench(2)),
+    ),
     { cos: holder("chief_of_staff"), war: holder("war") },
     "cos",
     {
@@ -1135,7 +1179,7 @@ const BIG: GwScene[] = [
     "fra_big_joffre",
     all(
       war,
-      during("16b", "17a"),
+      world({ is: "war_months", own: true, min: 23, max: 35 }),
       not(fallen),
       any(
         flag("f_secret_committee"),
@@ -1199,7 +1243,7 @@ const BIG: GwScene[] = [
     "fra_big_mutiny",
     all(
       war,
-      during("17a", "17b"),
+      world({ is: "war_months", own: true, min: 29, max: 41 }),
       any({ kind: "inst", inst: "army", max: -2 }, seen("fra_w_chemin_record")),
     ),
     { cos: holder("chief_of_staff"), war: holder("war") },
@@ -1268,7 +1312,7 @@ const TALKS: GwScene[] = [
     "fra_t_joffre_cover",
     "fra_joffre",
     CRISIS_ON,
-    all(crisis, chapters(3, 5)),
+    all(crisis, world({ is: "chain", short: false, min: 3, max: 5 })),
     { mood: "stubborn", give: [remember("k_jof_cover")] },
   ),
   talk("fra_t_joffre_plan", "fra_joffre", CRISIS_ON, chapters(0, 5), {
@@ -1280,7 +1324,14 @@ const TALKS: GwScene[] = [
     "fra_t_joffre_lunch",
     "fra_joffre",
     Y14_ON,
-    all(war, since(8, "16b"), not(fallen)),
+    all(
+      war,
+      all(
+        world({ is: "war_months", own: true, min: 2 }),
+        world({ is: "war_months", own: true, max: 29 }),
+      ),
+      not(fallen),
+    ),
     { mood: "stubborn", give: [remember("k_jof_mind")], straight: true },
     { cd: 8 },
   ),
@@ -1288,14 +1339,22 @@ const TALKS: GwScene[] = [
     "fra_t_joffre_west",
     "fra_joffre",
     Y14_ON,
-    all(war, during("15a", "15b"), not(fallen)),
+    all(
+      war,
+      world({ is: "war_months", own: true, min: 5, max: 17 }),
+      not(fallen),
+    ),
     { mood: "stubborn", give: [remember("k_jof_west")], bristles: "stubborn" },
   ),
   conversation(
     "fra_t_joffre_deputies",
     "fra_joffre",
     Y14_ON,
-    all(war, during("15a", "16a"), joffreFree),
+    all(
+      war,
+      world({ is: "war_months", own: true, min: 5, max: 23 }),
+      joffreFree,
+    ),
     {
       open: node(
         moods("cold"),
@@ -1333,7 +1392,7 @@ const TALKS: GwScene[] = [
     "fra_t_joffre_end",
     "fra_joffre",
     Y14_ON,
-    all(fallen, during("16b", "18b")),
+    all(fallen, world({ is: "war_months", min: 23 })),
     { mood: "cold", give: [remember("k_jof_after")] },
   ),
 
@@ -1342,35 +1401,48 @@ const TALKS: GwScene[] = [
     "fra_t_gallieni_paris",
     "fra_gallieni",
     Y14_ON,
-    all(war, chapters(6, 8)),
+    all(war, world({ is: "war_months", own: true, max: 2 })),
     { mood: "cold", give: [remember("k_gal_paris")] },
   ),
   talk(
     "fra_t_gallieni_taxis",
     "fra_gallieni",
     Y14_ON,
-    all(war, chapters(7, 9), seen("fra_big_marne")),
+    all(
+      war,
+      world({ is: "war_months", own: true, min: 1, max: 3 }),
+      seen("fra_big_marne"),
+    ),
     { mood: "cold", give: [remember("k_gal_marne")], straight: true },
   ),
   talk(
     "fra_t_gallieni_salonika",
     "fra_gallieni",
     Y14_ON,
-    all(war, since(10, "15a")),
+    all(
+      war,
+      all(
+        world({ is: "war_months", own: true, min: 4 }),
+        world({ is: "war_months", own: true, max: 11 }),
+      ),
+    ),
     { mood: "stubborn", give: [remember("k_gal_salonika")] },
   ),
   talk(
     "fra_t_gallieni_joffre",
     "fra_gallieni",
     Y14_ON,
-    all(during("15b", "16a"), holds("war", "fra_gallieni")),
+    all(
+      world({ is: "war_months", min: 11, max: 23 }),
+      holds("war", "fra_gallieni"),
+    ),
     { mood: "cold", give: [remember("k_gal_verdun")], bristles: "stubborn" },
   ),
   conversation(
     "fra_t_gallieni_health",
     "fra_gallieni",
     Y14_ON,
-    all(war, during("15b", "16a")),
+    all(war, world({ is: "war_months", own: true, min: 11, max: 23 })),
     {
       open: node(
         moods("stubborn"),
@@ -1407,21 +1479,37 @@ const TALKS: GwScene[] = [
     "fra_t_gallieni_minister",
     "fra_gallieni",
     Y14_ON,
-    all(war, during("15a", "15b"), not(holds("war", "fra_gallieni"))),
+    all(
+      war,
+      world({ is: "war_months", own: true, min: 5, max: 17 }),
+      not(holds("war", "fra_gallieni")),
+    ),
     { mood: "cold", give: [remember("k_gal_minister")], bristles: "stubborn" },
   ),
 
   // Foch
-  talk("fra_t_foch_north", "fra_foch", Y14_ON, all(war, since(8, "15a")), {
-    mood: "arrogant",
-    give: [remember("k_foc_north")],
-    straight: true,
-  }),
+  talk(
+    "fra_t_foch_north",
+    "fra_foch",
+    Y14_ON,
+    all(
+      war,
+      all(
+        world({ is: "war_months", own: true, min: 2 }),
+        world({ is: "war_months", own: true, max: 11 }),
+      ),
+    ),
+    {
+      mood: "arrogant",
+      give: [remember("k_foc_north")],
+      straight: true,
+    },
+  ),
   talk(
     "fra_t_foch_attack",
     "fra_foch",
     Y14_ON,
-    all(war, during("15a", "18a")),
+    all(war, world({ is: "war_months", own: true, min: 5, max: 47 })),
     { mood: "arrogant", give: [remember("k_foc_attack")] },
     { cd: 8 },
   ),
@@ -1429,52 +1517,78 @@ const TALKS: GwScene[] = [
     "fra_t_foch_rest",
     "fra_foch",
     Y14_ON,
-    all(war, during("16b", "17a"), not(holds("chief_of_staff", "fra_foch"))),
+    all(
+      war,
+      world({ is: "war_months", own: true, min: 23, max: 35 }),
+      not(holds("chief_of_staff", "fra_foch")),
+    ),
     { mood: "stubborn", give: [remember("k_foc_rest")], bristles: "arrogant" },
   ),
-  talk("fra_t_foch_unity", "fra_foch", Y14_ON, all(war, during("17b", "18a")), {
-    mood: "arrogant",
-    give: [remember("k_foc_unity")],
-  }),
-  talk("fra_t_foch_rhine", "fra_foch", Y14_ON, all(war, during("18b")), {
-    mood: "stubborn",
-    give: [remember("k_foc_rhine")],
-  }),
-  conversation("fra_t_foch_son", "fra_foch", Y14_ON, all(war, chapters(7, 9)), {
-    open: node(
-      moods("stubborn"),
-      r("ask", "warm", "ask", "more"),
-      r("push", "frank", "push", "work", { miss: "work" }),
-      r("deal", "warm", "deal", "work"),
-      bye("later", "warm"),
-    ),
-    more: plain(
-      r("take", "warm", "deal", null, { effects: [trustOf(who, 1)] }),
-      bye("end", "warm"),
-    ),
-    work: plain(bye("end", "warm")),
-  }),
+  talk(
+    "fra_t_foch_unity",
+    "fra_foch",
+    Y14_ON,
+    all(war, world({ is: "war_months", own: true, min: 35, max: 47 })),
+    {
+      mood: "arrogant",
+      give: [remember("k_foc_unity")],
+    },
+  ),
+  talk(
+    "fra_t_foch_rhine",
+    "fra_foch",
+    Y14_ON,
+    all(war, world({ is: "war_months", own: true, min: 47 })),
+    {
+      mood: "stubborn",
+      give: [remember("k_foc_rhine")],
+    },
+  ),
+  conversation(
+    "fra_t_foch_son",
+    "fra_foch",
+    Y14_ON,
+    all(war, world({ is: "war_months", own: true, min: 1, max: 3 })),
+    {
+      open: node(
+        moods("stubborn"),
+        r("ask", "warm", "ask", "more"),
+        r("push", "frank", "push", "work", { miss: "work" }),
+        r("deal", "warm", "deal", "work"),
+        bye("later", "warm"),
+      ),
+      more: plain(
+        r("take", "warm", "deal", null, { effects: [trustOf(who, 1)] }),
+        bye("end", "warm"),
+      ),
+      work: plain(bye("end", "warm")),
+    },
+  ),
 
   // Pétain
   talk(
     "fra_t_petain_guns",
     "fra_petain",
     Y14_ON,
-    all(war, during("15a", "15b")),
+    all(war, world({ is: "war_months", own: true, min: 5, max: 17 })),
     { mood: "cold", give: [remember("k_pet_guns")] },
   ),
   talk(
     "fra_t_petain_verdun",
     "fra_petain",
     Y14_ON,
-    all(war, during("16a", "16b"), seen("fra_big_verdun")),
+    all(
+      war,
+      world({ is: "war_months", own: true, min: 17, max: 29 }),
+      seen("fra_big_verdun"),
+    ),
     { mood: "cold", give: [remember("k_pet_road")] },
   ),
   talk(
     "fra_t_petain_doubt",
     "fra_petain",
     Y14_ON,
-    all(war, during("16b", "17a")),
+    all(war, world({ is: "war_months", own: true, min: 23, max: 35 })),
     { mood: "weary", give: [remember("k_pet_doubt")], straight: true },
   ),
   talk(
@@ -1483,7 +1597,7 @@ const TALKS: GwScene[] = [
     Y14_ON,
     all(
       war,
-      during("17a", "17b"),
+      world({ is: "war_months", own: true, min: 29, max: 41 }),
       any(seen("fra_w_chemin_record"), { kind: "inst", inst: "army", max: -1 }),
     ),
     { mood: "cold", give: [remember("k_pet_letters")] },
@@ -1492,7 +1606,7 @@ const TALKS: GwScene[] = [
     "fra_t_petain_wait",
     "fra_petain",
     Y14_ON,
-    all(war, during("17b", "18a")),
+    all(war, world({ is: "war_months", own: true, min: 35, max: 47 })),
     {
       mood: "weary",
       give: [reveal("fra_army_refusals"), remember("k_pet_wait")],
@@ -1504,7 +1618,11 @@ const TALKS: GwScene[] = [
     "fra_t_petain_retreat",
     "fra_petain",
     Y14_ON,
-    all(war, during("18a"), westBack),
+    all(
+      war,
+      world({ is: "war_months", own: true, min: 41, max: 47 }),
+      westBack,
+    ),
     { mood: "weary", give: [remember("k_pet_paris")], bristles: "cold" },
   ),
 ];
@@ -1516,7 +1634,13 @@ const VISITS: GwScene[] = [
     "fra_v_castelnau_sons",
     "fra_castelnau",
     Y14_ON,
-    all(war, since(7, "16a")),
+    all(
+      war,
+      all(
+        world({ is: "war_months", own: true, min: 1 }),
+        world({ is: "war_months", own: true, max: 23 }),
+      ),
+    ),
     { mood: "stubborn", give: [remember("k_cas_verdun")] },
     { visit: 6 },
   ),
@@ -1524,7 +1648,7 @@ const VISITS: GwScene[] = [
     "fra_v_sarrail_friends",
     "fra_sarrail",
     Y14_ON,
-    all(war, during("15a", "15b")),
+    all(war, world({ is: "war_months", own: true, min: 5, max: 17 })),
     {
       mood: "cunning",
       give: [remember("k_sar_friends")],
@@ -1536,7 +1660,7 @@ const VISITS: GwScene[] = [
     "fra_v_mangin_force",
     "fra_mangin",
     Y14_ON,
-    all(war, during("15a", "17a")),
+    all(war, world({ is: "war_months", own: true, min: 5, max: 35 })),
     { mood: "arrogant", give: [remember("k_man_force")] },
     { visit: 5 },
   ),
@@ -1544,7 +1668,7 @@ const VISITS: GwScene[] = [
     "fra_v_nivelle_plan",
     "fra_nivelle",
     Y14_ON,
-    all(war, during("16b", "17a")),
+    all(war, world({ is: "war_months", own: true, min: 23, max: 35 })),
     { mood: "arrogant", give: [remember("k_niv_plan")], bristles: "arrogant" },
     { visit: 6 },
   ),
@@ -1552,7 +1676,11 @@ const VISITS: GwScene[] = [
     "fra_v_painleve_doubt",
     "fra_painleve",
     Y14_ON,
-    all(war, during("17a"), holds("chief_of_staff", "fra_nivelle")),
+    all(
+      war,
+      world({ is: "war_months", own: true, min: 29, max: 35 }),
+      holds("chief_of_staff", "fra_nivelle"),
+    ),
     { mood: "anxious", give: [remember("k_pai_doubt")], straight: true },
     { visit: 7 },
   ),

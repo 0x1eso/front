@@ -307,7 +307,7 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
   scene({
     id: "deu_f_ledger",
     kind: "ledger",
-    when: all(war, date("1915-01", "1918-12")),
+    when: all(war, world({ is: "war_months", own: true, min: 5 })),
     cast: { cos: holder("chief_of_staff") },
     salience: 9,
     tags: ["war"],
@@ -374,7 +374,7 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
     when: all(
       war,
       atWar("RUS"),
-      date("1915-01", "1915-06"),
+      world({ is: "war_months", own: true, min: 5, max: 11 }),
       not(flag("f_ew_settled")),
     ),
     cast: { cos: holder("chief_of_staff"), war: holder("war") },
@@ -451,7 +451,7 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
     kind: "audience",
     when: all(
       chose("deu_f_east_or_west", "back_chief"),
-      date("1915-01", "1915-09"),
+      world({ is: "war_months", min: 5, max: 14 }),
     ),
     cast: { cos: holder("chief_of_staff"), court: holder("court") },
     salience: 8,
@@ -519,11 +519,17 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
   scene({
     id: "deu_f_gorlice",
     kind: "proposal",
-    when: all(war, atWar("RUS"), auhIn, date("1915-03", "1915-09"), {
-      kind: "gauge",
-      gauge: "shells",
-      min: 2,
-    }),
+    when: all(
+      war,
+      atWar("RUS"),
+      auhIn,
+      world({ is: "war_months", own: true, min: 7, max: 14 }),
+      {
+        kind: "gauge",
+        gauge: "shells",
+        min: 2,
+      },
+    ),
     cast: { cos: holder("chief_of_staff") },
     salience: 8,
     tags: ["war"],
@@ -584,7 +590,11 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
   scene({
     id: "deu_f_warsaw_falls",
     kind: "report",
-    when: all(war, front("east", "warsaw"), date("1915-01", "1916-06")),
+    when: all(
+      war,
+      front("east", "warsaw"),
+      world({ is: "war_months", own: true, min: 5, max: 23 }),
+    ),
     cast: {},
     salience: 6,
     tags: ["war", "tension_down"],
@@ -598,7 +608,11 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
   scene({
     id: "deu_f_serbia_road",
     kind: "proposal",
-    when: all(bulgariaIn, not(serbiaOut), date("1915-07", "1915-12")),
+    when: all(
+      bulgariaIn,
+      not(serbiaOut),
+      world({ is: "war_months", min: 11, max: 17 }),
+    ),
     cast: {
       cos: holder("chief_of_staff"),
       envoy: holder("ambassador_vienna"),
@@ -655,7 +669,7 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
     when: all(
       world({ is: "open", theatre: "straits" }),
       flag("f_ottoman_signed"),
-      date("1915-01", "1915-12"),
+      world({ is: "war_months", min: 5, max: 17 }),
     ),
     cast: { cos: holder("chief_of_staff"), foreign: holder("foreign") },
     salience: 6,
@@ -695,7 +709,11 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
   scene({
     id: "deu_f_east1_year",
     kind: "proposal",
-    when: all(war, east1, date("1915-01", "1915-12")),
+    when: all(
+      war,
+      east1,
+      world({ is: "war_months", own: true, min: 5, max: 17 }),
+    ),
     cast: { cos: holder("chief_of_staff"), foreign: holder("foreign") },
     salience: 8,
     tags: ["war"],
@@ -748,7 +766,7 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
       war,
       west1,
       atWar("FRA"),
-      date("1915-10", "1916-06"),
+      world({ is: "war_months", own: true, min: 14, max: 23 }),
       world({
         is: "battle",
         theatre: "west",
@@ -832,7 +850,7 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
     kind: "dispute",
     when: all(
       flag("f_verdun"),
-      date("1916-03", "1916-12"),
+      world({ is: "war_months", min: 19, max: 29 }),
       world({ is: "battle", theatre: "west", of: ["stalemate", "repelled"] }),
     ),
     cast: { cos: holder("chief_of_staff"), heir: { person: "deu_heir" } },
@@ -887,7 +905,11 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
   scene({
     id: "deu_f_somme_doctrine",
     kind: "proposal",
-    when: all(war, atWar("GBR"), date("1916-06", "1916-12")),
+    when: all(
+      war,
+      atWar("GBR"),
+      world({ is: "war_months", own: true, min: 22, max: 29 }),
+    ),
     cast: { cos: holder("chief_of_staff") },
     salience: 8,
     tags: ["war"],
@@ -929,7 +951,7 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
       war,
       atWar("RUS"),
       auhIn,
-      date("1916-03", "1916-12"),
+      world({ is: "war_months", own: true, min: 19, max: 29 }),
       world({ is: "battle", theatre: "east", of: ["break", "advance"] }),
     ),
     cast: {
@@ -980,7 +1002,7 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
   scene({
     id: "deu_f_romania_in",
     kind: "report",
-    when: all(romaniaIn, date("1916-01", "1917-06")),
+    when: all(romaniaIn, world({ is: "war_months", min: 17, max: 35 })),
     cast: {},
     salience: 8,
     tags: ["foreign", "tension_up"],
@@ -995,7 +1017,7 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
       chiefIs("deu_falkenhayn"),
       any(romaniaIn, seen("deu_f_verdun_third_month")),
       not(flag("f_third_ohl")),
-      date("1916-02", "1917-03"),
+      world({ is: "war_months", min: 18, max: 32 }),
     ),
     cast: {
       chancellor: holder("chancellor"),
@@ -1137,7 +1159,7 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
     when: all(
       war,
       any(ohl3, men_(45)),
-      date("1916-09", "1917-06"),
+      world({ is: "war_months", own: true, min: 25, max: 35 }),
       front("west", "somme"),
     ),
     cast: { cos: holder("chief_of_staff") },
@@ -1178,7 +1200,11 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
   }),
   record(
     "deu_f_occupation_record",
-    all(war, date("1916-10", "1917-06"), atWar("BEL")),
+    all(
+      war,
+      world({ is: "war_months", own: true, min: 26, max: 35 }),
+      atWar("BEL"),
+    ),
     [v("line", flag("f_line_withdrawn")), v("base")],
     "press",
   ),
@@ -1187,7 +1213,7 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
   scene({
     id: "deu_f_italy_corps",
     kind: "proposal",
-    when: all(italyIn, auhIn, date("1917-07", "1917-12")),
+    when: all(italyIn, auhIn, world({ is: "war_months", min: 35, max: 41 })),
     cast: {
       cos: holder("chief_of_staff"),
       envoy: holder("ambassador_vienna"),
@@ -1366,7 +1392,11 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
   scene({
     id: "deu_f_east_garrison",
     kind: "proposal",
-    when: all(rusout, front("east", "warsaw"), date("1918-01", "1918-08")),
+    when: all(
+      rusout,
+      front("east", "warsaw"),
+      world({ is: "war_months", min: 41, max: 49 }),
+    ),
     cast: { cos: holder("chief_of_staff"), foreign: holder("foreign") },
     salience: 7,
     tags: ["war"],
@@ -1409,7 +1439,11 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
   scene({
     id: "deu_f_offensive_month",
     kind: "dispute",
-    when: all(flag("f_spring"), date("1918-03", "1918-10"), atWar("FRA")),
+    when: all(
+      flag("f_spring"),
+      world({ is: "war_months", own: true, min: 43, max: 51 }),
+      atWar("FRA"),
+    ),
     cast: { cos: holder("chief_of_staff"), chancellor: holder("chancellor") },
     salience: 8,
     tags: ["war", "tension_up"],
@@ -1461,7 +1495,7 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
   scene({
     id: "deu_f_last_classes",
     kind: "proposal",
-    when: all(war, men_(25), date("1917-07", "1918-12")),
+    when: all(war, men_(25), world({ is: "war_months", own: true, min: 35 })),
     cast: { war: holder("war"), cos: holder("chief_of_staff") },
     salience: 8,
     tags: ["home"],
@@ -1508,7 +1542,7 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
       }),
       score(-15),
       usin,
-      date("1918-06", "1918-12"),
+      world({ is: "war_months", own: true, min: 46 }),
     ),
     cast: { cos: holder("chief_of_staff"), chancellor: holder("chancellor") },
     salience: 9,
@@ -1569,7 +1603,7 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
     when: all(
       war,
       world({ is: "casualties", min: 300 }),
-      date("1915-01", "1918-12"),
+      world({ is: "war_months", own: true, min: 5 }),
     ),
     cast: {},
     salience: 6,
@@ -1592,7 +1626,7 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
     when: all(
       war,
       world({ is: "open", theatre: "colonies" }),
-      date("1916-01", "1918-12"),
+      world({ is: "war_months", own: true, min: 17 }),
     ),
     cast: {},
     salience: 3,
@@ -1606,7 +1640,11 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
   scene({
     id: "deu_f_paris_in_range",
     kind: "crisis",
-    when: all(front("west", "marne"), atWar("FRA"), date("1915-07", "1918-12")),
+    when: all(
+      front("west", "marne"),
+      atWar("FRA"),
+      world({ is: "war_months", own: true, min: 11 }),
+    ),
     cast: { cos: holder("chief_of_staff"), chancellor: holder("chancellor") },
     salience: 8,
     tags: ["war", "tension_up"],
@@ -1654,7 +1692,7 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
   talk(
     "deu_t2_falk_two_fronts",
     "deu_falkenhayn",
-    all(war, date("1915-01", "1915-06")),
+    all(war, world({ is: "war_months", own: true, min: 5, max: 11 })),
     {
       open: node(
         moods("cold", "arrogant"),
@@ -1693,7 +1731,10 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
   talk(
     "deu_t2_falk_bleed",
     "deu_falkenhayn",
-    all(chiefIs("deu_falkenhayn"), date("1915-07", "1916-06")),
+    all(
+      chiefIs("deu_falkenhayn"),
+      world({ is: "war_months", own: true, min: 11, max: 23 }),
+    ),
     {
       open: node(
         moods("cunning", "cold"),
@@ -1742,7 +1783,7 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
   talk(
     "deu_t2_falk_russia",
     "deu_falkenhayn",
-    all(atWar("RUS"), date("1915-01", "1916-06")),
+    all(atWar("RUS"), world({ is: "war_months", own: true, min: 5, max: 23 })),
     {
       open: node(
         moods("cunning"),
@@ -1783,7 +1824,7 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
         { kind: "office_empty", office: "war" },
         { kind: "holder", office: "war", person: "deu_wild" },
       ),
-      date("1915-01", "1915-12"),
+      world({ is: "war_months", own: true, min: 5, max: 17 }),
     ),
     {
       open: node(
@@ -1835,7 +1876,11 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
   talk(
     "deu_t2_falk_pair",
     "deu_falkenhayn",
-    all(chiefIs("deu_falkenhayn"), not(ohl3), date("1916-01", "1916-12")),
+    all(
+      chiefIs("deu_falkenhayn"),
+      not(ohl3),
+      world({ is: "war_months", min: 17, max: 29 }),
+    ),
     {
       open: node(
         moods("cold", "cunning"),
@@ -1885,7 +1930,7 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
   talk(
     "deu_t2_falk_after",
     "deu_falkenhayn",
-    all(not(chiefIs("deu_falkenhayn")), date("1916-07", "1918-12")),
+    all(not(chiefIs("deu_falkenhayn")), world({ is: "war_months", min: 23 })),
     {
       open: node(
         [
@@ -1938,7 +1983,7 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
   talk(
     "deu_t2_hind_east_price",
     "deu_hindenburg",
-    all(atWar("RUS"), date("1915-01", "1915-06")),
+    all(atWar("RUS"), world({ is: "war_months", own: true, min: 5, max: 11 })),
     {
       open: node(
         moods("stubborn"),
@@ -1975,7 +2020,7 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
   talk(
     "deu_t2_hind_name",
     "deu_hindenburg",
-    all(war, date("1915-03", "1916-06")),
+    all(war, world({ is: "war_months", own: true, min: 7, max: 23 })),
     {
       open: node(
         moods("cold"),
@@ -2006,7 +2051,11 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
   talk(
     "deu_t2_hind_unified",
     "deu_hindenburg",
-    all(atWar("RUS"), auhIn, date("1916-01", "1917-12")),
+    all(
+      atWar("RUS"),
+      auhIn,
+      world({ is: "war_months", own: true, min: 17, max: 41 }),
+    ),
     {
       open: node(
         moods("stubborn"),
@@ -2035,7 +2084,7 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
   talk(
     "deu_t2_hind_who_signs",
     "deu_hindenburg",
-    all(ohl3, date("1916-09", "1917-12")),
+    all(ohl3, world({ is: "war_months", min: 25, max: 41 })),
     {
       open: node(
         moods("cold", "stubborn"),
@@ -2073,7 +2122,7 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
   talk(
     "deu_t2_hind_card",
     "deu_hindenburg",
-    all(ohl3, armyMin(4), date("1917-01", "1917-12")),
+    all(ohl3, armyMin(4), world({ is: "war_months", min: 29, max: 41 })),
     {
       open: node(
         moods("stubborn"),
@@ -2106,7 +2155,7 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
   talk(
     "deu_t2_hind_truth",
     "deu_hindenburg",
-    all(score(-5), date("1918-01", "1918-12")),
+    all(score(-5), world({ is: "war_months", own: true, min: 41 })),
     {
       open: node(
         moods("cold"),
@@ -2139,7 +2188,7 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
   talk(
     "deu_t2_lud_depth",
     "deu_ludendorff",
-    all(war, date("1916-01", "1916-12")),
+    all(war, world({ is: "war_months", own: true, min: 17, max: 29 })),
     {
       open: node(
         moods("arrogant", "anxious"),
@@ -2174,7 +2223,7 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
   talk(
     "deu_t2_lud_poland",
     "deu_ludendorff",
-    all(front("east", "warsaw"), date("1915-07", "1916-12")),
+    all(front("east", "warsaw"), world({ is: "war_months", min: 11, max: 29 })),
     {
       open: node(
         moods("stubborn"),
@@ -2205,7 +2254,7 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
   talk(
     "deu_t2_lud_figures",
     "deu_ludendorff",
-    all(ohl3, date("1916-09", "1917-12")),
+    all(ohl3, world({ is: "war_months", min: 25, max: 41 })),
     {
       open: node(
         moods("anxious", "arrogant"),
@@ -2239,7 +2288,7 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
   talk(
     "deu_t2_lud_aims",
     "deu_ludendorff",
-    all(ohl3, date("1917-01", "1917-12")),
+    all(ohl3, world({ is: "war_months", min: 29, max: 41 })),
     {
       open: node(
         moods("arrogant"),
@@ -2304,7 +2353,7 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
   talk(
     "deu_t2_lud_nerves",
     "deu_ludendorff",
-    all(score(-5), date("1918-04", "1918-12")),
+    all(score(-5), world({ is: "war_months", own: true, min: 44 })),
     {
       open: node(
         moods("anxious", "stubborn"),
@@ -2345,34 +2394,39 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
   ),
 
   // ---- Bauer ----
-  talk("deu_t2_bauer_guns", "deu_bauer", all(war, date("1915-07", "1916-12")), {
-    open: node(
-      moods("arrogant"),
-      r("ask", "cold", "ask", "count", {
-        gain: [key("k_bauer_guns")],
-      }),
-      r("push", "cold", "push", "chief", {
-        reacts: [ifMood("count", [key("k_bauer_guns")], "cunning")],
-      }),
-      r("deal", "flatter", "deal", "krupp", {
-        tell: ["money:-1"],
-        effects: [gauge("money", -1), key("k_bauer_guns")],
-      }),
-      bye("leave", "cold"),
-    ),
-    count: plain(
-      r("key", "cold", "deal", null, {
-        effects: [key("k_bauer_guns")],
-      }),
-      bye("end", "cold"),
-    ),
-    chief: plain(r("then", "cold", "ask", "count"), bye("end", "cold")),
-    krupp: plain(bye("end", "cold")),
-  }),
+  talk(
+    "deu_t2_bauer_guns",
+    "deu_bauer",
+    all(war, world({ is: "war_months", own: true, min: 11, max: 29 })),
+    {
+      open: node(
+        moods("arrogant"),
+        r("ask", "cold", "ask", "count", {
+          gain: [key("k_bauer_guns")],
+        }),
+        r("push", "cold", "push", "chief", {
+          reacts: [ifMood("count", [key("k_bauer_guns")], "cunning")],
+        }),
+        r("deal", "flatter", "deal", "krupp", {
+          tell: ["money:-1"],
+          effects: [gauge("money", -1), key("k_bauer_guns")],
+        }),
+        bye("leave", "cold"),
+      ),
+      count: plain(
+        r("key", "cold", "deal", null, {
+          effects: [key("k_bauer_guns")],
+        }),
+        bye("end", "cold"),
+      ),
+      chief: plain(r("then", "cold", "ask", "count"), bye("end", "cold")),
+      krupp: plain(bye("end", "cold")),
+    },
+  ),
   talk(
     "deu_t2_bauer_doors",
     "deu_bauer",
-    all(war, date("1916-01", "1917-06")),
+    all(war, world({ is: "war_months", own: true, min: 17, max: 35 })),
     {
       open: node(
         moods("cunning"),
@@ -2416,7 +2470,7 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
   talk(
     "deu_t2_bauer_triple",
     "deu_bauer",
-    all(ohl3, date("1916-07", "1916-12")),
+    all(ohl3, world({ is: "war_months", min: 23, max: 29 })),
     {
       open: node(
         moods("arrogant", "cunning"),
@@ -2451,7 +2505,7 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
     all(
       { kind: "holder", office: "chancellor", person: "deu_bethmann" },
       armyMin(4),
-      date("1917-01", "1917-12"),
+      world({ is: "war_months", own: true, min: 29, max: 41 }),
     ),
     {
       open: node(
@@ -2492,7 +2546,7 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
   talk(
     "deu_t2_bauer_press",
     "deu_bauer",
-    all(ohl3, date("1917-07", "1917-12")),
+    all(ohl3, world({ is: "war_months", min: 35, max: 41 })),
     {
       open: node(
         moods("arrogant"),
@@ -2523,7 +2577,7 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
   talk(
     "deu_t2_bauer_after",
     "deu_bauer",
-    all(war, date("1917-07", "1918-12")),
+    all(war, world({ is: "war_months", own: true, min: 35 })),
     {
       open: node(
         moods("cunning"),
@@ -2560,7 +2614,7 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
   visit(
     "deu_v2_hoffmann_wine",
     "deu_hoffmann",
-    all(atWar("RUS"), date("1915-01", "1916-12")),
+    all(atWar("RUS"), world({ is: "war_months", own: true, min: 5, max: 29 })),
     5,
     {
       open: node(
@@ -2594,7 +2648,7 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
   visit(
     "deu_v2_hoffmann_brest",
     "deu_hoffmann",
-    all(any(rusout, soviet), date("1917-11", "1918-06")),
+    all(any(rusout, soviet), world({ is: "war_months", min: 39, max: 47 })),
     6,
     {
       open: node(
@@ -2624,7 +2678,11 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
   visit(
     "deu_v2_rupprecht_letter",
     "deu_rupprecht",
-    all(war, any(low("order", 3), score(5)), date("1916-01", "1918-06")),
+    all(
+      war,
+      any(low("order", 3), score(5)),
+      world({ is: "war_months", own: true, min: 17, max: 47 }),
+    ),
     6,
     {
       open: node(
@@ -2664,7 +2722,7 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
     "deu_mackensen",
     all(
       any(seen("deu_f_gorlice"), all(auhIn, atWar("RUS"))),
-      date("1915-01", "1916-12"),
+      world({ is: "war_months", min: 5, max: 29 }),
     ),
     5,
     {
@@ -2700,7 +2758,10 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
   visit(
     "deu_v2_moltke_last",
     "deu_moltke",
-    all(not(chiefIs("deu_moltke")), date("1915-01", "1916-06")),
+    all(
+      not(chiefIs("deu_moltke")),
+      world({ is: "war_months", min: 5, max: 23 }),
+    ),
     5,
     {
       open: node(

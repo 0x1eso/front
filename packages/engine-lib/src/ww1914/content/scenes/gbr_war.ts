@@ -258,7 +258,7 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     id: "gbr_w_ledger",
     kind: "ledger",
     stage: Y14_ON,
-    when: all(war, since(6, "18b")),
+    when: war,
     cast: { cos: holder("chief_of_staff") },
     salience: 9,
     tags: ["war"],
@@ -288,7 +288,11 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     id: "gbr_w_council",
     kind: "crisis",
     stage: WAR,
-    when: all(war, during("15a"), { kind: "trench", theatre: "west", min: 2 }),
+    when: all(war, world({ is: "war_months", own: true, min: 5, max: 11 }), {
+      kind: "trench",
+      theatre: "west",
+      min: 2,
+    }),
     cast: {
       war: { any_of: [{ office: "war" }, { office: "chief_of_staff" }] },
       navy: holder("navy"),
@@ -346,7 +350,7 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     stage: WAR,
     when: all(
       war,
-      during("15b", "16a"),
+      world({ is: "war_months", own: true, min: 11, max: 23 }),
       not(flag("f_french_gone")),
       not(chose("gbr_w_french_out", "keep_french")),
       any(
@@ -424,7 +428,7 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     stage: WAR,
     when: all(
       war,
-      during("16b"),
+      world({ is: "war_months", own: true, min: 23, max: 29 }),
       any(world({ is: "main", of: ["west"] }), {
         kind: "nation_gauge",
         tag: "FRA",
@@ -491,7 +495,11 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     id: "gbr_w_lists",
     kind: "report",
     stage: WAR,
-    when: all(war, during("16b", "18b"), world({ is: "casualties", min: 150 })),
+    when: all(
+      war,
+      world({ is: "war_months", own: true, min: 23 }),
+      world({ is: "casualties", min: 150 }),
+    ),
     cast: {},
     salience: 6,
     tags: ["home", "tension_up"],
@@ -513,7 +521,7 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     stage: WAR,
     when: all(
       war,
-      during("17a", "17b"),
+      world({ is: "war_months", own: true, min: 29, max: 41 }),
       any(
         world({ is: "uboat", min: 2 }),
         gaugeAt("bread", 1),
@@ -563,7 +571,7 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     id: "gbr_w_convoy",
     kind: "crisis",
     stage: WAR,
-    when: all(war, during("17a", "18a"), {
+    when: all(war, world({ is: "war_months", own: true, min: 29, max: 47 }), {
       kind: "seen",
       scene: "gbr_w_shipping",
     }),
@@ -627,7 +635,11 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     id: "gbr_w_flanders",
     kind: "crisis",
     stage: WAR,
-    when: all(war, during("17a", "17b"), world({ is: "main", of: ["west"] })),
+    when: all(
+      war,
+      world({ is: "war_months", own: true, min: 29, max: 41 }),
+      world({ is: "main", of: ["west"] }),
+    ),
     cast: { cos: holder("chief_of_staff") },
     salience: 9,
     tags: ["war", "tension_up"],
@@ -751,7 +763,7 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     stage: WAR,
     when: all(
       war,
-      during("18a"),
+      world({ is: "war_months", own: true, min: 41, max: 47 }),
       any(
         all(
           world({ is: "battle", theatre: "west", of: ["break", "advance"] }),
@@ -816,7 +828,7 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     id: "gbr_w_doullens",
     kind: "crisis",
     stage: WAR,
-    when: all(war, during("18a", "18b"), {
+    when: all(war, world({ is: "war_months", own: true, min: 41 }), {
       kind: "seen",
       scene: "gbr_w_march",
     }),
@@ -862,7 +874,7 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     id: "gbr_w_new_armies",
     kind: "proposal",
     stage: WAR,
-    when: all(war, during("15a")),
+    when: all(war, world({ is: "war_months", own: true, min: 5, max: 11 })),
     cast: {
       war: { any_of: [{ office: "war" }, { office: "chief_of_staff" }] },
     },
@@ -902,7 +914,7 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     stage: WAR,
     when: all(
       war,
-      during("15a", "15b"),
+      world({ is: "war_months", own: true, min: 5, max: 17 }),
       flag("f_straits_chosen"),
       open("straits"),
     ),
@@ -948,7 +960,7 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     stage: WAR,
     when: all(
       war,
-      during("15a", "16a"),
+      world({ is: "war_months", own: true, min: 5, max: 23 }),
       open("straits"),
       { kind: "seen", scene: "gbr_w_naval_only" },
       not(chose("gbr_w_naval_only", "hear_fisher")),
@@ -972,7 +984,7 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     id: "gbr_w_landing",
     kind: "crisis",
     stage: WAR,
-    when: all(war, during("15a", "16a"), {
+    when: all(war, world({ is: "war_months", own: true, min: 5, max: 23 }), {
       kind: "seen",
       scene: "gbr_w_narrows",
     }),
@@ -1032,7 +1044,7 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     stage: WAR,
     when: all(
       war,
-      during("15a", "15b"),
+      world({ is: "war_months", own: true, min: 5, max: 17 }),
       holds("sea_lord", "gbr_fisher"),
       open("straits"),
     ),
@@ -1088,7 +1100,7 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     stage: WAR,
     when: all(
       war,
-      during("15a", "16a"),
+      world({ is: "war_months", own: true, min: 5, max: 23 }),
       world({ is: "front", theatre: "straits", from: "narrows" }),
     ),
     cast: { foreign: holder("foreign"), navy: holder("navy") },
@@ -1131,7 +1143,7 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     stage: WAR,
     when: all(
       war,
-      during("15b", "16b"),
+      world({ is: "war_months", own: true, min: 11, max: 29 }),
       open("straits"),
       flag("f_landed"),
       not(flag("f_straits_left")),
@@ -1203,7 +1215,7 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     stage: WAR,
     when: all(
       war,
-      during("15b"),
+      world({ is: "war_months", own: true, min: 11, max: 17 }),
       world({ is: "entered", tag: "BGR", side: "central" }),
     ),
     cast: {
@@ -1252,7 +1264,11 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     id: "gbr_w_baghdad_road",
     kind: "proposal",
     stage: WAR,
-    when: all(war, during("15b"), open("mesopotamia")),
+    when: all(
+      war,
+      world({ is: "war_months", own: true, min: 11, max: 17 }),
+      open("mesopotamia"),
+    ),
     cast: { war: { any_of: [{ office: "war" }, { office: "foreign" }] } },
     salience: 6,
     tags: ["war"],
@@ -1293,7 +1309,7 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     stage: WAR,
     when: all(
       war,
-      during("15b", "16a"),
+      world({ is: "war_months", own: true, min: 11, max: 23 }),
       flag("f_baghdad_push"),
       world({
         is: "battle",
@@ -1344,7 +1360,7 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     stage: WAR,
     when: all(
       war,
-      during("16a", "16b"),
+      world({ is: "war_months", own: true, min: 17, max: 29 }),
       any(
         world({
           is: "battle",
@@ -1405,7 +1421,7 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     stage: WAR,
     when: all(
       war,
-      during("16a", "16b"),
+      world({ is: "war_months", own: true, min: 17, max: 29 }),
       chose("gbr_f_russia_mission", "send"),
       holds("war", "gbr_kitchener"),
       not(flag("f_pm_lg")),
@@ -1459,7 +1475,7 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     stage: WAR,
     when: all(
       war,
-      during("17a"),
+      world({ is: "war_months", own: true, min: 29, max: 35 }),
       fighting("FRA"),
       not(world({ is: "out", tag: "FRA" })),
     ),
@@ -1501,7 +1517,7 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     id: "gbr_w_air_raids",
     kind: "proposal",
     stage: WAR,
-    when: all(war, during("17a", "17b")),
+    when: all(war, world({ is: "war_months", own: true, min: 29, max: 41 })),
     cast: { war: { any_of: [{ office: "war" }, { office: "foreign" }] } },
     salience: 6,
     tags: ["home", "tension_up"],
@@ -1535,7 +1551,11 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     id: "gbr_w_jellicoe_out",
     kind: "audience",
     stage: WAR,
-    when: all(war, during("17b"), holds("sea_lord", "gbr_jellicoe")),
+    when: all(
+      war,
+      world({ is: "war_months", own: true, min: 35, max: 41 }),
+      holds("sea_lord", "gbr_jellicoe"),
+    ),
     cast: { navy: holder("navy") },
     salience: 6,
     tags: ["people"],
@@ -1575,7 +1595,11 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     id: "gbr_w_jerusalem",
     kind: "proposal",
     stage: WAR,
-    when: all(war, during("17b"), open("palestine")),
+    when: all(
+      war,
+      world({ is: "war_months", own: true, min: 35, max: 41 }),
+      open("palestine"),
+    ),
     cast: { war: { any_of: [{ office: "war" }, { office: "foreign" }] } },
     salience: 6,
     tags: ["war", "tension_down"],
@@ -1614,7 +1638,7 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     stage: WAR,
     when: all(
       war,
-      during("17b", "18a"),
+      world({ is: "war_months", own: true, min: 35, max: 47 }),
       holds("chief_of_staff", "gbr_robertson"),
     ),
     cast: { cos: holder("chief_of_staff") },
@@ -1812,7 +1836,7 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     "gbr_t_kitchener_men",
     "gbr_kitchener",
     WAR,
-    all(during("15a"), open("straits")),
+    all(world({ is: "war_months", min: 5, max: 11 }), open("straits")),
     {
       open: node(
         moods("cold", "arrogant"),
@@ -1873,7 +1897,10 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     "gbr_t_kitchener_silence",
     "gbr_kitchener",
     WAR,
-    all(during("15a", "16a"), holds("war", "gbr_kitchener")),
+    all(
+      world({ is: "war_months", min: 5, max: 23 }),
+      holds("war", "gbr_kitchener"),
+    ),
     {
       open: node(
         line(
@@ -1920,7 +1947,10 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     "gbr_t_kitchener_russia",
     "gbr_kitchener",
     WAR,
-    all(during("16a"), holds("war", "gbr_kitchener")),
+    all(
+      world({ is: "war_months", min: 17, max: 23 }),
+      holds("war", "gbr_kitchener"),
+    ),
     {
       open: node(
         moods("cold", "arrogant"),
@@ -1963,7 +1993,7 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     "gbr_t_haig_corps",
     "gbr_haig",
     Y14_ON,
-    all(war, since(6, "15b")),
+    all(war, world({ is: "war_months", own: true, max: 17 })),
     {
       open: node(
         line(
@@ -2018,7 +2048,11 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     "gbr_t_haig_french",
     "gbr_haig",
     WAR,
-    all(war, during("15b"), not(flag("f_french_gone"))),
+    all(
+      war,
+      world({ is: "war_months", own: true, min: 11, max: 17 }),
+      not(flag("f_french_gone")),
+    ),
     {
       open: node(
         moods("cold"),
@@ -2056,183 +2090,217 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     },
   ),
 
-  talk("gbr_t_haig_wait", "gbr_haig", WAR, all(war, during("16a")), {
-    open: node(
-      moods("cold"),
-      r("give_time", "warm", "deal", "august", {
-        tell: ["trust:+1", "fra:-1"],
-        effects: [trustOf(who, 1), nation("FRA", -1), remember("k_haig_wait")],
-      }),
-      r("when", "cold", "ask", "august"),
-      r("paris_says", "frank", "push", "august", {
-        tell: ["fra:-1"],
-        effects: [nation("FRA", -1)],
-        miss: "stiff",
-      }),
-      bye("later", "warm"),
-    ),
-    august: plain(
-      r("understood", "cold", "deal", null, {
-        effects: [remember("k_haig_wait")],
-      }),
-      r("joffre_rage", "frank", "ask", "joffre"),
-      bye("end"),
-    ),
-    stiff: plain(r("ask_again", "warm", "ask", "august"), bye("end")),
-    joffre: plain(
-      r("mine", "frank", "deal", null, {
-        tell: ["fra:-1"],
-        effects: [nation("FRA", -1), remember("k_haig_wait")],
-      }),
-      bye("end"),
-    ),
-  }),
-
-  talk("gbr_t_haig_tanks", "gbr_haig", WAR, all(war, during("16a", "16b")), {
-    open: node(
-      moods("cold"),
-      r("what_thing", "cold", "ask", "machine"),
-      r("too_few", "frank", "push", "few", {
-        reacts: [ifTrust(2, "machine", [])],
-        miss: "few",
-      }),
-      r("order_more", "warm", "deal", "machine", {
-        tell: ["money:-1"],
-        effects: [gauge("money", -1), remember("k_haig_tanks")],
-      }),
-      bye("later", "warm"),
-    ),
-    machine: plain(
-      r("use_them", "frank", "deal", null, {
-        effects: [remember("k_haig_tanks")],
-      }),
-      r("surprise", "cold", "ask", "secret"),
-      bye("end"),
-    ),
-    few: plain(r("wait_more", "warm", "ask", "machine"), bye("end")),
-    secret: plain(bye("end")),
-  }),
-
-  talk("gbr_t_haig_flanders", "gbr_haig", WAR, all(war, during("17a")), {
-    open: node(
-      line(
-        ["paris", memory("k_bertie_paris")],
-        ["cold", moody(who, "cold")],
-        "base",
+  talk(
+    "gbr_t_haig_wait",
+    "gbr_haig",
+    WAR,
+    all(war, world({ is: "war_months", own: true, min: 17, max: 23 })),
+    {
+      open: node(
+        moods("cold"),
+        r("give_time", "warm", "deal", "august", {
+          tell: ["trust:+1", "fra:-1"],
+          effects: [
+            trustOf(who, 1),
+            nation("FRA", -1),
+            remember("k_haig_wait"),
+          ],
+        }),
+        r("when", "cold", "ask", "august"),
+        r("paris_says", "frank", "push", "august", {
+          tell: ["fra:-1"],
+          effects: [nation("FRA", -1)],
+          miss: "stiff",
+        }),
+        bye("later", "warm"),
       ),
-      r("the_mud", "frank", "push", "mud", {
-        tell: ["trust:-1"],
-        effects: [trustOf(who, -1), remember("v_flanders", who)],
-        miss: "stiff",
-      }),
-      r("count_votes", "warm", "deal", "bites", {
-        tell: ["promise", "trust:+1"],
-        effects: [
-          trustOf(who, 1),
-          promise(who, "p_haig_votes", 8, {
-            keep: any(
-              chose("gbr_w_flanders", "approve"),
-              chose("gbr_w_flanders", "small_bites"),
-            ),
-          }),
-        ],
-      }),
-      r("how_far", "cold", "ask", "bites"),
-      bye("later", "warm"),
-    ),
-    bites: plain(
-      r("understood", "frank", "deal", null, {
-        effects: [remember("k_haig_flanders"), remember("v_flanders", who)],
-      }),
-      r("ask_table", "frank", "ask", "frock"),
-      bye("end"),
-    ),
-    mud: plain(r("still", "cold", "ask", "bites"), bye("end")),
-    stiff: plain(bye("end")),
-    frock: node(line(["lg", flag("f_pm_lg")], "base"), bye("end")),
-  }),
-
-  talk("gbr_t_haig_reserve", "gbr_haig", WAR, all(war, during("18a")), {
-    open: node(
-      line(
-        ["after", { kind: "seen", scene: "gbr_w_march" }],
-        ["cold", moody(who, "cold")],
-        "base",
+      august: plain(
+        r("understood", "cold", "deal", null, {
+          effects: [remember("k_haig_wait")],
+        }),
+        r("joffre_rage", "frank", "ask", "joffre"),
+        bye("end"),
       ),
-      r("mine_to_ask", "warm", "deal", "foch", {
-        tell: ["trust:+1"],
-        effects: [trustOf(who, 1)],
-      }),
-      r("no_reserve", "frank", "ask", "foch"),
-      r("your_fault", "threat", "push", "stiff", {
-        tell: ["trust:-1"],
-        effects: [trustOf(who, -1)],
-        miss: "stiff",
-      }),
-      bye("later", "warm"),
-    ),
-    foch: plain(
-      r("write_foch", "frank", "deal", null, {
-        effects: [remember("k_haig_foch")],
-      }),
-      r("petain", "cold", "ask", "petain"),
-      bye("end"),
-    ),
-    stiff: plain(r("pardon", "warm", "ask", "foch"), bye("end")),
-    petain: plain(bye("end")),
-  }),
+      stiff: plain(r("ask_again", "warm", "ask", "august"), bye("end")),
+      joffre: plain(
+        r("mine", "frank", "deal", null, {
+          tell: ["fra:-1"],
+          effects: [nation("FRA", -1), remember("k_haig_wait")],
+        }),
+        bye("end"),
+      ),
+    },
+  ),
+
+  talk(
+    "gbr_t_haig_tanks",
+    "gbr_haig",
+    WAR,
+    all(war, world({ is: "war_months", own: true, min: 17, max: 29 })),
+    {
+      open: node(
+        moods("cold"),
+        r("what_thing", "cold", "ask", "machine"),
+        r("too_few", "frank", "push", "few", {
+          reacts: [ifTrust(2, "machine", [])],
+          miss: "few",
+        }),
+        r("order_more", "warm", "deal", "machine", {
+          tell: ["money:-1"],
+          effects: [gauge("money", -1), remember("k_haig_tanks")],
+        }),
+        bye("later", "warm"),
+      ),
+      machine: plain(
+        r("use_them", "frank", "deal", null, {
+          effects: [remember("k_haig_tanks")],
+        }),
+        r("surprise", "cold", "ask", "secret"),
+        bye("end"),
+      ),
+      few: plain(r("wait_more", "warm", "ask", "machine"), bye("end")),
+      secret: plain(bye("end")),
+    },
+  ),
+
+  talk(
+    "gbr_t_haig_flanders",
+    "gbr_haig",
+    WAR,
+    all(war, world({ is: "war_months", own: true, min: 29, max: 35 })),
+    {
+      open: node(
+        line(
+          ["paris", memory("k_bertie_paris")],
+          ["cold", moody(who, "cold")],
+          "base",
+        ),
+        r("the_mud", "frank", "push", "mud", {
+          tell: ["trust:-1"],
+          effects: [trustOf(who, -1), remember("v_flanders", who)],
+          miss: "stiff",
+        }),
+        r("count_votes", "warm", "deal", "bites", {
+          tell: ["promise", "trust:+1"],
+          effects: [
+            trustOf(who, 1),
+            promise(who, "p_haig_votes", 8, {
+              keep: any(
+                chose("gbr_w_flanders", "approve"),
+                chose("gbr_w_flanders", "small_bites"),
+              ),
+            }),
+          ],
+        }),
+        r("how_far", "cold", "ask", "bites"),
+        bye("later", "warm"),
+      ),
+      bites: plain(
+        r("understood", "frank", "deal", null, {
+          effects: [remember("k_haig_flanders"), remember("v_flanders", who)],
+        }),
+        r("ask_table", "frank", "ask", "frock"),
+        bye("end"),
+      ),
+      mud: plain(r("still", "cold", "ask", "bites"), bye("end")),
+      stiff: plain(bye("end")),
+      frock: node(line(["lg", flag("f_pm_lg")], "base"), bye("end")),
+    },
+  ),
+
+  talk(
+    "gbr_t_haig_reserve",
+    "gbr_haig",
+    WAR,
+    all(war, world({ is: "war_months", own: true, min: 41, max: 47 })),
+    {
+      open: node(
+        line(
+          ["after", { kind: "seen", scene: "gbr_w_march" }],
+          ["cold", moody(who, "cold")],
+          "base",
+        ),
+        r("mine_to_ask", "warm", "deal", "foch", {
+          tell: ["trust:+1"],
+          effects: [trustOf(who, 1)],
+        }),
+        r("no_reserve", "frank", "ask", "foch"),
+        r("your_fault", "threat", "push", "stiff", {
+          tell: ["trust:-1"],
+          effects: [trustOf(who, -1)],
+          miss: "stiff",
+        }),
+        bye("later", "warm"),
+      ),
+      foch: plain(
+        r("write_foch", "frank", "deal", null, {
+          effects: [remember("k_haig_foch")],
+        }),
+        r("petain", "cold", "ask", "petain"),
+        bye("end"),
+      ),
+      stiff: plain(r("pardon", "warm", "ask", "foch"), bye("end")),
+      petain: plain(bye("end")),
+    },
+  ),
 
   // ---- Robertson ----
-  talk("gbr_t_robertson_terms", "gbr_robertson", WAR, all(war, during("15b")), {
-    open: node(
-      moods("cold"),
-      r("read_terms", "cold", "ask", "paper"),
-      r("too_much", "frank", "push", "paper", {
-        tell: ["trust:-1"],
-        effects: [trustOf(who, -1)],
-        miss: "out",
-      }),
-      r("accept", "frank", "deal", "yes", {
-        tell: ["promise", "army:+1"],
-        effects: [
-          army(1),
-          remember("k_rob_terms"),
-          promise(who, "p_rob_sole", 8, {
-            keep: chose("gbr_w_french_out", "robertson_terms"),
-          }),
-        ],
-      }),
-      bye("later", "warm"),
-    ),
-    paper: plain(
-      r("kitchener", "cold", "ask", "war_minister"),
-      r("agreed", "frank", "deal", null, {
-        effects: [remember("k_rob_terms")],
-      }),
-      r("why_you", "frank", "ask", "why_you"),
-      bye("end"),
-    ),
-    war_minister: plain(
-      r("agreed", "frank", "deal", null, {
-        effects: [remember("k_rob_terms")],
-      }),
-      bye("end"),
-    ),
-    yes: plain(bye("end", "warm")),
-    out: plain(bye("end")),
-    why_you: plain(
-      r("agreed", "frank", "deal", null, {
-        effects: [remember("k_rob_terms")],
-      }),
-      bye("end"),
-    ),
-  }),
+  talk(
+    "gbr_t_robertson_terms",
+    "gbr_robertson",
+    WAR,
+    all(war, world({ is: "war_months", own: true, min: 11, max: 17 })),
+    {
+      open: node(
+        moods("cold"),
+        r("read_terms", "cold", "ask", "paper"),
+        r("too_much", "frank", "push", "paper", {
+          tell: ["trust:-1"],
+          effects: [trustOf(who, -1)],
+          miss: "out",
+        }),
+        r("accept", "frank", "deal", "yes", {
+          tell: ["promise", "army:+1"],
+          effects: [
+            army(1),
+            remember("k_rob_terms"),
+            promise(who, "p_rob_sole", 8, {
+              keep: chose("gbr_w_french_out", "robertson_terms"),
+            }),
+          ],
+        }),
+        bye("later", "warm"),
+      ),
+      paper: plain(
+        r("kitchener", "cold", "ask", "war_minister"),
+        r("agreed", "frank", "deal", null, {
+          effects: [remember("k_rob_terms")],
+        }),
+        r("why_you", "frank", "ask", "why_you"),
+        bye("end"),
+      ),
+      war_minister: plain(
+        r("agreed", "frank", "deal", null, {
+          effects: [remember("k_rob_terms")],
+        }),
+        bye("end"),
+      ),
+      yes: plain(bye("end", "warm")),
+      out: plain(bye("end")),
+      why_you: plain(
+        r("agreed", "frank", "deal", null, {
+          effects: [remember("k_rob_terms")],
+        }),
+        bye("end"),
+      ),
+    },
+  ),
 
   talk(
     "gbr_t_robertson_west",
     "gbr_robertson",
     WAR,
-    all(war, during("15b", "16a")),
+    all(war, world({ is: "war_months", own: true, min: 11, max: 23 })),
     {
       open: node(
         line(["evac", flag("f_landed")], ["cold", moody(who, "cold")], "base"),
@@ -2269,7 +2337,7 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     "gbr_t_robertson_frocks",
     "gbr_robertson",
     WAR,
-    all(war, during("16a", "17b")),
+    all(war, world({ is: "war_months", own: true, min: 17, max: 41 })),
     {
       open: node(
         line(
@@ -2311,7 +2379,7 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     "gbr_t_robertson_salonika",
     "gbr_robertson",
     WAR,
-    all(war, during("17a", "17b")),
+    all(war, world({ is: "war_months", own: true, min: 29, max: 41 })),
     {
       open: node(
         line(
@@ -2351,7 +2419,7 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     "gbr_t_robertson_men",
     "gbr_robertson",
     WAR,
-    all(war, during("17a", "17b")),
+    all(war, world({ is: "war_months", own: true, min: 29, max: 41 })),
     {
       open: node(
         line(
@@ -2393,7 +2461,11 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     "gbr_t_robertson_versailles",
     "gbr_robertson",
     WAR,
-    all(war, during("17b", "18a"), holds("chief_of_staff", "gbr_robertson")),
+    all(
+      war,
+      world({ is: "war_months", own: true, min: 35, max: 47 }),
+      holds("chief_of_staff", "gbr_robertson"),
+    ),
     {
       open: node(
         moods("cold"),
@@ -2466,7 +2538,7 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     "gbr_t_jellicoe_scapa",
     "gbr_jellicoe",
     Y14_ON,
-    all(war, since(6, "15a")),
+    all(war, world({ is: "war_months", own: true, max: 11 })),
     {
       open: node(
         line(
@@ -2502,7 +2574,10 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     "gbr_t_jellicoe_jutland",
     "gbr_jellicoe",
     WAR,
-    all(during("16a", "16b"), { kind: "seen", scene: "gbr_w_jutland" }),
+    all(world({ is: "war_months", min: 17, max: 29 }), {
+      kind: "seen",
+      scene: "gbr_w_jutland",
+    }),
     {
       open: node(
         moods("anxious", "weary"),
@@ -2534,7 +2609,11 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     "gbr_t_jellicoe_sealord",
     "gbr_jellicoe",
     WAR,
-    all(war, during("16b"), not(holds("sea_lord", "gbr_jellicoe"))),
+    all(
+      war,
+      world({ is: "war_months", own: true, min: 23, max: 29 }),
+      not(holds("sea_lord", "gbr_jellicoe")),
+    ),
     {
       open: node(
         line(
@@ -2571,7 +2650,11 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     "gbr_t_jellicoe_figures",
     "gbr_jellicoe",
     WAR,
-    all(war, during("17a", "17b"), holds("sea_lord", "gbr_jellicoe")),
+    all(
+      war,
+      world({ is: "war_months", own: true, min: 29, max: 41 }),
+      holds("sea_lord", "gbr_jellicoe"),
+    ),
     {
       open: node(
         moods("anxious", "weary"),
@@ -2618,7 +2701,10 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     "gbr_t_jellicoe_tired",
     "gbr_jellicoe",
     WAR,
-    all(during("17a", "17b"), holds("sea_lord", "gbr_jellicoe")),
+    all(
+      world({ is: "war_months", min: 29, max: 41 }),
+      holds("sea_lord", "gbr_jellicoe"),
+    ),
     {
       open: node(
         line(
@@ -2663,41 +2749,51 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
   ),
 
   // ---- Visits ----
-  visit("gbr_v_french_home", "gbr_french", WAR, all(war, during("15a")), 6, {
-    open: node(
-      moods("anxious", "arrogant"),
-      r("how_many", "cold", "ask", "number", {
-        reacts: [ifMood("rage", [], "arrogant")],
-      }),
-      r("kitchener", "warm", "ask", "rage"),
-      r("quiet_word", "frank", "deal", "deal", {
-        tell: ["trust:+1"],
-        effects: [trustOf(who, 1)],
-      }),
-      bye("later", "warm"),
-    ),
-    number: plain(
-      r("keep", "frank", "deal", null, {
-        effects: [remember("k_french_shells")],
-      }),
-      bye("end"),
-    ),
-    rage: plain(r("the_number", "cold", "ask", "number"), bye("end")),
-    deal: plain(
-      r("understood", "cold", "deal", null, {
-        effects: [remember("k_french_shells")],
-      }),
-      r("attack", "cold", "ask", "attack"),
-      bye("end", "warm"),
-    ),
-    attack: plain(bye("end")),
-  }),
+  visit(
+    "gbr_v_french_home",
+    "gbr_french",
+    WAR,
+    all(war, world({ is: "war_months", own: true, min: 5, max: 11 })),
+    6,
+    {
+      open: node(
+        moods("anxious", "arrogant"),
+        r("how_many", "cold", "ask", "number", {
+          reacts: [ifMood("rage", [], "arrogant")],
+        }),
+        r("kitchener", "warm", "ask", "rage"),
+        r("quiet_word", "frank", "deal", "deal", {
+          tell: ["trust:+1"],
+          effects: [trustOf(who, 1)],
+        }),
+        bye("later", "warm"),
+      ),
+      number: plain(
+        r("keep", "frank", "deal", null, {
+          effects: [remember("k_french_shells")],
+        }),
+        bye("end"),
+      ),
+      rage: plain(r("the_number", "cold", "ask", "number"), bye("end")),
+      deal: plain(
+        r("understood", "cold", "deal", null, {
+          effects: [remember("k_french_shells")],
+        }),
+        r("attack", "cold", "ask", "attack"),
+        bye("end", "warm"),
+      ),
+      attack: plain(bye("end")),
+    },
+  ),
 
   visit(
     "gbr_v_fisher_storm",
     "gbr_fisher",
     WAR,
-    all(during("15a"), holds("sea_lord", "gbr_fisher")),
+    all(
+      world({ is: "war_months", min: 5, max: 11 }),
+      holds("sea_lord", "gbr_fisher"),
+    ),
     6,
     {
       open: node(
@@ -2744,7 +2840,7 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     "gbr_v_wilson_gossip",
     "gbr_wilson",
     WAR,
-    all(war, during("15b", "17b")),
+    all(war, world({ is: "war_months", own: true, min: 11, max: 41 })),
     5,
     {
       open: node(
@@ -2787,35 +2883,48 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     { cd: 10 },
   ),
 
-  visit("gbr_v_hall_codes", "gbr_hall", Y14_ON, all(war, since(8, "15a")), 5, {
-    open: node(
-      moods("cunning", "cold"),
-      r("what_room", "cold", "ask", "room"),
-      r("who_knows", "frank", "ask", "who", {
-        reacts: [ifMood("room", [], "cold")],
-      }),
-      r("use_it", "warm", "deal", "use", {
-        tell: ["trust:+1"],
-        effects: [trustOf(who, 1), remember("k_hall_room40")],
-      }),
-      bye("later", "warm"),
+  visit(
+    "gbr_v_hall_codes",
+    "gbr_hall",
+    Y14_ON,
+    all(
+      war,
+      all(
+        world({ is: "war_months", own: true, min: 2 }),
+        world({ is: "war_months", own: true, max: 11 }),
+      ),
     ),
-    room: plain(
-      r("key", "frank", "deal", null, {
-        effects: [remember("k_hall_room40")],
-      }),
-      r("fo", "frank", "ask", "fo"),
-      bye("end"),
-    ),
-    who: plain(
-      r("key", "frank", "deal", null, {
-        effects: [remember("k_hall_room40")],
-      }),
-      bye("end"),
-    ),
-    use: plain(bye("end", "warm")),
-    fo: plain(bye("end")),
-  }),
+    5,
+    {
+      open: node(
+        moods("cunning", "cold"),
+        r("what_room", "cold", "ask", "room"),
+        r("who_knows", "frank", "ask", "who", {
+          reacts: [ifMood("room", [], "cold")],
+        }),
+        r("use_it", "warm", "deal", "use", {
+          tell: ["trust:+1"],
+          effects: [trustOf(who, 1), remember("k_hall_room40")],
+        }),
+        bye("later", "warm"),
+      ),
+      room: plain(
+        r("key", "frank", "deal", null, {
+          effects: [remember("k_hall_room40")],
+        }),
+        r("fo", "frank", "ask", "fo"),
+        bye("end"),
+      ),
+      who: plain(
+        r("key", "frank", "deal", null, {
+          effects: [remember("k_hall_room40")],
+        }),
+        bye("end"),
+      ),
+      use: plain(bye("end", "warm")),
+      fo: plain(bye("end")),
+    },
+  ),
 
   visit(
     "gbr_v_hall_wire",
@@ -2823,7 +2932,7 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     WAR,
     all(
       war,
-      during("16b", "17a"),
+      world({ is: "war_months", own: true, min: 23, max: 35 }),
       memory("k_hall_room40"),
       not(fighting("USA")),
       { kind: "secret", id: "deu_zimmermann_wire" },

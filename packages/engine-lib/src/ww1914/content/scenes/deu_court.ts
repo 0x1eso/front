@@ -282,7 +282,7 @@ export const DEU_COURT_SCENES: readonly GwScene[] = [
     ],
   }),
   scene("deu_k_new_faces", "report", {
-    when: date("1915-01", "1918-06"),
+    when: world({ is: "war_months", min: 5, max: 47 }),
     cast: { court: R_COURT },
     salience: 7,
     tags: ["people"],
@@ -301,7 +301,7 @@ export const DEU_COURT_SCENES: readonly GwScene[] = [
   scene("deu_k_war_aims_gag", "proposal", {
     when: all(
       war,
-      date("1915-01", "1915-06"),
+      world({ is: "war_months", own: true, min: 5, max: 11 }),
       any(flag("f_aims_full"), flag("f_aims_secret")),
     ),
     cast: { chancellor: R_CHANCELLOR, interior: R_INTERIOR },
@@ -347,7 +347,7 @@ export const DEU_COURT_SCENES: readonly GwScene[] = [
   scene("deu_k_three_class", "proposal", {
     when: all(
       war,
-      date("1915-07", "1916-12"),
+      world({ is: "war_months", own: true, min: 11, max: 29 }),
       any(flag("f_franchise_word"), instMax("reichstag", 1)),
     ),
     cast: { chancellor: R_CHANCELLOR, interior: R_INTERIOR },
@@ -439,7 +439,7 @@ export const DEU_COURT_SCENES: readonly GwScene[] = [
     when: all(
       war,
       beth,
-      date("1917-03", "1917-10"),
+      world({ is: "war_months", own: true, min: 31, max: 39 }),
       instMin("army", 3),
       not(flag("f_july_done")),
     ),
@@ -527,7 +527,7 @@ export const DEU_COURT_SCENES: readonly GwScene[] = [
   scene("deu_k_peace_resolution", "crisis", {
     when: all(
       war,
-      date("1917-03", "1917-12"),
+      world({ is: "war_months", own: true, min: 31, max: 41 }),
       any(memory("k_erz_resolution"), instMax("reichstag", 0)),
     ),
     cast: { chancellor: R_CHANCELLOR, cos: R_COS },
@@ -670,7 +670,7 @@ export const DEU_COURT_SCENES: readonly GwScene[] = [
   scene("deu_k_interparty", "proposal", {
     when: all(
       war,
-      date("1917-07", "1917-12"),
+      world({ is: "war_months", own: true, min: 35, max: 41 }),
       memory("k_erz_resolution"),
       seen("deu_k_peace_resolution"),
     ),
@@ -710,7 +710,7 @@ export const DEU_COURT_SCENES: readonly GwScene[] = [
   scene("deu_k_deputies_at_table", "audience", {
     when: all(
       war,
-      date("1917-03", "1917-12"),
+      world({ is: "war_months", own: true, min: 31, max: 41 }),
       memory("k_ebert_first"),
       memory("k_erz_numbers"),
     ),
@@ -739,7 +739,7 @@ export const DEU_COURT_SCENES: readonly GwScene[] = [
     ],
   }),
   scene("deu_k_silent_rule", "report", {
-    when: all(tied, date("1917-01", "1918-06")),
+    when: all(tied, world({ is: "war_months", own: true, min: 29, max: 47 })),
     cast: { court: R_COURT },
     salience: 8,
     tags: ["people"],
@@ -757,7 +757,7 @@ export const DEU_COURT_SCENES: readonly GwScene[] = [
     when: all(
       tied,
       ludUp,
-      date("1917-01", "1918-06"),
+      world({ is: "war_months", min: 29, max: 47 }),
       keys("k_muller_night", "k_groe_truth"),
     ),
     cast: { court: R_COURT, cos: R_COS, lud: LUD },
@@ -811,7 +811,11 @@ export const DEU_COURT_SCENES: readonly GwScene[] = [
     ],
   }),
   scene("deu_k_valentini_out", "audience", {
-    when: all(tied, date("1917-10", "1918-06"), not(flag("f_valentini_out"))),
+    when: all(
+      tied,
+      world({ is: "war_months", own: true, min: 38, max: 47 }),
+      not(flag("f_valentini_out")),
+    ),
     cast: { court: R_COURT, cos: R_COS, val: VAL },
     salience: 7,
     tags: ["people", "tension_up"],
@@ -850,7 +854,11 @@ export const DEU_COURT_SCENES: readonly GwScene[] = [
     ],
   }),
   scene("deu_k_princes", "proposal", {
-    when: all(war, date("1916-07", "1918-06"), gaugeMax("order", 3)),
+    when: all(
+      war,
+      world({ is: "war_months", own: true, min: 23, max: 47 }),
+      gaugeMax("order", 3),
+    ),
     cast: { chancellor: R_CHANCELLOR },
     salience: 5,
     tags: ["home"],
@@ -875,7 +883,7 @@ export const DEU_COURT_SCENES: readonly GwScene[] = [
   scene("deu_k_spa", "crisis", {
     when: all(
       war,
-      date("1917-10", "1918-12"),
+      world({ is: "war_months", own: true, min: 38 }),
       any(lost, seen("deu_f_black_day")),
       not(stopped),
     ),
@@ -1122,7 +1130,11 @@ export const DEU_COURT_SCENES: readonly GwScene[] = [
     ],
   }),
   scene("deu_k_last_sortie", "crisis", {
-    when: all(atGBR, flag("f_wire_wilson"), date("1918-01", "1918-12")),
+    when: all(
+      atGBR,
+      flag("f_wire_wilson"),
+      world({ is: "war_months", own: true, min: 41 }),
+    ),
     cast: { navy: R_NAVY, court: R_COURT },
     salience: 8,
     tags: ["war", "tension_up"],
@@ -1158,7 +1170,7 @@ export const DEU_COURT_SCENES: readonly GwScene[] = [
   }),
   scene("deu_k_kiel", "crisis", {
     when: all(
-      date("1918-01", "1918-12"),
+      world({ is: "war_months", min: 41 }),
       any(unrestMin(3), flag("f_sortie_ordered")),
     ),
     cast: { navy: R_NAVY, interior: R_INTERIOR },
@@ -1408,7 +1420,7 @@ export const DEU_COURT_SCENES: readonly GwScene[] = [
   },
   // ---- The years without the war ----
   scene("deu_k_peace_reichstag", "proposal", {
-    when: all(peace, date("1915-01", "1916-12")),
+    when: all(peace, world({ is: "peace_months", min: 5, max: 29 })),
     cast: { chancellor: R_CHANCELLOR, interior: R_INTERIOR },
     salience: 6,
     tags: ["home"],
@@ -1440,7 +1452,11 @@ export const DEU_COURT_SCENES: readonly GwScene[] = [
     ],
   }),
   scene("deu_k_peace_close", "proposal", {
-    when: all(peace, date("1915-07", "1918-12"), seen("deu_k_peace_reichstag")),
+    when: all(
+      peace,
+      world({ is: "peace_months", min: 11 }),
+      seen("deu_k_peace_reichstag"),
+    ),
     cast: { chancellor: R_CHANCELLOR },
     salience: 7,
     tags: ["home", "tension_down"],

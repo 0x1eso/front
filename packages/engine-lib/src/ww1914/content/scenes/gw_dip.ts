@@ -260,17 +260,103 @@ const RAW: Loose[] = [
     everyone,
     6,
     foreign,
-    all(
-      war,
-      date("1915-01", "1918-06"),
-      any(
-        all(central, fighting("OTT"), low("OTT", "shells")),
-        all(central, fighting("BGR"), low("BGR", "shells")),
-        all(entente, fighting("SRB"), low("SRB", "shells")),
-        all(entente, fighting("ITA"), low("ITA", "shells")),
-        all(entente, fighting("ROU"), low("ROU", "shells")),
-      ),
-    ),
+    {
+      kind: "all",
+      of: [
+        { kind: "world", of: { is: "war" } },
+        { kind: "world", of: { is: "war_months", own: true, min: 5, max: 47 } },
+        {
+          kind: "any",
+          of: [
+            {
+              kind: "all",
+              of: [
+                { kind: "world", of: { is: "side", of: ["central"] } },
+                {
+                  kind: "all",
+                  of: [
+                    { kind: "world", of: { is: "entered", tag: "OTT" } },
+                    {
+                      kind: "not",
+                      of: { kind: "world", of: { is: "out", tag: "OTT" } },
+                    },
+                  ],
+                },
+                { kind: "nation_gauge", tag: "OTT", gauge: "shells", max: 1 },
+              ],
+            },
+            {
+              kind: "all",
+              of: [
+                { kind: "world", of: { is: "side", of: ["central"] } },
+                {
+                  kind: "all",
+                  of: [
+                    { kind: "world", of: { is: "entered", tag: "BGR" } },
+                    {
+                      kind: "not",
+                      of: { kind: "world", of: { is: "out", tag: "BGR" } },
+                    },
+                  ],
+                },
+                { kind: "nation_gauge", tag: "BGR", gauge: "shells", max: 1 },
+              ],
+            },
+            {
+              kind: "all",
+              of: [
+                { kind: "world", of: { is: "side", of: ["entente"] } },
+                {
+                  kind: "all",
+                  of: [
+                    { kind: "world", of: { is: "entered", tag: "SRB" } },
+                    {
+                      kind: "not",
+                      of: { kind: "world", of: { is: "out", tag: "SRB" } },
+                    },
+                  ],
+                },
+                { kind: "nation_gauge", tag: "SRB", gauge: "shells", max: 1 },
+              ],
+            },
+            {
+              kind: "all",
+              of: [
+                { kind: "world", of: { is: "side", of: ["entente"] } },
+                {
+                  kind: "all",
+                  of: [
+                    { kind: "world", of: { is: "entered", tag: "ITA" } },
+                    {
+                      kind: "not",
+                      of: { kind: "world", of: { is: "out", tag: "ITA" } },
+                    },
+                  ],
+                },
+                { kind: "nation_gauge", tag: "ITA", gauge: "shells", max: 1 },
+              ],
+            },
+            {
+              kind: "all",
+              of: [
+                { kind: "world", of: { is: "side", of: ["entente"] } },
+                {
+                  kind: "all",
+                  of: [
+                    { kind: "world", of: { is: "entered", tag: "ROU" } },
+                    {
+                      kind: "not",
+                      of: { kind: "world", of: { is: "out", tag: "ROU" } },
+                    },
+                  ],
+                },
+                { kind: "nation_gauge", tag: "ROU", gauge: "shells", max: 1 },
+              ],
+            },
+          ],
+        },
+      ],
+    },
     { fm },
     [
       v(
@@ -323,7 +409,16 @@ const RAW: Loose[] = [
     everyone,
     7,
     foreign,
-    all(war, date("1915-07", "1918-06")),
+    {
+      kind: "all",
+      of: [
+        { kind: "world", of: { is: "war" } },
+        {
+          kind: "world",
+          of: { is: "war_months", own: true, min: 11, max: 47 },
+        },
+      ],
+    },
     { fm, cos },
     [
       v(
@@ -366,7 +461,48 @@ const RAW: Loose[] = [
     id: "gw_d_ally_cold",
     nation: everyone,
     kind: "wire",
-    when: all(war, date("1915-01", "1918-06"), allyCold),
+    when: {
+      kind: "all",
+      of: [
+        { kind: "world", of: { is: "war" } },
+        { kind: "world", of: { is: "war_months", own: true, min: 5, max: 47 } },
+        {
+          kind: "any",
+          of: [
+            {
+              kind: "all",
+              of: [
+                { kind: "world", of: { is: "side", of: ["central"] } },
+                {
+                  kind: "any",
+                  of: [
+                    { kind: "trust", tag: "DEU", max: -1 },
+                    { kind: "trust", tag: "AUH", max: -1 },
+                    { kind: "trust", tag: "OTT", max: -1 },
+                    { kind: "trust", tag: "BGR", max: -1 },
+                  ],
+                },
+              ],
+            },
+            {
+              kind: "all",
+              of: [
+                { kind: "world", of: { is: "side", of: ["entente"] } },
+                {
+                  kind: "any",
+                  of: [
+                    { kind: "trust", tag: "FRA", max: -1 },
+                    { kind: "trust", tag: "GBR", max: -1 },
+                    { kind: "trust", tag: "RUS", max: -1 },
+                    { kind: "trust", tag: "ITA", max: -1 },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
     cast: {},
     salience: 4,
     tags: foreignDown,
@@ -383,16 +519,39 @@ const RAW: Loose[] = [
     everyone,
     7,
     foreignUp,
-    all(
-      date("1915-07", "1918-06"),
-      any(
-        all(
-          entente,
-          any(flag("w_serbia_fallen"), out("SRB"), out("ROU"), out("BEL")),
-        ),
-        all(central, out("BGR")),
-      ),
-    ),
+    {
+      kind: "all",
+      of: [
+        { kind: "world", of: { is: "war_months", min: 11, max: 47 } },
+        {
+          kind: "any",
+          of: [
+            {
+              kind: "all",
+              of: [
+                { kind: "world", of: { is: "side", of: ["entente"] } },
+                {
+                  kind: "any",
+                  of: [
+                    { kind: "flag", flag: "w_serbia_fallen" },
+                    { kind: "world", of: { is: "out", tag: "SRB" } },
+                    { kind: "world", of: { is: "out", tag: "ROU" } },
+                    { kind: "world", of: { is: "out", tag: "BEL" } },
+                  ],
+                },
+              ],
+            },
+            {
+              kind: "all",
+              of: [
+                { kind: "world", of: { is: "side", of: ["central"] } },
+                { kind: "world", of: { is: "out", tag: "BGR" } },
+              ],
+            },
+          ],
+        },
+      ],
+    },
     { fm },
     [
       v("bulgaria", all(central, out("BGR"))),
@@ -432,12 +591,18 @@ const RAW: Loose[] = [
     everyone,
     7,
     foreign,
-    all(
-      war,
-      date("1916-07", "1917-06"),
-      neutral("USA"),
-      not(seen("gbr_f_peace_notes")),
-    ),
+    {
+      kind: "all",
+      of: [
+        { kind: "world", of: { is: "war" } },
+        {
+          kind: "world",
+          of: { is: "war_months", own: true, min: 23, max: 35 },
+        },
+        { kind: "world", of: { is: "neutral", tag: "USA" } },
+        { kind: "not", of: { kind: "seen", scene: "gbr_f_peace_notes" } },
+      ],
+    },
     { fm },
     [v("house", memory("k_house_second")), v("central", central), v("base")],
     [
@@ -465,12 +630,15 @@ const RAW: Loose[] = [
     noFra(ENTENTE),
     7,
     foreign,
-    all(
-      entente,
-      atWar("OTT"),
-      date("1915-01", "1916-06"),
-      not(seen("rus_h_straits_note")),
-    ),
+    {
+      kind: "all",
+      of: [
+        { kind: "world", of: { is: "side", of: ["entente"] } },
+        { kind: "at_war", tag: "OTT" },
+        { kind: "world", of: { is: "war_months", own: true, min: 5, max: 23 } },
+        { kind: "not", of: { kind: "seen", scene: "rus_h_straits_note" } },
+      ],
+    },
     { fm },
     [v("lines", since("1915-11")), v("straits", until("1915-06")), v("base")],
     [
@@ -492,7 +660,29 @@ const RAW: Loose[] = [
     everyone,
     8,
     foreignUp,
-    all(redRussia, date("1917-11", "1918-06"), not(seatRUS)),
+    {
+      kind: "all",
+      of: [
+        {
+          kind: "any",
+          of: [
+            { kind: "world", of: { is: "regime", tag: "RUS", of: ["soviet"] } },
+            { kind: "world", of: { is: "out", tag: "RUS" } },
+          ],
+        },
+        { kind: "world", of: { is: "war_months", min: 39, max: 47 } },
+        {
+          kind: "not",
+          of: {
+            kind: "world",
+            of: {
+              is: "regime",
+              of: ["tsar", "crown", "regency", "rep", "provisional", "soviet"],
+            },
+          },
+        },
+      ],
+    },
     [
       v(
         "signed",
@@ -512,11 +702,17 @@ const RAW: Loose[] = [
     noFra(everyone),
     7,
     foreignDown,
-    all(
-      w({ is: "regime", tag: "RUS", of: ["provisional"] }),
-      date("1917-03", "1917-12"),
-      not(seen("gbr_h_stockholm")),
-    ),
+    {
+      kind: "all",
+      of: [
+        {
+          kind: "world",
+          of: { is: "regime", tag: "RUS", of: ["provisional"] },
+        },
+        { kind: "world", of: { is: "war_months", min: 31, max: 41 } },
+        { kind: "not", of: { kind: "seen", scene: "gbr_h_stockholm" } },
+      ],
+    },
     { fm },
     [v("russia", seatRUS), v("central", central), v("base")],
     [
@@ -571,7 +767,19 @@ const RAW: Loose[] = [
     but("RUS"),
     7,
     foreignDown,
-    all(redRussia, date("1917-11", "1918-06")),
+    {
+      kind: "all",
+      of: [
+        {
+          kind: "any",
+          of: [
+            { kind: "world", of: { is: "regime", tag: "RUS", of: ["soviet"] } },
+            { kind: "world", of: { is: "out", tag: "RUS" } },
+          ],
+        },
+        { kind: "world", of: { is: "war_months", min: 39, max: 47 } },
+      ],
+    },
     { fm },
     [v("central", central), v("entente", entente), v("base")],
     [
@@ -589,7 +797,19 @@ const RAW: Loose[] = [
     noFra(everyone),
     8,
     foreign,
-    all(americaNear, date("1918-01", "1918-06")),
+    {
+      kind: "all",
+      of: [
+        {
+          kind: "any",
+          of: [
+            { kind: "flag", flag: "w_america_in" },
+            { kind: "world", of: { is: "america", min: 70 } },
+          ],
+        },
+        { kind: "world", of: { is: "war_months", min: 41, max: 47 } },
+      ],
+    },
     { fm },
     [
       v("deu", seatDEU),
@@ -625,12 +845,18 @@ const RAW: Loose[] = [
     but("DEU"),
     7,
     foreign,
-    all(
-      flag("w_german_offer"),
-      entente,
-      date("1916-07", "1916-12"),
-      not(seen("gbr_f_peace_notes")),
-    ),
+    {
+      kind: "all",
+      of: [
+        { kind: "flag", flag: "w_german_offer" },
+        { kind: "world", of: { is: "side", of: ["entente"] } },
+        {
+          kind: "world",
+          of: { is: "war_months", own: true, min: 23, max: 29 },
+        },
+        { kind: "not", of: { kind: "seen", scene: "gbr_f_peace_notes" } },
+      ],
+    },
     { fm },
     [
       v("fra", all(seatFRA, entente)),
@@ -659,7 +885,16 @@ const RAW: Loose[] = [
     everyone,
     6,
     foreignDown,
-    all(war, date("1915-07", "1918-06")),
+    {
+      kind: "all",
+      of: [
+        { kind: "world", of: { is: "war" } },
+        {
+          kind: "world",
+          of: { is: "war_months", own: true, min: 11, max: 47 },
+        },
+      ],
+    },
     { fm },
     [
       v("fra_late", all(seatFRA, entente, date("1917-07", "1917-12"))),
@@ -690,11 +925,14 @@ const RAW: Loose[] = [
     but("AUH", "FRA"),
     6,
     foreign,
-    all(
-      date("1917-03", "1918-06"),
-      w({ is: "regime", tag: "AUH", of: ["karl"] }),
-      { kind: "nation_gauge", tag: "AUH", gauge: "order", max: 2 },
-    ),
+    {
+      kind: "all",
+      of: [
+        { kind: "world", of: { is: "war_months", min: 31, max: 47 } },
+        { kind: "world", of: { is: "regime", tag: "AUH", of: ["karl"] } },
+        { kind: "nation_gauge", tag: "AUH", gauge: "order", max: 2 },
+      ],
+    },
     [v("printed", since("1918-04")), v("central", central), v("base")],
     { stamp: "unconfirmed", source: "agents" },
   ),
@@ -705,7 +943,16 @@ const RAW: Loose[] = [
     everyone,
     5,
     foreignDown,
-    all(war, date("1915-07", "1918-06")),
+    {
+      kind: "all",
+      of: [
+        { kind: "world", of: { is: "war" } },
+        {
+          kind: "world",
+          of: { is: "war_months", own: true, min: 11, max: 47 },
+        },
+      ],
+    },
     { fm },
     [v("trains", until("1915-12")), v("swiss", until("1917-05")), v("base")],
     [
@@ -733,7 +980,23 @@ const RAW: Loose[] = [
     everyone,
     4,
     foreign,
-    all(war, date("1916-01", "1917-12"), any(atWar("GBR"), atWar("DEU"))),
+    {
+      kind: "all",
+      of: [
+        { kind: "world", of: { is: "war" } },
+        {
+          kind: "world",
+          of: { is: "war_months", own: true, min: 17, max: 41 },
+        },
+        {
+          kind: "any",
+          of: [
+            { kind: "at_war", tag: "GBR" },
+            { kind: "at_war", tag: "DEU" },
+          ],
+        },
+      ],
+    },
     { fm },
     [v("central", central), v("base")],
     [
@@ -754,7 +1017,13 @@ const RAW: Loose[] = [
     everyone,
     6,
     foreign,
-    all(war, date("1915-01", "1917-06")),
+    {
+      kind: "all",
+      of: [
+        { kind: "world", of: { is: "war" } },
+        { kind: "world", of: { is: "war_months", own: true, min: 5, max: 35 } },
+      ],
+    },
     { fm },
     [
       v("greek", { kind: "secret", id: "grc_king_letters" }),
@@ -785,7 +1054,16 @@ const RAW: Loose[] = [
     everyone,
     5,
     foreign,
-    all(war, date("1915-07", "1918-06")),
+    {
+      kind: "all",
+      of: [
+        { kind: "world", of: { is: "war" } },
+        {
+          kind: "world",
+          of: { is: "war_months", own: true, min: 11, max: 47 },
+        },
+      ],
+    },
     { fm },
     [
       v(
@@ -811,7 +1089,13 @@ const RAW: Loose[] = [
     everyone,
     5,
     foreign,
-    all(war, date("1915-01", "1918-06")),
+    {
+      kind: "all",
+      of: [
+        { kind: "world", of: { is: "war" } },
+        { kind: "world", of: { is: "war_months", own: true, min: 5, max: 47 } },
+      ],
+    },
     { fm },
     [
       v("trusted", { kind: "source_record", source: "agents", min: 2 }),
@@ -838,7 +1122,13 @@ const RAW: Loose[] = [
     everyone,
     4,
     foreign,
-    all(war, date("1915-01", "1917-06")),
+    {
+      kind: "all",
+      of: [
+        { kind: "world", of: { is: "war" } },
+        { kind: "world", of: { is: "war_months", own: true, min: 5, max: 35 } },
+      ],
+    },
     { fm, fin },
     [
       v("central_late", all(central, since("1916-07"))),
@@ -862,7 +1152,17 @@ const RAW: Loose[] = [
     everyone,
     5,
     foreign,
-    all(war, date("1915-07", "1917-12"), w({ is: "blockade", min: 3 })),
+    {
+      kind: "all",
+      of: [
+        { kind: "world", of: { is: "war" } },
+        {
+          kind: "world",
+          of: { is: "war_months", own: true, min: 11, max: 41 },
+        },
+        { kind: "world", of: { is: "blockade", min: 3 } },
+      ],
+    },
     { fm, fin },
     [
       v("usa", all(seatGBR, date("1916-07", "1917-03"), neutral("USA"))),
@@ -895,7 +1195,16 @@ const RAW: Loose[] = [
     everyone,
     6,
     foreign,
-    all(war, date("1916-01", "1918-06")),
+    {
+      kind: "all",
+      of: [
+        { kind: "world", of: { is: "war" } },
+        {
+          kind: "world",
+          of: { is: "war_months", own: true, min: 17, max: 47 },
+        },
+      ],
+    },
     { fm },
     [
       v("auh", seatAUH),
@@ -924,11 +1233,14 @@ const RAW: Loose[] = [
     ["DEU", "AUH", "RUS", "GBR"],
     6,
     foreign,
-    all(
-      date("1916-11", "1917-06"),
-      w({ is: "front", theatre: "east", from: "warsaw" }),
-      not(seen("rus_h_poland_charter")),
-    ),
+    {
+      kind: "all",
+      of: [
+        { kind: "world", of: { is: "war_months", min: 27, max: 35 } },
+        { kind: "world", of: { is: "front", theatre: "east", from: "warsaw" } },
+        { kind: "not", of: { kind: "seen", scene: "rus_h_poland_charter" } },
+      ],
+    },
     { fm },
     [v("central", central), v("russia", seatRUS), v("base")],
     [
@@ -951,10 +1263,13 @@ const RAW: Loose[] = [
     everyone,
     5,
     foreignUp,
-    all(
-      w({ is: "entered", tag: "OTT", side: "central" }),
-      date("1915-01", "1915-06"),
-    ),
+    {
+      kind: "all",
+      of: [
+        { kind: "world", of: { is: "entered", tag: "OTT", side: "central" } },
+        { kind: "world", of: { is: "war_months", min: 5, max: 11 } },
+      ],
+    },
     [v("central", central), v("base")],
     press,
   ),
@@ -963,7 +1278,26 @@ const RAW: Loose[] = [
     everyone,
     4,
     foreign,
-    all(inWar("OTT"), date("1915-09", "1916-06"), any(atWar("GBR"), seatGBR)),
+    {
+      kind: "all",
+      of: [
+        { kind: "world", of: { is: "entered", tag: "OTT" } },
+        { kind: "world", of: { is: "war_months", min: 13, max: 23 } },
+        {
+          kind: "any",
+          of: [
+            { kind: "at_war", tag: "GBR" },
+            {
+              kind: "world",
+              of: {
+                is: "regime",
+                of: ["liberal", "coalition", "war_cabinet", "national"],
+              },
+            },
+          ],
+        },
+      ],
+    },
     { fm },
     [v("central", central), v("base")],
     [
@@ -981,15 +1315,24 @@ const RAW: Loose[] = [
     noFra(ENTENTE),
     6,
     foreign,
-    all(
-      atWar("OTT"),
-      date("1915-07", "1916-06"),
-      any(
-        w({ is: "open", theatre: "palestine" }),
-        w({ is: "open", theatre: "mesopotamia" }),
-      ),
-      not(seen("gbr_f_mcmahon")),
-    ),
+    {
+      kind: "all",
+      of: [
+        { kind: "at_war", tag: "OTT" },
+        {
+          kind: "world",
+          of: { is: "war_months", own: true, min: 11, max: 23 },
+        },
+        {
+          kind: "any",
+          of: [
+            { kind: "world", of: { is: "open", theatre: "palestine" } },
+            { kind: "world", of: { is: "open", theatre: "mesopotamia" } },
+          ],
+        },
+        { kind: "not", of: { kind: "seen", scene: "gbr_f_mcmahon" } },
+      ],
+    },
     { fm },
     [v("russia", seatRUS), v("heard", memory("k_hussein_lines")), v("base")],
     [
@@ -1013,11 +1356,20 @@ const RAW: Loose[] = [
     noFra(everyone),
     5,
     foreign,
-    all(
-      date("1917-07", "1917-12"),
-      any(atWar("OTT"), inWar("OTT")),
-      not(seen("gbr_f_palestine")),
-    ),
+    {
+      kind: "all",
+      of: [
+        { kind: "world", of: { is: "war_months", min: 35, max: 41 } },
+        {
+          kind: "any",
+          of: [
+            { kind: "at_war", tag: "OTT" },
+            { kind: "world", of: { is: "entered", tag: "OTT" } },
+          ],
+        },
+        { kind: "not", of: { kind: "seen", scene: "gbr_f_palestine" } },
+      ],
+    },
     { fm },
     [
       v("lines", chose("gw_d_mecca_letters", "promise_lines")),
@@ -1041,7 +1393,13 @@ const RAW: Loose[] = [
     everyone,
     5,
     foreign,
-    all(war, date("1915-01", "1916-06")),
+    {
+      kind: "all",
+      of: [
+        { kind: "world", of: { is: "war" } },
+        { kind: "world", of: { is: "war_months", own: true, min: 5, max: 23 } },
+      ],
+    },
     { fm },
     [
       v("scandinavia", until("1915-12")),
@@ -1072,7 +1430,13 @@ const RAW: Loose[] = [
     id: "gw_d_ambassador_gone",
     nation: everyone,
     kind: "wire",
-    when: all(war, date("1914-07", "1914-12")),
+    when: {
+      kind: "all",
+      of: [
+        { kind: "world", of: { is: "war" } },
+        { kind: "world", of: { is: "war_months", own: true, max: 5 } },
+      ],
+    },
     cast: {},
     salience: 5,
     tags: foreign,
@@ -1084,7 +1448,13 @@ const RAW: Loose[] = [
     noFra(everyone),
     6,
     foreign,
-    all(war, date("1915-01", "1917-12")),
+    {
+      kind: "all",
+      of: [
+        { kind: "world", of: { is: "war" } },
+        { kind: "world", of: { is: "war_months", own: true, min: 5, max: 41 } },
+      ],
+    },
     { fm, cos },
     [
       v("salonika", all(entente, since("1915-10"), until("1917-06"))),
@@ -1113,17 +1483,50 @@ const RAW: Loose[] = [
     everyone,
     6,
     foreign,
-    all(
-      war,
-      date("1915-07", "1918-06"),
-      any(
-        { kind: "gauge", gauge: "money", max: 1 },
-        all(central, low("OTT", "money")),
-        all(central, low("BGR", "money")),
-        all(entente, low("ITA", "money")),
-        all(entente, low("SRB", "money")),
-      ),
-    ),
+    {
+      kind: "all",
+      of: [
+        { kind: "world", of: { is: "war" } },
+        {
+          kind: "world",
+          of: { is: "war_months", own: true, min: 11, max: 47 },
+        },
+        {
+          kind: "any",
+          of: [
+            { kind: "gauge", gauge: "money", max: 1 },
+            {
+              kind: "all",
+              of: [
+                { kind: "world", of: { is: "side", of: ["central"] } },
+                { kind: "nation_gauge", tag: "OTT", gauge: "money", max: 1 },
+              ],
+            },
+            {
+              kind: "all",
+              of: [
+                { kind: "world", of: { is: "side", of: ["central"] } },
+                { kind: "nation_gauge", tag: "BGR", gauge: "money", max: 1 },
+              ],
+            },
+            {
+              kind: "all",
+              of: [
+                { kind: "world", of: { is: "side", of: ["entente"] } },
+                { kind: "nation_gauge", tag: "ITA", gauge: "money", max: 1 },
+              ],
+            },
+            {
+              kind: "all",
+              of: [
+                { kind: "world", of: { is: "side", of: ["entente"] } },
+                { kind: "nation_gauge", tag: "SRB", gauge: "money", max: 1 },
+              ],
+            },
+          ],
+        },
+      ],
+    },
     { fin, fm },
     [
       v("borrow_rus", all(seatRUS, { kind: "gauge", gauge: "money", max: 1 })),
@@ -1167,15 +1570,85 @@ const RAW: Loose[] = [
     everyone,
     6,
     foreign,
-    all(
-      war,
-      date("1915-01", "1918-06"),
-      any(
-        all(central, fighting("OTT")),
-        all(seatGBR, fighting("ITA")),
-        all(seatRUS, fighting("JPN")),
-      ),
-    ),
+    {
+      kind: "all",
+      of: [
+        { kind: "world", of: { is: "war" } },
+        { kind: "world", of: { is: "war_months", own: true, min: 5, max: 47 } },
+        {
+          kind: "any",
+          of: [
+            {
+              kind: "all",
+              of: [
+                { kind: "world", of: { is: "side", of: ["central"] } },
+                {
+                  kind: "all",
+                  of: [
+                    { kind: "world", of: { is: "entered", tag: "OTT" } },
+                    {
+                      kind: "not",
+                      of: { kind: "world", of: { is: "out", tag: "OTT" } },
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              kind: "all",
+              of: [
+                {
+                  kind: "world",
+                  of: {
+                    is: "regime",
+                    of: ["liberal", "coalition", "war_cabinet", "national"],
+                  },
+                },
+                {
+                  kind: "all",
+                  of: [
+                    { kind: "world", of: { is: "entered", tag: "ITA" } },
+                    {
+                      kind: "not",
+                      of: { kind: "world", of: { is: "out", tag: "ITA" } },
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              kind: "all",
+              of: [
+                {
+                  kind: "world",
+                  of: {
+                    is: "regime",
+                    of: [
+                      "tsar",
+                      "crown",
+                      "regency",
+                      "rep",
+                      "provisional",
+                      "soviet",
+                    ],
+                  },
+                },
+                {
+                  kind: "all",
+                  of: [
+                    { kind: "world", of: { is: "entered", tag: "JPN" } },
+                    {
+                      kind: "not",
+                      of: { kind: "world", of: { is: "out", tag: "JPN" } },
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
     { fm },
     [
       v("again", chose("gw_d_offer_card", "accept")),

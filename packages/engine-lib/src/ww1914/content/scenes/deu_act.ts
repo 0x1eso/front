@@ -1818,11 +1818,11 @@ export const DEU_STORY_SCENES: readonly GwScene[] = [
   ruler(
     "deu_l_nicky_3",
     {
-      when: all(
-        nickyWar,
-        { kind: "chapter", min: 9 },
-        { kind: "letters", who: other, min: 1 },
-      ),
+      when: all(nickyWar, world({ is: "war_months", own: true, min: 3 }), {
+        kind: "letters",
+        who: other,
+        min: 1,
+      }),
       variants: [
         { id: "hard", when: character(other, "hardline") },
         { id: "warm", when: { kind: "letters", who: other, tone: "warm" } },
@@ -1895,11 +1895,11 @@ export const DEU_STORY_SCENES: readonly GwScene[] = [
   ruler(
     "deu_l_georgie_3",
     {
-      when: all(
-        nickyWar,
-        { kind: "chapter", min: 9 },
-        { kind: "letters", who: other, min: 1 },
-      ),
+      when: all(nickyWar, world({ is: "war_months", own: true, min: 3 }), {
+        kind: "letters",
+        who: other,
+        min: 1,
+      }),
       variants: [
         { id: "windsor", when: from("1917-07") },
         { id: "warm", when: { kind: "letters", who: other, tone: "warm" } },

@@ -33,7 +33,6 @@ import {
   GwWorldEffect,
   world,
 } from "@openfront/engine-api/ww1914/WorldDsl";
-import { period } from "./period";
 
 /**
  * 「오스트리아-헝가리」, what the seat starts and the story around it: the scenes
@@ -1071,7 +1070,11 @@ const BIG_SCENES: GwScene[] = [
       fin: holder("finance"),
     },
     "court",
-    all(atWar("RUS"), eastPushed, period("14", "15a")),
+    all(
+      atWar("RUS"),
+      eastPushed,
+      world({ is: "war_months", own: true, max: 11 }),
+    ),
     {
       n1: node("court", [
         say("how_many", "frank", "n2"),
@@ -1131,7 +1134,11 @@ const BIG_SCENES: GwScene[] = [
       cos: holder("chief_of_staff"),
     },
     "fm",
-    all(world({ is: "neutral", tag: "ITA" }), atWar("RUS"), period("15a")),
+    all(
+      world({ is: "neutral", tag: "ITA" }),
+      atWar("RUS"),
+      world({ is: "war_months", own: true, min: 5, max: 11 }),
+    ),
     {
       n1: node("fm", [
         say("price", "frank", "n2"),
@@ -1264,7 +1271,11 @@ const BIG_SCENES: GwScene[] = [
       pm: holder("hun_pm"),
     },
     "lw",
-    all(inWar, bread(1), between("1917-01", "1918-06")),
+    all(
+      inWar,
+      bread(1),
+      world({ is: "war_months", own: true, min: 29, max: 47 }),
+    ),
     {
       n1: node("lw", [
         say("days", "frank", "n2"),
@@ -1395,7 +1406,7 @@ const BIG_SCENES: GwScene[] = [
     "pm",
     all(
       inWar,
-      since("1918-06"),
+      world({ is: "war_months", own: true, min: 46 }),
       any(world({ is: "score", max: -25 }), nationsAt({ max: -3 })),
     ),
     {
@@ -1462,7 +1473,7 @@ const BIG_SCENES: GwScene[] = [
       fm: holder("foreign"),
     },
     "pm",
-    all(peace, since("1916-01")),
+    all(peace, world({ is: "peace_months", min: 17 })),
     {
       n1: node("pm", [
         say("ten_years", "frank", "n2"),
@@ -1892,7 +1903,12 @@ const press = (
 const AIM_SCENES: GwScene[] = [
   press(
     "auh_m_serbia",
-    all(aim("auh_aim_serbia"), atWar("SRB"), atWar("RUS"), since("1914-10")),
+    all(
+      aim("auh_aim_serbia"),
+      atWar("SRB"),
+      atWar("RUS"),
+      world({ is: "war_months", own: true, min: 2 }),
+    ),
     { cos: holder("chief_of_staff") },
     [
       opt(
@@ -1910,7 +1926,7 @@ const AIM_SCENES: GwScene[] = [
   ),
   press(
     "auh_m_crown",
-    all(aim("auh_aim_crown"), since("1915-06")),
+    all(aim("auh_aim_crown"), world({ is: "war_months", min: 10 })),
     { pm: holder("hun_pm"), court: holder("court") },
     [
       opt("no_promise", ["hun_pm:-1"], [trustOf(pm, -1)]),
@@ -1924,7 +1940,11 @@ const AIM_SCENES: GwScene[] = [
   ),
   press(
     "auh_m_peace",
-    all(aim("auh_aim_peace"), inWar, since("1915-06")),
+    all(
+      aim("auh_aim_peace"),
+      inWar,
+      world({ is: "war_months", own: true, min: 10 }),
+    ),
     { fm: holder("foreign"), cos: holder("chief_of_staff") },
     [
       opt(
@@ -1938,7 +1958,11 @@ const AIM_SCENES: GwScene[] = [
   ),
   press(
     "auh_m_own",
-    all(aim("auh_aim_own"), inWar, since("1915-01")),
+    all(
+      aim("auh_aim_own"),
+      inWar,
+      world({ is: "war_months", own: true, min: 5 }),
+    ),
     { cos: holder("chief_of_staff") },
     [
       opt(
@@ -1956,7 +1980,11 @@ const AIM_SCENES: GwScene[] = [
   ),
   press(
     "auh_m_nations",
-    all(aim("auh_aim_nations"), inWar, since("1915-01")),
+    all(
+      aim("auh_aim_nations"),
+      inWar,
+      world({ is: "war_months", own: true, min: 5 }),
+    ),
     { chan: holder("chancellor"), cos: holder("chief_of_staff") },
     [
       opt(
@@ -1974,7 +2002,11 @@ const AIM_SCENES: GwScene[] = [
   ),
   press(
     "auh_m_bread",
-    all(aim("auh_aim_bread"), inWar, since("1915-06")),
+    all(
+      aim("auh_aim_bread"),
+      inWar,
+      world({ is: "war_months", own: true, min: 10 }),
+    ),
     { chan: holder("chancellor"), fm: holder("foreign") },
     [
       opt(
@@ -1997,7 +2029,7 @@ const AIM_REMINDER: GwScene = {
   id: "auh_m_reminder",
   nation: NATION,
   kind: "report",
-  when: all(flag("f_auh_aim_bent"), since("1917-01")),
+  when: all(flag("f_auh_aim_bent"), world({ is: "war_months", min: 29 })),
   cast: {},
   salience: 5,
   tags: ["people"],

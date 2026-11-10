@@ -226,11 +226,10 @@ export const DEU_CRISIS_SCENES: readonly GwScene[] = [
     id: "deu_c_cruise",
     nation: ["DEU"],
     kind: "proposal",
-    stage: ["crisis"],
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 2, max: 2 },
+        { kind: "world", of: { is: "chain", short: false, min: 2, max: 2 } },
         { kind: "crisis", topic: "balkan" },
       ],
     },
@@ -292,11 +291,10 @@ export const DEU_CRISIS_SCENES: readonly GwScene[] = [
     id: "deu_c_ultimatum_text",
     nation: ["DEU"],
     kind: "crisis",
-    stage: ["crisis"],
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 2, max: 2 },
+        { kind: "world", of: { is: "chain", short: false, min: 2, max: 2 } },
         { kind: "crisis", topic: "balkan" },
       ],
     },
@@ -370,11 +368,10 @@ export const DEU_CRISIS_SCENES: readonly GwScene[] = [
     id: "deu_c_serbian_reply",
     nation: ["DEU"],
     kind: "crisis",
-    stage: ["crisis"],
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 3, max: 4 },
+        { kind: "world", of: { is: "chain", short: false, min: 3, max: 4 } },
         { kind: "crisis", topic: "balkan" },
       ],
     },
@@ -456,11 +453,10 @@ export const DEU_CRISIS_SCENES: readonly GwScene[] = [
     id: "deu_c_nicky",
     nation: ["DEU"],
     kind: "crisis",
-    stage: ["crisis"],
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 4, max: 4 },
+        { kind: "world", of: { is: "chain", short: false, min: 4, max: 4 } },
         {
           kind: "all",
           of: [
@@ -545,11 +541,10 @@ export const DEU_CRISIS_SCENES: readonly GwScene[] = [
     id: "deu_c_kriegsgefahr",
     nation: ["DEU"],
     kind: "dispute",
-    stage: ["crisis"],
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 4, max: 4 },
+        { kind: "world", of: { is: "chain", short: false, min: 4, max: 4 } },
         {
           kind: "all",
           of: [
@@ -631,11 +626,10 @@ export const DEU_CRISIS_SCENES: readonly GwScene[] = [
     id: "deu_c_mobilise",
     nation: ["DEU"],
     kind: "crisis",
-    stage: ["crisis"],
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 4, max: 5 },
+        { kind: "world", of: { is: "chain", short: false, min: 4, max: 5 } },
         {
           kind: "all",
           of: [
@@ -832,11 +826,10 @@ export const DEU_CRISIS_SCENES: readonly GwScene[] = [
     id: "deu_c_war_speech",
     nation: ["DEU"],
     kind: "crisis",
-    stage: ["crisis", "y1914"],
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 5, max: 6 },
+        { kind: "world", of: { is: "war_months", own: true, max: 0 } },
         {
           kind: "any",
           of: [
@@ -1130,11 +1123,10 @@ export const DEU_CRISIS_SCENES: readonly GwScene[] = [
     id: "deu_t_tsch_annex",
     nation: ["DEU"],
     kind: "talk",
-    stage: ["crisis"],
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 1, max: 1 },
+        { kind: "world", of: { is: "chain", short: false, min: 1, max: 1 } },
         { kind: "crisis", topic: "balkan" },
       ],
     },
@@ -1456,11 +1448,10 @@ export const DEU_CRISIS_SCENES: readonly GwScene[] = [
     id: "deu_t_tsch_draft",
     nation: ["DEU"],
     kind: "talk",
-    stage: ["crisis"],
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 2, max: 2 },
+        { kind: "world", of: { is: "chain", short: false, min: 2, max: 2 } },
         { kind: "crisis", topic: "balkan" },
       ],
     },
@@ -1630,11 +1621,10 @@ export const DEU_CRISIS_SCENES: readonly GwScene[] = [
     id: "deu_t_tsch_halt",
     nation: ["DEU"],
     kind: "talk",
-    stage: ["crisis"],
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 3, max: 4 },
+        { kind: "world", of: { is: "chain", short: false, min: 3, max: 4 } },
         { kind: "crisis", topic: "balkan" },
       ],
     },
@@ -1807,11 +1797,10 @@ export const DEU_CRISIS_SCENES: readonly GwScene[] = [
     id: "deu_t_tsch_galicia",
     nation: ["DEU"],
     kind: "talk",
-    stage: ["y1914"],
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 7, max: 9 },
+        { kind: "world", of: { is: "war_months", own: true, min: 1, max: 3 } },
         { kind: "at_war", tag: "RUS" },
       ],
     },
@@ -2135,11 +2124,10 @@ export const DEU_CRISIS_SCENES: readonly GwScene[] = [
     id: "deu_t_jagow_text",
     nation: ["DEU"],
     kind: "talk",
-    stage: ["crisis"],
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 2, max: 3 },
+        { kind: "world", of: { is: "chain", short: false, min: 2, max: 3 } },
         { kind: "crisis", topic: "balkan" },
       ],
     },
@@ -2309,11 +2297,10 @@ export const DEU_CRISIS_SCENES: readonly GwScene[] = [
     id: "deu_t_zimm_speed",
     nation: ["DEU"],
     kind: "talk",
-    stage: ["crisis"],
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 2, max: 3 },
+        { kind: "world", of: { is: "chain", short: false, min: 2, max: 3 } },
         { kind: "crisis", topic: "balkan" },
       ],
     },
@@ -2696,11 +2683,10 @@ export const DEU_CRISIS_SCENES: readonly GwScene[] = [
     id: "deu_t_lich_conf",
     nation: ["DEU"],
     kind: "talk",
-    stage: ["crisis"],
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 3, max: 3 },
+        { kind: "world", of: { is: "chain", short: false, min: 3, max: 3 } },
         { kind: "crisis", topic: "balkan" },
       ],
     },
@@ -2874,11 +2860,10 @@ export const DEU_CRISIS_SCENES: readonly GwScene[] = [
     id: "deu_t_pour_tsar",
     nation: ["DEU"],
     kind: "talk",
-    stage: ["crisis"],
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 4, max: 4 },
+        { kind: "world", of: { is: "chain", short: false, min: 4, max: 4 } },
         { kind: "crisis", topic: "balkan" },
       ],
     },
@@ -3629,8 +3614,7 @@ export const DEU_CRISIS_SCENES: readonly GwScene[] = [
     id: "deu_t_jagow_poland",
     nation: ["DEU"],
     kind: "talk",
-    stage: ["y1914"],
-    when: { kind: "chapter", min: 6, max: 9 },
+    when: { kind: "world", of: { is: "war_months", own: true, max: 3 } },
     cast: { p: { person: "deu_jagow" } },
     salience: 2,
     tags: ["people"],
@@ -3783,11 +3767,10 @@ export const DEU_CRISIS_SCENES: readonly GwScene[] = [
     id: "deu_t_zimm_hoyos",
     nation: ["DEU"],
     kind: "talk",
-    stage: ["crisis"],
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 1, max: 1 },
+        { kind: "world", of: { is: "chain", short: false, min: 1, max: 1 } },
         { kind: "crisis", topic: "balkan" },
       ],
     },
@@ -4396,11 +4379,10 @@ export const DEU_CRISIS_SCENES: readonly GwScene[] = [
     id: "deu_t_zimm_irish",
     nation: ["DEU"],
     kind: "talk",
-    stage: ["y1914"],
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 7, max: 9 },
+        { kind: "world", of: { is: "war_months", own: true, min: 1, max: 3 } },
         { kind: "at_war", tag: "GBR" },
       ],
     },
@@ -4551,11 +4533,10 @@ export const DEU_CRISIS_SCENES: readonly GwScene[] = [
     id: "deu_t_zimm_usa",
     nation: ["DEU"],
     kind: "talk",
-    stage: ["y1914"],
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 8, max: 10 },
+        { kind: "world", of: { is: "war_months", own: true, min: 2, max: 4 } },
         { kind: "at_war", tag: "GBR" },
       ],
     },
@@ -4886,11 +4867,10 @@ export const DEU_CRISIS_SCENES: readonly GwScene[] = [
     id: "deu_t_lich_warn",
     nation: ["DEU"],
     kind: "talk",
-    stage: ["crisis"],
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 4, max: 4 },
+        { kind: "world", of: { is: "chain", short: false, min: 4, max: 4 } },
         {
           kind: "all",
           of: [
@@ -5232,8 +5212,7 @@ export const DEU_CRISIS_SCENES: readonly GwScene[] = [
     id: "deu_t_lich_farewell",
     nation: ["DEU"],
     kind: "talk",
-    stage: ["crisis", "y1914"],
-    when: { kind: "chapter", min: 5, max: 10 },
+    when: { kind: "world", of: { is: "war_months", own: true, max: 4 } },
     cast: { p: { person: "deu_lichnowsky" } },
     salience: 2,
     tags: ["people"],
@@ -5775,11 +5754,10 @@ export const DEU_CRISIS_SCENES: readonly GwScene[] = [
     id: "deu_t_pour_direct",
     nation: ["DEU"],
     kind: "talk",
-    stage: ["crisis"],
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 3, max: 3 },
+        { kind: "world", of: { is: "chain", short: false, min: 3, max: 3 } },
         { kind: "crisis", topic: "balkan" },
       ],
     },
@@ -6128,11 +6106,10 @@ export const DEU_CRISIS_SCENES: readonly GwScene[] = [
     id: "deu_t_pour_home",
     nation: ["DEU"],
     kind: "talk",
-    stage: ["y1914"],
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 6, max: 10 },
+        { kind: "world", of: { is: "war_months", own: true, max: 4 } },
         { kind: "at_war", tag: "RUS" },
       ],
     },
@@ -6798,11 +6775,10 @@ export const DEU_CRISIS_SCENES: readonly GwScene[] = [
     id: "deu_c_tisza_turn",
     nation: ["DEU"],
     kind: "report",
-    stage: ["crisis"],
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 2, max: 2 },
+        { kind: "world", of: { is: "chain", short: false, min: 2, max: 2 } },
         { kind: "crisis", topic: "balkan" },
       ],
     },
@@ -6821,11 +6797,10 @@ export const DEU_CRISIS_SCENES: readonly GwScene[] = [
     id: "deu_c_bucharest",
     nation: ["DEU"],
     kind: "report",
-    stage: ["crisis"],
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 2, max: 3 },
+        { kind: "world", of: { is: "chain", short: false, min: 2, max: 3 } },
         { kind: "crisis", topic: "balkan" },
       ],
     },
@@ -6906,11 +6881,10 @@ export const DEU_CRISIS_SCENES: readonly GwScene[] = [
     id: "deu_c_ultimatum_out",
     nation: ["DEU"],
     kind: "wire",
-    stage: ["crisis"],
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 3, max: 3 },
+        { kind: "world", of: { is: "chain", short: false, min: 3, max: 3 } },
         { kind: "crisis", topic: "balkan" },
       ],
     },
@@ -6927,11 +6901,10 @@ export const DEU_CRISIS_SCENES: readonly GwScene[] = [
     id: "deu_c_four_powers",
     nation: ["DEU"],
     kind: "proposal",
-    stage: ["crisis"],
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 3, max: 3 },
+        { kind: "world", of: { is: "chain", short: false, min: 3, max: 3 } },
         { kind: "crisis", topic: "balkan" },
       ],
     },
@@ -7012,11 +6985,10 @@ export const DEU_CRISIS_SCENES: readonly GwScene[] = [
     id: "deu_c_poincare_visit",
     nation: ["DEU"],
     kind: "report",
-    stage: ["crisis"],
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 3, max: 4 },
+        { kind: "world", of: { is: "chain", short: false, min: 3, max: 4 } },
         { kind: "crisis", topic: "balkan" },
       ],
     },
@@ -7035,11 +7007,10 @@ export const DEU_CRISIS_SCENES: readonly GwScene[] = [
     id: "deu_c_italy",
     nation: ["DEU"],
     kind: "proposal",
-    stage: ["crisis"],
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 3, max: 4 },
+        { kind: "world", of: { is: "chain", short: false, min: 3, max: 4 } },
         { kind: "crisis", topic: "balkan" },
       ],
     },
@@ -7197,11 +7168,10 @@ export const DEU_CRISIS_SCENES: readonly GwScene[] = [
     id: "deu_c_war_on_serbia",
     nation: ["DEU"],
     kind: "wire",
-    stage: ["crisis"],
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 4, max: 4 },
+        { kind: "world", of: { is: "chain", short: false, min: 4, max: 4 } },
         { kind: "crisis", topic: "balkan" },
       ],
     },
@@ -7218,11 +7188,10 @@ export const DEU_CRISIS_SCENES: readonly GwScene[] = [
     id: "deu_c_rus_report",
     nation: ["DEU"],
     kind: "report",
-    stage: ["crisis"],
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 4, max: 4 },
+        { kind: "world", of: { is: "chain", short: false, min: 4, max: 4 } },
         { kind: "crisis", topic: "balkan" },
       ],
     },

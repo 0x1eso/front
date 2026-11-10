@@ -114,7 +114,10 @@ export const RULER_RUS: readonly GwScene[] = [
     id: "rus_life_german_woman",
     nation: NATION,
     kind: "proposal",
-    when: all(self, war, date("1915-06", "1917-03")),
+    when: all(self, war, {
+      kind: "world",
+      of: { is: "war_months", own: true, min: 10, max: 32 },
+    }),
     cast: { court, empress },
     tags: ["people", "home"],
     fallback: "say_nothing",
