@@ -36,11 +36,20 @@ export function powerName(pack: GwPack | null, id: string): string {
 /** The procedure as facts: "재상의 부서가 필요하다". */
 export function needsLines(c: GwCtx, p: GwPowerView): string[] {
   const own = c.pack?.powers?.[p.id]?.needs;
-  if (own !== undefined) return [own];
-  const out: string[] = [];
   const n = p.needs;
+  // The row's own words name the office it had; another signs now (ww171).
+  if (own !== undefined && n.instead === undefined) return [own];
+  const out: string[] = [];
   if (n.office !== undefined) {
     const office = officeTitle(c.seat.tag, n.office);
+    if (n.instead !== undefined) {
+      out.push(
+        translateText("gw.power.needs.instead", {
+          office,
+          instead: officeTitle(c.seat.tag, n.instead),
+        }),
+      );
+    }
     out.push(
       n.signer === undefined || n.signer === null
         ? translateText("gw.power.needs.office", { office })

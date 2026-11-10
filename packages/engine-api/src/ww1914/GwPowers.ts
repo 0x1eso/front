@@ -129,6 +129,8 @@ export interface GwPowerView {
     office?: string;
     /** Who holds that office now; null: nobody. */
     signer?: string | null;
+    /** The office whose say another holds now (the OHL's rule, ww171). */
+    instead?: string;
     houses?: readonly string[];
     council?: boolean;
     /** A faction whose consent it needs. */

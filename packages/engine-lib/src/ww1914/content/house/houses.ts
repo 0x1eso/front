@@ -39,11 +39,20 @@ export const DEU_HOUSE: GwHouseRow = {
   police: either(office("interior"), office("chancellor")),
 };
 
+/** Parliament prorogued past the motion (gbr_pw_prorogue): neither House sits. */
+export const GBR_PROROGUED = flag("f_gbr_prorogued");
+
 export const GBR_HOUSE: GwHouseRow = {
   tag: "GBR",
   chambers: [
-    { id: "commons", inst: "commons", kind: "vote", starts: true },
-    { id: "lords", kind: "lords" },
+    {
+      id: "commons",
+      inst: "commons",
+      kind: "vote",
+      starts: true,
+      sits: not(GBR_PROROGUED),
+    },
+    { id: "lords", kind: "lords", sits: not(GBR_PROROGUED) },
   ],
   // Gulland, the chief whip: pack-only, `GBR.house.json` people.
   whip: { past: "gbr_i_gulland" },
@@ -56,6 +65,8 @@ export const GBR_HOUSE: GwHouseRow = {
     delta: -1,
     skips: ["commons", "lords"],
     heats: [{ faction: "gbr_rebels", by: 2 }],
+    // Prorogued, the country is governed by Orders in Council alone.
+    all: GBR_PROROGUED,
   },
   police: either(person("gbr_hall"), office("interior"), office("chancellor")),
 };
@@ -110,11 +121,28 @@ export const AUH_HOUSE: GwHouseRow = {
   signs: true,
 };
 
+/**
+ * The Duma abolished (rus_pw_abolish_duma): autocracy as before 1906. Neither
+ * the Duma nor the State Council votes a law; the Tsar's decree is the law.
+ */
+export const RUS_DUMA_GONE = flag("f_rus_duma_abolished");
+
 export const RUS_HOUSE: GwHouseRow = {
   tag: "RUS",
   chambers: [
-    { id: "duma", inst: "duma", kind: "vote", starts: true },
-    { id: "council", inst: "ministers", kind: "vote" },
+    {
+      id: "duma",
+      inst: "duma",
+      kind: "vote",
+      starts: true,
+      sits: not(RUS_DUMA_GONE),
+    },
+    {
+      id: "council",
+      inst: "ministers",
+      kind: "vote",
+      sits: not(RUS_DUMA_GONE),
+    },
   ],
   whip: either(person("rus_rodzianko"), office("interior")),
   // Article 87, only while the Duma is not sitting: cheap in authority, dear
@@ -130,6 +158,7 @@ export const RUS_HOUSE: GwHouseRow = {
       { faction: "rus_nobles", by: 1 },
       { faction: "rus_kadets", by: 1 },
     ],
+    all: RUS_DUMA_GONE,
   },
   police: either(office("interior"), office("chancellor")),
   // What the Duma and the State Council pass goes to the Tsar to sign.

@@ -60,6 +60,11 @@ export interface GwPressRow {
   };
   /** Forms of government with no censor. */
   readonly free: readonly string[];
+  /**
+   * Seat flags of a state of siege (ww171): the army holds the censor, war's
+   * cap in peace too, and the house's bar no longer stops it.
+   */
+  readonly siege?: readonly string[];
   /** Decisions no paper can hear of: they call no story. */
   readonly closed: readonly string[];
   readonly stories: readonly GwStory[];
@@ -130,6 +135,7 @@ const DEU: GwPressRow = {
   price: 8,
   bar: { inst: "reichstag", min: -3, why: "reichstag" },
   free: ["republic"],
+  siege: ["f_deu_siege"],
   closed: [
     "deu_c_first_words",
     "deu_c_potsdam",
@@ -1052,6 +1058,7 @@ const FRA: GwPressRow = {
   price: 10,
   bar: { inst: "chamber", min: -2, why: "chamber" },
   free: [],
+  siege: ["f_fra_pw_siege", "f_law_siege"],
   // The secret papers of the other shares: Schoen's question, Carnet B, the
   // mutinies, Sixtus, the Rhine note, Lancken.
   closed: [

@@ -481,9 +481,11 @@ export const DEU_POWERS: readonly GwPowerRow[] = [
           },
           {
             id: "hostages",
+            // The towns answer for the railways: fewer men guard them.
             effects: [
               remember("k_deu_pw_hostages"),
               inst("army", 1),
+              act({ do: "manpower", delta: 1 }),
               america(3),
               conscience("deu_pw_conscience_hostages"),
             ],
@@ -512,6 +514,7 @@ export const DEU_POWERS: readonly GwPowerRow[] = [
     beyond: "deu_pw_ohl_b",
     once: true,
     tags: ["army_over_civil"],
+    // From now the Chief of Staff signs for war and the army (GW_SIGN_FOR).
     effects: [
       setFlag("f_deu_ohl_rule"),
       inst("army", 2),
@@ -519,6 +522,7 @@ export const DEU_POWERS: readonly GwPowerRow[] = [
       officeTrust("chief_of_staff", 1),
       // The man who signed it has signed his office away.
       officeTrust("chancellor", -1),
+      reason("deu_pw_ohl_signs"),
     ],
     // The majority reads the same signatures.
     risk: {
@@ -884,8 +888,11 @@ export const DEU_POWERS: readonly GwPowerRow[] = [
     authority: 15,
     cooldown: 12,
     tags: ["decree", "house_closed"],
+    // The year's budget goes without the Reichstag's vote (GW_BUDGET_DECREE,
+    // spent by the budget it carries).
     effects: [
       setFlag("f_deu_no_budget"),
+      reason("deu_pw_nobudget_done"),
       gauge("money", 1),
       inst("reichstag", -2),
       heat("deu_natlib", 1),
@@ -1005,6 +1012,7 @@ export const DEU_POWERS: readonly GwPowerRow[] = [
       inst("army", 2),
       inst("countersign", -2),
       officeTrust("chief_of_staff", 1),
+      reason("deu_pw_ohl_signs"),
     ],
     heats: [{ id: "deu_chancellor", by: 3 }],
     risk: {

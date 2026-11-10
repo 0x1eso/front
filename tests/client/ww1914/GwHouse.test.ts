@@ -24,6 +24,8 @@ const house = (over: Partial<GwHouseView> = {}): GwHouseView => ({
   factions: [],
   out: null,
   around: "bundesrat",
+  closed: [],
+  gone: false,
   ...over,
 });
 
@@ -119,6 +121,21 @@ describe("the house on the country tab", () => {
     ]);
     expect(root.querySelector("[data-gw-house-call=deu_cons]")).toBeNull();
     expect(root.querySelector("[data-gw-house-record]")).not.toBeNull();
+  });
+
+  test("a house gone or sent home says so, and names what doesn't sit (ww171)", () => {
+    const sits = ctx(house(), (c) => html`${houseSection(c)}`).root;
+    expect(sits.querySelector("[data-gw-house-gone]")).toBeNull();
+    expect(sits.querySelector("[data-gw-house-closed]")).toBeNull();
+    const { root } = ctx(
+      house({ around: "art87", closed: ["duma", "council"], gone: true }),
+      (c) => html`${houseSection(c)}`,
+    );
+    // The tests run without a language: the line is its key.
+    expect(
+      root.querySelector("[data-gw-house-gone]")?.textContent?.trim(),
+    ).toBe("gw.house.gone.art87");
+    expect(root.querySelector("[data-gw-house-closed]")).not.toBeNull();
   });
 
   test("a faction with no leader at hand shows only its word, no stray separator", () => {

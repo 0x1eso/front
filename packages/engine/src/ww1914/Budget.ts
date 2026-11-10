@@ -30,13 +30,14 @@ import {
 } from "@openfront/engine-api/ww1914/GwBudget";
 import type { GwOrderBlock } from "@openfront/engine-api/ww1914/GwOrders";
 import {
+  budgetBody,
   budgetDraft,
   budgetNorm,
   budgetRow,
   budgetValid,
   budgetVote,
   budgetYear,
-  GW_BUDGET_BODIES,
+  GW_BUDGET_DECREE,
   GW_DRIFT_STEP,
   GW_LOAD_CRUSHING,
   GW_PRICES_CRISIS,
@@ -76,8 +77,25 @@ const MEETING = /^gw_bm_/;
 
 const known = (scene: string) => gwContent().scenes.some((x) => x.id === scene);
 
-const bodyOf = (n: GwNationState): GwBudgetBody | null =>
-  GW_BUDGET_BODIES[n.regime] ?? null;
+const flagsOf = (gw: GreatWar, n: GwNationState): string[] =>
+  seatsOf(gw, n.tag).flatMap((x) => x.flags);
+
+/** The regime's body, unless a decree carries the budget past it (ww171). */
+const bodyOf = (gw: GreatWar, n: GwNationState): GwBudgetBody | null =>
+  budgetBody(n.regime, flagsOf(gw, n));
+
+/** A decree that carries one budget is spent by the budget it carried. */
+function spendDecree(gw: GreatWar, n: GwNationState): void {
+  const flags = flagsOf(gw, n);
+  const used = GW_BUDGET_DECREE.filter(
+    (d) => d.once === true && flags.includes(d.flag),
+  );
+  if (used.length === 0) return;
+  for (const seat of seatsOf(gw, n.tag)) {
+    seat.flags = seat.flags.filter((f) => !used.some((d) => d.flag === f));
+  }
+  tellSeats(gw, n, "budget_by_decree");
+}
 
 function note(
   n: GwNationState,
@@ -237,7 +255,7 @@ function signEffects(
   war: boolean,
 ): void {
   const row = budgetRow(n.tag);
-  const body = bodyOf(n);
+  const body = bodyOf(gw, n);
   const national = GW_BUDGET_LINES.indexOf("national");
   const off = plan.shares[national] - budgetNorm(n.tag, war)[national];
   if (off >= 3 || off <= -3) {
@@ -273,6 +291,7 @@ function adopt(
   signEffects(gw, n, b.plan, war);
   b.notes = [];
   tellSeats(gw, n, `budget_${how}`);
+  spendDecree(gw, n);
 }
 
 function closeMeeting(gw: GreatWar, n: GwNationState, how: GwBudgetHow): void {
@@ -285,7 +304,7 @@ function closeMeeting(gw: GreatWar, n: GwNationState, how: GwBudgetHow): void {
 }
 
 function voteOn(gw: GreatWar, n: GwNationState, plan: GwBudgetPlan) {
-  return budgetVote(bodyOf(n), n.inst, basisOf(gw, n), plan);
+  return budgetVote(bodyOf(gw, n), n.inst, basisOf(gw, n), plan);
 }
 
 /** The bill goes up: passed, signed alone, or turned down. */
@@ -295,7 +314,7 @@ export function submitBudget(
   plan: GwBudgetPlan,
   how: GwBudgetHow = "signed",
 ): "passed" | "refused" {
-  const body = bodyOf(n);
+  const body = bodyOf(gw, n);
   const vote: GwBudgetVote = voteOn(gw, n, plan);
   if (vote.pass) {
     adopt(gw, n, plan, how);
@@ -334,7 +353,7 @@ export function budgetOrder(
   const n = gw.nation(seat.tag);
   if (n === null || n.budget.meeting === null) return "no_meeting";
   if (!budgetValid(plan)) return "bad_budget";
-  const body = bodyOf(n);
+  const body = bodyOf(gw, n);
   if (force && body !== null) {
     if (n.authority < body.forcePrice) return "no_authority";
     forceBudget(gw, n, plan, body);
@@ -379,7 +398,7 @@ function openMeeting(gw: GreatWar, n: GwNationState, year: number): void {
 /** The same rule with plain thresholds: the draft, forced if it can afford it. */
 function aiBudget(gw: GreatWar, n: GwNationState, draft: GwBudgetPlan): void {
   if (submitBudget(gw, n, draft) === "passed") return;
-  const body = bodyOf(n);
+  const body = bodyOf(gw, n);
   if (body !== null && n.authority >= body.forcePrice + 20) {
     forceBudget(gw, n, draft, body);
     return;
@@ -596,8 +615,8 @@ export function budgetStep(gw: GreatWar): void {
   openMeetings(gw);
 }
 
-function bodyView(n: GwNationState): GwBudgetView["body"] {
-  const body = bodyOf(n);
+function bodyView(gw: GreatWar, n: GwNationState): GwBudgetView["body"] {
+  const body = bodyOf(gw, n);
   if (body === null) return null;
   return {
     kind: body.kind,
@@ -638,7 +657,7 @@ export function budgetView(gw: GreatWar, seat: GwSeatState): GwBudgetView {
     next: nextMeeting(gw),
     notes: b.notes,
     lenders: lenders(gw, n),
-    body: bodyView(n),
+    body: bodyView(gw, n),
     authority: n.authority,
     holder: officeHolder(gw, seat, "finance")?.id ?? null,
   };

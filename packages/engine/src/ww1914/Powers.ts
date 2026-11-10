@@ -41,6 +41,7 @@ import {
   GwPowerOption,
   GwPowerRow,
   GwReactorRow,
+  signOffice,
 } from "@openfront/engine-lib/ww1914/PowerRows";
 import { isCandid } from "@openfront/engine-lib/ww1914/TalkRules";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
@@ -105,7 +106,7 @@ function rested(gw: GreatWar, seat: GwSeatState, row: GwPowerRow): boolean {
 
 /** The person who must countersign; null when none is needed or none holds it. */
 function signerOf(gw: GreatWar, seat: GwSeatState, row: GwPowerRow) {
-  const office = row.needs?.office;
+  const office = signOffice(seat.tag, seat.flags, row);
   if (office === undefined) return { needed: false, p: null };
   const p = holderOf(gw, seat, office);
   // The head of state holding it signs for himself (Asquith at the War Office).
@@ -189,8 +190,11 @@ export function powerViews(gw: GreatWar, seat: GwSeatState): GwPowerView[] {
           ...(n?.office === undefined
             ? {}
             : {
-                office: n.office,
+                office: signOffice(seat.tag, seat.flags, row) ?? n.office,
                 signer: s.needed ? (s.p?.id ?? null) : null,
+                ...(signOffice(seat.tag, seat.flags, row) === n.office
+                  ? {}
+                  : { instead: n.office }),
               }),
           ...(n?.house === undefined ? {} : { houses: n.house.houses ?? [] }),
           ...(n?.council === undefined ? {} : { council: true }),

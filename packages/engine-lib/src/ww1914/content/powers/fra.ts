@@ -46,7 +46,7 @@ import {
 import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
 import type { GwSide } from "../../HouseRows";
 import type { GwPowerOption, GwPowerRow, GwReactorRow } from "../../PowerRows";
-import { beatPlot, heat, startLaw, warAge } from "../house/kit";
+import { beatPlot, grow, heat, startLaw, warAge } from "../house/kit";
 
 // ---- Words ----
 
@@ -94,6 +94,26 @@ const maybe = (when: GwCond, then: GwEffect[]): GwEffect => ({
   when,
   then,
 });
+
+/**
+ * The election a dissolution brings, by the state France is in (ww171): a
+ * winning war returns the right, a losing one the left, peace the Radicals.
+ */
+const ELECTION: readonly GwEffect[] = [
+  maybe(world({ is: "score", min: 20 }), [
+    grow("fra_fed_rep", 1),
+    grow("fra_left_rep", 1),
+    grow("fra_sfio", -1),
+  ]),
+  maybe(world({ is: "score", max: -10 }), [
+    grow("fra_sfio", 1),
+    grow("fra_caillaux", 1),
+    grow("fra_fed_rep", -1),
+  ]),
+  maybe(world({ is: "unrest", min: 1 }), [grow("fra_sfio", 1)]),
+  maybe(not(world({ is: "war" })), [grow("fra_radicals", 1)]),
+  reason("fra_pw_dissolve_elected"),
+];
 
 /** Each faction's side, in FRA_FACTIONS' order (content/house/fra.ts). */
 const sides = (
@@ -443,6 +463,7 @@ export const FRA_POWERS: readonly GwPowerRow[] = [
       inst("chamber", -2),
       heat("fra_radicals", 1),
       heat("fra_sfio", 1),
+      ...ELECTION,
     ],
     // It reads as 16 May 1877: the Élysée threat jumps.
     heats: [{ id: "fra_elysee", by: 3 }],
@@ -853,6 +874,7 @@ export const FRA_POWERS: readonly GwPowerRow[] = [
       heat("fra_sfio", 2),
       heat("fra_caillaux", 1),
       reason("fra_pw_dissolve_alone"),
+      ...ELECTION,
     ],
     heats: [
       { id: "fra_elysee", by: 4 },
@@ -892,9 +914,11 @@ export const FRA_POWERS: readonly GwPowerRow[] = [
     once: true,
     authority: 5,
     tags: ["harsh_war"],
+    // What the GQG wanted: fear of the court keeps men in the line.
     effects: [
       inst("army", 1),
       { kind: "pride", who: { office: "chief_of_staff" }, delta: 1 },
+      doWorld({ do: "manpower", delta: 1 }),
       heat("fra_sfio", 1),
       heat("fra_minority", 1),
     ],
@@ -933,9 +957,11 @@ export const FRA_POWERS: readonly GwPowerRow[] = [
     ],
     cooldown: 6,
     tags: ["harsh_war"],
+    // The divisions that refused go back up the line.
     effects: [
       inst("army", 1),
       { kind: "pride", who: { office: "chief_of_staff" }, delta: 1 },
+      doWorld({ do: "manpower", delta: 1 }),
       heat("fra_sfio", 1),
       heat("fra_minority", 1),
       inst("chamber", -1),
@@ -962,7 +988,12 @@ export const FRA_POWERS: readonly GwPowerRow[] = [
     once: true,
     authority: 5,
     tags: ["harsh_home"],
-    effects: [gauge("order", 1), heat("fra_af", -1)],
+    // Fewer spies the police fear, and the spy fever cools.
+    effects: [
+      gauge("order", 1),
+      { kind: "rumour", delta: -1 },
+      heat("fra_af", -1),
+    ],
     risk: {
       pct: 15,
       mods: [{ when: warAge(12), add: 15 }],
@@ -1017,9 +1048,11 @@ export const FRA_POWERS: readonly GwPowerRow[] = [
     cooldown: 6,
     authority: 5,
     tags: ["harsh_home"],
+    // Back to the front: soldiers on loan are soldiers again.
     effects: [
       gauge("order", 1),
       { kind: "gauge", gauge: "shells", delta: -1 },
+      doWorld({ do: "manpower", delta: 1 }),
       heat("fra_sfio", 1),
     ],
     heats: [{ id: "fra_pl_cgt", by: -1 }],

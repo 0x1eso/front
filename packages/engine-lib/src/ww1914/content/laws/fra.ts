@@ -47,7 +47,12 @@ export const FRA_LAWS: readonly GwLawRow[] = [
       { gauge: "morale", delta: -1, every: 14, offset: 4 },
     ],
     flag: "f_law_siege",
-    repeal: { authority: 15, tell: [], effects: [gauge("order", -1)] },
+    // Lifted, the President's own decree of siege goes with it (ww171).
+    repeal: {
+      authority: 15,
+      tell: [],
+      effects: [gauge("order", -1), { kind: "unflag", flag: "f_fra_pw_siege" }],
+    },
     talk: lawTalk("fra_law_siege", {
       who: person("fra_renaudel"),
       ask: "frank",

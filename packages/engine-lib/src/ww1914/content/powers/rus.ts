@@ -371,11 +371,13 @@ export const RUS_POWERS: readonly GwPowerRow[] = [
       },
     ],
     tags: ["harsh_war", "harsh_home"],
+    // What Stavka wanted: no one behind the lines it suspected of spying. The
+    // price comes from the state's answers (the reactors) and the risk.
     effects: [
       inst("stavka", 1),
-      gauge("order", -1),
-      opinion("press", -1),
+      { kind: "rumour", delta: -1 },
       { kind: "pressure", topic: "home", delta: 1 },
+      reason("rus_pw_deport_done"),
     ],
     risk: {
       pct: 20,
@@ -460,6 +462,8 @@ export const RUS_POWERS: readonly GwPowerRow[] = [
     group: "cabinet",
     kind: "custom",
     shows: world({ is: "regime", of: ["tsar"] }),
+    // No Duma left to trust a ministry (ww171).
+    opens: [{ when: not(abolished), why: "abolished" }],
     authority: 10,
     once: true,
     tags: ["coalition", "cabinet_change"],
@@ -560,9 +564,12 @@ export const RUS_POWERS: readonly GwPowerRow[] = [
     shows: all(reigns, war),
     cooldown: 6,
     tags: ["harsh_war"],
+    // What the army wanted: a quiet front zone and fewer spies behind it. New
+    // York's bankers read the names (money); the world answers by reactor.
     effects: [
       inst("stavka", 1),
-      trust("USA", -1),
+      gauge("order", 1),
+      { kind: "rumour", delta: -1 },
       gauge("money", -1),
       reason("rus_pw_hostages_done"),
     ],
@@ -573,7 +580,7 @@ export const RUS_POWERS: readonly GwPowerRow[] = [
         { when: gaugeAt("order", 1), add: 10 },
       ],
       then: [
-        gauge("order", -1),
+        gauge("order", -2),
         opinion("parliament", -1),
         reason("rus_pw_hostages_lost"),
       ],
@@ -844,9 +851,13 @@ export const RUS_POWERS: readonly GwPowerRow[] = [
       heat("rus_bloc", 2),
       cool("rus_rights", 1),
       reason("rus_pw_abolish_done"),
+      // The house's door (houses.ts RUS_DUMA_GONE): no chamber votes a law,
+      // every bill and the budget go out by decree, the Duma's threat is over.
+      reason("rus_pw_abolish_decree"),
     ],
+    // The ministers now answer for everything alone.
     heats: [
-      { id: "rus_duma", by: 2 },
+      { id: "rus_cabinet", by: 2 },
       { id: "rus_court", by: 2 },
       { id: "rus_pl_palace", by: 3 },
     ],
