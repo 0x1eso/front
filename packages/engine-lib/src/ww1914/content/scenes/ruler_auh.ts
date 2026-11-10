@@ -75,10 +75,13 @@ export const RULER_AUH: readonly GwScene[] = [
     id: "auh_life_crypt",
     nation: NATION,
     kind: "audience",
-    when: all(fj, war, {
-      kind: "world",
-      of: { is: "war_months", own: true, min: 5, max: 28 },
-    }),
+    // Mayerling's day, 30 January: the text names it, so the card keeps January.
+    when: all(
+      fj,
+      war,
+      { kind: "world", of: { is: "war_months", own: true, min: 5, max: 28 } },
+      { kind: "world", of: { is: "month", of: [1] } },
+    ),
     cast: { court },
     fallback: "go_down",
     options: [

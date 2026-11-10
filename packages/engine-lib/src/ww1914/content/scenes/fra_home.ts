@@ -1090,8 +1090,9 @@ export const FRA_HOME_SCENES: readonly GwScene[] = [
     stamp: "confirmed",
     source: "press",
     variants: [
-      v("after", dates("1918-05")),
-      v("trial", dates("1918-02")),
+      // The affair's steps by the war's age, not the calendar (ww171).
+      v("after", world({ is: "war_months", min: 45 })),
+      v("trial", world({ is: "war_months", min: 42 })),
       v("base"),
     ],
   }),
