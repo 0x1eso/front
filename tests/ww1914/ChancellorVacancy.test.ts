@@ -100,7 +100,8 @@ describe("a chancellor's resignation taken: a chancellor within a chapter", () =
     const gw = await game("DEU", "1914-07");
     const seat = gw.s.seats[0];
     takeLetter(gw);
-    const id = worldView(gw, seat).candidates.chancellor!.at(-1)!;
+    const names = worldView(gw, seat).candidates.chancellor!;
+    const id = names[names.length - 1];
     expect(gw.person(id)!.status).toBe("waiting");
     const o = { kind: "appoint", person: id, office: "chancellor" } as const;
     expect(applyGwOrder(gw, seat, o)).toBeNull();
