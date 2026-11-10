@@ -39,8 +39,28 @@
 // - The Sixtus channel through Zita's brothers (1917): the existing
 //   auh_crown scenes and flags carry its exposure.
 //
-// Kept out (phase 2 `beyond`, or unchecked): dissolving Budapest for a
-// non-parliamentary cabinet (Fejérváry 1905), federalising by decree.
+// Phase 2 (ww169 XA), checked 2026-11-10:
+// - Fejérváry named 18 Jun 1905 outside the Diet's majority; the Diet
+//   dissolved 19 Feb 1906 by a royal commissioner's deputy, Colonel Fabritius,
+//   with troops and police; Pest county refused taxes and recruits (20 Jun
+//   1905), 15 or more counties followed (en.wikipedia; Spectator Feb 1906;
+//   hungaricana county studies).
+// - Karl's manifesto of 16 Oct 1918 federalised Austria's half and left the
+//   lands of the Hungarian crown untouched (habsburger.net, ORF).
+// - Octroi plans for Austria's constitution lay worked out until March 1917;
+//   Czernin promised Adler and Renner they would be dropped (Rauchensteiner,
+//   "The First World War and the End of the Habsburg Monarchy", p. 709). What
+//   the plans held was not found: the two options are the German nationals'
+//   long demands (German as state language, a German Bohemia), not the text.
+// - Potiorek's 13 Aug 1914 orders (hostages, reprisal hangings, arson) and the
+//   Mačva killings (en.wikipedia "Austro-Hungarian occupation of Serbia";
+//   numbers differ by source: none are written).
+// - Gas at Monte San Michele, 29 Jun 1916, the first on the Italian front;
+//   the wind turned some back (en.wikipedia; casualty counts differ).
+// - Battisti, Reichsrat deputy from 1911, hanged at Trento 12 Jul 1916 after
+//   a court-martial (en.wikipedia).
+// - War Requirements Act 26 Dec 1912: war-industry workers under military
+//   control, right to quit and strike curbed (1914-1918-online).
 //
 // Tags left off on purpose: `decree` and `house_closed` heat every faction of
 // the `parliament` bloc, and Budapest's parties share that bloc with Vienna's
@@ -65,7 +85,7 @@ import {
 import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
 import type { GwPowerOption, GwPowerRow, GwReactorRow } from "../../PowerRows";
 import { REICHSRAT_OPEN } from "../house/houses";
-import { cool, heat, heatPlot, isLaw, temper } from "../house/kit";
+import { cool, heat, isLaw, temper } from "../house/kit";
 import { gauge, inst, low, men } from "../laws/kit";
 
 const war: GwCond = world({ is: "war" });
@@ -145,6 +165,7 @@ export const AUH_POWERS: readonly GwPowerRow[] = [
     // The foreign minister signs; in July 1914 Tisza's word decided it.
     needs: { office: "foreign", consent: "auh_work" },
     against: ["moderate"],
+    beyond: "auh_pw_war_b",
     // Before the war only an open crisis can turn into one (no any-pair war yet).
     opens: [{ when: any(war, world({ is: "chain" })), why: "no_crisis" }],
     authority: 10,
@@ -337,6 +358,7 @@ export const AUH_POWERS: readonly GwPowerRow[] = [
     // An imperial ordinance: the minister-president answers for it.
     needs: { office: "chancellor" },
     against: ["moderate", "nations"],
+    beyond: "auh_pw_martial_b",
     opens: [{ when: war, why: "no_war" }],
     authority: 10,
     cooldown: 4,
@@ -359,11 +381,8 @@ export const AUH_POWERS: readonly GwPowerRow[] = [
         { when: { kind: "inst", inst: "nations", max: -2 }, add: 20 },
         { when: low("bread", 0), add: 15 },
       ],
-      then: [
-        gauge("order", -2),
-        heatPlot("auh_pl_nations", 2),
-        reason("auh_pw_martial_backfires"),
-      ],
+      then: [gauge("order", -2), reason("auh_pw_martial_backfires")],
+      heats: [{ id: "auh_pl_nations", by: 2 }],
     },
   }),
   // ---- 국내 ----
@@ -379,9 +398,9 @@ export const AUH_POWERS: readonly GwPowerRow[] = [
       gauge("order", 1),
       inst("army", 1),
       inst("nations", -1),
-      heatPlot("auh_pl_nations", 1),
       reason("auh_pw_camp_filled"),
     ],
+    heats: [{ id: "auh_pl_nations", by: 1 }],
     risk: {
       // The camps were built in haste; typhus came the first winter.
       pct: 35,
@@ -415,7 +434,8 @@ export const AUH_POWERS: readonly GwPowerRow[] = [
     risk: {
       pct: 25,
       mods: [{ when: temper("auh_aok", 2), add: 25 }],
-      then: [heatPlot("auh_pl_army", 1), reason("auh_pw_amnesty_army")],
+      then: [reason("auh_pw_amnesty_army")],
+      heats: [{ id: "auh_pl_army", by: 1 }],
     },
   }),
   row({
@@ -460,6 +480,7 @@ export const AUH_POWERS: readonly GwPowerRow[] = [
     kind: "lawful",
     // Every minister signs; the minister-president's signature is asked here.
     needs: { office: "chancellor" },
+    beyond: "auh_pw_par14_b",
     opens: [{ when: not(REICHSRAT_OPEN), why: "sits" }],
     authority: 10,
     cooldown: 2,
@@ -610,11 +631,381 @@ export const AUH_POWERS: readonly GwPowerRow[] = [
         { when: not(TISZA_IN), add: 35 },
         { when: temper("auh_work", 3), add: 25 },
       ],
+      then: [inst("hungary", -1), reason("auh_pw_diet_balks")],
+      heats: [{ id: "auh_pl_magyar", by: 2 }],
+    },
+  }),
+  // ---- 법 밖의 일: "서명 없이" forms (phase 2) ----
+  // Run past the signer from the lawful row: its target and field options run
+  // with these effects. Every non-military act wants a minister's name; these
+  // go out with none.
+  row({
+    id: "auh_pw_war_b",
+    group: "war",
+    kind: "beyond",
+    formOnly: true,
+    authority: 10,
+    tags: ["war_offensive"],
+    effects: [
+      inst("hungary", -1),
+      inst("council", -1),
+      heat("auh_work", 2),
+      reason("auh_pw_war_b_sent"),
+    ],
+    heats: [{ id: "auh_cabinet", by: 3 }],
+    risk: {
+      // Budapest learns from the newspapers that it was never asked.
+      pct: 25,
+      mods: [
+        { when: TISZA_IN, add: 15 },
+        { when: temper("auh_work", 2), add: 20 },
+      ],
       then: [
         inst("hungary", -1),
-        heatPlot("auh_pl_magyar", 2),
-        reason("auh_pw_diet_balks"),
+        heat("auh_indep", 1),
+        reason("auh_pw_war_b_budapest"),
       ],
+      heats: [
+        { id: "auh_pl_magyar", by: 2 },
+        { id: "auh_court", by: 1 },
+      ],
+      scene: "auh_pw_war_b_bad",
+    },
+  }),
+  row({
+    id: "auh_pw_par14_b",
+    group: "house",
+    kind: "beyond",
+    formOnly: true,
+    authority: 10,
+    tags: [],
+    effects: [
+      inst("council", -1),
+      inst("nations", -1),
+      heat("auh_czech", 1),
+      heat("auh_slavs", 1),
+      heat("auh_sd", 1),
+      heat("auh_germans", 1),
+      reason("auh_pw_par14_b_issued"),
+    ],
+    heats: [{ id: "auh_cabinet", by: 3 }],
+    risk: {
+      // An ordinance with no minister's name: the officials ask whose it is.
+      pct: 25,
+      mods: [
+        { when: { kind: "inst", inst: "nations", max: -2 }, add: 15 },
+        { when: low("order", 1), add: 10 },
+      ],
+      then: [gauge("order", -1), reason("auh_pw_par14_b_stalled")],
+      heats: [{ id: "auh_court", by: 2 }],
+      scene: "auh_pw_par14_b_bad",
+    },
+  }),
+  row({
+    id: "auh_pw_martial_b",
+    group: "army",
+    kind: "beyond",
+    formOnly: true,
+    authority: 10,
+    tags: ["army_over_civil", "harsh_home"],
+    effects: [
+      inst("army", 1),
+      inst("council", -1),
+      gauge("order", 1),
+      reason("auh_pw_martial_b_set"),
+    ],
+    heats: [
+      { id: "auh_cabinet", by: 2 },
+      { id: "auh_pl_nations", by: 1 },
+    ],
+    risk: {
+      pct: 25,
+      mods: [
+        { when: { kind: "inst", inst: "nations", max: -2 }, add: 20 },
+        { when: low("bread", 0), add: 15 },
+      ],
+      then: [gauge("order", -2), reason("auh_pw_martial_b_backfires")],
+      // The command, given a province by order alone, asks for the rest.
+      heats: [
+        { id: "auh_pl_nations", by: 2 },
+        { id: "auh_court", by: 2 },
+      ],
+      scene: "auh_pw_martial_b_bad",
+    },
+  }),
+
+  // ---- 법 밖의 일: standing rows (phase 2) ----
+  row({
+    // Fejérváry 1905-06: a King's cabinet without the Diet's majority, the
+    // Diet dissolved with troops on 19 Feb 1906, counties refusing taxes and
+    // recruits. Here the King's own Diet, whoever holds it.
+    id: "auh_pw_fejervary",
+    group: "house",
+    kind: "beyond",
+    authority: 15,
+    cooldown: 8,
+    tags: [],
+    effects: [
+      { kind: "dismiss", who: { office: "hun_pm" } },
+      inst("hungary", -2),
+      heat("auh_work", 2),
+      heat("auh_indep", 2),
+      heat("auh_karolyi", 1),
+      gauge("bread", -1),
+      men(-1),
+      reason("auh_pw_fejervary_done"),
+    ],
+    heats: [
+      { id: "auh_pl_magyar", by: 3 },
+      { id: "auh_cabinet", by: 1 },
+    ],
+    risk: {
+      // The counties: no taxes, no recruits, for a cabinet the Diet never saw.
+      pct: 30,
+      mods: [
+        { when: temper("auh_indep", 3), add: 15 },
+        { when: { kind: "inst", inst: "hungary", max: -3 }, add: 15 },
+        { when: low("bread", 0), add: 10 },
+      ],
+      then: [
+        gauge("money", -1),
+        men(-1),
+        inst("hungary", -1),
+        reason("auh_pw_fejervary_counties"),
+      ],
+      heats: [
+        { id: "auh_pl_magyar", by: 3 },
+        { id: "auh_court", by: 1 },
+      ],
+      scene: "auh_pw_fejervary_bad",
+    },
+  }),
+  row({
+    // Karl's manifesto of 16 Oct 1918 made Austria's half a union of its
+    // nations and left the Hungarian crown's lands out. Done earlier, or
+    // wider, it breaks the 1867 Compromise.
+    id: "auh_pw_federal",
+    group: "home",
+    kind: "beyond",
+    authority: 20,
+    once: true,
+    target: {
+      kind: "option",
+      of: [
+        {
+          id: "bohemia",
+          effects: [cool("auh_czech", 3), heat("auh_germans", 2)],
+        },
+        {
+          // Trialism: Croatia is Hungary's, so Budapest pays twice.
+          id: "south",
+          effects: [
+            cool("auh_slavs", 3),
+            inst("hungary", -1),
+            heat("auh_work", 1),
+          ],
+        },
+        {
+          id: "all",
+          effects: [
+            cool("auh_czech", 2),
+            cool("auh_slavs", 2),
+            cool("auh_poles", 1),
+            heat("auh_germans", 1),
+          ],
+        },
+      ],
+    },
+    tags: ["decree"],
+    effects: [
+      inst("nations", 2),
+      inst("hungary", -2),
+      heat("auh_work", 2),
+      heat("auh_aok", 1),
+      { kind: "trust", tag: "DEU", delta: -1 },
+      reason("auh_pw_federal_read"),
+    ],
+    heats: [
+      { id: "auh_pl_nations", by: -2 },
+      { id: "auh_pl_magyar", by: 2 },
+      { id: "auh_court", by: 2 },
+    ],
+    risk: {
+      // Late, and the national councils read it as a door, not a house.
+      pct: 25,
+      mods: [
+        { when: { kind: "inst", inst: "nations", max: -3 }, add: 20 },
+        { when: world({ is: "score", max: -20 }), add: 15 },
+        { when: world({ is: "war_age", min: 36 }), add: 10 },
+      ],
+      then: [
+        gauge("order", -1),
+        inst("nations", -1),
+        reason("auh_pw_federal_councils"),
+      ],
+      heats: [{ id: "auh_pl_nations", by: 4 }],
+      scene: "auh_pw_federal_bad",
+    },
+  }),
+  row({
+    // An octroi: the constitution changed by the crown alone, past what §14
+    // allows. Such plans lay worked out in Vienna until March 1917; the
+    // foreign minister talked the Emperor out of them.
+    id: "auh_pw_octroi",
+    group: "house",
+    kind: "beyond",
+    opens: [{ when: not(REICHSRAT_OPEN), why: "sits" }],
+    authority: 20,
+    once: true,
+    target: {
+      kind: "option",
+      of: [
+        {
+          id: "language",
+          effects: [heat("auh_slavs", 2), heat("auh_poles", 1)],
+        },
+        { id: "split", effects: [heat("auh_czech", 2)] },
+      ],
+    },
+    tags: ["decree"],
+    effects: [
+      cool("auh_germans", 2),
+      heat("auh_czech", 2),
+      heat("auh_sd", 1),
+      inst("nations", -2),
+      { kind: "trust", tag: "DEU", delta: 1 },
+      reason("auh_pw_octroi_read"),
+    ],
+    heats: [
+      { id: "auh_pl_nations", by: 3 },
+      { id: "auh_cabinet", by: 1 },
+    ],
+    risk: {
+      pct: 30,
+      mods: [
+        { when: temper("auh_czech", 3), add: 20 },
+        { when: low("order", 1), add: 15 },
+      ],
+      then: [gauge("order", -1), men(-1), reason("auh_pw_octroi_streets")],
+      heats: [{ id: "auh_pl_nations", by: 2 }],
+      scene: "auh_pw_octroi_bad",
+    },
+  }),
+
+  // ---- Harsh measures (phase 2): lawful as the war's law then read ----
+  row({
+    // Potiorek's August 1914 orders: hostages, reprisal hangings, burnt
+    // villages in Mačva; hostages again under the occupation.
+    id: "auh_pw_hostages",
+    group: "army",
+    kind: "lawful",
+    opens: [{ when: any(atWar("SRB"), out("SRB")), why: "no_serbia" }],
+    authority: 5,
+    cooldown: 4,
+    tags: ["harsh_war"],
+    effects: [
+      doWorld({ do: "force", tag: "SRB", theatre: "balkan", delta: -1 }),
+      reason("auh_pw_hostages_taken"),
+    ],
+    risk: {
+      // The men of the burnt villages go to the hills.
+      pct: 25,
+      mods: [{ when: out("SRB"), add: 15 }],
+      then: [men(-1), reason("auh_pw_hostages_hills")],
+      scene: "auh_pw_hostages_bad",
+    },
+  }),
+  row({
+    // San Michele, 29 Jun 1916: chlorine and phosgene, the first gas on the
+    // Italian front; the wind turned some of it back on the Austrian lines.
+    id: "auh_pw_gas",
+    group: "army",
+    kind: "lawful",
+    opens: [{ when: atWar("ITA"), why: "no_italy" }],
+    authority: 5,
+    cooldown: 6,
+    tags: ["harsh_war"],
+    effects: [
+      doWorld({ do: "force", tag: "ITA", theatre: "italy", delta: -1 }),
+      reason("auh_pw_gas_released"),
+    ],
+    risk: {
+      pct: 30,
+      then: [
+        doWorld({ do: "force", tag: "AUH", theatre: "italy", delta: -1 }),
+        gauge("morale", -1),
+        reason("auh_pw_gas_wind"),
+      ],
+      scene: "auh_pw_gas_bad",
+    },
+  }),
+  row({
+    // Civilians before military courts under the exceptional laws; Cesare
+    // Battisti, a Reichsrat deputy, hanged at Trento on 12 Jul 1916.
+    id: "auh_pw_no_mercy",
+    group: "home",
+    kind: "lawful",
+    opens: [{ when: war, why: "no_war" }],
+    authority: 5,
+    cooldown: 4,
+    tags: ["harsh_home"],
+    effects: [
+      gauge("order", 1),
+      inst("army", 1),
+      inst("nations", -1),
+      heat("auh_czech", 1),
+      heat("auh_slavs", 1),
+      reason("auh_pw_no_mercy_signed"),
+    ],
+    heats: [{ id: "auh_pl_nations", by: 1 }],
+    risk: {
+      // A hanged man becomes a picture on a wall.
+      pct: 25,
+      mods: [
+        { when: { kind: "inst", inst: "nations", max: -2 }, add: 15 },
+        { when: temper("auh_czech", 2), add: 10 },
+      ],
+      then: [
+        inst("nations", -1),
+        { kind: "rumour", delta: 1 },
+        reason("auh_pw_no_mercy_martyr"),
+      ],
+      heats: [{ id: "auh_pl_nations", by: 2 }],
+      scene: "auh_pw_no_mercy_bad",
+    },
+  }),
+  row({
+    // The War Requirements Act of 26 Dec 1912: war-industry workers under
+    // military discipline; strikes from 1916, January 1918 the largest.
+    id: "auh_pw_strike",
+    group: "home",
+    kind: "lawful",
+    opens: [
+      { when: war, why: "no_war" },
+      { when: world({ is: "unrest", min: 1 }), why: "quiet" },
+    ],
+    authority: 5,
+    cooldown: 3,
+    tags: ["harsh_home"],
+    effects: [
+      gauge("shells", 1),
+      gauge("order", 1),
+      heat("auh_sd", 2),
+      reason("auh_pw_strike_broken"),
+    ],
+    risk: {
+      pct: 25,
+      mods: [
+        { when: low("bread", 0), add: 20 },
+        { when: world({ is: "unrest", min: 2 }), add: 15 },
+      ],
+      then: [
+        gauge("order", -2),
+        gauge("shells", -1),
+        reason("auh_pw_strike_spreads"),
+      ],
+      heats: [{ id: "auh_cabinet", by: 2 }],
+      scene: "auh_pw_strike_bad",
     },
   }),
 ];
@@ -662,6 +1053,16 @@ export const AUH_REACTORS: readonly GwReactorRow[] = [
     delta: -1,
     does: [heat("auh_czech", 1)],
   },
+  // Bucharest and Rome read a reprisal as news about their own kin inside
+  // the monarchy (Transylvania, the Trentino) while they still sit out.
+  {
+    tag: "harsh_war",
+    nation: "AUH",
+    actor: "neutrals",
+    who: ["ROU", "ITA"],
+    key: "auh_react_harsh_kin",
+    delta: -1,
+  },
 ];
 
 /** Result cards and other scenes the rows call. */
@@ -694,4 +1095,31 @@ export const AUH_POWER_SCENES: readonly GwScene[] = [
     v("karolyi", holds("hun_pm", "auh_karolyi")),
     base,
   ]),
+  // Phase 2: beyond the law and the harsh measures; `_bad` when the roll went wrong.
+  card("auh_pw_war_b_r", [v("tisza", TISZA_IN), base]),
+  card("auh_pw_war_b_bad"),
+  card("auh_pw_par14_b_r"),
+  card("auh_pw_par14_b_bad"),
+  card("auh_pw_martial_b_r", [
+    v("restless", world({ is: "unrest", min: 1 })),
+    base,
+  ]),
+  card("auh_pw_martial_b_bad"),
+  card("auh_pw_fejervary_r", [v("war", war), base]),
+  card("auh_pw_fejervary_bad"),
+  card("auh_pw_federal_r", [
+    v("karl", world({ is: "regime", of: ["karl"] })),
+    base,
+  ]),
+  card("auh_pw_federal_bad"),
+  card("auh_pw_octroi_r"),
+  card("auh_pw_octroi_bad"),
+  card("auh_pw_hostages_r", [v("occupied", out("SRB")), base]),
+  card("auh_pw_hostages_bad"),
+  card("auh_pw_gas_r"),
+  card("auh_pw_gas_bad"),
+  card("auh_pw_no_mercy_r"),
+  card("auh_pw_no_mercy_bad"),
+  card("auh_pw_strike_r", [v("hungry", low("bread", 0)), base]),
+  card("auh_pw_strike_bad"),
 ];
