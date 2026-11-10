@@ -298,8 +298,8 @@ export type GwWorldEffect =
   | { do: "keep"; who: GwWorldWho }
   /** They go; a successor takes the office at the chapter's close. */
   | { do: "leave"; who: GwWorldWho }
-  /** A concession: the ladder steps down. */
-  | { do: "calm" }
+  /** A concession: the ladder steps down. `key`: its reason line, if not the concession's. */
+  | { do: "calm"; key?: string }
   /** Results in their field, for what the seat comes to see of them. */
   | { do: "result"; who: GwWorldWho; won: boolean }
   | { do: "news"; key: string; a?: GwTag; b?: GwTag; theatre?: GwTheatre }
@@ -397,7 +397,12 @@ export type GwWorldEffect =
    */
   | { do: "use_file"; who: GwWorldWho }
   /** The answer to an ally's ask. */
-  | { do: "ask"; id: string; answer: "yes" | "no" };
+  | { do: "ask"; id: string; answer: "yes" | "no" }
+  /**
+   * Agitation in another country (ww169): its order falls by `delta`, unless
+   * its police answer it first (a seeded roll on how steady it is).
+   */
+  | { do: "stir"; tag: GwTag; delta: number };
 
 const int = z.number().int();
 const yearMonth = z.string().regex(/^19[0-9]{2}-[01][0-9]$/);
@@ -560,7 +565,7 @@ export const GwWorldEffectSchema = z.union([
   act("letter", { who }),
   act("keep", { who }),
   act("leave", { who }),
-  act("calm", {}),
+  act("calm", { key: GwIdSchema.optional() }),
   act("result", { who, won: z.boolean() }),
   act("news", {
     key: GwIdSchema,
@@ -623,6 +628,7 @@ export const GwWorldEffectSchema = z.union([
   act("file", { who }),
   act("use_file", { who }),
   act("ask", { id: GwIdSchema, answer: z.enum(["yes", "no"]) }),
+  act("stir", { tag, delta: int.min(1).max(2) }),
 ]) as unknown as z.ZodType<GwWorldEffect>;
 
 // ---- Authoring helpers ----

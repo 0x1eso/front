@@ -253,12 +253,34 @@ function withWho(text: string, pack: GwPack | null, who?: string | null) {
   return applyJosa(text.replace(/\{who\}/g, name));
 }
 
+/** What a schedule act's line moved (ww169 `what`), named by its key's family. */
+function whatText(pack: GwPack | null, key: string, what: string): string {
+  if (key.startsWith("fx_inst_"))
+    return translateText(`gw.ui.inst_name.${what}`);
+  if (key.startsWith("fx_opinion_"))
+    return pack?.press?.blocs[what]?.name ?? what;
+  if (key === "fx_inspect" || key === "fx_report") {
+    return translateText(`gw.ui.fact.${what}`);
+  }
+  if (key.startsWith("fx_faction_"))
+    return pack?.factions?.[what]?.name ?? what;
+  return personName(pack, what);
+}
+
 /** A why-log line: the pack's, else the language file's. */
 export function reasonText(pack: GwPack | null, r: GwReason): string {
   const line = pack?.reasons?.[r.key] ?? translateText(`gw.reason.${r.key}`);
   const country =
     r.tag === undefined ? "" : translateText(`gw.country.${r.tag}`);
-  return withWho(line.replace(/\{country\}/g, country), pack, r.who);
+  const what =
+    r.what === undefined || r.what === null
+      ? ""
+      : whatText(pack, r.key, r.what);
+  return withWho(
+    line.replace(/\{country\}/g, country).replace(/\{what\}/g, what),
+    pack,
+    r.who,
+  );
 }
 
 /** Dug-in lines to take turns; the rule's own, for papers with none. */

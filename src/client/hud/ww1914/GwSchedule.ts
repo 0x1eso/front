@@ -109,6 +109,7 @@ function actNote(c: GwCtx, a: GwActView) {
     pick: words.join(" · "),
     rest: "",
     tell: [...a.tell, ...tells],
+    act: a.id,
   };
 }
 

@@ -10,20 +10,34 @@ import {
 } from "@openfront/engine-api/ww1914/GwActs";
 import type { GwOrderBlock } from "@openfront/engine-api/ww1914/GwOrders";
 import type { GwActView } from "@openfront/engine-api/ww1914/GwView";
-import { GwScene } from "@openfront/engine-api/ww1914/SceneDsl";
+import {
+  GW_STANCES,
+  GwCond,
+  GwEffect,
+  GwScene,
+} from "@openfront/engine-api/ww1914/SceneDsl";
+import {
+  GW_AGENDA_ALL,
+  GW_AGENDA_LEADS,
+  GW_SUBJECT_BLOCS,
+  GW_TONE_EFFECTS,
+} from "@openfront/engine-lib/ww1914/ActRules";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
+import { stanceFit } from "@openfront/engine-lib/ww1914/TalkRules";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { inStage, makeCard, placeCard } from "./Desk";
 import type { GreatWar } from "./GreatWar";
+import { factionLeader } from "./House";
 import {
   castOf,
+  holderOf,
   holds,
   personDef,
   runEffects,
   SceneCtx,
   sceneOf,
 } from "./SceneRun";
-import { lastOf, ownPeople, seatPerson, stageOf } from "./World";
+import { ownPeople, seatPerson, seatsOf, stageOf } from "./World";
 
 const P_CAUGHT = idHash("gw_act_caught");
 
@@ -168,9 +182,16 @@ export function takeAct(
     return "no_act";
   }
   seat.acts--;
-  const ctx: SceneCtx = { gw, seat, cast, act: row };
+  const ctx: SceneCtx = {
+    gw,
+    seat,
+    cast,
+    act: row,
+    fx: { act: a.id, kind: a.kind },
+  };
   runEffects(ctx, a.effects ?? []);
   for (const o of chosen) runEffects(ctx, o.effects ?? []);
+  runEffects(ctx, actRuleEffects(gw, seat, a, picks, scene, cast));
   play(gw, seat, scene, a.wait, row);
   const c = a.caught;
   if (c !== undefined) {
@@ -208,4 +229,134 @@ function play(
   }
   const card = makeCard(gw, seat, scene, "summon", null, row);
   if (card !== null) placeCard(gw, seat, card);
+}
+
+/** Whether the act's own pick already reads the tone it was written in. */
+function readsTone(a: GwAct): boolean {
+  const seen = (x: unknown): boolean => {
+    if (Array.isArray(x)) return x.some(seen);
+    if (x === null || typeof x !== "object") return false;
+    if ((x as GwCond).kind === "tone_fits") return true;
+    return Object.values(x).some(seen);
+  };
+  const own = [
+    a.effects ?? [],
+    ...(a.fields ?? []).flatMap((f) => (f.options ?? []).map((o) => o.effects)),
+  ];
+  return seen(own);
+}
+
+/** The person a tone field is written to: the act's `to`, the scene's `who`, its first role. */
+function toneTarget(
+  a: GwAct,
+  scene: GwScene,
+  cast: Readonly<Record<string, string>>,
+): string | null {
+  const role = a.to ?? scene.who ?? Object.keys(scene.cast)[0];
+  return role === undefined ? null : (cast[role] ?? null);
+}
+
+/** The house faction this person leads, if any. */
+function ledBy(gw: GreatWar, seat: GwSeatState, id: string): string | null {
+  const f = (seat.house?.factions ?? []).find(
+    (x) => factionLeader(gw, seat, x.id) === id,
+  );
+  return f?.id ?? null;
+}
+
+/** How the tone lands (ActRules GW_TONE_EFFECTS, or the subject's temperament). */
+function toneEffects(
+  gw: GreatWar,
+  seat: GwSeatState,
+  a: GwAct,
+  picks: Readonly<Record<string, readonly string[]>>,
+  scene: GwScene,
+  cast: Readonly<Record<string, string>>,
+): GwEffect[] {
+  // A tone list, or a list named "tone" whose choices are the stances.
+  const f = (a.fields ?? []).find(
+    (x) =>
+      x.tones !== undefined ||
+      (x.id === "tone" &&
+        (x.options ?? []).every((o) => GW_STANCES.some((t) => t === o.id))),
+  );
+  if (f === undefined || readsTone(a)) return [];
+  const tone = GW_STANCES.find((x) => x === picks[f.id]?.[0]);
+  const id = toneTarget(a, scene, cast);
+  const p = id === null ? null : gw.person(id);
+  if (tone === undefined || p === null) return [];
+  const tag = personDef(p.id)?.tag;
+  const who = { person: p.id };
+  if (tag === seat.tag) {
+    const fit = stanceFit(p, tone, "ask");
+    const out: GwEffect[] = [
+      { kind: "person_trust", who, delta: fit >= 0 ? 1 : -1 },
+    ];
+    const faction = ledBy(gw, seat, p.id);
+    if (faction !== null && fit !== 0) {
+      out.push({
+        kind: "world",
+        of: { do: "faction", id: faction, delta: fit > 0 ? -1 : 1 },
+      });
+    }
+    return out;
+  }
+  const n = tag === undefined ? null : gw.nation(tag);
+  if (tag === undefined || n === null || seatsOf(gw, tag).length > 0) return [];
+  const row = GW_TONE_EFFECTS[tone][n.ai];
+  const out: GwEffect[] = [];
+  if (row.trust !== undefined)
+    out.push({ kind: "trust", tag, delta: row.trust });
+  if (row.readiness !== undefined && n.side === null) {
+    out.push({
+      kind: "world",
+      of: { do: "readiness", tag, delta: row.readiness },
+    });
+  }
+  return out;
+}
+
+/** The option picked in a field, if it has no effects of its own. */
+function plainPick(
+  a: GwAct,
+  picks: Readonly<Record<string, readonly string[]>>,
+  field: string,
+): string | null {
+  const f = (a.fields ?? []).find((x) => x.id === field);
+  const id = picks[field]?.[0];
+  const o = f?.options?.find((x) => x.id === id);
+  return o === undefined || (o.effects ?? []).length > 0 ? null : o.id;
+}
+
+/**
+ * What a pick does by itself (ww169): the tone of a letter, the subject of a
+ * speech, the matter of a council. A pick with effects of its own keeps them.
+ */
+export function actRuleEffects(
+  gw: GreatWar,
+  seat: GwSeatState,
+  a: GwAct,
+  picks: Readonly<Record<string, readonly string[]>>,
+  scene: GwScene,
+  cast: Readonly<Record<string, string>>,
+): GwEffect[] {
+  const out = toneEffects(gw, seat, a, picks, scene, cast);
+  const on = a.kind === "speech" ? plainPick(a, picks, "on") : null;
+  const bloc = on === null ? undefined : GW_SUBJECT_BLOCS[on];
+  if (bloc !== undefined) out.push({ kind: "opinion", bloc, delta: 1 });
+  const agenda = plainPick(a, picks, "agenda");
+  const lead = agenda === null ? undefined : GW_AGENDA_LEADS[agenda];
+  if (lead === GW_AGENDA_ALL) {
+    for (const id of [...new Set(Object.values(cast))]) {
+      if (personDef(id)?.tag === seat.tag) {
+        out.push({ kind: "person_trust", who: { person: id }, delta: 1 });
+      }
+    }
+  } else if (lead !== undefined) {
+    const p = holderOf(gw, seat, lead);
+    if (p !== null) {
+      out.push({ kind: "person_trust", who: { person: p.id }, delta: 1 });
+    }
+  }
+  return out;
 }

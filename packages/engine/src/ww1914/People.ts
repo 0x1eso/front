@@ -15,7 +15,7 @@ import { daysFromCivil } from "@openfront/engine-lib/ww1936/Calendar";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { dismissalFallout } from "./Authority";
 import type { GreatWar } from "./GreatWar";
-import { holderOf } from "./SceneRun";
+import { holderOf, rivalIds } from "./SceneRun";
 import { GW_NO_COMMAND, GW_PASSING, GW_PASSING_BY_SCENE } from "./Tables";
 import { chapterOf, clampTo, defOf, ownPeople, reasonOf, turn } from "./World";
 
@@ -61,7 +61,7 @@ export function dismissPrice(id: string): number {
 function ripple(gw: GreatWar, id: string, rise: boolean): void {
   const def = defOf(id);
   if (def === null) return;
-  for (const r of def.rivals) {
+  for (const r of rivalIds(gw, id)) {
     const p = gw.person(r);
     if (p !== null) trustBy(p, rise ? -1 : 1);
   }
@@ -322,7 +322,7 @@ function rivalry(gw: GreatWar, seat: GwSeatState, p: GwPersonState): void {
   const s = gw.s;
   if (p.trust < 2 || p.office === null) return;
   const i = s.people.indexOf(p);
-  for (const r of defOf(p.id)?.rivals ?? []) {
+  for (const r of rivalIds(gw, p.id)) {
     const q = gw.person(r);
     if (q === null || q.status !== "active" || q.office === null) continue;
     if (wwRoll(s.seed, P_RIVAL, s.chapter, i) % 4 === 0) {

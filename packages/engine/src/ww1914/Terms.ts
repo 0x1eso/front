@@ -21,10 +21,18 @@ import { claimsOn } from "./Claims";
 import { warMonths } from "./Eras";
 import { warScore } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
-import { armistice, TALKS_MONTHS } from "./Peace";
+import { armistice, openTalks, TALKS_MONTHS } from "./Peace";
 import { GW_ACTORS, GW_ENTRIES, GW_ENTRY_BAR } from "./Tables";
 import { enter, leaveWar } from "./Wars";
-import { clampTo, fights, moveGauge, news, other, ruledBySeat } from "./World";
+import {
+  clampTo,
+  fights,
+  moveGauge,
+  news,
+  other,
+  ruledBySeat,
+  seatsOf,
+} from "./World";
 
 /** What a clause is worth to the country, by their measure. */
 const GIVE_WORTH: Readonly<Record<GwGiveClause, number>> = {
@@ -125,7 +133,9 @@ function askOpen(
     case "shells":
       return friend;
     case "mediate":
-      return gw.s.chain !== null && n.side === null;
+      if (n.side !== null) return false;
+      // At war, a neutral carries peace only once a mediator stands ready (ww169).
+      return gw.s.chain !== null || (fights(me) && hasMediator(gw, me));
   }
 }
 
@@ -328,10 +338,21 @@ function collect(
       moveGauge(gw, me.tag, "shells", 1, "terms_shells");
       moveGauge(gw, n.tag, "shells", -1, "terms_shells");
       return;
-    case "mediate":
+    case "mediate": {
+      const seat = seatsOf(gw, me.tag)[0];
+      if (gw.s.chain === null && seat !== undefined && fights(me)) {
+        openTalks(gw, seat);
+        return;
+      }
       gw.s.temp = clampTo(gw.s.temp - MEDIATE_TEMP, 0, 10);
       return;
+    }
   }
+}
+
+/** A letter to the Pope or a neutral king, or a contact abroad, set one up. */
+function hasMediator(gw: GreatWar, me: GwNationState): boolean {
+  return seatsOf(gw, me.tag).some((x) => x.flags.includes("gw_mediator"));
 }
 
 /** Chapter step: terms sent this chapter have their answer. */

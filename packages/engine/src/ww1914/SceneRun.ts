@@ -41,20 +41,21 @@ import {
   stanceFit,
 } from "@openfront/engine-lib/ww1914/TalkRules";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
+import { GW_FX_FLAGS, GwActFx, noteFx, noteMove } from "./ActNote";
 import { blocNow } from "./Blocs";
 import { moveMoney } from "./Budget";
 import { claimsHeld, claimsMet } from "./Claims";
 import { makeCard, placeCard } from "./Desk";
 import { closeSeat } from "./Endings";
 import type { GreatWar } from "./GreatWar";
-import { factionLeader } from "./House";
+import { factionLeader, factionOf } from "./House";
 import { dismissPerson, onAppointed } from "./People";
 import { moveCensor, moveOpinion, moveRumour } from "./Press";
 import { prologueEffect, prologueHolds } from "./Prologue";
 import { moveRuler, rulerHolds, startRuler } from "./Ruler";
 import { headOf, rivalMan, storyEffect, storyHolds } from "./Story";
 import { playOutBig } from "./Talk";
-import { stageOf } from "./World";
+import { moveGauge, stageOf } from "./World";
 import { worldEffect, worldHolds } from "./WorldDsl";
 
 const P_CAST = idHash("gw_cast");
@@ -73,6 +74,8 @@ export interface SceneCtx {
   act?: number | null;
   /** Before a card exists: how a paper sent back comes again. */
   back?: GwBack | null;
+  /** A schedule act's own effects: each move leaves a line under the act. */
+  fx?: GwActFx;
 }
 
 const clamp = (v: number, lo: number, hi: number) =>
@@ -149,18 +152,38 @@ function pickOne(
   return from[roll % from.length];
 }
 
+/** Who `id` holds as rivals: written ones and those a feud set on him. */
+export function rivalIds(gw: GreatWar, id: string): string[] {
+  const own = personDef(id)?.rivals ?? [];
+  const feuds = gw.person(id)?.feuds ?? [];
+  return feuds.length === 0
+    ? [...own]
+    : [...own, ...feuds.filter((x) => !own.includes(x))];
+}
+
 /** The people `id` names as rivals or allies, or who name `id` so. */
 function linked(
   gw: GreatWar,
   id: string,
   link: "rivals" | "allies",
 ): GwPersonState[] {
-  const own = personDef(id)?.[link] ?? [];
+  const own =
+    link === "rivals" ? rivalIds(gw, id) : (personDef(id)?.allies ?? []);
   return gw.s.people.filter(
     (p) =>
       p.status === "active" &&
-      (own.includes(p.id) || personDef(p.id)?.[link].includes(id) === true),
+      (own.includes(p.id) ||
+        personDef(p.id)?.[link].includes(id) === true ||
+        (link === "rivals" && p.feuds?.includes(id) === true)),
   );
+}
+
+/** Each of two people counts the other as a rival from now on. */
+function setFeud(a: GwPersonState, b: GwPersonState): boolean {
+  if (a.id === b.id || a.feuds?.includes(b.id) === true) return false;
+  a.feuds = [...(a.feuds ?? []), b.id].sort();
+  b.feuds = [...(b.feuds ?? []), a.id].sort();
+  return true;
 }
 
 type BaseCastRule = Exclude<
@@ -573,15 +596,32 @@ export function runEffect(ctx: SceneCtx, e: GwEffect): void {
   const { gw, seat } = ctx;
   const s = gw.s;
   const nation = gw.nation(seat.tag);
+  const fx = ctx.fx;
+  const moved = (
+    family: string,
+    was: number,
+    now: number,
+    more: Parameters<typeof noteMove>[6] = {},
+  ) => noteMove(seat, s.chapter, fx, family, was, now, more);
   switch (e.kind) {
     case "flag":
-      if (!seat.flags.includes(e.flag)) seat.flags.push(e.flag);
+      if (!seat.flags.includes(e.flag)) {
+        seat.flags.push(e.flag);
+        const line = GW_FX_FLAGS[e.flag];
+        if (line !== undefined) noteFx(seat, s.chapter, fx, line);
+      }
       return;
     case "unflag":
       seat.flags = seat.flags.filter((f) => f !== e.flag);
       return;
     case "gauge":
-      if (nation !== null && e.gauge === "money") {
+      if (nation !== null && fx !== undefined) {
+        // An act's gauge move is a gauge line too, under the act's kind.
+        const was = nation.budget.treasury + nation.gauges[e.gauge];
+        moveGauge(gw, seat.tag, e.gauge, e.delta, `act_${fx.kind}`);
+        const now = nation.budget.treasury + nation.gauges[e.gauge];
+        moved(`fx_gauge_${e.gauge}`, was, now);
+      } else if (nation !== null && e.gauge === "money") {
         moveMoney(gw, nation, e.delta, "money_scene");
       } else if (nation !== null) {
         nation.gauges[e.gauge] = clamp(
@@ -595,34 +635,57 @@ export function runEffect(ctx: SceneCtx, e: GwEffect): void {
       const v = nation?.inst[e.inst];
       if (nation !== null && v !== undefined) {
         nation.inst[e.inst] = clamp(v + e.delta, GW_INST_MIN, GW_INST_MAX);
+        moved("fx_inst", v, nation.inst[e.inst]!, { what: e.inst });
       }
       return;
     }
-    case "temp":
+    case "temp": {
+      const was = s.temp;
       s.temp = clamp(s.temp + e.delta, 0, GW_TEMP_MAX);
+      moved("fx_temp", was, s.temp);
       return;
-    case "pressure":
+    }
+    case "pressure": {
+      const was = s.pressure[e.topic];
       s.pressure[e.topic] = Math.max(0, s.pressure[e.topic] + e.delta);
+      moved(`fx_pressure_${e.topic}`, was, s.pressure[e.topic]);
       return;
+    }
     case "trust":
       if (nation !== null) {
+        const was = nation.trust[e.tag] ?? 0;
         nation.trust[e.tag] = clamp(
           (nation.trust[e.tag] ?? 0) + e.delta,
           GW_TRUST_MIN,
           GW_TRUST_MAX,
         );
+        moved("fx_trust", was, nation.trust[e.tag]!, { tag: e.tag });
       }
       return;
     case "person_trust": {
       const p = who(ctx, e.who);
       if (p !== null) {
+        const was = p.trust;
         p.trust = clamp(p.trust + e.delta, GW_TRUST_MIN, GW_TRUST_MAX);
+        moved("fx_person", was, p.trust, { who: p.id });
       }
       return;
     }
     case "pride": {
       const p = who(ctx, e.who);
-      if (p !== null) p.pride = clamp(p.pride + e.delta, 0, 5);
+      if (p !== null) {
+        const was = p.pride;
+        p.pride = clamp(p.pride + e.delta, 0, 5);
+        moved("fx_pride", was, p.pride, { who: p.id });
+      }
+      return;
+    }
+    case "feud": {
+      const a = who(ctx, e.a);
+      const b = who(ctx, e.b);
+      if (a !== null && b !== null && setFeud(a, b)) {
+        noteFx(seat, s.chapter, fx, "fx_feud", { who: a.id, what: b.id });
+      }
       return;
     }
     case "remember": {
@@ -727,20 +790,29 @@ export function runEffect(ctx: SceneCtx, e: GwEffect): void {
       if (ctx.card !== undefined) ctx.card.mood += e.delta;
       return;
     case "world":
-      worldEffect(ctx, e.of);
+      worldFx(ctx, e.of);
       return;
     case "ruler":
       moveRuler(gw, seat, e.side, e.delta, e.key);
       return;
-    case "opinion":
+    case "opinion": {
+      const was = seat.press.opinion[e.bloc];
       moveOpinion(seat, e.bloc, e.delta);
+      moved("fx_opinion", was, seat.press.opinion[e.bloc], { what: e.bloc });
       return;
-    case "rumour":
+    }
+    case "rumour": {
+      const was = seat.press.rumour;
       moveRumour(seat, e.delta);
+      moved("fx_rumour", was, seat.press.rumour);
       return;
-    case "censor":
+    }
+    case "censor": {
+      const was = seat.press.censor;
       moveCensor(gw, seat, e.delta);
+      moved("fx_censor", was, seat.press.censor);
       return;
+    }
     case "rival":
     case "rival_end":
     case "letter":
@@ -753,6 +825,71 @@ export function runEffect(ctx: SceneCtx, e: GwEffect): void {
     case "rival_lean":
       prologueEffect(ctx, e);
       return;
+  }
+}
+
+/** A world effect, and under an act the line for what it moved. */
+function worldFx(ctx: SceneCtx, e: Extract<GwEffect, { kind: "world" }>["of"]) {
+  const { gw, seat } = ctx;
+  const fx = ctx.fx;
+  if (fx === undefined) {
+    worldEffect(ctx, e);
+    return;
+  }
+  const c = gw.s.chapter;
+  const nation = gw.nation(seat.tag);
+  switch (e.do) {
+    case "readiness": {
+      const n = gw.nation(e.tag);
+      const was = n?.readiness ?? 0;
+      worldEffect(ctx, e);
+      noteMove(seat, c, fx, "fx_ready", was, n?.readiness ?? 0, { tag: e.tag });
+      return;
+    }
+    case "reveal": {
+      const had = seat.known.includes(e.id);
+      worldEffect(ctx, e);
+      if (!had && seat.known.includes(e.id)) noteFx(seat, c, fx, "fx_reveal");
+      return;
+    }
+    case "inspect":
+    case "report":
+      worldEffect(ctx, e);
+      noteFx(seat, c, fx, `fx_${e.do}`, { tag: e.tag, what: e.fact });
+      return;
+    case "authority": {
+      const was = nation?.authority ?? 0;
+      worldEffect(ctx, e);
+      noteMove(seat, c, fx, "fx_authority", was, nation?.authority ?? 0);
+      return;
+    }
+    case "file": {
+      const had = seat.house?.files.length ?? 0;
+      worldEffect(ctx, e);
+      // Nothing found leaves its own line (file_nothing).
+      if ((seat.house?.files.length ?? 0) > had) {
+        noteFx(seat, c, fx, "fx_file", { who: whoIn(ctx, e.who)?.id ?? null });
+      }
+      return;
+    }
+    case "faction": {
+      const was = factionOf(seat, e.id)?.heat ?? 0;
+      worldEffect(ctx, e);
+      noteMove(
+        seat,
+        c,
+        fx,
+        "fx_faction",
+        was,
+        factionOf(seat, e.id)?.heat ?? 0,
+        {
+          what: e.id,
+        },
+      );
+      return;
+    }
+    default:
+      worldEffect(ctx, e);
   }
 }
 

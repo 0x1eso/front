@@ -755,7 +755,6 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
           authority(-1),
           vote("committee"),
           setFlag("f_gbr_chair_committee"),
-          setFlag("f_gbr_minutes"),
         ],
         memory("k_han_minutes"),
       ),

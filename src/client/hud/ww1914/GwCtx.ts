@@ -74,6 +74,8 @@ export interface GwResultNote {
   /** The option's text after its lead: what follows from it. */
   rest: string;
   tell: readonly string[];
+  /** A schedule act's: its lines in the why-log are listed under it. */
+  act?: string;
 }
 
 /** What the screens may change; the panel owns the instance. */

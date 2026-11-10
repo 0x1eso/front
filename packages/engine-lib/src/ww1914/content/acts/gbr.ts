@@ -4,6 +4,7 @@ import type { GwAct, GwAim } from "@openfront/engine-api/ww1914/GwActs";
 import {
   all,
   any,
+  feud,
   flag,
   GwCond,
   GwEffect,
@@ -42,6 +43,8 @@ const opinion = (
   delta: number,
 ): GwEffect => ({ kind: "opinion", bloc, delta });
 const rumour = (delta: number): GwEffect => ({ kind: "rumour", delta });
+/** Plotting for an Irish rising found out early: the heat comes down. */
+const irishCooled: GwEffect = { kind: "pressure", topic: "ireland", delta: -1 };
 const inst = (
   i: "commons" | "opposition" | "cabinet" | "irish",
   delta: number,
@@ -334,11 +337,7 @@ const ORDERS: GwAct[] = [
     scene: "gbr_a_o_minutes_r",
     wait: 1,
     tell: ["cabinet:-1"],
-    effects: [
-      inst("cabinet", -1),
-      { kind: "flag", flag: "f_gbr_minutes" },
-      { kind: "remember", key: "k_han_minutes" },
-    ],
+    effects: [inst("cabinet", -1), { kind: "remember", key: "k_han_minutes" }],
     fields: [
       {
         id: "how",
@@ -533,6 +532,7 @@ const INTRIGUES: GwAct[] = [
     scene: "gbr_a_i_set_on_r",
     wait: 1,
     fields: [{ id: "pair", people: "cabinet", count: 2 }],
+    effects: [feud(role("a"), role("b"))],
     caught: { pct: 35, scene: "gbr_a_i_set_on_out", wait: 2 },
   },
   {
@@ -562,11 +562,30 @@ const INTRIGUES: GwAct[] = [
       {
         id: "where",
         options: [
-          { id: "newyork" },
-          { id: "geneva" },
+          // Irish-American money for a rising, watched at the docks.
+          { id: "newyork", effects: [irishCooled] },
+          {
+            id: "geneva",
+            effects: [
+              doWorld({
+                do: "report",
+                fact: "morale",
+                tag: "DEU",
+                source: "agents",
+              }),
+            ],
+          },
           {
             id: "petrograd",
             when: world({ is: "entered", tag: "RUS", side: "entente" }),
+            effects: [
+              doWorld({
+                do: "report",
+                fact: "morale",
+                tag: "RUS",
+                source: "agents",
+              }),
+            ],
           },
         ],
       },
@@ -585,6 +604,7 @@ const INTRIGUES: GwAct[] = [
         options: [{ id: "belfast" }, { id: "dublin" }],
       },
     ],
+    effects: [irishCooled],
     caught: { pct: 30, scene: "gbr_a_i_castle_out", wait: 2 },
   },
   {

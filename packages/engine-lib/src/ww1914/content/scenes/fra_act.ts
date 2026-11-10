@@ -205,7 +205,7 @@ const VISIT_SCENES: GwScene[] = [
       tags: ["war"],
       fallback: "note_it",
       options: [
-        o("note_it", [remember("m_fra_saw_creusot")]),
+        o("note_it", [trustOf(role("war"), 1)]),
         o(
           "more_shifts",
           [gauge("shells", 1), gauge("money", -1), reason("fra_a_creusot_r1")],
@@ -222,7 +222,7 @@ const VISIT_SCENES: GwScene[] = [
     {
       fallback: "note_it",
       options: [
-        o("note_it", [remember("m_fra_saw_refugees")]),
+        o("note_it", [trustOf(role("home"), 1)]),
         o("allowance", [
           gauge("money", -1),
           gauge("order", 1),
@@ -240,7 +240,7 @@ const VISIT_SCENES: GwScene[] = [
       tags: ["war"],
       fallback: "note_it",
       options: [
-        o("note_it", [remember("m_fra_saw_frejus")]),
+        o("note_it", [trustOf(role("war"), 1)]),
         o("huts", [gauge("money", -1), gauge("morale", 1)]),
       ],
     },
@@ -271,7 +271,7 @@ const VISIT_SCENES: GwScene[] = [
     {
       fallback: "note_it",
       options: [
-        o("note_it", [remember("m_fra_saw_thann")]),
+        o("note_it", [trustOf(role("home"), 1)]),
         o("teachers", [opinion("press", 1), gauge("money", -1)]),
       ],
     },
@@ -289,7 +289,7 @@ const VISIT_SCENES: GwScene[] = [
       tags: ["war"],
       fallback: "note_it",
       options: [
-        o("note_it", [remember("m_fra_saw_factory")]),
+        o("note_it", [trustOf(role("war"), 1)]),
         o("creche", [gauge("money", -1), gauge("order", 1)]),
       ],
     },
@@ -314,7 +314,6 @@ const VISIT_SCENES: GwScene[] = [
         o("ask_numbers", [
           trustOf(role("cos"), -1),
           inst("army", -1),
-          remember("m_fra_asked_gqg"),
           reason("fra_a_chantilly_r1"),
         ]),
       ],
@@ -683,7 +682,7 @@ const ORDER_SCENES: GwScene[] = [
           trustOf(role("cos"), -1),
           reason("fra_a_pardons_r1"),
         ]),
-        o("send_back_files", [remember("m_fra_files_back")]),
+        o("send_back_files", [trustOf(role("cos"), 1)]),
       ],
     },
   ),
