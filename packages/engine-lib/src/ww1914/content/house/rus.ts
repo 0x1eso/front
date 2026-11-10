@@ -1261,8 +1261,7 @@ export const RUS_HOUSE_SCENES: readonly GwScene[] = [
     ]),
     opt("let_go", [why("rus_f_sd_go")]),
   ]),
-  // The Bolsheviks: the police bring their papers. The arrest is a written
-  // decision, never a button of its own.
+  // The Bolsheviks: the police bring their papers.
   audience(
     "rus_f_bolsh_2",
     { interior: held("interior") },
@@ -1501,7 +1500,7 @@ export const RUS_PLOTS: readonly GwPlotRow[] = [
   },
 ];
 
-/** Our people the Okhrana can open a file on: never the Tsar or his family. */
+/** Our people the Okhrana can open a file on. */
 export const RUS_WEAK: readonly GwWeakRow[] = [
   {
     person: "rus_guchkov",

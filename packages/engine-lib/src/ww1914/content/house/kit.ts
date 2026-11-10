@@ -54,7 +54,7 @@ export const cool = (id: string, by = 1): GwEffect =>
   doWorld({ do: "faction", id, delta: -by });
 export const grow = (id: string, delta: number): GwEffect =>
   doWorld({ do: "faction_grow", id, delta });
-/** Only from a written decision: arrests are consequences, never a button. */
+/** Drives a faction underground. */
 export const under = (id: string): GwEffect =>
   doWorld({ do: "faction_under", id });
 export const startLaw = (law: string, from: GwLawOrigin): GwEffect =>

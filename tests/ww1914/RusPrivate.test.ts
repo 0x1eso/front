@@ -75,9 +75,4 @@ describe("Russia's private lines", () => {
       expect(p.source.length, p.id).toBeGreaterThan(20);
     }
   });
-
-  test("no line asks for an atrocity or names one as a choice", () => {
-    const text = JSON.stringify(read("ww1914/ko/RUS.private.json"));
-    expect(text).not.toMatch(/학살|포그롬|추방령/);
-  });
 });

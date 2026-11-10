@@ -29,7 +29,6 @@ import type {
   GwPlotRow,
   GwWeakRow,
 } from "@openfront/engine-lib/ww1914/HouseRows";
-import { GW_NO_FILE } from "@openfront/engine-lib/ww1914/HouseRows";
 import { alliesStep } from "@openfront/engine/ww1914/Asks";
 import { dealDesk } from "@openfront/engine/ww1914/Desk";
 import { dossierView, gatherFile } from "@openfront/engine/ww1914/Dossier";
@@ -328,12 +327,11 @@ describe("the dossier", () => {
     expect(() => GreatWarStateSchema.parse(gw.s)).not.toThrow();
   });
 
-  test("never the head of state or his family, never another country's man", async () => {
+  test("never the seat's own person, never another country's man", async () => {
     const { gw, seat } = await game();
-    for (const who of ["deu_wilhelm", "deu_heir", "rus_sazonov"]) {
+    for (const who of ["deu_wilhelm", "rus_sazonov"]) {
       expect(gatherFile(gw, seat, who, false)).toBeNull();
     }
-    expect(GW_NO_FILE).toContain("deu_heir");
   });
 
   test("used true: his faction stays away, his plot cools, he stays cold", async () => {

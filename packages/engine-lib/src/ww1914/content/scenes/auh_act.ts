@@ -39,9 +39,7 @@ import { period } from "./period";
  * 「오스트리아-헝가리」, what the seat starts and the story around it: the scenes
  * the schedule plays (acts/auh.ts holds the entries and the aims), the opening,
  * the big scenes, the rival, the two rulers' letters and the scenes that press
- * on the aim. Text: resources/ww1914/ko/AUH.act.json. Nothing here is an
- * atrocity: the wards and the refugee barracks are places to look at, with no
- * button in them.
+ * on the aim. Text: resources/ww1914/ko/AUH.act.json.
  */
 
 const NATION: GwScene["nation"] = ["AUH"];

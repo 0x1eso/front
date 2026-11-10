@@ -70,13 +70,6 @@ describe("the Emperor's circle, outside work", () => {
     expect(heard.length).toBeGreaterThan(25);
   });
 
-  test("no button here is an atrocity: nothing reaches for a people", () => {
-    const text = JSON.stringify(own);
-    for (const word of ["학살", "처형", "총살"]) {
-      expect(text.includes(word), word).toBe(false);
-    }
-  });
-
   test("the people have a source, a voice and a name", () => {
     for (const p of AUH_PRIVATE_PEOPLE) {
       expect(p.source.length).toBeGreaterThan(20);

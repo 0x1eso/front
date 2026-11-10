@@ -372,7 +372,7 @@ export type GwWorldEffect =
   | { do: "faction"; id: string; delta: number }
   /** A faction's strength. */
   | { do: "faction_grow"; id: string; delta: number }
-  /** Driven underground: only ever from a written decision. */
+  /** Driven underground. */
   | { do: "faction_under"; id: string }
   /** Its leader's price for the moving bill is taken: a promise, his side for it. */
   | { do: "deal"; id: string }

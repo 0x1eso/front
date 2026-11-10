@@ -32,8 +32,8 @@ import { period } from "./period";
  * here through FRA_ECHOES (fra_prologue.ts).
  *
  * The player is Poincaré for the whole game, so nothing closes on a cabinet.
- * Henriette and Lucien are family: never in a file (GW_NO_FILE), never under
- * threat. Their first scene is a visit, since both are unlisted until then.
+ * Henriette and Lucien are family. Their first scene is a visit, since both
+ * are unlisted until then.
  * Data only; the text is in resources/ww1914/ko/FRA.private.json. Memory keys
  * start `m_fra_`, reasons `fra_p_`.
  */
@@ -568,7 +568,7 @@ export const FRA_PRIVATE_SCENES: readonly GwScene[] = [
 // ---- The people only these lines need ----
 
 /**
- * Family: no desk, no camp, never in a file. Seen on the people screen only
+ * Family: no desk, no camp. Seen on the people screen only
  * once they have come up. Appended after every other list: order matters to
  * the seed rolls. Names in FRA.people.json, so that every seat can read them.
  */

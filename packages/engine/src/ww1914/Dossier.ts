@@ -1,6 +1,6 @@
 // Great War 1914: the dossier, 서류철 (brief ww158, S2). Files on the seat's own
-// people, never the head of state or his family (HouseRows GW_NO_FILE). Each
-// listed person has one to three possible weaknesses (`<TAG>_WEAK`); the seed
+// people, never the seat's own person. Each listed person has one to three
+// possible weaknesses (`<TAG>_WEAK`); the seed
 // decides which are true, so files differ each game. The police open a file
 // when the schedule's entry asks (`<tag>_a_file`, effect `file`) and bring some
 // unasked; a file comes as a police report, stamped by the police's band, and
@@ -28,7 +28,6 @@ import {
   GW_EXPOSE_PCT,
   GW_EXPOSE_PER_USE,
   GW_HELD_CHAPTERS,
-  GW_NO_FILE,
   GW_POLICE_FILE_EVERY,
   GwWeakRow,
 } from "@openfront/engine-lib/ww1914/HouseRows";
@@ -79,9 +78,9 @@ function whoId(ctx: SceneCtx, w: GwWho): string | null {
   return w.person;
 }
 
-/** Never in a file: the head of state, his family, and anyone not ours. */
+/** Never in a file: the seat's own person, and anyone not ours. */
 function fileable(gw: GreatWar, seat: GwSeatState, who: string): boolean {
-  if (GW_NO_FILE.includes(who) || seatPerson(seat) === who) return false;
+  if (seatPerson(seat) === who) return false;
   if (!who.startsWith(`${seat.tag.toLowerCase()}_`)) return false;
   const p = gw.person(who);
   return p === null || p.status === "active";

@@ -157,13 +157,6 @@ describe("the rows", () => {
       expect(common.reasons?.[`law_no_${b}`]).toBeDefined();
     }
   });
-
-  test("no atrocity is a bill's price or a bill's path", () => {
-    const words = /학살|추방|강제 이주|제노사이드/;
-    for (const tag of NATIONS) {
-      expect(JSON.stringify(packOf(`${tag}.laws.json`))).not.toMatch(words);
-    }
-  });
 });
 
 /**

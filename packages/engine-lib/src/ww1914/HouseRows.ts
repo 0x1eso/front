@@ -276,40 +276,6 @@ export const GW_EXPOSE_CUNNING = 15;
 /** Percent the police's file act is found out by its man. */
 export const GW_FILE_CAUGHT = 20;
 
-/**
- * Never in a file: the head of state and the ruler's family (the owner's rule).
- * The head is also left out by the engine whoever he is.
- */
-export const GW_NO_FILE: readonly string[] = [
-  "deu_wilhelm",
-  "deu_empress",
-  "deu_heir",
-  "gbr_george_v",
-  "gbr_margot",
-  "auh_franz_joseph",
-  "auh_ff",
-  "auh_karl",
-  "auh_zita",
-  "auh_friedrich",
-  "auh_wilhelm",
-  "auh_schratt",
-  "rus_nicholas",
-  "rus_alexandra",
-  "rus_maria",
-  "rus_olga",
-  "rus_olga_a",
-  "rus_ella",
-  "rus_michael",
-  "rus_nikolasha",
-  "rus_dmitri",
-  "rus_sandro",
-  "rus_kr",
-  "rus_sergei_m",
-  "fra_poincare",
-  "fra_henriette",
-  "fra_lucien",
-];
-
 /** The dossier's papers, per country (text in `<TAG>.house.json`). */
 export const dossierIds = {
   /** The schedule's entry: the police open a file on one man. */

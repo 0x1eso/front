@@ -112,7 +112,7 @@ describe("the crisis and 1914 share of 프랑스", () => {
     );
   });
 
-  test("the Carnet B's arrests cost politics and name no harm", () => {
+  test("the Carnet B's arrests cost politics", () => {
     const all = scenes
       .find((s) => s.id === "fra_c_carnet_b")!
       .options!.find((o) => o.id === "apply_all")!;

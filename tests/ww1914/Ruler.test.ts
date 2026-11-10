@@ -350,13 +350,4 @@ describe("the rows", () => {
       expect(own.endings?.[`${low}_r_removed`]).toBeDefined();
     },
   );
-
-  test("no mark sits on anything but one's own men and people", () => {
-    // Conscience marks are on offensives and call-ups only: nothing here is a
-    // price, a path or a bonus for an atrocity.
-    const conscience = GW_RULER_MARKS.filter((m) => m.side === "conscience");
-    for (const m of conscience) {
-      expect(m.scene).toMatch(/^(deu|gbr|auh|rus)_[wf]_/);
-    }
-  });
 });

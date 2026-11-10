@@ -9,7 +9,6 @@ import {
   gwSceneEffects,
 } from "@openfront/engine-api/ww1914/SceneCheck";
 import { gwSceneProblems } from "@openfront/engine-api/ww1914/SceneDsl";
-import { GW_NO_FILE } from "@openfront/engine-lib/ww1914/HouseRows";
 import { GW_CONTENT } from "@openfront/engine-lib/ww1914/content/Content";
 import {
   FRA_PRIVATE_PEOPLE,
@@ -74,14 +73,13 @@ describe("the President's private life", () => {
     expect([...written].filter((k) => read.has(k)).length).toBeGreaterThan(20);
   });
 
-  test("the family has a source, a voice and a name, and no file", () => {
+  test("the family has a source, a voice and a name", () => {
     for (const p of FRA_PRIVATE_PEOPLE) {
       expect(p.source.length).toBeGreaterThan(20);
       expect(p.office).toBeNull();
       expect(p.camps).toEqual([]);
       expect(FRA_PRIVATE_VOICE_NOTES[p.id], p.id).toBeTruthy();
       expect(cast.people[p.id]?.name, p.id).toBeTruthy();
-      expect(GW_NO_FILE).toContain(p.id);
     }
   });
 

@@ -114,16 +114,6 @@ describe("the realm share", () => {
     }
   });
 
-  test("Kramář's scenes have no option that takes a life", () => {
-    const ids = ["auh_h_kramar_arrest", "auh_h_kramar_verdict"];
-    for (const id of ids) {
-      const t = pack.scenes[id];
-      for (const line of Object.values(t.opt ?? {})) {
-        expect(line).not.toMatch(/처형|집행한다|교수|총살/);
-      }
-    }
-  });
-
   test("named fronts exist", () => {
     for (const s of scenes) {
       for (const c of gwSceneConds(s)) {

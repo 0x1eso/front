@@ -1,7 +1,7 @@
 // The S2 rows against their scenes and packs (ww158): plots, weaknesses, asks
 // and the dossier's papers, per nation. A plot ends by itself (no `end` in its
 // scenes), its signs and warning can come again (no `once`), a court or army
-// plot is the only fatal kind, no file names the head or his family, and an
+// plot is the only fatal kind, no file names the seat's own person, and an
 // ask's scene answers it.
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import type { GwPack } from "@openfront/engine-api/ww1914/GwPack";
@@ -22,7 +22,6 @@ import { GW_LAWS } from "@openfront/engine-lib/ww1914/content/scenes/laws";
 import {
   dossierIds,
   dossierTags,
-  GW_NO_FILE,
   GW_PLOT_SIGNS,
   houseCalledScenes,
 } from "@openfront/engine-lib/ww1914/HouseRows";
@@ -105,8 +104,8 @@ export function s2Problems(c: GwContent, tag: GwTag, pack: GwPack): string[] {
     x.person.startsWith(`${tag.toLowerCase()}_`),
   )) {
     if (!people.has(w.person)) out.push(`${w.person}: no such person`);
-    if (GW_NO_FILE.includes(w.person) || head.includes(w.person)) {
-      out.push(`${w.person}: the head or his family is never in a file`);
+    if (head.includes(w.person)) {
+      out.push(`${w.person}: the seat's own person is never in a file`);
     }
     if (w.weak.length < 1 || w.weak.length > 3) {
       out.push(`${w.person}: 1 to 3 weaknesses`);
@@ -214,7 +213,7 @@ describe("the S2 rows", () => {
           },
         },
       ],
-      weak: [{ person: "deu_heir", weak: [{ id: "debts", odds: 50 }] }],
+      weak: [{ person: "deu_wilhelm", weak: [{ id: "debts", odds: 50 }] }],
       asks: [
         {
           id: "t_a",
@@ -237,7 +236,7 @@ describe("the S2 rows", () => {
       "t_pl: no faction t_none",
       "t_s2: once",
       "t_2: ends the game itself",
-      "deu_heir: the head or his family",
+      "deu_wilhelm: the seat's own person",
       "t_ask: a conference is a big scene",
       "t_ask: never answers t_a",
     ]) {

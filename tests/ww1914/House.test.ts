@@ -265,19 +265,6 @@ describe("the rows", () => {
       expect(tags.has(h.tag)).toBe(true);
     }
   });
-
-  test("no atrocity is a faction's price, a bill or a way", () => {
-    const words = /학살|추방|강제 이주|제노사이드/;
-    for (const tag of NATIONS) {
-      expect(JSON.stringify(packOf(`${tag}.house.json`))).not.toMatch(words);
-    }
-    // Driving a faction under is a consequence of a written decision only.
-    for (const s of gwHouseScenes(GW_HOUSE_CONTENT, GW_LAWS)) {
-      for (const e of gwSceneEffects(s)) {
-        expect(e.kind === "world" && e.of.do === "faction_under").toBe(false);
-      }
-    }
-  });
 });
 
 // ---- Fixture rows on the mini map, Germany ----

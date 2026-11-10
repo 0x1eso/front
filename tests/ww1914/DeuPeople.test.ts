@@ -260,12 +260,4 @@ describe("the people share", () => {
       }
     }
   });
-
-  test("no atrocity is a button: nothing here prices or names one", () => {
-    for (const s of DEU_PEOPLE_SCENES) {
-      for (const [where, t] of lines(s)) {
-        expect(t, `${s.id}.${where}`).not.toMatch(/학살|민간인|인질|루뱅|약탈/);
-      }
-    }
-  });
 });

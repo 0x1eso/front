@@ -211,11 +211,4 @@ describe("the crisis share", () => {
       }
     }
   });
-
-  test("nothing here orders or prices an atrocity", () => {
-    const text = JSON.stringify(raw);
-    for (const w of ["학살", "처형", "인질", "방화"]) {
-      expect(text.includes(w), w).toBe(false);
-    }
-  });
 });

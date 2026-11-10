@@ -4,8 +4,7 @@
 // `_blamed`, `_failing`, `_shaken`, `_broken`.
 //
 // Marks, gates and bodies lie over scenes written elsewhere, so a scene's file
-// doesn't change. Conscience answers only for the seat's own men and people:
-// no atrocity is on any list here, as a price, a path or anything else.
+// doesn't change.
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import type { GwRulerSide } from "@openfront/engine-api/ww1914/GwRuler";
 import {
