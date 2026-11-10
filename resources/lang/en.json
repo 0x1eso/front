@@ -3247,6 +3247,9 @@
       "war": "War"
     },
     "office_by": {
+      "DEU": {
+        "chancellor": "Chancellor"
+      },
       "FRA": {
         "agriculture": "Minister of Agriculture",
         "chancellor": "Premier",

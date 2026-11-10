@@ -16930,6 +16930,9 @@
       "wires": "전보"
     },
     "office_by": {
+      "DEU": {
+        "chancellor": "재상"
+      },
       "FRA": {
         "chancellor": "수상",
         "foreign": "외무장관",
