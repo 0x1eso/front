@@ -276,11 +276,17 @@ export function reasonText(pack: GwPack | null, r: GwReason): string {
     r.what === undefined || r.what === null
       ? ""
       : whatText(pack, r.key, r.what);
-  return withWho(
+  const text = withWho(
     line.replace(/\{country\}/g, country).replace(/\{what\}/g, what),
     pack,
     r.who,
   );
+  // An answer to a power names it, so it reads as caused (ww169).
+  if (r.power === undefined) return text;
+  return translateText("gw.power.because", {
+    power: pack?.powers?.[r.power]?.name ?? r.power,
+    line: text,
+  });
 }
 
 /** Dug-in lines to take turns; the rule's own, for papers with none. */

@@ -36,6 +36,7 @@ import {
 import { gwRulerScenes } from "@openfront/engine-lib/ww1914/RulerRows";
 import { gwOwnerOf, gwWorldOf } from "@openfront/engine-lib/ww1914/World1914";
 import { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
+import { GW_GOV } from "@openfront/engine/ww1914/GovTable";
 import {
   GW_PEOPLE_PACKS,
   loadGwPack,
@@ -121,7 +122,11 @@ describe("content", () => {
 
   test("every power row holds together and has its words (ww169)", async () => {
     const scenes = new Map(GW_CONTENT.scenes.map((s) => [s.id, s]));
-    expect(gwPowerProblems(GW_CONTENT, scenes)).toEqual([]);
+    const threats = new Set([
+      ...GW_GOV.map((r) => r.id),
+      ...(GW_CONTENT.plots ?? []).map((r) => r.id),
+    ]);
+    expect(gwPowerProblems(GW_CONTENT, scenes, threats)).toEqual([]);
     const why = Object.keys(json("lang/en.json").gw.power.why);
     for (const tag of SEATS) {
       const pack = await loadGwPack(tag, async (p) => json(p));

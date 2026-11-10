@@ -28,7 +28,7 @@ import { GW_PEOPLE_RULER } from "./people_ruler";
 import { RUS_PEOPLE } from "./people_rus";
 import { RUS_KIN } from "./people_rus_private";
 import { AUH_POWER_SCENES, AUH_POWERS, AUH_REACTORS } from "./powers/auh";
-import { COMMON_POWER_SCENES } from "./powers/common";
+import { COMMON_POWER_SCENES, COMMON_POWERS } from "./powers/common";
 import { DEU_POWER_SCENES, DEU_POWERS, DEU_REACTORS } from "./powers/deu";
 import { FRA_POWER_SCENES, FRA_POWERS, FRA_REACTORS } from "./powers/fra";
 import { GBR_POWER_SCENES, GBR_POWERS, GBR_REACTORS } from "./powers/gbr";
@@ -277,6 +277,8 @@ export const GW_CONTENT: GwContent = {
     ...AUH_POWERS,
     ...RUS_POWERS,
     ...FRA_POWERS,
+    // The person's own end, last in its group.
+    ...COMMON_POWERS,
   ],
   reactors: [
     ...DEU_REACTORS,

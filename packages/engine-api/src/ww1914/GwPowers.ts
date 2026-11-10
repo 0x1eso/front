@@ -146,4 +146,6 @@ export interface GwPowerView {
   sounded: { person: string; said: boolean } | null;
   /** It spends a schedule slot. */
   slot: boolean;
+  /** It ends the game (abdication, resignation): said as a fact, asked twice. */
+  ends: boolean;
 }

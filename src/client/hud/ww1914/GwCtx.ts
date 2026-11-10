@@ -157,6 +157,8 @@ export interface GwRuleDraft {
   picks: Record<string, string>;
   /** Groups unfolded. */
   groups: string[];
+  /** A row that ends the game, pressed once: the next press orders it. */
+  armed?: string | null;
 }
 
 export interface GwDiploDraft {

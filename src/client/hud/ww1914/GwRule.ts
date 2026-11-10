@@ -182,6 +182,7 @@ function send(c: GwCtx, p: GwPowerView, d: GwRuleDraft, without: boolean) {
   d.open = null;
   d.target = null;
   d.picks = {};
+  d.armed = null;
   c.ui.summoned = Date.now();
   c.redraw();
 }
@@ -254,9 +255,19 @@ function rowBody(c: GwCtx, p: GwPowerView, d: GwRuleDraft): TemplateResult {
       class=${GO}
       data-gw-power-go
       ?disabled=${!ready}
-      @click=${() => send(c, p, d, false)}
+      @click=${() => {
+        // The person's own end is asked twice: the first press only arms it.
+        if (p.ends && d.armed !== p.id) {
+          d.armed = p.id;
+          c.redraw();
+          return;
+        }
+        send(c, p, d, false);
+      }}
     >
-      ${translateText("gw.power.go")}
+      ${translateText(
+        p.ends && d.armed === p.id ? "gw.power.ends_confirm" : "gw.power.go",
+      )}
     </button>
     ${p.without
       ? html`<p class=${MUTED}>${translateText("gw.power.without_note")}</p>
@@ -286,6 +297,7 @@ function powerRow(c: GwCtx, p: GwPowerView, d: GwRuleDraft): TemplateResult {
         d.open = open ? null : p.id;
         d.target = null;
         d.picks = {};
+        d.armed = null;
         c.redraw();
       }}
     >
@@ -299,6 +311,11 @@ function powerRow(c: GwCtx, p: GwPowerView, d: GwRuleDraft): TemplateResult {
     ${needsLines(c, p).map(
       (l) => html`<p class="${MUTED} pl-1" data-gw-power-needs>${l}</p>`,
     )}
+    ${p.ends
+      ? html`<p class="pl-1 text-sm text-amber-100" data-gw-power-ends>
+          ${translateText("gw.power.ends")}
+        </p>`
+      : nothing}
     ${why === null
       ? nothing
       : html`<p class="${MUTED} pl-1 italic" data-gw-power-why>${why}</p>`}

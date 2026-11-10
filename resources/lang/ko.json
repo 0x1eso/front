@@ -14473,7 +14473,12 @@
       "fra_end_alliance": "동맹 없이 남은 나라",
       "fra_r_death": "대통령의 죽음",
       "fra_r_removed": "물러난 대통령",
-      "fra_end_resigned": "엘리제를 떠난 대통령"
+      "fra_end_resigned": "엘리제를 떠난 대통령",
+      "deu_end_abdicated": "스스로 내려온 황제",
+      "gbr_end_resigned": "스스로 물러난 총리",
+      "auh_e_abdicated": "내려놓은 제관",
+      "rus_abdicated": "제위를 내려놓은 차르",
+      "fra_end_stood_down": "스스로 물러난 대통령"
     },
     "fact": {
       "force": {
@@ -15213,7 +15218,15 @@
       "react_people_workers_up": "노동자들이 반겼다.",
       "react_people_workers_down": "노동자들이 못마땅해했다.",
       "react_people_press_up": "언론이 반겼다.",
-      "react_people_press_down": "언론이 못마땅해했다."
+      "react_people_press_down": "언론이 못마땅해했다.",
+      "power_went_wrong": "일이 틀어졌다.",
+      "power_threat_up": "정부를 흔드는 목소리가 커졌다.",
+      "power_threat_down": "정부를 흔드는 목소리가 잦아들었다.",
+      "react_harsh_usa": "워싱턴이 그 일을 적어 두었다.",
+      "react_harsh_conscience": "그 일이 양심을 짓눌렀다.",
+      "react_harsh_quiet": "거리는 당분간 조용해졌다.",
+      "react_harsh_streets": "이미 들끓던 거리는 그것을 싸움을 거는 일로 받아들였다.",
+      "react_harsh_again": "가혹한 조치가 거듭되자 중립국 수도들이 귀를 닫았다."
     },
     "result": {
       "advance": "전진",
@@ -16930,7 +16943,10 @@
       }
     },
     "power": {
+      "because": "{power}: {line}",
       "beyond_tag": "법 밖",
+      "ends": "이 일을 하면 당신의 판은 여기서 끝난다.",
+      "ends_confirm": "그래도 명한다: 판이 여기서 끝난다",
       "go": "명한다",
       "group": {
         "army": "군",
