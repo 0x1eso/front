@@ -48,6 +48,8 @@ export interface GwPowerOption {
   readonly effects?: readonly GwEffect[];
   /** What the world answers to, on top of the row's. */
   readonly tags?: readonly GwPowerTag[];
+  /** Threats and plots this pick heats too, on top of the row's (ww169). */
+  readonly heats?: readonly GwPowerHeat[];
 }
 
 export type GwPowerTarget =
@@ -174,6 +176,8 @@ export interface GwReactorRow {
   readonly of?: readonly (GwBloc | GwCamp)[];
   /** `allies`/`neutrals`: only these countries (absent: every one). */
   readonly who?: readonly GwTag[];
+  /** Only a use of one of these power rows (absent: any row with the tag). */
+  readonly powers?: readonly string[];
   readonly delta: number;
   readonly key?: string;
   /** Plain effects on top (the house's weight, a general's pride). */
@@ -362,14 +366,19 @@ export function fatalEffects(list: readonly GwEffect[]): string[] {
   });
 }
 
-/** Every effect list a row can run. */
-function rowEffects(p: GwPowerRow): GwEffect[] {
-  const opts = [
+/** A row's target and field options. */
+function rowOptions(p: GwPowerRow): GwPowerOption[] {
+  return [
     ...(p.target !== undefined && p.target.kind !== "person"
       ? p.target.of
       : []),
     ...(p.fields ?? []).flatMap((f) => f.options),
   ];
+}
+
+/** Every effect list a row can run. */
+function rowEffects(p: GwPowerRow): GwEffect[] {
+  const opts = rowOptions(p);
   return [
     ...p.effects,
     ...(p.failed ?? []),
@@ -397,12 +406,19 @@ export function gwPowerProblems(
         `reactor ${r.tag}/${r.actor}: ${f} (no fatal step in one click)`,
       );
     }
+    for (const id of r.powers ?? []) {
+      if (!ids.has(id)) out.push(`reactor ${r.tag}/${r.actor}: no power ${id}`);
+    }
   }
   for (const p of all) {
     for (const f of fatalEffects(rowEffects(p))) {
       out.push(`${p.id}: ${f} (use \`ends\` or \`heats\`)`);
     }
-    for (const h of [...(p.heats ?? []), ...(p.risk?.heats ?? [])]) {
+    for (const h of [
+      ...(p.heats ?? []),
+      ...(p.risk?.heats ?? []),
+      ...rowOptions(p).flatMap((o) => o.heats ?? []),
+    ]) {
       if (threats !== undefined && !threats.has(h.id)) {
         out.push(`${p.id}: heats no threat or plot ${h.id}`);
       }

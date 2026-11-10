@@ -143,6 +143,41 @@ const ROWS: GwPowerRow[] = [
     tags: [],
     effects: [],
   },
+  // Merge 2 seams: a pick's own heats, a reactor for one row, a form's card.
+  {
+    id: "deu_pw_t_pick",
+    tag: "DEU",
+    group: "home",
+    kind: "lawful",
+    cooldown: 0,
+    target: {
+      kind: "option",
+      of: [{ id: "red", heats: [{ id: "deu_pl_red", by: 2 }] }, { id: "calm" }],
+    },
+    tags: ["harsh_home"],
+    effects: [],
+  },
+  {
+    id: "deu_pw_t_name",
+    tag: "DEU",
+    group: "cabinet",
+    kind: "lawful",
+    needs: { office: "chancellor" },
+    target: { kind: "person", people: "cabinet" },
+    beyond: "deu_pw_t_name_b",
+    tags: [],
+    effects: [],
+  },
+  {
+    id: "deu_pw_t_name_b",
+    tag: "DEU",
+    group: "cabinet",
+    kind: "beyond",
+    formOnly: true,
+    tags: [],
+    effects: [],
+    scene: "fra_pw_dismiss_r",
+  },
   {
     id: "gbr_pw_t_other",
     tag: "GBR",
@@ -161,7 +196,21 @@ let gw: GreatWar;
 const st = () => gw.s.seats[0];
 
 beforeEach(async () => {
-  useGwContent({ ...GW_CONTENT, powers: ROWS });
+  useGwContent({
+    ...GW_CONTENT,
+    powers: ROWS,
+    reactors: [
+      ...(GW_CONTENT.reactors ?? []),
+      {
+        tag: "harsh_home",
+        actor: "other",
+        delta: 0,
+        key: "t_only_pick",
+        powers: ["deu_pw_t_pick"],
+        does: [{ kind: "flag", flag: "f_t_only_pick" }],
+      },
+    ],
+  });
   ({ runner } = await gwRunner({ greatWar1914Calendar: "full" }, "GWPW1"));
   gw = runner.game.greatWar()!;
 });
@@ -418,6 +467,56 @@ describe("phase 2: beyond the law and harsh measures", () => {
     gw.s.chapter++;
     takePower(gw, st(), { id: "deu_pw_t_harsh", ...plain });
     expect(st().log.map((l) => l.key)).toContain("react_harsh_again");
+  });
+
+  test("a pick heats on its own; a reactor can answer one row only", () => {
+    late();
+    takePower(gw, st(), { id: "deu_pw_t_harsh", ...plain });
+    expect(st().flags).not.toContain("f_t_only_pick");
+    const before = govEntry(st(), "deu_pl_red").heat;
+    takePower(gw, st(), { id: "deu_pw_t_pick", ...plain, target: "calm" });
+    expect(st().flags).toContain("f_t_only_pick");
+    const calm = govEntry(st(), "deu_pl_red").heat;
+    gw.s.chapter++;
+    expect(
+      takePower(gw, st(), { id: "deu_pw_t_pick", ...plain, target: "red" }),
+    ).toBeNull();
+    expect(govEntry(st(), "deu_pl_red").heat - calm).toBe(2);
+    expect(calm - before).toBeLessThan(2);
+    const bad = gwPowerProblems(
+      {
+        powers: [
+          {
+            ...ROWS.find((r) => r.id === "deu_pw_t_pick")!,
+            target: {
+              kind: "option",
+              of: [{ id: "x", heats: [{ id: "deu_nothing", by: 1 }] }],
+            },
+          },
+        ],
+        reactors: [
+          { tag: "decree", actor: "other", delta: 0, powers: ["deu_pw_none"] },
+        ],
+      },
+      new Map(),
+      new Set(GW_GOV.map((r) => r.id)),
+    ).join("\n");
+    expect(bad).toContain("heats no threat or plot deu_nothing");
+    expect(bad).toContain("no power deu_pw_none");
+  });
+
+  test("a form run past the signer casts the lawful row's person on its card", () => {
+    const chan = holderOf(gw, st(), "chancellor")!;
+    expect(
+      takePower(gw, st(), {
+        id: "deu_pw_t_name",
+        ...plain,
+        target: chan.id,
+        without: true,
+      }),
+    ).toBeNull();
+    const card = st().desk.find((c) => c.scene === "fra_pw_dismiss_r");
+    expect(card?.cast.target).toBe(chan.id);
   });
 
   test("abdication is the person's own end: said as a fact, and it ends the game", () => {

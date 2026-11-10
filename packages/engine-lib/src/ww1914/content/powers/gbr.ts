@@ -918,6 +918,8 @@ export const GBR_POWERS: readonly GwPowerRow[] = [
             heat("gbr_labour", 1),
             { kind: "rumour", delta: -1 },
           ],
+          // Only the pacifist's arrest feeds the red plot (XG's gap 1).
+          heats: [{ id: "gbr_pl_red", by: 2 }],
         },
         {
           id: "irish",

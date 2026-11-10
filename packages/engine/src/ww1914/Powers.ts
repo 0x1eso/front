@@ -373,7 +373,11 @@ function harshAgain(ctx: SceneCtx, tags: readonly GwPowerTag[]): void {
 }
 
 /** The world answers what was done (design B3): one reason line each. */
-export function react(ctx: SceneCtx, tags: readonly GwPowerTag[]): void {
+export function react(
+  ctx: SceneCtx,
+  tags: readonly GwPowerTag[],
+  power?: string,
+): void {
   const { gw, seat } = ctx;
   const all = [...GW_REACTORS, ...(gwContent().reactors ?? [])];
   harshAgain(ctx, tags);
@@ -381,6 +385,7 @@ export function react(ctx: SceneCtx, tags: readonly GwPowerTag[]): void {
     for (const r of all) {
       if (r.tag !== tag) continue;
       if (r.nation !== undefined && r.nation !== seat.tag) continue;
+      if (r.powers !== undefined && !r.powers.includes(power ?? "")) continue;
       if (r.by !== undefined && !holds(ctx, r.by)) continue;
       if (r.actor === "allies" || r.actor === "neutrals") {
         if (abroad(gw, seat, r)) reason(gw, seat, reactKey(r));
@@ -518,7 +523,6 @@ export function heatThreat(
 function goThrough(
   ctx: SceneCtx,
   row: GwPowerRow,
-  target: string | null,
   chosen: readonly GwPowerOption[],
 ): void {
   const { gw, seat } = ctx;
@@ -529,8 +533,10 @@ function goThrough(
   if (row.slot === true) seat.acts--;
   runEffects(ctx, row.effects);
   for (const o of chosen) runEffects(ctx, o.effects ?? []);
-  react(ctx, [...row.tags, ...chosen.flatMap((o) => o.tags ?? [])]);
+  react(ctx, [...row.tags, ...chosen.flatMap((o) => o.tags ?? [])], row.id);
   for (const h of row.heats ?? []) heatThreat(gw, seat, h);
+  for (const o of chosen)
+    for (const h of o.heats ?? []) heatThreat(gw, seat, h);
   const risk = row.risk;
   let wrong = false;
   if (risk !== undefined) {
@@ -554,7 +560,8 @@ function goThrough(
   const id = wrong && risk?.scene !== undefined ? risk.scene : row.scene;
   const scene = id === undefined ? null : sceneOf(id);
   if (scene !== null) {
-    const who = row.target?.kind === "person" ? target : null;
+    // The person picked, also for a form run from its lawful row (ww169).
+    const who = ctx.cast.target ?? null;
     const card = makeCard(gw, seat, scene, "summon", who);
     if (card !== null) placeCard(gw, seat, card);
   }
@@ -621,7 +628,7 @@ function use(
     trustBy(signer, -2);
     reasonOf(gw, seat, "power_without", signer.id);
     record(gw, seat, row, o.target, "without");
-    goThrough(ctx, form, o.target, chosen);
+    goThrough(ctx, form, chosen);
     record(gw, seat, form, o.target, "done");
     return null;
   }
@@ -631,7 +638,7 @@ function use(
     record(gw, seat, row, o.target, stopped);
     return null;
   }
-  goThrough(ctx, row, o.target, chosen);
+  goThrough(ctx, row, chosen);
   record(gw, seat, row, o.target, "done");
   return null;
 }
