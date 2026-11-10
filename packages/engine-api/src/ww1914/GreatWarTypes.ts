@@ -693,6 +693,8 @@ export const GwReasonSchema = z.object({
   who: GwIdSchema.nullable().optional(),
   /** The country it is about: the text's {country}. */
   tag: z.enum(GW_TAGS).optional(),
+  /** The power whose use it answers (ww169): the line reads as its cause. */
+  power: GwIdSchema.optional(),
 });
 export type GwReason = z.infer<typeof GwReasonSchema>;
 
@@ -818,6 +820,12 @@ export const GW_ENDINGS = [
   "fra_r_death",
   "fra_r_removed",
   "fra_end_resigned",
+  // The person's own end, from the 통치 tab (ww169 phase 2).
+  "deu_end_abdicated",
+  "gbr_end_resigned",
+  "auh_e_abdicated",
+  "rus_abdicated",
+  "fra_end_stood_down",
 ] as const;
 export type GwEnding = (typeof GW_ENDINGS)[number];
 

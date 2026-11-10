@@ -2,7 +2,16 @@
 // tab. A use runs a real procedure: who must sign or consent, the cabinet's
 // or the house's vote, then the effects, the world's answers (reactors) and a
 // roll from the state where the row has one. Nothing shows its result before:
-// afterwards come the reason lines and the row's silent card.
+// afterwards come the reason lines, each naming the power it answers, and the
+// row's silent card.
+//
+// Phase 2: acts beyond the law and harsh measures. A use heats the threats and
+// plots it names (`heats`), and a roll gone wrong heats more. **No single click
+// loses the game:** a fatal threat's last step comes only after its warning
+// (`heatThreat`), a plot's only after its signs and warning (Plots.plotFair),
+// and no power holds an effect that ends a seat (PowerRows.fatalEffects). The
+// one exception is the person's own end, abdication or resignation (`ends`),
+// which the tab names as such and asks twice.
 import type {
   GwPersonState,
   GwSeatState,
@@ -20,10 +29,15 @@ import type {
 } from "@openfront/engine-api/ww1914/GwPowers";
 import type { GwEffect } from "@openfront/engine-api/ww1914/SceneDsl";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
+import { GW_PLOT_WARN_GAP } from "@openfront/engine-lib/ww1914/HouseRows";
 import {
+  GW_BEYOND_AGAIN,
+  GW_BEYOND_WITHIN,
   GW_POWER_COOLDOWN,
   GW_POWER_SOUND,
+  GW_POWER_WARN_FRESH,
   GW_REACTORS,
+  GwPowerHeat,
   GwPowerOption,
   GwPowerRow,
   GwReactorRow,
@@ -33,9 +47,12 @@ import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { holdVote } from "./Authority";
 import { blocNow } from "./Blocs";
 import { makeCard, placeCard } from "./Desk";
+import { govEntry, govHeatBy } from "./Government";
+import { GW_GOV } from "./GovTable";
 import type { GreatWar } from "./GreatWar";
 import { factionOf, factionRow, questionCount } from "./House";
 import { openLetter, trustBy } from "./People";
+import { plotRow } from "./Plots";
 import {
   holderOf,
   holds,
@@ -51,6 +68,7 @@ import {
   reason,
   reasonOf,
   seatPerson,
+  withCause,
 } from "./World";
 
 const P_RISK = idHash("gw_power_risk");
@@ -138,6 +156,12 @@ function lastSounded(gw: GreatWar, seat: GwSeatState, row: GwPowerRow) {
   return x;
 }
 
+/** Its beyond form exists and could run now (rested, authority, its gates). */
+function formOpen(ctx: SceneCtx, row: GwPowerRow): boolean {
+  const form = row.beyond === undefined ? null : powerRow(row.beyond);
+  return form !== null && gateWhy(ctx, form) === null;
+}
+
 /** The tab: every power listed now, in content order. */
 export function powerViews(gw: GreatWar, seat: GwSeatState): GwPowerView[] {
   const ctx: SceneCtx = { gw, seat, cast: {} };
@@ -173,10 +197,11 @@ export function powerViews(gw: GreatWar, seat: GwSeatState): GwPowerView[] {
           id: f.id,
           options: f.options.filter((o) => open(ctx, o)).map((o) => o.id),
         })),
-        without: row.beyond !== undefined && s.needed,
+        without: s.needed && formOpen(ctx, row),
         sounded:
           said === null ? null : { person: said.person, said: said.said },
         slot: row.slot === true,
+        ends: row.ends !== undefined,
       },
     ];
   });
@@ -282,6 +307,7 @@ function abroad(gw: GreatWar, seat: GwSeatState, r: GwReactorRow): boolean {
     const ally = me.side !== null && n.side === me.side;
     const neutral = n.side === null;
     if (r.actor === "allies" ? !ally : !neutral) continue;
+    if (r.who !== undefined && !r.who.includes(n.tag)) continue;
     n.trust[seat.tag] = clampTo(
       (n.trust[seat.tag] ?? 0) + r.delta,
       GW_TRUST_MIN,
@@ -304,10 +330,50 @@ function reactKey(r: GwReactorRow, bloc?: string): string {
     : `react_${r.actor}_${bloc}_${way}`;
 }
 
+/** The tags a past use carried: its row's and its picked options'. */
+function usedTags(id: string): readonly GwPowerTag[] {
+  const row = powerRow(id);
+  if (row === null) return [];
+  const opts = [
+    ...(row.target !== undefined && row.target.kind !== "person"
+      ? row.target.of
+      : []),
+    ...(row.fields ?? []).flatMap((f) => f.options),
+  ];
+  return [...row.tags, ...opts.flatMap((o) => o.tags ?? [])];
+}
+
+/** Uses that went through in the last GW_BEYOND_WITHIN chapters. */
+function lately(gw: GreatWar, seat: GwSeatState) {
+  return (seat.powers?.used ?? []).filter(
+    (u) => u.end === "done" && gw.s.chapter - u.chapter <= GW_BEYOND_WITHIN,
+  );
+}
+
+const HARSH: readonly GwPowerTag[] = ["harsh_war", "harsh_home"];
+
+/** A harsh measure again, lately: the neutral capitals stop listening. */
+function harshAgain(ctx: SceneCtx, tags: readonly GwPowerTag[]): void {
+  const { gw, seat } = ctx;
+  if (!tags.some((t) => HARSH.includes(t))) return;
+  const before = lately(gw, seat).filter((u) =>
+    usedTags(u.id).some((t) => HARSH.includes(t)),
+  ).length;
+  if (before === 0) return;
+  const r: GwReactorRow = {
+    tag: "harsh_war",
+    actor: "neutrals",
+    delta: -Math.min(before, 2),
+    key: "react_harsh_again",
+  };
+  if (abroad(gw, seat, r)) reason(gw, seat, r.key!);
+}
+
 /** The world answers what was done (design B3): one reason line each. */
 export function react(ctx: SceneCtx, tags: readonly GwPowerTag[]): void {
   const { gw, seat } = ctx;
   const all = [...GW_REACTORS, ...(gwContent().reactors ?? [])];
+  harshAgain(ctx, tags);
   for (const tag of [...new Set(tags)].sort()) {
     for (const r of all) {
       if (r.tag !== tag) continue;
@@ -386,6 +452,65 @@ function procedure(ctx: SceneCtx, row: GwPowerRow): GwPowerEnd | null {
   return null;
 }
 
+/**
+ * The roll's odds from the state: the row's, its mods that hold, and for an
+ * act beyond the law every other one lately (the state remembers).
+ */
+export function riskPct(ctx: SceneCtx, row: GwPowerRow): number {
+  const risk = row.risk;
+  if (risk === undefined) return 0;
+  const mods = (risk.mods ?? [])
+    .filter((m) => holds(ctx, m.when))
+    .reduce((a, m) => a + m.add, 0);
+  const again =
+    row.kind !== "beyond"
+      ? 0
+      : lately(ctx.gw, ctx.seat).filter(
+          (u) => powerRow(u.id)?.kind === "beyond",
+        ).length;
+  return Math.max(0, Math.min(100, risk.pct + mods + again * GW_BEYOND_AGAIN));
+}
+
+/**
+ * A use heats a threat or a plot. A plot keeps its own fair warning and is
+ * never named. A fatal threat whose next step is its last, with no fresh
+ * warning paper, is held one below: the warning comes again first, and the
+ * row rests until it has stood GW_PLOT_WARN_GAP chapters. So no click brings
+ * a fatal step that wasn't warned of.
+ */
+export function heatThreat(
+  gw: GreatWar,
+  seat: GwSeatState,
+  h: GwPowerHeat,
+): void {
+  const plot = plotRow(h.id);
+  if (plot !== null) {
+    if (plot.tag === seat.tag) govHeatBy(gw, seat, h.id, h.by);
+    return;
+  }
+  const row = GW_GOV.find((r) => r.id === h.id && r.tag === seat.tag);
+  if (row === undefined) return;
+  govHeatBy(gw, seat, h.id, h.by);
+  if (h.by !== 0)
+    reason(gw, seat, h.by > 0 ? "power_threat_up" : "power_threat_down");
+  const n = row.steps.length;
+  const e = govEntry(seat, h.id);
+  const last = row.steps[n - 1];
+  if (!row.fatal || n < 2 || e.step !== n - 1 || e.heat < last.at) return;
+  const warn = row.steps[n - 2].scene;
+  const at = seat.seen[warn];
+  if (at !== undefined && gw.s.chapter - at <= GW_POWER_WARN_FRESH) return;
+  e.heat = last.at - 1;
+  e.rest = Math.max(e.rest, gw.s.chapter + 1 + GW_PLOT_WARN_GAP);
+  const waits =
+    seat.scheduled.some((q) => q.scene === warn) ||
+    seat.desk.some((c) => c.scene === warn);
+  if (!waits && sceneOf(warn) !== null) {
+    seat.scheduled.push({ scene: warn, chapter: gw.s.chapter + 1 });
+  }
+  reason(gw, seat, `gov_${row.id}_${n - 1}`);
+}
+
 /** It goes through: price, effects, the world's answers, the roll, the card. */
 function goThrough(
   ctx: SceneCtx,
@@ -402,21 +527,29 @@ function goThrough(
   runEffects(ctx, row.effects);
   for (const o of chosen) runEffects(ctx, o.effects ?? []);
   react(ctx, [...row.tags, ...chosen.flatMap((o) => o.tags ?? [])]);
+  for (const h of row.heats ?? []) heatThreat(gw, seat, h);
   const risk = row.risk;
+  let wrong = false;
   if (risk !== undefined) {
-    const pct =
-      risk.pct +
-      (risk.mods ?? [])
-        .filter((m) => holds(ctx, m.when))
-        .reduce((a, m) => a + m.add, 0);
+    const pct = riskPct(ctx, row);
     const uses = (seat.powers?.used ?? []).filter(
       (u) => u.id === row.id,
     ).length;
     const roll =
       wwRoll(gw.s.seed, P_RISK, idHash(row.id), gw.s.chapter, uses) % 100;
-    if (roll < pct) runEffects(ctx, risk.then);
+    if (roll < pct) {
+      wrong = true;
+      reason(gw, seat, "power_went_wrong");
+      runEffects(ctx, risk.then);
+      for (const h of risk.heats ?? []) heatThreat(gw, seat, h);
+    }
   }
-  const scene = row.scene === undefined ? null : sceneOf(row.scene);
+  if (row.ends !== undefined) {
+    runEffects(ctx, [{ kind: "end", ending: row.ends }]);
+    return;
+  }
+  const id = wrong && risk?.scene !== undefined ? risk.scene : row.scene;
+  const scene = id === undefined ? null : sceneOf(id);
   if (scene !== null) {
     const who = row.target?.kind === "person" ? target : null;
     const card = makeCard(gw, seat, scene, "summon", who);
@@ -462,27 +595,40 @@ export function takePower(
     cast.target = o.target;
   if (s.p !== null) cast.signer = s.p.id;
   const ctx: SceneCtx = { gw, seat, cast };
+  // Every line this use writes reads as its answer.
+  const out = withCause(row.id, () => use(ctx, row, s.p, o, chosen));
+  gw.touch();
+  return out;
+}
+
+function use(
+  ctx: SceneCtx,
+  row: GwPowerRow,
+  signer: GwPersonState | null,
+  o: { target: string | null; without: boolean },
+  chosen: readonly GwPowerOption[],
+): GwOrderBlock | null {
+  const { gw, seat } = ctx;
+  const base: SceneCtx = { gw, seat, cast: {} };
   if (o.without) {
     const form = row.beyond === undefined ? null : powerRow(row.beyond);
-    if (form === null || !s.needed || s.p === null) return "no_beyond";
+    if (form === null || signer === null) return "no_beyond";
+    if (gateWhy(base, form) !== null) return "power_closed";
     // Past him: he knows, and so does everyone who reads the papers.
-    trustBy(s.p, -2);
-    reasonOf(gw, seat, "power_without", s.p.id);
+    trustBy(signer, -2);
+    reasonOf(gw, seat, "power_without", signer.id);
     record(gw, seat, row, o.target, "without");
     goThrough(ctx, form, o.target, chosen);
     record(gw, seat, form, o.target, "done");
-    gw.touch();
     return null;
   }
   const stopped = procedure(ctx, row);
   if (stopped !== null) {
     runEffects(ctx, row.failed ?? []);
     record(gw, seat, row, o.target, stopped);
-    gw.touch();
     return null;
   }
   goThrough(ctx, row, o.target, chosen);
   record(gw, seat, row, o.target, "done");
-  gw.touch();
   return null;
 }

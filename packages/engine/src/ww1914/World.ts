@@ -116,7 +116,23 @@ export function news(
   gw.s.news.push({ key, chapter: gw.s.chapter, a, b, theatre });
 }
 
-/** A reason line on the seat's log, once a chapter. */
+/** The power being used (Powers.takePower): lines written meanwhile name it. */
+let cause: string | undefined;
+
+/** Runs `fn` with every reason line it writes answering `power` (ww169). */
+export function withCause<T>(power: string, fn: () => T): T {
+  const was = cause;
+  cause = power;
+  try {
+    return fn();
+  } finally {
+    cause = was;
+  }
+}
+
+const caused = () => (cause === undefined ? {} : { power: cause });
+
+/** A reason line on the seat's log, once a chapter (and cause). */
 export function reason(
   gw: GreatWar,
   seat: GwSeatState,
@@ -125,10 +141,15 @@ export function reason(
 ): void {
   const c = gw.s.chapter;
   const same = (l: GwReason) =>
-    l.key === key && l.chapter === c && (l.who ?? undefined) === who;
+    l.key === key &&
+    l.chapter === c &&
+    (l.who ?? undefined) === who &&
+    l.power === cause;
   if (seat.log.some(same)) return;
   seat.log.push(
-    who === undefined ? { key, chapter: c } : { key, chapter: c, who },
+    who === undefined
+      ? { key, chapter: c, ...caused() }
+      : { key, chapter: c, who, ...caused() },
   );
 }
 
@@ -140,10 +161,15 @@ export function reasonOf(
   who: string,
 ): void {
   const c = gw.s.chapter;
-  if (seat.log.some((l) => l.key === key && l.chapter === c && l.who === who)) {
+  if (
+    seat.log.some(
+      (l) =>
+        l.key === key && l.chapter === c && l.who === who && l.power === cause,
+    )
+  ) {
     return;
   }
-  seat.log.push({ key, chapter: c, who });
+  seat.log.push({ key, chapter: c, who, ...caused() });
 }
 
 /** A turning point of the game: every seat keeps it, the memoir reads it. */

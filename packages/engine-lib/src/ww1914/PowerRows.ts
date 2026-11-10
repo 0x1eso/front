@@ -4,6 +4,7 @@
 // engine/ww1914/Powers runs them. See /home/eser/dev/ww169-format.md.
 import type {
   GwCamp,
+  GwEnding,
   GwIssue,
   GwOffice,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
@@ -21,7 +22,20 @@ import type {
   GwEffect,
   GwScene,
 } from "@openfront/engine-api/ww1914/SceneDsl";
+import type { GwWorldEffect } from "@openfront/engine-api/ww1914/WorldDsl";
 import type { GwSide } from "./HouseRows";
+
+/**
+ * A threat to the government (engine GovTable `GW_GOV` id) or a plot (house
+ * content `plots` id) the use makes hotter (`by` > 0) or cooler. Never by
+ * `gov_heat` in a power's effects: through here the fair warning holds (a
+ * fatal row's last step comes only after its warning, never from one click),
+ * and a plot stays unseen (no reason line names it).
+ */
+export interface GwPowerHeat {
+  readonly id: string;
+  readonly by: number;
+}
 
 /** One choice in a target list or a field. Nothing shows before the pick but its words. */
 export interface GwPowerOption {
@@ -106,18 +120,42 @@ export interface GwPowerRow {
   readonly effects: readonly GwEffect[];
   /** Run when the procedure stops it (refused, voted down). */
   readonly failed?: readonly GwEffect[];
-  /** A chance from the state, rolled after it goes through. */
+  /** Threats and plots it heats when it goes through (phase 2). */
+  readonly heats?: readonly GwPowerHeat[];
+  /**
+   * A chance from the state, rolled after it goes through: `pct`, plus each
+   * `mods` that holds, plus GW_BEYOND_AGAIN for every beyond use in the last
+   * GW_BEYOND_WITHIN chapters when the row is `beyond`. When it fires: `then`,
+   * `heats`, the line `power_went_wrong`, and `scene` instead of the row's.
+   */
   readonly risk?: {
     readonly pct: number;
     readonly mods?: readonly { readonly when: GwCond; readonly add: number }[];
     readonly then: readonly GwEffect[];
+    readonly heats?: readonly GwPowerHeat[];
+    readonly scene?: string;
   };
+  /**
+   * The person's own ending: abdication, resignation. It ends the game with
+   * this ending once it goes through; the tab says so as a fact and asks
+   * twice. The only way a power ends the game.
+   */
+  readonly ends?: GwEnding;
   /** The silent result card laid at once (`scheduledOnly`, `silent`). */
   readonly scene?: string;
 }
 
 /** With no cooldown of its own, chapters before a power can be used again. */
 export const GW_POWER_COOLDOWN = 2;
+/** Risk added for each beyond use lately: the state remembers. */
+export const GW_BEYOND_AGAIN = 10;
+/** "Lately", in chapters, for GW_BEYOND_AGAIN and harsh measures repeated. */
+export const GW_BEYOND_WITHIN = 12;
+/**
+ * A fatal threat's warning paper counts as fresh this many chapters: a use
+ * that would bring the last step otherwise brings the warning again first.
+ */
+export const GW_POWER_WARN_FRESH = 4;
 
 /**
  * Who answers a tag, by its state (design B3). `of`: blocs for `people` and
@@ -133,6 +171,8 @@ export interface GwReactorRow {
   /** It answers only while this holds. */
   readonly by?: GwCond;
   readonly of?: readonly (GwBloc | GwCamp)[];
+  /** `allies`/`neutrals`: only these countries (absent: every one). */
+  readonly who?: readonly GwTag[];
   readonly delta: number;
   readonly key?: string;
   /** Plain effects on top (the house's weight, a general's pride). */
@@ -140,6 +180,13 @@ export interface GwReactorRow {
 }
 
 const war: GwCond = { kind: "world", of: { is: "war" } };
+const streets: GwCond = { kind: "world", of: { is: "unrest", min: 2 } };
+const quiet: GwCond = { kind: "world", of: { is: "unrest", max: 1 } };
+const usaOut: GwCond = { kind: "world", of: { is: "neutral", tag: "USA" } };
+/** The ruler's own conscience pays for a harsh measure (his card, warned). */
+const conscience = (key: string): GwReactorRow["does"] => [
+  { kind: "ruler", side: "conscience", delta: -1, key },
+];
 const r = (
   tag: GwPowerTag,
   actor: GwReactorActor,
@@ -189,8 +236,53 @@ export const GW_REACTORS: readonly GwReactorRow[] = [
   r("arrests", "factions", -1, ["workers"]),
   r("amnesty", "people", 1, ["workers"]),
   r("amnesty", "people", -1, ["army"]),
+  // Harsh measures (phase 2): each answer by the state, each with its line.
   r("harsh_war", "neutrals", -1),
+  r("harsh_war", "people", 1, ["army"]),
+  r("harsh_war", "people", -1, ["press"]),
+  {
+    tag: "harsh_war",
+    actor: "neutrals",
+    who: ["USA"],
+    by: usaOut,
+    delta: -1,
+    key: "react_harsh_usa",
+  },
+  {
+    tag: "harsh_war",
+    actor: "other",
+    delta: -1,
+    key: "react_harsh_conscience",
+    does: conscience("react_harsh_conscience"),
+  },
   r("harsh_home", "people", -1, ["workers"]),
+  r("harsh_home", "people", -1, ["press"]),
+  r("harsh_home", "people", 1, ["court"]),
+  r("harsh_home", "factions", -1, ["workers", "parliament"]),
+  // Quiet streets stay quiet for a while; streets already out take it as war.
+  {
+    tag: "harsh_home",
+    actor: "other",
+    by: quiet,
+    delta: 1,
+    key: "react_harsh_quiet",
+    does: [{ kind: "gauge", gauge: "order", delta: 1 }],
+  },
+  {
+    tag: "harsh_home",
+    actor: "other",
+    by: streets,
+    delta: -1,
+    key: "react_harsh_streets",
+    does: [{ kind: "gauge", gauge: "order", delta: -1 }],
+  },
+  {
+    tag: "harsh_home",
+    actor: "other",
+    delta: -1,
+    key: "react_harsh_conscience",
+    does: conscience("react_harsh_conscience"),
+  },
   r("coalition", "people", 1, ["parliament"]),
 ];
 
@@ -207,23 +299,107 @@ export interface GwPowerContent {
 export function powerCalledScenes(rows: GwPowerContent): string[] {
   return [
     GW_POWER_SOUND,
-    ...(rows.powers ?? []).flatMap((p) => (p.scene ? [p.scene] : [])),
+    ...(rows.powers ?? []).flatMap((p) => [
+      ...(p.scene ? [p.scene] : []),
+      ...(p.risk?.scene ? [p.risk.scene] : []),
+    ]),
   ];
 }
 
 /** The talk a signer is sounded out in: content/powers/common.ts. */
 export const GW_POWER_SOUND = "gw_pw_sound";
 
-/** What the types can't say; a content test requires an empty list. */
+/** Effects that end a seat at once: never in a power but through `ends`. */
+const FATAL_WORLD: readonly GwWorldEffect["do"][] = [
+  "close_seat",
+  "next_regime",
+];
+
+/** Every effect, into `maybe` and `roll`. */
+function flatEffects(list: readonly GwEffect[]): GwEffect[] {
+  return list.flatMap((e) =>
+    e.kind === "maybe"
+      ? [e, ...flatEffects(e.then)]
+      : e.kind === "roll"
+        ? [e, ...flatEffects(e.then), ...flatEffects(e.otherwise ?? [])]
+        : [e],
+  );
+}
+
+/**
+ * What in a list could lose the game in one click, or heat a threat past its
+ * warning: `end`, `close_seat`, `next_regime`, `gov_heat` (use `heats`).
+ */
+export function fatalEffects(list: readonly GwEffect[]): string[] {
+  return flatEffects(list).flatMap((e) => {
+    if (e.kind === "end") return ["end"];
+    if (e.kind !== "world") return [];
+    if (FATAL_WORLD.includes(e.of.do)) return [e.of.do];
+    return e.of.do === "gov_heat" ? ["gov_heat"] : [];
+  });
+}
+
+/** Every effect list a row can run. */
+function rowEffects(p: GwPowerRow): GwEffect[] {
+  const opts = [
+    ...(p.target !== undefined && p.target.kind !== "person"
+      ? p.target.of
+      : []),
+    ...(p.fields ?? []).flatMap((f) => f.options),
+  ];
+  return [
+    ...p.effects,
+    ...(p.failed ?? []),
+    ...(p.risk?.then ?? []),
+    ...opts.flatMap((o) => o.effects ?? []),
+  ];
+}
+
+/**
+ * What the types can't say; a content test requires an empty list. `threats`:
+ * the ids a `heats` may name (GW_GOV and the plots), unchecked when absent.
+ */
 export function gwPowerProblems(
   rows: GwPowerContent,
   scenes: ReadonlyMap<string, GwScene>,
+  threats?: ReadonlySet<string>,
 ): string[] {
   const out: string[] = [];
   const all = rows.powers ?? [];
   const ids = new Map(all.map((p) => [p.id, p]));
   if (ids.size !== all.length) out.push("a power id twice");
+  for (const r of rows.reactors ?? []) {
+    for (const f of fatalEffects(r.does ?? [])) {
+      out.push(
+        `reactor ${r.tag}/${r.actor}: ${f} (no fatal step in one click)`,
+      );
+    }
+  }
   for (const p of all) {
+    for (const f of fatalEffects(rowEffects(p))) {
+      out.push(`${p.id}: ${f} (use \`ends\` or \`heats\`)`);
+    }
+    for (const h of [...(p.heats ?? []), ...(p.risk?.heats ?? [])]) {
+      if (threats !== undefined && !threats.has(h.id)) {
+        out.push(`${p.id}: heats no threat or plot ${h.id}`);
+      }
+    }
+    if (p.ends !== undefined) {
+      if (
+        p.kind === "beyond" ||
+        p.beyond !== undefined ||
+        p.risk !== undefined
+      ) {
+        out.push(`${p.id}: an ending is the person's own lawful act`);
+      }
+    }
+    if (p.risk?.scene !== undefined) {
+      const s = scenes.get(p.risk.scene);
+      if (s === undefined) out.push(`${p.id}: no scene ${p.risk.scene}`);
+      else if (s.scheduledOnly !== true) {
+        out.push(`${p.id}: scene ${p.risk.scene} is not scheduledOnly`);
+      }
+    }
     if (!p.id.startsWith(`${p.tag.toLowerCase()}_pw_`)) {
       out.push(`${p.id}: not <tag>_pw_<name>`);
     }

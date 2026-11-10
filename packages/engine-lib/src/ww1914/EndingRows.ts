@@ -45,6 +45,7 @@ export const GW_ENDING_ROWS: Readonly<
   Partial<Record<GwTag, readonly GwEndingRow[]>>
 > = {
   DEU: [
+    { id: "deu_end_abdicated", of: ["deu_end_abdicated"] },
     { id: "deu_end_set_aside", of: ["deu_end_set_aside"] },
     { id: "deu_paris_dictated", of: ["victory_peace"], when: out("FRA") },
     {
@@ -74,6 +75,7 @@ export const GW_ENDING_ROWS: Readonly<
     },
   ],
   GBR: [
+    { id: "gbr_end_resigned", of: ["gbr_end_resigned"] },
     { id: "gbr_end_turned_out", of: ["gbr_end_turned_out"] },
     { id: "gbr_end_polls", of: ["gbr_end_polls"] },
     {
@@ -112,6 +114,7 @@ export const GW_ENDING_ROWS: Readonly<
     { id: "gbr_end_deadline", of: ["deadline"] },
   ],
   AUH: [
+    { id: "auh_e_abdicated", of: ["auh_e_abdicated"] },
     { id: "auh_e_regency", of: ["auh_e_regency"] },
     { id: "auh_e_federal", of: ANY_END, when: flag("f_auh_federal") },
     {
@@ -157,6 +160,7 @@ export const GW_ENDING_ROWS: Readonly<
     { id: "auh_e_deadline", of: ["deadline"] },
   ],
   RUS: [
+    { id: "rus_abdicated", of: ["rus_abdicated"] },
     { id: "rus_palace_coup", of: ["rus_palace_coup"] },
     {
       id: "rus_serbia_abandoned",
@@ -207,6 +211,7 @@ export const GW_ENDING_ROWS: Readonly<
   ],
   // France (ww166): the President stays to the end; what the end was.
   FRA: [
+    { id: "fra_end_stood_down", of: ["fra_end_stood_down"] },
     { id: "fra_end_resigned", of: ["fra_end_resigned"] },
     {
       id: "fra_end_alliance",
