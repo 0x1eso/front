@@ -30,6 +30,7 @@ import type { GreatWar } from "./GreatWar";
 import { spendHouseCall } from "./House";
 import { lawOrder } from "./Laws";
 import {
+  candidatesFor,
   dismissedFrom,
   dismissPerson,
   dismissPrice,
@@ -150,7 +151,11 @@ export function applyGwOrder(
     case "appoint": {
       const p = gw.person(o.person);
       if (!ownPerson(seat, o.person) || p === null) return "no_person";
-      if (p.status !== "active") return "no_person";
+      // One whose day hasn't come only when the vacancy box offers him.
+      const early =
+        p.status === "waiting" &&
+        candidatesFor(gw, seat, o.office).includes(p.id);
+      if (p.status !== "active" && !early) return "no_person";
       // The premier is called at the consultations, never named from the list.
       const picks = GW_PREMIER_PICKS[seat.tag] !== undefined;
       if (picks && o.office === "chancellor") return "premier_house";

@@ -17,7 +17,15 @@ import { dismissalFallout } from "./Authority";
 import type { GreatWar } from "./GreatWar";
 import { holderOf, rivalIds } from "./SceneRun";
 import { GW_NO_COMMAND, GW_PASSING, GW_PASSING_BY_SCENE } from "./Tables";
-import { chapterOf, clampTo, defOf, ownPeople, reasonOf, turn } from "./World";
+import {
+  chapterOf,
+  clampTo,
+  defOf,
+  ownPeople,
+  reasonOf,
+  seatPerson,
+  turn,
+} from "./World";
 
 const P_HEALTH_FAIL = idHash("gw_health_fail");
 const P_RIVAL = idHash("gw_rival");
@@ -212,7 +220,31 @@ export function dismissedFrom(
   );
 }
 
-/** Up to two people for an office, of different camps where there are. */
+/** The seat let this man go from office `o` (a dismissal, a resignation taken). */
+function putOutOf(seat: GwSeatState, person: string, o: GwOffice): boolean {
+  return seat.memory.some(
+    (m) => m.key === `dismissed_${o}` && m.who === person,
+  );
+}
+
+/** The seat's own people whose day hasn't come yet. */
+function waitingPeople(gw: GreatWar, seat: GwSeatState): GwPersonState[] {
+  const self = seatPerson(seat);
+  return gw.s.people.filter(
+    (p) =>
+      p.status === "waiting" && p.id !== self && defOf(p.id)?.tag === seat.tag,
+  );
+}
+
+/**
+ * Up to two people for an office, of different camps where there are.
+ * Someone the seat let go from it comes last: a resignation taken isn't
+ * undone at the chapter's close. With nobody else on the scene fit for it,
+ * those whose day hasn't come are called early (the office brings them on,
+ * as setOffice does). Germany's only men fit to be chancellor in 1914 sit in
+ * other offices: a resignation taken left the chancellery empty, with no
+ * name in the vacancy box, until the 1915 arrivals.
+ */
 export function candidatesFor(
   gw: GreatWar,
   seat: GwSeatState,
@@ -221,18 +253,19 @@ export function candidatesFor(
   const camp = nextCamp(seat);
   const named = (p: GwPersonState) =>
     camp !== null && defOf(p.id)?.camps.includes(camp) === true ? 1 : 0;
-  const free = ownPeople(gw, seat.tag)
-    .filter(
-      (p) =>
-        p.office === null &&
-        p.ailing === null &&
-        defOf(p.id)?.fit.includes(o) === true &&
-        !dismissedFrom(seat, p.id, o),
-    )
-    .sort(
-      (a, b) =>
-        named(b) - named(a) || b.trust - a.trust || (a.id < b.id ? -1 : 1),
-    );
+  const fits = (p: GwPersonState) =>
+    p.office === null &&
+    p.ailing === null &&
+    defOf(p.id)?.fit.includes(o) === true &&
+    !dismissedFrom(seat, p.id, o);
+  const order = (a: GwPersonState, b: GwPersonState) =>
+    named(b) - named(a) || b.trust - a.trust || (a.id < b.id ? -1 : 1);
+  const active = ownPeople(gw, seat.tag).filter(fits).sort(order);
+  const fresh = active.filter((p) => !putOutOf(seat, p.id, o));
+  const out = active.filter((p) => putOutOf(seat, p.id, o));
+  const early =
+    fresh.length > 0 ? [] : waitingPeople(gw, seat).filter(fits).sort(order);
+  const free = [...fresh, ...early, ...out];
   const first = free[0];
   if (first === undefined) return [];
   const camps = defOf(first.id)?.camps ?? [];
@@ -383,6 +416,8 @@ function succeed(gw: GreatWar, seat: GwSeatState): void {
     const p = next === undefined ? null : gw.person(next);
     if (p === null) continue;
     p.office = o;
+    // Called before their day: the office brings them on.
+    if (p.status === "waiting") p.status = "active";
     onAppointed(gw, p.id);
     seat.memory.push({
       key: `succeeded_${o}`,
