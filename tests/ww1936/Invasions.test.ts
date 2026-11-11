@@ -409,9 +409,10 @@ describe("naval invasions", () => {
     expect(navy.invasions.has(a.id)).toBe(false);
     expect(freeConvoysOf(navy, GBR)).toBe(35);
     expect(l.armies.get(a.id)!.order.kind).toBe("idle");
+    // ww177 final: the words name who landed.
     expect(messages(spy, "ww1936_invasion_landed")).toEqual([
-      { region: REGION.rome },
-      { region: REGION.rome },
+      { region: REGION.rome, countryTag: "GBR" },
+      { region: REGION.rome, countryTag: "GBR" },
     ]);
     // Rome has a naval base (3): lane C's sea hub, no beachhead.
     expect(beachheads(navy).has(REGION.rome)).toBe(false);
@@ -547,8 +548,8 @@ describe("naval invasions", () => {
     expect(Math.abs(lost - men / 5)).toBeLessThanOrEqual(1);
     expect(navy.landing.has(id)).toBe(false);
     expect(messages(spy, "ww1936_invasion_failed")).toEqual([
-      { region: REGION.rome },
-      { region: REGION.rome },
+      { region: REGION.rome, countryTag: "GBR" },
+      { region: REGION.rome, countryTag: "GBR" },
     ]);
     expect(l.controller[REGION.rome]).toBe(ITA);
     // At sea with no org (lane C's voyage, or the landing's own convoys).
@@ -678,8 +679,8 @@ describe("naval invasions", () => {
     landInvasion(navy, sail(navy, a.id, 1).id, g.ticks());
     expect(l.controller[REGION.london]).toBe(ITA);
     expect(messages(spy, "ww1936_port_captured")).toEqual([
-      { region: REGION.london },
-      { region: REGION.london },
+      { region: REGION.london, countryTag: "ITA" },
+      { region: REGION.london, countryTag: "ITA" },
     ]);
   });
 

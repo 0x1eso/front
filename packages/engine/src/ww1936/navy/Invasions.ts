@@ -930,8 +930,11 @@ export function landInvasion(navy: WwNavy, voyage: number, tick: number): void {
     t.org[r] = Math.floor((land.orgMaxOf(r) * LANDING_ORG_PCT) / 100);
     land.touchDivision(r);
   }
-  navy.message(owner, MSG.landed, { region: target });
-  navy.message(ctl, MSG.landed, { region: target });
+  // ww177 final: the words name who landed ({country}); without it the
+  // notice showed its raw "{region} … {country}".
+  const who = { region: target, countryTag: navy.ww.tagOf(owner) };
+  navy.message(owner, MSG.landed, who);
+  navy.message(ctl, MSG.landed, who);
   if (!defended) {
     landingWon(navy, inv, ctl, navy.day(tick));
     return;
@@ -973,8 +976,14 @@ function resolveLanding(
   const rows = armyRows(land, a).filter((r) => navy.landing.has(t.id[r]));
   if (rows.length === 0) {
     // Every landing division is gone.
-    navy.message(inv.owner, MSG.failed, { region: target });
-    navy.message(land.controller[target], MSG.failed, { region: target });
+    navy.message(inv.owner, MSG.failed, {
+      region: target,
+      countryTag: navy.ww.tagOf(inv.owner),
+    });
+    navy.message(land.controller[target], MSG.failed, {
+      region: target,
+      countryTag: navy.ww.tagOf(inv.owner),
+    });
     dropInvasion(navy, inv);
     return;
   }
@@ -1001,8 +1010,14 @@ function landingFailed(
   const target = inv.target;
   const ids = rows.map((r) => t.id[r]);
   for (const id of ids) navy.landing.delete(id);
-  navy.message(inv.owner, MSG.failed, { region: target });
-  navy.message(land.controller[target], MSG.failed, { region: target });
+  navy.message(inv.owner, MSG.failed, {
+    region: target,
+    countryTag: navy.ww.tagOf(inv.owner),
+  });
+  navy.message(land.controller[target], MSG.failed, {
+    region: target,
+    countryTag: navy.ww.tagOf(inv.owner),
+  });
   const zone = navy.scenario.harborOf(target);
   const port = returnPort(navy, inv.owner, inv.from, zone);
   if (port === 0) {
@@ -1121,9 +1136,15 @@ function landingWon(
   if (
     (navy.econ.buildingArray("naval_base")[target] ?? 0) >= MAJOR_PORT_LEVEL
   ) {
-    navy.message(inv.owner, MSG.portCaptured, { region: target });
+    navy.message(inv.owner, MSG.portCaptured, {
+      region: target,
+      countryTag: navy.ww.tagOf(inv.owner),
+    });
     if (defender > 0) {
-      navy.message(defender, MSG.portCaptured, { region: target });
+      navy.message(defender, MSG.portCaptured, {
+        region: target,
+        countryTag: navy.ww.tagOf(inv.owner),
+      });
     }
   }
   dropInvasion(navy, inv);
