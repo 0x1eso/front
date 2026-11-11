@@ -1949,6 +1949,531 @@
       "key": "khanaqin",
       "name": ["Khanaqin", "하나킨"],
       "group": "mesopotamia"
+    },
+    {
+      "id": 634,
+      "key": "ankara",
+      "name": ["Ankara", "앙카라"],
+      "group": "anatolia",
+      "owner": "OTT"
+    },
+    {
+      "id": 687,
+      "key": "konya",
+      "name": ["Konya", "코냐"],
+      "group": "anatolia",
+      "owner": "OTT"
+    },
+    {
+      "id": 676,
+      "key": "smyrna",
+      "name": ["Smyrna", "스미르나"],
+      "group": "anatolia",
+      "owner": "OTT"
+    },
+    {
+      "id": 644,
+      "key": "sivas",
+      "name": ["Sivas", "시바스"],
+      "group": "anatolia",
+      "owner": "OTT"
+    },
+    {
+      "id": 704,
+      "key": "adana",
+      "name": ["Adana", "아다나"],
+      "group": "anatolia",
+      "owner": "OTT"
+    },
+    {
+      "id": 698,
+      "key": "diyarbakir",
+      "name": ["Diyarbakır", "디야르바키르"],
+      "group": "anatolia",
+      "owner": "OTT"
+    },
+    {
+      "id": 878,
+      "key": "medina",
+      "name": ["Medina", "메디나"],
+      "group": "hejaz",
+      "owner": "OTT"
+    },
+    {
+      "id": 914,
+      "key": "mecca",
+      "name": ["Mecca", "메카"],
+      "group": "hejaz",
+      "owner": "OTT"
+    },
+    {
+      "id": 238,
+      "key": "kazan",
+      "name": ["Kazan", "카잔"],
+      "group": "volga",
+      "owner": "RUS"
+    },
+    {
+      "id": 285,
+      "key": "orenburg",
+      "name": ["Orenburg", "오렌부르크"],
+      "group": "volga",
+      "owner": "RUS"
+    },
+    {
+      "id": 413,
+      "key": "astrakhan",
+      "name": ["Astrakhan", "아스트라한"],
+      "group": "volga",
+      "owner": "RUS"
+    },
+    {
+      "id": 158,
+      "key": "yekaterinburg",
+      "name": ["Yekaterinburg", "예카테린부르크"],
+      "group": "urals",
+      "owner": "RUS"
+    },
+    {
+      "id": 160,
+      "key": "perm",
+      "name": ["Perm", "페름"],
+      "group": "urals",
+      "owner": "RUS"
+    },
+    {
+      "id": 42,
+      "key": "arkhangelsk",
+      "name": ["Arkhangelsk", "아르한겔스크"],
+      "group": "north_russia",
+      "owner": "RUS"
+    },
+    {
+      "id": 570,
+      "key": "tashkent",
+      "name": ["Tashkent", "타슈켄트"],
+      "group": "turkestan",
+      "owner": "RUS"
+    },
+    {
+      "id": 643,
+      "key": "samarkand",
+      "name": ["Samarkand", "사마르칸트"],
+      "group": "turkestan",
+      "owner": "RUS"
+    },
+    {
+      "id": 205,
+      "key": "omsk",
+      "name": ["Omsk", "옴스크"],
+      "group": "siberia",
+      "owner": "RUS"
+    },
+    {
+      "id": 171,
+      "key": "tomsk",
+      "name": ["Tomsk", "톰스크"],
+      "group": "siberia",
+      "owner": "RUS"
+    },
+    {
+      "id": 136,
+      "key": "irkutsk",
+      "name": ["Irkutsk", "이르쿠츠크"],
+      "group": "siberia",
+      "owner": "RUS"
+    },
+    {
+      "id": 74,
+      "key": "yakutsk",
+      "name": ["Yakutsk", "야쿠츠크"],
+      "group": "siberia",
+      "owner": "RUS"
+    },
+    {
+      "id": 251,
+      "key": "khabarovsk",
+      "name": ["Khabarovsk", "하바롭스크"],
+      "group": "far_east",
+      "owner": "RUS"
+    },
+    {
+      "id": 424,
+      "key": "vladivostok",
+      "name": ["Vladivostok", "블라디보스토크"],
+      "group": "far_east",
+      "owner": "RUS"
+    },
+    {
+      "id": 345,
+      "key": "ottawa",
+      "name": ["Ottawa", "오타와"],
+      "group": "canada",
+      "owner": "GBR"
+    },
+    {
+      "id": 290,
+      "key": "quebec",
+      "name": ["Quebec", "퀘벡"],
+      "group": "canada",
+      "owner": "GBR"
+    },
+    {
+      "id": 221,
+      "key": "winnipeg",
+      "name": ["Winnipeg", "위니펙"],
+      "group": "canada",
+      "owner": "GBR"
+    },
+    {
+      "id": 196,
+      "key": "vancouver",
+      "name": ["Vancouver", "밴쿠버"],
+      "group": "canada",
+      "owner": "GBR"
+    },
+    {
+      "id": 1283,
+      "key": "sydney",
+      "name": ["Sydney", "시드니"],
+      "group": "australia",
+      "owner": "GBR"
+    },
+    {
+      "id": 1305,
+      "key": "melbourne",
+      "name": ["Melbourne", "멜버른"],
+      "group": "australia",
+      "owner": "GBR"
+    },
+    {
+      "id": 1276,
+      "key": "adelaide",
+      "name": ["Adelaide", "애들레이드"],
+      "group": "australia",
+      "owner": "GBR"
+    },
+    {
+      "id": 1238,
+      "key": "perth",
+      "name": ["Perth", "퍼스"],
+      "group": "australia",
+      "owner": "GBR"
+    },
+    {
+      "id": 1233,
+      "key": "brisbane",
+      "name": ["Brisbane", "브리즈번"],
+      "group": "australia",
+      "owner": "GBR"
+    },
+    {
+      "id": 1194,
+      "key": "darwin",
+      "name": ["Darwin", "다윈"],
+      "group": "australia",
+      "owner": "GBR"
+    },
+    {
+      "id": 1317,
+      "key": "wellington",
+      "name": ["Wellington", "웰링턴"],
+      "group": "new_zealand",
+      "owner": "GBR"
+    },
+    {
+      "id": 1291,
+      "key": "cape_town",
+      "name": ["Cape Town", "케이프타운"],
+      "group": "south_africa",
+      "owner": "GBR"
+    },
+    {
+      "id": 1264,
+      "key": "johannesburg",
+      "name": ["Johannesburg", "요하네스버그"],
+      "group": "south_africa",
+      "owner": "GBR"
+    },
+    {
+      "id": 1275,
+      "key": "durban",
+      "name": ["Durban", "더반"],
+      "group": "south_africa",
+      "owner": "GBR"
+    },
+    {
+      "id": 934,
+      "key": "bombay",
+      "name": ["Bombay", "봄베이"],
+      "group": "india",
+      "owner": "GBR"
+    },
+    {
+      "id": 894,
+      "key": "calcutta",
+      "name": ["Calcutta", "캘커타"],
+      "group": "india",
+      "owner": "GBR"
+    },
+    {
+      "id": 1026,
+      "key": "madras",
+      "name": ["Madras", "마드라스"],
+      "group": "india",
+      "owner": "GBR"
+    },
+    {
+      "id": 799,
+      "key": "lahore",
+      "name": ["Lahore", "라호르"],
+      "group": "india",
+      "owner": "GBR"
+    },
+    {
+      "id": 863,
+      "key": "karachi",
+      "name": ["Karachi", "카라치"],
+      "group": "india",
+      "owner": "GBR"
+    },
+    {
+      "id": 1062,
+      "key": "colombo",
+      "name": ["Colombo", "콜롬보"],
+      "group": "india",
+      "owner": "GBR"
+    },
+    {
+      "id": 975,
+      "key": "rangoon",
+      "name": ["Rangoon", "랑군"],
+      "group": "burma",
+      "owner": "GBR"
+    },
+    {
+      "id": 933,
+      "key": "khartoum",
+      "name": ["Khartoum", "하르툼"],
+      "group": "sudan",
+      "owner": "GBR"
+    },
+    {
+      "id": 1104,
+      "key": "nairobi",
+      "name": ["Nairobi", "나이로비"],
+      "group": "british_east_africa",
+      "owner": "GBR"
+    },
+    {
+      "id": 1042,
+      "key": "lagos",
+      "name": ["Lagos", "라고스"],
+      "group": "british_west_africa",
+      "owner": "GBR"
+    },
+    {
+      "id": 1048,
+      "key": "accra",
+      "name": ["Accra", "아크라"],
+      "group": "british_west_africa",
+      "owner": "GBR"
+    },
+    {
+      "id": 1087,
+      "key": "kuala_lumpur",
+      "name": ["Kuala Lumpur", "쿠알라룸푸르"],
+      "group": "malaya",
+      "owner": "GBR"
+    },
+    {
+      "id": 520,
+      "key": "new_york",
+      "name": ["New York", "뉴욕"],
+      "group": "america",
+      "owner": "USA"
+    },
+    {
+      "id": 579,
+      "key": "chicago",
+      "name": ["Chicago", "시카고"],
+      "group": "america",
+      "owner": "USA"
+    },
+    {
+      "id": 811,
+      "key": "new_orleans",
+      "name": ["New Orleans", "뉴올리언스"],
+      "group": "america",
+      "owner": "USA"
+    },
+    {
+      "id": 749,
+      "key": "san_antonio",
+      "name": ["San Antonio", "샌안토니오"],
+      "group": "america",
+      "owner": "USA"
+    },
+    {
+      "id": 629,
+      "key": "denver",
+      "name": ["Denver", "덴버"],
+      "group": "america",
+      "owner": "USA"
+    },
+    {
+      "id": 592,
+      "key": "san_francisco",
+      "name": ["San Francisco", "샌프란시스코"],
+      "group": "america",
+      "owner": "USA"
+    },
+    {
+      "id": 406,
+      "key": "seattle",
+      "name": ["Seattle", "시애틀"],
+      "group": "america",
+      "owner": "USA"
+    },
+    {
+      "id": 180,
+      "key": "juneau",
+      "name": ["Juneau", "주노"],
+      "group": "alaska",
+      "owner": "USA"
+    },
+    {
+      "id": 110,
+      "key": "fairbanks",
+      "name": ["Fairbanks", "페어뱅크스"],
+      "group": "alaska",
+      "owner": "USA"
+    },
+    {
+      "id": 945,
+      "key": "manila",
+      "name": ["Manila", "마닐라"],
+      "group": "philippines",
+      "owner": "USA"
+    },
+    {
+      "id": 930,
+      "key": "honolulu",
+      "name": ["Honolulu", "호놀룰루"],
+      "group": "hawaii",
+      "owner": "USA"
+    },
+    {
+      "id": 725,
+      "key": "tunis",
+      "name": ["Tunis", "튀니스"],
+      "group": "tunisia",
+      "owner": "FRA"
+    },
+    {
+      "id": 988,
+      "key": "saigon",
+      "name": ["Saigon", "사이공"],
+      "group": "indochina",
+      "owner": "FRA"
+    },
+    {
+      "id": 918,
+      "key": "hanoi",
+      "name": ["Hanoi", "하노이"],
+      "group": "indochina",
+      "owner": "FRA"
+    },
+    {
+      "id": 1196,
+      "key": "antananarivo",
+      "name": ["Antananarivo", "안타나나리보"],
+      "group": "madagascar",
+      "owner": "FRA"
+    },
+    {
+      "id": 809,
+      "key": "tripoli",
+      "name": ["Tripoli", "트리폴리"],
+      "group": "libya",
+      "owner": "ITA"
+    },
+    {
+      "id": 812,
+      "key": "benghazi",
+      "name": ["Benghazi", "벵가지"],
+      "group": "libya",
+      "owner": "ITA"
+    },
+    {
+      "id": 980,
+      "key": "asmara",
+      "name": ["Asmara", "아스마라"],
+      "group": "italian_east_africa",
+      "owner": "ITA"
+    },
+    {
+      "id": 1039,
+      "key": "mogadishu",
+      "name": ["Mogadishu", "모가디슈"],
+      "group": "italian_east_africa",
+      "owner": "ITA"
+    },
+    {
+      "id": 619,
+      "key": "sassari",
+      "name": ["Sassari", "사사리"],
+      "group": "italy",
+      "owner": "ITA"
+    },
+    {
+      "id": 1094,
+      "key": "batavia",
+      "name": ["Batavia", "바타비아"],
+      "group": "east_indies",
+      "owner": "NLD"
+    },
+    {
+      "id": 1108,
+      "key": "balikpapan",
+      "name": ["Balikpapan", "발릭파판"],
+      "group": "east_indies",
+      "owner": "NLD"
+    },
+    {
+      "id": 1138,
+      "key": "leopoldville",
+      "name": ["Léopoldville", "레오폴드빌"],
+      "group": "congo",
+      "owner": "BEL"
+    },
+    {
+      "id": 1158,
+      "key": "elisabethville",
+      "name": ["Élisabethville", "엘리자베스빌"],
+      "group": "congo",
+      "owner": "BEL"
+    },
+    {
+      "id": 679,
+      "key": "seoul",
+      "name": ["Seoul", "경성"],
+      "group": "korea",
+      "owner": "JPN"
+    },
+    {
+      "id": 901,
+      "key": "taipei",
+      "name": ["Taipei", "타이베이"],
+      "group": "taiwan",
+      "owner": "JPN"
+    },
+    {
+      "id": 383,
+      "key": "toyohara",
+      "name": ["Toyohara", "도요하라"],
+      "group": "japan",
+      "owner": "JPN"
     }
   ],
   "aliases": {

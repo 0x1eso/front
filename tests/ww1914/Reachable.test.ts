@@ -1,7 +1,8 @@
 // ww179 (design ww168 B6, 9A): every place of a country that can go to war
 // can be taken by some path in a war against it, while that war runs: the
 // fronts to their last line, then occupation on into the interior and over
-// the sea, a group a chapter inside the land budget. On the real 1914 set.
+// the sea, a group a chapter inside the land budget. Each place carries its
+// cell, so every land region of such a country goes too. On the real 1914 set.
 import {
   GW_FRONT_UP,
   GW_LINE_STEP,
@@ -15,12 +16,12 @@ import {
 } from "@openfront/engine-api/ww1914/GwPlaces";
 import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
 import { createGameRunner } from "@openfront/engine/GameRunner";
+import { placeCells } from "@openfront/engine/ww1914/Cells";
 import type { GreatWar } from "@openfront/engine/ww1914/GreatWar";
 import { frontLandStep, holderOf } from "@openfront/engine/ww1914/Land";
 import {
   canAskFor,
-  GW_OCC_TILES,
-  landGraph,
+  GW_OCC_PLACES,
   occupationStep,
 } from "@openfront/engine/ww1914/Occupation";
 import { frontsBetween } from "@openfront/engine/ww1914/Tables";
@@ -64,11 +65,20 @@ test("every place of a country that can go to war can be taken while the war run
     (c, i) => i >= 8 && c.spanDays >= 28,
   );
   const fresh = structuredClone(gw.s);
-  const graph = landGraph(gw);
+  const cells = placeCells(gw);
+  gw.scenario.ensureRegionTiles(gw.mg.map());
   const tags = gw.s.nations.map((n) => n.tag);
   const warring = tags.filter((o) =>
     tags.some((t) => frontsBetween(o, t).length > 0),
   );
+  // Every land region of a country with places is in some place's cell.
+  const inCell = new Set([...cells.values()].flat());
+  const owners = new Set<string>(GW_PLACE_KEYS.map((p) => GW_PLACES[p].owner));
+  const loose = gw.scenario.data.regions.filter(
+    (r) =>
+      owners.has(gw.world.tags[gw.world.owners[r.id] - 1]) && !inCell.has(r.id),
+  );
+  expect(loose.map((r) => r.id)).toEqual([]);
   const missed: string[] = [];
   for (const o of warring) {
     const mine = GW_PLACE_KEYS.filter(
@@ -89,9 +99,10 @@ test("every place of a country that can go to war can be taken while the war run
         occupationStep(gw);
         const occ = gw.s.landMoves.filter((m) => m.how === "occupation");
         const groups = new Set(occ.map((m) => GW_PLACES[m.place].group));
-        const tiles = occ.reduce((k, m) => k + graph.tiles.get(m.place)!, 0);
-        // The budget: past the first group, no more than GW_OCC_TILES.
-        if (groups.size > 1) expect(tiles).toBeLessThanOrEqual(GW_OCC_TILES);
+        // The budget: past the first group, no more than GW_OCC_PLACES.
+        if (groups.size > 1) {
+          expect(occ.length).toBeLessThanOrEqual(GW_OCC_PLACES);
+        }
         still = gw.s.landMoves.length === 0 ? still + 1 : 0;
       }
       for (const p of mine) {
@@ -100,6 +111,11 @@ test("every place of a country that can go to war can be taken while the war run
         taken.add(p);
         // 9A: the table can ask for any place one holds.
         expect(canAskFor(gw, h, p, () => false)).toBe(true);
+        // The whole cell went with it on the map.
+        for (const region of cells.get(p)!) {
+          const tile = gw.scenario.regionTiles(region)[0];
+          expect(gw.tagOf(gw.mg.ownerID(tile)), `${p} ${region}`).toBe(h);
+        }
       }
       if (taken.size === mine.length) break;
     }

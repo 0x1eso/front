@@ -8,7 +8,7 @@ import type { GwSeatState } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { createGameRunner } from "@openfront/engine/GameRunner";
 import { advanceChapter } from "@openfront/engine/ww1914/Chapters";
 import { generalEnding } from "@openfront/engine/ww1914/Endings";
-import { GW_OCC_TILES, landGraph } from "@openfront/engine/ww1914/Occupation";
+import { GW_OCC_PLACES, landGraph } from "@openfront/engine/ww1914/Occupation";
 import { GW_GREAT } from "@openfront/engine/ww1914/Wars";
 import fs from "node:fs";
 import { expect, test } from "vitest";
@@ -62,7 +62,7 @@ async function play(i: number): Promise<Run> {
     maxPlaces = Math.max(maxPlaces, moves.length);
     maxTiles = Math.max(maxTiles, sum(moves));
     maxOccTiles = Math.max(maxOccTiles, sum(occ));
-    if (groups > 1 && sum(occ) > GW_OCC_TILES) overBudget++;
+    if (groups > 1 && occ.length > GW_OCC_PLACES) overBudget++;
     const front = moves.filter((m) => m.theatre !== null);
     maxFrontTiles = Math.max(maxFrontTiles, sum(front));
     const table = moves.filter((m) => m.how === "table");
