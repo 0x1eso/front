@@ -118,6 +118,8 @@ export const UPDATE_TYPE_ROUTING: Record<
   WwDepth: "misc",
   // Great War 1914: a replay shows no panel.
   GreatWar: "dropped",
+  // ww177: the Imjin War's fleets, like the navy's, are not replayed.
+  WwImjin: "dropped",
 };
 
 /**

@@ -18,6 +18,7 @@ import { registerBackClosable } from "../../BackGuard";
 import { Controller } from "../../Controller";
 import { SendWwOrderIntentEvent } from "../../Transport";
 import { hitFleet, layoutFleets } from "../../view/FleetTokenLayout";
+import { imjinFleetOrder, isImjinFleet } from "../../view/ImjinFleets";
 import { landSelectionOf, WwSelectArmyEvent } from "./LandSelection";
 import {
   invasionPreview,
@@ -267,6 +268,16 @@ export class WwSeaAirController implements Controller {
     return id > SEA_ZONE_BASE && !ctx.scenario.isLake(id) ? id : 0;
   }
 
+  /** ww177: the sea tile under (x, y), or -1 (land, a lake, off the map). */
+  private waterTileAt(ctx: NavyCtx, x: number, y: number): number {
+    const s = ctx.scenario;
+    const tx = Math.floor(x);
+    const ty = Math.floor(y);
+    if (tx < 0 || ty < 0 || tx >= s.width || ty >= s.height) return -1;
+    const id = s.regionAt(ty * s.width + tx);
+    return id > SEA_ZONE_BASE && !s.isLake(id) ? ty * s.width + tx : -1;
+  }
+
   private regionAt(ctx: NavyCtx, x: number, y: number): number {
     const id = this.idAt(ctx, x, y);
     return ctx.scenario.region(id) === undefined ? 0 : id;
@@ -313,6 +324,15 @@ export class WwSeaAirController implements Controller {
         return;
       }
       case "move": {
+        // ww177: an Imjin tile fleet sails to the very tile tapped.
+        if (isImjinFleet(f.id)) {
+          const tile = this.waterTileAt(ctx, x, y);
+          if (tile < 0) return this.cancel();
+          this.targetTap(tile + 1, () =>
+            imjinFleetOrder(f.id, "move", { tile }),
+          );
+          return;
+        }
         const zone = this.zoneAt(ctx, x, y);
         if (zone === 0 || moveTarget(ctx, f, zone).km === null) {
           return this.cancel();

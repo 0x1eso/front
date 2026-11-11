@@ -29,6 +29,11 @@ import {
   type SeaAirGlowSource,
 } from "../../view/AirZoneColors";
 import { FleetLayoutCache, fleetLod } from "../../view/FleetTokenLayout";
+import {
+  IMJIN_FLEET_ID_BASE,
+  IMJIN_GUN_RANGE_TILES,
+  isImjinFleet,
+} from "../../view/ImjinFleets";
 import { LandFrontWorld, type LandWarInputs } from "../../view/LandFrontWorld";
 import { TokenLayoutCache, tokenLod } from "../../view/LandTokenLayout";
 import {
@@ -2334,6 +2339,38 @@ export class GPURenderer {
     return pickWingSlot(p.wings.placed, tx, ty, this.camera.zoom / renderDpr());
   }
 
+  /** ww177: the chosen Imjin fleet's gun range and its move target. */
+  private imjinRangeOn = false;
+  private imjinTargetShown = -1;
+  private syncImjinFleet(navy: WwNavyView): void {
+    const id = this.seaAirSelection?.fleet ?? 0;
+    const at = isImjinFleet(id) ? navy.imjinXY.get(id) : undefined;
+    if (at === undefined) {
+      if (this.imjinRangeOn) this.rangeCirclePass.setEllipse(null);
+      this.imjinRangeOn = false;
+      this.imjinTargetShown = -1;
+      return;
+    }
+    this.imjinRangeOn = true;
+    this.rangeCirclePass.setEllipse({
+      x: at[0],
+      y: at[1],
+      rx: IMJIN_GUN_RANGE_TILES,
+      ry: IMJIN_GUN_RANGE_TILES,
+      mapW: 0,
+    });
+    const f = navy.imjin?.fleets.find((x) => x.id === id - IMJIN_FLEET_ID_BASE);
+    if (
+      f !== undefined &&
+      f.target >= 0 &&
+      f.target !== this.imjinTargetShown
+    ) {
+      this.imjinTargetShown = f.target;
+      const W = navy.scenario.width;
+      this.showMoveIndicator(f.target % W, Math.floor(f.target / W), f.owner);
+    }
+  }
+
   /** ww8: sets the range ellipse around the focus base (null clears it). */
   private syncWingRange(air: WwAirView | null): void {
     const r = this.wingFocus.range;
@@ -2522,6 +2559,9 @@ export class GPURenderer {
     const air = this.wwAir;
     if (air !== null) {
       this.syncWingRange(air);
+    }
+    if (navy !== null) this.syncImjinFleet(navy);
+    if (air !== null) {
       const tickF = this.landClock.at(now);
       passes.sorties.setFlightClock(tickF, this.msPerTick, navy);
       passes.sorties.update(air, navy, now, zoom);

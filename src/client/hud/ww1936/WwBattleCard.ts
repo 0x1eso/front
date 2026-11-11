@@ -4,6 +4,10 @@ import type {
   BattleSummary,
   ModLine,
 } from "@openfront/engine-api/ww1936/LandTypes";
+import {
+  ATTACK_ORDERS,
+  DEFENCE_STANCES,
+} from "@openfront/engine-lib/imjin/LandRules";
 import { assetUrl } from "@openfront/shared/AssetUrls";
 import { EventBus } from "@openfront/shared/EventBus";
 import { html, LitElement, nothing, TemplateResult } from "lit";
@@ -122,6 +126,7 @@ export class WwBattleCard extends LitElement implements Controller {
       view?.version,
       this.game.wwEconomy?.()?.version,
       this.game.wwAir?.()?.version,
+      this.game.wwNavy?.()?.version,
       this.region,
     ];
     if (key.some((v, i) => v !== this.redrawKey[i])) {
@@ -193,7 +198,8 @@ export class WwBattleCard extends LitElement implements Controller {
           style="width: ${Math.max(0, Math.min(1000, b.progressPm)) / 10}%"
         ></div>
       </div>
-      ${this.renderAir(d)} ${this.renderLuck(battleLuck(b, this.luckBand(b)))}
+      ${this.renderImjin(b)} ${this.renderAir(d)}
+      ${this.renderLuck(battleLuck(b, this.luckBand(b)))}
       ${(b.runRounds ?? 0) > 0 && this.luckBand(b) >= 3
         ? html`<div data-ww-battle-running class="text-amber-300">
             ${translateText("ww1936.land.battle_running", { n: b.runRounds! })}
@@ -249,6 +255,78 @@ export class WwBattleCard extends LitElement implements Controller {
           </button>`
         : nothing}
     </section>`;
+  }
+
+  /**
+   * ww177 (Imjin design §5 "Orders"): the order pair in effect, the siege,
+   * and my side's order chips for the next phase.
+   */
+  private renderImjin(
+    b: BattleCardData["summary"],
+  ): TemplateResult | typeof nothing {
+    const im = this.game.wwNavy?.()?.imjin ?? null;
+    if (im === null) return nothing;
+    const o = im.orders.find((x) => x.region === b.region);
+    const siege = im.sieges.find((x) => x.region === b.region);
+    const me = this.game.myPlayer()?.smallID() ?? 0;
+    const attack = me !== 0 && me === b.attacker;
+    const defend = me !== 0 && me === b.defender;
+    const list = attack ? ATTACK_ORDERS : defend ? DEFENCE_STANCES : null;
+    const pending = o === undefined ? -1 : attack ? o.pendAtt : o.pendDef;
+    const current = o === undefined ? -1 : attack ? o.att : o.def;
+    return html`<div data-ww-imjin-orders class="flex flex-col gap-1">
+      ${o === undefined
+        ? nothing
+        : html`<div class="text-white/80">
+            ${translateText("imjin.battle.orders_line", {
+              att: translateText(`imjin.battle.order.${ATTACK_ORDERS[o.att]}`),
+              def: translateText(
+                `imjin.battle.order.${DEFENCE_STANCES[o.def]}`,
+              ),
+            })}
+            ${o.ambushed !== 0
+              ? html`<span class="text-amber-300"
+                  >${translateText("imjin.battle.ambushed")}</span
+                >`
+              : nothing}
+          </div>`}
+      ${siege === undefined
+        ? nothing
+        : html`<div data-ww-imjin-siege class="text-amber-300">
+            ${translateText("imjin.battle.siege_line", {
+              days: siege.grainDays,
+              fort: siege.fort,
+            })}
+          </div>`}
+      ${list === null
+        ? nothing
+        : html`<div class="flex flex-wrap gap-1">
+            ${list.map(
+              (k, i) =>
+                html`<button
+                  type="button"
+                  data-ww-imjin-chip=${k}
+                  aria-pressed=${String(i === current || i === pending)}
+                  class="h-8 rounded-md border px-1.5 ${i === pending
+                    ? "border-amber-300 bg-amber-700/50"
+                    : i === current
+                      ? "border-white/40 bg-white/20"
+                      : "border-white/15 bg-white/5 hover:bg-white/15"}"
+                  @click=${() =>
+                    this.eventBus.emit(
+                      new SendWwOrderIntentEvent({
+                        kind: "imjin_battle",
+                        region: b.region,
+                        attack,
+                        index: i,
+                      }),
+                    )}
+                >
+                  ${translateText(`imjin.battle.order.${k}`)}
+                </button>`,
+            )}
+          </div>`}
+    </div>`;
   }
 
   /**

@@ -17944,6 +17944,42 @@
       "wanli": "만력 {year}년",
       "tianqi": "천계 {year}년",
       "chongzhen": "숭정 {year}년"
+    },
+    "battle": {
+      "ambushed": "매복에 걸렸습니다!",
+      "order": {
+        "advance": "전진",
+        "ambush": "매복",
+        "archer_screen": "궁수 엄호",
+        "barrage": "원거리 사격",
+        "charge": "돌격",
+        "charge_gap": "장전 틈에 돌격",
+        "counter_charge": "역돌격",
+        "feigned_retreat": "거짓 후퇴",
+        "flank": "측면 공격",
+        "hold": "버티기",
+        "massed_volley": "일제 사격",
+        "rolling_volley": "교대 사격",
+        "storm": "성벽 공격",
+        "strike_crossing": "도하 중 공격",
+        "volley_advance": "사격하며 전진",
+        "withdraw": "물러나기"
+      },
+      "orders_line": "{att} 대 {def}",
+      "siege_line": "포위됨: 군량 {days}일분, 성벽 {fort}단"
+    },
+    "sea": {
+      "board": "등선 육박",
+      "break_off": "전투 이탈",
+      "formation": {
+        "column": "장사진",
+        "crane": "학익진",
+        "line": "일자진",
+        "loose": "산개",
+        "wedge": "첨자진"
+      },
+      "hold": "정지",
+      "keep_range": "거리 유지"
     }
   }
 }

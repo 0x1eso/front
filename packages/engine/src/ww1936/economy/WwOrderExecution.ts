@@ -11,6 +11,7 @@ import {
 import { zPlayerRef } from "@openfront/engine-lib/snapshot/SnapshotType";
 import { z } from "zod";
 import { Execution, Game, Player } from "../../game/Game";
+import { issueImjinOrder } from "../../imjin/WwImjin";
 import { execSnapshotType } from "../../snapshot/ExecutionSnapshot";
 import type {
   ExecRecord,
@@ -314,6 +315,11 @@ function applyOrder(
     // Military thought sliders (ww9).
     case "thought_set":
       block = econ.ww.depth.issueThought(p.smallID(), order, mg.ticks());
+      break;
+    // ww177: the Imjin War's tile fleets and battle order chips.
+    case "imjin_fleet":
+    case "imjin_battle":
+      block = issueImjinOrder(econ.ww, p.smallID(), order, mg.ticks());
       break;
   }
   if (block === null) econ.markCountryDirty(ce.smallID);

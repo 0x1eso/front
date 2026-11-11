@@ -5,6 +5,7 @@
 // greyed one says why when tapped, from the same engine-lib judge); the
 // preview of a pending map tap. Left of an open drawer, never over it; it
 // folds to a strip on a short screen and while an order is being given.
+import { IMJIN_FORMATIONS } from "@openfront/engine-api/imjin/ImjinTypes";
 import type { WwOrder } from "@openfront/engine-api/Schemas";
 import {
   ENGAGE_RULES,
@@ -20,6 +21,11 @@ import { Controller } from "../../Controller";
 import { SendWwOrderIntentEvent } from "../../Transport";
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view";
+import {
+  IMJIN_FLEET_ID_BASE,
+  imjinFleetOrder,
+  isImjinFleet,
+} from "../../view/ImjinFleets";
 import { DepthMiscModel } from "./DepthMiscModel";
 import { blockText } from "./EconomyModel";
 import { fogModelOf } from "./FogModel";
@@ -696,6 +702,15 @@ export class WwFleetCard extends LitElement implements Controller {
             >${translateText("ww1936.navy.hint_pick_sea")}</span
           >`;
         }
+        // ww177: an Imjin tile fleet's target is a tile (pending - 1).
+        if (isImjinFleet(f.id)) {
+          return html`<span data-ww-preview="move" class="${cls}"
+            >→ ${zoneName(sc, sc.regionAt(d.pending - 1))} ·
+            <span data-ww-tap-again class="font-semibold text-amber-200"
+              >${translateText("ww1936.navy.preview_confirm")}</span
+            ></span
+          >`;
+        }
         const t = moveTarget(c.ctx, f, d.pending);
         return html`<span data-ww-preview="move" class="${cls}"
           >→ ${zoneName(sc, d.pending)}
@@ -770,6 +785,69 @@ export class WwFleetCard extends LitElement implements Controller {
       <span aria-hidden="true" class="text-sm">${icon}</span>
       <span class="max-w-14 truncate text-xs">${label}</span>
     </button>`;
+  }
+
+  /** ww177: an Imjin tile fleet's orders (Imjin design §6.2; P3 adds the rest). */
+  private imjinButtons(
+    c: { ctx: NavyCtx; card: FleetCardData },
+    mode: string,
+  ): TemplateResult[] {
+    const f = c.card.fleet;
+    const data = c.ctx.navy.imjin?.fleets.find(
+      (x) => x.id === f.id - IMJIN_FLEET_ID_BASE,
+    );
+    const formation = (data?.formation ??
+      "line") as (typeof IMJIN_FORMATIONS)[number];
+    const order = data?.order ?? "hold";
+    const next =
+      IMJIN_FORMATIONS[
+        (IMJIN_FORMATIONS.indexOf(formation) + 1) % IMJIN_FORMATIONS.length
+      ];
+    const busy = data !== undefined && data.battle !== 0;
+    return [
+      this.button(
+        "move",
+        translateText(BUTTON_KEYS.move),
+        BUTTON_ICONS.move,
+        () => this.setMode(mode === "move" ? "none" : "move"),
+        { pressed: mode === "move" },
+      ),
+      this.button(
+        "imjin_hold",
+        translateText("imjin.sea.hold"),
+        "■",
+        () => this.send(imjinFleetOrder(f.id, "hold")),
+        { pressed: order === "hold" },
+      ),
+      this.button(
+        "imjin_keep_range",
+        translateText("imjin.sea.keep_range"),
+        "↔",
+        () => this.send(imjinFleetOrder(f.id, "keep_range")),
+        { pressed: order === "keep_range" },
+      ),
+      this.button(
+        "imjin_board",
+        translateText("imjin.sea.board"),
+        "⚔",
+        () => this.send(imjinFleetOrder(f.id, "board")),
+        { pressed: order === "board" },
+      ),
+      this.button(
+        "imjin_break_off",
+        translateText("imjin.sea.break_off"),
+        "↩",
+        () => this.send(imjinFleetOrder(f.id, "break_off")),
+        { grey: !busy, pressed: order === "break_off" },
+      ),
+      this.button(
+        "imjin_formation",
+        translateText(`imjin.sea.formation.${formation}`),
+        "◇",
+        () =>
+          this.send(imjinFleetOrder(f.id, "formation", { formation: next })),
+      ),
+    ];
   }
 
   private back(): TemplateResult {
@@ -922,6 +1000,7 @@ export class WwFleetCard extends LitElement implements Controller {
           this.back(),
         ];
       case "main":
+        if (isImjinFleet(f.id)) return this.imjinButtons(c, mode);
         return d.buttons.map(({ id, block }) =>
           this.button(
             id,

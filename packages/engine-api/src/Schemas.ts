@@ -35,6 +35,7 @@ import {
   Trios,
   UnitType,
 } from "./game/GameTypes";
+import { IMJIN_FLEET_ORDERS, IMJIN_FORMATIONS } from "./imjin/ImjinTypes";
 import { PlayerStatsSchema } from "./StatsSchemas";
 import {
   INTERCEPTOR_NUKES,
@@ -1875,6 +1876,22 @@ export const WwOrderSchema = z.discriminatedUnion("kind", [
     kind: z.literal("ultimatum"),
     target: WwCountry,
     regions: z.array(WwRegionId).min(1).max(WW_ULT_MAX_REGIONS),
+  }),
+  // ww177 (Imjin design §5-6), appended: a tile fleet's order (a move or a
+  // lure to `tile`, a stance, a formation) and a land battle's order chip
+  // for the next phase (LandRules' ATTACK_ORDERS / DEFENCE_STANCES index).
+  z.object({
+    kind: z.literal("imjin_fleet"),
+    fleet: WwFleet,
+    order: z.enum(IMJIN_FLEET_ORDERS),
+    tile: zb.uint({ max: 16_777_215 }),
+    formation: z.enum(IMJIN_FORMATIONS),
+  }),
+  z.object({
+    kind: z.literal("imjin_battle"),
+    region: WwRegionId,
+    attack: z.boolean(),
+    index: zb.uint({ max: 7 }),
   }),
 ]);
 export type WwOrder = z.infer<typeof WwOrderSchema>;

@@ -33,6 +33,11 @@ import {
   shipCount,
   tokenClass,
 } from "../../../view/FleetTokenLayout";
+import {
+  classOfKind,
+  IMJIN_FLEET_ID_BASE,
+  IMJIN_MT,
+} from "../../../view/ImjinFleets";
 import type { WwNavyView } from "../../../view/WwNavyView";
 import { DynamicInstanceBuffer } from "../DynamicBuffer";
 import fragSrc from "../shaders/fleet-token/fleet-token.frag.glsl?raw";
@@ -447,6 +452,9 @@ export function fleetStateBits(state: string, flags: number): number {
   return s;
 }
 
+/** ww177: an Imjin ship's silhouette, screen px. */
+const IMJIN_SHIP_PX = 14;
+
 /** Per-fleet token attributes cached between samples (FLEET_ATTRS each). */
 const FLEET_ATTRS = 8;
 /** Cell value of a fleet the fog hides. */
@@ -516,6 +524,28 @@ export class FleetTokenPass {
     const kind = layout.lod === 0 ? KIND_TOKEN : KIND_CHIP;
     const b = this.batch;
     b.begin(layout.count);
+    // ww177 (Imjin design §6.2): close in, each ship of a tile fleet as a
+    // silhouette in its slot, under the tokens.
+    const imjin = view.imjin;
+    if (imjin !== null && layout.lod === 0) {
+      for (const s of imjin.ships) {
+        if (
+          fog !== undefined &&
+          !fog.fleetView(IMJIN_FLEET_ID_BASE + s[1]).visible
+        ) {
+          continue;
+        }
+        const heading = s[5] & 1023;
+        b.putSprite(
+          s[3] / IMJIN_MT,
+          s[4] / IMJIN_MT,
+          CLASS_CELL[classOfKind(s[6])],
+          heading > 256 && heading < 768 ? -1 : 1,
+          s[7] !== 0 ? 0.6 : 1,
+          IMJIN_SHIP_PX,
+        );
+      }
+    }
     let last = false;
     for (let i = 0; i < layout.count; i++) {
       if (this.attrs[layout.slotIndex[i] * FLEET_ATTRS + 1] === HIDDEN) {

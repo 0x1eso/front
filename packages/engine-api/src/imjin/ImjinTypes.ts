@@ -2,6 +2,27 @@
 // (GameUpdateType.WwImjin) when its sea layer, land orders or sieges change.
 // Positions are milli-tiles; indices are SeaRules' and LandRules' lists.
 
+/** The tile fleet orders a player gives (the imjin_fleet order). */
+export const IMJIN_FLEET_ORDERS = [
+  "move",
+  "hold",
+  "board",
+  "keep_range",
+  "break_off",
+  "lure",
+  "formation",
+] as const;
+export type ImjinFleetOrder = (typeof IMJIN_FLEET_ORDERS)[number];
+
+/** SeaRules.FORMATIONS, in order. */
+export const IMJIN_FORMATIONS = [
+  "line",
+  "column",
+  "crane",
+  "wedge",
+  "loose",
+] as const;
+
 /** SeaRules.SHIP_KINDS, in order (the client's silhouettes). */
 export const IMJIN_SHIP_KINDS = [
   "panokseon",

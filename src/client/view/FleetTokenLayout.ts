@@ -364,6 +364,14 @@ export class FleetLayoutCache {
     for (let i = 0; i < n; i++) {
       const f = fleets[i];
       this.loops[i] = null;
+      // ww177: an Imjin tile fleet stands at its own tile.
+      const at = view.imjinXY.get(f.id);
+      if (at !== undefined) {
+        this.mode[i] = MODE_STILL;
+        this.bx[i] = at[0];
+        this.by[i] = at[1];
+        continue;
+      }
       if (f.docked !== 0) {
         const dock = dockXY(sc, f.docked);
         const k = fan.get(f.docked) ?? 0;

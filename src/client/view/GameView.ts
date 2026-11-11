@@ -561,6 +561,9 @@ export class GameView implements GameLike {
       if (u.data.global !== null) this.syncWorldWarTeams(u.data.global);
     }
     // P4 (plan decision 4): after P3's.
+    for (const u of gu.updates[GameUpdateType.WwImjin] ?? []) {
+      this._wwNavy?.applyImjin(u.data);
+    }
     for (const u of gu.updates[GameUpdateType.WwNavy] ?? []) {
       this._wwNavy?.apply(u.data, gu.tick);
     }

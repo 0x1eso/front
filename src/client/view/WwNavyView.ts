@@ -1,3 +1,4 @@
+import type { ImjinData } from "@openfront/engine-api/imjin/ImjinTypes";
 import {
   CountryNavyDetail,
   FleetSummary,
@@ -6,6 +7,12 @@ import {
   WwNavyData,
 } from "@openfront/engine-api/ww1936/NavyTypes";
 import { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
+import {
+  IMJIN_FLEET_ID_BASE,
+  IMJIN_MT,
+  imjinFleetSummaries,
+  isImjinFleet,
+} from "./ImjinFleets";
 
 /** P2 WwLand's side key: a faction 100,000 + its index, a country alone its smallID. */
 export function sideKeyOf(smallID: number, factionIdx: number): number {
@@ -32,6 +39,10 @@ export class WwNavyView {
   readonly mySunkTicks: number[] = [];
   /** The tick each fleet's summary (its path and progress) arrived. */
   private arrived = new Map<number, number>();
+  /** ww177: the Imjin War's own view (tile fleets, battle orders, sieges). */
+  imjin: ImjinData | null = null;
+  /** ww177: each tile fleet's position in tiles, by screen id. */
+  readonly imjinXY = new Map<number, [number, number]>();
 
   constructor(
     readonly scenario: ScenarioIndex,
@@ -63,6 +74,25 @@ export class WwNavyView {
     this.version++;
   }
 
+  /** ww177: the Imjin War's tile fleets, as fleet summaries at their tiles. */
+  applyImjin(d: ImjinData): void {
+    this.imjin = d;
+    for (const id of [...this.fleets.keys()]) {
+      if (isImjinFleet(id)) this.fleets.delete(id);
+    }
+    this.imjinXY.clear();
+    for (const f of imjinFleetSummaries(d, this.scenario)) {
+      this.fleets.set(f.id, f);
+    }
+    for (const f of d.fleets) {
+      this.imjinXY.set(IMJIN_FLEET_ID_BASE + f.id, [
+        f.x / IMJIN_MT,
+        f.y / IMJIN_MT,
+      ]);
+    }
+    this.version++;
+  }
+
   /**
    * Interpolated tile position [x, y] of a fleet at `tick + alpha`: from
    * its zone's center toward the next zone's, by its progress and step.
@@ -70,6 +100,8 @@ export class WwNavyView {
    * (FleetTokenLayout draws both ends).
    */
   fleetXY(id: number, tick: number, alpha: number): [number, number] {
+    const at = this.imjinXY.get(id);
+    if (at !== undefined) return at;
     const f = this.fleets.get(id);
     if (f === undefined) return [0, 0];
     const W = this.scenario.width;

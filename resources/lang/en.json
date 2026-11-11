@@ -5671,6 +5671,29 @@
     "waiting": "Waiting for players..."
   },
   "imjin": {
+    "battle": {
+      "ambushed": "Ambushed!",
+      "order": {
+        "advance": "Advance",
+        "ambush": "Ambush",
+        "archer_screen": "Archers' screen",
+        "barrage": "Barrage",
+        "charge": "Charge",
+        "charge_gap": "Charge the gap",
+        "counter_charge": "Counter-charge",
+        "feigned_retreat": "Feigned retreat",
+        "flank": "Flank",
+        "hold": "Hold",
+        "massed_volley": "Massed volley",
+        "rolling_volley": "Rolling volley",
+        "storm": "Storm the walls",
+        "strike_crossing": "Strike the crossing",
+        "volley_advance": "Volley advance",
+        "withdraw": "Withdraw"
+      },
+      "orders_line": "{att} against {def}",
+      "siege_line": "Under siege: grain for {days} days, walls {fort}"
+    },
     "date": {
       "line": "{date} · {lunar} · {reign}",
       "line_no_reign": "{date} · {lunar}",
@@ -5710,6 +5733,19 @@
         "JOS": "Mountain passes, fortresses and a navy with cannon",
         "JPN": "The best foot army in Asia, fed across one strait"
       }
+    },
+    "sea": {
+      "board": "Board",
+      "break_off": "Break off",
+      "formation": {
+        "column": "Column",
+        "crane": "Crane wing",
+        "line": "Line abreast",
+        "loose": "Loose",
+        "wedge": "Wedge"
+      },
+      "hold": "Hold",
+      "keep_range": "Keep range"
     }
   },
   "inventory": {

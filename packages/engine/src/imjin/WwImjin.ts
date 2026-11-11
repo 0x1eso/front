@@ -4,7 +4,9 @@
 // war's opening. Only an Imjin game builds it (WorldWar.imjinWar); a 1936
 // game never reaches this file, so its digests cannot move.
 import type { ImjinData } from "@openfront/engine-api/imjin/ImjinTypes";
+import type { WwOrder } from "@openfront/engine-api/Schemas";
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
+import type { WwOrderBlock } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { WW_SUPPLY_CONVOY_KM } from "@openfront/engine-api/ww1936/NavyTypes";
 import {
   ATTACK_ORDERS,
@@ -20,10 +22,10 @@ import {
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import type { Game } from "../game/Game";
 import { PathFinding } from "../pathfinding/PathFinder";
-import type { WorldWar } from "../ww1936/WorldWar";
 import { effectiveLevel } from "../ww1936/economy/Buildings";
 import { USE_SUPPLY } from "../ww1936/navy/Convoys";
 import { navalPortsOf } from "../ww1936/navy/Ports";
+import type { WorldWar } from "../ww1936/WorldWar";
 import { siegeDays } from "./land/Sieges";
 import { imjinSeaAi } from "./sea/SeaAi";
 import { addConvoyGroup } from "./sea/SeaConvoys";
@@ -414,7 +416,7 @@ export class WwImjin {
     fleet: number,
     order: SeaOrder,
     tick: number,
-  ): string | null {
+  ): WwOrderBlock | null {
     const ok = seaOrder(this.st.sea, this.ctx(tick), smallID, fleet, order);
     if (ok) this.dirty = true;
     return ok ? null : "bad_index";
@@ -426,7 +428,7 @@ export class WwImjin {
     region: number,
     attack: boolean,
     index: number,
-  ): string | null {
+  ): WwOrderBlock | null {
     const land = this.ww.land;
     const b = land.battles.get(region);
     if (b === undefined) return "bad_index";
@@ -594,4 +596,46 @@ export function imjinRouteCapacityMilli(r: {
   km: number;
 }): number {
   return Math.floor((r.got * WW_SUPPLY_CONVOY_KM * 1000) / Math.max(1, r.km));
+}
+
+/** The imjin_fleet and imjin_battle orders (WwOrderExecution); null: done. */
+export function issueImjinOrder(
+  ww: WorldWar,
+  smallID: number,
+  order: Extract<WwOrder, { kind: "imjin_fleet" | "imjin_battle" }>,
+  tick: number,
+): WwOrderBlock | null {
+  const im = ww.imjinWar;
+  if (im === null) return "system_off";
+  if (order.kind === "imjin_battle") {
+    return im.battleOrder(smallID, order.region, order.attack, order.index);
+  }
+  switch (order.order) {
+    case "move":
+    case "lure":
+      return im.fleetOrder(
+        smallID,
+        order.fleet,
+        { kind: order.order, tile: order.tile },
+        tick,
+      );
+    case "hold":
+    case "break_off":
+      return im.fleetOrder(smallID, order.fleet, { kind: order.order }, tick);
+    case "board":
+    case "keep_range":
+      return im.fleetOrder(
+        smallID,
+        order.fleet,
+        { kind: "engage", mode: order.order },
+        tick,
+      );
+    case "formation":
+      return im.fleetOrder(
+        smallID,
+        order.fleet,
+        { kind: "formation", formation: order.formation },
+        tick,
+      );
+  }
 }
