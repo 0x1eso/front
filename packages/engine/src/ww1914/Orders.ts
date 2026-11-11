@@ -32,6 +32,7 @@ import { inStage, makeCard, placeCard, repeatable, sceneWear } from "./Desk";
 import { proposalsFor } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { lawOrder } from "./Laws";
+import { GW_OFFENSIVE_PAPERS, signOffensivePaper } from "./Offensives";
 import {
   candidatesFor,
   dismissedFrom,
@@ -164,21 +165,33 @@ export function applyGwOrder(
     }
     case "allocate": {
       if (seat.signed === gw.s.chapter) return "signed";
-      const paper = proposalsFor(gw, seat).find(
-        (p) =>
-          p.main === o.main &&
-          p.posture === o.posture &&
-          p.scale === o.scale &&
-          p.allyShare === o.allyShare,
+      // The great offensive's papers answer by their id (ww173).
+      const paper = proposalsFor(gw, seat).find((p) =>
+        o.paper !== undefined && GW_OFFENSIVE_PAPERS.includes(o.paper)
+          ? p.id === o.paper && p.main === o.main
+          : !GW_OFFENSIVE_PAPERS.includes(p.id) &&
+            p.main === o.main &&
+            p.posture === o.posture &&
+            p.scale === o.scale &&
+            p.allyShare === o.allyShare,
       );
       if (paper === undefined) return "not_proposed";
       if (!paper.open) return "closed";
+      const pick = {
+        method: o.method,
+        months: o.months,
+        feint: o.feint,
+        quiet: o.quiet,
+      };
+      const no = signOffensivePaper(gw, seat, paper.id, paper.main, pick, true);
+      if (no !== null) return no;
+      signOffensivePaper(gw, seat, paper.id, paper.main, pick);
       seat.signed = gw.s.chapter;
       seat.alloc = {
-        main: o.main,
-        posture: o.posture,
-        scale: o.scale,
-        allyShare: o.allyShare,
+        main: paper.main,
+        posture: paper.posture,
+        scale: paper.scale,
+        allyShare: paper.allyShare,
         research: o.research,
       };
       return null;

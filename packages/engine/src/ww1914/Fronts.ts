@@ -30,6 +30,17 @@ import {
   warMonths,
 } from "./Eras";
 import type { GreatWar } from "./GreatWar";
+import {
+  counterReserves,
+  feintFronts,
+  judgeOffensives,
+  methodsFor,
+  offensiveFront,
+  offensivePaperIds,
+  offensiveStep,
+  ownOffensive,
+  signOffensivePaper,
+} from "./Offensives";
 import { officeHolder, recordResult } from "./People";
 import { collapseAnswers, pressureStep } from "./Stalemate";
 import { easeStrain, NEW_ARMIES_EASE, strainHold, strainPush } from "./Strain";
@@ -273,6 +284,10 @@ function reservesOf(gw: GreatWar, t: GwTheatre, side: GwSide): number {
   }
   let out = 0;
   for (const tag of membersOf(gw, t, side)) {
+    // An answer to a great offensive moves them, here or away (ww173).
+    const moved = counterReserves(gw, tag, t);
+    if (moved.away) continue;
+    out += moved.here;
     const a = allocOf(gw, tag);
     if (a?.main !== t) continue;
     out += a.posture === "hold" ? 18 : 6;
@@ -403,6 +418,7 @@ export function oddsOf(
   by: GwSide,
   planned = true,
   raid = false,
+  extraReserves = 0,
 ): number {
   const foe = other(by);
   const effort = planned ? effortOf(gw, t.id, by) : 25;
@@ -420,7 +436,9 @@ export function oddsOf(
     100;
   const trench = raid ? 0 : t.trench;
   const def =
-    ((((bandOf(gw, t.id, foe) + 12 + reservesOf(gw, t.id, foe)) *
+    ((((bandOf(gw, t.id, foe) +
+      12 +
+      Math.max(0, reservesOf(gw, t.id, foe) + extraReserves)) *
       (100 +
         trench * (TRENCH_WORTH_BY[t.id] ?? TRENCH_WORTH) +
         (raid ? 0 : groundOf(gw, t, foe) + eraOf(gw).defence) +
@@ -443,6 +461,16 @@ export function oddsOf(
   return Math.floor((att * 100) / Math.max(1, def)) + bias;
 }
 
+/** A great offensive's odds before its own terms (ww173, Offensives). */
+export function offenseOdds(
+  gw: GreatWar,
+  t: GwTheatreState,
+  by: GwSide,
+  extraReserves: number,
+): number {
+  return oddsOf(gw, t, by, true, false, extraReserves);
+}
+
 /** What a theatre would do if pressed: the AI's and the chief's eye. */
 export function pressOdds(gw: GreatWar, t: GwTheatre, by: GwSide): number {
   return oddsOf(gw, gw.s.theatres.find((x) => x.id === t)!, by, false);
@@ -455,7 +483,7 @@ function reachOf(t: GwTheatreState, by: GwSide): number {
 }
 
 /** Nothing left to take: the far end of the theatre's lines. */
-function atEnd(t: GwTheatreState, by: GwSide): boolean {
+export function atEnd(t: GwTheatreState, by: GwSide): boolean {
   const up = by === GW_FRONT_UP[t.id];
   return up
     ? posOf(t) >= (GW_LINES[t.id].length - 1) * GW_LINE_STEP
@@ -475,7 +503,7 @@ export function attacks(
 }
 
 /** The trench an attack really meets: the storm looks past some of it. */
-function trenchFaced(gw: GreatWar, t: GwTheatreState): number {
+export function trenchFaced(gw: GreatWar, t: GwTheatreState): number {
   return Math.max(0, t.trench - eraOf(gw).open);
 }
 
@@ -509,7 +537,7 @@ export function move(
 }
 
 /** Thousands lost by attacker and defender. */
-function lossesOf(
+export function lossesOf(
   gw: GreatWar,
   t: GwTheatre,
   by: GwSide,
@@ -559,7 +587,7 @@ export function bleed(
 }
 
 /** A theatre's effect on the people who lead it and the country's mood. */
-function settle(
+export function settle(
   gw: GreatWar,
   t: GwTheatreState,
   by: GwSide,
@@ -644,6 +672,8 @@ function localPush(gw: GreatWar, t: GwTheatreState): GwSide | null {
 function judge(gw: GreatWar, t: GwTheatreState): void {
   const s = gw.s;
   orderSteps(gw, t);
+  // A great offensive takes the theatre's chapter for itself (ww173).
+  if (judgeOffensives(gw, t)) return;
   const ups = GW_FRONT_UP[t.id];
   const aUp = attacks(gw, t, ups);
   const aDown = attacks(gw, t, other(ups));
@@ -791,6 +821,7 @@ function signDefaults(gw: GreatWar): void {
     const first = proposalsFor(gw, seat).find((p) => p.open);
     if (first === undefined) continue;
     seat.alloc = { ...seat.alloc, ...planOf(first) };
+    signOffensivePaper(gw, seat, first.id, first.main, {});
     reason(gw, seat, "plan_by_default");
   }
 }
@@ -801,6 +832,7 @@ export function signChief(gw: GreatWar, seat: GwSeatState): void {
   const first = proposalsFor(gw, seat).find((p) => p.open);
   if (first === undefined) return;
   seat.alloc = { ...seat.alloc, ...planOf(first) };
+  signOffensivePaper(gw, seat, first.id, first.main, {});
   seat.signed = gw.s.chapter;
 }
 
@@ -826,6 +858,7 @@ export function frontsStep(gw: GreatWar): void {
   signDefaults(gw);
   collapseAnswers(gw);
   for (const n of s.nations) n.lostNow = 0;
+  offensiveStep(gw);
   // A front opened as this chapter closed waits for its first plans.
   const judged = s.theatres.filter((t) => t.open && t.since !== s.chapter);
   const before = judged.map((t) => posOf(t));
@@ -983,6 +1016,22 @@ export function proposalsFor(gw: GreatWar, seat: GwSeatState): GwProposal[] {
       claimed: posture === "hold" ? [] : claimsIn(gw, seat, main),
     });
   };
+  // A great offensive under way: its own papers, and no others (ww173).
+  const going = ownOffensive(gw, seat.tag);
+  if (going !== null) {
+    for (const id of offensivePaperIds(gw, going, bold)) {
+      const go = id === "launch" || id === "press_on";
+      add(
+        id,
+        going.theatre,
+        go ? "offensive" : "hold",
+        go ? "major" : "limited",
+        0,
+        null,
+      );
+    }
+    return out;
+  }
   // A chief who can read his own odds doesn't send a paper he doesn't believe.
   const floor = bold ? BOLD_FLOOR : PRESS_FLOOR;
   const age = gw.s.chapter - (gw.s.warChapter ?? gw.s.chapter);
@@ -1008,6 +1057,23 @@ export function proposalsFor(gw: GreatWar, seat: GwSeatState): GwProposal[] {
   }
   for (const alt of alts) {
     add("other_front", alt, "offensive", "limited", 0, null);
+  }
+  // The great offensive's paper, on each front it can be made on (ww173).
+  const fronts = [wants, ...mine.map((t) => t.id).filter((t) => t !== wants)];
+  for (const t of fronts) {
+    if (!offensiveFront(gw, seat.tag, t)) continue;
+    add(
+      "offensive",
+      t,
+      "hold",
+      "limited",
+      0,
+      paperClosed(gw, n, "attack", "major"),
+    );
+    out[out.length - 1].offensive = {
+      methods: methodsFor(gw, seat.tag, t),
+      feints: feintFronts(gw, seat.tag, t),
+    };
   }
   if (believes) add("hold_all", wants, "hold", "limited", 0, null);
   if (

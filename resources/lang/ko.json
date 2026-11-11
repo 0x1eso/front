@@ -14758,7 +14758,11 @@
       "act_speech": "연설이 사람들을 움직였다.",
       "act_intrigue": "뒷공작이 먹혔다.",
       "order_stirred": "밖에서 온 선동이 소요를 키웠다.",
-      "front_collapsed": "전선이 무너졌다."
+      "front_collapsed": "전선이 무너졌다.",
+      "off_feint": "속임수 준비에 돈이 들었다.",
+      "off_shells": "긴 포격에 쓸 포탄을 쌓았다.",
+      "off_papers_talk": "신문들이 다가올 승리를 이야기한다.",
+      "off_refusal": "군의 거부가 나라를 흔들었다."
     },
     "mandate": {
       "deu_bread_for_the_winter": "겨울 빵을 남기기",
@@ -14943,7 +14947,13 @@
       "pair_table_signed": "{a}과(와) {b}이(가) 강화 조약에 서명했다.",
       "front_collapse": "{a}의 전선이 무너졌다: {theatre}.",
       "front_salient": "{a}이(가) {place} 근처의 돌출부를 빼앗았다: {theatre}.",
-      "front_salient_back": "{a}이(가) {place} 근처의 돌출부를 되찾았다: {theatre}."
+      "front_salient_back": "{a}이(가) {place} 근처의 돌출부를 되찾았다: {theatre}.",
+      "off_launched": "{a}이(가) 대공세를 시작했다: {theatre}.",
+      "off_break": "{a}의 대공세가 전선을 뚫었다: {theatre}.",
+      "off_bite": "{a}의 대공세가 전선 한 토막을 빼앗았다: {theatre}.",
+      "off_attrition": "{a}의 대공세가 땅을 얻지 못한 채 피만 흘린다: {theatre}.",
+      "off_repulsed": "{a}의 대공세가 철조망 앞에서 멈췄다: {theatre}.",
+      "off_refusal": "{a}의 병사들이 다시 나가기를 거부한다."
     },
     "odds": {
       "0": "될 일이 아닙니다.",
@@ -14984,7 +14994,13 @@
       "help_ally": "동맹 지원",
       "hold_all": "전 전선 유지",
       "other_front": "다른 전선",
-      "claim_front": "칠한 땅으로"
+      "claim_front": "칠한 땅으로",
+      "offensive": "대공세를 준비한다",
+      "prep_go": "준비를 계속한다",
+      "launch": "예정대로 친다",
+      "prep_stop": "준비를 거둔다",
+      "press_on": "계속 밀어붙인다",
+      "stop": "멈춘다"
     },
     "plan_why": {
       "army": "참모본부가 이 안을 받지 않는다.",
@@ -15000,7 +15016,9 @@
       "reichstag": "제국의회가 이것을 참지 않는다.",
       "chamber": "하원이 이 안을 받지 않는다.",
       "senate": "상원이 이 안을 받지 않는다.",
-      "countersign": "수상이 이 안에 부서하지 않는다."
+      "countersign": "수상이 이 안에 부서하지 않는다.",
+      "off_no_broad": "이 방식을 쓸 줄 아는 지휘관이나 돌격대가 있어야 한다.",
+      "off_no_surprise": "침투 전술, 전차, 사전 측량 사격 같은 새 방식이 있어야 한다."
     },
     "reason": {
       "army_grows": "군이 전쟁을 더 많이 쥐었다.",
@@ -15342,7 +15360,19 @@
       "gw_w_collapse_sack": "무너진 전선의 지휘관을 바꿨다.",
       "gw_w_collapse_river": "군에 다음 강에서 버티라고 명령했다.",
       "gw_w_collapse_allies": "동맹국에 병력을 청했다.",
-      "gw_w_collapse_peace": "저쪽에 강화의 뜻을 타진했다."
+      "gw_w_collapse_peace": "저쪽에 강화의 뜻을 타진했다.",
+      "off_prepared": "참모총장이 대공세를 위해 포탄과 병력을 모으기 시작했다.",
+      "off_called_off": "대공세를 거두었다.",
+      "off_over": "대공세가 끝났다.",
+      "off_break": "대공세가 전선을 뚫었다.",
+      "off_bite": "대공세가 전선 한 토막을 빼앗았다.",
+      "off_attrition": "대공세는 땅을 얻지 못했다. 양쪽 다 피를 많이 흘렸다.",
+      "off_repulsed": "대공세가 큰 값을 치르고 격퇴됐다.",
+      "off_def_gave": "적의 대공세에 우리 전선이 밀렸다.",
+      "off_def_held": "우리 전선이 적의 대공세를 버텼다.",
+      "off_strike_worked": "우리가 먼저 친 공격이 적의 준비를 흐트러뜨렸다.",
+      "off_strike_failed": "먼저 친 공격이 격퇴됐다. 적은 준비를 이어 간다.",
+      "off_refusal": "군이 다시 공격하기를 거부했다."
     },
     "result": {
       "advance": "전진",
@@ -16157,6 +16187,36 @@
         "active": "활발하게 둔다",
         "quiet": "조용히 둔다",
         "chief": "참모총장에게 맡긴다"
+      },
+      "off_paper_note": "포탄과 병력을 모아 한 번에 크게 친다.",
+      "off_method_head": "어떻게 치나",
+      "off_method": {
+        "long": "긴 포격",
+        "broad": "넓은 정면, 짧은 포격",
+        "surprise": "기습"
+      },
+      "off_months_head": "준비 기간",
+      "off_months": {
+        "1": "한 달",
+        "3": "석 달"
+      },
+      "off_feint": "다른 곳에서 준비하는 척한다: {front}",
+      "off_quiet": "조용히 준비한다",
+      "off_prep": "{method}: 준비 중, {month}",
+      "off_month": {
+        "1": "한 달째",
+        "2": "두 달째",
+        "3": "석 달째",
+        "4": "넉 달째",
+        "5": "다섯 달째"
+      },
+      "off_ready": "{method}: 준비가 끝났다. 이번 달에 친다.",
+      "off_round": "대공세: {round}",
+      "off_round_word": {
+        "1": "첫 공격",
+        "2": "두 번째 공격",
+        "3": "세 번째 공격",
+        "4": "네 번째 공격"
       }
     },
     "unknown": {

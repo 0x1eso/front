@@ -1527,6 +1527,67 @@ export const GwBeatenSchema = z.object({
 });
 export type GwBeaten = z.infer<typeof GwBeatenSchema>;
 
+// ---- The great offensive (ww173 phase B, design ww173 §4) ----
+
+/** How a great offensive is made. Text: gw.ui.off_method.<id>. */
+export const GW_OFF_METHODS = ["long", "broad", "surprise"] as const;
+export type GwOffMethod = (typeof GW_OFF_METHODS)[number];
+/** The defender's answers to an offensive he learned of. APPEND ONLY. */
+export const GW_OFF_COUNTERS = [
+  "reserves",
+  "step_back",
+  "strike",
+  "dumb",
+] as const;
+export type GwOffCounter = (typeof GW_OFF_COUNTERS)[number];
+/** A round's result. Text: gw.news.off_<id>, gw.reason.off_<id>. */
+export const GW_OFF_RESULTS = [
+  "break",
+  "bite",
+  "attrition",
+  "repulsed",
+] as const;
+export type GwOffResult = (typeof GW_OFF_RESULTS)[number];
+
+/**
+ * A great offensive, from the paper to its last round. `round` 0 while it is
+ * prepared, 1..4 once launched; `done` the chapter it ended (kept a while for
+ * the rest that follows it). A feint is a record of its own, on another front,
+ * that never launches. Hidden from every other country.
+ */
+export const GwOffensiveSchema = z.object({
+  tag: z.enum(GW_TAGS),
+  theatre: z.enum(GW_THEATRES),
+  end: z.enum(GW_SIDES),
+  from: z.number().int(),
+  launch: z.number().int().nullable(),
+  method: z.enum(GW_OFF_METHODS),
+  weight: z.number().int(),
+  feint: z.boolean(),
+  quiet: z.boolean(),
+  round: z.number().int(),
+  seenBy: z.array(z.enum(GW_TAGS)),
+  /** Months of preparation asked (1 or 3), and done so far. */
+  months: z.number().int(),
+  prepared: z.number().int(),
+  /** The chapter the next round was signed for: pressed on into it. */
+  press: z.number().int().nullable(),
+  done: z.number().int().nullable(),
+  /** Those who learned of it through a read code (design §6). */
+  codeBy: z.array(z.enum(GW_TAGS)),
+  /** The latest round's result; null before the first. */
+  last: z.enum(GW_OFF_RESULTS).nullable(),
+  /** What each defender did about it, and from which chapter. */
+  answers: z.array(
+    z.object({
+      tag: z.enum(GW_TAGS),
+      pick: z.enum(GW_OFF_COUNTERS),
+      chapter: z.number().int(),
+    }),
+  ),
+});
+export type GwOffensive = z.infer<typeof GwOffensiveSchema>;
+
 /**
  * A peace of two with land at stake (ww172, design ww168 B5-B6): its
  * bilateral table. `winner` came out ahead (null: neither), `score` is
@@ -1637,5 +1698,8 @@ export const GreatWarStateSchema = z.object({
   settled: z.array(GwPlaceSchema).optional(),
   /** ww173: fronts that broke from strain, in order (absent until one does). */
   collapses: z.array(GwCollapseSchema).optional(),
+  // ww173 phase B: absent until the first great offensive is prepared.
+  /** Great offensives in preparation, running, or lately ended. */
+  offensives: z.array(GwOffensiveSchema).optional(),
 });
 export type GreatWarState = z.infer<typeof GreatWarStateSchema>;

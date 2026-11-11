@@ -48,6 +48,7 @@ export const GW_PACK_SHARES: Readonly<
     "wars",
     "lands",
     "stall",
+    "offensive",
   ],
   GBR: [
     "crisis",
@@ -70,6 +71,7 @@ export const GW_PACK_SHARES: Readonly<
     "wars",
     "lands",
     "stall",
+    "offensive",
   ],
   AUH: [
     "crisis",
@@ -92,6 +94,7 @@ export const GW_PACK_SHARES: Readonly<
     "wars",
     "lands",
     "stall",
+    "offensive",
   ],
   RUS: [
     "crisis",
@@ -114,6 +117,7 @@ export const GW_PACK_SHARES: Readonly<
     "wars",
     "lands",
     "stall",
+    "offensive",
   ],
   FRA: [
     "crisis",
@@ -136,6 +140,7 @@ export const GW_PACK_SHARES: Readonly<
     "wars",
     "lands",
     "stall",
+    "offensive",
   ],
 };
 

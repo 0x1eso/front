@@ -10,6 +10,7 @@ import { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { aiResearch, pairScore, pressOdds, warScore } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
+import { aiOffensive } from "./Offensives";
 import { peaceStep } from "./Peace";
 import { AMERICA_BAR, americaCan } from "./Sea";
 import { believedStrain } from "./Spies";
@@ -243,14 +244,7 @@ const ATTACK_FLOOR = {
   cautious: 105,
 } as const;
 
-/** Chapters between a staff's great attacks, by character. */
-const CAMPAIGN_REST = {
-  hardline: 3,
-  opportunist: 4,
-  principled: 5,
-  cautious: 7,
-} as const;
-/** Odds under which even the year's attack is called off. */
+/** Odds under which even a push on a believed-worn enemy is called off. */
 const CAMPAIGN_FLOOR = 45;
 
 /** Whether this character attacks now, with what it knows of itself. */
@@ -282,10 +276,7 @@ function wantsAttack(gw: GreatWar, n: GwNationState, t: GwTheatre): boolean {
   if (believed !== null && believed >= STRAIN_WORN && odds >= CAMPAIGN_FLOOR) {
     return roll < 70;
   }
-  // Every staff has its season: bad odds don't stop the year's great attack.
-  if (rested >= CAMPAIGN_REST[n.ai] && odds >= CAMPAIGN_FLOOR && roll < 55) {
-    return true;
-  }
+  // The year's great attack is a great offensive now, prepared (ww173).
   if (odds < ATTACK_FLOOR[n.ai]) return false;
   // A war of its own is weighed on its own fronts (ww171).
   const foe = gw.s.theatres.find((x) => x.id === t)!;
@@ -306,6 +297,8 @@ function wantsAttack(gw: GreatWar, n: GwNationState, t: GwTheatre): boolean {
 function aiAlloc(gw: GreatWar, n: GwNationState): GwAlloc | null {
   const main = ownFront(gw, n);
   if (main === null) return null;
+  const great = aiOffensive(gw, n, main, aiResearch(gw, n.tag));
+  if (great !== null) return great;
   const attack = wantsAttack(gw, n, main);
   const major = attack && n.gauges.shells >= 2;
   return {

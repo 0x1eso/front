@@ -1,5 +1,7 @@
 import { GW_TAGS } from "@openfront/engine-api/ww1914/GwCountries";
 import {
+  all,
+  any,
   flag,
   GwScene,
   inst_,
@@ -159,6 +161,54 @@ export const WORLD_SCENES: readonly GwScene[] = [
         id: "listen",
         tell: ["talks"],
         effects: [doWorld({ do: "talks" })],
+      },
+    ],
+  },
+  // ww173 phase B: the enemy is preparing a great offensive, and we know it
+  // (Offensives.markSeen). Variants by what was seen; W7b writes the words.
+  {
+    id: "gw_offensive_seen",
+    nation: everyone,
+    kind: "proposal",
+    when: all(onlyCalled, world({ is: "foe_offensive" })),
+    cast: {},
+    salience: 9,
+    tags: ["war"],
+    variants: [
+      { id: "long", when: world({ is: "foe_offensive", method: ["long"] }) },
+      { id: "broad", when: world({ is: "foe_offensive", method: ["broad"] }) },
+      {
+        id: "surprise",
+        when: world({ is: "foe_offensive", method: ["surprise"] }),
+      },
+      { id: "base" },
+    ],
+    fallback: "reserves",
+    options: [
+      {
+        id: "reserves",
+        tell: [],
+        effects: [doWorld({ do: "counter_offensive", pick: "reserves" })],
+      },
+      {
+        id: "step_back",
+        when: any(
+          world({ is: "tech", id: "depth_defence" }),
+          world({ is: "era", of: ["depth", "storm"] }),
+        ),
+        tell: [],
+        effects: [doWorld({ do: "counter_offensive", pick: "step_back" })],
+      },
+      {
+        id: "strike",
+        tell: [],
+        effects: [doWorld({ do: "counter_offensive", pick: "strike" })],
+      },
+      {
+        id: "dumb",
+        when: world({ is: "foe_offensive", code: true }),
+        tell: [],
+        effects: [doWorld({ do: "counter_offensive", pick: "dumb" })],
       },
     ],
   },

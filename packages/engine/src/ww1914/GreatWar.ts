@@ -54,9 +54,12 @@ import { gwView } from "./View";
  */
 export const GreatWarSnapshot = snapshotType({
   name: "GreatWar",
-  version: 4,
+  version: 5,
   schema: GreatWarStateSchema,
   migrations: {
+    // ww173: the great offensives (s.offensives) are absent until first
+    // prepared, so a save from before needs nothing.
+    4: (d: unknown) => d,
     // ww172 phase 5: occupation and the bilateral tables. Their fields are
     // absent until first used, so a save from before needs nothing.
     3: (d: unknown) => d,

@@ -13,6 +13,9 @@ import {
   GW_FIELDS,
   GW_ISSUES,
   GW_LADDER_STEPS,
+  GW_OFF_COUNTERS,
+  GW_OFF_METHODS,
+  GW_OFF_RESULTS,
   GW_OFFICES,
   GW_PLANS,
   GW_RESULTS,
@@ -33,7 +36,10 @@ import {
   GwIdSchema,
   GwIssue,
   GwLadderStep,
+  GwOffCounter,
   GwOffice,
+  GwOffMethod,
+  GwOffResult,
   GwPlan,
   GwResult,
   GwSecret,
@@ -371,7 +377,32 @@ export type GwWorldCond =
    * or with `foe` the end facing it; on one of `theatre` (absent: any).
    * Months count from the collapse.
    */
-  | ({ is: "collapse"; theatre?: GwTheatre[]; foe?: boolean } & Range);
+  | ({ is: "collapse"; theatre?: GwTheatre[]; foe?: boolean } & Range)
+  // ---- The great offensive (ww173 phase B) ----
+  /**
+   * An enemy great offensive the seat's country has learned of and not yet
+   * answered: on one of `theatre`, by one of `method` (as seen; a feint looks
+   * real), `code`: learned through a code the seat reads.
+   */
+  | {
+      is: "foe_offensive";
+      theatre?: GwTheatre[];
+      method?: GwOffMethod[];
+      code?: boolean;
+    }
+  /**
+   * The latest great offensive of the seat's country (`side` "ours", the
+   * default) or against it ("foe"), running or ended this chapter or the
+   * last: its front, method, latest result; the range is its round (0 while
+   * prepared). For the writers' paper and result scenes (ww173 formatb).
+   */
+  | ({
+      is: "offensive";
+      side?: "ours" | "foe";
+      theatre?: GwTheatre[];
+      method?: GwOffMethod[];
+      result?: GwOffResult[];
+    } & Range);
 
 export type GwWorldEffect =
   /** Germany's plan for the war to come. */
@@ -537,7 +568,10 @@ export type GwWorldEffect =
   /** The seat offers `tag` a peace of the two alone. */
   | { do: "pair_peace"; tag: GwTag }
   /** The seat answers the peace offer it was sent. */
-  | { do: "pair_peace_answer"; yes: boolean };
+  | { do: "pair_peace_answer"; yes: boolean }
+  // ---- The great offensive (ww173 phase B) ----
+  /** The answer to the enemy offensive the seat learned of (`foe_offensive`). */
+  | { do: "counter_offensive"; pick: GwOffCounter };
 
 const int = z.number().int();
 const yearMonth = z.string().regex(/^19[0-9]{2}-[01][0-9]$/);
@@ -729,6 +763,18 @@ export const GwWorldCondSchema = z.union([
     foe: z.boolean().optional(),
     ...range,
   }),
+  is("foe_offensive", {
+    theatre: z.array(theatre).min(1).optional(),
+    method: z.array(z.enum(GW_OFF_METHODS)).min(1).optional(),
+    code: z.boolean().optional(),
+  }),
+  is("offensive", {
+    side: z.enum(["ours", "foe"]).optional(),
+    theatre: z.array(theatre).min(1).optional(),
+    method: z.array(z.enum(GW_OFF_METHODS)).min(1).optional(),
+    result: z.array(z.enum(GW_OFF_RESULTS)).min(1).optional(),
+    ...range,
+  }),
 ]) as unknown as z.ZodType<GwWorldCond>;
 
 export const GwWorldEffectSchema = z.union([
@@ -826,6 +872,7 @@ export const GwWorldEffectSchema = z.union([
   act("declare_war", { tag }),
   act("pair_peace", { tag }),
   act("pair_peace_answer", { yes: z.boolean() }),
+  act("counter_offensive", { pick: z.enum(GW_OFF_COUNTERS) }),
 ]) as unknown as z.ZodType<GwWorldEffect>;
 
 // ---- Authoring helpers ----
