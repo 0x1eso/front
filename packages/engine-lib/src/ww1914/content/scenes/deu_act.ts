@@ -68,6 +68,24 @@ const pride = (r: string, delta: number): GwEffect => ({
   delta,
 });
 
+// ---- ww173: the secret war's helpers ----
+const inOffice = (r: string): GwCond => ({ kind: "in_office", who: role(r) });
+const READ_TAGS = ["RUS", "FRA", "GBR", "ITA"] as const;
+const reading = (tag: (typeof READ_TAGS)[number]): GwCond =>
+  world({ is: "spy", can: "reading", tag });
+const intelCast = { intel: { office: "intelligence" } } as const;
+const SPY_ROWS = ["gw_a_spy_net", "gw_a_spy_sabotage", "gw_a_spy_court"];
+const acted = (act: string, within?: number): GwCond =>
+  within === undefined
+    ? { kind: "acted", act }
+    : { kind: "acted", act, within };
+const pickedIn = (act: string, ...of: string[]): GwCond => ({
+  kind: "picked",
+  field: "where",
+  of,
+  act,
+});
+
 type Extra = Partial<Omit<GwScene, "id" | "kind">>;
 
 /** A scene played from the schedule. */
@@ -2049,6 +2067,159 @@ export const DEU_STORY_SCENES: readonly GwScene[] = [
     once: true,
     salience: 5,
     tags: ["people"],
+    cast: {},
+    variants: [{ id: "base" }],
+  },
+  // ---- ww173: the secret war, in Germany's voice (formatc 1-3) ----
+  // The head of IIIb (whoever holds `intelligence`) brings the codes we read:
+  // act on them, or hide them so the enemy never learns why we knew.
+  {
+    id: "deu_spy_read",
+    nation: ["DEU"],
+    kind: "proposal",
+    stage: ["war"],
+    when: all(war, inOffice("intel"), any(...READ_TAGS.map(reading))),
+    cooldown: 5,
+    salience: 7,
+    tags: ["war"],
+    cast: intelCast,
+    author: "intel",
+    variants: [
+      {
+        id: "rus_plain",
+        when: all(reading("RUS"), world({ is: "era", of: ["movement"] })),
+      },
+      { id: "rus", when: reading("RUS") },
+      { id: "fra", when: reading("FRA") },
+      { id: "gbr", when: reading("GBR") },
+      { id: "ita", when: reading("ITA") },
+      { id: "base" },
+    ],
+    fallback: "hide",
+    options: [
+      opt(
+        "use",
+        [
+          trustOf(role("intel"), 1),
+          remember("m_deu_read"),
+          remember("m_deu_read_used"),
+        ],
+        ["trust:+1"],
+      ),
+      opt("hide", [
+        doWorld({ do: "spy", act: "hide" }),
+        remember("m_deu_read"),
+      ]),
+    ],
+  },
+  // The enemy changed his codes after a read we had: told by the same man.
+  {
+    id: "deu_spy_code_lost",
+    nation: ["DEU"],
+    kind: "report",
+    stage: ["war"],
+    stamp: "confirmed",
+    source: "staff",
+    when: all(
+      war,
+      inOffice("intel"),
+      { kind: "memory", key: "m_deu_read", within: 8 },
+      not(any(...READ_TAGS.map(reading))),
+    ),
+    cooldown: 8,
+    salience: 6,
+    tags: ["war"],
+    cast: intelCast,
+    variants: [
+      {
+        id: "used",
+        when: { kind: "memory", key: "m_deu_read_used", within: 8 },
+      },
+      { id: "base" },
+    ],
+  },
+  // One of our operations abroad was found out (Spies.expose): the sender's
+  // side of it. Papen and Boy-Ed, Black Tom: the neutral's anger.
+  {
+    id: "deu_spy_exposed",
+    nation: ["DEU"],
+    kind: "proposal",
+    stage: ["war"],
+    when: all(
+      world({ is: "spy", can: "out" }),
+      any(...SPY_ROWS.map((a) => acted(a, 2))),
+    ),
+    cooldown: 4,
+    salience: 7,
+    tags: ["foreign", "war"],
+    cast: { fm: { office: "foreign" }, intel: { office: "intelligence" } },
+    author: "fm",
+    variants: [
+      {
+        id: "usa_blast",
+        when: all(
+          acted("gw_a_spy_sabotage", 2),
+          pickedIn("gw_a_spy_sabotage", "usa"),
+          world({ is: "spy", can: "ok" }),
+        ),
+      },
+      {
+        id: "usa_court",
+        when: all(
+          acted("gw_a_spy_court", 2),
+          pickedIn("gw_a_spy_court", "usa"),
+        ),
+      },
+      { id: "neutral", when: acted("gw_a_spy_court", 2) },
+      { id: "blast", when: acted("gw_a_spy_sabotage", 2) },
+      { id: "base" },
+    ],
+    fallback: "deny",
+    options: [
+      opt("deny", [reason("deu_spy_denied")]),
+      opt(
+        "recall",
+        [trustOf(role("intel"), -1), reason("deu_spy_recalled")],
+        ["trust:-1"],
+      ),
+      opt(
+        "again",
+        [trustOf(role("intel"), 1), remember("m_deu_spy_again")],
+        ["trust:+1"],
+      ),
+    ],
+  },
+  // The sealed train, some months on: what the fire did over there.
+  {
+    id: "deu_spy_lenin_fire",
+    nation: ["DEU"],
+    kind: "report",
+    stage: ["war"],
+    stamp: "unconfirmed",
+    source: "agents",
+    when: all(acted("deu_a_spy_lenin"), not(acted("deu_a_spy_lenin", 3))),
+    once: true,
+    salience: 6,
+    tags: ["foreign", "war"],
+    cast: { fm: { office: "foreign" } },
+    variants: [
+      {
+        id: "burning",
+        when: { kind: "nation_gauge", tag: "RUS", gauge: "order", max: 1 },
+      },
+      { id: "base" },
+    ],
+  },
+  // The Irish arms ship was read and taken: the man who went with it.
+  {
+    id: "deu_spy_casement",
+    nation: ["DEU"],
+    kind: "wire",
+    stage: ["war"],
+    when: all(world({ is: "spy", can: "ship" }), acted("deu_a_spy_ireland")),
+    once: true,
+    salience: 5,
+    tags: ["foreign"],
     cast: {},
     variants: [{ id: "base" }],
   },
