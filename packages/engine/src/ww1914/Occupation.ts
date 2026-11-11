@@ -415,6 +415,16 @@ export function occupationStep(gw: GreatWar): void {
 
 // ---- Conditions for the scenes of occupation and the tables ----
 
+/** `tag` fell out of the war in `chapter` while at war with `by`. */
+function fellTo(gw: GreatWar, tag: GwTag, by: GwTag, chapter: number): boolean {
+  return gw.s.wars.some(
+    (w) =>
+      w.how === "fell" &&
+      w.ended === chapter &&
+      ((w.a === tag && w.b === by) || (w.a === by && w.b === tag)),
+  );
+}
+
 const inRange = (v: number, c: { min?: number; max?: number }) =>
   v >= (c.min ?? -Infinity) && v <= (c.max ?? Infinity);
 
@@ -435,6 +445,10 @@ export function landHolds(
         const holder = holderOf(gw, p);
         if (owner === holder) return false;
         if (c.capital === true && GW_CAPITALS[owner] !== p) return false;
+        if (c.group !== undefined && !c.group.includes(groupOf(p))) {
+          return false;
+        }
+        if (c.place !== undefined && !c.place.includes(p)) return false;
         if (c.is === "land_taken") {
           if (holder !== (c.tag ?? seat.tag)) return false;
           if (c.from !== undefined && owner !== c.from) return false;
@@ -448,6 +462,7 @@ export function landHolds(
       return (s.beaten ?? []).some(
         (b) =>
           (c.tag === undefined || b.tag === c.tag) &&
+          (c.by === undefined || fellTo(gw, b.tag, c.by, b.chapter)) &&
           inRange(monthsFrom(gw, b.chapter), c),
       );
     case "pair_table":

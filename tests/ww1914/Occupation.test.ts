@@ -21,7 +21,7 @@ import {
   landHolds,
   occupationStep,
 } from "@openfront/engine/ww1914/Occupation";
-import { pairPeace } from "@openfront/engine/ww1914/PairWar";
+import { pairPeace, warStep } from "@openfront/engine/ww1914/PairWar";
 import { pairTableStep } from "@openfront/engine/ww1914/Table";
 import {
   declareWar,
@@ -192,5 +192,82 @@ describe("the bilateral table", () => {
     expect(gw.nation("RUS")!.out).toBe(true);
     expect(gw.s.beaten ?? []).toEqual([]);
     expect(generalEnding(gw, seatOf("RUS"))).toBe("separate_peace");
+  });
+});
+
+describe("asked for by the writers (ww172 merge 5)", () => {
+  test("conditions name the group, the place, and who beat whom", async () => {
+    const gw = await world("GWOCC6");
+    openGeneral(gw, "DEU", "RUS", "test");
+    moveLand(gw, "warsaw", "DEU", null);
+    const deu = seatOf("DEU");
+    const rus = seatOf("RUS");
+    const taken = (c: object) =>
+      landHolds(gw, deu, { is: "land_taken", ...c } as never);
+    expect(taken({ group: ["russian_poland"] })).toBe(true);
+    expect(taken({ group: ["baltic"] })).toBe(false);
+    expect(taken({ place: ["warsaw"], max: 0 })).toBe(true);
+    expect(taken({ place: ["riga"] })).toBe(false);
+    expect(
+      landHolds(gw, rus, {
+        is: "land_lost",
+        to: "DEU",
+        group: ["russian_poland"],
+      }),
+    ).toBe(true);
+    expect(
+      landHolds(gw, rus, { is: "land_lost", group: ["east_prussia"] }),
+    ).toBe(false);
+    leaveWar(gw, "RUS", "nation_beaten");
+    expect(landHolds(gw, deu, { is: "beaten", tag: "RUS", by: "DEU" })).toBe(
+      true,
+    );
+    expect(landHolds(gw, deu, { is: "beaten", tag: "RUS", by: "GBR" })).toBe(
+      false,
+    );
+  });
+
+  test("a weary government nobody plays may sign a separate peace, and its table sits", async () => {
+    const gw = await world("GWOCC7");
+    openGeneral(gw, "DEU", "FRA", "test");
+    moveLand(gw, "paris", "DEU", null);
+    const fra = gw.nation("FRA")!;
+    fra.ai = "cautious";
+    let ch = 8;
+    let signed = false;
+    for (let i = 0; i < 40 && !signed; i++) {
+      ch = longChapter(gw, ch + 1);
+      if (ch < 0) break;
+      gw.s.chapter = ch;
+      fra.gauges.morale = 1;
+      warStep(gw);
+      signed = warOf(gw, "DEU", "FRA") === null;
+    }
+    expect(signed).toBe(true);
+    const w = gw.s.wars.find(
+      (x) =>
+        (x.a === "DEU" && x.b === "FRA") || (x.a === "FRA" && x.b === "DEU"),
+    )!;
+    expect(w).toMatchObject({ how: "offer", offeredBy: "FRA", won: "DEU" });
+    expect(gw.s.pairTables?.[0]).toMatchObject({ winner: "DEU" });
+    pairTableStep(gw);
+    expect(gw.s.pairTables![0].signed).toBe(gw.s.chapter);
+  });
+
+  test("a hardline loser never signs one", async () => {
+    const gw = await world("GWOCC8");
+    openGeneral(gw, "DEU", "FRA", "test");
+    moveLand(gw, "paris", "DEU", null);
+    const fra = gw.nation("FRA")!;
+    fra.ai = "hardline";
+    let ch = 8;
+    for (let i = 0; i < 40; i++) {
+      ch = longChapter(gw, ch + 1);
+      if (ch < 0) break;
+      gw.s.chapter = ch;
+      fra.gauges.morale = 1;
+      warStep(gw);
+    }
+    expect(warOf(gw, "DEU", "FRA")).not.toBeNull();
   });
 });

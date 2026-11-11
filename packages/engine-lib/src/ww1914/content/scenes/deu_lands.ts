@@ -25,9 +25,11 @@ import {
   capitalFell,
   knockedOut,
   lostCapital,
+  lostGroup,
   lostLand,
   tableSigned,
   tableSits,
+  tableSitsAs,
   tookCapital,
   tookLand,
 } from "./land_events";
@@ -58,10 +60,6 @@ const stands = (tag: GwTag, side: GwSide): GwCond =>
   world({ is: "entered", tag, side });
 const sideIs = (...of: (GwSide | "neutral")[]): GwCond =>
   world({ is: "side", of });
-/** The table with `tag` sits now, Germany coming to it as `result`. */
-const sitsAs = (tag: GwTag, result: "won" | "lost"): GwCond =>
-  world({ is: "pair_table", with: tag, open: true, result: [result] });
-
 // ---- Prices ----
 
 const gauge = (g: GwGauge, delta: number): GwEffect => ({
@@ -152,8 +150,8 @@ const byFall = (tag: GwTag): GwVariant[] => [
 const outOrOn = (tag: GwTag): GwVariant[] => [v("out", isOut(tag)), v("base")];
 /** A table with `tag` sits: Germany came ahead, behind, or level. */
 const seated = (tag: GwTag): GwVariant[] => [
-  v("won", sitsAs(tag, "won")),
-  v("lost", sitsAs(tag, "lost")),
+  v("won", tableSitsAs("won", tag)),
+  v("lost", tableSitsAs("lost", tag)),
   v("base"),
 ];
 
@@ -244,7 +242,7 @@ const OURS: GwScene[] = [
   ),
   paper(
     "deu_ld_occ_rus_long",
-    heldSince("RUS", 6),
+    world({ is: "land_taken", from: "RUS", group: ["russian_poland"], min: 6 }),
     { pm, fm },
     7,
     outOrOn("RUS"),
@@ -266,7 +264,7 @@ const OURS: GwScene[] = [
 const THEIRS: GwScene[] = [
   paper(
     "deu_ld_lost_fra",
-    lostLand("FRA"),
+    lostGroup(["alsace_lorraine", "rhineland"], 0, "FRA"),
     { cos, interior },
     8,
     [v("east", atWar("RUS")), v("base")],
@@ -282,7 +280,7 @@ const THEIRS: GwScene[] = [
   ]),
   paper(
     "deu_ld_lost_rus",
-    lostLand("RUS"),
+    lostGroup(["east_prussia"], 0, "RUS"),
     { cos, pm },
     8,
     [v("west", atWar("FRA")), v("base")],

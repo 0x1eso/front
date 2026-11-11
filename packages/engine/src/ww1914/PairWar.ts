@@ -63,6 +63,11 @@ import {
 } from "./World";
 
 const P_AI_WAR = idHash("gw_ai_war");
+const P_AI_SEPARATE = idHash("gw_ai_separate");
+/** Odds in 100, each month the state allows it, of an AI separate peace. */
+const SEPARATE_ODDS = 15;
+/** A separate peace takes a loser at least this weary (peaceWill). */
+const SEPARATE_WILL = 75;
 
 /** Wars outside the coalitions the world bears at once (design B7). */
 export const GW_PAIR_WARS_MAX = 3;
@@ -341,6 +346,41 @@ function aiPeaceStep(gw: GreatWar): void {
     }
     if (peaceWill(gw, w.a, w.b) + peaceWill(gw, w.b, w.a) >= 80) {
       pairPeace(gw, w.a, w.b, null);
+    }
+  }
+  aiSeparatePeace(gw);
+}
+
+/**
+ * A separate peace inside the coalitions' war between two governments
+ * nobody plays (ww172 merge 5), so a bilateral table can sit without a
+ * seat. Read off the state: the loser has its capital in the winner's
+ * hands or the war's score past PAIR_WON against it, its morale is low, it
+ * is weary past a coalition member's bar (peaceWill, its character in it)
+ * and isn't hardline; a hardline winner wants the capital first. At most
+ * one a month, none while another table waits, and a seeded roll keeps it
+ * rare.
+ */
+function aiSeparatePeace(gw: GreatWar): void {
+  const s = gw.s;
+  if ((s.pairTables ?? []).some((r) => r.signed === null)) return;
+  for (const w of s.wars) {
+    if (w.ended !== null || outsideCoalitions(gw, w)) continue;
+    if (ruledBySeat(gw, w.a) || ruledBySeat(gw, w.b)) continue;
+    for (const [loser, winner] of [
+      [w.a, w.b],
+      [w.b, w.a],
+    ] as const) {
+      const n = gw.nation(loser)!;
+      const held = capitalHolder(gw, loser) === winner;
+      if (!held && pairScore(gw, loser, winner) > -PAIR_WON) continue;
+      if (n.ai === "hardline" || n.gauges.morale > 2) continue;
+      if (peaceWill(gw, loser, winner) < SEPARATE_WILL) continue;
+      if (!held && gw.nation(winner)!.ai === "hardline") continue;
+      const roll = wwRoll(s.seed, P_AI_SEPARATE, s.chapter, idHash(loser));
+      if (roll % 100 >= SEPARATE_ODDS) continue;
+      pairPeace(gw, loser, winner, loser);
+      return;
     }
   }
 }

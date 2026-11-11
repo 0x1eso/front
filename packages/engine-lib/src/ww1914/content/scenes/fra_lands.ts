@@ -10,6 +10,7 @@ import type {
   GwSide,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
+import type { GwPlaceGroup } from "@openfront/engine-api/ww1914/GwPlaces";
 import type { GwBloc } from "@openfront/engine-api/ww1914/GwPress";
 import {
   all,
@@ -29,6 +30,7 @@ import {
   tableSigned,
   tableSits,
   tookCapital,
+  tookGroup,
   tookLand,
 } from "./land_events";
 
@@ -57,29 +59,33 @@ const againstUs = (tag: GwTag): GwCond =>
     all(sideIs("entente"), entered(tag, "central")),
     all(sideIs("central"), entered(tag, "entente")),
   );
-/** France has held some of `from`'s land at least `months`. */
-const heldLong = (from: GwTag, months: number): GwCond =>
-  world({ is: "land_taken", from, min: months });
 /** French land has been in German hands at least `months`. */
 const lostLong = (months: number): GwCond =>
   world({ is: "land_lost", to: "DEU", min: months });
 /** Paris has been in enemy hands at least `months`. */
 const parisHeld = (months: number): GwCond =>
   world({ is: "land_lost", capital: true, min: months });
-/** The western line stands on the Rhine. */
-const onRhine = world({ is: "front", theatre: "west", to: "rhine" });
+/** Germany's own land in Europe, not its colonies (ww172 merge 5). */
+const GERMAN_HOME: GwPlaceGroup[] = [
+  "alsace_lorraine",
+  "rhineland",
+  "germany",
+  "east_prussia",
+  "west_prussia",
+  "posen",
+  "silesia",
+  "schleswig",
+];
 const deuOut = knockedOut("DEU", 24);
-/**
- * French troops stand in Germany itself, not only in its colonies: the
- * western line on the Rhine, or Germany out and its land being taken.
- */
-const inGermany = any(onRhine, knockedOut("DEU", 36));
-/** France took German land in Germany within `months`. */
+/** France took German land in Germany itself within `months`. */
 const tookGerman = (months = 0): GwCond =>
-  all(tookLand("DEU", months), inGermany);
-/** France has held German land in Germany at least `months`. */
+  tookGroup(GERMAN_HOME, months, "DEU");
+/** France has held German land in Germany itself at least `months`. */
 const heldGerman = (months: number): GwCond =>
-  all(heldLong("DEU", months), inGermany);
+  world({ is: "land_taken", from: "DEU", group: GERMAN_HOME, min: months });
+/** France has held a place of Germany's `groups` at least `months`. */
+const heldIn = (groups: GwPlaceGroup[], months: number): GwCond =>
+  world({ is: "land_taken", from: "DEU", group: groups, min: months });
 /** A table of two with someone other than Germany signed, as `result`. */
 const otherTable = (result: "won" | "lost" | "even"): GwCond =>
   any(
@@ -178,7 +184,7 @@ const finance = { office: "finance" } as const;
 const OURS: GwScene[] = [
   proposal(
     "fra_ld_ours_alsace",
-    tookGerman(),
+    tookGroup(["alsace_lorraine"], 0, "DEU"),
     [v("out", deuOut), v("base")],
     [
       ["prefects", [inst("chamber", 1), opinion("army", -1)]],
@@ -190,7 +196,7 @@ const OURS: GwScene[] = [
   ),
   proposal(
     "fra_ld_ours_school",
-    heldGerman(3),
+    heldIn(["alsace_lorraine"], 3),
     [v("out", deuOut), v("base")],
     [
       ["french", [opinion("press", 1), gauge("order", -1)]],
@@ -198,12 +204,17 @@ const OURS: GwScene[] = [
     ],
     { interior },
   ),
-  wire("fra_ld_ours_return", tookGerman(2), [v("out", deuOut), v("base")], {
-    war,
-  }),
+  wire(
+    "fra_ld_ours_return",
+    tookGroup(["alsace_lorraine"], 2, "DEU"),
+    [v("out", deuOut), v("base")],
+    {
+      war,
+    },
+  ),
   proposal(
     "fra_ld_ours_rhine",
-    all(tookLand("DEU", 3), onRhine),
+    tookGroup(["rhineland"], 3, "DEU"),
     [v("britain", withUs("GBR")), v("base")],
     [
       ["buffer", [inst("army", 1), trust("GBR", -1)]],
@@ -213,7 +224,7 @@ const OURS: GwScene[] = [
   ),
   proposal(
     "fra_ld_ours_coal",
-    heldGerman(2),
+    world({ is: "land_taken", from: "DEU", place: ["saarbrucken"], min: 2 }),
     [v("out", deuOut), v("base")],
     [
       ["run", [gauge("shells", 1), gauge("order", -1)]],
@@ -342,7 +353,7 @@ const OUT: GwScene[] = [
   proposal(
     "fra_ld_out_deu",
     knockedOut("DEU", 1),
-    [v("held", tookLand("DEU", 36)), v("base")],
+    [v("held", tookGerman(36)), v("base")],
     [
       ["alsace", [opinion("parliament", 1), inst("army", -1)]],
       ["rhine", [inst("army", 1), trust("GBR", -1)]],
@@ -371,11 +382,7 @@ const TABLE: GwScene[] = [
   proposal(
     "fra_ld_table_deu",
     tableSits("DEU"),
-    [
-      v("ahead", tookLand("DEU", 36)),
-      v("behind", lostLand("DEU", 36)),
-      v("base"),
-    ],
+    [v("ahead", tookGerman(36)), v("behind", lostLand("DEU", 36)), v("base")],
     [
       ["minister", [inst("countersign", 1)]],
       ["soldier", [inst("army", 1), opinion("parliament", -1)]],
@@ -408,7 +415,7 @@ const TABLE: GwScene[] = [
   proposal(
     "fra_ld_table_won",
     tableSigned("won", "DEU"),
-    [v("held", tookLand("DEU", 36)), v("base")],
+    [v("held", tookGerman(36)), v("base")],
     [
       ["vote", [inst("chamber", 1), inst("senate", 1)]],
       ["bells", [gauge("morale", 1), gauge("money", -1)]],

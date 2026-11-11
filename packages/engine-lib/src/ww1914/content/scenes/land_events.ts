@@ -5,6 +5,10 @@
 // knocked out, a table of two sat or signed. Months count on the calendar's
 // dates; `max: 0` is "this month".
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
+import type {
+  GwPlace,
+  GwPlaceGroup,
+} from "@openfront/engine-api/ww1914/GwPlaces";
 import type { GwCond } from "@openfront/engine-api/ww1914/SceneDsl";
 import { world } from "@openfront/engine-api/ww1914/WorldDsl";
 
@@ -67,4 +71,81 @@ export const tableSigned = (
           result: [result],
           max: months,
         },
+  );
+
+// ---- Asked for by the writer lanes (ww172 merge 5) ----
+
+/** The seat's country has held land of `from` (absent: anyone's) `months`+. */
+export const heldLand = (from: GwTag | undefined, months: number): GwCond =>
+  world(
+    from === undefined
+      ? { is: "land_taken", min: months }
+      : { is: "land_taken", from, min: months },
+  );
+
+/** Land of the seat's country has been in `to`'s (absent: anyone's) hands `months`+. */
+export const lostLandFor = (to: GwTag | undefined, months: number): GwCond =>
+  world(
+    to === undefined
+      ? { is: "land_lost", min: months }
+      : { is: "land_lost", to, min: months },
+  );
+
+/**
+ * The seat's country holds a place of one of `groups` (absent `from`:
+ * anyone's), taken within `months`; `min`: held at least that long.
+ */
+export const tookGroup = (
+  groups: readonly GwPlaceGroup[],
+  months = 0,
+  from?: GwTag,
+  min?: number,
+): GwCond =>
+  world({
+    is: "land_taken",
+    group: [...groups],
+    max: months,
+    ...(from === undefined ? {} : { from }),
+    ...(min === undefined ? {} : { min }),
+  });
+
+/** The seat's country holds one of `places`, taken within `months`. */
+export const tookPlace = (
+  places: readonly GwPlace[],
+  months = 0,
+  min?: number,
+): GwCond =>
+  world({
+    is: "land_taken",
+    place: [...places],
+    max: months,
+    ...(min === undefined ? {} : { min }),
+  });
+
+/** A place of the seat's own in one of `groups` fell within `months`. */
+export const lostGroup = (
+  groups: readonly GwPlaceGroup[],
+  months = 0,
+  to?: GwTag,
+): GwCond =>
+  world({
+    is: "land_lost",
+    group: [...groups],
+    max: months,
+    ...(to === undefined ? {} : { to }),
+  });
+
+/** `tag` fell out of the war within `months` while at war with `by`. */
+export const knockedOutBy = (tag: GwTag, by: GwTag, months = 0): GwCond =>
+  world({ is: "beaten", tag, by, max: months });
+
+/** A bilateral table with `tag` (absent: anyone) sits, the seat as `result`. */
+export const tableSitsAs = (
+  result: "won" | "lost" | "even",
+  tag?: GwTag,
+): GwCond =>
+  world(
+    tag === undefined
+      ? { is: "pair_table", open: true, result: [result] }
+      : { is: "pair_table", with: tag, open: true, result: [result] },
   );

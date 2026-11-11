@@ -79,6 +79,12 @@ import {
   GwWhipWord,
 } from "./GwHouse";
 import { GW_LAW_STAGES, GwLawStage } from "./GwLaw";
+import {
+  GwPlace,
+  GwPlaceGroup,
+  GwPlaceGroupSchema,
+  GwPlaceSchema,
+} from "./GwPlaces";
 
 const GW_BUDGET_WHATS = ["treasury", "load", "prices", "lent"] as const;
 type GwBudgetWhat = (typeof GW_BUDGET_WHATS)[number];
@@ -322,15 +328,32 @@ export type GwWorldCond =
   /**
    * `tag` (absent: the seat's country) holds land of `from` (absent: anyone
    * else's), taken this many months ago; `capital`: that country's capital.
+   * `group` / `place`: only land in one of these groups / these places.
    */
-  | ({ is: "land_taken"; tag?: GwTag; from?: GwTag; capital?: boolean } & Range)
+  | ({
+      is: "land_taken";
+      tag?: GwTag;
+      from?: GwTag;
+      capital?: boolean;
+      group?: GwPlaceGroup[];
+      place?: GwPlace[];
+    } & Range)
   /**
    * The seat's country's own land is held by `to` (absent: anyone), taken
-   * this many months ago; `capital`: its capital.
+   * this many months ago; `capital`: its capital. `group` / `place` as above.
    */
-  | ({ is: "land_lost"; to?: GwTag; capital?: boolean } & Range)
-  /** `tag` (absent: anyone) was knocked out of the war this many months ago. */
-  | ({ is: "beaten"; tag?: GwTag } & Range)
+  | ({
+      is: "land_lost";
+      to?: GwTag;
+      capital?: boolean;
+      group?: GwPlaceGroup[];
+      place?: GwPlace[];
+    } & Range)
+  /**
+   * `tag` (absent: anyone) was knocked out of the war this many months ago;
+   * `by`: while at war with that country (a war of theirs ended as it fell).
+   */
+  | ({ is: "beaten"; tag?: GwTag; by?: GwTag } & Range)
   /**
    * The seat's country sat at a bilateral table with `with` (absent: anyone).
    * `open`: true while it sits, false once signed (absent: either). `result`:
@@ -677,14 +700,18 @@ export const GwWorldCondSchema = z.union([
     tag: tag.optional(),
     from: tag.optional(),
     capital: z.boolean().optional(),
+    group: z.array(GwPlaceGroupSchema).min(1).optional(),
+    place: z.array(GwPlaceSchema).min(1).optional(),
     ...range,
   }),
   is("land_lost", {
     to: tag.optional(),
     capital: z.boolean().optional(),
+    group: z.array(GwPlaceGroupSchema).min(1).optional(),
+    place: z.array(GwPlaceSchema).min(1).optional(),
     ...range,
   }),
-  is("beaten", { tag: tag.optional(), ...range }),
+  is("beaten", { tag: tag.optional(), by: tag.optional(), ...range }),
   is("pair_table", {
     with: tag.optional(),
     open: z.boolean().optional(),

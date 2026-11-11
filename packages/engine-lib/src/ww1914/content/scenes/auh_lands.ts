@@ -23,6 +23,7 @@ import { world } from "@openfront/engine-api/ww1914/WorldDsl";
 import {
   capitalFell,
   knockedOut,
+  knockedOutBy,
   lostCapital,
   lostLand,
   tableSigned,
@@ -60,6 +61,12 @@ const againstUs = (tag: GwTag): GwCond =>
     all(entered(tag, "central"), sideIs("entente")),
     all(entered(tag, "entente"), sideIs("central")),
   );
+/**
+ * `tag`, knocked out, was our enemy: on the other side, or beaten in a war
+ * of the two of us that had no sides (ww172 merge 5).
+ */
+const foeOut = (tag: GwTag): GwCond =>
+  any(againstUs(tag), knockedOutBy(tag, "AUH", EVER));
 /** We hold some of `tag`'s land now. */
 const holdOf = (tag: GwTag): GwCond => tookLand(tag, EVER);
 /** `tag` holds some of ours now. */
@@ -422,7 +429,7 @@ const OUT: readonly GwScene[] = [
     7,
     knockedOut("SRB", 1),
     { fm: FM, hun: HUN },
-    [["foe", againstUs("SRB")], ["base"]],
+    [["foe", foeOut("SRB")], ["base"]],
     [
       opt(
         "small_serbia",
@@ -439,7 +446,7 @@ const OUT: readonly GwScene[] = [
     ],
   ),
   wire("auh_ld_out_rou", 7, knockedOut("ROU", 1), { hun: HUN }, [
-    ["foe", againstUs("ROU")],
+    ["foe", foeOut("ROU")],
     ["friend", withUs("ROU")],
     ["base"],
   ]),
@@ -448,7 +455,7 @@ const OUT: readonly GwScene[] = [
     8,
     knockedOut("RUS", 1),
     { cos: COS, pm: PM },
-    [["foe", againstUs("RUS")], ["base"]],
+    [["foe", foeOut("RUS")], ["base"]],
     [
       opt(
         "to_italy",
@@ -465,7 +472,7 @@ const OUT: readonly GwScene[] = [
     ],
   ),
   wire("auh_ld_out_ita", 7, knockedOut("ITA", 1), { cos: COS }, [
-    ["foe", againstUs("ITA")],
+    ["foe", foeOut("ITA")],
     ["base"],
   ]),
   proposal(

@@ -29,13 +29,16 @@ import {
 import { world } from "@openfront/engine-api/ww1914/WorldDsl";
 import {
   capitalFell,
+  heldLand,
   knockedOut,
   lostCapital,
   lostLand,
   tableSigned,
   tableSits,
+  tableSitsAs,
   tookCapital,
   tookLand,
+  tookPlace,
 } from "./land_events";
 
 const NATION: GwScene["nation"] = ["GBR"];
@@ -65,23 +68,6 @@ const withUs = (tag: GwTag): GwCond =>
 /** Britain's war with `tag` ended within `months`. */
 const fought = (tag: GwTag, months = 1): GwCond =>
   world({ is: "pair_peace", with: tag, max: months });
-/** A table with `tag` sits, Britain having come to it as `result`. */
-const sitsAs = (tag: GwTag, result: "won" | "lost" | "even"): GwCond =>
-  world({ is: "pair_table", with: tag, open: true, result: [result] });
-/** A front stands at or past a named line (`to`: not past it). */
-const front = (
-  theatre: "mesopotamia" | "palestine",
-  from: string,
-  to?: string,
-): GwCond =>
-  world(
-    to === undefined
-      ? { is: "front", theatre, from }
-      : { is: "front", theatre, from, to },
-  );
-/** Turkish land Britain has held for at least `months`. */
-const heldOttFor = (months: number): GwCond =>
-  world({ is: "land_taken", from: "OTT", min: months });
 
 // ---- Effects ----
 
@@ -161,15 +147,13 @@ const proposal = (
 // ---- Occupation, ours (9) ----
 
 const OURS: GwScene[] = [
-  wire(
-    "ours_basra",
-    all(tookLand("OTT", 1), front("mesopotamia", "basra", "kut")),
-    { fm: FM, mil: MIL },
-    [v("out", knockedOut("OTT", 6)), v("base")],
-  ),
+  wire("ours_basra", tookPlace(["basra"], 1), { fm: FM, mil: MIL }, [
+    v("out", knockedOut("OTT", 6)),
+    v("base"),
+  ]),
   proposal(
     "ours_baghdad",
-    all(tookLand("OTT", 2), front("mesopotamia", "baghdad")),
+    tookPlace(["baghdad"], 2),
     { fm: FM, mil: MIL },
     [v("out", knockedOut("OTT", 6)), v("base")],
     [
@@ -181,7 +165,7 @@ const OURS: GwScene[] = [
   ),
   proposal(
     "ours_jerusalem",
-    all(tookLand("OTT", 2), front("palestine", "jerusalem")),
+    tookPlace(["jerusalem"], 2),
     { fm: FM, mil: MIL },
     [v("out", knockedOut("OTT", 6)), v("base")],
     [
@@ -193,7 +177,7 @@ const OURS: GwScene[] = [
   ),
   proposal(
     "ours_damascus",
-    all(tookLand("OTT", 2), front("palestine", "damascus")),
+    tookPlace(["damascus"], 2),
     { fm: FM, mil: MIL },
     [v("france", withUs("FRA")), v("base")],
     [
@@ -235,7 +219,7 @@ const OURS: GwScene[] = [
   ),
   proposal(
     "ours_people",
-    heldOttFor(3),
+    heldLand("OTT", 3),
     { mil: MIL, fin: FIN },
     [v("out", knockedOut("OTT", 12)), v("base")],
     [
@@ -246,7 +230,7 @@ const OURS: GwScene[] = [
   ),
   proposal(
     "ours_allies",
-    all(heldOttFor(2), withUs("FRA")),
+    all(heldLand("OTT", 2), withUs("FRA")),
     { fm: FM },
     [v("russia", withUs("RUS")), v("base")],
     [
@@ -407,8 +391,8 @@ const TABLE: GwScene[] = [
     tableSits("OTT"),
     { fm: FM, fin: FIN },
     [
-      v("won", sitsAs("OTT", "won")),
-      v("lost", sitsAs("OTT", "lost")),
+      v("won", tableSitsAs("won", "OTT")),
+      v("lost", tableSitsAs("lost", "OTT")),
       v("base"),
     ],
     [
@@ -423,8 +407,8 @@ const TABLE: GwScene[] = [
     tableSits("DEU"),
     { fm: FM, adm: ADM },
     [
-      v("won", sitsAs("DEU", "won")),
-      v("lost", sitsAs("DEU", "lost")),
+      v("won", tableSitsAs("won", "DEU")),
+      v("lost", tableSitsAs("lost", "DEU")),
       v("base"),
     ],
     [
@@ -438,11 +422,11 @@ const TABLE: GwScene[] = [
     "table_auh",
     tableSits("AUH"),
     { fm: FM },
-    [v("won", sitsAs("AUH", "won")), v("base")],
+    [v("won", tableSitsAs("won", "AUH")), v("base")],
     7,
   ),
   wire("table_bgr", tableSits("BGR"), { fm: FM }, [
-    v("won", sitsAs("BGR", "won")),
+    v("won", tableSitsAs("won", "BGR")),
     v("base"),
   ]),
   proposal(
