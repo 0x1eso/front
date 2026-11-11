@@ -1826,6 +1826,7 @@
     "gold_multiplier": "Gold multiplier",
     "great_war_1914": "Great War 1914",
     "historical_ai": "Historical AI",
+    "imjin_war": "Imjin War 1592",
     "infinite_gold": "Infinite gold",
     "infinite_troops": "Infinite troops",
     "instant_build": "Instant build",
@@ -5073,6 +5074,48 @@
     "visibility_public": "Public",
     "waiting": "Waiting for players..."
   },
+  "imjin": {
+    "date": {
+      "line": "{date} · {lunar} · {reign}",
+      "line_no_reign": "{date} · {lunar}",
+      "lunar": "lunar {month}/{day}",
+      "lunar_leap": "lunar leap {month}/{day}"
+    },
+    "era": {
+      "bunroku": "Bunroku {year}",
+      "chongzhen": "Chongzhen {year}",
+      "genna": "Genna {year}",
+      "gwanghae": "Gwanghae {year}",
+      "injo": "Injo {year}",
+      "kanei": "Kan'ei {year}",
+      "keicho": "Keichō {year}",
+      "seonjo": "Seonjo {year}",
+      "tensho": "Tenshō {year}",
+      "tianqi": "Tianqi {year}",
+      "wanli": "Wanli {year}"
+    },
+    "lobby": {
+      "ai_note": "The AI plays {countries}.",
+      "calendar": {
+        "long": "Long game",
+        "unlimited": "Unlimited",
+        "y1590": "Embassy 1590",
+        "y1592": "Imjin 1592"
+      },
+      "calendar_label": "Length",
+      "calendar_note": {
+        "long": "From 1590 at half speed, about 90 minutes",
+        "unlimited": "From 1590, no timer",
+        "y1590": "From the 1590 embassy, about 45 minutes",
+        "y1592": "From the eve of the landing, about 30 minutes"
+      },
+      "seat_label": "Your country",
+      "seat_note": {
+        "JOS": "Mountain passes, fortresses and a navy with cannon",
+        "JPN": "The best foot army in Asia, fed across one strait"
+      }
+    }
+  },
   "inventory": {
     "equipped": "Equipped",
     "load_failed": "Couldn't load your inventory. Please reload and try again.",
@@ -7349,7 +7392,9 @@
       "IRQ": "Iraq",
       "ISL": "Iceland",
       "ITA": "Italy",
+      "JOS": "Joseon",
       "JPN": "Japan",
+      "JUR": "Jurchen",
       "LBR": "Liberia",
       "LTU": "Lithuania",
       "LUX": "Luxembourg",
@@ -7357,6 +7402,7 @@
       "MCK": "Manchukuo",
       "MEN": "Mengjiang",
       "MEX": "Mexico",
+      "MIN": "Ming",
       "MNG": "Mongolia",
       "NIC": "Nicaragua",
       "NLD": "Netherlands",
@@ -8087,6 +8133,7 @@
         "slot_locked": "This seat cannot change yet",
         "special_cap": "Too many special forces",
         "subject_restricted": "A subject cannot do this on its own",
+        "system_off": "Not part of this war",
         "template_in_use": "Divisions still use this template",
         "tension_gate": "World tension too low",
         "too_many_armies": "Too many armies",
@@ -13496,7 +13543,9 @@
       "IRQ": "Ghazi I",
       "ISL": "Hermann Jónasson",
       "ITA": "Benito Mussolini",
+      "JOS": "King of Joseon",
       "JPN": "Okada Keisuke",
+      "JUR": "Jurchen chieftain",
       "LBR": "Edwin Barclay",
       "LTU": "Antanas Smetona",
       "LUX": "Joseph Bech",
@@ -13504,6 +13553,7 @@
       "MCK": "Emperor",
       "MEN": "Chairman of the Autonomous Government",
       "MEX": "Lázaro Cárdenas",
+      "MIN": "Emperor of Ming",
       "MNG": "Peljidiin Genden",
       "NIC": "Juan Bautista Sacasa",
       "NLD": "Hendrikus Colijn",

@@ -27,6 +27,7 @@ import {
 } from "@openfront/engine-api/ww1914/GwCountries";
 import {
   isDormantTag,
+  isImjinTag,
   type CountryTag,
 } from "@openfront/engine-api/ww1936/Countries";
 import {
@@ -34,6 +35,7 @@ import {
   resolveTeamsList,
 } from "@openfront/engine-lib/game/TeamAssignment";
 import { msPerTickOf, wwUnlimited } from "@openfront/engine-lib/ww1936/Pace";
+import { humanSeatsOf } from "@openfront/engine-lib/ww1936/scenario/Profile";
 import { isAdminRole } from "@openfront/shared/ApiSchemas";
 import { CloseCode, CloseReason } from "@openfront/shared/CloseCodes";
 import { GameEnv } from "@openfront/shared/configuration/Env";
@@ -1481,6 +1483,10 @@ export class GameServer {
     }
     // P5 plan decision 3: a dormant slot is never picked.
     if (isDormantTag(tag)) return;
+    // ww177: only the profile's seats (the Imjin War: Joseon and Japan), and
+    // never its countries in the 1936 game.
+    const seats = humanSeatsOf(this.gameConfig);
+    if (seats === null ? isImjinTag(tag) : !seats.includes(tag)) return;
     if (
       this.livePicks().some(
         (p) => p.tag === tag && p.clientID !== client.clientID,

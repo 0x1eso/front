@@ -832,6 +832,7 @@ export const BLOCK_KEYS: Readonly<Record<WwOrderBlock, string>> = {
   collab_bad_region: "ww1936.econ.block.collab_bad_region",
   collab_no_slot: "ww1936.econ.block.collab_no_slot",
   collab_scripted: "ww1936.econ.block.collab_scripted",
+  system_off: "ww1936.econ.block.system_off",
 };
 
 // ---- Icons (pre-flight R7.7: emoji, no new image files) ----

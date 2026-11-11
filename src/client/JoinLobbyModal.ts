@@ -2,6 +2,10 @@ import { GAME_ID_REGEX, GameConfig } from "@openfront/engine-api/Schemas";
 import { GameMode, GameType } from "@openfront/engine-api/game/GameTypes";
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import { gwCalendarOf } from "@openfront/engine-lib/ww1914/Calendars";
+import {
+  imjinCalendarOf,
+  isImjin,
+} from "@openfront/engine-lib/ww1936/scenario/Profile";
 import { assetUrl } from "@openfront/shared/AssetUrls";
 import { EventBus } from "@openfront/shared/EventBus";
 import type { GwResumeInfo } from "@openfront/shared/WireSchemas";
@@ -33,6 +37,7 @@ import {
   gwSeatPicker,
   gwTableNote,
 } from "./GwLobby";
+import { imjinLobby } from "./ImjinLobby";
 import {
   SendPickCountryEvent,
   SendPickSeatEvent,
@@ -270,25 +275,46 @@ export class JoinLobbyModal extends BaseModal {
               `
             : html`
                 ${this.gameConfig ? this.renderGameConfig() : html``}
-                ${this.gameConfig?.worldWar1936 === true && !this.isSpectating
-                  ? html`<ww-country-picker
-                      class="mt-6 block"
-                      .picks=${this.countryPicks}
-                      .myClientID=${this.currentClientID}
-                      .usernames=${new Map(
-                        this.players.map((c) => [c.clientID, c.username]),
-                      )}
-                      .selected=${this.countryPicks.find(
-                        (p) => p.clientID === this.currentClientID,
-                      )?.tag ?? null}
-                      @country-picked=${(
-                        e: CustomEvent<{ tag: CountryTag | null }>,
-                      ) =>
-                        this.eventBus?.emit(
-                          new SendPickCountryEvent(e.detail.tag),
+                ${this.gameConfig?.worldWar1936 === true &&
+                !this.isSpectating &&
+                isImjin(this.gameConfig)
+                  ? html`<div class="mt-6 block">
+                      ${imjinLobby({
+                        seat:
+                          this.countryPicks.find(
+                            (p) => p.clientID === this.currentClientID,
+                          )?.tag ?? null,
+                        pickSeat: (tag) =>
+                          this.eventBus?.emit(new SendPickCountryEvent(tag)),
+                        // The host sets the row; a guest sees it.
+                        calendar: imjinCalendarOf(this.gameConfig).id,
+                        pickCalendar: () => {},
+                        picks: this.countryPicks,
+                        me: this.currentClientID,
+                        names: new Map(
+                          this.players.map((c) => [c.clientID, c.username]),
+                        ),
+                      })}
+                    </div>`
+                  : this.gameConfig?.worldWar1936 === true && !this.isSpectating
+                    ? html`<ww-country-picker
+                        class="mt-6 block"
+                        .picks=${this.countryPicks}
+                        .myClientID=${this.currentClientID}
+                        .usernames=${new Map(
+                          this.players.map((c) => [c.clientID, c.username]),
                         )}
-                    ></ww-country-picker>`
-                  : ""}
+                        .selected=${this.countryPicks.find(
+                          (p) => p.clientID === this.currentClientID,
+                        )?.tag ?? null}
+                        @country-picked=${(
+                          e: CustomEvent<{ tag: CountryTag | null }>,
+                        ) =>
+                          this.eventBus?.emit(
+                            new SendPickCountryEvent(e.detail.tag),
+                          )}
+                      ></ww-country-picker>`
+                    : ""}
                 ${this.gameConfig?.greatWar1914 === true && !this.isSpectating
                   ? html`<div class="mt-6 space-y-2">
                       ${this.gwResume === null

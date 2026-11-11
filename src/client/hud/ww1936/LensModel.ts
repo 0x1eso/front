@@ -49,6 +49,7 @@ import {
   type SeaAirSelection,
 } from "./SeaAirSelection";
 import { countryName, factionName, today } from "./WorldWarModel";
+import { wwEpoch } from "./WwClientCalendar";
 
 export type Rgb = readonly [number, number, number];
 
@@ -303,7 +304,13 @@ function freeSlotsOf(c: Ctx, id: number): number {
 }
 
 function weatherIn(c: Ctx, id: number): Weather {
-  return weatherAt(c.day, c.s.latC(id), c.s.landOf(id), c.s.wcell(id));
+  return weatherAt(
+    c.day,
+    c.s.latC(id),
+    c.s.landOf(id),
+    c.s.wcell(id),
+    wwEpoch(),
+  );
 }
 
 /** Supply class of a region on my side: 0 none, 1 short, 2 enough; -1 unknown. */

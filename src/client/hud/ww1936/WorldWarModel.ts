@@ -27,6 +27,7 @@ import {
 } from "@openfront/engine-lib/ww1936/Score";
 import { translateText } from "../../Utils";
 import type { GameView, PlayerView } from "../../view";
+import { imjinCalendarOn, imjinDateLabel, wwEpoch } from "./WwClientCalendar";
 
 /** Height of the top band in px; the hover card moves down by it. */
 export const WW_BAND_PX = 32;
@@ -197,7 +198,8 @@ const MONTH_KEYS = [
 ] as const;
 
 export function dateLabel(day: number): string {
-  const d = dateOfDay(day);
+  // ww177: the game's epoch (WwClientCalendar; 1936's unless a profile set it).
+  const d = dateOfDay(day, wwEpoch());
   return translateText("ww1936.date", {
     year: d.year,
     month: translateText(MONTH_KEYS[d.month - 1]),
@@ -320,7 +322,9 @@ export function bandModel(game: WwGame): BandModel {
         ? translateText("ww1936.band.prep", {
             time: `${Math.floor(left / 60)}:${pad(left % 60)}`,
           })
-        : dateLabel(today(game)),
+        : imjinCalendarOn()
+          ? imjinDateLabel(today(game), myTag)
+          : dateLabel(today(game)),
     inPrep: left > 0,
     myTag,
     myFaction: me === null ? null : factionOfPlayer(game, me),

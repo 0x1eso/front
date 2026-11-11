@@ -16,6 +16,7 @@ import type {
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
+import type { ImjinCalendarId } from "@openfront/engine-api/ww1936/ScenarioIds";
 import {
   CONQUEST_PERCENT_MAX,
   CONQUEST_PERCENT_MIN,
@@ -23,6 +24,7 @@ import {
 } from "@openfront/engine-lib/domestic/Balance";
 import { DoomsdayClockSpeed } from "@openfront/engine-lib/game/DoomsdayClock";
 import type { WwLength } from "@openfront/engine-lib/ww1936/Pace";
+import { IMJIN_DEFAULT_CALENDAR } from "@openfront/engine-lib/ww1936/scenario/Profile";
 import type { SavedGame } from "@openfront/shared/ApiSchemas";
 import { GameEnv } from "@openfront/shared/configuration/Env";
 import { EventBus } from "@openfront/shared/EventBus";
@@ -69,6 +71,7 @@ import {
   gwSeatPicker,
 } from "./GwLobby";
 import { gwSaves, resumeInLobby } from "./GwResume";
+import { imjinLobby } from "./ImjinLobby";
 import { SendPickCountryEvent, SendPickSeatEvent } from "./LobbyEvents";
 import { JoinLobbyEvent } from "./Main";
 import { setOpenRoom } from "./OpenRooms";
@@ -145,6 +148,9 @@ export class HostLobbyModal extends BaseModal {
   /** World War 1936 P6 (spec §9.8, plan decision 21): the atomic bomb, on by default. */
   @state() private ww1936Nukes = true;
   @state() private countryPicks: { clientID: string; tag: CountryTag }[] = [];
+  /** ww177: the Imjin War (the 1936 engine's imjin1590 profile). */
+  @state() private imjin = false;
+  @state() private imjinCalendar: ImjinCalendarId = IMJIN_DEFAULT_CALENDAR;
   /** Great War 1914 with friends (engine-lib/ww1914/ModeConfig.ts). */
   @state() private greatWar1914 = false;
   /** Friends play the `friends` row by default (owner's ww160 call 3). */
@@ -799,124 +805,141 @@ export class HostLobbyModal extends BaseModal {
                         checked: true,
                       },
                     ]
-                  : this.worldWar1936
+                  : this.imjin
                     ? [
                         {
-                          labelKey: "game_settings.world_war_1936",
+                          labelKey: "game_settings.imjin_war",
                           checked: true,
                         },
                         {
-                          labelKey: "game_settings.historical_ai",
-                          checked: this.historicalAi,
-                        },
-                        {
-                          labelKey: "ww1936.lobby.nukes",
-                          checked: this.ww1936Nukes,
-                        },
-                        {
                           labelKey: "game_settings.instant_build",
                           checked: this.instantBuild,
                         },
-                        {
-                          labelKey: "host_modal.anonymous_players",
-                          checked: this.anonymizeNames,
-                        },
-                        ...(this.publiclyListed
-                          ? []
-                          : [
-                              {
-                                labelKey: "host_modal.host_cheats",
-                                checked: this.hostCheatsEnabled,
-                              },
-                            ]),
                       ]
-                    : [
-                        {
-                          labelKey: "game_settings.instant_build",
-                          checked: this.instantBuild,
-                        },
-                        {
-                          labelKey: "game_settings.random_spawn",
-                          checked: this.randomSpawn,
-                        },
-                        {
-                          labelKey: "host_modal.donate_gold",
-                          checked: this.donateGold,
-                        },
-                        {
-                          labelKey: "host_modal.donate_troops",
-                          checked: this.donateTroops,
-                        },
-                        {
-                          labelKey: "game_settings.infinite_gold",
-                          checked: this.infiniteGold,
-                        },
-                        {
-                          labelKey: "game_settings.infinite_troops",
-                          checked: this.infiniteTroops,
-                        },
-                        {
-                          labelKey: "game_settings.compact_map",
-                          checked: this.compactMap,
-                        },
-                        {
-                          labelKey: "host_modal.anonymous_players",
-                          checked: this.anonymizeNames,
-                        },
-                        {
-                          labelKey: "game_settings.water_nukes",
-                          checked: this.waterNukes,
-                        },
-                        {
-                          labelKey: "game_settings.domestic_mode",
-                          checked: this.domesticMode,
-                        },
-                        ...(this.domesticMode && this.gameMode === GameMode.FFA
-                          ? [
-                              {
-                                labelKey: "game_settings.congress",
-                                checked: this.congress,
-                              },
-                            ]
-                          : []),
-                        {
-                          labelKey: "game_settings.warfare_expansion",
-                          checked: this.warfareExpansion,
-                        },
-                        {
-                          labelKey: "game_settings.strategic_weapons",
-                          checked: this.strategicWeapons,
-                        },
-                        {
-                          labelKey: "game_settings.doomsday_clock",
-                          checked: this.doomsdayClock,
-                          doomsdayClockSpeed: this.doomsdayClockSpeed,
-                        },
-                        {
-                          labelKey: "game_settings.world_war_1936",
-                          checked: false,
-                        },
-                        {
-                          labelKey: "game_settings.great_war_1914",
-                          checked: false,
-                        },
-                        // Host cheats and public listing are mutually exclusive
-                        // (the server rejects both combinations), so the controls
-                        // disappear while the lobby is listed.
-                        ...(this.publiclyListed
-                          ? []
-                          : [
-                              {
-                                labelKey: "host_modal.host_cheats",
-                                checked: this.hostCheatsEnabled,
-                              },
-                            ]),
-                      ],
-                inputCards: this.greatWar1914
-                  ? [startDelayCard, ...whitelistCards]
-                  : this.worldWar1936
-                    ? [playerLimitCard, startDelayCard, ...whitelistCards]
-                    : inputCards,
+                    : this.worldWar1936
+                      ? [
+                          {
+                            labelKey: "game_settings.world_war_1936",
+                            checked: true,
+                          },
+                          {
+                            labelKey: "game_settings.historical_ai",
+                            checked: this.historicalAi,
+                          },
+                          {
+                            labelKey: "ww1936.lobby.nukes",
+                            checked: this.ww1936Nukes,
+                          },
+                          {
+                            labelKey: "game_settings.instant_build",
+                            checked: this.instantBuild,
+                          },
+                          {
+                            labelKey: "host_modal.anonymous_players",
+                            checked: this.anonymizeNames,
+                          },
+                          ...(this.publiclyListed
+                            ? []
+                            : [
+                                {
+                                  labelKey: "host_modal.host_cheats",
+                                  checked: this.hostCheatsEnabled,
+                                },
+                              ]),
+                        ]
+                      : [
+                          {
+                            labelKey: "game_settings.instant_build",
+                            checked: this.instantBuild,
+                          },
+                          {
+                            labelKey: "game_settings.random_spawn",
+                            checked: this.randomSpawn,
+                          },
+                          {
+                            labelKey: "host_modal.donate_gold",
+                            checked: this.donateGold,
+                          },
+                          {
+                            labelKey: "host_modal.donate_troops",
+                            checked: this.donateTroops,
+                          },
+                          {
+                            labelKey: "game_settings.infinite_gold",
+                            checked: this.infiniteGold,
+                          },
+                          {
+                            labelKey: "game_settings.infinite_troops",
+                            checked: this.infiniteTroops,
+                          },
+                          {
+                            labelKey: "game_settings.compact_map",
+                            checked: this.compactMap,
+                          },
+                          {
+                            labelKey: "host_modal.anonymous_players",
+                            checked: this.anonymizeNames,
+                          },
+                          {
+                            labelKey: "game_settings.water_nukes",
+                            checked: this.waterNukes,
+                          },
+                          {
+                            labelKey: "game_settings.domestic_mode",
+                            checked: this.domesticMode,
+                          },
+                          ...(this.domesticMode &&
+                          this.gameMode === GameMode.FFA
+                            ? [
+                                {
+                                  labelKey: "game_settings.congress",
+                                  checked: this.congress,
+                                },
+                              ]
+                            : []),
+                          {
+                            labelKey: "game_settings.warfare_expansion",
+                            checked: this.warfareExpansion,
+                          },
+                          {
+                            labelKey: "game_settings.strategic_weapons",
+                            checked: this.strategicWeapons,
+                          },
+                          {
+                            labelKey: "game_settings.doomsday_clock",
+                            checked: this.doomsdayClock,
+                            doomsdayClockSpeed: this.doomsdayClockSpeed,
+                          },
+                          {
+                            labelKey: "game_settings.world_war_1936",
+                            checked: false,
+                          },
+                          {
+                            labelKey: "game_settings.great_war_1914",
+                            checked: false,
+                          },
+                          {
+                            labelKey: "game_settings.imjin_war",
+                            checked: false,
+                          },
+                          // Host cheats and public listing are mutually exclusive
+                          // (the server rejects both combinations), so the controls
+                          // disappear while the lobby is listed.
+                          ...(this.publiclyListed
+                            ? []
+                            : [
+                                {
+                                  labelKey: "host_modal.host_cheats",
+                                  checked: this.hostCheatsEnabled,
+                                },
+                              ]),
+                        ],
+                inputCards:
+                  this.greatWar1914 || this.imjin
+                    ? [startDelayCard, ...whitelistCards]
+                    : this.worldWar1936
+                      ? [playerLimitCard, startDelayCard, ...whitelistCards]
+                      : inputCards,
               },
               hostCheats: {
                 titleKey: "host_modal.host_cheats",
@@ -940,6 +963,31 @@ export class HostLobbyModal extends BaseModal {
               ...(this.greatWar1914
                 ? {
                     worldWar: { picker: this.renderGwLobby(), fixed: true },
+                  }
+                : {}),
+              ...(this.imjin
+                ? {
+                    worldWar: {
+                      picker: imjinLobby({
+                        seat:
+                          this.countryPicks.find(
+                            (p) => p.clientID === this.lobbyCreatorClientID,
+                          )?.tag ?? null,
+                        pickSeat: (tag) =>
+                          this.eventBus?.emit(new SendPickCountryEvent(tag)),
+                        calendar: this.imjinCalendar,
+                        pickCalendar: (id) => {
+                          this.imjinCalendar = id;
+                          this.putGameConfig();
+                        },
+                        picks: this.countryPicks,
+                        me: this.lobbyCreatorClientID,
+                        names: new Map(
+                          this.clients.map((c) => [c.clientID, c.username]),
+                        ),
+                      }),
+                      fixed: true,
+                    },
                   }
                 : {}),
               ...(this.worldWar1936
@@ -984,7 +1032,7 @@ export class HostLobbyModal extends BaseModal {
 
           <lobby-player-view
             class="mt-10"
-            .gameMode=${this.worldWar1936 || this.greatWar1914
+            .gameMode=${this.worldWar1936 || this.greatWar1914 || this.imjin
               ? GameMode.FFA
               : this.gameMode}
             .clients=${this.clients}
@@ -1281,6 +1329,8 @@ export class HostLobbyModal extends BaseModal {
     this.ww1936FastTempo = false;
     this.ww1936Nukes = true;
     this.countryPicks = [];
+    this.imjin = false;
+    this.imjinCalendar = IMJIN_DEFAULT_CALENDAR;
     this.greatWar1914 = false;
     this.greatWar1914Calendar = "friends";
     this.greatWar1914Pace = "normal";
@@ -1533,6 +1583,20 @@ export class HostLobbyModal extends BaseModal {
         this.greatWar1914 = checked;
         if (checked) {
           this.worldWar1936 = false;
+          this.imjin = false;
+          this.domesticMode = false;
+          this.congress = false;
+          this.warfareExpansion = false;
+          this.strategicWeapons = false;
+        }
+        this.putGameConfig();
+        break;
+      case "game_settings.imjin_war":
+        // ww177: exclusive with every other fork mode, the 1936 game included.
+        this.imjin = checked;
+        if (checked) {
+          this.worldWar1936 = false;
+          this.greatWar1914 = false;
           this.domesticMode = false;
           this.congress = false;
           this.warfareExpansion = false;
@@ -1544,6 +1608,7 @@ export class HostLobbyModal extends BaseModal {
         // Exclusive with the other fork modes (spec §2.1).
         this.worldWar1936 = checked;
         if (checked) {
+          this.imjin = false;
           this.greatWar1914 = false;
           this.domesticMode = false;
           this.congress = false;
@@ -2125,7 +2190,17 @@ export class HostLobbyModal extends BaseModal {
             strategicWeapons: this.strategicWeapons,
             // The server's applyGameConfigPatch fixes the rest. Off is sent as
             // false so the server turns the mode off.
-            worldWar1936: this.worldWar1936,
+            // ww177: the Imjin War is the 1936 engine with its profile; the
+            // profile key goes with either so turning one off clears it.
+            worldWar1936: this.worldWar1936 || this.imjin,
+            ...(this.worldWar1936 || this.imjin
+              ? {
+                  ww1936Scenario: this.imjin
+                    ? ("imjin1590" as const)
+                    : ("ww1936" as const),
+                }
+              : {}),
+            ...(this.imjin ? { imjinCalendar: this.imjinCalendar } : {}),
             historicalAi: this.historicalAi,
             greatWar1914: this.greatWar1914,
             ...(this.greatWar1914

@@ -23,6 +23,7 @@ import type { WwAirView } from "../../view/WwAirView";
 import type { WwNavyView } from "../../view/WwNavyView";
 import { borderRegions, regionName } from "./LandModel";
 import { NavyCtx, navyCtx, NavyGame, srName } from "./NavyModel";
+import { wwEpoch } from "./WwClientCalendar";
 
 /** The air screens read the navy screens' context (the same views and facts). */
 export type AirCtx = NavyCtx;
@@ -63,6 +64,7 @@ export function zoneWeather(
       scenario.latC(at),
       scenario.landOf(at),
       scenario.wcell(at),
+      wwEpoch(),
     );
   }
   const zone = scenario.seaZone(at) !== undefined ? at : (s.members[0] ?? 0);
@@ -71,6 +73,7 @@ export function zoneWeather(
     scenario.zoneLatC(zone),
     "plains",
     scenario.zoneWcell(zone),
+    wwEpoch(),
   );
 }
 
