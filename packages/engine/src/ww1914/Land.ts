@@ -13,7 +13,7 @@ import {
 import { posOf } from "./Eras";
 import type { GreatWar } from "./GreatWar";
 import { GW_FRONT_ENDS } from "./Tables";
-import { membersOf, sideIn } from "./Wars";
+import { atWarWith, membersOf, sideIn } from "./Wars";
 
 /** Who holds a place now. */
 export function holderOf(gw: GreatWar, place: GwPlace): GwTag {
@@ -30,6 +30,7 @@ export function moveLand(
   place: GwPlace,
   to: GwTag,
   theatre: GwTheatreState["id"] | null,
+  how?: "occupation" | "table",
 ): void {
   const id = gw.world.places.get(place);
   const from = holderOf(gw, place);
@@ -39,9 +40,19 @@ export function moveLand(
   if (!player.isPlayer()) return;
   gw.scenario.ensureRegionTiles(gw.mg.map());
   for (const tile of gw.scenario.regionTiles(id)) player.conquer(tile);
-  if (to === GW_PLACES[place].owner) delete gw.s.held[place];
-  else gw.s.held[place] = to;
-  gw.s.landMoves.push({ place, theatre, from, to });
+  if (to === GW_PLACES[place].owner) {
+    delete gw.s.held[place];
+    if (gw.s.heldSince !== undefined) delete gw.s.heldSince[place];
+  } else {
+    gw.s.held[place] = to;
+    gw.s.heldSince ??= {};
+    gw.s.heldSince[place] = gw.s.chapter;
+  }
+  gw.s.landMoves.push(
+    how === undefined
+      ? { place, theatre, from, to }
+      : { place, theatre, from, to, how },
+  );
   gw.touch();
 }
 
@@ -95,11 +106,17 @@ export function frontLandStep(gw: GreatWar): void {
   gw.s.landMoves = [];
   // After the armistice only the table moves land.
   if (gw.s.armistice !== null) return;
+  const settled = gw.s.settled ?? [];
   for (const t of gw.s.theatres) {
     if (t.since === null) continue;
     const held = frontLandAt(t.id, reachedLine(t), lineStep(t));
     for (const place of frontPlaces(t.id)) {
-      moveLand(gw, place, takerOf(gw, t, place, held.get(place) ?? null), t.id);
+      const to = takerOf(gw, t, place, held.get(place) ?? null);
+      // What a table settled moves again only in a new war of the two (ww172).
+      if (settled.includes(place) && !atWarWith(gw, holderOf(gw, place), to)) {
+        continue;
+      }
+      moveLand(gw, place, to, t.id);
     }
   }
 }

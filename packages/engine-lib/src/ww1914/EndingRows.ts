@@ -21,12 +21,26 @@ const out = (tag: GwTag): GwCond => world({ is: "out", tag });
 const regime = (...of: string[]): GwCond => world({ is: "regime", of });
 const seatOut = (tag: GwTag): GwCond => world({ is: "out", tag });
 
+/**
+ * The general endings the state gives (ww172, design ww168 7A): a peace of
+ * one's own, a war of the two won or lost, occupation held or suffered.
+ * `deadline` is the war that goes on.
+ */
+export const GW_STATE_ENDINGS: readonly GwEnding[] = [
+  "separate_peace",
+  "pair_war_won",
+  "pair_war_lost",
+  "occupation_held",
+  "under_occupation",
+];
+
 /** Whatever the war came to. */
 const ANY_WAR: readonly GwEnding[] = [
   "deadline",
   "victory_peace",
   "armistice_conference",
   "compromise_peace",
+  ...GW_STATE_ENDINGS,
 ];
 const ANY_END: readonly GwEnding[] = [
   ...ANY_WAR,
@@ -135,7 +149,7 @@ export const GW_ENDING_ROWS: Readonly<
     { id: "auh_e_long_peace", of: ["long_peace"] },
     {
       id: "auh_e_separate_peace",
-      of: ["compromise_peace"],
+      of: ["compromise_peace", "separate_peace"],
       when: seatOut("AUH"),
     },
     {
@@ -176,7 +190,7 @@ export const GW_ENDING_ROWS: Readonly<
     { id: "rus_assembly_republic", of: ANY_WAR, when: regime("rep") },
     {
       id: "rus_separate_peace",
-      of: ["compromise_peace"],
+      of: ["compromise_peace", "separate_peace"],
       when: seatOut("RUS"),
     },
     {
@@ -279,11 +293,41 @@ export const GW_ENDING_CODAS: Readonly<
   ],
 };
 
+/**
+ * Memoir lines on the land (ww172): after a country's own coda, the first
+ * that holds. Text in each seat's pack, `endings.<id>` of `<SEAT>.lands.json`;
+ * a seat with no line for it shows none.
+ */
+export const GW_LAND_CODAS: readonly { id: string; when: GwCond }[] = [
+  {
+    id: "land_coda_capital_lost",
+    when: world({ is: "land_lost", capital: true }),
+  },
+  {
+    id: "land_coda_capital_taken",
+    when: world({ is: "land_taken", capital: true }),
+  },
+  {
+    id: "land_coda_pair_lost",
+    when: world({ is: "pair_table", open: false, result: ["lost"] }),
+  },
+  {
+    id: "land_coda_pair_won",
+    when: world({ is: "pair_table", open: false, result: ["won"] }),
+  },
+  {
+    id: "land_coda_pair_even",
+    when: world({ is: "pair_table", open: false, result: ["even"] }),
+  },
+  { id: "land_coda_lost", when: world({ is: "land_lost" }) },
+  { id: "land_coda_held", when: world({ is: "land_taken" }) },
+];
+
 /** A country's endings, for the shelf's empty boxes. */
 export function gwEndingsOf(tag: GwTag): readonly GwEnding[] {
   const rows = (GW_ENDING_ROWS[tag] ?? []).map((r) => r.id);
   if (rows.length === 0) return GW_ENDINGS.slice(1, 10);
   const own = `${tag.toLowerCase()}_r_`;
   const gone = GW_ENDINGS.filter((e) => e.startsWith(own));
-  return [...new Set(rows), ...gone, ...FIRST_WINTER];
+  return [...new Set(rows), ...gone, ...FIRST_WINTER, ...GW_STATE_ENDINGS];
 }

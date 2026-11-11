@@ -106,6 +106,19 @@ export const GwTableStateSchema = z.object({
   over: z.partialRecord(Tag, z.number().int()),
   /** Tag -> claims it refused to the last. */
   held: z.partialRecord(Tag, z.number().int()),
+  /**
+   * ww172: a bilateral table for a peace of two: its two chairs, who came
+   * out ahead (null: neither) and the first's war score against the second.
+   * Absent at the conference.
+   */
+  pair: z
+    .object({
+      a: Tag,
+      b: Tag,
+      winner: Tag.nullable(),
+      score: z.number().int(),
+    })
+    .optional(),
 });
 export type GwTableState = z.infer<typeof GwTableStateSchema>;
 
@@ -147,6 +160,8 @@ export interface GwTableView {
   order: readonly GwTag[];
   /** Those who came to the table beaten; [] when nobody was. */
   losers: readonly GwTag[];
+  /** ww172: a bilateral table's two chairs; null or absent at the conference. */
+  pair?: readonly GwTag[] | null;
   /** Whose turn it is; null while nobody's. */
   speaker: GwTag | null;
   claims: readonly GwTableClaimView[];

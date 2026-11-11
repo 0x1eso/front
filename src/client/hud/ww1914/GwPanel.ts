@@ -401,7 +401,11 @@ export class GwPanel extends LitElement implements Controller {
   private followTable(seat: GwSeatView): void {
     const t = seat.table ?? null;
     const ui = this.ui;
-    if (t === null) return;
+    // A table gone (a bilateral one signed) lets the next take the screen.
+    if (t === null) {
+      this.tableSeen = false;
+      return;
+    }
     // The month's replay has the camera; the table's view waits for it.
     const replaying = this.replay?.active === true;
     if (!this.tableSeen) {

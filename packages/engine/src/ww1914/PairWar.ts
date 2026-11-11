@@ -35,6 +35,8 @@ import {
   weight,
 } from "./Ladder";
 import { holderOf } from "./Land";
+import { capitalHolder } from "./Occupation";
+import { queuePairTable } from "./Table";
 import { GW_AI_MAIN } from "./Tables";
 import { treatyAllies } from "./Treaties";
 import {
@@ -65,6 +67,40 @@ export const GW_PAIR_WARS_MAX = 3;
 const AI_NOTE_EVERY = 12;
 /** Chapters before a weary country offers again after a refusal. */
 const OFFER_AGAIN = 4;
+
+/** A war score past this, either way, is a war of the two won (ww172). */
+const PAIR_WON = 30;
+
+/**
+ * Two make a peace of their own (Wars.makePeace), and the land goes to their
+ * bilateral table when there is any at stake (ww172). Who came out ahead is
+ * read as the peace is made: the one holding the other's capital, else a
+ * war score past PAIR_WON.
+ */
+export function pairPeace(
+  gw: GreatWar,
+  a: GwTag,
+  b: GwTag,
+  why = "pair_peace",
+): boolean {
+  const w = warOf(gw, a, b);
+  if (w === null) return false;
+  const score = pairScore(gw, a, b);
+  const winner =
+    capitalHolder(gw, b) === a
+      ? a
+      : capitalHolder(gw, a) === b
+        ? b
+        : score >= PAIR_WON
+          ? a
+          : score <= -PAIR_WON
+            ? b
+            : null;
+  if (!makePeace(gw, a, b, why)) return false;
+  if (winner !== null) w.won = winner;
+  queuePairTable(gw, a, b, winner, score);
+  return true;
+}
 
 /** A line on every seat of `of`, naming `about` ({country}). */
 function say(gw: GreatWar, of: GwTag, key: string, about: GwTag): void {
@@ -209,7 +245,7 @@ export function peaceAnswer(
   if (i < 0) return;
   const [note] = s.pairNotes.splice(i, 1);
   if (!atWarWith(gw, note.from, note.to)) return;
-  if (yes) makePeace(gw, note.from, note.to, "pair_peace");
+  if (yes) pairPeace(gw, note.from, note.to);
   else refused(gw, note.from, note.to);
 }
 
@@ -254,7 +290,7 @@ function answerOffers(gw: GreatWar): void {
       continue;
     }
     if (x.chapter === s.chapter && takesPeace(gw, x.to, x.from)) {
-      makePeace(gw, x.from, x.to, "pair_peace");
+      pairPeace(gw, x.from, x.to);
     } else {
       refused(gw, x.from, x.to);
     }
@@ -300,7 +336,7 @@ function aiPeaceStep(gw: GreatWar): void {
       continue;
     }
     if (peaceWill(gw, w.a, w.b) + peaceWill(gw, w.b, w.a) >= 80) {
-      makePeace(gw, w.a, w.b, "pair_peace");
+      pairPeace(gw, w.a, w.b);
     }
   }
 }

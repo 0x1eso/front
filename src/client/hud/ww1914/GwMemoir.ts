@@ -11,6 +11,7 @@ import {
   countInMan,
   endingText,
   endingTitle,
+  endingWhy,
   frontLine,
   fullDate,
   personName,
@@ -25,6 +26,7 @@ const PROSE = "whitespace-pre-line text-sm leading-7 text-white/90";
 
 function ending(c: GwCtx, m: GwMemoir): TemplateResult {
   const text = endingText(c.pack, m, c.data.date);
+  const why = endingWhy(m);
   const man = m.rival ?? null;
   const rival = man === null ? null : rich(c, rivalLine(c.pack, man));
   return html`<section
@@ -32,6 +34,11 @@ function ending(c: GwCtx, m: GwMemoir): TemplateResult {
     data-gw-ending=${m.ending}
   >
     <h3 class="text-base font-bold">${endingTitle(m.ending)}</h3>
+    ${why === null
+      ? nothing
+      : html`<p class="text-sm text-amber-100/90" data-gw-ending-why>
+          ${why}
+        </p>`}
     <p class=${MUTED}>
       ${translateText("gw.ui.memoir_date", {
         date: fullDate(c.data.date),

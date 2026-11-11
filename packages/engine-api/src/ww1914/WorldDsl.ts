@@ -298,7 +298,32 @@ export type GwWorldCond =
   /** A front opened this many months ago and is still open. */
   | ({ is: "front_months"; theatre: GwTheatre } & Range)
   /** A peace offer waits for the seat's answer (from `tag`, if given). */
-  | { is: "peace_offered"; tag?: GwTag };
+  | { is: "peace_offered"; tag?: GwTag }
+  // ---- Occupation and the tables (ww172 phase 5) ----
+  /**
+   * `tag` (absent: the seat's country) holds land of `from` (absent: anyone
+   * else's), taken this many months ago; `capital`: that country's capital.
+   */
+  | ({ is: "land_taken"; tag?: GwTag; from?: GwTag; capital?: boolean } & Range)
+  /**
+   * The seat's country's own land is held by `to` (absent: anyone), taken
+   * this many months ago; `capital`: its capital.
+   */
+  | ({ is: "land_lost"; to?: GwTag; capital?: boolean } & Range)
+  /** `tag` (absent: anyone) was knocked out of the war this many months ago. */
+  | ({ is: "beaten"; tag?: GwTag } & Range)
+  /**
+   * The seat's country sat at a bilateral table with `with` (absent: anyone).
+   * `open`: true while it sits, false once signed (absent: either). `result`:
+   * how it came to it. Months count from the signing, or from the peace while
+   * it sits.
+   */
+  | ({
+      is: "pair_table";
+      with?: GwTag;
+      open?: boolean;
+      result?: ("won" | "lost" | "even")[];
+    } & Range);
 
 export type GwWorldEffect =
   /** Germany's plan for the war to come. */
@@ -621,6 +646,24 @@ export const GwWorldCondSchema = z.union([
   is("pair_peace", { tag: tag.optional(), with: tag.optional(), ...range }),
   is("front_months", { theatre, ...range }),
   is("peace_offered", { tag: tag.optional() }),
+  is("land_taken", {
+    tag: tag.optional(),
+    from: tag.optional(),
+    capital: z.boolean().optional(),
+    ...range,
+  }),
+  is("land_lost", {
+    to: tag.optional(),
+    capital: z.boolean().optional(),
+    ...range,
+  }),
+  is("beaten", { tag: tag.optional(), ...range }),
+  is("pair_table", {
+    with: tag.optional(),
+    open: z.boolean().optional(),
+    result: z.array(z.enum(["won", "lost", "even"])).optional(),
+    ...range,
+  }),
 ]) as unknown as z.ZodType<GwWorldCond>;
 
 export const GwWorldEffectSchema = z.union([

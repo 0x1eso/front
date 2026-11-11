@@ -442,6 +442,8 @@ export const GwLandMoveSchema = z.object({
   theatre: z.enum(GW_THEATRES).nullable(),
   from: z.enum(GW_TAGS),
   to: z.enum(GW_TAGS),
+  /** ww172: what moved it when no front did; absent for a front. */
+  how: z.enum(["occupation", "table"]).optional(),
 });
 export type GwLandMove = z.infer<typeof GwLandMoveSchema>;
 
@@ -865,6 +867,13 @@ export const GW_ENDINGS = [
   "auh_e_abdicated",
   "rus_abdicated",
   "fra_end_stood_down",
+  // ww172 phase 5: general endings from the state (design ww168 B5, 7A).
+  // `deadline` stays "the war goes on" (its title says so).
+  "separate_peace",
+  "pair_war_won",
+  "pair_war_lost",
+  "occupation_held",
+  "under_occupation",
 ] as const;
 export type GwEnding = (typeof GW_ENDINGS)[number];
 
@@ -897,6 +906,14 @@ export const GwMemoirSchema = z.object({
   ending: GwIdSchema,
   /** A closing paragraph after the ending's own, or null. */
   coda: GwIdSchema.nullable(),
+  /**
+   * Why the general ending came (ww172): gw.ending_why.<key>, {country} from
+   * `tag`. Absent on a memoir from before.
+   */
+  why: z
+    .object({ key: GwIdSchema, tag: z.enum(GW_TAGS).nullable() })
+    .nullable()
+    .optional(),
   chapter: z.number().int(),
   day: z.number().int(),
   mandates: z.array(z.object({ id: GwIdSchema, met: z.boolean() })),
@@ -1307,6 +1324,8 @@ export const GwNewsSchema = z.object({
   a: z.enum(GW_TAGS).nullable(),
   b: z.enum(GW_TAGS).nullable(),
   theatre: z.enum(GW_THEATRES).nullable(),
+  /** The place it is about (ww172: occupation and table lines), if any. */
+  place: GwPlaceSchema.optional(),
 });
 export type GwNews = z.infer<typeof GwNewsSchema>;
 
@@ -1442,6 +1461,8 @@ export const GwWarSchema = z.object({
   cause: GwIdSchema,
   /** Chapter the pair made peace (or one of them left the war); null: on. */
   ended: z.number().int().nullable(),
+  /** Who came out ahead when it ended in a peace of the two (ww172); absent: neither. */
+  won: z.enum(GW_TAGS).optional(),
 });
 export type GwWar = z.infer<typeof GwWarSchema>;
 
@@ -1459,6 +1480,30 @@ export const GwPairNoteSchema = z.object({
   chapter: z.number().int(),
 });
 export type GwPairNote = z.infer<typeof GwPairNoteSchema>;
+
+/** A country knocked out of the war, and the chapter (ww172). */
+export const GwBeatenSchema = z.object({
+  tag: z.enum(GW_TAGS),
+  chapter: z.number().int(),
+});
+export type GwBeaten = z.infer<typeof GwBeatenSchema>;
+
+/**
+ * A peace of two with land at stake (ww172, design ww168 B5-B6): its
+ * bilateral table. `winner` came out ahead (null: neither), `score` is
+ * `a`'s war score against `b` as the peace was made. `opened` and `signed`
+ * are chapters, null until then.
+ */
+export const GwPairTableSchema = z.object({
+  a: z.enum(GW_TAGS),
+  b: z.enum(GW_TAGS),
+  chapter: z.number().int(),
+  winner: z.enum(GW_TAGS).nullable(),
+  score: z.number().int(),
+  opened: z.number().int().nullable(),
+  signed: z.number().int().nullable(),
+});
+export type GwPairTable = z.infer<typeof GwPairTableSchema>;
 
 /** All of the mode's state. Version bumps go through GreatWarSnapshot. */
 export const GreatWarStateSchema = z.object({
@@ -1541,5 +1586,15 @@ export const GreatWarStateSchema = z.object({
   wars: z.array(GwWarSchema).default([]),
   /** Seat-to-seat declarations and peace offers on their way (ww171). */
   pairNotes: z.array(GwPairNoteSchema).default([]),
+  // ww172 phase 5 (design ww168 B6). Absent until first used, so a game that
+  // never moves land hashes as before.
+  /** Place -> the chapter its holder took it; absent for its owner's own. */
+  heldSince: z.partialRecord(GwPlaceSchema, z.number().int()).optional(),
+  /** Countries knocked out of the war (beaten, collapsed, sued), in order. */
+  beaten: z.array(GwBeatenSchema).optional(),
+  /** Peaces of two with land at stake: their bilateral tables, in order. */
+  pairTables: z.array(GwPairTableSchema).optional(),
+  /** Places a table settled: only a new war between holder and taker moves them. */
+  settled: z.array(GwPlaceSchema).optional(),
 });
 export type GreatWarState = z.infer<typeof GreatWarStateSchema>;

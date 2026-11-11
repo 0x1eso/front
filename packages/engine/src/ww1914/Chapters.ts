@@ -17,6 +17,7 @@ import { intelStep } from "./Intel";
 import { ladderStep } from "./Ladder";
 import { frontLandStep } from "./Land";
 import { lawStep } from "./Laws";
+import { occupationStep } from "./Occupation";
 import { warStep } from "./PairWar";
 import { nextConferenceChapter, skipToConference } from "./Peace";
 import { peopleStep } from "./People";
@@ -26,7 +27,7 @@ import { closeUndecided } from "./SceneRun";
 import { seaStep } from "./Sea";
 import { closeSeats, regentStep, waitedFor } from "./Seats";
 import { storyStep } from "./Story";
-import { openSession, tableStep } from "./Table";
+import { openSession, pairTableStep, tableStep } from "./Table";
 import { GW_SUMMONS_LESS } from "./Tables";
 import { telegramStep } from "./Telegrams";
 import { termsStep } from "./Terms";
@@ -46,6 +47,7 @@ export const GW_CHAPTER_STEPS: readonly ((gw: GreatWar) => void)[] = [
   warStep,
   frontsStep,
   frontLandStep,
+  occupationStep,
   (gw) => seaStep(gw, warScore(gw, "central")),
   budgetStep,
   lawStep,
@@ -64,6 +66,7 @@ export const GW_CHAPTER_STEPS: readonly ((gw: GreatWar) => void)[] = [
   pressStep,
   storyStep,
   tableStep,
+  pairTableStep,
   endingStep,
   treatyStep,
   regentStep,

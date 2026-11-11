@@ -13,6 +13,7 @@ import type {
   GwFileView,
 } from "@openfront/engine-api/ww1914/GwHouse";
 import { gwBrief, type GwPack } from "@openfront/engine-api/ww1914/GwPack";
+import { GW_PLACES, type GwPlace } from "@openfront/engine-api/ww1914/GwPlaces";
 import type {
   GwCardView,
   GwChoiceView,
@@ -255,6 +256,10 @@ function withWho(text: string, pack: GwPack | null, who?: string | null) {
 
 /** What a schedule act's line moved (ww169 `what`), named by its key's family. */
 function whatText(pack: GwPack | null, key: string, what: string): string {
+  // Occupation and the tables (ww172): a place.
+  if (key.startsWith("land_") && what in GW_PLACES) {
+    return GW_PLACES[what as GwPlace].nameKo;
+  }
   if (key.startsWith("fx_inst_"))
     return translateText(`gw.ui.inst_name.${what}`);
   if (key.startsWith("fx_opinion_"))
@@ -406,6 +411,16 @@ export function endingText(
   );
 }
 
+/** Why the world's ending came (ww172); null when the memoir has none. */
+export function endingWhy(memoir: GwMemoir): string | null {
+  const why = memoir.why ?? null;
+  if (why === null) return null;
+  const line = textOrNull(`gw.ending_why.${why.key}`, {
+    country: why.tag === null ? "" : country(why.tag),
+  });
+  return line === null ? null : applyJosa(line);
+}
+
 export function endingTitle(id: string): string {
   return textOrNull(`gw.ending.${id}`) ?? translateText("gw.ui.ending_default");
 }
@@ -431,6 +446,7 @@ export function newsText(n: GwNews): string | null {
     a: n.a === null ? "" : country(n.a),
     b: n.b === null ? "" : country(n.b),
     theatre: n.theatre === null ? "" : theatreName(n.theatre),
+    place: n.place === undefined ? "" : GW_PLACES[n.place].nameKo,
   });
   return line === null ? null : applyJosa(line);
 }
