@@ -10,3 +10,13 @@ export function officeTitle(tag: string, office: string): string {
   const t = translateText(own);
   return t === own ? translateText(`gw.office.${office}`) : t;
 }
+
+/**
+ * ww179: a body that can say no, as the seat's country names it:
+ * `gw.ui.inst_name_by.<TAG>.<inst>` (Germany's 재상의 부서), else the shared word.
+ */
+export function instName(tag: string, inst: string): string {
+  const own = `gw.ui.inst_name_by.${tag}.${inst}`;
+  const t = translateText(own);
+  return t === own ? translateText(`gw.ui.inst_name.${inst}`) : t;
+}

@@ -160,7 +160,9 @@ function blocRow(c: GwCtx, b: GwBlocView): TemplateResult {
       ${trend(b)}
       <span class="ml-auto">${translateText(`gw.ui.bloc_word.${b.word}`)}</span>
     </div>
-    <span class="block h-1.5 w-full rounded bg-white/15"
+    <span
+      class="block h-1.5 w-full rounded bg-white/15"
+      title=${translateText("gw.ui.press.support_hint")}
       ><span
         class="block h-1.5 rounded ${fillColor(fill)}"
         style="width:${Math.max(6, Math.round(fill * 100))}%"
@@ -335,10 +337,14 @@ export function blocsTab(c: GwCtx): TemplateResult {
   return html`<div class="space-y-3" data-gw-blocs>
     <section class=${BOX}>
       <h3 class=${HEAD}>${translateText("gw.ui.press.blocs_title")}</h3>
+      <p class=${MUTED} data-gw-sub>
+        ${translateText("gw.ui.press.blocs_sub")}
+      </p>
       ${p.blocs.map((b) => blocRow(c, b))}
     </section>
     <section class=${BOX}>
       <h3 class=${HEAD}>${translateText("gw.ui.press.ties_title")}</h3>
+      <p class=${MUTED} data-gw-sub>${translateText("gw.ui.press.ties_sub")}</p>
       ${p.ties.map((t) => tieRow(c, t))}
     </section>
     ${p.edition === null

@@ -12,6 +12,8 @@ import { govBox } from "./GwGov";
 import { houseSection } from "./GwHouse";
 import { lawsSection } from "./GwLaws";
 import { gaugeFill, gaugeLevel, instBand, logByChapter } from "./GwModel";
+import { authorityChip, manpowerChip } from "./GwNow";
+import { instName } from "./GwOffice";
 import { rulerCard } from "./GwRuler";
 import { CHIP, fillColor, HEAD, MUTED } from "./GwStyle";
 import {
@@ -23,6 +25,10 @@ import {
 } from "./GwText";
 
 const BOX = "space-y-1.5 rounded border border-white/15 bg-black/35 p-2.5";
+
+/** ww179: one plain line under a section's title, saying what it shows. */
+const sub = (key: string): TemplateResult =>
+  html`<p class=${MUTED} data-gw-sub>${translateText(key)}</p>`;
 
 function bar(fill: number): TemplateResult {
   return html`<span class="block h-1.5 w-full rounded bg-white/15"
@@ -36,6 +42,7 @@ function bar(fill: number): TemplateResult {
 function gauges(c: GwCtx): TemplateResult {
   return html`<section class=${BOX}>
     <h3 class=${HEAD}>${translateText("gw.ui.gauges_title")}</h3>
+    ${sub("gw.ui.gauges_sub")}
     ${c.seat.world.gauges.map((w) => {
       const v = gaugeLevel(w.gauge, w.value);
       return html`<div class="space-y-0.5" data-gw-gauge=${w.gauge}>
@@ -64,12 +71,7 @@ function gauges(c: GwCtx): TemplateResult {
 function standing(c: GwCtx): TemplateResult {
   const w = c.seat.world;
   return html`<div class="flex flex-wrap gap-1.5" data-gw-standing>
-    <span class=${CHIP}
-      >${translateText("gw.ui.authority", { n: w.authority })}</span
-    >
-    <span class=${CHIP}
-      >${translateText("gw.ui.manpower", { n: w.manpower })}</span
-    >
+    ${authorityChip(w.authority)} ${manpowerChip(w.manpower)}
     ${w.casualties === 0
       ? nothing
       : html`<span class=${CHIP}
@@ -89,6 +91,7 @@ function list(
   if (rows.length === 0) return nothing;
   return html`<section class=${BOX} data-gw-list=${attr}>
     <h3 class=${HEAD}>${translateText(title)}</h3>
+    ${textOrNull(`${title}_sub`) === null ? nothing : sub(`${title}_sub`)}
     ${rows.map((r) => html`<p class="text-sm text-white/85">${r}</p>`)}
   </section>`;
 }
@@ -139,6 +142,7 @@ function reports(c: GwCtx): TemplateResult | typeof nothing {
 function powers(c: GwCtx): TemplateResult {
   return html`<section class=${BOX} data-gw-powers>
     <h3 class=${HEAD}>${translateText("gw.ui.powers_title")}</h3>
+    ${sub("gw.ui.powers_sub")}
     ${c.seat.world.countries.map(
       (n) =>
         html`<div class="flex justify-between text-sm">
@@ -160,12 +164,16 @@ function powers(c: GwCtx): TemplateResult {
 function war(c: GwCtx): TemplateResult {
   const v = c.seat.world.war;
   const row = (label: string, value: string) =>
-    html`<div class="flex justify-between text-sm">
+    html`<div
+      class="flex justify-between text-sm"
+      title=${textOrNull(`${label}_hint`) ?? ""}
+    >
       <span class="text-white/70">${translateText(label)}</span>
       <span>${value}</span>
     </div>`;
   return html`<section class=${BOX} data-gw-war>
     <h3 class=${HEAD}>${translateText("gw.ui.war_title")}</h3>
+    ${sub("gw.ui.war_sub")}
     ${v.regime === ""
       ? nothing
       : row("gw.ui.regime", translateText(`gw.regime.${v.regime}`))}
@@ -207,12 +215,11 @@ export function countryTab(c: GwCtx): TemplateResult {
       ? nothing
       : html`<section class=${BOX}>
           <h3 class=${HEAD}>${translateText("gw.ui.inst_title")}</h3>
+          ${sub("gw.ui.inst_sub")}
           ${insts.map(
             (i) =>
               html`<div class="flex justify-between text-sm" data-gw-inst=${i}>
-                <span class="text-white/70"
-                  >${translateText(`gw.ui.inst_name.${i}`)}</span
-                >
+                <span class="text-white/70">${instName(seat.tag, i)}</span>
                 <span
                   >${translateText(
                     `gw.ui.inst.${instBand(seat.inst[i] ?? 0)}`,
@@ -240,6 +247,7 @@ export function countryTab(c: GwCtx): TemplateResult {
     ${powers(c)}
     <section class=${BOX}>
       <h3 class=${HEAD}>${translateText("gw.ui.why_title")}</h3>
+      ${sub("gw.ui.why_sub")}
       ${log.length === 0
         ? html`<p class=${MUTED}>${translateText("gw.ui.why_none")}</p>`
         : log.map(

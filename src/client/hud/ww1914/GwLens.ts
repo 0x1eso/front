@@ -80,6 +80,7 @@ export class GwLens extends LitElement implements Controller {
         ? "border-amber-300/80 bg-amber-900/80"
         : "border-white/25 bg-slate-900/85 hover:bg-slate-700/90"}"
       data-gw-lens-btn=${lens}
+      title=${translateText(`gw.lens.hint.${lens}`)}
       aria-pressed=${on}
       @click=${() => setLens(lens)}
     >
@@ -97,6 +98,7 @@ export class GwLens extends LitElement implements Controller {
         ? ""
         : "opacity-60"}"
       data-gw-rail-btn
+      title=${translateText("gw.lens.hint.rail")}
       aria-pressed=${on}
       @click=${() => setRail(!on)}
     >

@@ -172,6 +172,7 @@ function schedule(c: GwCtx): TemplateResult {
         >${translateText("gw.act.left", { n: c.seat.actsLeft ?? 0 })}</span
       >
     </div>
+    <p class=${MUTED} data-gw-sub>${translateText("gw.act.sub")}</p>
     ${acts.length === 0
       ? html`<p class=${MUTED}>${translateText("gw.act.none")}</p>`
       : KINDS.map((k) => {

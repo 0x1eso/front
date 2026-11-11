@@ -818,6 +818,61 @@ describe("the screens", () => {
     expect(line.textContent).toContain("베트만홀베크이(가)".slice(0, 6));
     expect(line.textContent).toContain("원안을 다시");
   });
+
+  // ww179: every screen says plainly what is going on.
+  const nowText = (panel: GwPanel) =>
+    [...panel.querySelectorAll("[data-gw-now-line]")].map((e) =>
+      e.textContent!.replace(/\s+/g, " ").trim(),
+    );
+
+  test("the desk's 지금 상황: peace, the crisis in words, what waits", async () => {
+    const { panel } = await mount(data([card()]));
+    expect(nowText(panel)).toEqual([
+      "평화: 우리나라는 어느 전쟁에도 들어가 있지 않다.",
+      "위기: 긴장. 오가는 말이 거칠어지고 있다.",
+      "당신을 기다리는 일: 정할 서류 1장.",
+    ]);
+  });
+
+  test("the desk's 지금 상황 at war names the foes; a later crisis its topic", async () => {
+    const d = data([], {
+      side: "central",
+      chain: { topic: "straits", step: 0, hold: 0 },
+      countries: [
+        { tag: "DEU", side: "central", out: false, mob: 2 },
+        { tag: "RUS", side: "entente", out: false, mob: 2 },
+        { tag: "FRA", side: "entente", out: false, mob: 2 },
+        { tag: "GBR", side: "entente", out: true, mob: 2 },
+      ],
+    });
+    const { panel } = await mount({ ...d, stage: "war", temp: 9 });
+    expect(nowText(panel)).toEqual([
+      "전쟁 중: 동맹국 편에서 러시아, 프랑스와 싸우고 있다.",
+      "해협 위기: 일촉즉발. 전쟁이 문 앞에 와 있다.",
+      "기다리는 일이 없다. 사람을 부르거나 장을 마쳐도 된다.",
+    ]);
+    // The band keeps the crisis chip for a later crisis too.
+    expect(panel.querySelector("[data-gw-temp]")!.textContent).toBe(
+      "위기: 일촉즉발",
+    );
+  });
+
+  test("gauges, chips and numbers carry their names and a word", async () => {
+    const { panel } = await mount(data([]));
+    const shells = panel.querySelector("[data-gw-band-gauge=shells]")!;
+    expect(shells.textContent!.replace(/\s+/g, " ").trim()).toBe("포탄 충분함");
+    expect(shells.getAttribute("title")).toContain("포탄");
+    expect(tellText("temp:+2")).toBe("위기 온도 +2 (오름)");
+    expect(tellText("chancellor:-3")).toBe("수상 -3 (크게 내림)");
+    // One word for one office: Germany's chancellor is 재상 on every screen.
+    expect(tellText("chancellor:-1", "DEU")).toBe("재상 -1 (조금 내림)");
+    expect(tellText("ends_crisis")).toBe("위기가 닫힘");
+    panel.querySelector<HTMLButtonElement>("[data-gw-tab=people]")!.click();
+    await panel.updateComplete;
+    const chip = panel.querySelector("[data-gw-authority]")!;
+    expect(chip.textContent!.trim()).toBe("권위 40 · 보통");
+    expect(chip.getAttribute("title")).toContain("권위");
+  });
 });
 
 describe("the story", () => {

@@ -1991,6 +1991,7 @@
       "left": "{n} left this chapter",
       "none": "Nothing is open to you this chapter.",
       "people_label": "Who",
+      "sub": "What you do yourself this chapter: visits, letters, orders, speeches and quiet work. Each one uses a slot.",
       "title": "The ruler's schedule",
       "tone": {
         "cold": "Cold",
@@ -2012,7 +2013,7 @@
       "change": "Change the aim",
       "declare": "Declare it",
       "dropped": "Given up: {list}",
-      "nudge": "You have not yet said what this war is for.",
+      "nudge": "You have not yet said what this war is for. Tap to choose under \"National aim\" on the schedule tab.",
       "priced": "Going back on your word has a price.",
       "title": "National aim"
     },
@@ -2776,7 +2777,7 @@
         "dora": "Parliament is prorogued: bills and supply go by Order in Council."
       },
       "leader": "Led by {name}",
-      "none": "No bill is before the house.",
+      "none": "No bill is before the house. Bills are brought under \"Bills and laws\" on this tab.",
       "origin": {
         "ally": "An ally's bill",
         "faction": "A faction's bill",
@@ -2920,7 +2921,7 @@
         "scene": "In force, already decided",
         "voted": "In force, voted"
       },
-      "none_yet": "No bill can be brought yet.",
+      "none_yet": "No bill can be brought yet. New bills come up as the country's state changes.",
       "outlook": {
         "blocked": "blocked",
         "easy": "passes with room",
@@ -2951,6 +2952,7 @@
       "hint": {
         "bread": "Hunger comes to the cities first. Reads the bread of your own country.",
         "nations": "Shows how hot the lands of many peoples run. The lower the order, the redder they are painted.",
+        "rail": "Mobilization trains: how far each country has got in gathering its army at the borders.",
         "rumour": "You know other countries only as far as the papers print. Hatched land is rumour.",
         "strikes": "Work stops first in the factories and cities. Reads your country's order and its stage of unrest."
       },
@@ -3438,6 +3440,10 @@
       "kind": {
         "beyond": "beyond the law",
         "custom": "against custom"
+      },
+      "kind_hint": {
+        "beyond": "Outside the law: no law gives you this power. You do it on your own word.",
+        "custom": "Against custom: the law allows it, but it is not how things have been done."
       },
       "link": {
         "cabinet": "Appoint and dismiss on the people tab",
@@ -4145,7 +4151,7 @@
       "support": "Votes",
       "talks": "Offers talks: if taken, the guns stop",
       "tax_rate": "Tax rate",
-      "temp": "Crisis",
+      "temp": "Crisis heat",
       "trust": "Trust",
       "uboat": "Submarines",
       "usa": "Washington",
@@ -4317,10 +4323,11 @@
       "war_began": "The war began."
     },
     "ui": {
-      "alloc_now": "Now: {main}, {posture}, {scale}",
+      "alloc_now": "The plan in force: {main}, {posture}, {scale}",
       "alloc_research": "Research",
       "alloc_title": "This chapter's war plan",
       "america": "America",
+      "america_hint": "How close America is to joining the war.",
       "america_word": {
         "0": "Far off",
         "1": "Watching",
@@ -4332,7 +4339,16 @@
       "ask_first": "Ask {name} first",
       "audiences": "Audiences left: {n}",
       "audiences_hint": "Calling someone spends one.",
-      "authority": "Authority {n}",
+      "audiences_tip": "How many people you can still call in this chapter.",
+      "authority": "Authority {n} · {word}",
+      "authority_hint": "Authority: how far ministers, parliament and the press follow your word. Dismissals, censorship and acts outside the law spend it.",
+      "authority_word": {
+        "0": "gone",
+        "1": "weak",
+        "2": "fair",
+        "3": "firm",
+        "4": "unchallenged"
+      },
       "big_waiting": "The hour passes.",
       "big_waits": "Tonight is not over.",
       "bloc_word": {
@@ -4394,6 +4410,7 @@
         "wrong_kind": "That does not fit this paper."
       },
       "blockade": "Blockade",
+      "blockade_hint": "How hard the enemy's blockade bites on our imports.",
       "brief_label": "Secretary's note",
       "calendar": {
         "friends": "With friends",
@@ -4411,6 +4428,7 @@
       },
       "calendar_untimed": "no time limit",
       "casualties": "{n} thousand lost",
+      "chapter_hint": "The game runs in chapters. A chapter ends when you press \"Close the chapter\" on the desk.",
       "chapter_n": "Chapter {n}",
       "command_self": "The sovereign leads the army himself.",
       "danger": {
@@ -4426,6 +4444,7 @@
       "dismiss_sure": "Tap again to dismiss",
       "ending_default": "The game has ended",
       "era": "Period",
+      "era_hint": "What kind of war it has become: from open movement to trenches, to battles of material and new tactics.",
       "face_alt": "Photograph of {name}",
       "fact": {
         "ally": "mood",
@@ -4442,12 +4461,15 @@
       },
       "fold": "Fold or unfold",
       "folded_title": "Small news meanwhile",
+      "front_bar_hint": "The bar is this front from our end (left) to the enemy's (right). The white mark is where the line stands now. The paler our green, the more worn out our men are.",
+      "front_bar_hint_neutral": "The bar runs from the Central Powers (left) to the Entente (right). The white mark is where the line stands now.",
       "front_commander": "Commanded by {name}",
       "front_end": "{side} end",
       "front_end_bloc": "Our side's end · {side}",
       "front_end_them": "Enemy end · {side}",
       "front_end_us": "Our end · {side}",
       "front_foe": "How the enemy stands: {what}",
+      "front_foe_hint": "No report on the enemy here has reached us.",
       "front_foe_unknown": "unknown",
       "front_foe_word": "{word} ({stamp})",
       "front_key": "Our end is always on the left: green is the ground we hold. The white mark moving right, towards the enemy, is good for us; moving left is bad.",
@@ -4466,6 +4488,7 @@
       "front_not_ours": "Our country is not fighting here",
       "front_now": "Line at {line} · {who}: {how}",
       "front_reading": "We are reading their codes.",
+      "front_reading_hint": "We have broken the enemy's code here and read his telegrams.",
       "front_standing": {
         "ahead": "a little ahead of where the war began",
         "behind": "pushed back a little since the war began",
@@ -4513,6 +4536,13 @@
           "3": "Plentiful"
         }
       },
+      "gauge_hint": {
+        "bread": "Bread: whether the towns have enough to eat.",
+        "money": "Money: how long the treasury can keep paying.",
+        "morale": "Morale: how willing the soldiers and the people are to go on.",
+        "order": "Order: how calm the streets and factories are.",
+        "shells": "Shells: how much ammunition the army has for the fronts."
+      },
       "gauge_name": {
         "bread": "Bread",
         "money": "Treasury",
@@ -4520,6 +4550,8 @@
         "order": "Order",
         "shells": "Shells"
       },
+      "gauge_why": "What moved it in the last chapter:",
+      "gauges_sub": "The five things the country lives on. Under each, what moved it in the last chapter.",
       "gauges_title": "The country",
       "inst": {
         "0": "Hostile",
@@ -4548,6 +4580,12 @@
         "soviet": "The Soviet",
         "stavka": "Stavka"
       },
+      "inst_name_by": {
+        "DEU": {
+          "countersign": "The chancellor's countersignature"
+        }
+      },
+      "inst_sub": "Those who can refuse to sign or vote against you. The colder they are, the more of your orders they block.",
       "inst_title": "Who can say no",
       "kind": {
         "audience": "Audience",
@@ -4567,7 +4605,16 @@
       "mandate_met": "carried out",
       "mandate_unmet": "not carried out",
       "mandates_title": "Mandates of this game",
-      "manpower": "Manpower left {n}",
+      "mandates_title_sub": "What you were given to do in this game. Your memoir judges you by it.",
+      "manpower": "Men left to call up {n} · {word}",
+      "manpower_hint": "Men the country can still send to the army. Battles use them up; a little comes back each month.",
+      "manpower_word": {
+        "0": "exhausted",
+        "1": "short",
+        "2": "fair",
+        "3": "plenty",
+        "4": "abundant"
+      },
       "memoir_date": "Ended on {date}, in chapter {n}",
       "memoir_open": "The memoir is written when the game ends. Until then the record below fills.",
       "memoir_people": "The people around you",
@@ -4581,20 +4628,57 @@
           "3": "One wrong word could set it alight."
         }
       },
-      "no_fronts": "No front is open yet.",
-      "no_fronts_neutral": "Our country is neutral and fights on no front.",
-      "no_fronts_ours": "Our country is not fighting on any front yet.",
+      "no_fronts": "No front is open yet. When a war begins, its fronts appear here.",
+      "no_fronts_neutral": "Our country is neutral and fights on no front. If we go to war, our fronts appear here.",
+      "no_fronts_ours": "Our country is not fighting on any front yet. When our army meets the enemy, that front appears here.",
       "no_office": "No office",
       "no_topics": "Nothing to raise with them now.",
       "notebook_broken": "Broken",
       "notebook_decisions": "Decisions taken",
       "notebook_due": "By {date}",
       "notebook_kept": "Kept",
-      "notebook_no_decisions": "No big decisions yet.",
-      "notebook_no_promises": "No promises yet.",
+      "notebook_no_decisions": "No big decisions yet. The weightiest papers you sign stay here.",
+      "notebook_no_promises": "No promises yet. What you promise in a talk or on a paper is written down here.",
       "notebook_open": "Waiting",
       "notebook_promises": "Promises made",
       "notebook_proxy": "Proxy",
+      "now": {
+        "crisis": "The crisis: {word}. {what}",
+        "crisis_topic": "A crisis over {topic}: {word}. {what}",
+        "no_crisis": "No crisis is open between the powers.",
+        "peace": "Peace: our country is in no war.",
+        "temp_means": {
+          "0": "Words can still settle it.",
+          "1": "The notes are getting sharper.",
+          "2": "One hard step could start a war.",
+          "3": "War is at the door."
+        },
+        "temp_word": {
+          "0": "calm",
+          "1": "tense",
+          "2": "dangerous",
+          "3": "on the brink"
+        },
+        "title": "Right now",
+        "topic": {
+          "alsace": "Alsace-Lorraine",
+          "balkan": "the Balkans",
+          "colonial": "the colonies",
+          "home": "home affairs",
+          "ireland": "Ireland",
+          "naval": "the naval race",
+          "poland": "Poland",
+          "straits": "the Straits"
+        },
+        "wait": "Waiting for you: {what}.",
+        "wait_decide": "{n} paper(s) to decide",
+        "wait_none": "Nothing is waiting. You can call someone or end the chapter.",
+        "wait_read": "{n} paper(s) to read",
+        "wait_talk": "{n} visitor(s)",
+        "war": "At war: we fight with the {side} against {foes}.",
+        "war_more": "At war: we fight with the {side} against {foes} and others.",
+        "war_none": "At war with the {side}, but no foe is left in the field."
+      },
       "off_feint": "Pretend to prepare on another front: {front}",
       "off_method": {
         "broad": "A broad front, a short bombardment",
@@ -4647,10 +4731,12 @@
         "hold": "Hold",
         "offensive": "Offensive"
       },
+      "powers_sub": "Which side each country is on and how far it has mobilized, as the whole world can see.",
       "powers_title": "The powers",
       "press": {
         "about": "On \"{title}\"",
         "acted": "The press has been handled this chapter.",
+        "blocs_sub": "The great forces in the country and how far they back you. ▲ and ▼ say what moved them in the last chapter.",
         "blocs_title": "The blocs",
         "censor": "The censor",
         "censor_help": "A gap hides the worst of it and feeds what goes round by mouth.",
@@ -4664,6 +4750,8 @@
         "policy_title": "Press policy",
         "rumour": "On the street",
         "soft": "After the visit, the paper held back a blow.",
+        "support_hint": "Support: the fuller and greener the bar, the more this force backs you.",
+        "ties_sub": "━ the two stand together. ╌ they do not trust each other yet.",
         "ties_title": "Who stands with whom",
         "tighten": "Tighten (authority {n})",
         "title": "The morning's papers",
@@ -4704,6 +4792,7 @@
       "reckoning_title": "What was left",
       "record_title": "The record",
       "regime": "Government",
+      "regime_hint": "How the country is governed now.",
       "reply": {
         "ask": "Ask",
         "deal": "Promise or bargain",
@@ -4759,6 +4848,7 @@
       "shelf_runs": "Games finished {n}",
       "shelf_title": "The shelf",
       "shipping": "Losses at sea",
+      "shipping_hint": "How many merchant ships are lost at sea.",
       "side": {
         "central": "Central Powers",
         "entente": "Entente",
@@ -4783,6 +4873,11 @@
         "estimate": "Estimate",
         "unconfirmed": "Unconfirmed"
       },
+      "stamp_hint": {
+        "confirmed": "Confirmed: our own people saw it, or a document proves it.",
+        "estimate": "Estimate: pieces put together. It can be wrong.",
+        "unconfirmed": "Unconfirmed: one source's word. Nobody has checked it yet."
+      },
       "stance": {
         "cold": "Cold",
         "flatter": "Flattery",
@@ -4790,7 +4885,9 @@
         "threat": "Threat",
         "warm": "Warm"
       },
-      "strain_ours": "Our side: {what}",
+      "stance_hint": "The tone of this answer. Each person takes some tones better than others.",
+      "strain_hint": "How worn out our own army on this front is. Only our own; the enemy's comes by reports.",
+      "strain_ours": "Our men here: {what}",
       "strain_word": {
         "0": "Holding",
         "1": "Worn",
@@ -4816,18 +4913,32 @@
       "talk_step_out": "Step away (the talk stays)",
       "talk_waiting": "{name} considers it.",
       "talk_waits": "{name} is waiting to speak with you.",
+      "tell_hint": "What moved after this choice. For a person or a group: how well they now think of you.",
+      "tell_move": {
+        "down": {
+          "big": "down a lot",
+          "mid": "down",
+          "small": "down a little"
+        },
+        "up": {
+          "big": "up a lot",
+          "mid": "up",
+          "small": "up a little"
+        }
+      },
       "temp": {
         "0": "Crisis: calm",
         "1": "Crisis: tense",
         "2": "Crisis: dangerous",
         "3": "Crisis: on a knife edge"
       },
+      "temp_hint": "How hot the crisis between the powers is. The hotter, the closer to war.",
       "tempo": {
         "active": "Keep it active",
         "chief": "As the chief of staff sees fit",
         "quiet": "Keep it quiet"
       },
-      "tempo_now": "Now: {what}",
+      "tempo_now": "Between battles now: {what}",
       "tempo_title": "The front between battles",
       "theatre": {
         "alps": "Alps",
@@ -4848,7 +4959,9 @@
         "west": "West"
       },
       "threads_title": "Long-running matters",
+      "threads_title_sub": "Troubles that run over many chapters and can flare up again.",
       "topic_count": "{n} things to talk about now",
+      "trench_hint": "The deeper the trenches, the harder it is for either side to break through.",
       "trench_now": "Trenches: {what}",
       "trench_word": {
         "0": "Moving front",
@@ -4867,6 +4980,7 @@
         "5": "Deeply trusted",
         "6": "Wholly trusted"
       },
+      "trust_hint": "Trust: how far this person believes in you. Further right is better.",
       "trust_label": "Trust in you",
       "turns_title": "What happened",
       "uboat": {
@@ -4875,13 +4989,16 @@
         "2": "Unrestricted"
       },
       "uboats": "Submarines",
+      "uboats_hint": "How submarines are allowed to fight: by the old cruiser rules, in a war zone, or without limits.",
       "unknown_none": "Nothing stayed hidden in this game.",
       "unknown_title": "What you never knew in this game",
       "vacant_hint": "If nobody is chosen by the end of this chapter, the first name on the list takes it.",
       "vacant_title": "Vacant offices",
       "vote_line": "{issue}: ayes {ayes}, noes {noes}",
+      "war_sub": "The war as a whole: what kind of fighting it is, the sea, and America.",
       "war_title": "The war",
-      "why_none": "Nothing recorded yet.",
+      "why_none": "Nothing recorded yet. After each chapter, what changed and why is kept here.",
+      "why_sub": "Chapter by chapter, what changed and why.",
       "why_title": "Why things stand so"
     },
     "unknown": {

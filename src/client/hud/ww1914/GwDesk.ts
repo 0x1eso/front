@@ -19,6 +19,7 @@ import {
   paperCards,
   talkCards,
 } from "./GwModel";
+import { nowBox } from "./GwNow";
 import { openCard, placeChip } from "./GwPlaceSheet";
 import { brokenLine } from "./GwRuler";
 import { aimNudge } from "./GwSchedule";
@@ -113,7 +114,9 @@ function cardBox(c: GwCtx, card: GwCardView): TemplateResult {
       <span class=${CHIP}>${translateText(`gw.ui.kind.${card.kind}`)}</span>
       ${card.stamp === null
         ? nothing
-        : html`<span class=${CHIP}
+        : html`<span
+            class=${CHIP}
+            title=${translateText(`gw.ui.stamp_hint.${card.stamp}`)}
             >${translateText(`gw.ui.stamp.${card.stamp}`)}</span
           >`}
       ${placeChip(c, card)}
@@ -279,7 +282,12 @@ function resultsBox(c: GwCtx): TemplateResult | typeof nothing {
             ? nothing
             : html`<div class="flex flex-wrap gap-1">
                 ${n.tell.map(
-                  (t) => html`<span class=${CHIP}>${tellText(t)}</span>`,
+                  (t) =>
+                    html`<span
+                      class=${CHIP}
+                      title=${translateText("gw.ui.tell_hint")}
+                      >${tellText(t, c.seat.tag)}</span
+                    >`,
                 )}
               </div>`}
         </div>`,
@@ -294,7 +302,7 @@ export function deskTab(c: GwCtx): TemplateResult {
   const papers = paperCards(seat);
   const talks = talkCards(seat);
   return html`<div class="space-y-2.5" data-gw-desk>
-    ${dangerBox(c)} ${aimNudge(c)}
+    ${nowBox(c)} ${dangerBox(c)} ${aimNudge(c)}
     ${reasons.length === 0
       ? nothing
       : html`<div class="rounded border border-white/10 bg-white/5 p-2">
