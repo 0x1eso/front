@@ -200,6 +200,11 @@ export const GwOrderSchema = z.discriminatedUnion("kind", [
     without: z.boolean(),
     sound: z.boolean(),
   }),
+  /**
+   * Ask a talk from a decision card first (ww172): it comes now, at a summons'
+   * price, and the decision waits on the desk for it.
+   */
+  z.object({ kind: z.literal("ask"), card: Card, topic: Id }),
 ]);
 export type GwOrder = z.infer<typeof GwOrderSchema>;
 

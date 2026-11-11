@@ -20,6 +20,7 @@ import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
 import { GW_OPENING_DESK } from "@openfront/engine-lib/ww1914/StoryRows";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
+import { spentTalk } from "./AskFirst";
 import type { GreatWar } from "./GreatWar";
 import { lawReplaces } from "./Laws";
 import { castOf, holds, pickVariant, SceneCtx, specificity } from "./SceneRun";
@@ -214,7 +215,8 @@ function drawable(gw: GreatWar, seat: GwSeatState, scene: GwScene): boolean {
   if (scene.big === true && gw.s.chapter - seat.story.bigAt < GW_BIG_EVERY) {
     return false;
   }
-  return inStage(gw, scene) && repeatable(gw, seat, scene);
+  if (!inStage(gw, scene) || !repeatable(gw, seat, scene)) return false;
+  return !spentTalk(gw, seat, scene);
 }
 
 function subjects(x: GwScene) {

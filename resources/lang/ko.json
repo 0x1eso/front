@@ -15991,6 +15991,7 @@
       "paper_claimed": "이 전선의 칠한 땅: {list}",
       "dismiss_ask": "수상에게 해임을 요구한다",
       "appoint_ask": "수상에게 {office} 자리를 권한다",
+      "ask_first": "{name}에게 먼저 묻는다",
       "front_end": "{side} 쪽",
       "front_end_them": "적 쪽 · {side}",
       "front_end_us": "우리 쪽 · {side}",

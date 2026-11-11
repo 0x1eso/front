@@ -47,6 +47,19 @@ export interface GwReplyView extends GwOptionView {
   kind: GwReplyKind;
 }
 
+/** A talk that may open a locked option, asked from the decision (ww172). */
+export interface GwAskView {
+  topic: string;
+  /** The person asked: the button shows the name and nothing else. */
+  who: string;
+  /** The options it may open, in the card's order. */
+  options: readonly string[];
+  /** False: the seat can't pay for it now (no audience left). */
+  open: boolean;
+  /** Why not, when it can't: a block under gw.ui.block. */
+  block?: GwOrderBlock;
+}
+
 export interface GwCardView {
   uid: number;
   scene: string;
@@ -83,6 +96,10 @@ export interface GwCardView {
   place?: GwPlace;
   /** With no place of its own: where the rules put it (theatre, office). */
   near?: GwPlace;
+  /** A decision: talks that may open a locked option, asked from here. */
+  asks?: readonly GwAskView[];
+  /** A talk asked from a decision: that card's uid, to go back to. */
+  askFrom?: number;
 }
 
 /** A field of a schedule entry: pick `count` from what it holds. */

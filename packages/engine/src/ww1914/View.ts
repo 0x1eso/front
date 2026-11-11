@@ -34,6 +34,7 @@ import {
 import { idHash } from "@openfront/engine-lib/ww1936/Roll";
 import { actViews } from "./Acts";
 import { aimsView } from "./Aims";
+import { askOffers, summonPrice } from "./AskFirst";
 import { claimsView } from "./Claims";
 import { govView, pollView } from "./Government";
 import type { GreatWar } from "./GreatWar";
@@ -122,6 +123,30 @@ function cardView(
     ...(scene.silent === true ? { silent: true } : {}),
     ...(scene.prologue === undefined ? {} : { past: scene.prologue }),
     ...(letterFrom === undefined ? {} : { letterFrom }),
+    ...asksOf(gw, seat, c),
+  };
+}
+
+/** What can be asked from a decision first, and where an asked talk goes back to. */
+function asksOf(
+  gw: GreatWar,
+  seat: GwSeatState,
+  c: GwCard,
+): Pick<GwCardView, "asks" | "askFrom"> {
+  if (c.ask !== undefined) return { askFrom: c.ask.from };
+  const offers = askOffers(gw, seat, c);
+  if (offers.length === 0) return {};
+  return {
+    asks: offers.map((x) => {
+      const block = summonPrice(seat, sceneOf(x.topic), x.topic);
+      return {
+        topic: x.topic,
+        who: x.who,
+        options: x.options,
+        open: block === null,
+        ...(block === null ? {} : { block }),
+      };
+    }),
   };
 }
 

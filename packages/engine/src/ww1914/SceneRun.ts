@@ -76,6 +76,8 @@ export interface SceneCtx {
   back?: GwBack | null;
   /** A schedule act's own effects: each move leaves a line under the act. */
   fx?: GwActFx;
+  /** What if these keys were remembered: a talk asked from a decision (AskFirst). */
+  assume?: ReadonlySet<string>;
 }
 
 const clamp = (v: number, lo: number, hi: number) =>
@@ -350,6 +352,7 @@ export function holds(ctx: SceneCtx, c: GwCond): boolean {
     case "flag":
       return seat.flags.includes(c.flag);
     case "memory": {
+      if (ctx.assume?.has(c.key) === true) return true;
       const id = c.who === undefined ? null : (who(ctx, c.who)?.id ?? null);
       return seat.memory.some(
         (m) =>

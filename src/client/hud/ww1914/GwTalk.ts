@@ -213,16 +213,21 @@ export function talkView(
   const lean = who === "" ? "" : personLean(c.pack, who);
   const bio = big ? "" : personBio(c.pack, t.who);
   const trust = person === undefined ? 3 : trustIndex(person.trust);
+  const first = t.turns[0]?.card;
   const leave = () => {
     c.ui.talkUid = null;
     if (t.closed) {
       c.ui.talks.delete(t.uid);
       // What a big scene leaves behind comes straight after it.
       if (big) c.ui.readerUid = c.seat.desk.find((x) => x.silent)?.uid ?? null;
+      // Asked from a decision: the decision comes back, as it stands now.
+      const from = first?.askFrom;
+      if (from !== undefined && c.seat.desk.some((x) => x.uid === from)) {
+        c.ui.readerUid = from;
+      }
     }
     c.redraw();
   };
-  const first = t.turns[0]?.card;
   const past = first?.past !== undefined;
   // The person across the table is introduced by the plate above.
   const pass = newPass(who === "" ? [] : [who], past);

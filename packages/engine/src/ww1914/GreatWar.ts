@@ -36,6 +36,7 @@ import {
 import { idHash } from "@openfront/engine-lib/ww1936/Roll";
 import { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import type { Game } from "../game/Game";
+import { askHolds } from "./AskFirst";
 import { advanceChapter, allReady } from "./Chapters";
 import { closeGame } from "./Endings";
 import { prologueStep } from "./Prologue";
@@ -312,6 +313,8 @@ export class GreatWar {
       if (s.deadlineTick !== null) s.deadlineTick++;
       return;
     }
+    // A talk asked from a decision holds the clock a while (AskFirst).
+    if (s.deadlineTick !== null && askHolds(this, ticks)) s.deadlineTick++;
     if (prologueStep(this, ticks)) return;
     tableTick(this, ticks);
     const late = s.deadlineTick !== null && ticks >= s.deadlineTick;

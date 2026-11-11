@@ -4134,6 +4134,7 @@
       },
       "appoint": "Appoint as {office}",
       "appoint_ask": "Press the premier for {office}",
+      "ask_first": "Ask {name} first",
       "audiences": "Audiences left: {n}",
       "audiences_hint": "Calling someone spends one.",
       "authority": "Authority {n}",

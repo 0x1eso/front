@@ -21,13 +21,19 @@ import type {
 } from "../snapshot/SnapshotContext";
 import { takeAct } from "./Acts";
 import { declareAim } from "./Aims";
+import {
+  askFirst,
+  isPrivateTalk,
+  paySummon,
+  spentTalk,
+  summonPrice,
+} from "./AskFirst";
 import { budgetOrder } from "./Budget";
 import { setClaims } from "./Claims";
 import { fieldOrder, raiseFooting } from "./Craft";
 import { inStage, makeCard, placeCard, repeatable, sceneWear } from "./Desk";
 import { proposalsFor } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
-import { spendHouseCall } from "./House";
 import { lawOrder } from "./Laws";
 import {
   candidatesFor,
@@ -120,18 +126,13 @@ export function applyGwOrder(
     }
     case "summon": {
       const scene = sceneOf(o.topic);
-      const own = scene !== null && isPrivate(scene);
-      const extra =
-        (seat.house?.calls ?? 0) > 0 && o.topic.startsWith("gw_lb_");
-      if (own && seat.privates <= 0) return "no_private";
-      if (!own && !extra && seat.audiences <= 0) return "no_audience";
+      const price = summonPrice(seat, scene, o.topic);
+      if (price !== null) return price;
       if (scene?.kind !== "talk" || scene.summon !== true) return "no_topic";
       if (!summonable(gw, seat, o.person, o.topic)) return "no_topic";
       const card = makeCard(gw, seat, scene, "summon");
       if (card === null) return "no_topic";
-      if (own) seat.privates--;
-      // A lobby talk spends the house's extra calls first (owner's call 2).
-      else if (!spendHouseCall(seat, o.topic)) seat.audiences--;
+      paySummon(seat, scene, o.topic);
       placeCard(gw, seat, card);
       return null;
     }
@@ -236,6 +237,8 @@ export function applyGwOrder(
       return closeByHost(gw, seat, o.chapter);
     case "power":
       return takePower(gw, seat, o);
+    case "ask":
+      return askFirst(gw, seat, o.card, o.topic);
   }
 }
 
@@ -251,7 +254,7 @@ export function openTopics(
   own = false,
 ): string[] {
   return summonScenes()
-    .filter((x) => isPrivate(x) === own)
+    .filter((x) => isPrivateTalk(x) === own)
     .filter((x) => summonable(gw, seat, person, x.id))
     .map((x, i) => ({ x, i }))
     .sort(
@@ -263,10 +266,6 @@ export function openTopics(
     .map(({ x }) => x.id);
 }
 
-/** Called with a private meeting, not a summons. */
-function isPrivate(scene: GwScene): boolean {
-  return scene.tags.includes("private");
-}
 
 function ownPerson(seat: GwSeatState, id: string): boolean {
   if (id === seatPerson(seat)) return false;
@@ -288,6 +287,7 @@ export function summonable(
   }
   if (seat.desk.some((c) => c.scene === topic)) return false;
   if (!inStage(gw, scene) || !repeatable(gw, seat, scene)) return false;
+  if (spentTalk(gw, seat, scene)) return false;
   const cast = castOf(gw, seat, scene);
   if (cast === null || cast[scene.who] !== person) return false;
   return scene.when === undefined || holds({ gw, seat, cast }, scene.when);

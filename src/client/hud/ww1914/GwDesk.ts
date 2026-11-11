@@ -1,4 +1,5 @@
 import type {
+  GwAskView,
   GwCardView,
   GwOptionView,
 } from "@openfront/engine-api/ww1914/GwView";
@@ -388,6 +389,42 @@ function optionButton(
       ? nothing
       : html`<p class="${MUTED} pl-1" data-gw-why>
           ${rich(c, fillGw(why, c.pack, card, c.seat, c.data.date), pass)}
+        </p>`}
+    ${(card.asks ?? [])
+      .filter((a) => a.options[0] === o.id)
+      .map((a) => askButton(c, card, a))}
+  </div>`;
+}
+
+/**
+ * "먼저 묻는다": the talk that may open a locked option, called from here. The
+ * name only: what the talk brings shows when it is over, back on this card.
+ */
+function askButton(
+  c: GwCtx,
+  card: GwCardView,
+  a: GwAskView,
+): TemplateResult {
+  return html`<div class="space-y-0.5 pl-3">
+    <button
+      class="${BTN} w-full border-dashed"
+      data-gw-ask=${a.topic}
+      ?disabled=${!a.open}
+      @click=${() => {
+        c.send({ kind: "ask", card: card.uid, topic: a.topic });
+        // The talk opens by itself as it comes; the card comes back after it.
+        c.ui.summoned = Date.now();
+        c.ui.readerUid = null;
+        c.ui.armed = null;
+        c.redraw();
+      }}
+    >
+      ${translateText("gw.ui.ask_first", { name: personName(c.pack, a.who) })}
+    </button>
+    ${a.block === undefined
+      ? nothing
+      : html`<p class="${MUTED} pl-1" data-gw-ask-block>
+          ${translateText(`gw.ui.block.${a.block}`)}
         </p>`}
   </div>`;
 }
