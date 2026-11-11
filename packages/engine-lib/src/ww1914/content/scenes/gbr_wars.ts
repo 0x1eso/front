@@ -28,12 +28,13 @@ import {
 } from "@openfront/engine-api/ww1914/SceneDsl";
 import { world } from "@openfront/engine-api/ww1914/WorldDsl";
 import {
+  declaredBy,
+  frontOn,
   frontOpened,
   joined,
   offered,
   ownWarWith,
-  peaceBetween,
-  peaceWith,
+  peaceMade,
   warBetween,
   warWith,
 } from "./war_events";
@@ -158,6 +159,11 @@ const WAR_BEGINS: GwScene[] = [
     [
       v("ladder", came("DEU", "ladder")),
       v("entered", came("DEU", "entered", "treaty")),
+      v("we_declared", all(came("DEU", "declared"), declaredBy("GBR", "DEU"))),
+      v(
+        "they_declared",
+        all(came("DEU", "declared"), declaredBy("DEU", "GBR")),
+      ),
       v("base"),
     ],
     8,
@@ -337,7 +343,7 @@ const FRONTS: GwScene[] = [
   ),
   proposal(
     "front_sea",
-    all(frontOpened("sea", 2), atWar("DEU")),
+    frontOn("sea", "GBR", 2),
     { adm: ADM, fm: FM },
     [v("america", fights("USA", "entente")), v("base")],
     [
@@ -348,7 +354,7 @@ const FRONTS: GwScene[] = [
   ),
   proposal(
     "front_colonies",
-    all(frontOpened("colonies", 2), atWar("DEU")),
+    frontOn("colonies", "GBR", 2),
     { mil: MIL },
     [v("japan", fights("JPN", "entente")), v("base")],
     [
@@ -375,7 +381,7 @@ const FRONTS: GwScene[] = [
   ),
   proposal(
     "front_straits",
-    all(frontOpened("straits", 2), atWar("OTT")),
+    frontOn("straits", "GBR", 2),
     { adm: ADM, mil: MIL },
     [v("russia", all(fights("RUS", "entente"), entente)), v("base")],
     [
@@ -388,20 +394,18 @@ const FRONTS: GwScene[] = [
       o("str_wait", [inst("cabinet", 1), trust("RUS", -1)]),
     ],
   ),
-  wire("front_mesopotamia", frontOpened("mesopotamia", 2), { mil: MIL }, [
+  wire("front_mesopotamia", frontOn("mesopotamia", "GBR", 2), { mil: MIL }, [
     v("own", ownWar("OTT")),
     v("base"),
   ]),
-  wire("front_palestine", frontOpened("palestine", 2), { mil: MIL }, [
+  wire("front_palestine", frontOn("palestine", "GBR", 2), { mil: MIL }, [
     v("own", ownWar("OTT")),
     v("base"),
   ]),
-  wire(
-    "front_persia",
-    all(frontOpened("persia", 2), foesOn("OTT", "IRN")),
-    { fm: FM },
-    [v("russia", any(fight("RUS", "OTT"), fight("RUS", "IRN"))), v("base")],
-  ),
+  wire("front_persia", frontOn("persia", "GBR", 2), { fm: FM }, [
+    v("russia", any(fight("RUS", "OTT"), fight("RUS", "IRN"))),
+    v("base"),
+  ]),
 ];
 
 // ---- Neutrals come in (9) ----
@@ -441,36 +445,36 @@ const JOINS: GwScene[] = [
 const PEACES: GwScene[] = [
   wire(
     "peace_deu",
-    peaceWith("DEU", 2),
+    peaceMade("GBR", "DEU", undefined, 2),
     { fm: FM, adm: ADM },
     [v("france_fights", fight("FRA", "DEU")), v("base")],
     8,
   ),
   wire(
     "peace_auh",
-    peaceWith("AUH", 2),
+    peaceMade("GBR", "AUH", undefined, 2),
     { fm: FM },
     [v("deu_fights", atWar("DEU")), v("base")],
     7,
   ),
   wire(
     "peace_ott",
-    peaceWith("OTT", 2),
+    peaceMade("GBR", "OTT", undefined, 2),
     { fm: FM, mil: MIL },
     [v("deu_fights", atWar("DEU")), v("base")],
     7,
   ),
-  wire("peace_bgr", peaceWith("BGR", 2), { fm: FM }, [
+  wire("peace_bgr", peaceMade("GBR", "BGR", undefined, 2), { fm: FM }, [
     v("deu_fights", atWar("DEU")),
     v("base"),
   ]),
-  wire("peace_irn", peaceWith("IRN", 2), { fm: FM }, [
+  wire("peace_irn", peaceMade("GBR", "IRN", undefined, 2), { fm: FM }, [
     v("ott_fights", atWar("OTT")),
     v("base"),
   ]),
   proposal(
     "peace_fra_deu",
-    all(peaceBetween("FRA", "DEU", 2), atWar("DEU")),
+    all(peaceMade("FRA", "DEU", undefined, 2), atWar("DEU")),
     { fm: FM, adm: ADM },
     [v("russia", fight("RUS", "DEU")), v("base")],
     [
@@ -482,7 +486,7 @@ const PEACES: GwScene[] = [
   ),
   wire(
     "peace_rus_deu",
-    all(peaceBetween("RUS", "DEU", 2), atWar("DEU")),
+    all(peaceMade("RUS", "DEU", undefined, 2), atWar("DEU")),
     { fm: FM, mil: MIL },
     [v("france", fight("FRA", "DEU")), v("base")],
     7,

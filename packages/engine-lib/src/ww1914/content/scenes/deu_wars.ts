@@ -25,10 +25,14 @@ import {
 } from "@openfront/engine-api/ww1914/SceneDsl";
 import { world } from "@openfront/engine-api/ww1914/WorldDsl";
 import {
+  declaredBy,
+  fellOut,
   frontOpened,
   joined,
+  noteBetween,
   offered,
   peaceBetween,
+  peaceMade,
   peaceWith,
   warBetween,
   warWith,
@@ -50,18 +54,25 @@ const came = (tag: GwTag, cause: string[]): GwCond =>
   world({ is: "pair_war", with: tag, cause });
 /** A war with `tag` that began as one of the two joined a coalition. */
 const byEntry = (tag: GwTag): GwCond => came(tag, ["entered"]);
-/** Germany's note to `tag` ended in this war. */
+/** Germany's note to `tag` ended in this war, and Germany declared it. */
 const ourNote = (tag: GwTag): GwCond =>
   all(
     came(tag, ["ladder", "declared"]),
     world({ is: "ladder", role: "from", tag, of: ["war"] }),
+    declaredBy("DEU", tag),
   );
-/** `tag`'s note to Germany ended in this war. */
+/** `tag`'s note to Germany ended in this war, and `tag` declared it. */
 const theirNote = (tag: GwTag): GwCond =>
   all(
     came(tag, ["ladder", "declared"]),
     world({ is: "ladder", role: "to", tag, of: ["war"] }),
+    declaredBy(tag, "DEU"),
   );
+/** A declaration from the tab, whoever's note came before it: ours, theirs. */
+const weDeclared = (tag: GwTag): GwCond =>
+  all(came(tag, ["declared"]), declaredBy("DEU", tag));
+const theyDeclared = (tag: GwTag): GwCond =>
+  all(came(tag, ["declared"]), declaredBy(tag, "DEU"));
 /** A treaty pulled one of the two in. */
 const byTreaty = (tag: GwTag): GwCond => came(tag, ["treaty", "july"]);
 /** Neither stands in a coalition against the other. */
@@ -72,6 +83,8 @@ const sideIs = (...of: (GwSide | "neutral")[]): GwCond =>
 const stands = (tag: GwTag, side: GwSide): GwCond =>
   world({ is: "entered", tag, side });
 const out = (tag: GwTag): GwCond => world({ is: "out", tag });
+/** The war of `a` and `b` ended as `b` fell out of it, not in a peace. */
+const felled = (a: GwTag, b: GwTag): GwCond => all(fellOut(a, b), out(b));
 /** Germany itself is still in the war: its own fall is not a peace of two. */
 const still: GwCond = not(out("DEU"));
 
@@ -189,7 +202,13 @@ const WAR_BEGINS: GwScene[] = [
     warWith("FRA", 1),
     { cos, pm },
     8,
-    how("FRA", v("treaty", byTreaty("FRA")), v("own", ownWar("FRA"))),
+    how(
+      "FRA",
+      v("we_declared", weDeclared("FRA")),
+      v("they_declared", theyDeclared("FRA")),
+      v("treaty", byTreaty("FRA")),
+      v("own", ownWar("FRA")),
+    ),
     [
       opt("defence", "fra_defence", opinion("workers", 1), opinion("army", -1)),
       opt("staff", "fra_staff", inst("army", 1), trustOf(pm, -1)),
@@ -201,7 +220,13 @@ const WAR_BEGINS: GwScene[] = [
     warWith("RUS", 1),
     { cos, pm },
     8,
-    how("RUS", v("treaty", byTreaty("RUS")), v("own", ownWar("RUS"))),
+    how(
+      "RUS",
+      v("we_declared", weDeclared("RUS")),
+      v("they_declared", theyDeclared("RUS")),
+      v("treaty", byTreaty("RUS")),
+      v("own", ownWar("RUS")),
+    ),
     [
       opt(
         "tsarism",
@@ -312,6 +337,14 @@ const WAR_BEGINS: GwScene[] = [
     8,
     [
       v(
+        "vienna_note",
+        all(noteBetween("AUH", "RUS", ["war"]), declaredBy("AUH", "RUS")),
+      ),
+      v(
+        "petersburg_note",
+        all(noteBetween("RUS", "AUH", ["war"]), declaredBy("RUS", "AUH")),
+      ),
+      v(
         "notes",
         world({
           is: "pair_war",
@@ -421,7 +454,11 @@ const PEACES: GwScene[] = [
     all(peaceWith("RUS"), still),
     { cos, pm },
     8,
-    [v("fell", out("RUS")), v("base")],
+    [
+      v("fell", fellOut("DEU", "RUS")),
+      v("they_asked", peaceMade("DEU", "RUS", "RUS")),
+      v("base"),
+    ],
     [
       opt("west", "prus_west", inst("army", 1), gauge("order", -1)),
       opt("bread", "prus_bread", gauge("bread", 1), opinion("army", -1)),
@@ -433,7 +470,11 @@ const PEACES: GwScene[] = [
     all(peaceWith("FRA"), still),
     { cos, pm },
     8,
-    [v("fell", out("FRA")), v("base")],
+    [
+      v("fell", fellOut("DEU", "FRA")),
+      v("they_asked", peaceMade("DEU", "FRA", "FRA")),
+      v("base"),
+    ],
     [
       opt("home", "pfra_home", gauge("morale", 1), inst("army", -1)),
       opt("east", "pfra_east", inst("army", 1), opinion("workers", -1)),
@@ -445,7 +486,7 @@ const PEACES: GwScene[] = [
     all(peaceWith("GBR"), still),
     { navy, fm },
     7,
-    [v("fell", out("GBR")), v("base")],
+    [v("fell", fellOut("DEU", "GBR")), v("base")],
     [
       opt("ships", "pgbr_ships", gauge("bread", 1), trustOf(navy, -1)),
       opt("yards", "pgbr_yards", trustOf(navy, 1), gauge("money", -1)),
@@ -457,7 +498,7 @@ const PEACES: GwScene[] = [
     all(peaceWith("BEL"), still),
     { pm, cos },
     7,
-    [v("fell", out("BEL")), v("base")],
+    [v("fell", fellOut("DEU", "BEL")), v("base")],
     [
       opt("restore", "pbel_restore", trust("BEL", 1), opinion("army", -1)),
       opt("hold", "pbel_hold", inst("army", 1), inst("reichstag", -1)),
@@ -466,12 +507,12 @@ const PEACES: GwScene[] = [
   ),
   paper(
     "deu_wv_peace_auh_rus",
-    all(peaceBetween("AUH", "RUS"), still),
+    all(peaceBetween("AUH", "RUS"), still, not(felled("AUH", "RUS"))),
     { fm, cos },
     8,
     [
-      v("alone", all(atWar("RUS"), not(out("AUH")))),
-      v("fell", out("AUH")),
+      v("alone", all(atWar("RUS"), peaceMade("AUH", "RUS"))),
+      v("fell", felled("RUS", "AUH")),
       v("base"),
     ],
     [
@@ -482,14 +523,14 @@ const PEACES: GwScene[] = [
   ),
   wire(
     "deu_wv_peace_auh_srb",
-    all(peaceBetween("AUH", "SRB"), still),
+    all(peaceBetween("AUH", "SRB"), still, not(felled("SRB", "AUH"))),
     { fm },
     6,
-    [v("fell", out("SRB")), v("base")],
+    [v("fell", felled("AUH", "SRB")), v("base")],
   ),
   wire(
     "deu_wv_peace_auh_ita",
-    all(peaceBetween("AUH", "ITA"), still),
+    all(peaceMade("AUH", "ITA"), still),
     { cos },
     6,
     [v("alone", atWar("ITA")), v("base")],

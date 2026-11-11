@@ -21,12 +21,13 @@ import type {
 import { all, any, not } from "@openfront/engine-api/ww1914/SceneDsl";
 import { world } from "@openfront/engine-api/ww1914/WorldDsl";
 import {
+  declaredBy,
+  frontOn,
   frontOpened,
   joined,
   offered,
   ownWarWith,
-  peaceBetween,
-  peaceWith,
+  peaceMade,
   warBetween,
   warWith,
 } from "./war_events";
@@ -62,9 +63,15 @@ const againstUs = (tag: GwTag): GwCond =>
     all(entered(tag, "central"), sideIs("entente")),
     all(entered(tag, "entente"), sideIs("central")),
   );
-/** A front opened and the seat fights someone on its far end. */
+/**
+ * The seat came onto a front within a month and fights someone on its far
+ * end: the front's opening, or Austria-Hungary's war with that end.
+ */
 const ourFront = (t: GwTheatre, ...foes: GwTag[]): GwCond =>
-  all(frontOpened(t, 1), any(...foes.map(atWar)));
+  all(frontOn(t, "AUH", 1), any(...foes.map(atWar)));
+/** The seat's war with `tag` was declared by `by`, after a note or none. */
+const declared = (tag: GwTag, by: GwTag, ...of: string[]): GwCond =>
+  all(cause(tag, ...of), declaredBy(by, by === "AUH" ? tag : "AUH"));
 
 // ---- Effects ----
 
@@ -146,6 +153,8 @@ const WAR_BEGINS: readonly GwScene[] = [
     { fm: FM, cos: COS, hun: HUN },
     [
       ["treaty", cause("RUS", "treaty")],
+      ["we_declared", declared("RUS", "AUH", "declared")],
+      ["they_declared", declared("RUS", "RUS", "ladder", "declared")],
       ["ladder", cause("RUS", "ladder")],
       ["entered", cause("RUS", "entered")],
       ["base"],
@@ -182,7 +191,7 @@ const WAR_BEGINS: readonly GwScene[] = [
     8,
     ownWarWith("SRB", 1),
     { fm: FM, cos: COS },
-    [["ladder", cause("SRB", "ladder")], ["base"]],
+    [["ladder", declared("SRB", "AUH", "ladder")], ["base"]],
     [
       opt(
         "march_on",
@@ -466,7 +475,7 @@ const PEACE_OF_TWO: readonly GwScene[] = [
   proposal(
     "auh_wv_peace_rus",
     7,
-    peaceWith("RUS"),
+    peaceMade("AUH", "RUS"),
     { fm: FM, cos: COS },
     [
       ["deu_fights", world({ is: "pair_war", tag: "DEU", with: "RUS" })],
@@ -487,14 +496,14 @@ const PEACE_OF_TWO: readonly GwScene[] = [
       ),
     ],
   ),
-  wire("auh_wv_peace_srb", 7, peaceWith("SRB"), { fm: FM }, [
+  wire("auh_wv_peace_srb", 7, peaceMade("AUH", "SRB"), { fm: FM }, [
     ["rus", atWar("RUS")],
     ["base"],
   ]),
   proposal(
     "auh_wv_peace_ita",
     7,
-    peaceWith("ITA"),
+    peaceMade("AUH", "ITA"),
     { cos: COS },
     [["base"]],
     [
@@ -512,14 +521,14 @@ const PEACE_OF_TWO: readonly GwScene[] = [
       ),
     ],
   ),
-  wire("auh_wv_peace_rou", 7, peaceWith("ROU"), { hun: HUN, cos: COS }, [
+  wire("auh_wv_peace_rou", 7, peaceMade("AUH", "ROU"), { hun: HUN, cos: COS }, [
     ["rus_on", atWar("RUS")],
     ["base"],
   ]),
   proposal(
     "auh_wv_peace_deu_rus",
     8,
-    all(peaceBetween("DEU", "RUS"), atWar("RUS")),
+    all(peaceMade("DEU", "RUS"), atWar("RUS")),
     { fm: FM },
     [["base"]],
     [
@@ -540,7 +549,7 @@ const PEACE_OF_TWO: readonly GwScene[] = [
   wire(
     "auh_wv_peace_deu_fra",
     6,
-    peaceBetween("DEU", "FRA"),
+    peaceMade("DEU", "FRA"),
     { fm: FM, cos: COS },
     [["fra_on", atWar("FRA")], ["base"]],
   ),

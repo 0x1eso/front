@@ -24,12 +24,12 @@ import {
 } from "@openfront/engine-api/ww1914/SceneDsl";
 import { world } from "@openfront/engine-api/ww1914/WorldDsl";
 import {
+  declaredBy,
   frontOpened,
   joined,
   offered,
   ownWarWith,
-  peaceBetween,
-  peaceWith,
+  peaceMade,
   warBetween,
   warWith,
 } from "./war_events";
@@ -172,6 +172,14 @@ const WAR_BEGINS: GwScene[] = [
     [
       v("belgium", belgiumHit),
       v("ladder", cameBy("DEU", "ladder")),
+      v(
+        "we_declared",
+        all(cameBy("DEU", "declared"), declaredBy("FRA", "DEU")),
+      ),
+      v(
+        "they_declared",
+        all(cameBy("DEU", "declared"), declaredBy("DEU", "FRA")),
+      ),
       v("declared", cameBy("DEU", "declared")),
       v("base"),
     ],
@@ -473,7 +481,7 @@ const JOINS: GwScene[] = [
 const PEACES: GwScene[] = [
   proposal(
     "fra_wv_peace_deu",
-    peaceWith("DEU"),
+    peaceMade("FRA", "DEU"),
     [v("armistice", armistice), v("pact", flag("f_london_pact")), v("base")],
     [
       ["chambers", [inst("chamber", 1), inst("senate", 1)]],
@@ -483,13 +491,13 @@ const PEACES: GwScene[] = [
     { pm },
     8,
   ),
-  wire("fra_wv_peace_auh", peaceWith("AUH"), [
+  wire("fra_wv_peace_auh", peaceMade("FRA", "AUH"), [
     v("germany", fighting("DEU")),
     v("base"),
   ]),
   proposal(
     "fra_wv_peace_ita",
-    peaceWith("ITA"),
+    peaceMade("FRA", "ITA"),
     [v("austria", fighting("AUH")), v("base")],
     [
       ["barrere", [trust("ITA", 1)]],
@@ -499,7 +507,7 @@ const PEACES: GwScene[] = [
   ),
   proposal(
     "fra_wv_peace_ott",
-    peaceWith("OTT"),
+    peaceMade("FRA", "OTT"),
     [v("britain", between("GBR", "OTT")), v("base")],
     [
       ["debt", [opinion("business", 1)]],
@@ -507,13 +515,13 @@ const PEACES: GwScene[] = [
     ],
     { fm },
   ),
-  wire("fra_wv_peace_bgr", peaceWith("BGR"), [
+  wire("fra_wv_peace_bgr", peaceMade("FRA", "BGR"), [
     v("serbia", between("SRB", "BGR")),
     v("base"),
   ]),
   proposal(
     "fra_wv_peace_rus_deu",
-    all(peaceBetween("RUS", "DEU"), fighting("DEU")),
+    all(peaceMade("RUS", "DEU"), fighting("DEU")),
     [v("changed", russiaChanged), v("base")],
     [
       ["protest", [trust("RUS", -1), opinion("press", 1)]],
@@ -525,7 +533,7 @@ const PEACES: GwScene[] = [
   ),
   wire(
     "fra_wv_peace_gbr_deu",
-    all(peaceBetween("GBR", "DEU"), fighting("DEU")),
+    all(peaceMade("GBR", "DEU"), fighting("DEU")),
     [v("pact", flag("f_london_pact")), v("base")],
     {},
     8,

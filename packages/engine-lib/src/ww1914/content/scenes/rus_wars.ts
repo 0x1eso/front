@@ -25,11 +25,13 @@ import {
 } from "@openfront/engine-api/ww1914/SceneDsl";
 import { world } from "@openfront/engine-api/ww1914/WorldDsl";
 import {
+  declaredBy,
+  fellOut,
   frontOpened,
   joined,
   offered,
   ownWarWith,
-  peaceBetween,
+  peaceMade,
   peaceWith,
   warBetween,
   warWith,
@@ -69,6 +71,8 @@ const againstUs = (tag: GwTag): GwCond =>
     all(ourSide("central"), world({ is: "entered", tag, side: "entente" })),
   );
 const isOut = (tag: GwTag): GwCond => world({ is: "out", tag });
+/** The war of `a` and `b` ended as `b` fell out of it, not in a peace. */
+const felled = (a: GwTag, b: GwTag): GwCond => all(fellOut(a, b), isOut(b));
 const open = (theatre: GwTheatre): GwCond => world({ is: "open", theatre });
 
 // ---- Effects ----
@@ -156,6 +160,8 @@ const WAR_BEGINS: GwScene[] = [
     v("they_sent", theySent("DEU")),
     v("treaty", cause("DEU", "treaty")),
     v("entered", cause("DEU", "entered")),
+    v("we_declared", all(cause("DEU", "declared"), declaredBy("RUS", "DEU"))),
+    v("they_declared", all(cause("DEU", "declared"), declaredBy("DEU", "RUS"))),
     v("declared", cause("DEU", "declared")),
     v("base"),
   ]),
@@ -482,16 +488,16 @@ const JOINS: GwScene[] = [
 
 const PEACES: GwScene[] = [
   wire("rus_wv_peace_deu", 8, peaceWith("DEU"), FOREIGN, [
-    v("we_out", isOut("RUS")),
-    v("they_out", isOut("DEU")),
+    v("we_out", felled("DEU", "RUS")),
+    v("they_out", felled("RUS", "DEU")),
     v("armistice", world({ is: "armistice" })),
-    v("still_war", world({ is: "war" })),
+    v("still_war", all(peaceMade("RUS", "DEU"), world({ is: "war" }))),
     v("base"),
   ]),
   wire("rus_wv_peace_auh", 7, peaceWith("AUH"), FOREIGN, [
-    v("they_out", isOut("AUH")),
+    v("they_out", felled("RUS", "AUH")),
     v("armistice", world({ is: "armistice" })),
-    v("deu_on", atWar("DEU")),
+    v("deu_on", all(peaceMade("RUS", "AUH"), atWar("DEU"))),
     v("base"),
   ]),
   proposal(
@@ -499,7 +505,7 @@ const PEACES: GwScene[] = [
     7,
     peaceWith("OTT"),
     COS,
-    [v("they_out", isOut("OTT")), v("base")],
+    [v("they_out", felled("RUS", "OTT")), v("base")],
     [
       opt(
         "west",
@@ -514,22 +520,29 @@ const PEACES: GwScene[] = [
     ],
   ),
   wire("rus_wv_peace_bgr", 7, peaceWith("BGR"), FOREIGN, [
-    v("they_out", isOut("BGR")),
+    v("they_out", felled("RUS", "BGR")),
     v("base"),
   ]),
   wire("rus_wv_peace_irn", 6, peaceWith("IRN"), WAR, [
-    v("ott_on", atWar("OTT")),
-    v("base"),
-  ]),
-  wire("rus_wv_peace_srb_auh", 7, peaceBetween("SRB", "AUH"), FOREIGN, [
-    v("srb_out", isOut("SRB")),
-    v("ours", atWar("AUH")),
+    v("ott_on", all(peaceMade("RUS", "IRN"), atWar("OTT"))),
     v("base"),
   ]),
   wire(
+    "rus_wv_peace_srb_auh",
+    7,
+    any(peaceMade("SRB", "AUH"), felled("AUH", "SRB")),
+    FOREIGN,
+    [v("srb_out", felled("AUH", "SRB")), v("ours", atWar("AUH")), v("base")],
+  ),
+  wire(
     "rus_wv_peace_rou",
     7,
-    any(peaceBetween("ROU", "DEU"), peaceBetween("ROU", "AUH")),
+    any(
+      peaceMade("ROU", "DEU"),
+      peaceMade("ROU", "AUH"),
+      felled("DEU", "ROU"),
+      felled("AUH", "ROU"),
+    ),
     COS,
     [v("rou_out", isOut("ROU")), v("base")],
   ),
