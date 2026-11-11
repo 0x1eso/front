@@ -12,11 +12,9 @@
 // who holds the chief of staff's office; history is flavour, the state calls
 // them, and no line names a date.
 //
-// The engine lays them (Offensives.callScene, `seat.scheduled`), so the deal
-// must never draw them. They wait on `gw_world_called_only`, the flag world.ts
-// uses for the same reason: nothing sets it, and the content check counts it
-// as set from outside. `scheduledOnly` would need these ids in that check's
-// list first (see the lane report).
+// The engine lays them (Offensives.callScene, `seat.scheduled`; listed in
+// GW_OFFENSIVE_CALLED), so they are `scheduledOnly` and the deal never draws
+// them.
 import type {
   GwGauge,
   GwOffice,
@@ -25,7 +23,6 @@ import type {
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import {
   all,
-  flag,
   GwCond,
   GwEffect,
   GwOption,
@@ -40,7 +37,6 @@ import {
 import { world } from "@openfront/engine-api/ww1914/WorldDsl";
 
 const NATION: GwScene["nation"] = ["FRA"];
-const onlyCalled = flag("gw_world_called_only");
 const cos = role("cos");
 
 const v = (id: string, when?: GwCond): GwVariant =>
@@ -95,7 +91,7 @@ const called = (
   id,
   nation: NATION,
   kind,
-  when: onlyCalled,
+  scheduledOnly: true,
   cast: { cos: holder("chief_of_staff") },
   salience,
   tags: ["war"],

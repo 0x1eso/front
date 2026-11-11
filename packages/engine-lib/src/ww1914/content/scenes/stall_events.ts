@@ -40,6 +40,21 @@ export const GW_STALL_CALLED: readonly string[] = [
   ...["deu", "gbr", "auh", "rus", "fra"].map((x) => `${x}_w_collapse`),
 ];
 
+/**
+ * Scenes only the engine calls on a great offensive (Offensives.callScene
+ * lays `<seat>_w_off_<key>` when the seat has written it): the plan, each
+ * round's result, an enemy offensive met, the army's refusal.
+ */
+export const GW_OFFENSIVE_CALLED: readonly string[] = [
+  "deu",
+  "gbr",
+  "auh",
+  "rus",
+  "fra",
+].flatMap((x) =>
+  ["prep", "result", "defended", "mutiny"].map((k) => `${x}_w_off_${k}`),
+);
+
 const cmd = role("cmd");
 
 /**

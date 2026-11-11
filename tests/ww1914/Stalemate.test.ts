@@ -4,6 +4,7 @@
 // lane's own, in its scratch folder).
 import type { GwSeatState } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
+import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
 import { frontLandAt } from "@openfront/engine-lib/ww1914/FrontLand";
 import { createGameRunner } from "@openfront/engine/GameRunner";
 import { posOf } from "@openfront/engine/ww1914/Eras";
@@ -183,10 +184,14 @@ describe("the seat", () => {
     expect(front.strain).toBe(3);
     // Our end breaks: the card comes, and the river is dug in on.
     collapse(gw, west, "central");
-    expect(seat.scheduled.some((q) => q.scene === "gw_w_collapse")).toBe(true);
+    // The seat's own card when it has one, else the plain one.
+    const card = gwContent().scenes.some((x) => x.id === "deu_w_collapse")
+      ? "deu_w_collapse"
+      : "gw_w_collapse";
+    expect(seat.scheduled.some((q) => q.scene === card)).toBe(true);
     gw.s.chapter++;
     seat.choices.push({
-      scene: "gw_w_collapse",
+      scene: card,
       pick: "river",
       chapter: gw.s.chapter,
       proxy: false,

@@ -26,7 +26,10 @@ import { ScenarioDataSchema } from "@openfront/engine-api/ww1936/ScenarioTypes";
 import { SPY_SCENES } from "@openfront/engine-lib/ww1914/content/acts/common";
 import { GW_CONTENT } from "@openfront/engine-lib/ww1914/content/Content";
 import { GW_LADDER_CALLED } from "@openfront/engine-lib/ww1914/content/ladder";
-import { GW_STALL_CALLED } from "@openfront/engine-lib/ww1914/content/scenes/stall_events";
+import {
+  GW_OFFENSIVE_CALLED,
+  GW_STALL_CALLED,
+} from "@openfront/engine-lib/ww1914/content/scenes/stall_events";
 import { TABLE_SCENES } from "@openfront/engine-lib/ww1914/content/scenes/table";
 import { craftCalledScenes } from "@openfront/engine-lib/ww1914/CraftRows";
 import { gwEndingsOf } from "@openfront/engine-lib/ww1914/EndingRows";
@@ -117,10 +120,12 @@ describe("content", () => {
       // ww173: laid by Spies.agentsTaken.
       ...SPY_SCENES.map((x) => x.id),
       // ww173: called by Offensives.callScene when a seat writes them.
-      ...["deu", "gbr", "auh", "rus", "fra"].flatMap((t) =>
-        ["prep", "result", "defended", "mutiny"].map((k) => `${t}_w_off_${k}`),
-      ),
+      ...GW_OFFENSIVE_CALLED,
     ];
+    // The engine lays the offensive scenes; the deal never draws them.
+    for (const s of scenes.filter((x) => GW_OFFENSIVE_CALLED.includes(x.id))) {
+      expect(s.scheduledOnly, s.id).toBe(true);
+    }
     expect(gwContentProblems(scenes, people, outside)).toEqual([]);
     const lang = json("lang/en.json").gw.reason as Record<string, string>;
     for (const tag of SEATS) {

@@ -15,7 +15,6 @@ import type {
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import {
   all,
-  flag,
   GwCastRule,
   GwCond,
   GwEffect,
@@ -69,20 +68,14 @@ const nationsLow: GwCond = { kind: "inst", inst: "nations", max: -1 };
 const staff: Record<string, GwCastRule> = {
   cos: { any_of: [{ office: "chief_of_staff" }, { office: "war" }] },
 };
-/**
- * Only the engine lays these (Offensives.callScene, into `seat.scheduled`,
- * which skips `when`); nothing sets this flag, so the deal never draws them.
- * The content check counts no engine call as a schedule, so this flag, as in
- * world.ts's own called scenes, keeps them off the deal instead.
- */
-const onlyCalled = flag("gw_world_called_only");
 const cos = role("cos");
 
 const report = (id: string, variants: GwVariant[]): GwScene => ({
   id,
   nation: NATION,
   kind: "report",
-  when: onlyCalled,
+  // Only the engine lays these (Offensives.callScene, GW_OFFENSIVE_CALLED).
+  scheduledOnly: true,
   cast: staff,
   salience: 7,
   tags: ["war"],
@@ -158,7 +151,7 @@ export const AUH_OFFENSIVE_SCENES: readonly GwScene[] = [
     id: "auh_w_off_mutiny",
     nation: NATION,
     kind: "proposal",
-    when: onlyCalled,
+    scheduledOnly: true,
     cast: staff,
     salience: 8,
     tags: ["war", "tension_up"],
