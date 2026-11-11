@@ -95,7 +95,7 @@ describe("the 정보부 view", () => {
     expect(v.service!.rivals).toContain("RUS");
     // ww178: a peacetime net reports a rival's war plan.
     learn(gw, "DEU", "plan", "FRA", null, "agents");
-    const r = worldView(gw, gw.s.seats[0]).reports.at(-1)!;
+    const r = worldView(gw, gw.s.seats[0]).reports.slice(-1)[0];
     expect(r).toMatchObject({ fact: "plan", tag: "FRA", source: "agents" });
     expect(JSON.stringify(r)).not.toContain('"truth"');
   });
