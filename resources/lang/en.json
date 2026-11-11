@@ -2057,7 +2057,7 @@
       },
       "effects": "What it does in a year",
       "falls": "falls",
-      "force": "Force it through (authority -{n})",
+      "force": "Force it through (costs {n} authority)",
       "forecast": "Next year",
       "holder": "Finance: {name}",
       "holds": "holds",
@@ -2123,7 +2123,14 @@
       "pass_yes": "It would pass.",
       "percent": "{n}%",
       "prices_end": "Prices at year's end",
-      "prices_value": "{n} (June 1914 = 100)",
+      "prices_value": "{n} · {word} (June 1914 = 100)",
+      "prices_word": {
+        "down": "lower",
+        "high": "much higher",
+        "same": "as before",
+        "soaring": "soaring",
+        "up": "up"
+      },
       "print_note": "Prices {n} points",
       "printed_more": "Printed on top: {sum}",
       "proposed": "Proposed",
@@ -2733,6 +2740,7 @@
       "poll_line": "The whips' estimate: Liberals {seats}, majority {need}",
       "poll_with": "{party}, {seats} seats, sit with us",
       "poll_without": "{party}, {seats} seats, are not ours yet",
+      "sub": "What threatens your hold on power. The word on the right runs from \"rumour\" to \"any day now\" as the danger comes closer.",
       "swing": {
         "bread_low": "Bread is short",
         "commons_firm": "The Commons is firm",
@@ -2792,8 +2800,10 @@
         "press": "Papers attacking",
         "workers": "On strike"
       },
+      "out_hint": "A force in the country has turned on you and is holding up its part until something changes.",
       "pick_sponsor": "Who drafts it?",
       "record": "His count so far: right {right}, wrong {wrong}",
+      "record_hint": "How often your vote counter's forecast of a vote came true, and how often it did not.",
       "said": {
         "against": "against it, he says",
         "away": "staying away, he says",
@@ -2969,6 +2979,7 @@
       "rail_belgium": "When the German trains in the west reach Aachen they stand at the Belgian border. Which road they take is decided when the plan is signed.",
       "rail_days": "day {day} of {total}",
       "rail_done": "gathered",
+      "rail_head": "Mobilization: days gone of the days each army needs to gather at its borders.",
       "rumour_line": "{country}: {what} rumoured",
       "rumour_none": "No rumour from other countries has reached you yet.",
       "rung": {
@@ -4440,7 +4451,7 @@
       "dict_close": "Close",
       "dismiss": "Dismiss",
       "dismiss_ask": "Ask the premier to remove",
-      "dismiss_price": "Authority {n}",
+      "dismiss_price": "Costs {n} authority",
       "dismiss_sure": "Tap again to dismiss",
       "ending_default": "The game has ended",
       "era": "Period",
@@ -4470,7 +4481,7 @@
       "front_end_us": "Our end · {side}",
       "front_foe": "How the enemy stands: {what}",
       "front_foe_hint": "No report on the enemy here has reached us.",
-      "front_foe_unknown": "unknown",
+      "front_foe_unknown": "unknown, no report has come in",
       "front_foe_word": "{word} ({stamp})",
       "front_key": "Our end is always on the left: green is the ground we hold. The white mark moving right, towards the enemy, is good for us; moving left is bad.",
       "front_key_neutral": "Our country is neutral. Each bar has the Central Powers' end on the left and the Entente's on the right.",
@@ -4672,7 +4683,7 @@
         },
         "wait": "Waiting for you: {what}.",
         "wait_decide": "{n} paper(s) to decide",
-        "wait_none": "Nothing is waiting. You can call someone or end the chapter.",
+        "wait_none": "No paper and no visitor is waiting.",
         "wait_read": "{n} paper(s) to read",
         "wait_talk": "{n} visitor(s)",
         "war": "At war: we fight with the {side} against {foes}.",
@@ -4753,7 +4764,7 @@
         "support_hint": "Support: the fuller and greener the bar, the more this force backs you.",
         "ties_sub": "━ the two stand together. ╌ they do not trust each other yet.",
         "ties_title": "Who stands with whom",
-        "tighten": "Tighten (authority {n})",
+        "tighten": "Tighten (costs {n} authority)",
         "title": "The morning's papers",
         "to_blocs": "The blocs",
         "turning_back": "Coming back",
@@ -5020,7 +5031,7 @@
         "1": "Diplomatic cipher",
         "2": "Top cipher"
       },
-      "cost": "authority {n}",
+      "cost": "costs {n} authority",
       "delivered": "arrived",
       "on_the_way": "on the wire"
     }

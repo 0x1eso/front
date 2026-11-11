@@ -163,7 +163,11 @@ export function houseSection(c: GwCtx): TemplateResult | typeof nothing {
       : billBox(c, h, h.bill)}
     ${h.record.right + h.record.wrong === 0
       ? nothing
-      : html`<p class=${MUTED} data-gw-house-record>
+      : html`<p
+          class=${MUTED}
+          data-gw-house-record
+          title=${translateText("gw.house.record_hint")}
+        >
           ${translateText("gw.house.record", {
             right: h.record.right,
             wrong: h.record.wrong,
@@ -222,7 +226,10 @@ export function blocFactions(
 export function houseChip(c: GwCtx): TemplateResult | typeof nothing {
   const out = houseOf(c)?.out ?? null;
   if (out === null) return nothing;
-  return html`<span class=${CHIP} data-gw-house-out=${out.id}
+  return html`<span
+    class=${CHIP}
+    data-gw-house-out=${out.id}
+    title=${translateText("gw.house.out_hint")}
     >${translateText(`gw.house.out.${out.bloc}`)}</span
   >`;
 }

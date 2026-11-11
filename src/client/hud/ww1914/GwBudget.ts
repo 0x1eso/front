@@ -55,6 +55,15 @@ export function moneyText(tag: string, millions: number): string {
 /** Per mille as the player reads it, June 1914 being 100. */
 export const pricesText = (prices: number) => Math.round(prices / 10);
 
+/** ww179: the price index against June 1914 (= 100) in a word. */
+export function pricesWord(n: number): string {
+  if (n < 95) return "down";
+  if (n <= 105) return "same";
+  if (n <= 130) return "up";
+  if (n <= 200) return "high";
+  return "soaring";
+}
+
 /** Points a year as gauge steps with a sign: 120 is +1.2. */
 export function stepsText(points: number): string {
   const v = Math.round(Math.abs(points) / 10) / 10;
@@ -262,8 +271,10 @@ function revenue(
 
 function itemValue(tag: string, v: GwBudgetView, item: GwBudgetItem): string {
   if (item === "prices") {
+    const n = pricesText(v.basis.prices);
     return translateText("gw.budget.prices_value", {
-      n: pricesText(v.basis.prices),
+      n,
+      word: translateText(`gw.budget.prices_word.${pricesWord(n)}`),
     });
   }
   return moneyText(tag, v.basis[item]);

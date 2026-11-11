@@ -14780,7 +14780,7 @@
     },
     "mandate": {
       "deu_bread_for_the_winter": "겨울 빵을 남기기",
-      "deu_chancellor_stays": "수상의 부서를 잃지 않기",
+      "deu_chancellor_stays": "재상의 부서를 잃지 않기",
       "deu_east_prussia_holds": "동프로이센을 지키기",
       "deu_keep_britain_out": "영국을 전쟁 밖에 두기",
       "deu_master_of_the_army": "군을 손에 쥐고 있기",
@@ -15671,7 +15671,7 @@
       "gov_held_gbr_table": "내각이 표결을 넘겼다",
       "gov_held_gbr_unionists": "연립의 위기를 넘겼다",
       "gov_held_gbr_election": "총선의 고비를 넘겼다",
-      "gov_held_deu_chancellor": "수상 문제를 넘겼다",
+      "gov_held_deu_chancellor": "재상 문제를 넘겼다",
       "gov_held_deu_parliament": "다수당의 요구를 넘겼다",
       "gov_held_auh_cabinet": "내각의 사표를 넘겼다",
       "gov_held_auh_court": "섭정 이야기를 물리쳤다",
@@ -15778,7 +15778,7 @@
       },
       "desk_empty": "책상 위에 놓인 서류가 없습니다. 사람을 부르거나 장을 마칠 수 있습니다.",
       "dismiss": "해임한다",
-      "dismiss_price": "권위 {n}",
+      "dismiss_price": "해임에 드는 권위 {n}",
       "dismiss_sure": "한 번 더 누르면 해임합니다",
       "ending_default": "판이 끝났다",
       "fact": {
@@ -16122,7 +16122,7 @@
         "rumour": "거리의 소문",
         "soft": "편집인을 만난 뒤라 논조가 한 걸음 물러섰다.",
         "ties_title": "누가 누구와",
-        "tighten": "검열을 조인다 (권위 {n})",
+        "tighten": "검열을 조인다 (권위 {n}을(를) 쓴다)",
         "title": "오늘 신문",
         "to_blocs": "정국 보기",
         "turning_back": "돌아오는 중",
@@ -16262,7 +16262,7 @@
       "report_where": "{country} ({theatre})",
       "front_foe": "적의 사정: {what}",
       "front_foe_word": "{word} ({stamp})",
-      "front_foe_unknown": "알 수 없음",
+      "front_foe_unknown": "알 수 없음, 들어온 보고가 없다",
       "front_reading": "적의 암호를 읽고 있다",
       "now": {
         "title": "지금 상황",
@@ -16299,7 +16299,7 @@
         "wait_decide": "정할 서류 {n}장",
         "wait_read": "읽을 서류 {n}장",
         "wait_talk": "만날 사람 {n}명",
-        "wait_none": "기다리는 일이 없다. 사람을 부르거나 장을 마쳐도 된다."
+        "wait_none": "기다리는 서류도 손님도 없다."
       },
       "gauge_hint": {
         "shells": "포탄: 전선에 보낼 포탄이 얼마나 있는가.",
@@ -16457,7 +16457,7 @@
       "prices_end": "연말 물가",
       "printed_more": "모자라서 더 찍는 돈: {sum}",
       "percent": "{n}%",
-      "prices_value": "{n} (1914년 6월 = 100)",
+      "prices_value": "{n} · {word} (1914년 6월 = 100)",
       "tax_note": "질서 연 {pts}",
       "bonds_note": "청약 전망: 요청액의 {n}%",
       "print_note": "물가 {n}포인트",
@@ -16471,7 +16471,7 @@
       "submit": "표결에 부친다",
       "sign": "예산에 서명한다",
       "alone": "혼자 서명한다 (권위 -{n})",
-      "force": "권위로 밀어붙인다 (권위 -{n})",
+      "force": "권위로 밀어붙인다 (권위 {n}을(를) 쓴다)",
       "reset": "초안으로 되돌린다",
       "unsigned": "서명하지 않으면 재무 쪽 초안에 대리 서명이 찍힌다.",
       "refused_now": "부결됐다. 고쳐서 다시 내거나, 밀어붙이거나, 작년 예산으로 간다.",
@@ -16560,6 +16560,13 @@
         "load": "이자가 무겁다",
         "prices": "물가가 높다",
         "rally": "첫 전쟁 예산이다"
+      },
+      "prices_word": {
+        "down": "내림",
+        "same": "그대로",
+        "up": "오름",
+        "high": "많이 오름",
+        "soaring": "치솟음"
       }
     },
     "law": {
@@ -16617,7 +16624,7 @@
         "gbr_table": "내각의 표",
         "gbr_unionists": "연립의 맞은편",
         "gbr_election": "총선",
-        "deu_chancellor": "수상의 자리",
+        "deu_chancellor": "재상의 자리",
         "deu_parliament": "다수당의 요구",
         "auh_cabinet": "내각의 사표",
         "auh_court": "대기실의 말",
@@ -16644,9 +16651,9 @@
         "gbr_called": "총선이 정해졌다.",
         "war_bad": "전황이 나쁘다.",
         "streets": "거리가 시끄럽다.",
-        "deu_countersign": "수상이 부서를 꺼린다.",
+        "deu_countersign": "재상이 부서를 꺼린다.",
         "deu_reichstag": "제국의회가 등을 돌렸다.",
-        "deu_army": "참모본부가 수상을 안 듣는다.",
+        "deu_army": "참모본부가 재상을 안 듣는다.",
         "order_low": "질서가 바닥이다.",
         "bread_low": "빵이 모자란다.",
         "morale_low": "사기가 바닥이다.",
@@ -16688,7 +16695,8 @@
         "cry_home": "자치 구호",
         "cry_war": "전쟁 구호",
         "cry_peace": "평화 구호"
-      }
+      },
+      "sub": "당신의 자리를 흔드는 것들. 오른쪽 낱말이 「소문」에서 「오늘내일」로 갈수록 위험이 가깝다."
     },
     "act": {
       "go": "이대로 한다",
@@ -17016,7 +17024,8 @@
           "3": "폭동",
           "4": "반란"
         }
-      }
+      },
+      "rail_head": "동원: 나라마다 군이 국경에 다 모이기까지 걸리는 날 가운데 며칠째인가."
     },
     "rail": {
       "day": "{country} {day}/{total}일",
@@ -17158,7 +17167,9 @@
       "gone": {
         "art87": "두마가 없다. 모든 법안과 예산은 황제의 칙령으로 나간다.",
         "dora": "의회가 정회되었다. 법안과 예산은 추밀원령으로 나간다."
-      }
+      },
+      "out_hint": "나라 안의 한 세력이 당신에게 등을 돌려, 무언가 바뀔 때까지 제 몫의 일을 멈추고 있다.",
+      "record_hint": "표결을 앞두고 내다본 셈이 이제까지 몇 번 맞고 몇 번 틀렸는가."
     },
     "dossier": {
       "title": "서류철",
@@ -17197,7 +17208,7 @@
         "1": "외교 암호",
         "2": "최고 암호"
       },
-      "cost": "권위 {n}",
+      "cost": "권위 {n}을(를) 쓴다",
       "delivered": "도착",
       "on_the_way": "가는 중"
     },

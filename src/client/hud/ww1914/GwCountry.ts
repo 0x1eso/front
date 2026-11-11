@@ -87,11 +87,12 @@ function list(
   title: string,
   rows: readonly string[],
   attr: string,
+  subKey: string | null = null,
 ): TemplateResult | typeof nothing {
   if (rows.length === 0) return nothing;
   return html`<section class=${BOX} data-gw-list=${attr}>
     <h3 class=${HEAD}>${translateText(title)}</h3>
-    ${textOrNull(`${title}_sub`) === null ? nothing : sub(`${title}_sub`)}
+    ${subKey === null ? nothing : sub(subKey)}
     ${rows.map((r) => html`<p class="text-sm text-white/85">${r}</p>`)}
   </section>`;
 }
@@ -163,11 +164,8 @@ function powers(c: GwCtx): TemplateResult {
 /** The war at large: its period, the sea, America, what was reached and voted. */
 function war(c: GwCtx): TemplateResult {
   const v = c.seat.world.war;
-  const row = (label: string, value: string) =>
-    html`<div
-      class="flex justify-between text-sm"
-      title=${textOrNull(`${label}_hint`) ?? ""}
-    >
+  const row = (label: string, value: string, hint: string) =>
+    html`<div class="flex justify-between text-sm" title=${hint}>
       <span class="text-white/70">${translateText(label)}</span>
       <span>${value}</span>
     </div>`;
@@ -176,12 +174,36 @@ function war(c: GwCtx): TemplateResult {
     ${sub("gw.ui.war_sub")}
     ${v.regime === ""
       ? nothing
-      : row("gw.ui.regime", translateText(`gw.regime.${v.regime}`))}
-    ${row("gw.ui.era", translateText(`gw.era.${v.era}`))}
-    ${row("gw.ui.blockade", translateText(`gw.ui.sea.${v.blockade}`))}
-    ${row("gw.ui.shipping", translateText(`gw.ui.sea.${v.shipping}`))}
-    ${row("gw.ui.uboats", translateText(`gw.ui.uboat.${v.uboat}`))}
-    ${row("gw.ui.america", translateText(`gw.ui.america_word.${v.america}`))}
+      : row(
+          "gw.ui.regime",
+          translateText(`gw.regime.${v.regime}`),
+          translateText("gw.ui.regime_hint"),
+        )}
+    ${row(
+      "gw.ui.era",
+      translateText(`gw.era.${v.era}`),
+      translateText("gw.ui.era_hint"),
+    )}
+    ${row(
+      "gw.ui.blockade",
+      translateText(`gw.ui.sea.${v.blockade}`),
+      translateText("gw.ui.blockade_hint"),
+    )}
+    ${row(
+      "gw.ui.shipping",
+      translateText(`gw.ui.sea.${v.shipping}`),
+      translateText("gw.ui.shipping_hint"),
+    )}
+    ${row(
+      "gw.ui.uboats",
+      translateText(`gw.ui.uboat.${v.uboat}`),
+      translateText("gw.ui.uboats_hint"),
+    )}
+    ${row(
+      "gw.ui.america",
+      translateText(`gw.ui.america_word.${v.america}`),
+      translateText("gw.ui.america_hint"),
+    )}
     ${v.command
       ? html`<p class=${MUTED}>${translateText("gw.ui.command_self")}</p>`
       : nothing}
@@ -232,6 +254,7 @@ export function countryTab(c: GwCtx): TemplateResult {
       "gw.ui.mandates_title",
       w.mandates.map((m) => translateText(`gw.mandate.${m}`)),
       "mandates",
+      "gw.ui.mandates_title_sub",
     )}
     ${reports(c)}
     ${list(
@@ -243,6 +266,7 @@ export function countryTab(c: GwCtx): TemplateResult {
       "gw.ui.threads_title",
       w.threads.map((m) => translateText(`gw.thread.${m}`)),
       "threads",
+      "gw.ui.threads_title_sub",
     )}
     ${powers(c)}
     <section class=${BOX}>

@@ -16,7 +16,8 @@ export function officeTitle(tag: string, office: string): string {
  * `gw.ui.inst_name_by.<TAG>.<inst>` (Germany's 재상의 부서), else the shared word.
  */
 export function instName(tag: string, inst: string): string {
-  const own = `gw.ui.inst_name_by.${tag}.${inst}`;
-  const t = translateText(own);
-  return t === own ? translateText(`gw.ui.inst_name.${inst}`) : t;
+  const t = translateText(`gw.ui.inst_name_by.${tag}.${inst}`);
+  return t === `gw.ui.inst_name_by.${tag}.${inst}`
+    ? translateText(`gw.ui.inst_name.${inst}`)
+    : t;
 }

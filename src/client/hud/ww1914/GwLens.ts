@@ -191,6 +191,9 @@ export class GwLens extends LitElement implements Controller {
       class="${GLASS} hidden space-y-1 rounded p-2 sm:block"
       data-gw-rail-card
     >
+      <p class=${MUTED} data-gw-rail-head>
+        ${translateText("gw.lens.rail_head")}
+      </p>
       ${on.map(({ row }) => {
         const elapsed = railClock.elapsed(row.tag, data.date);
         return html`<div
