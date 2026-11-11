@@ -22,7 +22,7 @@ import { USE_SUPPLY } from "../ww1936/navy/Convoys";
 import { navalPortsOf } from "../ww1936/navy/Ports";
 import type { WorldWar } from "../ww1936/WorldWar";
 import { siegeDays } from "./land/Sieges";
-import { imjinSeaAi } from "./sea/SeaAi";
+import { imjinSeaAi, imjinSeaBattleAi } from "./sea/SeaAi";
 import { addConvoyGroup } from "./sea/SeaConvoys";
 import type { SeaCtx } from "./sea/SeaCtx";
 import type { SeaOrder } from "./sea/SeaFleets";
@@ -242,6 +242,7 @@ export class WwImjin {
       this.lastDay = day;
       this.daily(day, ticks);
     }
+    imjinSeaBattleAi(this, ticks);
     const ctx = this.ctx(ticks);
     seaTick(this.st.sea, ctx, newDay);
     this.drainSea(day);

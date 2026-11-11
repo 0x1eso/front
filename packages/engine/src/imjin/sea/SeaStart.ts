@@ -1,12 +1,20 @@
 // The Imjin War's start fleets (ww175 design §6.2, ww177 merge 1): the
 // Joseon provincial navies at their bases and Japan's fleets at Nagoya,
-// Tsushima and Hakata. Ming's fleet comes from 1597 by state (P4), the
-// Jurchen have none. Admirals are skill rows only; P6 writes the people.
+// Tsushima and Hakata. Ming's fleet comes by state (mingFleetByState, lane
+// I5b), the Jurchen have none. Admirals are skill rows only; P6 writes the
+// people.
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
+import { IMJIN_GFLAGS } from "@openfront/engine-lib/imjin/CourtScenes";
 import type { Formation, ShipKind } from "@openfront/engine-lib/imjin/SeaRules";
 import { MT } from "@openfront/engine-lib/imjin/SeaRules";
+import { navalPortsOf } from "../../ww1936/navy/Ports";
 import type { WwImjin } from "../WwImjin";
-import { addFleet, newAdmiral, type SeaAdmiral } from "./SeaState";
+import {
+  addFleet,
+  fleetStrength,
+  newAdmiral,
+  type SeaAdmiral,
+} from "./SeaState";
 
 interface StartFleet {
   tag: CountryTag;
@@ -112,4 +120,83 @@ export function seedSeaStart(im: WwImjin): void {
       { admiral: newAdmiral(f.admiral), formation: f.formation },
     );
   }
+}
+
+/** Ming's fleet (design §7, "later a fleet, all by state"): the war junks and the fast boats. */
+export const MING_FLEET: Omit<StartFleet, "base"> = {
+  tag: "MIN",
+  admiral: { gunnery: 3, tactics: 3, boarding: 3, nerve: 3 },
+  formation: "line",
+  ships: [
+    ["fuchuan", 8],
+    ["shachuan", 16],
+  ],
+};
+/** Days of Ming's war after which its fleet sails on its own account. */
+export const MING_FLEET_WAR_DAYS = 720;
+/** Joseon's navy is failing when Japan's ships outweigh it by this (%). */
+export const MING_FLEET_FAILING_PCT = 125;
+
+/**
+ * Once a day, while Ming is at war with Japan: Ming sends its fleet when a
+ * truce has broken, when its war has lasted MING_FLEET_WAR_DAYS, or when
+ * its relief army is in and Joseon's navy is failing. It sails from the
+ * Ming port nearest Joseon's main fleet, once a game.
+ */
+export function mingFleetByState(im: WwImjin, day: number): boolean {
+  const sea = im.st.sea;
+  if (sea.mingFleet !== undefined || im.st.mingDay < 0) return false;
+  const ww = im.ww;
+  const min = im.idOf("MIN");
+  const jpn = im.idOf("JPN");
+  const jos = im.idOf("JOS");
+  if (min <= 0 || jpn <= 0 || !ww.isAtWar(min, jpn)) return false;
+  const flags = ww.politics.gflags;
+  let joseon = 0;
+  let japan = 0;
+  let aim: { x: number; y: number; s: number } | null = null;
+  for (const f of sea.fleets) {
+    const s = fleetStrength(sea, f);
+    if (f.owner === jos) {
+      joseon += s;
+      if (aim === null || s > aim.s) aim = { x: f.x, y: f.y, s };
+    } else if (f.owner === jpn) japan += s;
+  }
+  const called =
+    flags.has(IMJIN_GFLAGS.truceBroken) ||
+    day - im.st.mingDay >= MING_FLEET_WAR_DAYS ||
+    (flags.has(IMJIN_GFLAGS.mingRelief) &&
+      joseon * MING_FLEET_FAILING_PCT < japan * 100);
+  if (!called) return false;
+  const map = im.mg.map();
+  let berth = -1;
+  let bd = Infinity;
+  for (const r of navalPortsOf(ww, min)) {
+    const t = im.portTile(r);
+    if (t < 0) continue;
+    const dx = aim === null ? 0 : map.x(t) * MT - aim.x;
+    const dy = aim === null ? 0 : map.y(t) * MT - aim.y;
+    const d = dx * dx + dy * dy;
+    if (d < bd) {
+      bd = d;
+      berth = t;
+    }
+  }
+  if (berth < 0) return false;
+  const kinds: ShipKind[] = [];
+  for (const [k, n] of MING_FLEET.ships)
+    for (let i = 0; i < n; i++) kinds.push(k);
+  addFleet(
+    sea,
+    min,
+    map.x(berth) * MT + (MT >> 1),
+    map.y(berth) * MT + (MT >> 1),
+    kinds,
+    {
+      admiral: newAdmiral(MING_FLEET.admiral),
+      formation: MING_FLEET.formation,
+    },
+  );
+  sea.mingFleet = day;
+  return true;
 }
