@@ -81,6 +81,23 @@ const BLAME_LATER = 60;
 /** Chapters a caught agent waits for the seat's word before he is shown. */
 const CAUGHT_WAIT = 2;
 const OPS_KEPT = 6;
+/**
+ * Counter-intelligence, per mille a chapter for each foreign net (ww173
+ * tune: the design's percent caught about twenty agents a game; one to
+ * three is the aim): a base, each point of counter, less each point of net.
+ */
+const CATCH_BASE = 2;
+const CATCH_COUNTER = 6;
+const CATCH_NET = 2;
+/** An operation's chance to be found out rises this much a point of counter. */
+const OUT_COUNTER = 3;
+/** Nets abroad an AI service keeps at most: good men are few. */
+const AI_NETS = 2;
+/** Percent a chapter an AI service tries a new net (bold, others). */
+const AI_NET_PCT_BOLD = 6;
+const AI_NET_PCT = 4;
+/** Percent an AI service is funded more after it catches agents. */
+const AI_FUND_PCT = 25;
 
 /** A country's service, filled with the start values on first use. */
 export function intelOf(gw: GreatWar, tag: GwTag): GwIntel {
@@ -293,10 +310,15 @@ function suspicionStep(gw: GreatWar, a: GwTag): void {
   const last = gw.s.chapter - 1;
   for (const e of ia.readOn) {
     if (e.chapter !== last || e.theatre !== main) continue;
-    const iF = intelOf(gw, e.tag);
-    iF.suspect[a] = (iF.suspect[a] ?? 0) + 1;
+    actedOnRead(gw, a, e.tag);
   }
   ia.readOn = ia.readOn.filter((e) => e.chapter >= gw.s.chapter);
+}
+
+/** `reader` acted on what it read in `of`'s codes: `of` suspects it more. */
+export function actedOnRead(gw: GreatWar, reader: GwTag, of: GwTag): void {
+  const iF = intelOf(gw, of);
+  iF.suspect[reader] = (iF.suspect[reader] ?? 0) + 1;
 }
 
 function codeChangeStep(gw: GreatWar, f: GwTag): void {
@@ -392,8 +414,19 @@ function catchStep(gw: GreatWar): void {
       const ix = intelOf(gw, x);
       if (ix.turned.includes(s)) continue;
       if (ix.caught.some((c) => c.tag === s)) continue;
-      const pct = 10 + 12 * ix.counter - 5 * net + skillOf(gw, x);
-      if (roll(gw, P_CATCH, idx(gw, s), idx(gw, x)) >= pct) continue;
+      const pm =
+        CATCH_BASE +
+        CATCH_COUNTER * ix.counter -
+        CATCH_NET * net +
+        skillOf(gw, x);
+      const r = wwRoll(
+        gw.s.seed,
+        P_CATCH,
+        gw.s.chapter,
+        idx(gw, s),
+        idx(gw, x),
+      );
+      if (r % 1000 >= pm) continue;
       agentsTaken(gw, x, s);
     }
   }
@@ -461,7 +494,7 @@ export function expose(gw: GreatWar, x: GwTag, s: GwTag): void {
   if (
     !ruledBySeat(gw, x) &&
     ix.counter < 3 &&
-    roll(gw, P_COUNTER, idx(gw, x), idx(gw, s)) < 50
+    roll(gw, P_COUNTER, idx(gw, x), idx(gw, s)) < AI_FUND_PCT
   ) {
     ix.counter++;
   }
@@ -499,13 +532,14 @@ function opRoll(
     roll(gw, P_OP, idx(gw, a), idx(gw, x), k) <
     base + 10 * net + skillOf(gw, a) - 12 * ix.counter;
   const out =
-    roll(gw, P_OP_OUT, idx(gw, a), idx(gw, x), k) < outBase + 8 * ix.counter;
+    roll(gw, P_OP_OUT, idx(gw, a), idx(gw, x), k) <
+    outBase + OUT_COUNTER * ix.counter;
   return { ok, out };
 }
 
 function plantNet(gw: GreatWar, a: GwTag, x: GwTag): void {
   const ia = intelOf(gw, a);
-  const { ok, out } = opRoll(gw, a, x, "net", 55, 4);
+  const { ok, out } = opRoll(gw, a, x, "net", 55, 3);
   if (ok) ia.net[x] = Math.min(3, (ia.net[x] ?? 0) + 1);
   record(gw, a, "net", x, ok, out);
   if (out) expose(gw, x, a);
@@ -514,7 +548,7 @@ function plantNet(gw: GreatWar, a: GwTag, x: GwTag): void {
 function sabotage(gw: GreatWar, a: GwTag, x: GwTag): void {
   const ia = intelOf(gw, a);
   ia.sabotaged = gw.s.day;
-  const { ok, out } = opRoll(gw, a, x, "sabotage", 30, 10);
+  const { ok, out } = opRoll(gw, a, x, "sabotage", 30, 6);
   if (ok) {
     moveGauge(gw, x, "shells", -1, "shells_sabotaged");
     news(gw, "spy_sabotage", x);
@@ -769,7 +803,9 @@ function aiStep(gw: GreatWar, a: GwTag, foes: GwTag[]): void {
   const neutrals = COURTED.filter(
     (x) => x !== a && gw.nation(x)?.side === null && live(gw, x),
   );
-  if (roll(gw, P_AI, k, 1) < (bold ? 25 : 15)) {
+  const nets = Object.values(ia.net).filter((v) => (v ?? 0) > 0).length;
+  const netPct = bold ? AI_NET_PCT_BOLD : AI_NET_PCT;
+  if (nets < AI_NETS && roll(gw, P_AI, k, 1) < netPct) {
     const pool = [...foes, ...neutrals].filter((x) => (ia.net[x] ?? 0) < 3);
     if (pool.length > 0) {
       plantNet(gw, a, pool[roll(gw, P_AI, k, 2) % pool.length]);

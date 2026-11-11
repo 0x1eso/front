@@ -63,6 +63,13 @@ const P_ORDERS = idHash("gw_raid_orders");
 
 /** From here a collapse may come. */
 const COLLAPSE_AT = 80;
+/**
+ * Where the collapse roll's odds start: 4 in a hundred a point of strain
+ * above it. Raised from the design's 75 (ww173 tune) once the great
+ * offensives fed the defender's strain too: a collapse in a third to a half
+ * of games, not in four of five.
+ */
+const BREAK_FROM = 87;
 /** Collapses a war has at most: the clock runs out rarely. */
 const COLLAPSES_MAX = 2;
 /** Thousands lost on a front for a point of strain, and the most a chapter. */
@@ -395,7 +402,7 @@ function breakPct(
   const attacked = b !== undefined && b.by === other(side);
   return Math.min(
     90,
-    4 * (strain - 75) +
+    4 * (strain - BREAK_FROM) +
       (lead.unrest >= 3 ? 15 : 0) +
       (attacked ? 10 : 0) -
       (STEADY[t.id] ?? 0),

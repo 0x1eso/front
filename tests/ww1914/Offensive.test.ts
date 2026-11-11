@@ -17,6 +17,7 @@ import {
 } from "@openfront/engine/ww1914/Offensives";
 import { applyGwOrder } from "@openfront/engine/ww1914/Orders";
 import { holds, runEffect } from "@openfront/engine/ww1914/SceneRun";
+import { intelOf } from "@openfront/engine/ww1914/Spies";
 import { gwView } from "@openfront/engine/ww1914/View";
 import { describe, expect, test } from "vitest";
 import { gwRunner } from "./util";
@@ -239,6 +240,22 @@ describe("the defender learns of it", () => {
     ]);
     expect(holds(ctx, world({ is: "foe_offensive" }))).toBe(false);
     expect(offenseOdds(gw, west(gw), "entente", 0)).toBeLessThan(before);
+    // Acting on what the code told makes France wonder (design §6, 7A).
+    expect(intelOf(gw, "FRA").suspect.DEU).toBe(1);
+  });
+
+  test("playing dumb on a code's word keeps France unsuspecting", async () => {
+    const { gw, seat } = await war();
+    stalemate(gw, 24);
+    gw.s.offensives = [
+      record({ tag: "FRA", end: "entente", round: 0, seenBy: [], prepared: 0 }),
+    ];
+    markSeen(gw, offensivesOf(gw)[0], "DEU", true);
+    runEffect(
+      { gw, seat, cast: {} },
+      doWorld({ do: "counter_offensive", pick: "dumb" }),
+    );
+    expect(intelOf(gw, "FRA").suspect.DEU ?? 0).toBe(0);
   });
 
   test("an AI defender weighs it at once", async () => {
