@@ -57,6 +57,7 @@ import { energyPenaltyPct } from "@openfront/engine-lib/ww1936/EnergyRules";
 import { BOP_DEFS, bopBand } from "@openfront/engine-lib/ww1936/MechRules";
 import { mioSize } from "@openfront/engine-lib/ww1936/MioRules";
 import { isNoStrike } from "@openfront/engine-lib/ww1936/NoStrike";
+import type { WwSystem } from "@openfront/engine-lib/ww1936/scenario/Profile";
 import { addSparseInto } from "@openfront/engine-lib/ww1936/Stats";
 import { STATIC_KEY_STATS } from "@openfront/engine-lib/ww1936/TemplateStats";
 import { z } from "zod";
@@ -609,8 +610,10 @@ export class WwDepth implements LandDepthHooks {
     this.intelLevels = new Uint8Array(this.cap * this.cap * 4);
     // Review E12: no fog until lane I computes the rows (the stub's 100).
     this.intelLevels.fill(100);
+    // ww177: with dams off (Profile.ts) no dam ever works.
+    const dams = this.ww.systemOn("dams");
     this.world.damLevel = this.ww.scenario.damRegion.map((r) =>
-      r > 0 ? 1 : 0,
+      dams && r > 0 ? 1 : 0,
     );
     this.mech.bop = BOP_DEFS.map((b, i) => [i, b.startPm, bopBand(b.startPm)]);
     this.mech.treaty.members = ["GBR", "USA", "FRA"]
@@ -676,16 +679,20 @@ export class WwDepth implements LandDepthHooks {
   }
 
   dayCommon(day: number, tick: number): void {
-    dayCommonMarket(this, day, tick); // M: deals pay and deliver, licence cards time out
+    // ww177: a system the profile switches off never runs (Profile.ts).
+    const on = (s: WwSystem) => this.ww.systemOn(s);
+    if (on("market")) dayCommonMarket(this, day, tick); // M: deals pay and deliver, licence cards time out
     dayCommonWorld(this, day, tick); // W1: floods, harbours, scorch queue, exhausted resources, dam dates
     dayCommonMech(this, day, tick); // W3: faction goals, treaty clock, congress drift, BoP drift
-    processRockets(this, day, tick); // S
+    if (on("rockets")) processRockets(this, day, tick); // S
     processRaids(this, day, tick); // S
-    dayCommonIntel(this, day); // I: the day's resistance table (pre-flight §0-8)
+    if (on("intel")) dayCommonIntel(this, day); // I: the day's resistance table (pre-flight §0-8)
   }
 
   countryTurn(id: number, day: number, tick: number): void {
     if (this.countries[id] === null || this.countries[id] === undefined) return;
+    const on = (s: WwSystem) => this.ww.systemOn(s);
+    const projects = on("atomic") || on("rockets");
     dailyEnergy(this, id, day); // W1
     dailyThought(this, id, day); // T (ww9)
     dailyCommand(this, id, day); // D
@@ -693,9 +700,11 @@ export class WwDepth implements LandDepthHooks {
     dailyHist(this, id, day); // ww61: the catalogue's entries as design slots
     dailyDesigns(this, id, day); // E
     dailyMio(this, id, day); // M
-    dailyIntel(this, id, day); // I (upgrades, operatives, missions, ops, crypto)
-    computeIntelRow(this, id, day); // I (this observer's row of intelLevels)
-    dailyProjects(this, id, day); // S
+    if (on("intel")) {
+      dailyIntel(this, id, day); // I (upgrades, operatives, missions, ops, crypto)
+      computeIntelRow(this, id, day); // I (this observer's row of intelLevels)
+    }
+    if (projects) dailyProjects(this, id, day); // S
     dailyMechanisms(this, id, day); // W3 (congress for USA, BoP, continuous focus)
     // Plan decision 39: the lanes' AI, each deciding its own rhythm.
     if (!this.ww.isHumanControlled(id)) {
@@ -703,16 +712,18 @@ export class WwDepth implements LandDepthHooks {
       aiDesignsDay(this, id, day);
       const ce = this.ww.economy.country(id);
       if (ce !== null && isAiTurn(id, day, ce.major)) aiLineMix(this, id, ce);
-      aiMarketDay(this, id, day);
-      aiIntelDay(this, id, day);
-      aiProjectsDay(this, id, day);
+      if (on("market")) aiMarketDay(this, id, day);
+      if (on("intel")) aiIntelDay(this, id, day);
+      if (projects) aiProjectsDay(this, id, day);
       aiWorldDay(this, id, day);
       aiSeaAirDay(this, id, day);
       aiMechDay(this, id, day);
     } else {
       // Automation (intel switch): a human's agency, at the AI's own point of
       // the day and rhythm (no coup; founding at once, see aiFound).
-      if (this.ww.autoOn(id, "intel")) aiIntelDay(this, id, day);
+      if (on("intel") && this.ww.autoOn(id, "intel")) {
+        aiIntelDay(this, id, day);
+      }
       // Automation (production switch): the catalogue pick and the line mix.
       if (this.ww.autoOn(id, "production")) {
         aiProductionAutoDay(this, id, day);
@@ -833,6 +844,7 @@ export class WwDepth implements LandDepthHooks {
   onDamRepaired(region: number): void {
     const i = this.ww.scenario.damOf(region);
     if (i < 0 || this.world.damLevel.length === 0) return;
+    if (!this.ww.systemOn("dams")) return;
     this.world.damLevel[i] = 1;
     // W1 review 4: the dam's own region dries too; the status follows now.
     const down = new Set([
@@ -938,7 +950,10 @@ export class WwDepth implements LandDepthHooks {
   }
 
   nukesOn(): boolean {
-    return this.mg.config().gameConfig().ww1936Nukes === true;
+    return (
+      this.mg.config().gameConfig().ww1936Nukes === true &&
+      this.ww.systemOn("atomic")
+    );
   }
 
   /** Pre-flight §0-11: Korea's and Taiwan's regions are never struck. */
@@ -1160,6 +1175,18 @@ export class WwDepth implements LandDepthHooks {
     );
     if (k < 0) return "bad_index";
     const d = o as DepthOrder;
+    // ww177: the kinds of a system the profile switches off (Profile.ts):
+    // 23–30 trade, 31–39 intel, 40–46 projects (the bomb and the rockets),
+    // 52–53 rail guns.
+    const off =
+      (k >= 23 && k <= 30 && !this.ww.systemOn("market")) ||
+      (k >= 31 && k <= 39 && !this.ww.systemOn("intel")) ||
+      (k >= 40 &&
+        k <= 46 &&
+        !this.ww.systemOn("atomic") &&
+        !this.ww.systemOn("rockets")) ||
+      (k >= 52 && k <= 53 && !this.ww.systemOn("rail"));
+    if (off) return "system_off";
     // The kind ranges follow DEPTH_ORDER_KINDS: 0–1 doctrine, 2–4 and
     // 12–13 command, 5–11 army groups, 14–19 designs, 20–22 MIO, 23–30
     // trade, 31–39 intel, 40–46 projects, 47–51 mechanisms, 52–55 world,

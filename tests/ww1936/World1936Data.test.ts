@@ -4,6 +4,7 @@ import {
   COUNTRY_TAGS,
   CountryTag,
   isDormantTag,
+  isImjinTag,
 } from "@openfront/engine-api/ww1936/Countries";
 import { DAMS, LANDMARKS } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
@@ -28,7 +29,10 @@ import { fileURLToPath } from "url";
 import { NodeGameMapLoader } from "../perf/fullgame/NodeGameMapLoader";
 
 /** P5 plan decision 3: the 1936 countries (COUNTRY_TAGS ends with the dormant slots). */
-const SCENARIO_TAGS = COUNTRY_TAGS.filter((t) => !isDormantTag(t));
+// ww177: nor the Imjin War's tags (after the dormant slots).
+const SCENARIO_TAGS = COUNTRY_TAGS.filter(
+  (t) => !isDormantTag(t) && !isImjinTag(t),
+);
 
 const maps = new NodeGameMapLoader(
   path.resolve(
@@ -83,7 +87,9 @@ function ownerAt(lon: number, lat: number): CountryTag | undefined {
 describe("the world1936 map", () => {
   test("every 1936 country, about 1,200 regions and 150 sea zones", () => {
     const s = data.scenario!;
-    expect([...s.countries]).toEqual([...COUNTRY_TAGS]);
+    expect([...s.countries]).toEqual(
+      COUNTRY_TAGS.filter((t) => !isImjinTag(t)),
+    );
     expect(s.landRegions.length).toBeGreaterThanOrEqual(1000);
     expect(s.landRegions.length).toBeLessThanOrEqual(1800);
     expect(s.data.seaZones.length).toBeGreaterThanOrEqual(120);

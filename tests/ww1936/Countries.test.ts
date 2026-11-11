@@ -5,6 +5,7 @@ import {
   FACTION_LEADER,
   isCountryTag,
   isDormantTag,
+  isImjinTag,
   MAJOR_TAGS,
   PICK_ORDER,
 } from "@openfront/engine-api/ww1936/Countries";
@@ -15,9 +16,10 @@ const FLAGS = path.join(__dirname, "../../resources/flags");
 
 describe("the 1936 country table", () => {
   test("79 unique tags and P5's 14 dormant slots, each with a definition", () => {
-    expect(COUNTRY_TAGS).toHaveLength(79 + 14);
-    expect(new Set(COUNTRY_TAGS).size).toBe(79 + 14);
-    expect(COUNTRY_TAGS.slice(79)).toEqual([...DORMANT_TAGS]);
+    // ww177: the three Imjin War tags after the dormant slots.
+    expect(COUNTRY_TAGS).toHaveLength(79 + 14 + 3);
+    expect(new Set(COUNTRY_TAGS).size).toBe(79 + 14 + 3);
+    expect(COUNTRY_TAGS.slice(79, 93)).toEqual([...DORMANT_TAGS]);
     expect(Object.keys(COUNTRIES).sort()).toEqual([...COUNTRY_TAGS].sort());
     expect(isCountryTag("DEU")).toBe(true);
     expect(isCountryTag("KOR")).toBe(false);
@@ -75,9 +77,9 @@ describe("the 1936 country table", () => {
       "ITA",
       "JPN",
     ]);
-    // P5 plan decision 3: never a dormant slot.
+    // P5 plan decision 3: never a dormant slot; ww177: nor an Imjin War tag.
     expect([...PICK_ORDER].sort()).toEqual(
-      COUNTRY_TAGS.filter((t) => !isDormantTag(t)).sort(),
+      COUNTRY_TAGS.filter((t) => !isDormantTag(t) && !isImjinTag(t)).sort(),
     );
   });
 

@@ -1,7 +1,10 @@
 import { GameMapType } from "@openfront/engine-api/game/GameTypes";
 import { GameConfig, GameConfigPatch } from "@openfront/engine-api/Schemas";
 import { applyGreatWar1914Rules } from "@openfront/engine-lib/ww1914/ModeConfig";
-import { applyWorldWar1936Rules } from "@openfront/engine-lib/ww1936/ModeConfig";
+import {
+  applyWorldWar1936Rules,
+  IMJIN_MAP,
+} from "@openfront/engine-lib/ww1936/ModeConfig";
 
 // The host edits its lobby through update_game_config, which carries a
 // partial GameConfig. Only the keys listed here are taken from it. gameType
@@ -132,7 +135,11 @@ export function applyWorldWar1936ServerRules(target: GameConfig): void {
     applyGreatWar1914Rules(target);
   } else if (target.worldWar1936 === true) {
     applyWorldWar1936Rules(target);
-  } else if (target.gameMap === GameMapType.World1936) {
+  } else if (
+    target.gameMap === GameMapType.World1936 ||
+    target.gameMap === IMJIN_MAP
+  ) {
+    // ww177: nor is the Imjin War's.
     target.gameMap = GameMapType.World;
   }
 }

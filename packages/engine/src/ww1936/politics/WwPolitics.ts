@@ -572,8 +572,10 @@ export class WwPolitics {
     this.legalOwner = new Uint16Array(size);
     const owners = sc.ownerByRegion();
     for (const r of sc.landRegions) this.legalOwner[r.id] = owners[r.id];
-    // Spec §15.1: the starting factions, FACTION_IDS order.
+    // Spec §15.1: the starting factions, FACTION_IDS order. ww177: the
+    // Imjin War has none (who stands with whom is its own state).
     FACTION_IDS.forEach((f, idx) => {
+      if (ww.imjin) return;
       const members = sc.countries.flatMap((t, i) =>
         COUNTRIES[t].faction === f ? [i + 1] : [],
       );

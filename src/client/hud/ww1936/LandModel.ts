@@ -135,6 +135,7 @@ import {
 import type { LandMode } from "./LandSelection";
 import { battalionName } from "./NationalNames";
 import { factionOfId, isKoreanUi, type WwGame } from "./WorldWarModel";
+import { wwEpoch } from "./WwClientCalendar";
 
 // ---- Sides (spec §7.1): who is a friend, who may be fought now ----
 
@@ -408,6 +409,7 @@ function weatherOf(scenario: ScenarioIndex, region: number, day: number) {
     scenario.latC(region),
     scenario.landOf(region),
     scenario.wcell(region),
+    wwEpoch(),
   );
 }
 

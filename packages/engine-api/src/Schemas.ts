@@ -148,6 +148,7 @@ import {
   PolOrderKind,
   WAR_GOAL_TYPES,
 } from "./ww1936/PoliticsTypes";
+import { IMJIN_CALENDAR_IDS, WW_SCENARIO_IDS } from "./ww1936/ScenarioIds";
 import { ThoughtPos, ThoughtSliderEnum } from "./ww1936/ThoughtTypes";
 import { SEA_ZONE_BASE, WW_AUTO_DOMAINS } from "./ww1936/WorldWarTypes";
 
@@ -579,6 +580,13 @@ export const GameConfigSchema = z.object({
   // Great War 1914 with friends: the host's pace, the row's chapter timer
   // ×0.75, ×1 or ×1.5 (GW_PACE_PCT), or none at all. Absent means normal.
   greatWar1914Pace: z.enum(GW_PACES).optional(),
+  // ww177 (Imjin design §2): the 1936 engine's scenario profile
+  // (engine-lib/ww1936/scenario/Profile.ts). Absent means "ww1936": every
+  // value is 1936's. Only with worldWar1936. Appended last (zbin field order).
+  ww1936Scenario: z.enum(WW_SCENARIO_IDS).optional(),
+  // ww177 (Imjin design §10): the Imjin War's calendar row; absent means
+  // "y1590". Nothing reads it outside that profile. Appended last.
+  imjinCalendar: z.enum(IMJIN_CALENDAR_IDS).optional(),
 });
 
 // What a host sends in update_game_config. maxPlayers is the private-lobby

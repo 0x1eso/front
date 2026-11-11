@@ -1739,7 +1739,8 @@
     "warfare_expansion": "확장 전쟁",
     "water_nukes": "수몰 폭탄",
     "world_war_1936": "1936 세계대전",
-    "great_war_1914": "1914 대전쟁"
+    "great_war_1914": "1914 대전쟁",
+    "imjin_war": "임진왜란 1592"
   },
   "game_starting_modal": {
     "code_license": "코드는 AGPL-3.0 라이선스에 따르며, 보증은 제공되지 않습니다.",
@@ -4065,7 +4066,10 @@
       "YEM": "예멘",
       "YUG": "유고슬라비아",
       "YUN": "윈난파",
-      "ZAF": "남아프리카 연방"
+      "ZAF": "남아프리카 연방",
+      "JOS": "조선",
+      "MIN": "명",
+      "JUR": "여진"
     },
     "crypto": {
       "broken_list": "우리가 푼 암호",
@@ -4710,7 +4714,8 @@
         "collab_too_small": "그 나라 승점의 25% 이상이 되도록 지역을 고르세요",
         "collab_bad_region": "내가 점령한 그 나라 정식 영토만, 내 핵심 지역과 영토 요구 지역은 빼고 고를 수 있습니다",
         "collab_no_slot": "새 정부를 세울 나라 자리가 남아 있지 않습니다",
-        "collab_scripted": "이미 그곳에 협력 정부가 있습니다"
+        "collab_scripted": "이미 그곳에 협력 정부가 있습니다",
+        "system_off": "이 전쟁에는 없는 기능입니다"
       },
       "build_floor": "건설 바닥: 소비재와 대금에 밀려 이만큼만 남습니다",
       "build_here": "여기 짓기",
@@ -10142,7 +10147,10 @@
       "YEM": "야히야 무함마드 하미드 앗딘",
       "YUG": "파블레 섭정공",
       "YUN": "룽윈",
-      "ZAF": "J. B. M. 헤르초흐"
+      "ZAF": "J. B. M. 헤르초흐",
+      "JOS": "조선 국왕",
+      "MIN": "명 황제",
+      "JUR": "여진 추장"
     },
     "licence": {
       "accept": "허가",
@@ -17863,6 +17871,48 @@
         "name": "루이즈 드 베티니",
         "work": "점령된 릴에서 독일군의 움직임을 전한다"
       }
+    }
+  },
+  "imjin": {
+    "lobby": {
+      "seat_label": "나라 선택",
+      "seat_note": {
+        "JOS": "산길과 산성, 대포를 실은 수군",
+        "JPN": "아시아 최강의 보병, 바다 건너 군량을 나른다"
+      },
+      "ai_note": "{countries}은(는) AI가 맡습니다.",
+      "calendar_label": "판 길이",
+      "calendar": {
+        "y1592": "임진 1592",
+        "y1590": "통신사 1590",
+        "long": "긴 판",
+        "unlimited": "무제한"
+      },
+      "calendar_note": {
+        "y1592": "상륙 직전부터, 약 30분",
+        "y1590": "1590년 통신사부터, 약 45분",
+        "long": "1590년부터 절반 속도, 약 90분",
+        "unlimited": "1590년부터, 시간 제한 없음"
+      }
+    },
+    "date": {
+      "line": "{date} · {lunar} · {reign}",
+      "line_no_reign": "{date} · {lunar}",
+      "lunar": "음력 {month}월 {day}일",
+      "lunar_leap": "음력 윤{month}월 {day}일"
+    },
+    "era": {
+      "seonjo": "선조 {year}년",
+      "gwanghae": "광해군 {year}년",
+      "injo": "인조 {year}년",
+      "tensho": "덴쇼 {year}년",
+      "bunroku": "분로쿠 {year}년",
+      "keicho": "게이초 {year}년",
+      "genna": "겐나 {year}년",
+      "kanei": "간에이 {year}년",
+      "wanli": "만력 {year}년",
+      "tianqi": "천계 {year}년",
+      "chongzhen": "숭정 {year}년"
     }
   }
 }

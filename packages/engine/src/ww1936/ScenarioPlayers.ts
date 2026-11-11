@@ -25,6 +25,8 @@ import { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 export function assignCountries(
   players: readonly Pick<StartPlayer, "clientID" | "country">[],
   present: readonly CountryTag[],
+  /** ww177: the seats in the order unpicked humans get them (default PICK_ORDER). */
+  order: readonly CountryTag[] = PICK_ORDER,
 ): Map<ClientID, CountryTag> {
   const taken = new Set<CountryTag>();
   const out = new Map<ClientID, CountryTag>();
@@ -37,7 +39,7 @@ export function assignCountries(
   }
   for (const p of players) {
     if (out.has(p.clientID)) continue;
-    const free = PICK_ORDER.find((t) => present.includes(t) && !taken.has(t));
+    const free = order.find((t) => present.includes(t) && !taken.has(t));
     if (free === undefined) continue;
     out.set(p.clientID, free);
     taken.add(free);
@@ -56,8 +58,21 @@ export function scenarioPlayers(
   players: readonly StartPlayer[],
   scenario: ScenarioIndex,
   random: PseudoRandom,
+  /**
+   * ww177: the seats a human may take, in the order unpicked humans get
+   * them (Profile.humanSeatsOf); null: every scenario country, PICK_ORDER.
+   */
+  seats: readonly CountryTag[] | null = null,
 ): { players: PlayerInfo[]; nations: Nation[] } {
-  const assigned = assignCountries(players, scenario.scenarioTags());
+  const tags = scenario.scenarioTags();
+  const assigned =
+    seats === null
+      ? assignCountries(players, tags)
+      : assignCountries(
+          players,
+          tags.filter((t) => seats.includes(t)),
+          seats,
+        );
   const humanByTag = new Map<CountryTag, StartPlayer>();
   for (const p of players) {
     const tag = assigned.get(p.clientID);

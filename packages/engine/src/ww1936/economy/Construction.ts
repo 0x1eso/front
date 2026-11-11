@@ -204,6 +204,8 @@ export function queueBuild(
   building: BuildingId,
   count: number,
 ): WwOrderBlock | null {
+  // ww177: no railway where the profile switches rail off (the AI too).
+  if (building === "rail" && !econ.ww.systemOn("rail")) return "system_off";
   const block = buildBlock(econ, ce, region, building, count);
   if (block !== null) return block;
   ce.queue.push({

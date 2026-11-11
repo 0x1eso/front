@@ -1,6 +1,7 @@
 import { GameConfig } from "@openfront/engine-api/Schemas";
 import type { Config } from "../configuration/Config";
 import { dayOfDate } from "./Calendar";
+import { imjinCalendarOf, isImjin } from "./scenario/Profile";
 
 /**
  * World War 1936, the unlimited game: each tick lasts this many times the
@@ -30,6 +31,8 @@ export function wwFastTempo(gc: GameConfig): boolean {
  * unlimited game, else 1 (the timed game and the fast unlimited one).
  */
 export function wwTempo(gc: GameConfig): number {
+  // ww177: the Imjin War's calendar row sets its own tempo.
+  if (gc.worldWar1936 === true && isImjin(gc)) return imjinCalendarOf(gc).tempo;
   return wwUnlimited(gc) && !wwFastTempo(gc) ? WW_UNLIMITED_TEMPO : 1;
 }
 

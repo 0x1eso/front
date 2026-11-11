@@ -22,6 +22,8 @@ export function applyGreatWar1914Rules(c: GameConfig): void {
   delete c.ww1936Unlimited;
   delete c.ww1936FastTempo;
   delete c.ww1936Designer;
+  delete c.ww1936Scenario;
+  delete c.imjinCalendar;
   delete c.domesticMode;
   delete c.warfareExpansion;
   delete c.strategicWeapons;

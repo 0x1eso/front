@@ -40,12 +40,14 @@ import {
   gwWorldOf,
 } from "@openfront/engine-lib/ww1914/World1914";
 import { histStaticKeyTable } from "@openfront/engine-lib/ww1936/hist/StaticKeys";
+import { isImjin } from "@openfront/engine-lib/ww1936/scenario/Profile";
 import {
   fillScenarioOwners,
   ScenarioIndex,
 } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import { PlayerCosmetics, WirePlayer } from "@openfront/shared/WireSchemas";
 import { noteGwRun } from "../GwRecentRuns";
+import { useWwCalendar } from "../hud/ww1936/WwClientCalendar";
 import { computeAllianceClusters } from "../render/frame/derive/AllianceClusters";
 import { extractAttackRings } from "../render/frame/derive/AttackRings";
 import { extractNukeTelegraphs } from "../render/frame/derive/NukeTelegraphs";
@@ -223,10 +225,14 @@ export class GameView implements GameLike {
     }
     const scenario = this.worldWarScenario();
     if (scenario !== null) {
+      // ww177: the profile's calendar (epoch, the Imjin date line).
+      const gc = this._config.gameConfig();
+      useWwCalendar(gc);
       fillScenarioOwners(this._map, scenario);
       const teams = new Map<number, string>();
       scenario.countries.forEach((tag, i) => {
-        const faction = COUNTRIES[tag].faction;
+        // ww177: the Imjin War starts with no faction (Profile.ts).
+        const faction = isImjin(gc) ? null : COUNTRIES[tag].faction;
         if (faction !== null) teams.set(i + 1, faction);
       });
       this._worldWarTeams = teams;
