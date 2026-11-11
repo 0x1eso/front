@@ -17,12 +17,9 @@
 // table's reach stays as it was.
 import {
   GW_FRONT_START,
-  GW_FRONT_UP,
   GW_LINE_STEP,
-  GW_LINES,
   GwSeatState,
   GwSide,
-  GwTheatreState,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import {
@@ -31,12 +28,22 @@ import {
   GwPlace,
 } from "@openfront/engine-api/ww1914/GwPlaces";
 import type { GwWorldCond } from "@openfront/engine-api/ww1914/WorldDsl";
-import { frontPlaces } from "@openfront/engine-lib/ww1914/FrontLand";
+import {
+  frontLandAt,
+  frontPlaces,
+} from "@openfront/engine-lib/ww1914/FrontLand";
 import { GW_CAPITALS } from "@openfront/engine-lib/ww1914/PlaceRules";
 import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import { posOf } from "./Eras";
 import type { GreatWar } from "./GreatWar";
-import { holderOf, moveLand } from "./Land";
+import {
+  farPos,
+  holderOf,
+  lineStep,
+  moveLand,
+  ranOn,
+  reachedLine,
+} from "./Land";
 import { atWarWith, memberEnd, sideIn } from "./Wars";
 import {
   fights,
@@ -303,11 +310,6 @@ export function capitalHolder(gw: GreatWar, tag: GwTag): GwTag | null {
 
 // ---- Who still stands (ww179) ----
 
-/** The position a theatre's end `e` drives its line towards. */
-function farPos(t: GwTheatreState["id"], e: GwSide): number {
-  return e === GW_FRONT_UP[t] ? (GW_LINES[t].length - 1) * GW_LINE_STEP : 0;
-}
-
 /**
  * Whether `owner` still has an army in the way of `foe`: on an open front it
  * fights on, whose other end can still go forward, and has not yet reached
@@ -334,12 +336,24 @@ export function standsAgainst(gw: GreatWar, owner: GwTag, foe: GwTag): boolean {
   return !faced && field;
 }
 
-/** Places of every theatre that has opened: the fronts move those. */
+/**
+ * Places of every theatre that has opened: the fronts move those. Past the
+ * owner's last line, those the line no longer names are occupation's (ww179).
+ */
 function frontLand(gw: GreatWar): Set<GwPlace> {
   const out = new Set<GwPlace>();
   for (const t of gw.s.theatres) {
     if (t.since === null) continue;
-    for (const p of frontPlaces(t.id)) out.add(p);
+    const named = frontLandAt(
+      t.id,
+      reachedLine(t),
+      lineStep(t),
+      t.salient ?? 0,
+    );
+    for (const p of frontPlaces(t.id)) {
+      if (!named.has(p) && ranOn(gw, t, GW_PLACES[p].owner)) continue;
+      out.add(p);
+    }
   }
   return out;
 }
