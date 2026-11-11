@@ -886,14 +886,14 @@ export const RUS_POWERS: readonly GwPowerRow[] = [
     // ww172: the abolition undone by his own manifesto, as he could. The
     // Fundamental Laws stand again: the State Council and the Duma are
     // convoked by imperial decree (Art. 98), the chairman countersigning
-    // (Art. 24), and both sit at once.
+    // (Art. 24), and both sit at once. No camp is against it: it is the law
+    // he swore to again.
     id: "rus_pw_restore_duma",
     tag: "RUS",
     group: "house",
     kind: "lawful",
     shows: all(reigns, abolished),
     needs: { office: "chancellor" },
-    against: ["court"],
     authority: 10,
     tags: ["house_opened"],
     effects: [

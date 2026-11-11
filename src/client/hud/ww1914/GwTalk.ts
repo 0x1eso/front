@@ -264,7 +264,7 @@ export function talkView(
         ${past
           ? nothing
           : html`<button
-              class="${BTN} ml-auto shrink-0"
+              class="${BTN} ml-auto shrink-0 max-sm:ml-0"
               data-gw-leave
               @click=${leave}
             >
