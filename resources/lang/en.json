@@ -3024,6 +3024,7 @@
       "footing_war_morale": "The war economy moved the morale.",
       "footing_war_order": "The war economy moved the order.",
       "footing_war_shells": "The war economy moved the shells.",
+      "front_collapsed": "A front broke.",
       "front_lost": "A front gave way.",
       "front_won": "A front moved forward.",
       "money_budget_up": "The year's income outran its spending.",
@@ -3204,8 +3205,11 @@
       "footing_total": "{a} has gone over to total mobilisation.",
       "front_advance": "{a} advances: {theatre}.",
       "front_break": "{a} has broken through: {theatre}.",
+      "front_collapse": "{a}'s front has broken: {theatre}.",
       "front_opened": "A new front has opened: {theatre}.",
       "front_repelled": "{a} was thrown back: {theatre}.",
+      "front_salient": "{a} takes a salient near {place}: {theatre}.",
+      "front_salient_back": "{a} takes back the salient near {place}: {theatre}.",
       "house_brought": "{a}'s parliament brought a bill of its own.",
       "house_joined": "Factions joined forces in {a}'s parliament.",
       "house_split": "A party split in {a}'s parliament.",
@@ -3430,6 +3434,7 @@
     },
     "reason": {
       "aim_changed": "You went back on the aim you declared.",
+      "ally_worn_asks": "{country} asks for men: its front is worn out.",
       "amnesty_granted": "The courts martial were withdrawn.",
       "army_grows": "The army took more of the war into its own hands.",
       "army_melts": "The army thinned out.",
@@ -3483,6 +3488,8 @@
       "front_balkan_won": "The Balkans: it went our way.",
       "front_caucasus_lost": "The Caucasus: it went against us.",
       "front_caucasus_won": "The Caucasus: it went our way.",
+      "front_collapsed_ours": "Our line broke. The men fell back to the next river.",
+      "front_collapsed_theirs": "The enemy's line in front of us broke.",
       "front_colonies_lost": "The Colonies: it went against us.",
       "front_colonies_won": "The Colonies: it went our way.",
       "front_danube_lost": "Romanian Front: it went against us.",
@@ -3566,6 +3573,10 @@
       "fx_trust_down": "{country} drew away.",
       "fx_trust_up": "{country} drew closer.",
       "gqg_grows": "The GQG took more into its hands.",
+      "gw_w_collapse_allies": "We asked our allies for divisions.",
+      "gw_w_collapse_peace": "We sounded out the enemy about peace.",
+      "gw_w_collapse_river": "We ordered the army to stand at the next river.",
+      "gw_w_collapse_sack": "We replaced the commander of the broken front.",
       "held_firm": "You held firm and the street remembers.",
       "hungary_cools": "Budapest cooled.",
       "invent_back": "You backed {who}'s invention.",
@@ -3651,6 +3662,8 @@
       "promise_mended": "They agreed to let the broken promise go, this once.",
       "proxy_signed": "The chapter closed with the paper undecided: it was signed by proxy.",
       "quota_left": "The two halves were left to settle the grain.",
+      "raid_lost": "The enemy raided our trenches in the night.",
+      "raid_won": "A night raid brought back prisoners. They talked.",
       "react_allies_down": "The allies trusted us less for it.",
       "react_allies_up": "The allies trusted us more for it.",
       "react_cabinet_down": "Ministers of that camp cooled toward us.",
@@ -4679,6 +4692,14 @@
         "threat": "Threat",
         "warm": "Warm"
       },
+      "strain_foe_unknown": "The enemy's state: unknown",
+      "strain_ours": "Our side: {what}",
+      "strain_word": {
+        "0": "Holding",
+        "1": "Worn",
+        "2": "Cracking",
+        "3": "Near breaking"
+      },
       "tab": {
         "blocs": "Politics",
         "country": "Country",
@@ -4704,6 +4725,13 @@
         "2": "Crisis: dangerous",
         "3": "Crisis: on a knife edge"
       },
+      "tempo": {
+        "active": "Keep it active",
+        "chief": "As the chief of staff sees fit",
+        "quiet": "Keep it quiet"
+      },
+      "tempo_now": "Now: {what}",
+      "tempo_title": "The front between battles",
       "theatre": {
         "balkan": "Balkans",
         "caucasus": "Caucasus",

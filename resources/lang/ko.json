@@ -14757,7 +14757,8 @@
       "act_order": "지시가 시행되었다.",
       "act_speech": "연설이 사람들을 움직였다.",
       "act_intrigue": "뒷공작이 먹혔다.",
-      "order_stirred": "밖에서 온 선동이 소요를 키웠다."
+      "order_stirred": "밖에서 온 선동이 소요를 키웠다.",
+      "front_collapsed": "전선이 무너졌다."
     },
     "mandate": {
       "deu_bread_for_the_winter": "겨울 빵을 남기기",
@@ -14939,7 +14940,10 @@
       "table_refused": "{b}이(가) {place}을(를) 끝까지 {a}에 내주지 않았다.",
       "table_dropped": "{a}이(가) {place}에 대한 요구를 거두었다.",
       "pair_table_open": "{a}과(와) {b}이(가) 둘 사이의 땅을 두고 마주 앉았다.",
-      "pair_table_signed": "{a}과(와) {b}이(가) 강화 조약에 서명했다."
+      "pair_table_signed": "{a}과(와) {b}이(가) 강화 조약에 서명했다.",
+      "front_collapse": "{a}의 전선이 무너졌다: {theatre}.",
+      "front_salient": "{a}이(가) {place} 근처의 돌출부를 빼앗았다: {theatre}.",
+      "front_salient_back": "{a}이(가) {place} 근처의 돌출부를 되찾았다: {theatre}."
     },
     "odds": {
       "0": "될 일이 아닙니다.",
@@ -15329,7 +15333,16 @@
       "pair_table_open": "{country}과(와)의 강화에 땅이 걸렸다. 한 달 동안 탁자에서 정한다.",
       "pair_table_won": "{country}과(와)의 조약에 서명했다. 이기고 들어간 탁자였다.",
       "pair_table_lost": "{country}과(와)의 조약에 서명했다. 지고 들어간 탁자였다.",
-      "pair_table_even": "{country}과(와)의 조약에 서명했다. 바꾼 것 말고는 저마다 선 자리를 지킨다."
+      "pair_table_even": "{country}과(와)의 조약에 서명했다. 바꾼 것 말고는 저마다 선 자리를 지킨다.",
+      "front_collapsed_ours": "우리 전선이 무너졌다. 군은 다음 강까지 물러났다.",
+      "front_collapsed_theirs": "우리 앞의 적 전선이 무너졌다.",
+      "raid_won": "밤 습격에서 포로를 잡아 왔다. 포로들이 입을 열었다.",
+      "raid_lost": "적이 밤에 우리 참호를 습격했다.",
+      "ally_worn_asks": "{country}이(가) 병력을 청한다. 그쪽 전선이 지쳐 있다.",
+      "gw_w_collapse_sack": "무너진 전선의 지휘관을 바꿨다.",
+      "gw_w_collapse_river": "군에 다음 강에서 버티라고 명령했다.",
+      "gw_w_collapse_allies": "동맹국에 병력을 청했다.",
+      "gw_w_collapse_peace": "저쪽에 강화의 뜻을 타진했다."
     },
     "result": {
       "advance": "전진",
@@ -16129,7 +16142,22 @@
       "no_fronts_neutral": "우리나라는 중립이라 싸우는 전선이 없습니다.",
       "no_fronts_ours": "우리나라는 아직 어느 전선에서도 싸우지 않습니다.",
       "trench_now": "참호: {what}",
-      "front_end_bloc": "우리 진영 쪽 · {side}"
+      "front_end_bloc": "우리 진영 쪽 · {side}",
+      "strain_ours": "우리 쪽: {what}",
+      "strain_foe_unknown": "적의 사정: 알 수 없다",
+      "tempo_title": "전투가 없는 동안의 전선",
+      "tempo_now": "지금: {what}",
+      "strain_word": {
+        "0": "버틸 만하다",
+        "1": "지쳐 있다",
+        "2": "금이 갔다",
+        "3": "무너지기 직전"
+      },
+      "tempo": {
+        "active": "활발하게 둔다",
+        "quiet": "조용히 둔다",
+        "chief": "참모총장에게 맡긴다"
+      }
     },
     "unknown": {
       "ai": "{country}의 원수는 {word} 인물이었다.",
