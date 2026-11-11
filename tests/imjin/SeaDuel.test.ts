@@ -3,12 +3,16 @@
 import {
   angleOf,
   bears,
+  chaseDisorderVolleys,
+  craneFocus,
   currentState,
   engagedLoss,
   formationSlot,
   hitPct,
   icos,
   isin,
+  MORALE_MAX,
+  MT,
   shipBreaks,
   shipStats,
   steadied,
@@ -255,15 +259,124 @@ describe("SeaDuel", () => {
     expect(a.ended).toBeGreaterThan(a.opened);
     expect(a).toMatchInlineSnapshot(`
       {
-        "ended": 341,
-        "fled": 9,
-        "hash": 4231124537,
-        "japan": 5,
+        "ended": 376,
+        "fled": 8,
+        "hash": 1604641666,
+        "japan": 2,
         "joseon": 8,
         "opened": 1,
-        "sunk": 6,
+        "sunk": 9,
         "taken": 0,
       }
     `);
+  });
+
+  it("a fleet chasing a lure comes in disordered, the crane's guns on its head", () => {
+    // ww177 final (design §6.2, Hansan).
+    const play = (decoy: boolean) => {
+      const st: SeaState = emptySeaState();
+      const ctx = testCtx(7);
+      const jp = addFleet(
+        st,
+        JAPAN,
+        30_500,
+        30_500,
+        ["atakebune", "sekibune", "sekibune", "sekibune"],
+        { formation: "column", heading: 0, admiral: { tactics: 3 } },
+      );
+      const js = addFleet(st, JOSEON, 39_500, 30_500, ["panokseon"], {
+        formation: "line",
+        heading: 512,
+      });
+      if (decoy) js.lureTo = 30 * W + 50;
+      seaOrder(st, ctx, JAPAN, jp.id, { kind: "engage", mode: "board" });
+      ctx.tick = 1;
+      seaTick(st, ctx);
+      return { st, ctx, jp };
+    };
+    const { st, ctx, jp } = play(true);
+    expect(jp.battle).not.toBe(0);
+    expect(jp.disorder).toBe(chaseDisorderVolleys(3));
+    // It cannot re-form while disordered.
+    expect(
+      seaOrder(st, ctx, JAPAN, jp.id, {
+        kind: "formation",
+        formation: "wedge",
+      }),
+    ).toBe(false);
+    expect(play(false).jp.disorder).toBeUndefined();
+    // The bowl's focus lies R ahead of the flagship, abreast of the wing tips.
+    expect(craneFocus(0, 0, 0, 10)).toEqual({ x: 3500, y: 0 });
+    const tip = formationSlot("crane", 9, 10);
+    expect(tip.fwd).toBe(3500);
+    expect(Math.abs(tip.stbd)).toBe(3500);
+  });
+
+  it("a range fleet holds a channel's mouth; a contrary current shakes the crowd", () => {
+    // ww177 final (design §6.2, Myeongnyang): a strait 3 tiles wide, x 40-55.
+    const play = (seed: number) => {
+      const st: SeaState = emptySeaState();
+      const ctx: SeaCtx = {
+        ...testCtx(seed),
+        isWater: (t) => {
+          const x = t % W;
+          const y = Math.floor(t / W);
+          return x < 40 || x > 55 || (y >= 29 && y <= 31);
+        },
+        flags: (t) => {
+          const x = t % W;
+          const ch = x >= 40 && x <= 55;
+          return {
+            coastal: ch,
+            lee: false,
+            channel: ch,
+            shoal: false,
+            current: ch ? 1 : 0,
+            currentDir: 0,
+          };
+        },
+        holdsShores: (owner) => owner === JOSEON,
+      };
+      const jp = addFleet(
+        st,
+        JAPAN,
+        52 * MT + 500,
+        30_500,
+        Array.from({ length: 10 }, () => "sekibune" as const),
+        { formation: "column", heading: 0 },
+      );
+      const js = addFleet(
+        st,
+        JOSEON,
+        60 * MT + 500,
+        30_500,
+        ["panokseon", "panokseon", "panokseon"],
+        { formation: "line", heading: 512 },
+      );
+      seaOrder(st, ctx, JOSEON, js.id, { kind: "engage", mode: "keep_range" });
+      const sign = currentState(seed, st.nextId, 0).sign;
+      let entered = false;
+      let fouled = 0;
+      for (let t = 1; t <= 250; t++) {
+        ctx.tick = t;
+        seaTick(st, ctx);
+        st.events = [];
+        if (js.x < 56 * MT) entered = true;
+        fouled = Math.max(fouled, st.ships.filter((s) => s.fouled).length);
+      }
+      return { sign, entered, fouled, morale: jp.morale, battle: jp.battle };
+    };
+    const runs = [1, 2, 3, 4, 5, 6].map(play);
+    // With the flow (+x, the way Japan heads) Joseon keeps out of the
+    // narrows and Japan's crowd stands fast.
+    const withJapan = runs.find((r) => r.sign === 1)!;
+    expect(withJapan.battle).not.toBe(0);
+    expect(withJapan.entered).toBe(false);
+    expect(withJapan.morale).toBe(MORALE_MAX);
+    // Against it the crowd fouls, the whole fleet is shaken, and Joseon presses in.
+    const against = runs.find((r) => r.sign === -1)!;
+    expect(against.fouled).toBeGreaterThan(0);
+    expect(against.morale).toBeLessThan(MORALE_MAX);
+    expect(against.entered).toBe(true);
   });
 });

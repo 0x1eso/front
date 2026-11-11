@@ -36,6 +36,12 @@ export interface SeaCtx {
   japan?: number;
   /** ww177 P7b: fortified anchorages (the wajō) that fire on hostile ships. */
   batteries?(): readonly SeaBattery[];
+  /**
+   * ww177 final (design §6.2): whether `owner`'s side holds both shores of
+   * the channel at milli-tile (x, y) whose current is `current`, and so
+   * sees its turn coming. Absent: no one does.
+   */
+  holdsShores?(owner: number, x: number, y: number, current: number): boolean;
 }
 
 export interface SeaBattery {

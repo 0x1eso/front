@@ -223,7 +223,30 @@ export class WwImjin {
       keepsPrizes: (owner) => owner !== this.idOf("JOS"),
       japan: this.idOf("JPN"),
       batteries: () => wajoBatteries(this),
+      holdsShores: (owner, x, y, current) => {
+        const sh = this.shoresOf(x, y, current);
+        return sh !== 0 && land.sameSide(owner, sh);
+      },
     };
+  }
+
+  /**
+   * ww177 merge 3: who holds both shores of the channel at milli-tile
+   * (x, y) whose current is `current` (0: no one, or no channel).
+   */
+  private shoresOf(x: number, y: number, current: number): number {
+    if (current === 0) return 0;
+    const ww = this.ww;
+    const sc = ww.scenario;
+    const land = (tx: number, ty: number) => {
+      if (tx < 0 || ty < 0 || tx >= sc.width || ty >= sc.height) return -1;
+      const id = sc.regionAt(ty * sc.width + tx);
+      return id < SEA_ZONE_BASE ? id : 0;
+    };
+    const [ra, rb] = channelShores(land, x, y, currentAxisOf(ww, current));
+    const ca = ra === 0 ? 0 : (ww.land.controller[ra] ?? 0);
+    const cb = rb === 0 ? 0 : (ww.land.controller[rb] ?? 0);
+    return ww.land.sameSide(ca, cb) ? ca : 0;
   }
 
   private nearestPort(owner: number, x: number, y: number): number {
@@ -604,26 +627,12 @@ export class WwImjin {
     const out = { id: b.id, cx: b.cx, cy: b.cy, current: b.current };
     if (b.current === 0) return { ...out, turnIn: 0, flow: 0, shores: 0 };
     const ww = this.ww;
-    const sc = ww.scenario;
     const st = currentState(ww.politics.seed, b.id, tick - b.startTick);
-    const land = (tx: number, ty: number) => {
-      if (tx < 0 || ty < 0 || tx >= sc.width || ty >= sc.height) return -1;
-      const id = sc.regionAt(ty * sc.width + tx);
-      return id < SEA_ZONE_BASE ? id : 0;
-    };
-    const [ra, rb] = channelShores(
-      land,
-      b.cx,
-      b.cy,
-      currentAxisOf(ww, b.current),
-    );
-    const ca = ra === 0 ? 0 : (ww.land.controller[ra] ?? 0);
-    const cb = rb === 0 ? 0 : (ww.land.controller[rb] ?? 0);
     return {
       ...out,
       turnIn: st.ticksToTurn,
       flow: st.sign,
-      shores: ww.land.sameSide(ca, cb) ? ca : 0,
+      shores: this.shoresOf(b.cx, b.cy, b.current),
     };
   }
 

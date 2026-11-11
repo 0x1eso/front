@@ -18,7 +18,10 @@ import {
   canEnter,
   chancePm,
   CHANNEL_FRONT,
+  chaseDisorderVolleys,
   commandRadiusMt,
+  craneFocus,
+  craneRadiusMt,
   currentSpeedPct,
   currentState,
   CurrentState,
@@ -46,6 +49,7 @@ import {
   MORALE_FIRE,
   MORALE_FLAGSHIP_SUNK,
   MORALE_FLEE,
+  MORALE_FOUL,
   MORALE_MAX,
   MORALE_OUTNUMBERED,
   MORALE_RALLY,
@@ -136,6 +140,22 @@ function join(st: SeaState, ctx: SeaCtx, f: SeaFleet, b: SeaBattle): void {
     (ft < 0 || ctx.portLevelAt(f.owner, ft) < 2)
   )
     f.caught = CAUGHT_VOLLEYS;
+  // ww177 final (design §6.2, Hansan): a fleet running down a lure in sight
+  // comes in disordered, strung out in its chase.
+  if (
+    (f.order === "board" || f.order === "move") &&
+    st.fleets.some(
+      (o) =>
+        o.ships.length > 0 &&
+        ctx.hostile(f.owner, o.owner) &&
+        (o.order === "lure" || o.lureTo !== undefined) &&
+        dist(o, f) <= SIGHT_OPEN_MT,
+    )
+  ) {
+    f.disorder = chaseDisorderVolleys(f.admiral.alive ? f.admiral.tactics : 0);
+    f.formationTo = f.formation;
+    f.formationTicks = 0;
+  }
   f.quiet = 0;
   f.path = [];
   f.pathIdx = 0;
@@ -387,6 +407,45 @@ function sail(
   }
 }
 
+/** Ticks before a turn that the side holding both shores backs out. */
+export const TURN_FORESIGHT_TICKS = 150;
+
+/**
+ * A range fleet facing a foe in narrow water: "press" while the current
+ * runs against him, "withdraw" when it is about to turn and this side
+ * holds both shores, "hold" otherwise; null when the foe is not in a
+ * channel.
+ */
+function narrowsPlay(
+  L: Live,
+  b: SeaBattle,
+  cur: CurrentState | null,
+  f: SeaFleet,
+  near: SeaShip,
+): "press" | "withdraw" | "hold" | null {
+  const ctx = L.ctx;
+  const fl = flagsAt(ctx, near.x, near.y);
+  if (!fl.channel) return null;
+  const nf = L.fleets.get(near.fleet);
+  if (cur === null || !fl.current || nf === undefined) return "hold";
+  const axis = ctx.currentAxis(fl.current);
+  if (currentSpeedPct(nf.heading, axis, cur.sign) >= 0) return "hold";
+  const sees = ctx.holdsShores?.(f.owner, b.cx, b.cy, b.current) === true;
+  return sees && cur.ticksToTurn <= TURN_FORESIGHT_TICKS ? "withdraw" : "press";
+}
+
+/** Whether a tile's step from `from` toward `to` lies in narrow water. */
+function intoNarrows(ctx: SeaCtx, from: Pt, to: Pt): boolean {
+  const d = dist(from, to);
+  if (d < 50) return false;
+  const k = Math.min(d, MT);
+  return flagsAt(
+    ctx,
+    from.x + Math.trunc(((to.x - from.x) * k) / d),
+    from.y + Math.trunc(((to.y - from.y) * k) / d),
+  ).channel;
+}
+
 function tacticalFleet(
   L: Live,
   b: SeaBattle,
@@ -410,18 +469,83 @@ function tacticalFleet(
   );
 
   let flagTarget: Pt = { x: flag.x, y: flag.y };
-  const near = nearest(flag, enemies);
+  const channel = flagsAt(ctx, flag.x, flag.y).channel;
+  // ww177 final (design §6.2, Hansan): a column (or a fleet folded into one
+  // by narrow water) or a disordered chaser is what a crane wing closes on.
+  const bowlFoe = (t: SeaShip): boolean => {
+    const o = L.fleets.get(t.fleet);
+    return (
+      o?.formation === "column" ||
+      (o?.disorder ?? 0) > 0 ||
+      flagsAt(ctx, t.x, t.y).channel
+    );
+  };
+  // A range fleet at narrow water, or a crane on such a foe, keeps its range
+  // on the foes still fighting, not on a broken ship running off (the bowl
+  // would turn after it, or the fleet follow it up the channel).
+  const fighter =
+    f.order === "keep_range"
+      ? nearest(
+          flag,
+          enemies.filter((e) => L.fleets.get(e.fleet)?.fleeing !== 1),
+        )
+      : null;
+  const near =
+    fighter !== null &&
+    (channel ||
+      flagsAt(ctx, fighter.x, fighter.y).channel ||
+      (f.formation === "crane" && bowlFoe(fighter)))
+      ? fighter
+      : nearest(flag, enemies);
+  // A settled crane wing in open water turns its bowl to that foe and
+  // keeps it at the bowl's centre.
+  const crane =
+    f.formation === "crane" &&
+    f.formationTicks === 0 &&
+    !channel &&
+    near !== null &&
+    bowlFoe(near)
+      ? angleOf(near.x - flag.x, near.y - flag.y)
+      : null;
   if (f.fleeing) flagTarget = fleePoint(L, f, flag, enemies);
   else if (near) {
     const d = dist(flag, near);
     switch (f.order) {
-      case "board":
-        flagTarget = { x: near.x, y: near.y };
+      case "board": {
+        // The chaser's disorder: its head runs down the decoy it chased.
+        const prey =
+          (f.disorder ?? 0) > 0
+            ? nearest(
+                flag,
+                enemies.filter((e) => {
+                  const o = L.fleets.get(e.fleet);
+                  return o?.order === "lure" || o?.lureTo !== undefined;
+                }),
+              )
+            : null;
+        flagTarget = prey ?? { x: near.x, y: near.y };
         break;
+      }
       case "keep_range":
       case "escort": {
-        if (d < 2500) flagTarget = away(flag, near, 2 * MT);
-        else if (d > 3500) flagTarget = { x: near.x, y: near.y };
+        // ww177 final (design §6.2, Myeongnyang): a range fleet holds a
+        // channel's mouth and does not follow its foe into the narrows,
+        // where only 3 abreast can fire, unless the current runs against
+        // the foe (he fouls and crawls). The side holding both shores sees
+        // the turn coming and backs out before it.
+        const narrows = narrowsPlay(L, b, cur, f, near);
+        const mouth = narrows !== null && narrows !== "press";
+        const r = craneRadiusMt(f.ships.length);
+        if (channel && mouth) flagTarget = away(flag, near, 2 * MT);
+        else if (narrows === "withdraw" && d < GUN_RANGE_MT + 2 * MT)
+          flagTarget = away(flag, near, 2 * MT);
+        else if (crane !== null && d < r - 500)
+          flagTarget = away(flag, near, 2 * MT);
+        else if (crane !== null && d > r + 2 * MT && !mouth)
+          flagTarget = { x: near.x, y: near.y };
+        else if (crane !== null) flagTarget = { x: flag.x, y: flag.y };
+        else if (d < 2500) flagTarget = away(flag, near, 2 * MT);
+        else if (d > 3500 && !mouth) flagTarget = { x: near.x, y: near.y };
         else {
           // Turn broadside on: the perpendicular nearer the present heading.
           const brg = angleOf(near.x - flag.x, near.y - flag.y);
@@ -437,6 +561,8 @@ function tacticalFleet(
             y: flag.y + Math.trunc((isin(h) * MT) / 1024),
           };
         }
+        if (mouth && !channel && intoNarrows(ctx, flag, flagTarget))
+          flagTarget = { x: flag.x, y: flag.y };
         break;
       }
       case "break_off":
@@ -476,7 +602,6 @@ function tacticalFleet(
     const fs = nf === undefined ? undefined : L.idx.get(nf.ships[0]);
     enemyFlag = fs !== undefined && fs.hull > 0 ? fs : near;
   }
-  const channel = flagsAt(ctx, flag.x, flag.y).channel;
   const n = f.ships.length;
   for (let i = 0; i < f.ships.length; i++) {
     const s = L.idx.get(f.ships[i]);
@@ -499,10 +624,14 @@ function tacticalFleet(
     } else if (s === flag) {
       p = flagTarget;
       sprint = f.order === "board" && sprints(s, near);
+      if (crane !== null) settle = crane;
     } else if (dist(s, flag) <= radius) {
       const stats = shipStats(s.kind);
       const e =
-        f.order === "board" && stats.boardAtk > 0 && f.morale >= MORALE_WAVER
+        f.order === "board" &&
+        stats.boardAtk > 0 &&
+        f.morale >= MORALE_WAVER &&
+        !((f.disorder ?? 0) > 0)
           ? nearest(s, enemies, 6 * MT)
           : null;
       if (e) {
@@ -511,8 +640,9 @@ function tacticalFleet(
       } else if (enemyFlag !== null && stats.ram && f.morale >= MORALE_WAVER)
         p = { x: enemyFlag.x, y: enemyFlag.y };
       else {
-        p = slotPoint(f, i, n, flag.x, flag.y, flag.heading, channel);
-        settle = flag.heading;
+        const facing = crane ?? flag.heading;
+        p = slotPoint(f, i, n, flag.x, flag.y, facing, channel);
+        settle = facing;
       }
     } else p = { x: s.tx, y: s.ty };
     s.tx = p.x;
@@ -703,6 +833,19 @@ function volley(
     for (const s of inCh.slice(0, CHANNEL_FRONT)) mayFire.add(s.id);
   }
 
+  // A ship in a column: its fleet's formation, or folded by narrow water.
+  const columned = (t: SeaShip): boolean =>
+    L.fleets.get(t.fleet)?.formation === "column" ||
+    flagsAt(ctx, t.x, t.y).channel;
+  // ww177 final: each fleet in crane wing (not mid-change) and its focus.
+  const focusOf = new Map<number, Pt>();
+  for (const f of members) {
+    if (f.formation !== "crane" || f.formationTicks > 0) continue;
+    const fs = L.idx.get(f.ships[0]);
+    if (fs === undefined || fs.hull <= 0) continue;
+    focusOf.set(f.id, craneFocus(fs.x, fs.y, fs.heading, f.ships.length));
+  }
+
   const fullOf = new Map<number, number>();
   for (const s of all) add(fullOf, s.fleet, fullHull(s.kind));
   const hullDmg = new Map<number, number>();
@@ -743,11 +886,20 @@ function volley(
     if (guns > 0) {
       let tgt: SeaShip | null = null;
       let bd = Infinity;
+      // The crane's focus: lay on the head of a column, the foe in column
+      // nearest the bowl's centre (before any foe out of column).
+      const focus = focusOf.get(f.id);
+      let key = Infinity;
       for (const t of enemiesOf(s, GUN_RANGE_MT)) {
         if (!bears(stats, s.heading, angleOf(t.x - s.x, t.y - s.y), inCh))
           continue;
         const d = dist(s, t);
-        if (d < bd) {
+        const k =
+          focus === undefined || !columned(t)
+            ? GUN_RANGE_MT + d
+            : dist(focus, t);
+        if (k < key || (k === key && t.id < (tgt?.id ?? Infinity))) {
+          key = k;
           bd = d;
           tgt = t;
         }
@@ -964,6 +1116,7 @@ function volley(
   }
 
   // Currents: crowded fleets against the flow foul; a turn frees them.
+  const fouledNow = new Map<number, number>();
   if (cur) {
     const prev = currentState(
       ctx.seed,
@@ -984,8 +1137,10 @@ function volley(
         if (
           !s.fouled &&
           chancePm(wwRoll(ctx.seed, P_SEA_FOUL, s.id, tick), FOUL_PM)
-        )
+        ) {
           s.fouled = 1;
+          add(fouledNow, f.id, 1);
+        }
     }
   }
 
@@ -1038,6 +1193,8 @@ function volley(
     ).length;
     let loss = engagedLoss(fight, engaged, mine.length);
     if (ambushed.has(f.id)) loss += MORALE_AMBUSH;
+    // The crowd fouling in a contrary current shakes the whole fleet.
+    loss += MORALE_FOUL * (fouledNow.get(f.id) ?? 0);
     if (flagSunk.has(f.id)) loss += MORALE_FLAGSHIP_SUNK;
     if (admiralDead.has(f.id)) loss += MORALE_ADMIRAL_DEAD;
     const nerve = f.admiral.alive ? f.admiral.nerve : 0;
@@ -1052,6 +1209,7 @@ function volley(
     f.ambush = 0;
     const caught = (f.caught ?? 0) > 0;
     if (caught) f.caught = (f.caught ?? 0) - 1 || undefined;
+    if ((f.disorder ?? 0) > 0) f.disorder = (f.disorder ?? 0) - 1 || undefined;
     f.quiet = hurt.has(f.id) ? 0 : f.quiet + VOLLEY_TICKS;
     if (!f.fleeing && f.morale < MORALE_FLEE) {
       f.fleeing = 1;

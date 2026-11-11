@@ -411,16 +411,42 @@ export function formationSlot(
     }
     case "crane": {
       // A U open ahead: the flagship at the rear of the bowl, the wings
-      // reaching forward on a circle of radius R around (R, 0).
+      // reaching forward on a circle of radius R around (R, 0). ww177 final
+      // (Hansan): a half circle, the wing tips abreast of the focus, so a
+      // foe at the bowl's centre is R from every ship (was up to ~150°,
+      // tips closing ahead into the foe's boarding range).
       const perSide = Math.max(1, count >> 1);
-      const r = Math.max(2 * MT, count * 350);
-      const phi = Math.floor((j * 427) / perSide); // up to ~150°
+      const r = craneRadiusMt(count);
+      const phi = Math.floor((j * 256) / perSide); // up to 90°
       return {
         fwd: r - Math.trunc((r * icos(phi)) / TRIG_ONE),
         stbd: side * Math.trunc((r * isin(phi)) / TRIG_ONE),
       };
     }
   }
+}
+
+/** The crane's bowl radius: 350 a ship, at least 2 tiles. */
+export function craneRadiusMt(count: number): number {
+  return Math.max(2 * MT, count * 350);
+}
+
+/**
+ * ww177 final (design §6.2, Hansan): the crane wing's focus, the centre of
+ * its bowl, R ahead of the flagship. Its ships lay their guns on the foe
+ * nearest it, so the arc's broadsides fall on the head of a column.
+ */
+export function craneFocus(
+  x: number,
+  y: number,
+  heading: number,
+  count: number,
+): { x: number; y: number } {
+  const r = craneRadiusMt(count);
+  return {
+    x: x + Math.trunc((icos(heading) * r) / TRIG_ONE),
+    y: y + Math.trunc((isin(heading) * r) / TRIG_ONE),
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -747,6 +773,11 @@ export const MORALE_PER_HULL_PCT = 5;
 export const MORALE_FIRE = 30;
 export const MORALE_TURTLE = 40;
 export const MORALE_AMBUSH = 100;
+/**
+ * ww177 final (design §6.2, Myeongnyang): each ship of a crowded fleet that
+ * fouls in a contrary current shakes the whole fleet, engaged or not.
+ */
+export const MORALE_FOUL = 35;
 export const MORALE_OUTNUMBERED = 2;
 export const MORALE_SINK_GAIN = 20;
 export const MORALE_ADMIRAL_DEAD = 400;
@@ -840,6 +871,17 @@ export function takesBait(
   barPm: number,
 ): boolean {
   return Math.floor((ratioPm * aggressionPm) / 1000) >= barPm;
+}
+
+/**
+ * ww177 final (design §6.2, Hansan): a fleet that sails into battle chasing
+ * a lure comes in disordered, strung out in its chase: for this many
+ * volleys it cannot change formation and its ships keep to the leader's
+ * wake instead of each picking its own prey. 20 s, 2 s less a point of the
+ * admiral's tactics.
+ */
+export function chaseDisorderVolleys(tactics: number): number {
+  return Math.max(10, 40 - 4 * tactics);
 }
 
 /** Sight range from a tile: coastal 10, open 12. */

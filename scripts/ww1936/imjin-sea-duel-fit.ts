@@ -16,9 +16,16 @@
  *   b: 8 against 24 sekibune boarding: Japan wins or breaks even.
  *   c: 13 against 60 in a channel at the current's turn: Joseon wins.
  *   d: the crane wing on a lured column at 2.5×: Joseon wins.
+ * ww177 final adds two controls that Joseon must lose: c2, the channel's
+ * 13 against 60 in open water; d2, the same crane against a wedge that
+ * comes on in order, with no decoy to chase.
  */
 import type { ShipKind } from "@openfront/engine-lib/imjin/SeaRules";
-import { MT, VOLLEY_TICKS } from "@openfront/engine-lib/imjin/SeaRules";
+import {
+  currentState,
+  MT,
+  VOLLEY_TICKS,
+} from "@openfront/engine-lib/imjin/SeaRules";
 import type { SeaFlags } from "@openfront/engine-lib/imjin/Terrain";
 import {
   seaAiVolley,
@@ -43,6 +50,10 @@ const W = 160;
 const H = 80;
 const JOSEON = 1;
 const JAPAN = 2;
+const CH_X0 = 72;
+/** Row c's battle id: after Japan's fleet and 60 ships, Joseon's and 13. */
+const BATTLE_ID = 76;
+const CH_X1 = 88;
 
 const OPEN: SeaFlags = {
   coastal: false,
@@ -73,17 +84,18 @@ function ctxOf(seed: number, channel: boolean): SeaCtx {
     ref: (x, y) => y * W + x,
     tileX: (t) => t % W,
     tileY: (t) => Math.floor(t / W),
-    // The channel: a strait 7 tiles wide between x 60 and 100.
+    // The channel as the map builder carves it (seaTiles.json): 3 tiles of
+    // water across (y 39-41) and 17 long (x 72-88), banks of land beside it.
     isWater: (t) => {
       if (!channel) return true;
       const x = t % W;
       const y = Math.floor(t / W);
-      return x < 60 || x > 100 || (y >= 37 && y <= 43);
+      return x < CH_X0 || x > CH_X1 || (y >= 39 && y <= 41);
     },
     flags: (t) => {
       if (!channel) return OPEN;
       const x = t % W;
-      return x >= 55 && x <= 105 ? CHANNEL : OPEN;
+      return x >= CH_X0 && x <= CH_X1 ? CHANNEL : OPEN;
     },
     zoneOf: () => 0,
     hostile: (a, b) => a !== b,
@@ -106,6 +118,8 @@ function ctxOf(seed: number, channel: boolean): SeaCtx {
     currentAxis: () => 0,
     keepsPrizes: (owner) => owner === JAPAN,
     japan: JAPAN,
+    // Joseon holds both shores of the strait (it sees the current's turn).
+    holdsShores: (owner) => channel && owner === JOSEON,
   };
 }
 
@@ -119,6 +133,8 @@ interface Row {
   gap: number;
   /** Joseon's fleet lies in wait (the crane on a column chasing a lure). */
   lured: boolean;
+  /** A Joseon decoy of 2 hyeopseon runs before Japan for the trap. */
+  decoy?: boolean;
 }
 
 const rep = <T>(k: T, n: number): T[] => Array.from({ length: n }, () => k);
@@ -154,6 +170,18 @@ const ROWS: Row[] = [
     lured: false,
   },
   {
+    key: "c2 13 vs 60 open (control)",
+    joseon: rep("panokseon", 13),
+    japan: [
+      ...rep("atakebune" as ShipKind, 6),
+      ...rep("sekibune" as ShipKind, 54),
+    ],
+    channel: false,
+    jpFormation: "column",
+    gap: 8,
+    lured: false,
+  },
+  {
     key: "d crane on lured column 2.5x",
     joseon: rep("panokseon", 10),
     japan: [
@@ -162,7 +190,20 @@ const ROWS: Row[] = [
     ],
     channel: false,
     jpFormation: "column",
-    gap: 6,
+    gap: 9,
+    lured: true,
+    decoy: true,
+  },
+  {
+    key: "d2 crane, no chase (control)",
+    joseon: rep("panokseon", 10),
+    japan: [
+      ...rep("atakebune" as ShipKind, 4),
+      ...rep("sekibune" as ShipKind, 21),
+    ],
+    channel: false,
+    jpFormation: "wedge",
+    gap: 9,
     lured: true,
   },
 ];
@@ -174,12 +215,16 @@ function seedOf(n: number): number {
 }
 
 function duel(row: Row, n: number) {
-  const seed = seedOf(n);
+  let seed = seedOf(n);
+  // "At the current's turn": Japan came in with the flow, and the duel
+  // opens as it turns against it (the battle's clock decides the rest).
+  while (row.channel && currentState(seed, BATTLE_ID, 0).sign !== -1) seed++;
   const st: SeaState = emptySeaState();
   const ctx = ctxOf(seed, row.channel);
-  const dy = (seed % 5) - 2;
-  // Myeongnyang: Joseon holds the strait's east mouth, Japan comes in from the west.
-  const jx = row.channel ? 70 : 60;
+  const dy = row.channel ? (seed % 3) - 1 : (seed % 5) - 2;
+  // Myeongnyang: Joseon holds the strait's east mouth in open water, Japan's
+  // column comes in from the west, its head in the narrows.
+  const jx = row.channel ? 82 : 60;
   const kx = jx + row.gap;
   const jp = addFleet(
     st,
@@ -199,6 +244,20 @@ function duel(row: Row, n: number) {
     admiral: { gunnery: 5, tactics: 5, boarding: 2, nerve: 5 },
   });
   if (row.lured) js.ambush = 1;
+  if (row.decoy) {
+    // Hansan: the decoy shows itself just ahead of Japan's column and runs
+    // back past the crane's flagship.
+    const dc = addFleet(
+      st,
+      JOSEON,
+      (jx + 3) * MT + 500,
+      40 * MT + 500,
+      ["hyeopseon", "hyeopseon"],
+      { formation: "line", heading: 0 },
+    );
+    dc.lureTo = 40 * W + kx + 3;
+    seaOrder(st, ctx, JOSEON, dc.id, { kind: "lure", tile: 40 * W + kx + 3 });
+  }
   seaOrder(st, ctx, JAPAN, jp.id, { kind: "engage", mode: "board" });
   seaOrder(st, ctx, JOSEON, js.id, { kind: "engage", mode: "keep_range" });
   const view: SeaAiView = {
@@ -214,6 +273,8 @@ function duel(row: Row, n: number) {
     routes: [],
     caution: false,
   };
+  if (row.channel && st.nextId !== BATTLE_ID)
+    throw new Error(`battle id ${st.nextId}, expected ${BATTLE_ID}`);
   const shipsOf = (o: number) => st.ships.filter((s) => s.owner === o).length;
   const j0 = shipsOf(JOSEON);
   const n0 = shipsOf(JAPAN);
@@ -231,7 +292,7 @@ function duel(row: Row, n: number) {
         st.fleets
           .map(
             (f) =>
-              `${f.owner}:${f.ships.length}@${(f.x / MT).toFixed(1)},${(f.y / MT).toFixed(1)} ${f.order} ${f.formation} m${f.morale} b${f.battle} fl${f.fleeing}`,
+              `${f.owner}:${f.ships.length}@${(f.x / MT).toFixed(1)},${(f.y / MT).toFixed(1)} ${f.order} ${f.formation} m${f.morale} b${f.battle} fl${f.fleeing} d${f.disorder ?? 0}`,
           )
           .join(" | "),
         st.ships.filter((s) => s.fouled).length,

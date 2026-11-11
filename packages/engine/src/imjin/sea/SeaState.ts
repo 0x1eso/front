@@ -104,6 +104,11 @@ export interface SeaFleet {
   caught?: number;
   /** ww177 P7b: days at sea away from a friendly port (sortie endurance). */
   daysOut?: number;
+  /**
+   * ww177 final (design §6.2, Hansan): volleys left of the chaser's
+   * disorder, after it came into battle chasing a lure; absent: none.
+   */
+  disorder?: number;
 }
 
 export interface SeaBattle {
@@ -344,6 +349,7 @@ export function seaHash(st: SeaState): number {
     if (f.lureTo !== undefined) h = fold(h, f.lureTo + 1);
     if (f.caught !== undefined) h = fold(h, f.caught + 7);
     if (f.daysOut !== undefined) h = fold(h, f.daysOut + 11);
+    if (f.disorder !== undefined) h = fold(h, f.disorder + 13);
     for (const id of f.ships) h = fold(h, id);
   }
   for (const b of st.battles)

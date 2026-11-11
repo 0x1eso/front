@@ -68,6 +68,8 @@ export function seaOrder(
       return true;
     case "formation":
       if (order.formation === f.formationTo) return true;
+      // ww177 final: a chaser in disorder cannot re-form yet.
+      if ((f.disorder ?? 0) > 0) return false;
       f.formationTo = order.formation;
       f.formationTicks = formationChangeTicks(f.admiral.tactics);
       return true;
