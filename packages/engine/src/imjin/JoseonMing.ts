@@ -85,6 +85,7 @@ import {
   IMJIN_GFLAGS,
   pickFlag,
 } from "@openfront/engine-lib/imjin/CourtScenes";
+import { JOS_RESULTS } from "@openfront/engine-lib/imjin/JoseonContent";
 import type { ImjinStartId } from "@openfront/engine-lib/imjin/Starts";
 import { zInt } from "@openfront/engine-lib/snapshot/SnapshotType";
 import { addPopularity } from "@openfront/engine-lib/ww1936/PoliticsRules";
@@ -99,6 +100,7 @@ import { joinWar } from "../ww1936/Diplomacy";
 import { createFaction, joinFaction } from "../ww1936/politics/Factions";
 import { setGovernment } from "../ww1936/politics/Ideology";
 import type { WorldWar } from "../ww1936/WorldWar";
+import { applyJosResult } from "./JoseonPicks";
 
 const P_RISE = idHash("imjin_rise");
 const P_FALL = idHash("imjin_fall");
@@ -292,6 +294,21 @@ export class ImjinJoseonMing {
     }
     if (F("bands", "command")) this.commandBands(day);
     if (F("bands", "muster")) this.musterBands();
+    // ww177 P6 (lane I6a): the writers' scenes and preparations, by table.
+    for (const r of JOS_RESULTS) {
+      if (!this.takeFlag(r.flag)) continue;
+      const done = applyJosResult(this.ww, this.jos, r, tick);
+      if (r.mingMeterBp !== undefined) this.addMeter(r.mingMeterBp);
+      if (r.mingSuspicionBp !== undefined) {
+        this.suspicion = Math.max(
+          0,
+          Math.min(MING_SUSPICION_MAX, this.suspicion + r.mingSuspicionBp),
+        );
+      }
+      if (done && r.lineKey !== undefined) {
+        this.tell(r.lineKey.slice("events_display.".length), {});
+      }
+    }
   }
 
   // ---- The court ----

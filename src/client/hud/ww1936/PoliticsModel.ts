@@ -69,8 +69,9 @@ import {
   WwStats,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import type { DeclareWarBlock } from "@openfront/engine-api/ww1936/WorldWarTypes";
+import { imjinContent } from "@openfront/engine-lib/imjin/Content";
 import { dayOfDate } from "@openfront/engine-lib/ww1936/Calendar";
-import { CONTENT } from "@openfront/engine-lib/ww1936/content/registry";
+import { CONTENT as CONTENT_1936 } from "@openfront/engine-lib/ww1936/content/registry";
 import {
   DescLine,
   describeCondition,
@@ -144,6 +145,14 @@ import {
   wwSeconds,
 } from "./WorldWarModel";
 import { imjinCalendarOn } from "./WwClientCalendar";
+
+/**
+ * ww177 P6 (lane I6a): the game's own content. Imjin has its own scenes,
+ * decisions, spirits and people (engine ContentSource picks the same way).
+ */
+function content(): typeof CONTENT_1936 {
+  return imjinCalendarOn() ? imjinContent() : CONTENT_1936;
+}
 
 /** What the politics screens read from the game (a fake in tests). */
 export type PolGame = WwGame &
@@ -277,7 +286,7 @@ export function personName(id: string): string {
     }
     return translateText(`ww1936.title.${id.slice("title:".length)}`);
   }
-  const p = id === "" ? undefined : CONTENT.personIdx.get(id);
+  const p = id === "" ? undefined : content().personIdx.get(id);
   return p === undefined
     ? translateText("ww1936.pol.none")
     : translateText(p.nameKey);
@@ -286,7 +295,7 @@ export function personName(id: string): string {
 /** Spec §5.3: the country's own government name, else the generic one. */
 export function governmentName(tag: CountryTag, ruling: number): string {
   const ideo = IDEOLOGIES[ruling];
-  const def = CONTENT.countryIdx.get(tag);
+  const def = content().countryIdx.get(tag);
   return def?.govNames?.includes(ideo)
     ? translateText(`ww1936.gov.${tag}.${ideo}`)
     : translateText(`ww1936.gov.generic.${ideo}`);
@@ -1167,9 +1176,9 @@ export interface AdvisorSeat {
 function traitsOf(id: string): TraitDef[] {
   const ids = id.startsWith("title:")
     ? [id.slice("title:".length)]
-    : (CONTENT.personIdx.get(id)?.advisor?.traits ?? []);
+    : (content().personIdx.get(id)?.advisor?.traits ?? []);
   return ids
-    .map((t) => CONTENT.traitIdx.get(t as TraitDef["id"]))
+    .map((t) => content().traitIdx.get(t as TraitDef["id"]))
     .filter((t): t is TraitDef => t !== undefined);
 }
 
@@ -1188,10 +1197,12 @@ function traitEffects(traits: TraitDef[], ruling: number): string[] {
 /** Which seat a candidate takes (spec §8.1): a person's slot, a title card's trait branch. */
 export function fitsSlot(id: string, slot: AdvisorSlot): boolean {
   if (id.startsWith("title:")) {
-    const t = CONTENT.traitIdx.get(id.slice("title:".length) as TraitDef["id"]);
+    const t = content().traitIdx.get(
+      id.slice("title:".length) as TraitDef["id"],
+    );
     return t !== undefined && SLOT_BRANCHES[slot].includes(t.branch);
   }
-  return CONTENT.personIdx.get(id)?.advisor?.slot === slot;
+  return content().personIdx.get(id)?.advisor?.slot === slot;
 }
 
 export function advisorTab(i: PoliticsModelInput): AdvisorSeat[] {
@@ -1214,7 +1225,7 @@ export function advisorTab(i: PoliticsModelInput): AdvisorSeat[] {
     const candidates = d.candidates
       .filter((c) => !seated.has(c) && fitsSlot(c, slot))
       .map((c): AdvisorCandidate => {
-        const p = CONTENT.personIdx.get(c);
+        const p = content().personIdx.get(c);
         const traits = traitsOf(c);
         const fromDay = p?.from === undefined ? -1 : dayOfDate(p.from);
         return {
@@ -1256,7 +1267,7 @@ export function advisorTab(i: PoliticsModelInput): AdvisorSeat[] {
               name: personName(held),
               traits: heldTraits.map((t) => traitName(t.id)),
               effects: traitEffects(heldTraits, s.ruling),
-              until: untilText(CONTENT.personIdx.get(held)?.until),
+              until: untilText(content().personIdx.get(held)?.until),
             },
       lockDays,
       locked:
@@ -1621,9 +1632,9 @@ export function spiritTab(i: PoliticsModelInput): SpiritView[] {
   if (d === null) return [];
   const day = today(i.game);
   return d.spirits
-    .filter((x) => CONTENT.spiritIdx.get(x.id)?.hidden !== true)
+    .filter((x) => content().spiritIdx.get(x.id)?.hidden !== true)
     .map((x) => {
-      const def = CONTENT.spiritIdx.get(x.id);
+      const def = content().spiritIdx.get(x.id);
       const forever = x.untilDay < 0 || x.untilDay >= WW_FOREVER / 2;
       return {
         id: x.id,
@@ -1693,8 +1704,8 @@ export interface DecisionTab {
 }
 
 function decisionDef(id: string): DecisionDef | null {
-  const n = CONTENT.decisionIdx.get(id);
-  return n === undefined ? null : CONTENT.decisions[n];
+  const n = content().decisionIdx.get(id);
+  return n === undefined ? null : content().decisions[n];
 }
 
 /** Spec §13.2: a coup (gen_coup_*) is a costly mission that can't be undone: two taps. */
@@ -1917,7 +1928,9 @@ function fitsFaction(
 ): boolean {
   const idx = factionIdxOfKey(f.id);
   const named = i.view.global?.factions.find((x) => x.idx === idx)?.name;
-  if (CONTENT.factionNames.find((n) => n.id === named)?.anyIdeology === true) {
+  if (
+    content().factionNames.find((n) => n.id === named)?.anyIdeology === true
+  ) {
     return true;
   }
   const ruling = i.view.summary(country)?.ruling;
@@ -2074,7 +2087,7 @@ function joinBlock(
 /** My spirits' rules (spec §9.1). */
 function hasRule(d: WwPolDetail | null, rule: string): boolean {
   return (d?.spirits ?? []).some((x) =>
-    (CONTENT.spiritIdx.get(x.id)?.rules ?? []).some((r) => r === rule),
+    (content().spiritIdx.get(x.id)?.rules ?? []).some((r) => r === rule),
   );
 }
 
@@ -2083,7 +2096,7 @@ function ruleNumber(
   key: "guaranteeGatePct" | "factionGateMinusPp",
 ): number | null {
   for (const x of d?.spirits ?? []) {
-    for (const r of CONTENT.spiritIdx.get(x.id)?.rules ?? []) {
+    for (const r of content().spiritIdx.get(x.id)?.rules ?? []) {
       if (typeof r === "object" && key in r) {
         return (r as Record<string, number>)[key];
       }
@@ -2128,8 +2141,8 @@ function canFoundByFocus(i: PoliticsModelInput): boolean {
   const tag = tagOf(i.game, i.me);
   const detail = i.view.detail(i.me);
   if (tag === null || detail === null) return false;
-  const treeId = CONTENT.countryIdx.get(tag)?.tree ?? "generic";
-  const tree = CONTENT.treeFocuses[treeId].map((n) => CONTENT.focuses[n]);
+  const treeId = content().countryIdx.get(tag)?.tree ?? "generic";
+  const tree = content().treeFocuses[treeId].map((n) => content().focuses[n]);
   return detail.cards.some(
     (c) =>
       c.state === 1 &&
@@ -2621,10 +2634,10 @@ export function justifyOptions(
   const noPp = (s?.ppMilli ?? 0) < costPp * 1000 ? blockText("no_pp") : null;
   const myTag = tagOf(i.game, i.me);
   const claimed =
-    CONTENT.claims
-      .find((c) => c.tag === myTag)
+    content()
+      .claims.find((c) => c.tag === myTag)
       ?.groups.filter((gid) =>
-        (CONTENT.groupIdx.get(gid)?.regions ?? []).some(
+        (content().groupIdx.get(gid)?.regions ?? []).some(
           (r) => i.view.legalOwner[r] === other,
         ),
       ) ?? [];
@@ -3032,7 +3045,7 @@ function resolveSelector(
     const of = resolveSelector(i, card, sel.overlordOf);
     return i.game.wwEndgame?.()?.subjectOf(of)?.overlord ?? 0;
   }
-  const r = CONTENT.groupIdx.get(sel.ownerOf)?.regions[0];
+  const r = content().groupIdx.get(sel.ownerOf)?.regions[0];
   return r === undefined ? 0 : (i.view.legalOwner[r] ?? 0);
 }
 
@@ -3061,8 +3074,8 @@ export function eventCardModel(
   i: PoliticsModelInput,
   card: WwEventCard,
 ): EventCardView | null {
-  const n = CONTENT.eventIdx.get(card.eventId);
-  const def = n === undefined ? null : CONTENT.events[n];
+  const n = content().eventIdx.get(card.eventId);
+  const def = n === undefined ? null : content().events[n];
   if (def === null) return null;
   const tick = i.game.ticks();
   const secondsLeft = Math.max(0, wwSeconds(i.game, card.deadlineTick - tick));
