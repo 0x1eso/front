@@ -14,7 +14,6 @@ import {
   imjinFleetSummaries,
   isImjinFleet,
 } from "./ImjinFleets";
-import { currentIdAt } from "./ImjinSea";
 
 /** P2 WwLand's side key: a faction 100,000 + its index, a country alone its smallID. */
 export function sideKeyOf(smallID: number, factionIdx: number): number {
@@ -47,13 +46,6 @@ export class WwNavyView {
   readonly imjinClock = new ImjinBattleClock();
   /** ww177: each tile fleet's position in tiles, by screen id. */
   readonly imjinXY = new Map<number, [number, number]>();
-  /**
-   * ww177 P3: each battle circle's first tick as this screen saw it (-1:
-   * it was already on when the view started, so its clock is unknown) and
-   * the channel current it opened in (0: none). Its countdown reads them.
-   */
-  readonly imjinBattleStart = new Map<number, number>();
-  readonly imjinBattleCurrent = new Map<number, number>();
 
   constructor(
     readonly scenario: ScenarioIndex,
@@ -86,28 +78,9 @@ export class WwNavyView {
   }
 
   /** ww177: the Imjin War's tile fleets, as fleet summaries at their tiles. */
-  applyImjin(d: ImjinData, tick = -1): void {
-    const first = this.imjin === null;
+  applyImjin(d: ImjinData, tick = 0): void {
     this.imjin = d;
-    const live = new Set<number>();
-    for (const b of d.battles) {
-      live.add(b.id);
-      if (this.imjinBattleStart.has(b.id)) continue;
-      this.imjinBattleStart.set(b.id, first || tick < 0 ? -1 : tick);
-      let cur = currentIdAt(this.scenario, b.cx, b.cy);
-      for (const f of d.fleets) {
-        if (cur !== 0) break;
-        if (f.battle === b.id) cur = currentIdAt(this.scenario, f.x, f.y);
-      }
-      this.imjinBattleCurrent.set(b.id, cur);
-    }
-    for (const id of [...this.imjinBattleStart.keys()]) {
-      if (!live.has(id)) {
-        this.imjinBattleStart.delete(id);
-        this.imjinBattleCurrent.delete(id);
-      }
-    }
-    this.imjinClock.note(d, Math.max(0, tick));
+    this.imjinClock.note(d, tick);
     for (const id of [...this.fleets.keys()]) {
       if (isImjinFleet(id)) this.fleets.delete(id);
     }

@@ -5945,6 +5945,7 @@
       "desc": {
         "board": "Close in and grapple; the crews fight on deck.",
         "break_off": "Leave the battle and fall back.",
+        "escort": "Sail with our nearest supply convoys; a raider that finds them must fight this fleet first.",
         "fire_ship": "Set a small boat alight and send it into the enemy.",
         "hold": "Stop and hold this water; a still fleet in an island's lee lies hidden.",
         "keep_range": "Stay 2-4 tiles off and fire; don't let them close.",
@@ -5960,8 +5961,10 @@
         "sw": "southwest",
         "w": "west"
       },
+      "escort": "Escort",
+      "escort_closed": "No supply convoy of ours is at sea.",
       "fire_ship": "Fire ship",
-      "fire_ship_closed": "Fire ships can't be ordered yet.",
+      "fire_ship_closed": "Only in a sea battle, with a small boat in the fleet.",
       "formation": {
         "column": "Column",
         "crane": "Crane wing",

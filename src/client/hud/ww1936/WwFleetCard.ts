@@ -5,7 +5,10 @@
 // greyed one says why when tapped, from the same engine-lib judge); the
 // preview of a pending map tap. Left of an open drawer, never over it; it
 // folds to a strip on a short screen and while an order is being given.
-import { IMJIN_FORMATIONS } from "@openfront/engine-api/imjin/ImjinTypes";
+import {
+  IMJIN_FORMATIONS,
+  IMJIN_SHIP_KINDS,
+} from "@openfront/engine-api/imjin/ImjinTypes";
 import type { WwOrder } from "@openfront/engine-api/Schemas";
 import {
   ENGAGE_RULES,
@@ -13,6 +16,7 @@ import {
   FleetMission,
   RETURN_AT_PCTS,
 } from "@openfront/engine-api/ww1936/NavyTypes";
+import { shipStats } from "@openfront/engine-lib/imjin/SeaRules";
 import { WOLF_PACK_BOATS } from "@openfront/engine-lib/ww1936/ConvoyRules";
 import { EventBus } from "@openfront/shared/EventBus";
 import { html, LitElement, nothing, TemplateResult } from "lit";
@@ -31,8 +35,7 @@ import {
   currentCountdown,
   type ImjinBattleSide,
   imjinBattleViews,
-  imjinSeed,
-  imjinWindAt,
+  imjinWindOver,
   shipsByKind,
   windShown,
 } from "../../view/ImjinSea";
@@ -77,7 +80,6 @@ import {
   placeStyle,
   samePlace,
 } from "./WwArmyCard";
-import { wwEpoch } from "./WwClientCalendar";
 import { WwDrawerEvent } from "./WwDrawer";
 import {
   seaAirOf,
@@ -135,6 +137,7 @@ const IMJIN_ORDER_CHIPS = [
   "board",
   "fire_ship",
   "lure",
+  "escort",
   "break_off",
 ] as const;
 type ImjinOrderChip = (typeof IMJIN_ORDER_CHIPS)[number];
@@ -148,6 +151,7 @@ const IMJIN_ORDER_ICONS: Readonly<Record<ImjinOrderChip, string>> = {
   board: "⚔",
   fire_ship: "🔥",
   lure: "🎣",
+  escort: "🛡",
   break_off: "↩",
 };
 
@@ -901,6 +905,18 @@ export class WwFleetCard extends LitElement implements Controller {
       ${data === undefined ? nothing : this.imjinStatus(c, data)}
       ${wide ? nothing : battle} ${this.imjinLine(c, data?.battle ?? 0)}
     </div>`;
+    // merge 3: a fire ship needs a small boat in the fleet (the engine
+    // picks one not sent yet); an escort, a supply convoy group of mine.
+    const can = {
+      fireShip:
+        data !== undefined &&
+        (im?.ships ?? []).some(
+          (s) =>
+            s[1] === data.id &&
+            shipStats(IMJIN_SHIP_KINDS[s[6]] ?? "transport").small,
+        ),
+      escort: (im?.groups ?? []).some((g) => g.owner === c.ctx.me),
+    };
     const chips = html`<div
       data-ww-card-buttons="imjin"
       class="flex shrink-0 flex-col gap-1 ${wide ? "w-80" : ""}"
@@ -911,7 +927,7 @@ export class WwFleetCard extends LitElement implements Controller {
       )}
       ${this.imjinChipRow(
         "orders",
-        IMJIN_ORDER_CHIPS.map((x) => this.orderChip(f.id, data, x)),
+        IMJIN_ORDER_CHIPS.map((x) => this.orderChip(f.id, data, x, can)),
       )}
     </div>`;
     return html`<section
@@ -973,16 +989,7 @@ export class WwFleetCard extends LitElement implements Controller {
   ): TemplateResult {
     const im = c.ctx.navy.imjin!;
     const burning = burningShips(im, data.id);
-    const wind = windShown(
-      imjinWindAt(
-        c.ctx.scenario,
-        imjinSeed(String(this.game.gameID())),
-        data.x,
-        data.y,
-        c.ctx.day,
-        wwEpoch(),
-      ),
-    );
+    const wind = windShown(imjinWindOver(im, c.ctx.scenario, data.x, data.y));
     const moving = data.target >= 0 && data.order === "move";
     return html`<div
       data-imjin-status
@@ -1030,21 +1037,9 @@ export class WwFleetCard extends LitElement implements Controller {
     );
     if (v === undefined) return nothing;
     const b = im.battles.find((x) => x.id === battle)!;
-    const current = ctx.navy.imjinBattleCurrent.get(battle) ?? 0;
-    const cd = currentCountdown({
-      sc: ctx.scenario,
-      seed: imjinSeed(String(this.game.gameID())),
-      battleId: battle,
-      current,
-      cx: b.cx,
-      cy: b.cy,
-      startTick: ctx.navy.imjinBattleStart.get(battle) ?? -1,
-      tick: this.game.ticks(),
-      holds: (r) => {
-        const owner = ctx.economy.controller[r] ?? 0;
-        return owner !== 0 && friends(owner, ctx.me);
-      },
-    });
+    const current = b.current;
+    // The engine says who holds both shores (merge 3); only they see the turn.
+    const cd = currentCountdown(b, (owner) => friends(owner, ctx.me));
     const side = (s: ImjinBattleSide, k: "us" | "them") =>
       html`<div data-imjin-side=${k} class="flex flex-col">
         <span class="text-white/70"
@@ -1079,14 +1074,12 @@ export class WwFleetCard extends LitElement implements Controller {
                 s: cd.seconds,
               })}</span
             >`
-          : ctx.navy.imjinBattleStart.get(battle) === -1
-            ? nothing
-            : html`<span
-                data-imjin-current="hidden"
-                class="text-white/60"
-                title=${translateText("imjin.sea.current_desc")}
-                >${translateText("imjin.sea.current_hidden")}</span
-              >`}
+          : html`<span
+              data-imjin-current="hidden"
+              class="text-white/60"
+              title=${translateText("imjin.sea.current_desc")}
+              >${translateText("imjin.sea.current_hidden")}</span
+            >`}
     </div>`;
   }
 
@@ -1117,7 +1110,9 @@ export class WwFleetCard extends LitElement implements Controller {
           ? translateText(
               note.id === "fire_ship"
                 ? "imjin.sea.fire_ship_closed"
-                : "imjin.sea.break_off_closed",
+                : note.id === "escort"
+                  ? "imjin.sea.escort_closed"
+                  : "imjin.sea.break_off_closed",
             )
           : null;
       return html`<span
@@ -1219,10 +1214,15 @@ export class WwFleetCard extends LitElement implements Controller {
     fleet: number,
     data: { order: string; battle: number } | undefined,
     x: ImjinOrderChip,
+    can: { fireShip: boolean; escort: boolean },
   ): TemplateResult {
     const inBattle = data !== undefined && data.battle !== 0;
-    // The fire ship has no order of its own yet; break off needs a battle.
-    const grey = x === "fire_ship" || (x === "break_off" && !inBattle);
+    // A fire ship needs a battle and a small boat; break off needs a battle;
+    // an escort needs a convoy group of mine at sea or a route (merge 3).
+    const grey =
+      (x === "fire_ship" && !(inBattle && can.fireShip)) ||
+      (x === "break_off" && !inBattle) ||
+      (x === "escort" && !can.escort);
     const mode = this.state.draft.mode;
     return this.imjinChip(
       `imjin_${x}`,

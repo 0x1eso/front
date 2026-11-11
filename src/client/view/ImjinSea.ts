@@ -2,27 +2,14 @@
 // the fleet card and the map read it. Pure: the battle circle's two sides
 // (morale and hull), the wind over a fleet's sea zone, the channel current's
 // time left when my side holds both shores, and a drag's heading as a target
-// tile. The wind and the current come from the same engine-lib formulas the
-// sea layer uses, seeded the way WorldWarExecution seeds politics.
+// tile. The wind and the current are the engine's (ImjinData, merge 3).
 import type { ImjinData } from "@openfront/engine-api/imjin/ImjinTypes";
 import { IMJIN_SHIP_KINDS } from "@openfront/engine-api/imjin/ImjinTypes";
-import { SEA_ZONE_BASE } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import {
-  currentState,
   SEA_TICKS_PER_SECOND,
-  WIND_PERIOD_DAYS,
-  windAt,
   type Wind,
 } from "@openfront/engine-lib/imjin/SeaRules";
-import { seaFlagsAt } from "@openfront/engine-lib/imjin/Terrain";
-import { simpleHash } from "@openfront/engine-lib/Util";
-import { dateOfDay } from "@openfront/engine-lib/ww1936/Calendar";
 import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
-
-/** The politics seed (WorldWarExecution: simpleHash(gameID) + 1936, rolled with + 1). */
-export function imjinSeed(gameID: string): number {
-  return (simpleHash(gameID) + 1936 + 1) | 0;
-}
 
 /** The atlas cell (ship-atlas-meta.json) each era hull is drawn with. */
 const CELL_OF_KIND: Readonly<
@@ -149,27 +136,26 @@ export function imjinBattleShare(v: ImjinBattleView): number {
 // ---------------------------------------------------------------------------
 // The wind.
 
-/** The wind over the sea zone at milli-tile (x, y) on game day `day`. */
-export function imjinWindAt(
-  sc: ScenarioIndex,
-  seed: number,
+/**
+ * The wind over the zone at milli-tile (x, y), as the engine sends it
+ * (ImjinData.winds, merge 3); calm where it sent none.
+ */
+export function imjinWindOver(
+  d: Pick<ImjinData, "winds">,
+  sc: Pick<ScenarioIndex, "width" | "height" | "regionAt">,
   x: number,
   y: number,
-  day: number,
-  epoch: number,
 ): Wind {
   const tx = Math.floor(x / 1000);
   const ty = Math.floor(y / 1000);
-  const t =
-    tx < 0 || ty < 0 || tx >= sc.width || ty >= sc.height
-      ? -1
-      : ty * sc.width + tx;
-  return windAt(
-    seed,
-    t < 0 ? 0 : sc.regionAt(t),
-    Math.floor(day / WIND_PERIOD_DAYS),
-    dateOfDay(day, epoch).month,
-  );
+  if (tx < 0 || ty < 0 || tx >= sc.width || ty >= sc.height) {
+    return { to: 0, strength: 0 };
+  }
+  const zone = sc.regionAt(ty * sc.width + tx);
+  const w = d.winds.find((r) => r[0] === zone);
+  return w === undefined
+    ? { to: 0, strength: 0 }
+    : { to: w[1], strength: w[2] };
 }
 
 const ARROWS = ["→", "↘", "↓", "↙", "←", "↖", "↑", "↗"] as const;
@@ -197,80 +183,22 @@ export function windShown(w: Wind): {
 // ---------------------------------------------------------------------------
 // The channel current.
 
-/** The current id at milli-tile (x, y) (0: open water). */
-export function currentIdAt(sc: ScenarioIndex, x: number, y: number): number {
-  const tx = Math.floor(x / 1000);
-  const ty = Math.floor(y / 1000);
-  if (tx < 0 || ty < 0 || tx >= sc.width || ty >= sc.height) return 0;
-  return seaFlagsAt(sc, ty * sc.width + tx).current;
-}
-
-/** A channel current's axis (WwImjin.currentAxisOf): 0 east, 256 south. */
-export function currentAxis(sc: ScenarioIndex, current: number): number {
-  const dir = sc.data.imjin?.currents[current - 1]?.dir ?? 16;
-  return (dir * 16 - 256) & 1023;
-}
-
 /**
- * The land region on each side of a channel at (x, y) milli-tiles, walking
- * across its axis up to `reach` tiles; 0 where only water was found.
+ * Design §6.2: the side holding both shores sees the current's countdown
+ * (the engine sends who holds them, merge 3). Null when there is no current
+ * or my side does not hold both shores. `mine(owner)`: on my side.
  */
-export function channelShores(
-  sc: ScenarioIndex,
-  x: number,
-  y: number,
-  axis: number,
-  reach = 16,
-): [number, number] {
-  const a = ((axis + 256) & 1023) * ((2 * Math.PI) / 1024);
-  const dx = Math.cos(a);
-  const dy = Math.sin(a);
-  const out: [number, number] = [0, 0];
-  for (const [k, sgn] of [
-    [0, 1],
-    [1, -1],
-  ] as const) {
-    for (let r = 1; r <= reach; r++) {
-      const tx = Math.floor(x / 1000 + sgn * dx * r);
-      const ty = Math.floor(y / 1000 + sgn * dy * r);
-      if (tx < 0 || ty < 0 || tx >= sc.width || ty >= sc.height) break;
-      const id = sc.regionAt(ty * sc.width + tx);
-      if (id !== 0 && id < SEA_ZONE_BASE) {
-        out[k] = id;
-        break;
-      }
-    }
-  }
-  return out;
-}
-
-/**
- * Design §6.2: the side holding both shores sees the current's countdown.
- * Null when there is no current here, when the battle's start is unknown
- * (it was already on when the game was loaded), or when my side does not
- * hold both shores. `holds(region)`: my side controls the region.
- */
-export function currentCountdown(opts: {
-  sc: ScenarioIndex;
-  seed: number;
-  battleId: number;
-  current: number;
-  cx: number;
-  cy: number;
-  startTick: number;
-  tick: number;
-  holds: (region: number) => boolean;
-}): { seconds: number; with: boolean; axis: number } | null {
-  const { sc, current } = opts;
-  if (current === 0 || opts.startTick < 0) return null;
-  const axis = currentAxis(sc, current);
-  const [a, b] = channelShores(sc, opts.cx, opts.cy, axis);
-  if (a === 0 || b === 0 || !opts.holds(a) || !opts.holds(b)) return null;
-  const st = currentState(opts.seed, opts.battleId, opts.tick - opts.startTick);
+export function currentCountdown(
+  b: Pick<
+    ImjinData["battles"][number],
+    "current" | "turnIn" | "flow" | "shores"
+  >,
+  mine: (owner: number) => boolean,
+): { seconds: number; with: boolean } | null {
+  if (b.current === 0 || b.shores === 0 || !mine(b.shores)) return null;
   return {
-    seconds: Math.ceil(st.ticksToTurn / SEA_TICKS_PER_SECOND),
-    with: st.sign > 0,
-    axis,
+    seconds: Math.ceil(b.turnIn / SEA_TICKS_PER_SECOND),
+    with: b.flow > 0,
   };
 }
 

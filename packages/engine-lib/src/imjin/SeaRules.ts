@@ -571,6 +571,45 @@ export function currentState(
   }
 }
 
+/**
+ * ww177 merge 3 (design §6.2 "Currents"): the land region on each side of
+ * a channel at milli-tile (x, y) whose current flows along `axis`, walking
+ * across it a tile at a time up to `reach` tiles; 0 where only water lay.
+ * `land(t)`: tile t's land region id, 0 for water or off the map.
+ */
+export function channelShores(
+  land: (tx: number, ty: number) => number,
+  x: number,
+  y: number,
+  axis: number,
+  reach = 16,
+): [number, number] {
+  const a = axis + 256;
+  const dx = icos(a);
+  const dy = isin(a);
+  const out: [number, number] = [0, 0];
+  for (const [k, sgn] of [
+    [0, 1],
+    [1, -1],
+  ] as const) {
+    for (let r = 1; r <= reach; r++) {
+      const tx = Math.floor(
+        (x * TRIG_ONE + sgn * dx * r * MT) / (TRIG_ONE * MT),
+      );
+      const ty = Math.floor(
+        (y * TRIG_ONE + sgn * dy * r * MT) / (TRIG_ONE * MT),
+      );
+      const id = land(tx, ty);
+      if (id < 0) break;
+      if (id > 0) {
+        out[k] = id;
+        break;
+      }
+    }
+  }
+  return out;
+}
+
 /** Speed change in %: +60 with the current, −60 against it. */
 export function currentSpeedPct(
   heading: number,

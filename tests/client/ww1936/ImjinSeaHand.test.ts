@@ -6,8 +6,6 @@
 import type { ImjinData } from "@openfront/engine-api/imjin/ImjinTypes";
 import { IMJIN_SHIP_KINDS } from "@openfront/engine-api/imjin/ImjinTypes";
 import { WwOrder, WwOrderSchema } from "@openfront/engine-api/Schemas";
-import { currentState } from "@openfront/engine-lib/imjin/SeaRules";
-import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import { EventBus } from "@openfront/shared/EventBus";
 import shipAtlasMeta from "resources/atlases/ship-atlas-meta.json";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -38,6 +36,7 @@ import {
   imjinBattleShare,
   imjinBattleViews,
   imjinShipCell,
+  imjinWindOver,
   windShown,
 } from "../../../src/client/view/ImjinSea";
 import { seaGame, SID } from "./SeaAirFixture";
@@ -86,7 +85,21 @@ function data(battle = 0): ImjinData {
       [2, 1, ME, 85_000, 111_000, 0, 1, 0],
       [3, 1, ME, 86_000, 111_000, 0, 2, 1],
     ],
-    battles: battle === 0 ? [] : [{ id: battle, cx: 88_000, cy: 110_500 }],
+    battles:
+      battle === 0
+        ? []
+        : [
+            {
+              id: battle,
+              cx: 88_000,
+              cy: 110_500,
+              current: 1,
+              turnIn: 125,
+              flow: 1,
+              shores: ME,
+            },
+          ],
+    winds: [],
     groups: [],
     orders: [],
     sieges: [],
@@ -152,10 +165,15 @@ describe("the Imjin sea by hand (design §6.2)", () => {
       m.q("[data-ww-fleet-btn='imjin_formation_crane']")!.className,
     ).toContain("border-dashed");
     await m.click("[data-ww-fleet-btn='imjin_keep_range']");
-    // Greyed: the fire ship, and break off out of battle, say why.
+    // Greyed out of battle: the fire ship and break off; with no convoy of
+    // mine at sea, the escort. Each says why.
     await m.click("[data-ww-fleet-btn='imjin_fire_ship']");
     expect(m.q("[data-imjin-note='fire_ship']")!.textContent).toContain(
       "imjin.sea.fire_ship_closed",
+    );
+    await m.click("[data-ww-fleet-btn='imjin_escort']");
+    expect(m.q("[data-imjin-note='escort']")!.textContent).toContain(
+      "imjin.sea.escort_closed",
     );
     await m.click("[data-ww-fleet-btn='imjin_break_off']");
     expect(m.sent.map((o) => (o as { order?: string }).order)).toEqual([
@@ -203,9 +221,21 @@ describe("the Imjin sea by hand (design §6.2)", () => {
     m.bus.emit(far);
     expect(far.claimed).toBe(false);
 
-    // In battle: both sides' bars, and break off opens.
-    m.navy.applyImjin(data(5), 760);
+    // In battle: both sides' bars, the current's turn (we hold both
+    // shores), and break off, the fire ship and the escort open.
+    m.navy.applyImjin(
+      {
+        ...data(5),
+        groups: [{ id: 1, owner: ME, x: 80_000, y: 110_000, convoys: 4 }],
+      },
+      760,
+    );
     await m.redraw();
+    expect(m.q("[data-imjin-current='known']")!.textContent).toContain("s=13");
+    await m.click("[data-ww-fleet-btn='imjin_fire_ship']");
+    expect(m.sent.at(-1)).toMatchObject({ order: "fire_ship", fleet: 1 });
+    await m.click("[data-ww-fleet-btn='imjin_escort']");
+    expect(m.sent.at(-1)).toMatchObject({ order: "escort", fleet: 1 });
     expect(m.q("[data-imjin-battle='5']")).not.toBeNull();
     expect(m.q("[data-imjin-side='us']")!.textContent).toContain("n=3");
     expect(m.q("[data-imjin-side='them']")!.textContent).toContain("n=2");
@@ -231,40 +261,27 @@ describe("the Imjin sea by hand (design §6.2)", () => {
     });
     expect(windShown({ to: 100, strength: 0 }).arrow).toBe("·");
 
-    // A channel flowing east (dir 16) between land rows 0-1 and 6-7: the
-    // countdown shows only when my side holds both shores.
-    const W = 10;
-    const sc = {
-      width: W,
-      height: 8,
-      regionAt: (t: number) => {
-        const y = Math.floor(t / W);
-        return y <= 1 ? 1 : y >= 6 ? 2 : 40_001;
-      },
-      data: { imjin: { currents: [{ dir: 16 }] } },
-    } as unknown as ScenarioIndex;
-    const base = {
-      sc,
-      seed: 7,
-      battleId: 3,
-      current: 1,
-      cx: 5_000,
-      cy: 4_000,
-      startTick: 100,
-      tick: 250,
-    };
-    const st = currentState(7, 3, 150);
-    expect(currentCountdown({ ...base, holds: () => true })).toEqual({
-      seconds: Math.ceil(st.ticksToTurn / 10),
-      with: st.sign > 0,
-      axis: 0,
+    // The engine's current: the countdown shows only to the side holding
+    // both shores.
+    const b = { current: 1, turnIn: 150, flow: -1, shores: FOE };
+    expect(currentCountdown(b, (o) => o === FOE)).toEqual({
+      seconds: 15,
+      with: false,
     });
-    expect(currentCountdown({ ...base, holds: (r) => r === 1 })).toBeNull();
-    expect(
-      currentCountdown({ ...base, startTick: -1, holds: () => true }),
-    ).toBeNull();
+    expect(currentCountdown(b, (o) => o === ME)).toBeNull();
+    expect(currentCountdown({ ...b, shores: 0 }, () => true)).toBeNull();
+
+    // The wind over a fleet is the engine's for its zone; calm without one.
+    const sc = { width: 10, height: 8, regionAt: () => 40_001 };
+    const winds = { winds: [[40_001, 768, 2]] };
+    expect(imjinWindOver(winds, sc, 5_000, 4_000)).toEqual({
+      to: 768,
+      strength: 2,
+    });
+    expect(imjinWindOver({ winds: [] }, sc, 5_000, 4_000).strength).toBe(0);
 
     // A heading stops at the last water before land.
+    const W = 10;
     const sea = (t: number) => t % W < 7;
     expect(headingTarget(1.5, 4.5, 2.5, 4.5, W, 8, sea)).toBe(4 * W + 6);
     expect(headingTarget(1.5, 4.5, 1.6, 4.5, W, 8, sea)).toBe(-1);

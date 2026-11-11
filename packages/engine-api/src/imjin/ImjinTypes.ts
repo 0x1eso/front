@@ -11,6 +11,11 @@ export const IMJIN_FLEET_ORDERS = [
   "break_off",
   "lure",
   "formation",
+  // ww177 merge 3, appended: a small boat of a fleet in battle is set
+  // alight (the engine picks the one nearest the enemy), and the fleet
+  // sails with its side's nearest supply convoys.
+  "fire_ship",
+  "escort",
 ] as const;
 export type ImjinFleetOrder = (typeof IMJIN_FLEET_ORDERS)[number];
 
@@ -53,7 +58,23 @@ export interface ImjinData {
   }[];
   /** [id, fleet, owner, x, y, heading, kind, fire]. */
   ships: number[][];
-  battles: { id: number; cx: number; cy: number }[];
+  /**
+   * ww177 merge 3: `current`, the channel current's id (0: none); while it
+   * runs, `turnIn` ticks to its next turn and `flow` 1 with its axis, -1
+   * against; `shores`, the owner of both its shores when one side holds
+   * them (0: nobody). Design §6.2: only that side's screen shows the turn.
+   */
+  battles: {
+    id: number;
+    cx: number;
+    cy: number;
+    current: number;
+    turnIn: number;
+    flow: number;
+    shores: number;
+  }[];
+  /** ww177 merge 3: [sea zone, blows to (binary angle), strength] over each zone a fleet is in. */
+  winds: number[][];
   groups: {
     id: number;
     owner: number;

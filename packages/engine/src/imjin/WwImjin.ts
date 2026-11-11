@@ -8,11 +8,20 @@ import type { WwOrder } from "@openfront/engine-api/Schemas";
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import type { WwOrderBlock } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { WW_SUPPLY_CONVOY_KM } from "@openfront/engine-api/ww1936/NavyTypes";
+import { SEA_ZONE_BASE } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import {
   ATTACK_ORDERS,
   DEFENCE_STANCES,
 } from "@openfront/engine-lib/imjin/LandRules";
-import { shipKindIndex, shipStats } from "@openfront/engine-lib/imjin/SeaRules";
+import {
+  channelShores,
+  currentState,
+  distMt,
+  shipKindIndex,
+  shipStats,
+  WIND_PERIOD_DAYS,
+  windAt,
+} from "@openfront/engine-lib/imjin/SeaRules";
 import { seaFlagsAt } from "@openfront/engine-lib/imjin/Terrain";
 import { dateOfDay, dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import type { Game } from "../game/Game";
@@ -389,6 +398,88 @@ export class WwImjin {
     return ok ? null : "bad_index";
   }
 
+  /**
+   * ww177 merge 3: a player's fire ship. The fleet must be in a battle; its
+   * live small boat nearest an enemy there is set alight (the AI's pick).
+   */
+  fireShipOrder(
+    smallID: number,
+    fleet: number,
+    tick: number,
+  ): WwOrderBlock | null {
+    const sea = this.st.sea;
+    const f = sea.fleets.find((x) => x.id === fleet);
+    if (!f || f.owner !== smallID || f.battle === 0) return "bad_index";
+    const ctx = this.ctx(tick);
+    const inBattle = new Set(
+      sea.fleets.filter((x) => x.battle === f.battle).map((x) => x.id),
+    );
+    const foes = sea.ships.filter(
+      (s) =>
+        s.hull > 0 && inBattle.has(s.fleet) && ctx.hostile(f.owner, s.owner),
+    );
+    let pick = -1;
+    let best = Infinity;
+    for (const id of f.ships) {
+      const s = sea.ships.find((x) => x.id === id);
+      if (!s || s.hull <= 0 || s.fireShip || !shipStats(s.kind).small) continue;
+      for (const e of foes) {
+        const d = distMt(e.x - s.x, e.y - s.y);
+        if (d < best) {
+          best = d;
+          pick = s.id;
+        }
+      }
+    }
+    if (pick < 0) return "bad_index";
+    return this.fleetOrder(
+      smallID,
+      fleet,
+      { kind: "fire_ship", ship: pick },
+      tick,
+    );
+  }
+
+  /**
+   * ww177 merge 3: a player's escort. The fleet sails with its owner's
+   * supply route whose convoy group is nearest; with none at sea, the
+   * route that carries most.
+   */
+  escortOrder(
+    smallID: number,
+    fleet: number,
+    tick: number,
+  ): WwOrderBlock | null {
+    const sea = this.st.sea;
+    const f = sea.fleets.find((x) => x.id === fleet);
+    if (!f || f.owner !== smallID) return "bad_index";
+    const routes = [...this.ww.navy.routes.values()]
+      .filter((r) => r.owner === smallID && r.use === USE_SUPPLY && r.got > 0)
+      .sort((a, b) => a.id - b.id);
+    if (routes.length === 0) return "bad_index";
+    const ids = new Set(routes.map((r) => r.id));
+    let route = -1;
+    let best = Infinity;
+    for (const g of sea.groups) {
+      if (g.owner !== smallID || !ids.has(g.route)) continue;
+      const d = distMt(g.x - f.x, g.y - f.y);
+      if (d < best) {
+        best = d;
+        route = g.route;
+      }
+    }
+    if (route < 0) {
+      let got = -1;
+      for (const r of routes) {
+        if (r.got > got) {
+          got = r.got;
+          route = r.id;
+        }
+      }
+    }
+    return this.fleetOrder(smallID, fleet, { kind: "escort", route }, tick);
+  }
+
   /** A land battle order for the next phase; null when it took effect. */
   battleOrder(
     smallID: number,
@@ -422,6 +513,7 @@ export class WwImjin {
   takeData(): ImjinData | null {
     if (!this.dirty) return null;
     this.dirty = false;
+    const tick = this.mg.ticks();
     const sea = this.st.sea;
     return {
       fleets: sea.fleets.map((f) => ({
@@ -448,7 +540,8 @@ export class WwImjin {
         shipKindIndex(s.kind),
         s.fire,
       ]),
-      battles: sea.battles.map((b) => ({ id: b.id, cx: b.cx, cy: b.cy })),
+      battles: sea.battles.map((b) => this.battleView(b, tick)),
+      winds: this.windsView(tick),
       groups: sea.groups.map((g) => ({
         id: g.id,
         owner: g.owner,
@@ -472,6 +565,73 @@ export class WwImjin {
         morale: s.morale,
       })),
     };
+  }
+
+  /**
+   * ww177 merge 3: a battle circle's current, its time to turn, and who
+   * holds both its shores (design §6.2: that side sees the turn coming).
+   */
+  private battleView(
+    b: {
+      id: number;
+      cx: number;
+      cy: number;
+      startTick: number;
+      current: number;
+    },
+    tick: number,
+  ): ImjinData["battles"][number] {
+    const out = { id: b.id, cx: b.cx, cy: b.cy, current: b.current };
+    if (b.current === 0) return { ...out, turnIn: 0, flow: 0, shores: 0 };
+    const ww = this.ww;
+    const sc = ww.scenario;
+    const st = currentState(ww.politics.seed, b.id, tick - b.startTick);
+    const land = (tx: number, ty: number) => {
+      if (tx < 0 || ty < 0 || tx >= sc.width || ty >= sc.height) return -1;
+      const id = sc.regionAt(ty * sc.width + tx);
+      return id < SEA_ZONE_BASE ? id : 0;
+    };
+    const [ra, rb] = channelShores(
+      land,
+      b.cx,
+      b.cy,
+      currentAxisOf(ww, b.current),
+    );
+    const ca = ra === 0 ? 0 : (ww.land.controller[ra] ?? 0);
+    const cb = rb === 0 ? 0 : (ww.land.controller[rb] ?? 0);
+    return {
+      ...out,
+      turnIn: st.ticksToTurn,
+      flow: st.sign,
+      shores: ww.land.sameSide(ca, cb) ? ca : 0,
+    };
+  }
+
+  /** ww177 merge 3: the wind over every zone a fleet is in, as the sea layer reads it. */
+  private windsView(tick: number): number[][] {
+    const ww = this.ww;
+    const sc = ww.scenario;
+    const day = ww.inPrep(tick) ? 0 : ww.day(tick);
+    const month = dateOfDay(day, ww.epoch).month;
+    const zones = new Set<number>();
+    for (const f of this.st.sea.fleets) {
+      const tx = Math.floor(f.x / 1000);
+      const ty = Math.floor(f.y / 1000);
+      if (tx < 0 || ty < 0 || tx >= sc.width || ty >= sc.height) continue;
+      // The zone the sea layer reads the wind by (SeaCtx.zoneOf).
+      zones.add(sc.regionAt(ty * sc.width + tx));
+    }
+    return [...zones]
+      .sort((a, b) => a - b)
+      .map((z) => {
+        const w = windAt(
+          ww.politics.seed,
+          z,
+          Math.floor(day / WIND_PERIOD_DAYS),
+          month,
+        );
+        return [z, w.to, w.strength];
+      });
   }
 
   // ---- Snapshot, hash ----
@@ -597,6 +757,10 @@ export function issueImjinOrder(
         { kind: "engage", mode: order.order },
         tick,
       );
+    case "fire_ship":
+      return im.fireShipOrder(smallID, order.fleet, tick);
+    case "escort":
+      return im.escortOrder(smallID, order.fleet, tick);
     case "formation":
       return im.fleetOrder(
         smallID,
