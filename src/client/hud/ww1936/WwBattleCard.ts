@@ -37,6 +37,7 @@ import {
   directMaxHeight,
   placeStyle,
   samePlace,
+  syncCardAbove,
 } from "./WwArmyCard";
 import { WwDrawerEvent } from "./WwDrawer";
 import { WwLandChangedEvent } from "./WwLandController";
@@ -83,6 +84,11 @@ export class WwBattleCard extends LitElement implements Controller {
     super.disconnectedCallback();
     this.unregisterBack?.();
     this.unregisterBack = null;
+    syncCardAbove();
+  }
+
+  updated() {
+    syncCardAbove();
   }
 
   isOpen(): boolean {

@@ -6034,6 +6034,7 @@
       "assault_wait": "Attack the town with an army to assault it",
       "breach": "Breach",
       "breach_hint": "Besiegers with cannon break the walls by themselves",
+      "card_row": "Siege of {region}",
       "grain_hint": "When the grain runs out, morale falls each day",
       "method_breach": "Enemy cannon cut a wall level every {days} days",
       "method_breach_mine": "Our cannon cut a wall level every {days} days",

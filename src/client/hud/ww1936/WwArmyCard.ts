@@ -44,6 +44,7 @@ import { DepthMiscModel } from "./DepthMiscModel";
 import { blockText, stockTable } from "./EconomyModel";
 import { garrisonScopes, myOccRows } from "./EndgameModel";
 import { fogModelOf } from "./FogModel";
+import { imjinSiegeBlock } from "./ImjinLandUi";
 import {
   ARMY_BUTTONS,
   ArmyButton,
@@ -332,6 +333,26 @@ export function cardPlace(): CardPlace {
   };
 }
 
+/**
+ * ww181: how far above the screen's foot the highest land card's top
+ * stands (the army card, the battle card), as --ww-card-above on the root,
+ * so the research "next" card on a phone sits above it, not over its foot.
+ * Each card calls it after it renders and when it goes.
+ */
+export function syncCardAbove(): void {
+  const root = document.documentElement.style;
+  let above = 0;
+  for (const el of document.querySelectorAll(
+    "section[data-ww-army-card], section[data-ww-battle-card]",
+  )) {
+    const r = el.getBoundingClientRect();
+    if (r.width > 0 && r.height > 0)
+      above = Math.max(above, Math.ceil(window.innerHeight - r.top));
+  }
+  if (above > 0) root.setProperty("--ww-card-above", `${above}px`);
+  else root.removeProperty("--ww-card-above");
+}
+
 export function placeStyle(p: CardPlace): string {
   const size = `max-width: ${p.maxWidth}px; max-height: ${p.maxHeight}px;`;
   if (p.left !== undefined && p.left !== null) {
@@ -444,6 +465,8 @@ export class WwArmyCard extends LitElement implements Controller {
   @state() private collapsed = false;
   /** Opened by the toggle while an order is being given. */
   @state() private openWhileOrdering = false;
+  /** ww181: the siege row opened (the phone's way to the siege panel). */
+  @state() private siegeOpen = false;
   private wasOrdering = false;
   private readonly twoTap = new TwoTap();
   private shownArmy: number | null = null;
@@ -460,6 +483,15 @@ export class WwArmyCard extends LitElement implements Controller {
 
   createRenderRoot() {
     return this;
+  }
+
+  updated() {
+    syncCardAbove();
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    syncCardAbove();
   }
 
   init() {
@@ -922,7 +954,8 @@ export class WwArmyCard extends LitElement implements Controller {
               >
               ${this.renderInvasion(c)} ${this.renderAirPriority(c)}
             </div>`}
-        ${this.renderOrderLine(c)} ${this.renderSupplyLine(c)} ${line}
+        ${this.renderOrderLine(c)} ${this.renderSupplyLine(c)}
+        ${this.renderSiegeRow(c)} ${line}
       </div>
       <div
         data-ww-card-buttons=${this.panel}
@@ -947,6 +980,52 @@ export class WwArmyCard extends LitElement implements Controller {
                     : this.renderMedals(c)}
       </div>
     </section>`;
+  }
+
+  /**
+   * ww181 (Imjin design §5 "Sieges"): the siege this army stands in, or
+   * lays next door, as one row that opens the siege panel. A phone has no
+   * hover, and a tap on a besieged town picks its garrison's army, so the
+   * panel the region card shows on a desktop is reached from here.
+   */
+  private siegeRegionOf(c: Ctx): number {
+    const im = this.game.wwNavy?.()?.imjin ?? null;
+    if (im === null || im.sieges.length === 0) return 0;
+    const at = c.card.row.region;
+    if (im.sieges.some((x) => x.region === at)) return at;
+    const sides = landSidesOf(this.game);
+    const near = c.view.scenario.regionNeighbours(at);
+    const s = im.sieges.find(
+      (x) => near.includes(x.region) && sides.isEnemy(c.me, x.owner),
+    );
+    return s?.region ?? 0;
+  }
+
+  private renderSiegeRow(c: Ctx): TemplateResult | typeof nothing {
+    const region = this.siegeRegionOf(c);
+    if (region === 0) return nothing;
+    const block = this.siegeOpen
+      ? imjinSiegeBlock(this.game, region, { bus: this.eventBus })
+      : nothing;
+    return html`<div data-ww-army-siege=${region} class="flex flex-col gap-1">
+      <button
+        type="button"
+        data-ww-army-siege-toggle
+        aria-expanded=${String(this.siegeOpen)}
+        class="flex h-8 max-sm:h-10 items-center gap-1 rounded-md border border-amber-300/40 bg-amber-900/30 px-2 text-left font-semibold text-amber-300"
+        @click=${() => {
+          this.siegeOpen = !this.siegeOpen;
+        }}
+      >
+        <span aria-hidden="true">${this.siegeOpen ? "▾" : "▸"}</span>
+        <span class="truncate"
+          >${translateText("imjin.siege.card_row", {
+            region: regionName(c.view.scenario, region),
+          })}</span
+        >
+      </button>
+      ${block}
+    </div>`;
   }
 
   // ---- ww162: the battle planner (design §1.5, §2; Design A §3) ----

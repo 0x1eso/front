@@ -18906,6 +18906,7 @@
       "assault_wait": "군대로 이 성을 공격하면 강공할 수 있습니다",
       "breach": "성벽 깨기",
       "breach_hint": "화포가 있는 쪽은 저절로 성벽을 깹니다",
+      "card_row": "{region} 포위전",
       "grain_hint": "군량이 떨어지면 사기가 매일 떨어집니다",
       "method_breach": "적 화포가 {days}일마다 성벽을 한 단씩 무너뜨립니다",
       "method_breach_mine": "우리 화포가 {days}일마다 성벽을 한 단씩 무너뜨립니다",
