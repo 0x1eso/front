@@ -11,12 +11,19 @@
  * - With the sea layer on, the routes themselves as thin dotted lines (P2's
  *   plan-arrow dots).
  *
+ * - ww177 P3 (Imjin design §6.2): in the Imjin War the convoys sail as
+ *   visible groups at their real tiles (about ten convoys each): each group
+ *   is one to three transports (the sekibune hull), mine always, another country's
+ *   only within sight of one of my fleets. The routes' abstract ships give
+ *   way to them.
+ *
  * Screen only. The routes are rebuilt when the viewer's detail changes,
  * the splashes when the view moves; each frame only moves the ships (a few
  * dozen instances, nothing allocated).
  */
 
 import { SEA_ZONE_BASE } from "@openfront/engine-api/ww1936/WorldWarTypes";
+import { SIGHT_OPEN_MT } from "@openfront/engine-lib/imjin/SeaRules";
 import type { WwNavyView } from "../../../view/WwNavyView";
 import {
   RING_SPLASH,
@@ -34,6 +41,56 @@ export const MAX_CONVOY_SHIPS = 40;
 const SHIP_PX = 18;
 /** Tiles a second a merchant sails (screen only). */
 const SHIP_TILES_PER_SEC = 2.5;
+/** Convoys a drawn Imjin group ship stands for, and the most drawn per group. */
+const GROUP_CONVOYS_PER_SHIP = 5;
+const GROUP_SHIPS_MAX = 3;
+const GROUP_SHIP_PX = 13;
+/** Each group ship's place behind the lead, tiles (x along its course). */
+const GROUP_SLOTS: readonly [number, number][] = [
+  [0, 0],
+  [-1.1, -0.6],
+  [-1.1, 0.6],
+];
+
+/**
+ * The Imjin convoy groups drawn (Imjin design §6.2): mine, and another
+ * country's within sight (12 tiles) of one of my fleets. [x, y, ships, id]
+ * in tiles, ships 1-3 (one for every five convoys).
+ */
+export function convoyGroupsShown(
+  d: {
+    groups: readonly {
+      id: number;
+      owner: number;
+      x: number;
+      y: number;
+      convoys: number;
+    }[];
+    fleets: readonly { owner: number; x: number; y: number }[];
+  },
+  me: number,
+): [number, number, number, number][] {
+  const sight = SIGHT_OPEN_MT;
+  const out: [number, number, number, number][] = [];
+  for (const g of d.groups) {
+    if (g.convoys <= 0) continue;
+    const seen =
+      g.owner === me ||
+      d.fleets.some(
+        (f) =>
+          f.owner === me &&
+          (f.x - g.x) ** 2 + (f.y - g.y) ** 2 <= sight * sight,
+      );
+    if (!seen) continue;
+    const n = Math.min(
+      GROUP_SHIPS_MAX,
+      Math.max(1, Math.ceil(g.convoys / GROUP_CONVOYS_PER_SHIP)),
+    );
+    out.push([g.x / 1000, g.y / 1000, n, g.id]);
+  }
+  return out;
+}
+
 /** Splashes per loss region at most. */
 const SPLASHES_PER_REGION = 3;
 const SPLASH_PX = 13;
@@ -86,6 +143,11 @@ export class ConvoyFxPass {
   // Splashes (tile coords).
   private splashX: number[] = [];
   private splashY: number[] = [];
+  // ww177 P3: the Imjin convoy groups shown, and each group's last x (its course).
+  private groups: [number, number, number, number][] = [];
+  private readonly groupLastX = new Map<number, number>();
+  private readonly groupFlip = new Map<number, number>();
+  private imjinOn = false;
   private readonly perRoute: number[] = [];
   private readonly gots: number[] = [];
   private mapW = 0;
@@ -115,6 +177,7 @@ export class ConvoyFxPass {
     this.seenDetail = view.detail;
     if (routes) this.rebuildRoutes(view);
     if (moved) this.rebuildSplashes(view);
+    if (moved) this.rebuildGroups(view);
     if (routes || seaLayer !== this.seenDots) {
       this.seenDots = seaLayer;
       this.dots.clear();
@@ -200,6 +263,32 @@ export class ConvoyFxPass {
     }
   }
 
+  /** ww177 P3: the Imjin convoy groups at their tiles, each facing its course. */
+  private rebuildGroups(view: WwNavyView): void {
+    const d = view.imjin;
+    this.imjinOn = d !== null;
+    if (d === null) {
+      this.groups = [];
+      return;
+    }
+    this.groups = convoyGroupsShown(d, view.mySmallID());
+    const live = new Set<number>();
+    for (const [x, , , id] of this.groups) {
+      live.add(id);
+      const last = this.groupLastX.get(id);
+      if (last !== undefined && Math.abs(x - last) > 1e-3) {
+        this.groupFlip.set(id, x < last ? -1 : 1);
+      }
+      this.groupLastX.set(id, x);
+    }
+    for (const id of [...this.groupLastX.keys()]) {
+      if (!live.has(id)) {
+        this.groupLastX.delete(id);
+        this.groupFlip.delete(id);
+      }
+    }
+  }
+
   /** Splashes where my convoys sank yesterday (the sea regions' days). */
   private rebuildSplashes(view: WwNavyView): void {
     const sc = view.scenario;
@@ -237,9 +326,26 @@ export class ConvoyFxPass {
   /** Moves the ships to `timeSec` (every frame they exist). */
   private placeShips(timeSec: number): void {
     const b = this.batch;
-    b.begin(this.shipRoute.length * 2 + this.splashX.length);
+    b.begin(
+      this.shipRoute.length * 2 + this.splashX.length + 3 * this.groups.length,
+    );
     const W = this.mapW;
-    for (let i = 0; i < this.shipRoute.length; i++) {
+    for (const [x, y, n, id] of this.groups) {
+      const flip = this.groupFlip.get(id) ?? 1;
+      for (let k = 0; k < n; k++) {
+        const [sx, sy] = GROUP_SLOTS[k];
+        // The era's transports (the sekibune hull), not the 1936 steamer.
+        b.putSprite(
+          x + sx * flip,
+          y + sy,
+          SHIP_CELL.imjin_sekibune,
+          flip,
+          0.9,
+          GROUP_SHIP_PX,
+        );
+      }
+    }
+    for (let i = 0; i < (this.imjinOn ? 0 : this.shipRoute.length); i++) {
       const r = this.shipRoute[i];
       const total = this.routeTotal[r];
       if (total <= 0) continue;
@@ -284,7 +390,13 @@ export class ConvoyFxPass {
 
   draw(cam: Float32Array, tilesPerPx: number, timeSec: number): void {
     this.dots.draw(cam, tilesPerPx, timeSec);
-    if (this.shipRoute.length === 0 && this.splashX.length === 0) return;
+    if (
+      this.shipRoute.length === 0 &&
+      this.splashX.length === 0 &&
+      this.groups.length === 0
+    ) {
+      return;
+    }
     this.placeShips(timeSec);
     this.sprites.bind(cam, tilesPerPx, timeSec);
     this.batch.draw();

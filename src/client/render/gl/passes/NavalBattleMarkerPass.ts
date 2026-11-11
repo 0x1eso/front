@@ -6,6 +6,11 @@
  * flickering around it (fx-atlas MiniBigSmoke frames); a point when zoomed
  * out (FleetTokenLayout's chip LOD).
  *
+ * ww177 P3 (Imjin design §6.2): each Imjin battle circle gets the same
+ * marker at its centre (side 0's share: ships × hull and morale), its
+ * 25-tile circle as a dotted ring, and the chosen fleet's heading drag as
+ * a plan arrow; a sinking there calls the sink handler too.
+ *
  * Instances are rewritten only when the view or the LOD changed. A battle's
  * update that sank ships calls the sink handler (the renderer spawns the
  * sinking-ship effect there). Nothing is drawn, and the fx atlas is not
@@ -13,15 +18,24 @@
  */
 
 import type { NavalBattleSummary } from "@openfront/engine-api/ww1936/NavyTypes";
+import { BATTLE_RADIUS_MT } from "@openfront/engine-lib/imjin/SeaRules";
 import { assetUrl } from "@openfront/shared/AssetUrls";
 import fxAtlasMeta from "resources/atlases/fx-atlas-meta.json";
 import { fogOfNavy } from "../../../hud/ww1936/FogModel";
+import { IMJIN_FLEET_ID_BASE } from "../../../view/ImjinFleets";
+import {
+  imjinBattleShare,
+  imjinBattleViews,
+  type ImjinBattleView,
+} from "../../../view/ImjinSea";
 import type { WwNavyView } from "../../../view/WwNavyView";
 import { DynamicInstanceBuffer } from "../DynamicBuffer";
 import fragSrc from "../shaders/naval-battle/naval-battle.frag.glsl?raw";
 import vertSrc from "../shaders/naval-battle/naval-battle.vert.glsl?raw";
 import { createProgram, shaderSrc } from "../utils/GlUtils";
 import { SHIP_ATLAS_COLS, SHIP_ATLAS_ROWS, SHIP_CELL } from "./FleetTokenPass";
+import { ArrowBatch } from "./InvasionArrowPass";
+import { STYLE_BAND } from "./PlanArrowPass";
 
 const fxAtlasUrl = assetUrl("atlases/fx-atlas.png");
 const FLOATS = 8;
@@ -36,6 +50,31 @@ export function battleShare(b: NavalBattleSummary): number {
   const a = b.ships[0] * (b.hpPm[0] + b.orgPm[0]);
   const d = b.ships[1] * (b.hpPm[1] + b.orgPm[1]);
   return a + d > 0 ? a / (a + d) : 0.5;
+}
+
+/** A heading drag: from the fleet to the pointer, tiles. */
+export interface ImjinAim {
+  fx: number;
+  fy: number;
+  x: number;
+  y: number;
+}
+
+/** Points on the ring around a battle circle (tiles). */
+const RING_POINTS = 48;
+
+/** The Imjin battle circles the fog lets me see (any member fleet in sight). */
+export function shownImjinBattles(view: WwNavyView): ImjinBattleView[] {
+  const d = view.imjin;
+  if (d === null) return [];
+  const fog = fogOfNavy(view);
+  return imjinBattleViews(d, view.mySmallID()).filter(
+    (b) =>
+      fog === undefined ||
+      [...b.sides[0].fleets, ...b.sides[1].fleets].some(
+        (id) => fog.fleetView(IMJIN_FLEET_ID_BASE + id).visible,
+      ),
+  );
 }
 
 export class NavalBattleMarkerPass {
@@ -57,6 +96,11 @@ export class NavalBattleMarkerPass {
   /** Each zone's battle update as last seen: a new one with sinkings calls onSunk. */
   private readonly seen = new Map<number, NavalBattleSummary>();
   private onSunk: ((x: number, y: number, ships: number) => void) | null = null;
+  /** ww177 P3: the Imjin circles' rings and the heading drag. */
+  private marks: ArrowBatch;
+  private seenAim: ImjinAim | null = null;
+  /** Each Imjin battle's ships as last seen (fewer: a sinking). */
+  private readonly imjinShips = new Map<number, number>();
 
   constructor(
     private gl: WebGL2RenderingContext,
@@ -135,6 +179,7 @@ export class NavalBattleMarkerPass {
       gl.vertexAttribDivisor(loc, 1);
     }
     gl.bindVertexArray(null);
+    this.marks = new ArrowBatch(gl);
   }
 
   /** Called with a battle's zone center and how many ships its new update sank. */
@@ -147,16 +192,23 @@ export class NavalBattleMarkerPass {
   }
 
   /** Rewrites the markers when the view or the LOD (0 marker, 1 point) changed. */
-  update(view: WwNavyView, lod: number): void {
+  update(
+    view: WwNavyView,
+    lod: number,
+    aim: ImjinAim | null = null,
+    tilesPerPx = 1,
+  ): void {
     // P6 (spec §8.9): a battle the fog hides gets no marker.
     const fog = fogOfNavy(view);
     const fogStamp = fog?.stamp() ?? -1;
+    const aimMoved = aim !== this.seenAim;
     if (
       fogStamp === this.seenFog &&
       view === this.seenView &&
       view.version === this.seenVersion &&
       lod === this.seenLod
     ) {
+      if (aimMoved) this.rebuildMarks(view, aim, tilesPerPx);
       return;
     }
     const sameView = view === this.seenView;
@@ -164,7 +216,9 @@ export class NavalBattleMarkerPass {
     this.seenVersion = view.version;
     this.seenLod = lod;
     this.seenFog = fogStamp;
-    const n = view.battles.size;
+    const imjin = shownImjinBattles(view);
+    this.rebuildMarks(view, aim, tilesPerPx, imjin);
+    const n = view.battles.size + imjin.length;
     this.count = n;
     const sc = view.scenario;
     const w = sc.width;
@@ -202,10 +256,65 @@ export class NavalBattleMarkerPass {
       f[o + 7] = 0;
       o += FLOATS;
     }
+    const live = new Set<number>();
+    for (const b of imjin) {
+      live.add(b.id);
+      const ships = b.sides[0].ships + b.sides[1].ships;
+      const before = this.imjinShips.get(b.id);
+      if (sameView && before !== undefined && ships < before) {
+        this.onSunk?.(Math.floor(b.x), Math.floor(b.y), before - ships);
+      }
+      this.imjinShips.set(b.id, ships);
+      shownCount++;
+      f[o] = b.x;
+      f[o + 1] = b.y;
+      f[o + 2] = b.sides[0].owners[0] ?? 0;
+      f[o + 3] = b.sides[1].owners[0] ?? 0;
+      f[o + 4] = imjinBattleShare(b);
+      f[o + 5] = lod;
+      f[o + 6] = (b.id * 0.618034) % 1;
+      f[o + 7] = 0;
+      o += FLOATS;
+    }
+    for (const id of [...this.imjinShips.keys()]) {
+      if (!live.has(id)) this.imjinShips.delete(id);
+    }
     this.count = shownCount;
     const gl = this.gl;
     gl.bindBuffer(gl.ARRAY_BUFFER, this.buf.buffer);
     gl.bufferSubData(gl.ARRAY_BUFFER, 0, f, 0, o);
+  }
+
+  /** The Imjin circles' dotted rings and the heading drag's arrow. */
+  private rebuildMarks(
+    view: WwNavyView,
+    aim: ImjinAim | null,
+    tilesPerPx: number,
+    battles: ImjinBattleView[] = shownImjinBattles(view),
+  ): void {
+    this.seenAim = aim;
+    const m = this.marks;
+    m.clear();
+    const r = BATTLE_RADIUS_MT / 1000;
+    const pts = new Float64Array((RING_POINTS + 1) * 2);
+    for (const b of battles) {
+      for (let i = 0; i <= RING_POINTS; i++) {
+        const a = (i / RING_POINTS) * 2 * Math.PI;
+        pts[i * 2] = b.x + Math.cos(a) * r;
+        pts[i * 2 + 1] = b.y + Math.sin(a) * r;
+      }
+      m.dots(pts, RING_POINTS + 1, 0.8);
+    }
+    if (aim !== null && Math.hypot(aim.x - aim.fx, aim.y - aim.fy) > 0.5) {
+      m.band(
+        new Float64Array([aim.fx, aim.fy, aim.x, aim.y]),
+        2,
+        STYLE_BAND,
+        0.85,
+        tilesPerPx,
+      );
+    }
+    m.upload();
   }
 
   private async loadFx(): Promise<void> {
@@ -225,6 +334,7 @@ export class NavalBattleMarkerPass {
   }
 
   draw(cam: Float32Array, tilesPerPx: number, timeSec: number): void {
+    this.marks.draw(cam, tilesPerPx, timeSec);
     if (this.count === 0) return;
     const gl = this.gl;
     gl.useProgram(this.program);
@@ -245,6 +355,7 @@ export class NavalBattleMarkerPass {
 
   dispose(): void {
     this.disposed = true;
+    this.marks.dispose();
     const gl = this.gl;
     gl.deleteProgram(this.program);
     this.buf.dispose();

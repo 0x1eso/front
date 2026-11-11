@@ -2549,7 +2549,12 @@ export class GPURenderer {
       const moved = this.fleetLayout.update(navy, tick, t - tick, zoom);
       passes.convoys.update(navy, layer === "sea");
       passes.invasions.update(navy, tilesPerPx);
-      passes.battles.update(navy, fleetLod(zoom));
+      passes.battles.update(
+        navy,
+        fleetLod(zoom),
+        this.seaAirSelection?.aim ?? null,
+        tilesPerPx,
+      );
       passes.fleets.update(navy, this.fleetLayout, moved, this.seaAirSelection);
       passes.convoys.draw(cam, tilesPerPx, timeSec);
       passes.invasions.draw(cam, tilesPerPx, timeSec);
