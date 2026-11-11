@@ -43,7 +43,7 @@ import {
 import { generalsFor } from "./Post";
 import { pressView } from "./Press";
 import { holderOf, holds } from "./SceneRun";
-import { foeOn, foeRead, reads } from "./Spies";
+import { foeOn, foeRead, reads, rivalsOf } from "./Spies";
 import { endStrain, strainWord } from "./Strain";
 import { GW_ACTORS, GW_COMMAND_NAMED_AFTER } from "./Tables";
 import { sideIn } from "./Wars";
@@ -155,6 +155,7 @@ export function intelView(gw: GreatWar, seat: GwSeatState): GwIntelView {
   if (i === undefined) {
     return {
       levels: null,
+      rivals: rivalsOf(gw, seat.tag),
       reads: [],
       nets: [],
       caught: [],
@@ -169,6 +170,7 @@ export function intelView(gw: GreatWar, seat: GwSeatState): GwIntelView {
       .length;
   return {
     levels: { read: i.crypt, guard: i.secure, hunt: i.counter },
+    rivals: rivalsOf(gw, seat.tag),
     reads: i.reads.map((tag) => ({
       tag,
       named: [

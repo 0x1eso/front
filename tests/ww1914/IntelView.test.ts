@@ -3,6 +3,7 @@
 // operation's result before its card has come.
 import type { GameRunner } from "@openfront/engine/GameRunner";
 import type { GreatWar } from "@openfront/engine/ww1914/GreatWar";
+import { learn } from "@openfront/engine/ww1914/Intel";
 import { intelOf } from "@openfront/engine/ww1914/Spies";
 import { declareWar, openWar } from "@openfront/engine/ww1914/Wars";
 import { worldView } from "@openfront/engine/ww1914/WorldView";
@@ -15,16 +16,21 @@ let gw: GreatWar;
 beforeEach(async () => {
   ({ runner } = await gwRunner({}, "GWINTEL1"));
   gw = runner.game.greatWar()!;
+});
+
+function war(): void {
   openWar(gw);
   declareWar(gw, "DEU", "RUS", "test");
-});
+}
 
 describe("the 정보부 view", () => {
   test("a service never used shows no levels and nothing else", () => {
+    war();
     delete gw.nation("DEU")!.intel;
     const before = JSON.stringify(gw.nation("DEU"));
     expect(worldView(gw, gw.s.seats[0]).service).toEqual({
       levels: null,
+      rivals: expect.arrayContaining(["RUS"]),
       reads: [],
       nets: [],
       caught: [],
@@ -36,6 +42,7 @@ describe("the 정보부 view", () => {
   });
 
   test("own service only; a foe's suspicion and a result not yet carded stay hidden", () => {
+    war();
     const now = gw.s.chapter;
     const rus = intelOf(gw, "RUS");
     rus.suspect = { DEU: 3 };
@@ -80,5 +87,16 @@ describe("the 정보부 view", () => {
     }
     // Nothing of Russia's service: its sabotage of us, its read of our codes.
     expect(text).not.toContain('"sabotage"');
+  });
+
+  test("in peace the service watches the other camp, and its reports show", () => {
+    const v = worldView(gw, gw.s.seats[0]);
+    expect(v.service!.rivals).toContain("FRA");
+    expect(v.service!.rivals).toContain("RUS");
+    // ww178: a peacetime net reports a rival's war plan.
+    learn(gw, "DEU", "plan", "FRA", null, "agents");
+    const r = worldView(gw, gw.s.seats[0]).reports.at(-1)!;
+    expect(r).toMatchObject({ fact: "plan", tag: "FRA", source: "agents" });
+    expect(JSON.stringify(r)).not.toContain('"truth"');
   });
 });

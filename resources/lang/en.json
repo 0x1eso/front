@@ -2861,24 +2861,25 @@
       "chief": {
         "title": "Head of intelligence",
         "to_people": "Appoint one in People",
+        "unmet": "We haven't met the head of intelligence yet. He appears in People as the story goes on.",
         "vacant": "The post is empty. Without a head, codes and operations go badly.",
         "why": "The person who runs the service. The abler he is, the better codes are broken, operations go and enemy agents are caught."
       },
       "codes": {
         "none": "We read nobody's codes now. Ours must be better than their codes to read them.",
-        "quiet": "We can't tell whether they suspect. As long as we don't show what we read, we keep reading.",
+        "quiet": "We can't tell whether they suspect. Calling a bluff or pressing a note on what we read may tell them.",
         "read": "We read {country}'s codes.",
         "reading": "reading his codes",
         "risk": "A telegram we read named moves on {fronts}. Sending our main effort there at once may tell them their codes leak.",
         "title": "Codebreaking",
         "unread": "Codes we can't read yet: {countries}",
-        "why": "Reading enemy telegrams brings his plans for certain. Act on them too openly and he notices and changes his codes."
+        "why": "Reading another country's telegrams tells us for certain what it means: in peace whether it will back down, keep its treaty or mobilise; in war its plans at the front. Use it too openly and they notice and change their codes."
       },
       "countries": {
-        "none": "No rival to watch yet. Countries appear here once a camp stands against us.",
+        "none": "No rival to watch yet. Countries appear here once a camp or a note stands against us.",
         "nothing": "Nothing known yet of {countries}. Plant a net there (covert operations below) and reports come in.",
         "title": "What we know of each country",
-        "why": "Reports on rivals' strength, morale, mobilisation and intentions. They can be wrong, so see who sent them."
+        "why": "Reports on rivals: their war plan, strength, morale, mobilisation, intentions, whether they keep their treaties, unrest at home. They can be wrong, so see who sent them."
       },
       "from": "From: {source}",
       "fronts": {
@@ -2921,9 +2922,11 @@
         "caught": "We hold {country}'s agents. Decide what to do with them on the desk.",
         "none": "No spies caught on either side yet.",
         "ours_caught": "Our net in {country} was caught.",
+        "rolled_up": "{country} took every foreign ring it knew of on its mobilisation day. A net of ours there may be gone.",
         "title": "Spies caught",
         "turned": "We turned {country}'s agents. Their reports on us now carry lies.",
-        "we_caught": "We caught {country}'s spy ring and made it public."
+        "we_caught": "We caught {country}'s spy ring and made it public.",
+        "we_rolled_up": "On mobilisation day our counter-intelligence took every foreign ring it knew of."
       },
       "skill": {
         "guard": {

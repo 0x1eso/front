@@ -145,6 +145,8 @@ export interface GwIntelView {
    * while the service has never been used.
    */
   levels: { read: number; guard: number; hunt: number } | null;
+  /** Whom the service works on: in war its foes, in peace the other camp. */
+  rivals: readonly GwTag[];
   /**
    * Countries whose codes we read now, with the fronts a read named this
    * chapter: putting the main effort there may tell them.

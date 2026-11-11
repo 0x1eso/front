@@ -40,6 +40,7 @@ const report = (o: Partial<GwReportView>): GwReportView => ({
 
 const service = (o: Partial<GwIntelView> = {}): GwIntelView => ({
   levels: { read: 2, guard: 1, hunt: 3 },
+  rivals: [],
   reads: [],
   nets: [],
   caught: [],
@@ -107,8 +108,13 @@ describe("the 정보부 tab", () => {
   test("every section says what it is, and empty ones say what to do", () => {
     const { root } = ctx({ service: service() });
     expect(root.querySelectorAll("[data-gw-intel-why]").length).toBe(5);
-    // A vacant chief points to the people tab.
-    expect(q(root, "[data-gw-intel-to-people]")).not.toBeNull();
+    // A chief not met yet is not a vacancy; a vacant one points to people.
+    expect(q(root, "[data-gw-intel-to-people]")).toBeNull();
+    const vacant = ctx({
+      service: service(),
+      candidates: { intelligence: ["deu_nicolai"] },
+    });
+    expect(q(vacant.root, "[data-gw-intel-to-people]")).not.toBeNull();
     // Rivals by camp, nothing known yet: the empty line, not a bare blank.
     expect(q(root, "[data-gw-intel-blank]")!.dataset.gwIntelBlank).toBe(
       "RUS FRA",
@@ -200,5 +206,22 @@ describe("the 정보부 tab", () => {
     expect(sent).toEqual([
       { kind: "act", act: "gw_a_spy_net", picks: ["main_foe"] },
     ]);
+  });
+
+  test("in peace: the camp's rivals, a war plan read, a mobilisation round-up", () => {
+    const { root } = ctx({
+      side: null,
+      reports: [
+        report({ uid: 9, fact: "plan", tag: "FRA", theatre: null, claim: 0 }),
+      ],
+      news: [
+        { key: "spy_rolled_up", chapter: 6, a: "RUS", b: null, theatre: null },
+      ] as unknown as GwWorldView["news"],
+      service: service({ rivals: ["FRA", "RUS"] }),
+    });
+    const fra = q(root, "[data-gw-intel-country=FRA]")!;
+    expect(fra.querySelector("[data-gw-intel-report='9']")).not.toBeNull();
+    expect(q(root, "[data-gw-intel-blank]")!.dataset.gwIntelBlank).toBe("RUS");
+    expect(q(root, "[data-gw-intel-exposed]")).not.toBeNull();
   });
 });

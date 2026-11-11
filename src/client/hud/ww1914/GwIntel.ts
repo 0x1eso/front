@@ -112,6 +112,7 @@ export function rivalsOf(c: GwCtx): GwTag[] {
   const named = new Set<string>([
     ...w.fronts.flatMap((f) => (f.foe ? [f.foe.tag] : [])),
     ...foreign(c).map((r) => r.tag),
+    ...(i?.rivals ?? []),
     ...(i?.reads.map((x) => x.tag) ?? []),
     ...(i?.nets.map((x) => x.tag) ?? []),
   ]);
@@ -133,19 +134,22 @@ function chief(c: GwCtx): TemplateResult {
     ${head("chief")}
     ${p !== undefined
       ? personRow(c, p)
-      : html`<p class="text-sm text-amber-100" data-gw-intel-vacant>
-            ${t("chief.vacant")}
-          </p>
-          <button
-            class="${BTN} !px-2 !py-1"
-            data-gw-intel-to-people
-            @click=${() => {
-              c.ui.tab = "people";
-              c.redraw();
-            }}
-          >
-            ${t("chief.to_people")}
-          </button>`}
+      : c.seat.world.candidates.intelligence === undefined
+        ? // Held by someone the opening hasn't shown yet: not a vacancy.
+          empty("chief.unmet")
+        : html`<p class="text-sm text-amber-100" data-gw-intel-vacant>
+              ${t("chief.vacant")}
+            </p>
+            <button
+              class="${BTN} !px-2 !py-1"
+              data-gw-intel-to-people
+              @click=${() => {
+                c.ui.tab = "people";
+                c.redraw();
+              }}
+            >
+              ${t("chief.to_people")}
+            </button>`}
     ${levels === null
       ? empty("skill.none")
       : (["read", "guard", "hunt"] as const).map(
@@ -278,7 +282,10 @@ function nets(c: GwCtx): TemplateResult {
   const i = c.seat.world.service;
   const me = c.seat.tag;
   const exposed = c.seat.world.news.filter(
-    (n) => n.key === "spy_exposed" && (n.a === me || n.b === me),
+    (n) =>
+      (n.key === "spy_exposed" && (n.a === me || n.b === me)) ||
+      // ww178: a country's mobilisation day takes every ring it knew of.
+      (n.key === "spy_rolled_up" && n.a !== null),
   );
   const caught = i?.caught ?? [];
   const turned = i?.turned ?? [];
@@ -314,9 +321,13 @@ function nets(c: GwCtx): TemplateResult {
     ${exposed.map(
       (n) =>
         html`<p class="text-sm text-white/85" data-gw-intel-exposed>
-          ${n.a === me
-            ? t("rings.we_caught", { country: country(n.b ?? "") })
-            : t("rings.ours_caught", { country: country(n.a ?? "") })}
+          ${n.key === "spy_rolled_up"
+            ? n.a === me
+              ? t("rings.we_rolled_up")
+              : t("rings.rolled_up", { country: country(n.a ?? "") })
+            : n.a === me
+              ? t("rings.we_caught", { country: country(n.b ?? "") })
+              : t("rings.ours_caught", { country: country(n.a ?? "") })}
           <span class=${MUTED}>· ${ageWord(c.data.chapter, n.chapter)}</span>
         </p>`,
     )}
