@@ -504,9 +504,10 @@ export type GwAlloc = z.infer<typeof GwAllocSchema>;
 
 /** ww173: what a report a country holds without a seat says (the AI's). */
 export const GwHeardSchema = z.object({
-  fact: z.enum(["prep", "strain"]),
+  /** ww178: append only. resolve and plan are peace's, with no theatre. */
+  fact: z.enum(["prep", "strain", "resolve", "plan"]),
   tag: z.enum(GW_TAGS),
-  theatre: z.enum(GW_THEATRES),
+  theatre: z.enum(GW_THEATRES).nullable(),
   claim: z.number().int(),
   chapter: z.number().int(),
 });
@@ -682,6 +683,14 @@ export const GW_FACT_KINDS = [
   "prep",
   /** ww173: how near a front's end is to breaking, 0..4 (Spies.strainWord). */
   "strain",
+  /** ww178: in a note's crisis, 1 it means to stand, 0 it will back down. */
+  "resolve",
+  /** ww178: where its main force goes on the first day, a GW_THEATRES index. */
+  "plan",
+  /** ww178: whether it will honour its treaty when called, 1 yes, 0 not. */
+  "treaty",
+  /** ww178: its home unrest, the ladder 0..4. */
+  "unrest",
 ] as const;
 export type GwFactKind = (typeof GW_FACT_KINDS)[number];
 

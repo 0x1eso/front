@@ -2517,6 +2517,10 @@
         "0": "no sign of it",
         "1": "massing guns and men"
       },
+      "resolve": {
+        "0": "will back down",
+        "1": "means to stand"
+      },
       "shells": {
         "0": "out of shells",
         "1": "short of shells",
@@ -2529,6 +2533,17 @@
         "2": "worn down",
         "3": "near the end of its strength",
         "4": "close to breaking"
+      },
+      "treaty": {
+        "0": "will hesitate",
+        "1": "will keep its word"
+      },
+      "unrest": {
+        "0": "quiet",
+        "1": "strikes",
+        "2": "riots",
+        "3": "the army is restless",
+        "4": "revolution"
       }
     },
     "front": {
@@ -3301,9 +3316,11 @@
       "spy_arms_taken": "{a}'s navy caught an arms ship sent by {b}.",
       "spy_codes_changed": "{a} changed its codes.",
       "spy_exposed": "{a} caught {b}'s agents and made it public.",
+      "spy_incident": "{a} summoned {b}'s ambassador over the spies it caught.",
       "spy_irish_rising": "A rising broke out in Ireland, with rifles from {b}.",
       "spy_jihad": "The sultan of {a} called a holy war in the name of the caliph.",
       "spy_lenin": "Exiled revolutionaries went home to {a} by a road {b} opened.",
+      "spy_rolled_up": "{a} rounded up the foreign spy rings at home on mobilisation day.",
       "spy_sabotage": "A munitions depot blew up in {a}.",
       "sued_for_peace": "{a} makes its own peace.",
       "table_ceded": "{b} cedes {place} to {a}.",
@@ -3789,7 +3806,10 @@
       "spy_code_lost": "The enemy changed his codes: we can no longer read him.",
       "spy_code_read": "Our codebreakers are reading the enemy's traffic.",
       "spy_codebook": "An enemy codebook has reached our codebreakers.",
+      "spy_dip_read": "The code-breakers began reading a rival's diplomatic telegrams.",
+      "spy_incident": "A spy case turned into a diplomatic row. An ambassador was called in.",
       "spy_ours_exposed": "Our agents abroad were caught, and their country told the world.",
+      "spy_rolled_up": "On mobilisation day counter-intelligence took in every foreign ring it knew of.",
       "stavka_grows": "Stavka took more into its hands.",
       "successor_named": "{who} filled the empty office.",
       "talk_clash_cold": "They closed up at the cold words.",
@@ -4418,6 +4438,11 @@
         "health": "The doctors won't be put off much longer. Without rest this can end the game.",
         "reputation": "Nobody says the name aloud now. Unless you are seen, this can end the game."
       },
+      "decrypt_line": "Foreign ministry decrypt: {word} — {stamp}",
+      "decrypt_word": {
+        "0": "they mean to back down",
+        "1": "they have no thought of backing down"
+      },
       "desk_empty": "Nothing waits on the desk. You may call someone or close the chapter.",
       "dict_close": "Close",
       "dismiss": "Dismiss",
@@ -4435,11 +4460,16 @@
         "lean": "leaning",
         "mob": "mobilisation",
         "morale": "morale",
+        "plan": "war plan",
         "plot": "plot",
         "prep": "offensive preparation",
+        "resolve": "resolve",
         "shells": "shells",
-        "strain": "the front's strain"
+        "strain": "the front's strain",
+        "treaty": "treaty word",
+        "unrest": "home front"
       },
+      "fact_plan_to": "main force to {theatre}",
       "fold": "Fold or unfold",
       "folded_title": "Small news meanwhile",
       "front_commander": "Commanded by {name}",

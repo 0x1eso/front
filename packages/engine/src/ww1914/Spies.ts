@@ -3,11 +3,20 @@
 // keeps agents abroad and catches the foreigners at home. Everything here is
 // hidden: a seat learns only through its reports (Intel.learn), and the AI
 // through `intel.heard`, by the same rules. Every roll has its own purpose.
+//
+// ww178: the secret war does not wait for the war. In peace a service works
+// on its rivals (the other camp's powers, and whoever has a note out with it):
+// it reads their diplomatic traffic (a note's resolve, an ally's word, the
+// mobilisation), its nets report their war plan, arms, readiness and unrest,
+// and the rings it keeps abroad can be caught. A plan read is an edge in the
+// war's first month on the front it names (planEdge).
 import {
   GW_FIELDS,
   GW_SIDES,
   GW_THEATRES,
+  GwFactKind,
   GwIntel,
+  GwLadder,
   GwSeatState,
   GwSide,
   GwSource,
@@ -18,9 +27,11 @@ import { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import { GW_PLACES, GwPlace } from "@openfront/engine-api/ww1914/GwPlaces";
 import type { GwSpyAct, GwSpyCan } from "@openfront/engine-api/ww1914/GwSpies";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
+import { warMonths } from "./Eras";
 import { allocOf } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { learn, sendReport } from "./Intel";
+import { meansToStand, openLadder } from "./Ladder";
 import {
   loudnessOf,
   markSeen,
@@ -30,7 +41,16 @@ import {
 } from "./Offensives";
 import { firstRegime } from "./Regimes";
 import { addStrain } from "./Strain";
-import { atWarWith, memberEnd, membersOf, warOf } from "./Wars";
+import { GW_AI_MAIN, GW_START_TREATIES } from "./Tables";
+import {
+  atWarWith,
+  germanPlan,
+  honourPct,
+  memberEnd,
+  membersOf,
+  naturalSide,
+  warOf,
+} from "./Wars";
 import {
   clampTo,
   defOf,
@@ -54,6 +74,7 @@ const P_AI = idHash("gw_spy_ai");
 const P_TURN = idHash("gw_spy_turn");
 const P_COUNTER = idHash("gw_spy_counter");
 const P_EVENT = idHash("gw_spy_event");
+const P_INCIDENT = idHash("gw_spy_incident");
 
 /** Countries with a service of their own: they read, spot and send agents. */
 export const GW_SPY_POWERS: readonly GwTag[] = [
@@ -72,6 +93,8 @@ const COURTED: readonly GwTag[] = ["USA", "ITA", "ROU", "BGR", "GRC", "OTT"];
 /** Design §6 start values: Room 40 grows by state, Russia speaks in plain. */
 const CRYPT_START: Partial<Record<GwTag, number>> = { FRA: 2, AUH: 2 };
 const SECURE_START: Partial<Record<GwTag, number>> = { RUS: 0 };
+/** ww178: Kell's MI5 had the German rings in Britain watched before 1914. */
+const COUNTER_START: Partial<Record<GwTag, number>> = { GBR: 2 };
 /** Days count from 1970: 1914 is far below zero. */
 const NEVER = -1_000_000;
 const YEAR = 365;
@@ -98,6 +121,14 @@ const AI_NET_PCT_BOLD = 6;
 const AI_NET_PCT = 4;
 /** Percent an AI service is funded more after it catches agents. */
 const AI_FUND_PCT = 25;
+/** ww178: chapters a read of a note's resolve stays news. */
+const RESOLVE_FRESH = 2;
+/** ww178: percent a ring caught in peace becomes a diplomatic incident. */
+const INCIDENT_PCT = 35;
+/** ww178: counter-intelligence that rolls up every ring on mobilisation day. */
+const ROLL_UP_COUNTER = 2;
+/** ww178: the opening odds a plan read in peace is worth on its front. */
+export const PLAN_EDGE = 15;
 
 /** A country's service, filled with the start values on first use. */
 export function intelOf(gw: GreatWar, tag: GwTag): GwIntel {
@@ -105,7 +136,7 @@ export function intelOf(gw: GreatWar, tag: GwTag): GwIntel {
   n.intel ??= {
     crypt: CRYPT_START[tag] ?? 1,
     secure: SECURE_START[tag] ?? 1,
-    counter: 1,
+    counter: COUNTER_START[tag] ?? 1,
     net: {},
     reads: [],
     suspect: {},
@@ -188,12 +219,15 @@ interface Held {
   chapter: number;
 }
 
-/** The newest strain or prep word `viewer` holds of `of` at `theatre`. */
+/**
+ * The newest word `viewer` holds of `of`'s `fact` at `theatre` (null for a
+ * fact of no front: ww178's resolve and plan).
+ */
 function heldOf(
   gw: GreatWar,
   viewer: GwTag,
-  fact: "prep" | "strain",
-  theatre: GwTheatre,
+  fact: GwFactKind,
+  theatre: GwTheatre | null,
   of: GwTag,
 ): Held | null {
   const seat = seatOf(gw, viewer);
@@ -260,6 +294,26 @@ export function believedPrep(
   return h !== null && h.claim === 1 && gw.s.chapter - h.chapter <= 2;
 }
 
+/**
+ * ww178: what `viewer`'s code-breakers last said of `of`'s resolve in a note's
+ * crisis, while it is news: 1 it stands, 0 it backs down, null nothing.
+ */
+export function heldResolve(
+  gw: GreatWar,
+  viewer: GwTag,
+  of: GwTag,
+): number | null {
+  const h = heldOf(gw, viewer, "resolve", null, of);
+  if (h === null || gw.s.chapter - h.chapter > RESOLVE_FRESH) return null;
+  return h.claim;
+}
+
+/** ww178: the front `viewer` last heard `of` means to open the war on. */
+function heldPlan(gw: GreatWar, viewer: GwTag, of: GwTag): GwTheatre | null {
+  const h = heldOf(gw, viewer, "plan", null, of);
+  return h === null ? null : (GW_THEATRES[h.claim] ?? null);
+}
+
 /** Whether `viewer` reads `of`'s codes now. */
 export function reads(gw: GreatWar, viewer: GwTag, of: GwTag): boolean {
   return gw.nation(viewer)?.intel?.reads.includes(of) === true;
@@ -267,21 +321,31 @@ export function reads(gw: GreatWar, viewer: GwTag, of: GwTag): boolean {
 
 // ---- Codes (Room 40's dilemma) ----
 
+/**
+ * Whether `a` reads `f`'s traffic this chapter: its `crypt` against `f`'s
+ * `secure`, a roll to break in, then it stays read until the codes change.
+ */
+function readsNow(gw: GreatWar, a: GwTag, f: GwTag, line: string): boolean {
+  const ia = intelOf(gw, a);
+  const iF = intelOf(gw, f);
+  if (ia.crypt <= iF.secure) {
+    ia.reads = ia.reads.filter((x) => x !== f);
+    return false;
+  }
+  if (!ia.reads.includes(f)) {
+    const pct = 25 + 15 * (ia.crypt - iF.secure) + skillOf(gw, a);
+    if (roll(gw, P_CRYPT, idx(gw, a), idx(gw, f)) >= pct) return false;
+    ia.reads.push(f);
+    const seat = seatOf(gw, a);
+    if (seat !== undefined) reason(gw, seat, line);
+  }
+  return true;
+}
+
 function codesStep(gw: GreatWar, a: GwTag, foes: GwTag[]): void {
   const ia = intelOf(gw, a);
   for (const f of foes) {
-    const iF = intelOf(gw, f);
-    if (ia.crypt <= iF.secure) {
-      ia.reads = ia.reads.filter((x) => x !== f);
-      continue;
-    }
-    if (!ia.reads.includes(f)) {
-      const pct = 25 + 15 * (ia.crypt - iF.secure) + skillOf(gw, a);
-      if (roll(gw, P_CRYPT, idx(gw, a), idx(gw, f)) >= pct) continue;
-      ia.reads.push(f);
-      const seat = seatOf(gw, a);
-      if (seat !== undefined) reason(gw, seat, "spy_code_read");
-    }
+    if (!readsNow(gw, a, f, "spy_code_read")) continue;
     for (const t of sharedFronts(gw, a, f)) {
       learn(gw, a, "strain", f, t, "codes", "confirmed");
       for (const o of preparing(gw, f, t)) {
@@ -396,6 +460,8 @@ function netStep(gw: GreatWar, a: GwTag): void {
       const main = allocOf(gw, a)?.main;
       const t = fronts.find((y) => y === main) ?? fronts[0];
       if (t !== undefined) learn(gw, a, "strain", x, t, "agents", force);
+    } else if (atPeace(gw, a) && rivalsOf(gw, a).includes(x)) {
+      peaceNet(gw, a, x, force);
     } else if (seat !== undefined && gw.nation(x)?.side === null) {
       sendReport(gw, seat, "lean", x, null, "agents", force);
     }
@@ -489,6 +555,17 @@ export function expose(gw: GreatWar, x: GwTag, s: GwTag): void {
   news(gw, "spy_exposed", x, s);
   for (const seat of seatsOf(gw, s)) reason(gw, seat, "spy_ours_exposed");
   for (const seat of seatsOf(gw, x)) reason(gw, seat, "spy_caught");
+  // ww178: caught in peace, the ring is a row between the two: the world is
+  // a little warmer, and now and then the ambassador is called in.
+  if (atPeace(gw, x) && !atWarWith(gw, x, s)) {
+    gw.s.temp = clampTo(gw.s.temp + 1, 0, 10);
+    if (roll(gw, P_INCIDENT, idx(gw, x), idx(gw, s)) < INCIDENT_PCT) {
+      news(gw, "spy_incident", x, s);
+      for (const seat of [...seatsOf(gw, x), ...seatsOf(gw, s)]) {
+        reason(gw, seat, "spy_incident");
+      }
+    }
+  }
   // Design §6, AI: counter-intelligence is funded when agents turn up.
   const ix = intelOf(gw, x);
   if (
@@ -561,8 +638,10 @@ function court(gw: GreatWar, a: GwTag, x: GwTag): void {
   const na = gw.nation(a);
   const nx = gw.nation(x);
   const { ok, out } = opRoll(gw, a, x, "court", 35, 6);
-  if (ok && na !== null && nx !== null && na.side !== null) {
-    nx.lean = clampTo(nx.lean + (na.side === "entente" ? 1 : -1), -1, 1);
+  // In peace a camp is what it would be (ww178).
+  const side = na === null ? null : naturalSide(gw, a);
+  if (ok && nx !== null && side !== null) {
+    nx.lean = clampTo(nx.lean + (side === "entente" ? 1 : -1), -1, 1);
     nx.readiness = clampTo(nx.readiness + 5, 0, 100);
   }
   record(gw, a, "court", x, ok, out);
@@ -793,6 +872,185 @@ function eventsStep(gw: GreatWar): void {
   }
 }
 
+// ---- ww178: the secret war in peace ----
+
+/** A country in no war: its service works on rivals, not foes. */
+export function atPeace(gw: GreatWar, tag: GwTag): boolean {
+  const n = gw.nation(tag);
+  return n !== null && !n.out && !fights(n);
+}
+
+/**
+ * Whom `a`'s service works on. In war its foes, as ever. In peace the other
+ * camp's powers, and first whoever has a note out with it.
+ */
+export function rivalsOf(gw: GreatWar, a: GwTag): GwTag[] {
+  const n = gw.nation(a);
+  if (n === null || n.out) return [];
+  if (fights(n)) return n.atWar.filter((f) => live(gw, f));
+  const out: GwTag[] = [];
+  const l = openLadder(gw, a);
+  if (l !== null) out.push(l.from === a ? l.to : l.from);
+  const mine = naturalSide(gw, a);
+  for (const f of GW_SPY_POWERS) {
+    if (f === a || out.includes(f) || !live(gw, f)) continue;
+    const theirs = naturalSide(gw, f);
+    if (mine !== null && theirs !== null && mine !== theirs) out.push(f);
+  }
+  return out;
+}
+
+/**
+ * Where `tag`'s main force goes on the war's first day: Germany's plan (the
+ * one in the safe if none is signed), else its main effort, else its first
+ * front.
+ */
+export function planOf(gw: GreatWar, tag: GwTag): GwTheatre | null {
+  if (tag === "DEU") {
+    const p = gw.s.plan ?? (ruledBySeat(gw, "DEU") ? "west" : germanPlan(gw));
+    if (p === "west" || p === "east") return p;
+  }
+  return allocOf(gw, tag)?.main ?? GW_AI_MAIN[tag]?.[0] ?? null;
+}
+
+/** The note's crisis `tag` is in: whether it means to stand (1) or not (0). */
+export function resolveTruth(gw: GreatWar, tag: GwTag): number {
+  const l = openLadder(gw, tag);
+  return l === null ? 0 : (meansToStand(gw, l, tag) ?? 0);
+}
+
+/** Whether `tag` would honour its binding treaties when first called. */
+export function treatyTruth(gw: GreatWar, tag: GwTag): number {
+  const rows = GW_START_TREATIES.filter(
+    (r) => r.by === tag && r.kind !== "guarantee",
+  );
+  if (rows.length === 0) return 0;
+  return Math.max(...rows.map((r) => honourPct(gw, r))) >= 50 ? 1 : 0;
+}
+
+/** `f`'s partners bound by treaty to come in for it, `a` aside. */
+function alliesOf(gw: GreatWar, f: GwTag, a: GwTag): GwTag[] {
+  const out: GwTag[] = [];
+  for (const r of GW_START_TREATIES) {
+    if (r.for !== f || r.kind === "guarantee" || r.by === a) continue;
+    if (live(gw, r.by) && !out.includes(r.by)) out.push(r.by);
+  }
+  return out;
+}
+
+/**
+ * Peace's code-breaking: a rival's diplomatic traffic, one thing a chapter.
+ * In a note's crisis between the two, whether it means to stand; else, in
+ * turn, its mobilisation and whether an ally of its will honour the treaty.
+ * Stamped by the source's band, so an unconfirmed read can be wrong.
+ */
+function peaceCodesStep(gw: GreatWar, a: GwTag, rivals: GwTag[]): void {
+  for (const f of rivals) {
+    if (!readsNow(gw, a, f, "spy_dip_read")) continue;
+    const l = openLadder(gw, a);
+    if (l !== null && (l.from === f || l.to === f)) {
+      if (meansToStand(gw, l, f) !== null) {
+        learn(gw, a, "resolve", f, null, "codes");
+      }
+      continue;
+    }
+    const allies = alliesOf(gw, f, a);
+    if (allies.length > 0 && (gw.s.chapter + idx(gw, f)) % 2 === 0) {
+      const ally = allies[gw.s.chapter % allies.length];
+      learn(gw, a, "treaty", ally, null, "codes");
+    } else {
+      learn(gw, a, "mob", f, null, "codes");
+    }
+  }
+}
+
+/** What a net in a rival reports in peace, one thing a chapter in turn. */
+const NET_FACTS: readonly GwFactKind[] = ["plan", "shells", "mob", "unrest"];
+
+function peaceNet(
+  gw: GreatWar,
+  a: GwTag,
+  x: GwTag,
+  force: "lie" | undefined,
+): void {
+  let fact = NET_FACTS[(gw.s.chapter + idx(gw, x)) % NET_FACTS.length];
+  if (fact === "plan" && planOf(gw, x) === null) fact = "mob";
+  learn(gw, a, fact, x, null, "agents", force);
+}
+
+/**
+ * The war's first month, on a front where one side read the other's plan in
+ * peace and the plan holds: an edge to the side that read it, against the
+ * side that was read. `by` is the side whose odds these are.
+ */
+export function planEdge(gw: GreatWar, t: GwTheatre, by: GwSide): number {
+  if (gw.s.warChapter === null || warMonths(gw) >= 1) return 0;
+  const foe: GwSide = by === GW_SIDES[0] ? GW_SIDES[1] : GW_SIDES[0];
+  const knew = (r: GwSide, of: GwSide) =>
+    membersOf(gw, t, of).some(
+      (f) =>
+        planOf(gw, f) === t &&
+        membersOf(gw, t, r).some((m) => heldPlan(gw, m, f) === t),
+    );
+  return (knew(by, foe) ? PLAN_EDGE : 0) - (knew(foe, by) ? PLAN_EDGE : 0);
+}
+
+/**
+ * Mobilisation day (Kell, August 1914): a service at counter 2 or more rolls
+ * up every ring its rivals keep at home, once.
+ */
+function rollUpStep(gw: GreatWar): void {
+  for (const x of GW_SPY_POWERS) {
+    const n = gw.nation(x);
+    if (n === null || n.out || (n.mob < 2 && !fights(n))) continue;
+    const ix = n.intel;
+    if (ix === undefined || ix.counter < ROLL_UP_COUNTER) continue;
+    if (ix.marks.includes("rolled_up")) continue;
+    mark(gw, x, "rolled_up");
+    const mine = naturalSide(gw, x);
+    let taken = 0;
+    for (const s of GW_SPY_POWERS) {
+      const is = gw.nation(s)?.intel;
+      if (s === x || is === undefined || (is.net[x] ?? 0) < 1) continue;
+      const theirs = naturalSide(gw, s);
+      if (!atWarWith(gw, x, s) && (mine === null || theirs === mine)) continue;
+      delete is.net[x];
+      taken++;
+      for (const seat of seatsOf(gw, s)) reason(gw, seat, "spy_ours_exposed");
+    }
+    if (taken === 0) continue;
+    news(gw, "spy_rolled_up", x);
+    for (const seat of seatsOf(gw, x)) reason(gw, seat, "spy_rolled_up");
+  }
+}
+
+/** In peace: the seat's country gave way or backed down on a note lately. */
+function humbledLately(gw: GreatWar, a: GwTag): boolean {
+  return gw.s.ladders.some(
+    (l) =>
+      gw.s.chapter - l.chapter <= 2 &&
+      ((l.to === a && l.step === "accepted") ||
+        (l.from === a && l.step === "backed_down")),
+  );
+}
+
+/**
+ * The note's card: what the seat's code-breakers read of the other side's
+ * resolve in this crisis, if they read it lately.
+ */
+export function decryptFor(
+  gw: GreatWar,
+  seat: GwSeatState,
+): { tag: GwTag; word: number; stamp: GwStamp } | null {
+  const l: GwLadder | null = openLadder(gw, seat.tag);
+  if (l === null) return null;
+  const other = l.from === seat.tag ? l.to : l.from;
+  const h = heldOf(gw, seat.tag, "resolve", null, other);
+  if (h === null || h.stamp === null) return null;
+  if (gw.s.chapter - h.chapter > RESOLVE_FRESH) return null;
+  return { tag: other, word: h.claim, stamp: h.stamp };
+}
+
 // ---- The AI's service (design §6 AI, 9A) ----
 
 function aiStep(gw: GreatWar, a: GwTag, foes: GwTag[]): void {
@@ -811,7 +1069,11 @@ function aiStep(gw: GreatWar, a: GwTag, foes: GwTag[]): void {
       plantNet(gw, a, pool[roll(gw, P_AI, k, 2) % pool.length]);
     }
   }
-  if (gw.s.day - ia.sabotaged >= HALF_YEAR && roll(gw, P_AI, k, 3) < 30) {
+  if (
+    fights(n) &&
+    gw.s.day - ia.sabotaged >= HALF_YEAR &&
+    roll(gw, P_AI, k, 3) < 30
+  ) {
     const at = [...foes, ...neutrals].find((x) => (ia.net[x] ?? 0) > 0);
     if (at !== undefined) sabotage(gw, a, at);
   }
@@ -827,11 +1089,12 @@ function aiStep(gw: GreatWar, a: GwTag, foes: GwTag[]): void {
   }
 }
 
-/** Chapter step (from Intel.intelStep): the secret war of every service. */
+/**
+ * Chapter step (from Intel.intelStep): the secret war of every service. In
+ * war on its foes; in peace (ww178) on its rivals, by peace's own reports.
+ */
 export function spiesStep(gw: GreatWar): void {
   const s = gw.s;
-  const war = s.warChapter !== null || s.wars.some((w) => w.ended === null);
-  if (!war) return;
   eventsStep(gw);
   ongoingStep(gw);
   for (const a of GW_SPY_POWERS) {
@@ -840,23 +1103,22 @@ export function spiesStep(gw: GreatWar): void {
   }
   for (const n of s.nations) codeChangeStep(gw, n.tag);
   for (const a of GW_SPY_POWERS) {
-    const n = gw.nation(a);
-    if (!fights(n)) continue;
-    const foes = n!.atWar.filter((f) => live(gw, f));
-    codesStep(gw, a, foes);
-    alarmStep(gw, a, foes);
+    if (!live(gw, a)) continue;
+    const rivals = rivalsOf(gw, a);
+    if (fights(gw.nation(a))) {
+      codesStep(gw, a, rivals);
+      alarmStep(gw, a, rivals);
+    } else {
+      peaceCodesStep(gw, a, rivals);
+    }
     netStep(gw, a);
   }
   spotStep(gw);
   catchStep(gw);
+  rollUpStep(gw);
   for (const a of GW_SPY_POWERS) {
-    const n = gw.nation(a);
-    if (!fights(n) || ruledBySeat(gw, a)) continue;
-    aiStep(
-      gw,
-      a,
-      n!.atWar.filter((f) => live(gw, f)),
-    );
+    if (!live(gw, a) || ruledBySeat(gw, a)) continue;
+    aiStep(gw, a, rivalsOf(gw, a));
   }
 }
 
@@ -930,14 +1192,17 @@ export function spyHolds(
     case "sabotage":
       return net > 0 && fights(na) && gw.s.day - (i?.sabotaged ?? NEVER) >= 30;
     case "court":
-      return net > 0 && gw.nation(tag!)?.side === null && na.side !== null;
+      return (
+        net > 0 && gw.nation(tag!)?.side === null && naturalSide(gw, a) !== null
+      );
     case "lenin":
     case "ireland":
     case "arab":
     case "jihad":
       return subversionOpen(gw, a, can);
     case "blame":
-      return fights(na) && lostLately(gw, a);
+      // ww178: in peace, after a climb-down on a note.
+      return fights(na) ? lostLately(gw, a) : humbledLately(gw, a);
     case "ok":
       return lastOp?.ok === true;
     case "out":
@@ -945,7 +1210,9 @@ export function spyHolds(
     case "from":
       return i?.caught.some((c) => c.tag === tag) === true;
     case "reading":
-      return tag !== undefined && i?.reads.includes(tag) === true;
+      return tag === undefined
+        ? (i?.reads.length ?? 0) > 0
+        : i?.reads.includes(tag) === true;
     case "ship":
       return marked(gw, "DEU", "ship");
     case "double":
@@ -1000,7 +1267,8 @@ function defaultTarget(
   }
   const main = allocOf(gw, a)?.main;
   const foe = main === undefined ? null : foeOn(gw, main, a);
-  return foe ?? gw.nation(a)?.atWar.find((x) => live(gw, x)) ?? null;
+  // In war the first foe; in peace (ww178) the first rival.
+  return foe ?? rivalsOf(gw, a)[0] ?? null;
 }
 
 /** What the scene orders. An act that can't be done now records a failure. */
@@ -1045,7 +1313,9 @@ export function spyEffect(
     case "blame": {
       // Myasoedov, March 1915: the front breathes, the service pays later.
       const main = allocOf(gw, a)?.main;
-      if (main !== undefined) addStrain(gw, main, a, -5);
+      if (main !== undefined && fights(gw.nation(a))) {
+        addStrain(gw, main, a, -5);
+      }
       moveGauge(gw, a, "order", 1, "order_spies_blamed");
       i.later.push({ what: "blame_cost", day: gw.s.day + BLAME_LATER });
       return;

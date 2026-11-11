@@ -406,7 +406,13 @@ export type GwWorldCond =
       result?: GwOffResult[];
     } & Range)
   /** ww173: the secret war (GwSpies.GW_SPY_CANS). */
-  | { is: "spy"; can: GwSpyCan; tag?: GwTag };
+  | {
+      is: "spy";
+      can: GwSpyCan;
+      tag?: GwTag;
+      /** ww178: true holds only while the seat's country is at peace. */
+      peace?: boolean;
+    };
 
 export type GwWorldEffect =
   /** Germany's plan for the war to come. */
@@ -781,7 +787,11 @@ export const GwWorldCondSchema = z.union([
     result: z.array(z.enum(GW_OFF_RESULTS)).min(1).optional(),
     ...range,
   }),
-  is("spy", { can: z.enum(GW_SPY_CANS), tag: tag.optional() }),
+  is("spy", {
+    can: z.enum(GW_SPY_CANS),
+    tag: tag.optional(),
+    peace: z.boolean().optional(),
+  }),
 ]) as unknown as z.ZodType<GwWorldCond>;
 
 export const GwWorldEffectSchema = z.union([

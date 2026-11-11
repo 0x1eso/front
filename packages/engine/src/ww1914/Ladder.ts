@@ -34,6 +34,7 @@ import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { warMonths } from "./Eras";
 import type { GreatWar } from "./GreatWar";
 import { moveRuler } from "./Ruler";
+import { actedOnRead, heldResolve } from "./Spies";
 import { reachable } from "./Tables";
 import { treatyAllies } from "./Treaties";
 import { declareWar, naturalSide, startAllies } from "./Wars";
@@ -153,6 +154,7 @@ export function ladderAnswer(
   const l = ladderOf(gw, seat, "to");
   if (l === null || l.step === "rejected") return;
   if (yes) return giveWay(gw, l);
+  calledBluff(gw, seat.tag, l.from);
   if (l.step === "mobilised") return toWar(gw, l);
   refuse(gw, l);
 }
@@ -166,7 +168,19 @@ export function ladderPress(
   const l = ladderOf(gw, seat, "from");
   if (l === null || l.step !== "rejected") return;
   if (!on) return backDown(gw, l);
+  calledBluff(gw, seat.tag, l.to);
   press(gw, l);
+}
+
+/**
+ * ww178: `by` takes the hard line while its code-breakers say `of` will back
+ * down: whatever it meant, `of` wonders how it knew (Spies.actedOnRead).
+ * True when it held such a read.
+ */
+function calledBluff(gw: GreatWar, by: GwTag, of: GwTag): boolean {
+  if (heldResolve(gw, by, of) !== 0) return false;
+  actedOnRead(gw, by, of);
+  return true;
 }
 
 /** The sender mobilises: one last chance for the other, then war. */
@@ -314,6 +328,42 @@ export function yieldOdds(gw: GreatWar, l: GwLadder): number {
   return clampTo(odds, 5, 90);
 }
 
+/**
+ * The roll an AI decides a ladder's step by (ww178): one for each ladder,
+ * country and step, not the chapter's, so what it means can be read before.
+ */
+function stepRoll(
+  gw: GreatWar,
+  l: GwLadder,
+  who: GwTag,
+  p: number,
+  step: GwLadderStep,
+): number {
+  return wwRoll(gw.s.seed, p, l.opened, idHash(who), idHash(step)) % 100;
+}
+
+/**
+ * ww178: what `who`'s diplomatic traffic says of its next answer in `l`: 1 it
+ * means to stand, 0 it will back down. Null for a seat: nobody reads a mind.
+ * The other side sent the note: will it give way now, or at the last? The
+ * sender: will it press on if refused (it has, once mobilised)?
+ */
+export function meansToStand(
+  gw: GreatWar,
+  l: GwLadder,
+  who: GwTag,
+): number | null {
+  if (ruledBySeat(gw, who)) return null;
+  if (who === l.to) {
+    const step: GwLadderStep = l.step === "sent" ? "sent" : "mobilised";
+    const odds = yieldOdds(gw, { ...l, step });
+    return stepRoll(gw, l, who, P_LADDER, step) < odds ? 0 : 1;
+  }
+  if (who !== l.from) return null;
+  if (l.step === "mobilised") return 1;
+  return stepRoll(gw, l, who, P_PRESS, "rejected") < pressOn(gw, l) ? 1 : 0;
+}
+
 /** Chapter step: AI answers, and what nobody answered by the deadline. */
 export function ladderStep(gw: GreatWar): void {
   const s = gw.s;
@@ -328,12 +378,22 @@ export function ladderStep(gw: GreatWar): void {
         else toWar(gw, l);
         continue;
       }
-      const roll = wwRoll(s.seed, P_LADDER, s.chapter, idHash(l.to)) % 100;
+      // A sender its code-breakers say will climb down is refused (ww178).
+      if (l.step === "sent" && calledBluff(gw, l.to, l.from)) {
+        refuse(gw, l);
+        continue;
+      }
+      const roll = stepRoll(gw, l, l.to, P_LADDER, l.step);
       if (roll < yieldOdds(gw, l)) giveWay(gw, l);
       else if (l.step === "mobilised") toWar(gw, l);
       else refuse(gw, l);
     } else if (l.step === "rejected" && !seatFrom) {
-      const roll = wwRoll(s.seed, P_PRESS, s.chapter, idHash(l.from)) % 100;
+      // One its code-breakers say will give way at the last is pressed.
+      if (calledBluff(gw, l.from, l.to)) {
+        press(gw, l);
+        continue;
+      }
+      const roll = stepRoll(gw, l, l.from, P_PRESS, "rejected");
       if (roll < pressOn(gw, l)) press(gw, l);
       else backDown(gw, l);
     } else if (l.step === "rejected" && s.chapter - l.chapter > 1) {

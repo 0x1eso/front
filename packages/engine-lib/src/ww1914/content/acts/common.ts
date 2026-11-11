@@ -151,6 +151,8 @@ export const COMMON_ACT_SCENES: readonly GwScene[] = [
 ];
 
 const SENDERS: GwTag[] = ["DEU", "GBR", "AUH", "RUS", "FRA", "USA", "ITA"];
+/** Whose diplomatic traffic the peace card names, in this order. */
+const PEACE_READ: GwTag[] = ["DEU", "ITA", "RUS", "AUH", "FRA", "GBR"];
 
 /**
  * A foreign agent taken by a service at counter 3 (Spies.agentsTaken): turn
@@ -177,6 +179,28 @@ export const SPY_SCENES: readonly GwScene[] = [
     options: [
       { id: "expose", tell: [], effects: [spy("expose")] },
       { id: "double", tell: [], effects: [spy("double")] },
+    ],
+  },
+  // ww178: in peace the head of the service brings what the cipher room
+  // reads of a rival's diplomatic traffic. The reports carry the words.
+  {
+    id: "gw_spy_peace_read",
+    nation: SEATS,
+    kind: "report",
+    stamp: "estimate",
+    source: "codes",
+    when: world({ is: "spy", can: "reading", peace: true }),
+    cooldown: 8,
+    salience: 5,
+    tags: ["foreign"],
+    cast: { intel: { office: "intelligence" } },
+    variants: [
+      { id: "note", when: world({ is: "ladder" }) },
+      ...PEACE_READ.map((t) => ({
+        id: t.toLowerCase(),
+        when: world({ is: "spy", can: "reading", tag: t, peace: true }),
+      })),
+      base,
     ],
   },
 ];
