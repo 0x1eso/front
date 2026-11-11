@@ -1,0 +1,25 @@
+{
+  "note": "Land strategic regions: one per province (towns1590.json prov), ids 1.. in this order.",
+  "rows": [
+    { "key": "Gyeonggi", "nameKo": "경기" },
+    { "key": "Chungcheong", "nameKo": "충청" },
+    { "key": "Gyeongsang", "nameKo": "경상" },
+    { "key": "Jeolla", "nameKo": "전라" },
+    { "key": "Gangwon", "nameKo": "강원" },
+    { "key": "Hwanghae", "nameKo": "황해" },
+    { "key": "Pyeongan", "nameKo": "평안" },
+    { "key": "Hamgyeong", "nameKo": "함경" },
+    { "key": "Kyushu", "nameKo": "규슈" },
+    { "key": "Chugoku", "nameKo": "주고쿠" },
+    { "key": "Shikoku", "nameKo": "시코쿠" },
+    { "key": "Kinai", "nameKo": "기나이" },
+    { "key": "Liaodong", "nameKo": "요동" },
+    { "key": "Beizhili", "nameKo": "북직례" },
+    { "key": "Shandong", "nameKo": "산동" },
+    { "key": "Nanzhili", "nameKo": "남직례" },
+    { "key": "Jianzhou", "nameKo": "건주" },
+    { "key": "Hulun", "nameKo": "훌룬" },
+    { "key": "Wild", "name": "Wild Jurchen lands", "nameKo": "야인 땅" },
+    { "key": "Steppe", "name": "Northern steppe", "nameKo": "북쪽 초원" }
+  ]
+}

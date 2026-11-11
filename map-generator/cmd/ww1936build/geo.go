@@ -91,12 +91,20 @@ func toPolygon(c [][][]float64) Polygon {
 	return p
 }
 
-// Projection is the Miller cylindrical projection of spec §4.1.
+// Projection is the Miller cylindrical projection of spec §4.1. A window
+// (NewWindowProjection, the Imjin map) covers LonMin..LonMin+LonSpan
+// instead of the whole globe; the world map keeps the formulas it always
+// had, so its files do not move.
 type Projection struct {
 	Width, Height  int
 	LatMin, LatMax float64
 	yTop           float64
 	scale          float64 // pixels per radian
+	// Window: the map is not the whole globe, so nothing wraps at its
+	// east and west edges.
+	Window  bool
+	LonMin  float64
+	LonSpan float64
 }
 
 func millerY(latDeg float64) float64 {
@@ -109,8 +117,23 @@ func millerLat(y float64) float64 {
 }
 
 func NewProjection(width int, latMin, latMax float64) Projection {
-	p := Projection{Width: width, LatMin: latMin, LatMax: latMax}
+	p := Projection{Width: width, LatMin: latMin, LatMax: latMax, LonMin: -180, LonSpan: 360}
 	p.scale = float64(width) / (2 * math.Pi)
+	p.yTop = millerY(latMax)
+	h := int(math.Floor((p.yTop - millerY(latMin)) * p.scale))
+	p.Height = h - h%4
+	return p
+}
+
+// NewWindowProjection is the Miller projection of the box lonMin..lonMax,
+// latMin..latMax, width pixels wide: the scale of a globe 360 / (lonMax -
+// lonMin) times as wide. The defaults (-180, 180) are NewProjection.
+func NewWindowProjection(width int, lonMin, lonMax, latMin, latMax float64) Projection {
+	if lonMin == -180 && lonMax == 180 {
+		return NewProjection(width, latMin, latMax)
+	}
+	p := Projection{Width: width, LatMin: latMin, LatMax: latMax, Window: true, LonMin: lonMin, LonSpan: lonMax - lonMin}
+	p.scale = float64(width) / (p.LonSpan * math.Pi / 180)
 	p.yTop = millerY(latMax)
 	h := int(math.Floor((p.yTop - millerY(latMin)) * p.scale))
 	p.Height = h - h%4
@@ -120,6 +143,9 @@ func NewProjection(width int, latMin, latMax float64) Projection {
 // ToPixel gives fractional pixel coordinates (x right, y down).
 func (p Projection) ToPixel(lon, lat float64) (float64, float64) {
 	lat = math.Max(-89.5, math.Min(89.5, lat))
+	if p.Window {
+		return (lon - p.LonMin) / p.LonSpan * float64(p.Width), (p.yTop - millerY(lat)) * p.scale
+	}
 	return (lon + 180) / 360 * float64(p.Width), (p.yTop - millerY(lat)) * p.scale
 }
 
@@ -135,6 +161,10 @@ func (p Projection) Pixel(lon, lat float64) (int, bool) {
 
 // LonLat of a pixel's centre.
 func (p Projection) LonLat(px, py int) (float64, float64) {
+	if p.Window {
+		lon := (float64(px)+0.5)/float64(p.Width)*p.LonSpan + p.LonMin
+		return lon, millerLat(p.yTop - (float64(py)+0.5)/p.scale)
+	}
 	lon := (float64(px)+0.5)/float64(p.Width)*360 - 180
 	lat := millerLat(p.yTop - (float64(py)+0.5)/p.scale)
 	return lon, lat

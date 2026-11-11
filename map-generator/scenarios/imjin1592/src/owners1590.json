@@ -1,0 +1,14 @@
+{
+  "note": "Modern countries and admin-1 units inside the window, and their 1590 owner. Jurchen land is Jilin, Primorye, the Mongol steppe of Inner Mongolia (northern tribes, AI only) and Liaoning beyond the Liaodong frontier wall (the patch).",
+  "adm0": { "KOR": "JOS", "PRK": "JOS", "JPN": "JPN", "CHN": "MIN", "RUS": "JUR" },
+  "adm1": { "CHN:Jilin": "JUR", "CHN:Inner Mongol": "JUR" },
+  "patches": [
+    {
+      "owner": "JUR",
+      "note": "Jianzhou Jurchen land beyond the Liaodong frontier wall (Kaiyuan, Fushun, Kuandian line)",
+      "adm0": ["CHN"],
+      "adm1": ["CHN:Liaoning"],
+      "polygon": [[124.35, 43.6], [124.35, 42.2], [124.1, 41.85], [124.55, 41.2], [124.85, 40.75], [125.5, 40.6], [126.5, 41.4], [126.5, 43.6]]
+    }
+  ]
+}

@@ -208,7 +208,12 @@ func buildSeaGraph(p Projection, ids []uint16, lists tileLists, zones []*Region,
 	if len(bad) > 0 {
 		return g, fmt.Errorf("straits1936.json:\n  %s", strings.Join(bad, "\n  "))
 	}
-	for k, c := range dateLinePairs(ids, w, h) {
+	// A window map (the Imjin map) does not wrap: its edges never meet.
+	dateLine := map[int64]int{}
+	if !p.Window {
+		dateLine = dateLinePairs(ids, w, h)
+	}
+	for k, c := range dateLine {
 		a, b := int(k>>16), int(k&0xffff)
 		if c < minSeaPairs || lake[a] || lake[b] {
 			continue

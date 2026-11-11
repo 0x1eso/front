@@ -42,6 +42,7 @@ const FREQUENCY_EXEMPTIONS: Set<GameMapName> = new Set([
   "ChoppingBlock",
   "Luna",
   "World1936",
+  "Imjin1592",
 ]);
 
 // The API (openfrontio/infra `GameMapTypeSchema`, and the `maps.name`

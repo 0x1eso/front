@@ -660,7 +660,8 @@ export class ScenarioIndex {
    * Plan decision 9: km between two tiles. With the v4 row table: the
    * row's east-west km a tile and 111.32 km a degree of latitude; without
    * it (v3, test maps): kmPerTile (default 40075 / width) both ways. The
-   * east-west distance wraps at the date line, as the sea graph does.
+   * east-west distance wraps at the date line, as the sea graph does,
+   * except on a window map (wrapX false, the Imjin map).
    */
   kmBetween(a: number, b: number): number {
     const W = this.width;
@@ -669,7 +670,7 @@ export class ScenarioIndex {
     const xb = b % W;
     const yb = Math.floor(b / W);
     const adx = Math.abs(xa - xb);
-    const dxTiles = Math.min(adx, W - adx);
+    const dxTiles = this.data.wrapX === false ? adx : Math.min(adx, W - adx);
     const rows = this.data.rows;
     let dx: number;
     let dy: number;

@@ -68,6 +68,7 @@ export enum GameMapType {
   HongKong = "Hong Kong", // map-generator/assets/maps/hongkong/info.json
   HornOfAfrica = "Horn Of Africa", // map-generator/assets/maps/hornofafrica/info.json
   Iceland = "Iceland", // map-generator/assets/maps/iceland/info.json
+  Imjin1592 = "Imjin 1592", // map-generator/assets/maps/imjin1592/info.json
   IndianSubcontinent = "Indian Subcontinent", // map-generator/assets/maps/indiansubcontinent/info.json
   IrishSea = "Irish Sea", // map-generator/assets/maps/irishsea/info.json
   Italia = "Italia", // map-generator/assets/maps/italia/info.json
@@ -1553,6 +1554,17 @@ export const maps: readonly MapInfo[] = [
     specialFrequency: -1,
     defaultNationCount: 8,
     themes: ["europe"],
+  },
+  {
+    id: "Imjin1592",
+    type: GameMapType.Imjin1592,
+    translationKey: "map.imjin1592",
+    categories: ["asia"],
+    multiplayerFrequency: 0,
+    ffaFrequency: -1,
+    teamFrequency: -1,
+    specialFrequency: -1,
+    defaultNationCount: 0,
   },
   {
     id: "IndianSubcontinent",

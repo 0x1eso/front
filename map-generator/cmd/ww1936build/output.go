@@ -182,6 +182,8 @@ type srcRegionOut struct {
 	Hydro       int      `json:"hydro,omitempty"`
 	Landmarks   []string `json:"landmarks,omitempty"`
 	Dam         *DamOut  `json:"dam,omitempty"`
+	// The Imjin map (imjin.go): the region's class.
+	ImjinTerrain string `json:"imjinTerrain,omitempty"`
 }
 
 // srcSeaOut is a sea zone of scenario.src.json; version 4 adds its centre,
@@ -217,6 +219,8 @@ type ScenarioSrcInput struct {
 	// The 1914 overlay's place and owner by region id; nil without it.
 	PlaceOf map[int]OverlayPlace
 	GwOwner map[int]string
+	// The Imjin map (imjin.go); nil for every other.
+	Imjin *ImjinOut
 }
 
 // writeScenarioSrc writes scenario.src.json (read by the map generator,
@@ -238,6 +242,10 @@ func writeScenarioSrc(path string, in ScenarioSrcInput) error {
 		Strategic     []Strategic     `json:"strategic"`
 		Rows          Rows            `json:"rows"`
 		Majors        []string        `json:"majors"`
+		// The Imjin map only: km a tile, no wrap at the edges, the imjin block.
+		KmPerTile float64   `json:"kmPerTile,omitempty"`
+		WrapX     *bool     `json:"wrapX,omitempty"`
+		Imjin     *ImjinSrc `json:"imjin,omitempty"`
 	}{Version: 5, Edges: in.Land.Edges, SeaEdges: in.Sea.Edges, Straits: in.Sea.Straits, HistoricalOob: true,
 		Strategic: in.SR.List, Rows: in.RowTable}
 	for _, c := range in.T.Countries {
@@ -256,6 +264,10 @@ func writeScenarioSrc(path string, in ScenarioSrcInput) error {
 		held[r.Owner] = true
 	}
 	out.HistoricalOob = !in.T.Loose
+	if in.Imjin != nil {
+		wrap := false
+		out.HistoricalOob, out.KmPerTile, out.WrapX, out.Imjin = false, in.Imjin.KmPerTile, &wrap, &in.Imjin.Block
+	}
 	for i, c := range in.T.Countries {
 		// The 1914 overlay can leave a 1936 country no region of its own.
 		if in.T.Loose && !held[i+1] {
@@ -282,6 +294,9 @@ func writeScenarioSrc(path string, in ScenarioSrcInput) error {
 			row.Land, row.Center, row.LatC, row.WCell, row.Rail, row.Fort = v.Land, xy(v.Center), v.LatC, v.WCell, v.Rail, v.Fort
 			row.SR, row.Harbor = in.SR.RegionSR[r.ID], in.SR.Harbor[r.ID]
 			row.NavalBase, row.AirBase, row.CoastalFort = level(in.Bases.Naval, r.ID), level(in.Bases.Air, r.ID), level(in.Bases.Forts, r.ID)
+		}
+		if in.Imjin != nil {
+			row.ImjinTerrain = in.Imjin.Class[r.ID]
 		}
 		if v := in.V5.ByID[r.ID]; v != nil {
 			row.Coal, row.Uranium, row.Hydro, row.Landmarks, row.Dam = v.Coal, v.Uranium, v.Hydro, v.Landmarks, v.Dam
