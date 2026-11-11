@@ -2291,10 +2291,10 @@ const SPY_SCENES: GwScene[] = [
       ),
     ],
   ),
-  // The Baltic codebook: an early read of Germany's traffic is the book.
+  // The Baltic codebook (Spies.eventsStep's Magdeburg mark).
   desk(
     "rus_spy_codebook",
-    all(inWar, reading("DEU"), world({ is: "war_months", max: 9 })),
+    all(inWar, world({ is: "spy", can: "codebook" })),
     [v("allied", britainIn), v("base")],
     [
       o("keep", [], [ear("stavka", 1), remember("k_spy_book_kept")]),

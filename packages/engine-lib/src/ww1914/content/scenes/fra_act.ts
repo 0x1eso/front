@@ -1513,7 +1513,7 @@ const HEAD_LETTERS: GwScene[] = [
 
 const intel = role("intel");
 const spyCan = (
-  can: "reading" | "out" | "court" | "blame",
+  can: "reading" | "out" | "exposed" | "court" | "blame",
   tag?: GwTag,
 ): GwCond =>
   world(tag === undefined ? { is: "spy", can } : { is: "spy", can, tag });
@@ -1576,12 +1576,13 @@ const SPY_SCENES: GwScene[] = [
       v("base"),
     ],
   },
-  // Our own men abroad were taken and named (Spies `out`): the sender's side.
+  // Our own men abroad were taken and named (Spies `out`, or `exposed` by
+  // their counter-intelligence): the sender's side.
   {
     id: "fra_spy_exposed",
     nation: NATION,
     kind: "proposal",
-    when: all(war, spyCan("out")),
+    when: all(war, any(spyCan("out"), spyCan("exposed"))),
     cast: { intel: holder("intelligence") },
     salience: 6,
     once: true,

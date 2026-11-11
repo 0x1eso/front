@@ -147,7 +147,12 @@ describe("abroad", () => {
     usa.lean = 0;
     usa.readiness = 20;
     intelOf(gw, "DEU").net = { USA: 2 };
+    expect(spyHolds(gw, st(), "exposed")).toBe(false);
     expose(gw, "USA", "DEU");
+    // The sender's seat can tell its men were named, whoever caught them.
+    expect(spyHolds(gw, st(), "exposed")).toBe(true);
+    expect(spyHolds(gw, st(), "exposed", "USA")).toBe(true);
+    expect(spyHolds(gw, st(), "exposed", "GBR")).toBe(false);
     expect(intelOf(gw, "DEU").net.USA).toBeUndefined();
     expect(usa.trust.DEU).toBe(-1);
     expect(usa.lean).toBe(1);
@@ -176,6 +181,12 @@ describe("abroad", () => {
     expect(heard.every((h) => h.claim !== 0)).toBe(true);
   });
 
+  test("the Baltic codebook marks the seat that lost it", () => {
+    expect(spyHolds(gw, st(), "codebook")).toBe(false);
+    intelOf(gw, "DEU").marks.push("magdeburg");
+    expect(spyHolds(gw, st(), "codebook")).toBe(true);
+  });
+
   test("Britain's promise to Hussein weighs on France's Syria and Palestine at the table", () => {
     expect(promiseCost(gw, "FRA", "damascus")).toBe(0);
     intelOf(gw, "GBR").marks.push("hussein");
@@ -192,7 +203,9 @@ describe("abroad", () => {
     rus.unrest = 3;
     expect(spyHolds(gw, st(), "lenin")).toBe(true);
     const low = rus.lowOrder;
+    expect(spyHolds(gw, st(), "sealed")).toBe(false);
     spyEffect(gw, st(), "lenin");
+    expect(spyHolds(gw, st(), "sealed")).toBe(true);
     expect(rus.lowOrder).toBe(low + 2);
     expect(intelOf(gw, "DEU").later).toContainEqual(
       expect.objectContaining({ what: "lenin_home" }),

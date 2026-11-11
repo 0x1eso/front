@@ -868,6 +868,9 @@ export function capturedOrders(
 
 const TAGGED: readonly GwSpyCan[] = ["net", "sabotage", "court"];
 
+/** How many chapters back a naming of the seat's agents still counts. */
+const EXPOSED_FRESH = 1;
+
 /** Whether the seat's country can do it now, or how its last operation went. */
 export function spyHolds(
   gw: GreatWar,
@@ -911,6 +914,18 @@ export function spyHolds(
       return marked(gw, "DEU", "ship");
     case "double":
       return (i?.caught.length ?? 0) > 0;
+    case "exposed":
+      return gw.s.news.some(
+        (x) =>
+          x.key === "spy_exposed" &&
+          x.b === a &&
+          (tag === undefined || x.a === tag) &&
+          gw.s.chapter - x.chapter <= EXPOSED_FRESH,
+      );
+    case "codebook":
+      return marked(gw, a, "magdeburg");
+    case "sealed":
+      return marked(gw, "DEU", "lenin");
   }
 }
 

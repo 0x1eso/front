@@ -2098,7 +2098,7 @@ const clearDark: GwEffect[] = [
 const wonBreak = (t: "east" | "italy" | "balkan") =>
   world({ is: "battle", theatre: t, of: ["break"], by: "seat" });
 const opBlown = all(
-  world({ is: "spy", can: "out" }),
+  any(world({ is: "spy", can: "out" }), world({ is: "spy", can: "exposed" })),
   any(
     actedIn("gw_a_spy_net", 2),
     actedIn("gw_a_spy_sabotage", 2),
