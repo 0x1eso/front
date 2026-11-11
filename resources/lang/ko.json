@@ -1626,7 +1626,31 @@
     "ww1936_ultimatum_guarantor": "{country} 측이 우리가 보장하는 {target} 측에 최후통첩을 보냈습니다",
     "ww1936_ultimatum_lapsed": "상황이 바뀌어 {target} 측에 보낸 최후통첩이 무효가 되었습니다",
     "ww1936_promise_lapsed": "{country} 측이 약속한 {target} 땅 약속이 무효가 되었습니다",
-    "ww1936_promise_kept": "{country} 측이 약속을 지켰습니다: {target} 땅을 받았습니다"
+    "ww1936_promise_kept": "{country} 측이 약속을 지켰습니다: {target} 땅을 받았습니다",
+    "ww1936_imjin_admiral_arrested": "통제사가 출전 명령을 거부하여 붙잡혀 왔습니다.",
+    "ww1936_imjin_admiral_trusted": "통제사가 함대를 지킵니다. 조정의 반대파는 이를 겁이 많아서라고 몰아세웁니다.",
+    "ww1936_imjin_command_obeyed": "의병장들이 조정의 명령을 따르기로 했습니다.",
+    "ww1936_imjin_command_refused": "의병장들이 조정의 명령을 듣지 않습니다.",
+    "ww1936_imjin_court_held": "대신들이 자리를 지켰습니다. {ideology} 세력은 밀려났고 조정에 불만이 쌓입니다.",
+    "ww1936_imjin_court_yielded": "{ideology} 세력이 영의정 자리를 차지했습니다.",
+    "ww1936_imjin_envoy_sent": "사신이 북경으로 떠났습니다.",
+    "ww1936_imjin_flight_cross": "조정이 압록강을 건너 명나라 땅으로 들어갔습니다.",
+    "ww1936_imjin_flight_flee": "조정이 북으로 몽진해 {region}에 자리 잡았습니다.",
+    "ww1936_imjin_flight_hold": "임금이 {region}에 남아 지키기로 했습니다.",
+    "ww1936_imjin_flight_split": "임금은 {region}에 자리 잡고, 세자는 따로 조정을 꾸려 군사를 모읍니다.",
+    "ww1936_imjin_gwon_appointed": "권율이 지휘를 맡았습니다.",
+    "ww1936_imjin_gwon_passed": "권율에게 지휘를 맡기지 않았습니다.",
+    "ww1936_imjin_ming_enters": "명나라가 조선을 돕기로 하고 일본과 전쟁에 들어갔습니다.",
+    "ww1936_imjin_ming_northwest": "명나라가 서북 변경의 반란과 싸우고 있습니다.",
+    "ww1936_imjin_ming_relief": "명나라 대군이 조선을 구하러 나섰습니다.",
+    "ww1936_imjin_monks_left": "승려들은 절에 남았습니다.",
+    "ww1936_imjin_righteous_fallen": "{leader}의 의병이 {region}에서 무너지고 장수가 전사했습니다.",
+    "ww1936_imjin_righteous_join": "{leader}의 의병이 {region}에서 관군에 합류했습니다.",
+    "ww1936_imjin_righteous_rise": "{leader}의 의병이 {region}에서 일어났습니다.",
+    "ww1936_imjin_seat_fell": "조정이 머물던 {region} 함락. 임금이 허둥지둥 북으로 빠져나갔습니다.",
+    "ww1936_imjin_temple_burned": "적군이 {region}의 절을 불태웠습니다.",
+    "ww1936_imjin_yi_appointed": "이순신이 전라좌수사에 올랐습니다.",
+    "ww1936_imjin_yi_passed": "수군 자리는 품계대로 정해졌습니다."
   },
   "featured_stream": {
     "expand": "펼치기",
@@ -4186,7 +4210,10 @@
       "usa_oil_embargo": "대일 석유 금수",
       "usa_recognize_exiles": "망명 정부 승인",
       "usa_volunteer_air_group": "중국 의용 항공단",
-      "gen_science_mobilisation": "전시 과학 동원"
+      "gen_science_mobilisation": "전시 과학 동원",
+      "imjin_envoy_ming": "명에 사신을 보낸다",
+      "imjin_command_righteous": "의병을 지휘한다",
+      "imjin_muster_righteous": "의병을 관군에 편입한다"
     },
     "decision_desc": {
       "bgr_demand_dobruja": "1913년에 루마니아에 내준 남도브루자를 돌려 달라고 요구한다.",
@@ -4270,7 +4297,10 @@
       "usa_oil_embargo": "미국 안의 일본 자산을 동결하고 석유 수출을 끊는다. 일본은 연료 수입 대부분을 잃는다.",
       "usa_recognize_exiles": "미국이 우방 망명 정부들을 정식으로 승인하고 그 사절을 맞아, 그들이 자기 국민을 대표한다는 주장에 힘을 싣는다.",
       "usa_volunteer_air_group": "미국 조종사들이 군을 떠나 중국을 위해 전투기를 몰기로 계약하고, 기체는 미국의 차관으로 사들인다.",
-      "gen_science_mobilisation": "과학자와 기술자를 전쟁 연구에 동원한다. 연구 칸이 하나 늘고, 그 뒤로도 줄지 않는다."
+      "gen_science_mobilisation": "과학자와 기술자를 전쟁 연구에 동원한다. 연구 칸이 하나 늘고, 그 뒤로도 줄지 않는다.",
+      "imjin_envoy_ming": "북경에 사신을 보내 왜의 속셈을 알리고 도움을 청합니다.",
+      "imjin_command_righteous": "의병장들에게 조정의 명령을 내립니다. 따를지는 조정의 위신에 달렸습니다.",
+      "imjin_muster_righteous": "의병을 관군으로 거둬들입니다. 적의 뒤를 치는 일은 그만두게 됩니다."
     },
     "declare": {
       "block": {
@@ -5244,7 +5274,15 @@
       "jpn_manchukuo_defiance": "관동군 장군들이 고삐를 끊었고 만주국은 이들의 것이 되었다. 만주국은 묶여 있던 진영을 떠나, 옛 주인에게 무기를 든다.",
       "sun_party_delegation": "당 원로 대표단이 국가 위원회의 자리를 요구한다. 의견을 들어 주면 충성을 약속하고, 거절하면 아무것도 약속하지 않겠다고 한다.",
       "sun_peasant_petition": "농촌 대표들이 청원서를 들고 온다. 곡물 할당량이 들판이 감당할 수 있는 수준을 넘었다는 것이다. 장군들은 할당량을 낮추어 줄 수도 있고, 버티면서 곡창을 채울 수도 있다.",
-      "sun_nationalities_petition": "연방 공화국의 지도자들이 새 정부에 자국의 언어와 학교, 경계를 지금 그대로 유지해 달라고 요청한다. 장군들은 하나의 군대와 하나의 지휘 계통을 선호한다."
+      "sun_nationalities_petition": "연방 공화국의 지도자들이 새 정부에 자국의 언어와 학교, 경계를 지금 그대로 유지해 달라고 요청한다. 장군들은 하나의 군대와 하나의 지휘 계통을 선호한다.",
+      "imjin_flight_capital": "왜군이 한성 바로 옆 고을까지 왔습니다. 대신들은 밤새 다툽니다. 백성과 함께 도성을 지키자는 사람도 있고, 길이 막히기 전에 북으로 떠나자는 사람도 있습니다. 세자는 임금의 말을 기다립니다.",
+      "imjin_flight_north": "임금이 머무는 곳 바로 옆 고을까지 적이 들어왔습니다. 임금을 맞아들였던 백성들이 짐을 꾸리는 대신들을 지켜봅니다.",
+      "imjin_flight_border": "조정이 압록강 가에 닿았습니다. 강 건너는 명나라 땅입니다. 남의 나라 땅에 선 임금은 더는 임금이 아니라는 대신도 있고, 적에게 붙잡히는 것보다는 낫다는 대신도 있습니다.",
+      "imjin_court_shift": "집권한 대신들이 조정의 신임을 잃었습니다. 이제 다른 당파가 관리 대부분을 대변하고, 그 우두머리들이 영의정 자리를 달라고 상소를 올립니다.",
+      "imjin_appoint_yi": "류성룡이 현감 이순신을 전라좌도 수군절도사로 천거합니다. 여러 품계를 건너뛰는 일이라 대간들이 벌써 반대합니다.",
+      "imjin_appoint_gwon": "광주 목사 권율이 스스로 군사를 모았습니다. 조정에 지휘를 맡겨 달라고 청합니다.",
+      "imjin_double_agent": "적진을 오가는 사람이 가토 기요마사의 배가 언제 어디로 건너올지 알려 왔습니다. 조정은 수군이 나가 바다에서 길목을 막기를 바랍니다. 통제사는 함정이라고 의심합니다.",
+      "imjin_monks_call": "적군이 산사를 불태웠습니다. 큰스님들이 전갈을 보냅니다. 임금이 부르면 승려들도 무기를 들겠다고 합니다."
     },
     "event_opt": {
       "aus_curtin_appeal": {
@@ -6125,6 +6163,40 @@
       "sun_nationalities_petition": {
         "a": "권리를 확인해 준다",
         "b": "하나의 군대, 하나의 지휘"
+      },
+      "imjin_flight_capital": {
+        "a": "북으로 몽진한다",
+        "b": "도성을 지킨다",
+        "c": "북으로 떠나고 세자에게 조정을 나누어 맡긴다"
+      },
+      "imjin_flight_north": {
+        "a": "국경까지 물러난다",
+        "b": "이곳을 지킨다",
+        "c": "세자에게 조정을 나누어 맡긴다"
+      },
+      "imjin_flight_border": {
+        "a": "국경 고을을 지킨다",
+        "b": "압록강을 건넌다"
+      },
+      "imjin_court_shift": {
+        "a": "영의정 자리를 넘겨준다",
+        "b": "지금 대신들을 그대로 둔다"
+      },
+      "imjin_appoint_yi": {
+        "a": "품계를 건너뛰어 맡긴다",
+        "b": "품계의 순서를 지킨다"
+      },
+      "imjin_appoint_gwon": {
+        "a": "지휘를 맡긴다",
+        "b": "맡기지 않는다"
+      },
+      "imjin_double_agent": {
+        "a": "출전을 명한다",
+        "b": "통제사의 판단에 맡긴다"
+      },
+      "imjin_monks_call": {
+        "a": "승병을 일으키라고 부른다",
+        "b": "승려들은 수행하게 둔다"
       }
     },
     "event_title": {
@@ -6382,7 +6454,15 @@
       "jpn_manchukuo_defiance": "만주국이 도쿄에 맞선다",
       "sun_party_delegation": "당 원로들의 방문",
       "sun_peasant_petition": "농촌 대표단의 청원",
-      "sun_nationalities_petition": "공화국들의 요구"
+      "sun_nationalities_petition": "공화국들의 요구",
+      "imjin_flight_capital": "적이 도성 앞에 왔다",
+      "imjin_flight_north": "피란한 행재소도 위태롭다",
+      "imjin_flight_border": "압록강 가에서",
+      "imjin_court_shift": "다른 당파가 조정을 요구한다",
+      "imjin_appoint_yi": "전라좌수사를 누구에게",
+      "imjin_appoint_gwon": "권율이 군사를 맡겠다고 한다",
+      "imjin_double_agent": "적진에서 온 귀띔",
+      "imjin_monks_call": "절이 불탔다"
     },
     "eventui": {
       "annex_warning": "경고: 이 선택을 하면 우리나라가 {country}에 합병됩니다",
@@ -17313,6 +17393,30 @@
       "wanli": "만력 {year}년",
       "tianqi": "천계 {year}년",
       "chongzhen": "숭정 {year}년"
+    },
+    "court": {
+      "democratic": "서인",
+      "communist": "남인",
+      "fascist": "북인",
+      "neutral": "왕권"
+    },
+    "court_head": {
+      "democratic": "서인 영의정",
+      "communist": "남인 영의정",
+      "fascist": "북인 영의정",
+      "neutral": "군주"
+    },
+    "person": {
+      "gwak_jae_u": "곽재우",
+      "go_gyeong_myeong": "고경명",
+      "jo_heon": "조헌",
+      "kim_cheon_il": "김천일",
+      "jeong_mun_bu": "정문부",
+      "kim_deok_ryeong": "김덕령",
+      "yi_jeong_am": "이정암",
+      "hyujeong": "휴정",
+      "yujeong": "유정",
+      "yeonggyu": "영규"
     }
   }
 }

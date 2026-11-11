@@ -42,7 +42,11 @@ import {
 } from "../ww1936/EndgameNames";
 import { armyName, generalName, regionName } from "../ww1936/LandModel";
 import { admiralName, navyNoticeParams } from "../ww1936/NavyModel";
-import { POLITICS_NOTICES, politicsParams } from "../ww1936/PoliticsModel";
+import {
+  ideologyName,
+  POLITICS_NOTICES,
+  politicsParams,
+} from "../ww1936/PoliticsModel";
 import { countryName, translateCountryParams } from "../ww1936/WorldWarModel";
 import { onlyImages } from "./OnlyImages";
 
@@ -123,6 +127,34 @@ function congressParams(
   }
   return out;
 }
+
+/** ww177 P4 (lane I4a): the Imjin court's notices (engine/imjin/JoseonMing). */
+const IMJIN_COURT_NOTICES: ReadonlySet<string> = new Set([
+  "events_display.ww1936_imjin_admiral_arrested",
+  "events_display.ww1936_imjin_admiral_trusted",
+  "events_display.ww1936_imjin_command_obeyed",
+  "events_display.ww1936_imjin_command_refused",
+  "events_display.ww1936_imjin_court_held",
+  "events_display.ww1936_imjin_court_yielded",
+  "events_display.ww1936_imjin_envoy_sent",
+  "events_display.ww1936_imjin_flight_cross",
+  "events_display.ww1936_imjin_flight_flee",
+  "events_display.ww1936_imjin_flight_hold",
+  "events_display.ww1936_imjin_flight_split",
+  "events_display.ww1936_imjin_gwon_appointed",
+  "events_display.ww1936_imjin_gwon_passed",
+  "events_display.ww1936_imjin_ming_enters",
+  "events_display.ww1936_imjin_ming_northwest",
+  "events_display.ww1936_imjin_ming_relief",
+  "events_display.ww1936_imjin_monks_left",
+  "events_display.ww1936_imjin_righteous_fallen",
+  "events_display.ww1936_imjin_righteous_join",
+  "events_display.ww1936_imjin_righteous_rise",
+  "events_display.ww1936_imjin_seat_fell",
+  "events_display.ww1936_imjin_temple_burned",
+  "events_display.ww1936_imjin_yi_appointed",
+  "events_display.ww1936_imjin_yi_passed",
+]);
 
 @customElement("events-display")
 export class EventsDisplay extends LitElement implements Controller {
@@ -376,6 +408,19 @@ export class EventsDisplay extends LitElement implements Controller {
           ...params,
           building: translateText("ww1936.building." + params.building),
         };
+      }
+      // ww177 P4 (lane I4a): the Imjin court's notices name a righteous
+      // army's leader and a court faction by their ids.
+      if (IMJIN_COURT_NOTICES.has(event.message)) {
+        if (typeof params.leader === "string") {
+          params = {
+            ...params,
+            leader: translateText(`imjin.person.${params.leader}`),
+          };
+        }
+        if (typeof params.ideology === "string") {
+          params = { ...params, ideology: ideologyName(params.ideology) };
+        }
       }
       // P2 (pre-flight S3): a region by id (named in the viewer's
       // language), a general by id, an army by its number.
