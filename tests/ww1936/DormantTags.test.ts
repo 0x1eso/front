@@ -40,7 +40,8 @@ describe("World War 1936 P5: the dormant slots", () => {
       ...NAMED_DORMANT_TAGS,
       ...CIVIL_WAR_SLOTS,
     ]);
-    expect(COUNTRY_TAGS.slice(-14)).toEqual([...DORMANT_TAGS]);
+    // ww177: the Imjin War tags (IMJIN_TAGS) come after them.
+    expect(COUNTRY_TAGS.slice(-17, -3)).toEqual([...DORMANT_TAGS]);
   });
 
   it("the named slots with land hold its cores from 1936", () => {
