@@ -38,6 +38,7 @@ import { AUH_STORY_SCENES } from "./scenes/auh_act";
 import { AUH_QUIET_SCENES, withAuhBodies } from "./scenes/auh_bodies";
 import { AUH_CRISIS_SCENES } from "./scenes/auh_crisis";
 import { AUH_CROWN_SCENES } from "./scenes/auh_crown";
+import { AUH_LAND_EVENTS } from "./scenes/auh_lands";
 import {
   AUH_PRIVATE_PEOPLE,
   AUH_PRIVATE_SCENES,
@@ -63,6 +64,7 @@ import { DEU_COURT_SCENES } from "./scenes/deu_court";
 import { DEU_CRISIS_SCENES } from "./scenes/deu_crisis";
 import { DEU_FRONT_SCENES } from "./scenes/deu_front";
 import { DEU_HOME_SCENES } from "./scenes/deu_home";
+import { DEU_LAND_EVENTS } from "./scenes/deu_lands";
 import { DEU_PEACE_SCENES, withSummerWar } from "./scenes/deu_peace";
 import { DEU_PEOPLE_SCENES } from "./scenes/deu_people";
 import {
@@ -80,6 +82,7 @@ import { GW_FILLER_SCENES } from "./scenes/filler";
 import { FRA_STORY_SCENES } from "./scenes/fra_act";
 import { FRA_CRISIS_SCENES } from "./scenes/fra_crisis";
 import { FRA_HOME_SCENES } from "./scenes/fra_home";
+import { FRA_LAND_EVENTS } from "./scenes/fra_lands";
 import { FRA_PRIVATE_PEOPLE, FRA_PRIVATE_SCENES } from "./scenes/fra_private";
 import { FRA_ECHOES, FRA_PROLOGUE_SCENES } from "./scenes/fra_prologue";
 import { FRA_WAR_SCENES } from "./scenes/fra_war";
@@ -87,6 +90,7 @@ import { FRA_WAR_EVENTS } from "./scenes/fra_wars";
 import { FRA_WORLD_SCENES } from "./scenes/fra_world";
 import { GBR_CRISIS_SCENES } from "./scenes/gbr_crisis";
 import { GBR_HOME_SCENES } from "./scenes/gbr_home";
+import { GBR_LAND_EVENTS } from "./scenes/gbr_lands";
 import { withMore } from "./scenes/gbr_more";
 import {
   GBR_PRIVATE_PEOPLE,
@@ -117,6 +121,7 @@ import { RUS_CRISIS_SCENES } from "./scenes/rus_crisis";
 import { RUS_FALL_SCENES } from "./scenes/rus_fall";
 import { RUS_FRONT_SCENES } from "./scenes/rus_front";
 import { RUS_HOME_SCENES } from "./scenes/rus_home";
+import { RUS_LAND_EVENTS } from "./scenes/rus_lands";
 import { RUS_PRIVATE_SCENES, withRusPrivate } from "./scenes/rus_private";
 import { RUS_ECHOES, RUS_PROLOGUE_SCENES } from "./scenes/rus_prologue";
 import { RUS_WAR_EVENTS } from "./scenes/rus_wars";
@@ -246,6 +251,12 @@ export const GW_CONTENT: GwContent = {
         ...AUH_WAR_EVENTS,
         ...RUS_WAR_EVENTS,
         ...FRA_WAR_EVENTS,
+        // ww172 phase 5: each seat's scenes of occupation and the tables.
+        ...DEU_LAND_EVENTS,
+        ...GBR_LAND_EVENTS,
+        ...AUH_LAND_EVENTS,
+        ...RUS_LAND_EVENTS,
+        ...FRA_LAND_EVENTS,
       ]
         .map(withDeuReplay)
         .map(withDeuPrivate)
