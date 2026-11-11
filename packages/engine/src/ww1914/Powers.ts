@@ -423,8 +423,22 @@ function record(
   row: GwPowerRow,
   target: string | null,
   end: GwPowerEnd,
+  by?: string,
 ): void {
-  stateOf(seat).used.push({ id: row.id, chapter: gw.s.chapter, target, end });
+  stateOf(seat).used.push({
+    id: row.id,
+    chapter: gw.s.chapter,
+    target,
+    end,
+    ...(by === undefined ? {} : { by }),
+  });
+}
+
+/** He has refused this row before (ww172: only that refusal costs trust). */
+function refusedBefore(seat: GwSeatState, id: string, person: string): boolean {
+  return (seat.powers?.used ?? []).some(
+    (u) => u.id === id && u.end === "refused" && u.by === person,
+  );
 }
 
 /** The procedure; the end it stopped at, or null when it went through. */
@@ -432,7 +446,8 @@ function procedure(ctx: SceneCtx, row: GwPowerRow): GwPowerEnd | null {
   const { gw, seat } = ctx;
   const s = signerOf(gw, seat, row);
   if (s.needed && s.p !== null && !willSign(s.p, row)) {
-    trustBy(s.p, -1);
+    // A first no is his view; asking again is pressing him.
+    if (refusedBefore(seat, row.id, s.p.id)) trustBy(s.p, -1);
     reasonOf(gw, seat, "power_refused", s.p.id);
     if (s.p.trust <= GW_TRUST_MIN) openLetter(gw, seat, s.p);
     return "refused";
@@ -639,7 +654,8 @@ function use(
   const stopped = procedure(ctx, row);
   if (stopped !== null) {
     runEffects(ctx, row.failed ?? []);
-    record(gw, seat, row, o.target, stopped);
+    const by = stopped === "refused" ? signer?.id : undefined;
+    record(gw, seat, row, o.target, stopped, by);
     return null;
   }
   goThrough(ctx, row, chosen);

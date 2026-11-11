@@ -104,6 +104,8 @@ export const GwPowerStateSchema = z.object({
       chapter: z.number().int(),
       target: z.string().nullable(),
       end: z.enum(GW_POWER_ENDS),
+      /** Who refused it (ww172), on a `refused` use only. */
+      by: Id.optional(),
     }),
   ),
   /** The signer sounded out: what he said, which can be wrong. */

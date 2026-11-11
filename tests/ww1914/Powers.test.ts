@@ -285,6 +285,21 @@ describe("the 통치 tab", () => {
     expect(st().log.map((l) => l.key)).toContain("power_without");
   });
 
+  test("his first no to a row costs no trust; asking again does (ww172)", () => {
+    const chan = holderOf(gw, st(), "chancellor")!;
+    chan.trust = -1;
+    const row = ROWS[1];
+    expect(willSign(chan, row)).toBe(false);
+    expect(takePower(gw, st(), { id: row.id, ...plain })).toBeNull();
+    expect(st().powers!.used.slice(-1)[0]).toMatchObject({
+      end: "refused",
+      by: chan.id,
+    });
+    expect(chan.trust).toBe(-1);
+    expect(takePower(gw, st(), { id: row.id, ...plain })).toBeNull();
+    expect(chan.trust).toBe(-2);
+  });
+
   test("sounding out spends an audience and lays the talk; once a chapter", () => {
     const chan = holderOf(gw, st(), "chancellor")!;
     chan.trust = 2;
