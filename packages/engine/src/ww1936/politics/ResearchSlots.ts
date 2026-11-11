@@ -36,7 +36,7 @@ export function researchSlotView(
   if (c === null) return null;
   const extra = c.extraResearchSlots;
   const decision = c.taken.has(SCIENCE_DECISION) ? Math.min(1, extra) : 0;
-  const start = startResearchSlots(c.tag);
+  const start = startResearchSlots(c.tag, pol.ww.imjinStart);
   let treeSlots = 0;
   for (const fi of pol.content.treeFocuses[c.tree]) {
     const f = pol.content.focuses[fi];

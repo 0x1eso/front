@@ -702,7 +702,8 @@ export class WwEconomy {
       this.dock[r.id] = r.dock;
       this.infra[r.id] = r.infra;
       this.fort[r.id] = scenario.startFort(r.id);
-      this.rail[r.id] = scenario.startRail(r.id);
+      // ww177: no railway in the Imjin War (Profile: rail off).
+      this.rail[r.id] = ww.systemOn("rail") ? scenario.startRail(r.id) : 0;
       this.controller[r.id] = owners[r.id];
       // P4 spec §6.4, §12.1: the v4 start levels (or plan decision 6's formulas).
       this.p4Levels.naval_base[r.id] = scenario.startNavalBase(r.id);
@@ -738,7 +739,12 @@ export class WwEconomy {
     this.countryList = [null];
     scenario.countries.forEach((tag, i) => {
       this.countryList.push(
-        new CountryEconomy(i + 1, tag, COUNTRIES[tag].major, startLaws(tag)),
+        new CountryEconomy(
+          i + 1,
+          tag,
+          COUNTRIES[tag].major,
+          startLaws(tag, ww.imjinStart),
+        ),
       );
     });
     this.rebuildDerived();
@@ -761,7 +767,8 @@ export class WwEconomy {
         civ += this.civ[id];
         mil += this.mil[id];
       }
-      for (const t of startTechs(ce.tag, civ)) ce.addTech(t);
+      const imjin = this.ww.imjinStart;
+      for (const t of startTechs(ce.tag, civ, imjin)) ce.addTech(t);
       // P2 spec §4.6: the land techs too, before anyone plans research.
       const dev = this.scenario.devOf(ce.tag, civ);
       for (const t of landStartTechs(ce.tag, ce.major, dev)) ce.addTech(t);
@@ -769,13 +776,15 @@ export class WwEconomy {
       const coastal = this.regionsOf(ce.smallID).some(
         (r) => this.scenario.harborOf(r) !== 0,
       );
-      for (const t of navalStartTechs(ce.tag, dev, coastal)) ce.addTech(t);
+      for (const t of navalStartTechs(ce.tag, dev, coastal, imjin)) {
+        ce.addTech(t);
+      }
       const recruitable = this.recruitableWith(
         ce.smallID,
         ce.law().conscriptionPermille,
       );
-      const army = startArmy(ce.tag, recruitable);
-      ce.stock = startStock(ce.tag, army, civ, mil);
+      const army = startArmy(ce.tag, recruitable, imjin);
+      ce.stock = startStock(ce.tag, army, civ, mil, imjin);
       // P4 (plan decision 31): the historical order of battle splits the
       // fighters and bombers (spec §12.4) and has the hand convoys; else a
       // coast gives (civilian + military) × 5 convoys.
@@ -1061,7 +1070,7 @@ export class WwEconomy {
     // Research overhaul (changes §1.1): the start slots and the research_slot
     // effects only; factories, bombing and occupation do not count.
     t.slotCount = researchSlotCount(
-      startResearchSlots(ce.tag),
+      startResearchSlots(ce.tag, this.ww.imjinStart),
       pol.country(ce.smallID)?.extraResearchSlots ?? 0,
     );
     t.warDays = this.warDays(ce.smallID, tick);

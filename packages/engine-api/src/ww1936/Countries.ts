@@ -113,6 +113,11 @@ export const COUNTRY_TAGS = [
   "CW4",
   "CW5",
   "CW6",
+  // ww177 (Imjin design §2): the Imjin War's own countries, after the
+  // dormant slots. Japan is JPN; MNG is Mongolia, so Ming is MIN.
+  "JOS",
+  "MIN",
+  "JUR",
 ] as const;
 export type CountryTag = (typeof COUNTRY_TAGS)[number];
 
@@ -140,13 +145,40 @@ export const CIVIL_WAR_SLOTS = [
   "CW5",
   "CW6",
 ] as const;
-/** P5 spec §3.2: every dormant slot, in COUNTRY_TAGS order (the last 14 tags). */
+/**
+ * P5 spec §3.2: every dormant slot, in COUNTRY_TAGS order. An explicit list
+ * (ww177): the tags appended after it (IMJIN_TAGS) are not dormant.
+ */
 export const DORMANT_TAGS = [
-  ...NAMED_DORMANT_TAGS,
-  ...CIVIL_WAR_SLOTS,
-] as const;
+  "SVK",
+  "HRV",
+  "VIC",
+  "RSI",
+  "RNG",
+  "MEN",
+  "BRM",
+  "PHL",
+  "CW1",
+  "CW2",
+  "CW3",
+  "CW4",
+  "CW5",
+  "CW6",
+] as const satisfies readonly (
+  | (typeof NAMED_DORMANT_TAGS)[number]
+  | (typeof CIVIL_WAR_SLOTS)[number]
+)[];
 export function isDormantTag(t: string): boolean {
   return (DORMANT_TAGS as readonly string[]).includes(t);
+}
+
+/**
+ * ww177 (Imjin design §2): the countries only the Imjin War plays (Japan is
+ * JPN, shared). Never on the 1936 map, never in the 1936 lobby.
+ */
+export const IMJIN_TAGS = ["JOS", "MIN", "JUR"] as const;
+export function isImjinTag(t: string): boolean {
+  return (IMJIN_TAGS as readonly string[]).includes(t);
 }
 
 /** The starting factions (spec §5.2), in camp order (Score.campRank). */
@@ -366,6 +398,18 @@ export const COUNTRIES: Readonly<Record<CountryTag, CountryDef>> = {
   CW4: def("Breakaway State 4", "ww_cw_neutral", [128, 128, 128], "europe"),
   CW5: def("Breakaway State 5", "ww_cw_neutral", [128, 128, 128], "europe"),
   CW6: def("Breakaway State 6", "ww_cw_neutral", [128, 128, 128], "europe"),
+  // ww177 (Imjin design §1-2): Joseon and Ming are the war's powers, the
+  // Jurchen an AI minor on the north edge. No faction: who stands with whom
+  // is the war's own state.
+  JOS: def("Joseon", "ww_jos", [214, 196, 120], "asia", {
+    major: true,
+    surrenderPct: 85,
+  }),
+  MIN: def("Ming", "ww_min", [196, 72, 60], "asia", {
+    major: true,
+    surrenderPct: 90,
+  }),
+  JUR: def("Jurchen", "ww_jur", [96, 132, 168], "asia"),
 };
 
 export const FACTION_LEADER: Readonly<Record<FactionId, CountryTag>> = {
@@ -374,8 +418,9 @@ export const FACTION_LEADER: Readonly<Record<FactionId, CountryTag>> = {
   comintern: "SUN",
 };
 
+/** The 1936 majors (the Imjin War's are its profile's: Profile.ts). */
 export const MAJOR_TAGS: readonly CountryTag[] = COUNTRY_TAGS.filter(
-  (t) => COUNTRIES[t].major,
+  (t) => COUNTRIES[t].major && !isImjinTag(t),
 );
 
 /** Unpicked humans get the first free country in this order (spec §7.1). */
@@ -384,6 +429,9 @@ export const PICK_ORDER: readonly CountryTag[] = (() => {
   // P5 plan decision 3: the dormant slots are never assigned to anyone.
   return [
     ...first,
-    ...COUNTRY_TAGS.filter((t) => !isDormantTag(t) && !first.includes(t)),
+    // ww177: nor the Imjin War's (its seats are its profile's).
+    ...COUNTRY_TAGS.filter(
+      (t) => !isDormantTag(t) && !isImjinTag(t) && !first.includes(t),
+    ),
   ];
 })();

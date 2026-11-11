@@ -8,6 +8,42 @@ import { GameConfig } from "@openfront/engine-api/Schemas";
 import { WW_GAME_MINUTES } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { wwDifficulty } from "./AiDifficulty";
 import { wwUnlimited } from "./Pace";
+import { imjinCalendarOf, isImjin } from "./scenario/Profile";
+
+/**
+ * ww177: the Imjin War's map (I0b builds it as `imjin1592`). Read by name so
+ * this lane builds before the map lands; until then the 1936 map stands in.
+ */
+export const IMJIN_MAP: GameMapType =
+  (GameMapType as unknown as Record<string, GameMapType | undefined>)[
+    "Imjin1592"
+  ] ?? GameMapType.World1936;
+
+/** Design §10: two seats; the AI plays every other country. */
+export const IMJIN_MAX_PLAYERS = 2;
+
+/**
+ * ww177 (Imjin design §2, §10): the Imjin profile's fixes, after the 1936
+ * ones. Its map, its calendar row (timer and tempo), two seats, no
+ * historical AI and none of the systems the profile switches off.
+ */
+function applyImjinRules(c: GameConfig): void {
+  const cal = imjinCalendarOf(c);
+  c.gameMap = IMJIN_MAP;
+  c.imjinCalendar = cal.id;
+  delete c.ww1936FastTempo;
+  if (cal.minutes === null) {
+    c.ww1936Unlimited = true;
+    delete c.maxTimerValue;
+  } else {
+    delete c.ww1936Unlimited;
+    c.maxTimerValue = cal.minutes;
+  }
+  c.historicalAi = false;
+  c.ww1936Nukes = false;
+  delete c.ww1936Designer;
+  c.maxPlayers = Math.min(c.maxPlayers ?? IMJIN_MAX_PLAYERS, IMJIN_MAX_PLAYERS);
+}
 
 /**
  * Units the mode turns off (spec §2.2): the atom bomb returns in P6. Cities
@@ -84,6 +120,8 @@ export function applyWorldWar1936Rules(c: GameConfig): void {
     if (!disabled.includes(u)) disabled.push(u);
   }
   c.disabledUnits = disabled;
+  if (isImjin(c)) applyImjinRules(c);
+  else delete c.imjinCalendar;
 }
 
 /**

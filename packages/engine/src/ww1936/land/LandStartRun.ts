@@ -176,13 +176,15 @@ export function startLand(land: WwLand): void {
     // P5 pre-flight §0-4: a dormant slot keeps its templates (to train once
     // woken) but has no generals and no 1936 army.
     if (sc.isDormantSlot(cl.smallID)) continue;
-    for (const id of rosterOf(cl.tag))
+    // ww177: the 1936 generals are 1936's; the Imjin War's commanders are P4's.
+    for (const id of land.ww.imjin ? [] : rosterOf(cl.tag))
       cl.generals.push(newGeneralState(id - 1));
     const oob = historical ? (START_OOB[cl.tag] ?? null) : null;
     const first = land.templateStatsOf(cl.smallID, cl.templates[0].id)!;
     const army = startArmy(
       cl.tag,
       land.econ.recruitableWith(cl.smallID, ce.law().conscriptionPermille),
+      land.ww.imjinStart,
     );
     counts.set(
       cl.smallID,

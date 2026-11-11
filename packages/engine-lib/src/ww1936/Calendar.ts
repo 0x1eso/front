@@ -49,8 +49,17 @@ export function dayStartTick(day: number, prepEndTick: number): number {
   return prepEndTick + Math.ceil((day * 15) / 2);
 }
 
-export function dateOfDay(day: number): CivilDate {
-  return civilFromDays(EPOCH_1936 + day);
+/**
+ * The date of day `day`. `epoch` is the game's day 0 in days since 1970
+ * (Profile.wwEpochDays); absent, 1936's.
+ */
+export function dateOfDay(day: number, epoch: number = EPOCH_1936): CivilDate {
+  return civilFromDays(epoch + day);
+}
+
+/** ww177: days since 1970-01-01 of an ISO date (a profile's epoch). */
+export function epochDaysOf(iso: string): number {
+  return dayOfDate(iso) + EPOCH_1936;
 }
 
 /**

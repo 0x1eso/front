@@ -26,6 +26,7 @@ import { loadTerrainMap } from "@openfront/engine-lib/game/TerrainMapLoader";
 import { PseudoRandom } from "@openfront/engine-lib/PseudoRandom";
 import { simpleHash } from "@openfront/engine-lib/Util";
 import { gwWorldOf } from "@openfront/engine-lib/ww1914/World1914";
+import { humanSeatsOf } from "@openfront/engine-lib/ww1936/scenario/Profile";
 import { EngineConfig } from "./configuration/EngineConfig";
 import { CongressExecution } from "./congress/CongressExecution";
 import { DomesticExecution } from "./domestic/DomesticExecution";
@@ -93,6 +94,8 @@ export async function createGameRunner(
       gameStart.players,
       scenario,
       random,
+      // ww177: the profile's human seats (the Imjin War: Joseon and Japan).
+      humanSeatsOf(config.gameConfig()),
     );
     game = createGame(
       players,

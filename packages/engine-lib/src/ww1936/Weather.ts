@@ -66,8 +66,10 @@ export function weatherAt(
   latC: number,
   land: LandTerrain,
   wcell: number,
+  /** ww177: the game's day 0 in days since 1970 (Profile.wwEpochDays); absent, 1936's. */
+  epoch?: number,
 ): Weather {
-  const d = dateOfDay(day);
+  const d = dateOfDay(day, epoch);
   // Southern hemisphere: six months later.
   const m = latC < 0 ? ((d.month + 5) % 12) + 1 : d.month;
   const dom = d.day;

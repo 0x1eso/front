@@ -85,7 +85,8 @@ export class WorldWarExecution implements Execution {
     ww.land.tick(ticks);
     // P4 (spec §2.2-6, -7): the navy, then the air war.
     ww.navy.tick(ticks);
-    ww.air.tick(ticks);
+    // ww177: the air war is off in the Imjin War (Profile.ts).
+    if (ww.systemOn("air")) ww.air.tick(ticks);
     // P5 (spec §2.2 order 8): conference deadlines, takeovers, woken countries.
     ww.endgame.tick(ticks);
     // P3 order 6: human event cards past their deadline.

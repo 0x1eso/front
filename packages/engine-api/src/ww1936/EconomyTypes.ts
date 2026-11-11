@@ -969,6 +969,8 @@ export const WW_ORDER_BLOCKS = [
   "collab_bad_region",
   "collab_no_slot",
   "collab_scripted",
+  // ww177: the scenario profile switches the order's system off (Profile.ts).
+  "system_off",
 ] as const;
 export type WwOrderBlock = (typeof WW_ORDER_BLOCKS)[number];
 

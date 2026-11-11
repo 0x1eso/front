@@ -16,6 +16,7 @@ import {
   wwAutoBit,
   WwAutoDomain,
 } from "@openfront/engine-api/ww1936/WorldWarTypes";
+import type { ImjinStartId } from "@openfront/engine-lib/imjin/Starts";
 import { zInt, zTiles } from "@openfront/engine-lib/snapshot/SnapshotType";
 import {
   WwAiLevel,
@@ -27,6 +28,14 @@ import {
   historicalAiActive,
   wwRealTicks,
 } from "@openfront/engine-lib/ww1936/Pace";
+import {
+  imjinCalendarOf,
+  scenarioOf,
+  wwEpochDays,
+  WwScenarioId,
+  WwSystem,
+  wwSystemOn,
+} from "@openfront/engine-lib/ww1936/scenario/Profile";
 import { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import { z } from "zod";
 import type { Game, Player } from "../game/Game";
@@ -133,6 +142,14 @@ export class WorldWar {
   readonly depth: WwDepth;
   /** The lobby's difficulty: the AI countries' handicaps (AiDifficulty). */
   readonly aiLevel: WwAiLevel;
+  /** ww177: the scenario profile (Profile.ts); config, not state. */
+  readonly scenarioId: WwScenarioId;
+  /** ww177: the Imjin War's profile is on. */
+  readonly imjin: boolean;
+  /** ww177: days since 1970 of day 0 (Calendar.dateOfDay's epoch). */
+  readonly epoch: number;
+  /** ww177: the Imjin War's start (Starts.ts), null in 1936. */
+  readonly imjinStart: ImjinStartId | null;
 
   constructor(
     private readonly mg: Game,
@@ -143,12 +160,18 @@ export class WorldWar {
     // constructors may read the day.
     this._prepEndTick = wwRealTicks(mg.config().gameConfig(), WW_PREP_TICKS);
     this.aiLevel = wwAiLevel(mg.config().gameConfig().difficulty);
+    this.scenarioId = scenarioOf(mg.config().gameConfig());
+    this.imjin = this.scenarioId === "imjin1590";
+    this.epoch = wwEpochDays(mg.config().gameConfig());
+    this.imjinStart = this.imjin
+      ? imjinCalendarOf(mg.config().gameConfig()).start
+      : null;
     this.size = scenario.countries.length + 1;
     this.warMatrix = new Uint8Array(this.size * this.size);
     this._gauge = new Array<number>(this.size).fill(0);
     this._auto = new Array<number>(this.size).fill(0);
     this.economy = new WwEconomy(mg, this, scenario);
-    this.politics = new WwPolitics(mg, this, politicsContent());
+    this.politics = new WwPolitics(mg, this, politicsContent(this.scenarioId));
     this.land = new WwLand(mg, this, this.economy);
     this.navy = new WwNavy(mg, this);
     this.air = new WwAir(mg, this);
@@ -186,7 +209,8 @@ export class WorldWar {
       this.mg.stats().recordSpawnTile(p, capital);
     }
     this._startVp = this.scenario.startVpBySmallId();
-    for (const [x, y] of WW_INITIAL_WARS) {
+    // ww177: the 1936 wars are 1936's; the Imjin War starts at peace.
+    for (const [x, y] of this.imjin ? [] : WW_INITIAL_WARS) {
       const a = this.scenario.smallIdOf(x);
       const b = this.scenario.smallIdOf(y);
       if (a !== 0 && b !== 0) this.setWar(a, b, 0, { kind: "declare" });
@@ -206,6 +230,11 @@ export class WorldWar {
   }
 
   // ---- Queries ----
+
+  /** ww177: whether the profile runs a system (Profile.wwSystemOn). */
+  systemOn(system: WwSystem): boolean {
+    return wwSystemOn(this.mg.config().gameConfig(), system);
+  }
 
   prepEndTick(): number {
     return this._prepEndTick;

@@ -7,6 +7,7 @@ import {
   EquipmentType,
   WwTechId,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
+import { ImjinStartId, imjinStartOf } from "../imjin/Starts";
 
 export interface MajorStart {
   laws: CountryLaws;
@@ -186,7 +187,15 @@ const VOLUNTEER: ReadonlySet<CountryTag> = new Set<CountryTag>([
 /** A minor with this many civilian factories counts as developed (§11.3). */
 export const DEVELOPED_CIV = 4;
 
-export function startLaws(tag: CountryTag): CountryLaws {
+/**
+ * The start functions below take `imjin`, the Imjin War's start
+ * (Profile.imjinCalendarOf(...).start), or null for 1936's (ww177).
+ */
+export function startLaws(
+  tag: CountryTag,
+  imjin: ImjinStartId | null = null,
+): CountryLaws {
+  if (imjin !== null) return { ...imjinStartOf(imjin, tag).laws };
   const m = MAJOR_START[tag];
   if (m !== undefined) return { ...m.laws };
   return {
@@ -196,14 +205,24 @@ export function startLaws(tag: CountryTag): CountryLaws {
   };
 }
 
-export function startArmy(tag: CountryTag, recruitable: number): number {
+export function startArmy(
+  tag: CountryTag,
+  recruitable: number,
+  imjin: ImjinStartId | null = null,
+): number {
+  if (imjin !== null) return imjinStartOf(imjin, tag).army;
   return (
     MAJOR_START[tag]?.army ??
     Math.max(1000, Math.floor((recruitable * 30) / 100))
   );
 }
 
-export function startTechs(tag: CountryTag, civ: number): WwTechId[] {
+export function startTechs(
+  tag: CountryTag,
+  civ: number,
+  imjin: ImjinStartId | null = null,
+): WwTechId[] {
+  if (imjin !== null) return [...imjinStartOf(imjin, tag).techs];
   const m = MAJOR_START[tag];
   if (m !== undefined) return [...MAJOR_TECHS, ...m.extraTechs];
   const out: WwTechId[] = ["inf_eq_1", "support_eq_1", "artillery_1"];
@@ -217,12 +236,13 @@ export function startStock(
   army: number,
   civ: number,
   mil: number,
+  imjin: ImjinStartId | null = null,
 ): number[] {
   const out = new Array<number>(EQUIP_KEY_COUNT).fill(0);
   const put = (t: EquipmentType, n: number) => {
     out[equipKey(t, 1)] += n;
   };
-  const m = MAJOR_START[tag];
+  const m = imjin !== null ? imjinStartOf(imjin, tag) : MAJOR_START[tag];
   if (m !== undefined) {
     put("infantry_equipment", m.infReserve);
     for (const [t, n] of Object.entries(m.stock)) put(t as EquipmentType, n);
@@ -245,7 +265,11 @@ export const START_RESEARCH_SLOTS: Readonly<
   Partial<Record<CountryTag, number>>
 > = { USA: 4, SUN: 4 };
 
-export function startResearchSlots(tag: CountryTag): number {
+export function startResearchSlots(
+  tag: CountryTag,
+  imjin: ImjinStartId | null = null,
+): number {
+  if (imjin !== null) return imjinStartOf(imjin, tag).researchSlots;
   return START_RESEARCH_SLOTS[tag] ?? (isMajor(tag) ? 3 : 2);
 }
 
@@ -324,7 +348,10 @@ export function navalStartTechs(
   tag: CountryTag,
   dev: number,
   coastal: boolean,
+  imjin: ImjinStartId | null = null,
 ): WwTechId[] {
+  // ww177: the Imjin War's navy is its own layer (design §6).
+  if (imjin !== null) return [];
   const m = NAVAL_START[tag];
   if (m !== undefined) return [...m];
   return dev >= 3 && coastal ? ["dd_2", "ss_2"] : [];

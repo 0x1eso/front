@@ -89,6 +89,8 @@ function applyOrder(
   if (ce === null || !econ.ww.isActor(p.smallID())) {
     return "dead";
   }
+  // ww177: an order of a system the profile switches off (Profile.ts).
+  if (profileOff(econ.ww, order)) return "system_off";
   // P6 (plan decision 4): the 57 depth orders go to the depth systems.
   if (isDepthOrder(order)) {
     const block = econ.ww.depth.issue(p.smallID(), order, mg.ticks());
@@ -466,3 +468,27 @@ export const WwOrderExecutionSnapshot = execSnapshotType({
   schema: WwOrderStateSchema,
   cls: () => WwOrderExecution,
 });
+
+/** ww177: the air war's orders (WwAir.issue's kinds). */
+const AIR_KINDS: ReadonlySet<string> = new Set([
+  "air_deploy",
+  "air_recall",
+  "air_auto",
+  "wing_mission",
+  "wing_base",
+  "wing_auto",
+  "wing_disband",
+  "air_field",
+  "army_air_priority",
+  "air_template",
+  "air_template_drop",
+  "air_group_order",
+  "air_group_disband",
+]);
+
+/** ww177: whether the profile switched off the system `order` belongs to. */
+function profileOff(ww: WwEconomy["ww"], order: WwOrder): boolean {
+  if (AIR_KINDS.has(order.kind)) return !ww.systemOn("air");
+  if (order.kind === "army_rail") return !ww.systemOn("rail");
+  return false;
+}

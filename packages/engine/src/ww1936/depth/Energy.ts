@@ -47,7 +47,8 @@ const DAM_FROM_DAY: readonly number[] = DAMS.map((dam) => {
 
 /** Spec §16.1: the energy system runs only on a map with the v5 columns. */
 export function energyOn(d: WwDepth): boolean {
-  return d.ww.scenario.data.version >= 5;
+  // ww177: and the profile runs it (Profile.wwSystemOn).
+  return d.ww.scenario.data.version >= 5 && d.ww.systemOn("energy");
 }
 
 export interface EnergyParts {
