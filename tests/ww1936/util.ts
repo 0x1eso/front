@@ -123,7 +123,7 @@ export async function wwRunnerCapture(
     viewer,
     await loadMapFiles(
       new TestDataMapLoader(map),
-      GameMapType.World1936,
+      start.config.gameMap,
       GameMapSize.Normal,
     ),
     (gu: GameUpdateViewData | ErrorUpdate) => {

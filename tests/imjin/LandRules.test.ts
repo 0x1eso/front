@@ -1,4 +1,11 @@
 import {
+  aiAttackOrder,
+  aiDefenceStance,
+  imjinRound,
+  rowMixOf,
+  type RoundInput,
+} from "@openfront/engine-lib/imjin/LandRound";
+import {
   ambushFx,
   ambushHidden,
   battleStep,
@@ -166,5 +173,58 @@ describe("Imjin land rules", () => {
     let s = { grainDays: 1, fort: 1, breachDays: 0, morale: 500 };
     for (let d = 0; d < 3; d++) s = siegeDay(s, "breach", true, false, walled);
     expect(s).toEqual({ grainDays: 0, fort: 0, breachDays: 0, morale: 400 });
+  });
+});
+
+describe("the Imjin round in the 1936 loop (LandRound)", () => {
+  const base: RoundInput = {
+    seed: 7,
+    region: 3,
+    battleStart: 0,
+    round: 6,
+    terrain: "plain",
+    wet: false,
+    att: {
+      order: "advance",
+      mix: rowMixOf("JPN"),
+      skill: 0,
+      hwachaUsed: false,
+    },
+    def: { order: "hold", mix: rowMixOf("JOS"), skill: 0, hwachaUsed: true },
+    crossing: null,
+    fort: 0,
+    ambushed: false,
+    broken: false,
+  };
+  it("the opening is the bows' and guns', the walls double the defence", () => {
+    const open = imjinRound({ ...base, round: 1 });
+    const clash = imjinRound(base);
+    expect(open.step).toBe("opening");
+    expect(open.attDealtPct).toBeLessThan(clash.attDealtPct);
+    const walls = imjinRound({ ...base, terrain: "walled", fort: 2 });
+    expect(walls.attDealtPct * 2).toBeLessThanOrEqual(clash.attDealtPct);
+    expect(walls.defDealtPct).toBeGreaterThan(clash.defDealtPct);
+  });
+  it("massed fire beats on the clock; an ambush narrows and hurts", () => {
+    const vol = { ...base.att, order: "volley_advance" as const };
+    const fire = imjinRound({ ...base, round: 7, att: vol });
+    const reload = imjinRound({ ...base, round: 8, att: vol });
+    expect(fire.attBeat).toBe("fire");
+    expect(reload.attBeat).toBe("reload");
+    expect(fire.attDealtPct).toBeGreaterThan(reload.attDealtPct);
+    const amb = imjinRound({
+      ...base,
+      round: 1,
+      terrain: "pass",
+      ambushed: true,
+    });
+    expect(amb.widthNum * 3).toBeLessThanOrEqual(amb.widthDen);
+    expect(amb.attMorale).toBeGreaterThan(0);
+  });
+  it("the AI storms a fort and counters the order it met", () => {
+    expect(["storm", "barrage"]).toContain(
+      aiAttackOrder(rowMixOf("JPN"), "walled", 2, null, 1),
+    );
+    expect(aiDefenceStance(rowMixOf("JOS"), "charge", 1)).toBe("hold");
   });
 });

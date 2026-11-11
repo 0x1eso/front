@@ -772,7 +772,11 @@ export class WwNavyPanel extends WwDrawerBase {
               @click=${() => {
                 this.eventBus.emit(new WwFleetSelectedEvent(r.id));
                 const f = ctx.navy.fleets.get(r.id);
-                if (f !== undefined) {
+                // ww177: an Imjin tile fleet is where it is.
+                const at = ctx.navy.imjinXY.get(r.id);
+                if (at !== undefined) {
+                  this.eventBus.emit(new GoToPositionEvent(at[0], at[1]));
+                } else if (f !== undefined) {
                   const c =
                     f.docked !== 0
                       ? ctx.scenario.centerTile(f.docked)

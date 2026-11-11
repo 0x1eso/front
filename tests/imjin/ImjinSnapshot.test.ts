@@ -1,6 +1,7 @@
 // ww177 (Imjin design §13): the Imjin profile's pinned game. It moves with
 // every change to the profile's rules or content: re-pin it here when that
 // is intended. Never WW1936_DIGEST for this.
+import { GameMapType } from "@openfront/engine-api/game/GameTypes";
 import type { GameConfig } from "@openfront/engine-api/Schemas";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { createHash } from "node:crypto";
@@ -9,14 +10,15 @@ import { byTag, HUMAN, step, wwRunner } from "../ww1936/util";
 
 const MAP = "imjinmini";
 const CONFIG: Partial<GameConfig> = {
+  gameMap: GameMapType.Imjin1592,
   ww1936Scenario: "imjin1590",
   ww1936Designer: undefined,
 };
 const HUMANS = [{ clientID: HUMAN }];
 const hash = (r: { game: unknown }) => (r.game as { hash(): number }).hash();
 
-// Pinned at the lane I0a commit with two equal runs (imjinmini, 3,000 ticks).
-const IMJIN_DIGEST = "e75ea81f001de94e";
+// Re-pinned at the ww177 merge 1 with two equal runs (imjinmini, 3,000 ticks).
+const IMJIN_DIGEST = "8e0e33086bfd32c9";
 
 async function imjinRunner() {
   return wwRunner(CONFIG, HUMANS, MAP);
