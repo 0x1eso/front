@@ -11,6 +11,14 @@ export function officeTitle(tag: string, office: string): string {
   return t === own ? translateText(`gw.office.${office}`) : t;
 }
 
+/** ww179: why a paper is shut, as the seat's country names its people. */
+export function planWhy(tag: string, why: string): string {
+  const t = translateText(`gw.plan_why_by.${tag}.${why}`);
+  return t === `gw.plan_why_by.${tag}.${why}`
+    ? translateText(`gw.plan_why.${why}`)
+    : t;
+}
+
 /**
  * ww179: a body that can say no, as the seat's country names it:
  * `gw.ui.inst_name_by.<TAG>.<inst>` (Germany's 재상의 부서), else the shared word.

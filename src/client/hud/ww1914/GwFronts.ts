@@ -18,6 +18,7 @@ import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
 import type { GwCtx, GwOffPick } from "./GwCtx";
 import { frontMove, frontRead, frontTone, type FrontRead } from "./GwModel";
+import { planWhy } from "./GwOffice";
 import { BTN, BTN_ON, CHIP, HEAD, MUTED } from "./GwStyle";
 import { factText, frontLine, personName } from "./GwText";
 
@@ -318,7 +319,7 @@ function offensivePicks(c: GwCtx, p: GwProposal): TemplateResult {
         (m) =>
           html`<p class=${MUTED}>
             ${translateText(`gw.ui.off_method.${m.method}`)}:
-            ${translateText(`gw.plan_why.${m.why}`)}
+            ${planWhy(c.seat.tag, m.why)}
           </p>`,
       )}
     <div class=${MUTED}>${translateText("gw.ui.off_months_head")}</div>
@@ -474,7 +475,7 @@ function paper(c: GwCtx, p: GwProposal): TemplateResult {
           ${translateText("gw.ui.sign")}
         </button>`
       : html`<p class=${MUTED} data-gw-paper-why>
-          ${translateText(`gw.plan_why.${p.why}`)}
+          ${planWhy(c.seat.tag, p.why)}
         </p>`}
   </div>`;
 }

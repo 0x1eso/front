@@ -22,6 +22,7 @@ import {
 import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
 import type { GwCtx } from "./GwCtx";
+import { instName } from "./GwOffice";
 import { BTN, BTN_ON, CHIP, GLASS, HEAD, MUTED } from "./GwStyle";
 import { fullDate, personName, textOrNull } from "./GwText";
 
@@ -376,6 +377,7 @@ function forecast(c: GwCtx, y: GwBudgetYear, live: boolean): TemplateResult {
 function bodyLines(
   v: GwBudgetView,
   vote: GwBudgetVote,
+  tag: string,
 ): TemplateResult | typeof nothing {
   const b = v.body;
   if (b === null) {
@@ -384,7 +386,7 @@ function bodyLines(
   const lineOf = (inst: string, score: number, need: number) =>
     html`<p class="text-sm text-white/85" data-gw-budget-body=${inst}>
       ${translateText("gw.budget.body_line", {
-        body: translateText(`gw.ui.inst_name.${inst}`),
+        body: instName(tag, inst),
         score,
         need,
       })}
@@ -521,7 +523,7 @@ export function budgetPanel(c: GwCtx): TemplateResult {
         <div class="space-y-2.5">
           ${numbers(c, v)} ${forecast(c, y, live)}
           <section class=${BOX} data-gw-budget-vote>
-            ${bodyLines(v, vote)}
+            ${bodyLines(v, vote, c.seat.tag)}
             ${live
               ? actions(c, v, plan, vote)
               : html`<p class=${MUTED} data-gw-budget-next>
@@ -560,7 +562,7 @@ export function budgetStrip(c: GwCtx): TemplateResult {
           >`,
       )}
     </div>
-    ${bodyLines(v, vote)}
+    ${bodyLines(v, vote, c.seat.tag)}
     ${v.body?.kind === "alone" && !vote.pass
       ? html`<p class="text-sm text-amber-200" data-gw-budget-alone>
           ${translateText("gw.budget.alone", { n: v.body.forcePrice })}

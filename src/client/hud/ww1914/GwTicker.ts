@@ -38,7 +38,8 @@ export function tickerLines(
       }),
     );
   }
-  for (const r of seat.log.slice(-2).reverse()) out.push(reasonText(pack, r));
+  for (const r of seat.log.slice(-2).reverse())
+    out.push(reasonText(pack, r, seat.tag));
   if (out.length === 0) out.push(translateText("gw.ui.news.quiet"));
   return out;
 }

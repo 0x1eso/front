@@ -2,6 +2,7 @@ import type { GwLawView } from "@openfront/engine-api/ww1914/GwLaw";
 import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
 import type { GwCtx } from "./GwCtx";
+import { instName } from "./GwOffice";
 import { BTN, BTN_ON, HEAD, MUTED } from "./GwStyle";
 import { personName } from "./GwText";
 
@@ -13,15 +14,15 @@ const billLine = (c: GwCtx, id: string): string | null =>
   c.pack?.scenes[`gw_law_${id}`]?.topic ?? null;
 
 /** What a moving bill looks like today, and who can stop it. */
-function standing(v: GwLawView): TemplateResult | typeof nothing {
+function standing(v: GwLawView, tag: string): TemplateResult | typeof nothing {
   if (v.body === null) return nothing;
-  const body = translateText(`gw.ui.inst_name.${v.body}`);
+  const body = instName(tag, v.body);
   const stops =
     v.second === null
       ? translateText("gw.law.stops", { body })
       : translateText("gw.law.stops_two", {
           body,
-          second: translateText(`gw.ui.inst_name.${v.second}`),
+          second: instName(tag, v.second),
         });
   return html`<p class=${MUTED} data-gw-law-stops>
     ${stops}${v.outlook === null
@@ -149,7 +150,7 @@ function line(c: GwCtx, v: GwLawView): TemplateResult {
       <span class="shrink-0 text-white/70">${how}</span>
     </div>
     ${about === null ? nothing : html`<p class=${MUTED}>${about}</p>`}
-    ${v.stage === "force" ? nothing : standing(v)}
+    ${v.stage === "force" ? nothing : standing(v, c.seat.tag)}
     ${v.stage === "open" ? takeUp(c, v) : nothing} ${call(c, v)} ${repeal(c, v)}
   </div>`;
 }
@@ -184,5 +185,7 @@ export function lawsSection(c: GwCtx): TemplateResult | typeof nothing {
 export function lawStrip(c: GwCtx, scene: string): TemplateResult {
   const v = c.seat.world.laws.find((x) => `gw_lv_${x.id}` === scene);
   if (v === undefined) return html``;
-  return html`<div class=${BOX} data-gw-law-strip>${standing(v)}</div>`;
+  return html`<div class=${BOX} data-gw-law-strip>
+    ${standing(v, c.seat.tag)}
+  </div>`;
 }

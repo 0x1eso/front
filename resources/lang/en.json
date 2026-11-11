@@ -2972,7 +2972,7 @@
           "2": "useful",
           "3": "sharp",
           "hint": "How well we find enemy agents at home. The sharper, the shorter their nets last.",
-          "name": "Catching spies"
+          "name": "Counter-intelligence"
         },
         "none": "The service hasn't worked yet, so its skill is unknown. It shows after the first operation or code broken.",
         "read": {
@@ -2981,13 +2981,13 @@
           "2": "useful",
           "3": "excellent",
           "hint": "How well we read enemy telegrams. Codes weaker than this can be read.",
-          "name": "Breaking their codes"
+          "name": "Codebreaking"
         }
       },
       "sure": {
-        "confirmed": "certain",
-        "estimate": "only a guess",
-        "unconfirmed": "not yet checked, may be wrong"
+        "confirmed": "confirmed, certain",
+        "estimate": "estimate, only a guess",
+        "unconfirmed": "unconfirmed, may be wrong"
       },
       "track": {
         "good": "This channel has mostly been right so far.",
@@ -3592,6 +3592,11 @@
       "soviet": "The Soviet will not allow this.",
       "stavka": "Stavka will not take this paper."
     },
+    "plan_why_by": {
+      "DEU": {
+        "countersign": "The Chancellor will not countersign this."
+      }
+    },
     "power": {
       "because": "{power}: {line}",
       "beyond_tag": "Beyond the law",
@@ -4014,6 +4019,11 @@
       "vote_carried": "The cabinet carried it.",
       "vote_lost": "The cabinet voted it down.",
       "war_note_sent": "Our declaration went to {country}. The war begins as the month closes."
+    },
+    "reason_by": {
+      "DEU": {
+        "countersign_refused": "The Chancellor will not put his name to more."
+      }
     },
     "regime": {
       "austria_republic": "Republic of Austria",

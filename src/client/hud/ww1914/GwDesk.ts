@@ -70,7 +70,7 @@ function actLines(c: GwCtx, n: GwResultNote): string[] {
   if (n.act === undefined) return [];
   return c.seat.log
     .filter((r) => r.act === n.act && r.chapter === n.chapter)
-    .map((r) => reasonText(c.pack, r));
+    .map((r) => reasonText(c.pack, r, c.seat.tag));
 }
 
 export function lastReasons(c: GwCtx): string[] {
@@ -78,7 +78,7 @@ export function lastReasons(c: GwCtx): string[] {
   const before = new Set(
     c.seat.log
       .filter((r) => r.chapter === c.data.chapter - 2)
-      .map((r) => reasonText(c.pack, r)),
+      .map((r) => reasonText(c.pack, r, c.seat.tag)),
   );
   return c.seat.log
     .filter(
@@ -89,7 +89,7 @@ export function lastReasons(c: GwCtx): string[] {
           r.act === null ||
           !listed.has(`${r.act}@${r.chapter}`)),
     )
-    .map((r) => reasonText(c.pack, r))
+    .map((r) => reasonText(c.pack, r, c.seat.tag))
     .filter((t) => !before.has(t))
     .reverse()
     .slice(0, REASONS_SHOWN);

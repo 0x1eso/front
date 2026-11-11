@@ -24,7 +24,7 @@ import type {
 import type { GwReportView } from "@openfront/engine-api/ww1914/GwWorldView";
 import { applyJosa } from "../../Josa";
 import { translateText } from "../../Utils";
-import { officeTitle } from "./GwOffice";
+import { instName, officeTitle } from "./GwOffice";
 
 /** A key's text, or null when it has none. */
 export function textOrNull(
@@ -256,7 +256,12 @@ function withWho(text: string, pack: GwPack | null, who?: string | null) {
 }
 
 /** What a schedule act's line moved (ww169 `what`), named by its key's family. */
-function whatText(pack: GwPack | null, key: string, what: string): string {
+function whatText(
+  pack: GwPack | null,
+  key: string,
+  what: string,
+  tag?: string,
+): string {
   // The year's project (ww179): its name, or what it changed.
   if (key === "project_changed") return pack?.craft?.[what]?.done ?? "";
   if (key.startsWith("project_")) return pack?.craft?.[what]?.name ?? what;
@@ -264,8 +269,11 @@ function whatText(pack: GwPack | null, key: string, what: string): string {
   if (key.startsWith("land_") && what in GW_PLACES) {
     return GW_PLACES[what as GwPlace].nameKo;
   }
-  if (key.startsWith("fx_inst_"))
-    return translateText(`gw.ui.inst_name.${what}`);
+  if (key.startsWith("fx_inst_")) {
+    return tag === undefined
+      ? translateText(`gw.ui.inst_name.${what}`)
+      : instName(tag, what);
+  }
   if (key.startsWith("fx_opinion_"))
     return pack?.press?.blocs[what]?.name ?? what;
   if (key === "fx_inspect" || key === "fx_report") {
@@ -277,8 +285,17 @@ function whatText(pack: GwPack | null, key: string, what: string): string {
 }
 
 /** A why-log line: the pack's, else the language file's. */
-export function reasonText(pack: GwPack | null, r: GwReason): string {
-  const line = pack?.reasons?.[r.key] ?? translateText(`gw.reason.${r.key}`);
+export function reasonText(
+  pack: GwPack | null,
+  r: GwReason,
+  seatTag?: string,
+): string {
+  const own =
+    seatTag === undefined
+      ? null
+      : textOrNull(`gw.reason_by.${seatTag}.${r.key}`);
+  const line =
+    pack?.reasons?.[r.key] ?? own ?? translateText(`gw.reason.${r.key}`);
   const country =
     r.tag === undefined ? "" : translateText(`gw.country.${r.tag}`);
   const what =
@@ -286,7 +303,7 @@ export function reasonText(pack: GwPack | null, r: GwReason): string {
       ? r.key.startsWith("project_")
         ? translateText("gw.craft.this_year")
         : ""
-      : whatText(pack, r.key, r.what);
+      : whatText(pack, r.key, r.what, seatTag);
   const text = withWho(
     line.replace(/\{country\}/g, country).replace(/\{what\}/g, what),
     pack,

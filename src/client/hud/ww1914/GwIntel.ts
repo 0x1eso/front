@@ -64,7 +64,11 @@ function report(c: GwCtx, r: GwReportView, front: boolean): TemplateResult {
       <span title=${track}
         >${t("from", { source: translateText(`gw.source.${r.source}`) })}</span
       >
-      · ${t(`sure.${r.stamp}`)} · ${ageWord(c.data.chapter, r.chapter)}
+      ·
+      <span title=${translateText(`gw.ui.stamp_hint.${r.stamp}`)}
+        >${t(`sure.${r.stamp}`)}</span
+      >
+      · ${ageWord(c.data.chapter, r.chapter)}
     </p>
     ${r.corrected !== null
       ? html`<p class="text-amber-200" data-gw-corrected>

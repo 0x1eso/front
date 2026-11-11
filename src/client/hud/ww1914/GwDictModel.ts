@@ -105,7 +105,7 @@ export function newPass(
 
 /** Words that already make a title of what stands next to a name. */
 const TITLE_BEFORE =
-  /(대신|총장|대사|장관|제독|장군|원수|황제|국왕|수상|총리|사령관|백작|대령|의장|공사|차관|총재|총독|교수|박사|서기장|시종|참모|공작|대공|교황|왕|황후|왕비)\s*$/;
+  /(대신|총장|대사|장관|제독|장군|원수|황제|국왕|수상|재상|총리|사령관|백작|대령|의장|공사|차관|총재|총독|교수|박사|서기장|시종|참모|공작|대공|교황|왕|황후|왕비)\s*$/;
 const TITLE_AFTER =
   /^\s?(폐하|전하|각하|대신|총장|대사|장관|제독|장군|원수|백작|대령|의장|공사|차관|총재|총독|씨|박사|교수|공작|대공|황제|국왕)/;
 /** A name that already carries its rank: 조지 왕, 막스 공. */
@@ -130,7 +130,7 @@ export function alreadyTitled(
 }
 
 const LEAN_POST =
-  /(대신|장관|수상|총리|총장|사령관|대사|공사|차관|총재|총독|대통령|국왕|왕|황제|차르|지도자|대표|의장|의원|장군|제독|대령|국장|서기|주치의|교수|교황|섭정|청장|주지사|왕세자|왕비|계승자)$/;
+  /(대신|장관|수상|재상|총리|총장|사령관|대사|공사|차관|총재|총독|대통령|국왕|왕|황제|차르|지도자|대표|의장|의원|장군|제독|대령|국장|서기|주치의|교수|교황|섭정|청장|주지사|왕세자|왕비|계승자)$/;
 
 /** A lean that reads as a post or a standing, else null: "공동 재무대신". */
 export function leanTitle(lean: string): string | null {

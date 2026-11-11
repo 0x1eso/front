@@ -383,7 +383,7 @@ export function talkView(
               ${t.reasons.map(
                 (r) =>
                   html`<p class="text-sm text-white/80">
-                    ${rich(c, reasonText(c.pack, r), pass)}
+                    ${rich(c, reasonText(c.pack, r, c.seat.tag), pass)}
                   </p>`,
               )}
             </div>`

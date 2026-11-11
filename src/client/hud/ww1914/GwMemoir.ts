@@ -322,7 +322,7 @@ export function memoirTab(c: GwCtx): TemplateResult {
                 ${g.reasons.map(
                   (r) =>
                     html`<p class="text-sm text-white/85">
-                      ${rich(c, reasonText(c.pack, r))}
+                      ${rich(c, reasonText(c.pack, r, c.seat.tag))}
                     </p>`,
                 )}
               </div>`,
