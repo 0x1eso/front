@@ -32,6 +32,18 @@ export interface SeaCtx {
   currentAxis(current: number): number;
   /** Japan and Ming keep a taken ship; Joseon burns it. */
   keepsPrizes(owner: number): boolean;
+  /** ww177 P7b: Japan's owner id (its prize guns), absent off the real map. */
+  japan?: number;
+  /** ww177 P7b: fortified anchorages (the wajō) that fire on hostile ships. */
+  batteries?(): readonly SeaBattery[];
+}
+
+export interface SeaBattery {
+  /** The port tile. */
+  tile: number;
+  owner: number;
+  /** Fort level: the battery fires 2 × level light guns. */
+  level: number;
 }
 
 /** The tile under a milli-tile position, or -1 off the map. */

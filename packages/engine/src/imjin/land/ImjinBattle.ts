@@ -5,11 +5,12 @@
 // clock, charges, crossings, ambush and the walls as the 1936 tactic
 // multipliers, morale hits as organisation, and the rout cascade.
 import {
-  aiAttackOrder,
-  aiDefenceStance,
+  doctrineAttackOrder,
+  doctrineDefenceStance,
+} from "@openfront/engine-lib/imjin/Doctrine";
+import {
   imjinRound,
   type RoundOut,
-  rowMixOf,
 } from "@openfront/engine-lib/imjin/LandRound";
 import {
   ambushHidden,
@@ -21,11 +22,13 @@ import {
   isPhaseStart,
   isRoundTick,
   paddyWet,
+  phaseOf,
   riverFrozen,
   routCascade,
   scoutSpots,
   seesRhythm,
 } from "@openfront/engine-lib/imjin/LandRules";
+import { lunarOf } from "@openfront/engine-lib/imjin/Lunar";
 import {
   edgeBetween,
   type ImjinEdge,
@@ -37,6 +40,7 @@ import type { TacticFx } from "@openfront/engine-lib/ww1936/TacticRules";
 import { generalOf } from "../../ww1936/land/GeneralsRun";
 import type { Battle, WwLand } from "../../ww1936/land/WwLand";
 import { EDGE_KINDS, type ImjinBattleOrders } from "../WwImjin";
+import { homeBlockPct, mixOf, noteRouts, perksAt } from "./ImjinDoctrine";
 import { imjinFortLevel } from "./Sieges";
 
 const P_IMJIN_ORDER = idHash("imjin_order");
@@ -73,7 +77,42 @@ export function imjinCrossingAllowed(
 }
 
 function tagMix(land: WwLand, owner: number) {
-  return rowMixOf(land.scenario.tagOfSmallId(owner) ?? "");
+  return mixOf(land.ww.imjinWar!, owner);
+}
+
+function tagOf(land: WwLand, owner: number): string {
+  return land.scenario.tagOfSmallId(owner) ?? "";
+}
+
+/** ww177 P7b: the side's men (alive rows), for the escalade's odds. */
+function sideMen(land: WwLand, ids: readonly number[]): number {
+  const t = land.divisions;
+  let n = 0;
+  for (const id of ids) {
+    const r = t.rowOf(id);
+    if (r >= 0 && t.org[r] > 0) n += t.men[r];
+  }
+  return n;
+}
+
+/** ww177 P7b: the attackers' strength over the defenders', %. */
+function ratioPct(land: WwLand, b: Battle): number {
+  const def = sideMen(land, b.defenders);
+  const att = sideMen(land, b.attackers);
+  return def <= 0 ? 1000 : Math.min(1000, Math.floor((att * 100) / def));
+}
+
+/** ww177 P7b: the land regions the attackers come from. */
+function sidesOf(land: WwLand, b: Battle): number {
+  const t = land.divisions;
+  const seen: number[] = [];
+  for (const id of b.attackers) {
+    const r = t.rowOf(id);
+    if (r < 0) continue;
+    const from = t.region[r];
+    if (from !== b.region && !seen.includes(from)) seen.push(from);
+  }
+  return Math.max(1, seen.length);
 }
 
 /**
@@ -173,13 +212,18 @@ function stepPhase(
         b.round * 2,
       );
       o.att = ATTACK_ORDERS.indexOf(
-        aiAttackOrder(
+        doctrineAttackOrder(
+          tagOf(land, b.attLead),
           tagMix(land, b.attLead),
           terrain,
           fort,
           b.round === 1 ? null : DEFENCE_STANCES[o.def],
           roll,
-          { seesRhythm: seesRhythm(false, sideSkill(land, b.attackers, true)) },
+          {
+            seesRhythm: seesRhythm(false, sideSkill(land, b.attackers, true)),
+            phase: phaseOf(b.round),
+            enemy: tagOf(land, defOwner),
+          },
         ),
       );
     }
@@ -200,13 +244,16 @@ function stepPhase(
     );
     const c = crossingFor(land, o, tick);
     o.def = DEFENCE_STANCES.indexOf(
-      aiDefenceStance(
+      doctrineDefenceStance(
+        tagOf(land, defOwner),
         tagMix(land, defOwner),
         b.round === 1 ? null : ATTACK_ORDERS[o.att],
         roll,
         {
           terrain,
           crossing: c !== null && c.phases > 0 && inCrossing(c, b.round),
+          fort,
+          enemy: tagOf(land, b.attLead),
         },
       ),
     );
@@ -222,6 +269,10 @@ export function imjinRoundOf(land: WwLand, b: Battle, tick: number): RoundOut {
   const month = monthOf(land, tick);
   const terrain = regionTerrain(sc, b.region);
   const crossing = crossingFor(land, o, tick);
+  const im = land.ww.imjinWar!;
+  const defOwner = land.controller[b.region];
+  const day = land.ww.inPrep(tick) ? 0 : land.ww.day(tick);
+  const lunar = lunarOf(land.ww.epoch + day);
   const out = imjinRound({
     seed: land.ww.politics.seed,
     region: b.region,
@@ -234,17 +285,23 @@ export function imjinRoundOf(land: WwLand, b: Battle, tick: number): RoundOut {
       mix: tagMix(land, b.attLead),
       skill: sideSkill(land, b.attackers, true),
       hwachaUsed: o.hwAtt === 1,
+      perks: perksAt(im, b.attLead, b.region, true),
     },
     def: {
       order: DEFENCE_STANCES[o.def] ?? "hold",
-      mix: tagMix(land, land.controller[b.region]),
+      mix: tagMix(land, defOwner),
       skill: sideSkill(land, b.defenders, false),
       hwachaUsed: o.hwDef === 1,
+      perks: perksAt(im, defOwner, b.region, false),
     },
     crossing,
     fort: imjinFortLevel(land.ww.imjinWar!, b.region),
     ambushed: o.ambushed === 1,
     broken: b.exploit !== undefined,
+    lunarDay: lunar === null ? 0 : lunar.day,
+    ratioPct: ratioPct(land, b),
+    sides: sidesOf(land, b),
+    homeBlockPct: homeBlockPct(im, defOwner, b.region),
   });
   if (out.attHwacha) o.hwAtt = 1;
   if (out.defHwacha) o.hwDef = 1;
@@ -290,7 +347,11 @@ export function imjinMoraleHit(
  * along the line (its neighbours lose 60‰). A routed unit's organisation
  * is 0, so the 1936 loop takes it out of the fight.
  */
-export function imjinRouts(land: WwLand, line: readonly number[]): void {
+export function imjinRouts(
+  land: WwLand,
+  line: readonly number[],
+  enemy = 0,
+): void {
   const t = land.divisions;
   const rows = line.filter((r) => t.id[r] !== 0);
   if (rows.length === 0) return;
@@ -301,6 +362,7 @@ export function imjinRouts(land: WwLand, line: readonly number[]): void {
     morale,
     rows.map(() => false),
   );
+  const routed = rows.filter((_, i) => res.routed[i]);
   rows.forEach((r, i) => {
     if (res.routed[i]) t.org[r] = 0;
     else {
@@ -311,4 +373,6 @@ export function imjinRouts(land: WwLand, line: readonly number[]): void {
     }
     land.markArmy(t.army[r]);
   });
+  // ww177 P7b: the doctrine learns from the rout.
+  noteRouts(land, routed, enemy);
 }

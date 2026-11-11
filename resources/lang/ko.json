@@ -1704,7 +1704,10 @@
     "ww1936_imjin_jos_pyongyang_a": "조선 군사가 명군과 나란히 공격 대열에 섭니다.",
     "ww1936_imjin_jos_pyongyang_b": "우리 군사는 길을 지키고 군량을 나르고, 성벽은 명군이 오릅니다.",
     "ww1936_imjin_jos_ships_panokseon": "새로 지은 판옥선이 함대에 들어옵니다.",
-    "ww1936_imjin_jos_ships_turtle": "거북선이 함대에 들어옵니다."
+    "ww1936_imjin_jos_ships_turtle": "거북선이 함대에 들어옵니다.",
+    "ww1936_imjin_fleet_scuttled": "조선 수군 한 함대가 스스로 배를 가라앉혔습니다. 수군은 성을 지키러 갑니다.",
+    "ww1936_imjin_fleet_withdrawn": "조선 수군 한 함대가 서쪽으로 물러납니다.",
+    "ww1936_imjin_fleet_stands": "조선 수군 한 함대가 맞서 싸우려 합니다."
   },
   "featured_stream": {
     "expand": "펼치기",
@@ -4299,7 +4302,11 @@
       "imjin_jp_wajo": "남해안의 왜성",
       "imjin_jp_second_levy": "두 번째 동원",
       "imjin_jp_winter_clothes": "군대에 솜옷 보내기",
-      "imjin_jp_village_notices": "마을에 내건 방문"
+      "imjin_jp_village_notices": "마을에 내건 방문",
+      "imjin_jos_restore_jingwan": "진관을 되살린다",
+      "imjin_jos_hullyeon": "훈련도감을 세운다",
+      "imjin_jos_cheongya": "청야입보",
+      "imjin_jpn_waeseong": "왜성을 쌓는다"
     },
     "decision_desc": {
       "bgr_demand_dobruja": "1913년에 루마니아에 내준 남도브루자를 돌려 달라고 요구한다.",
@@ -4417,7 +4424,11 @@
       "imjin_jp_wajo": "조선 남해안의 곶마다 일본식 성을 쌓아 상륙지를 지킨다.",
       "imjin_jp_second_levy": "본국의 영지에서 군사를 더 불러 조선의 군단을 채운다.",
       "imjin_jp_winter_clothes": "추위가 오기 전에 솜옷과 짚신, 담요를 바다 건너로 보낸다.",
-      "imjin_jp_village_notices": "들로 돌아가는 농민은 건드리지 않고 세금도 가볍게 하겠다는 방문을 내건다."
+      "imjin_jp_village_notices": "들로 돌아가는 농민은 건드리지 않고 세금도 가볍게 하겠다는 방문을 내건다.",
+      "imjin_jos_restore_jingwan": "군사들이 집결지에서 서울에서 올 장수를 기다리다가 적을 먼저 만났습니다. 고을마다 제 장수와 제 군사를 돌려줍니다.",
+      "imjin_jos_hullyeon": "명나라 장수들이 우리 군사에게 남쪽 병법을 가르치고 있습니다. 새 병서대로 포수·사수·살수를 길러 상비군을 둡니다.",
+      "imjin_jos_cheongya": "고을의 곡식과 백성을 산성으로 옮겨 적이 먹을 것을 남기지 않습니다. 그동안 들일은 멈춥니다.",
+      "imjin_jpn_waeseong": "포구 위 언덕마다 돌로 성을 쌓아 남해안을 지킵니다. 성마다 군량을 두고 정박지에 포를 겨눕니다."
     },
     "declare": {
       "block": {
@@ -5449,7 +5460,8 @@
       "imjin_jp_long_war": "전쟁이 누가 약속한 것보다 길어졌다. 옷은 해지고 진영마다 병이 돌며 쌀 배는 늦는다. 장수들은 점령한 고을을 모두 지켜야 하느냐고 묻는다.",
       "imjin_jp_jinju": "진주는 남강가의 성벽 뒤에서 아직 버티며 전라도로 가는 길을 막고 있다. 나고야에서 온 편지에 따르면 태합은 진주를 용서하지 않을 것이며 반드시 함락하라고 한다.",
       "imjin_jp_noses": "전쟁이 다시 시작되었다. 태합은 죽인 적마다 증거를 원하는데, 머리는 배로 실어 보내기에 너무 무겁다. 봉행들은 군단마다 대신 코를 소금에 절여 보내고, 그 수를 세어 영수증을 끊고, 그 수에 따라 상을 주자고 한다.",
-      "imjin_jp_hidetsugu": "요도도노가 태합의 아들을 낳았다. 히데쓰구는 간파쿠 자리와 본국을 쥐고 있고, 조정에서는 태합이 그것을 내준 일을 후회한다는 수군거림이 돈다."
+      "imjin_jp_hidetsugu": "요도도노가 태합의 아들을 낳았다. 히데쓰구는 간파쿠 자리와 본국을 쥐고 있고, 조정에서는 태합이 그것을 내준 일을 후회한다는 수군거림이 돈다.",
+      "imjin_jos_scuttle": "왜선이 우리 바다를 뒤덮었고 적군은 이미 뭍에 올랐습니다. 수군 장수가 명을 청합니다."
     },
     "event_opt": {
       "aus_curtin_appeal": {
@@ -6567,6 +6579,11 @@
       "imjin_jp_hidetsugu": {
         "a": "히데쓰구에게서 모든 것을 거두어들인다",
         "b": "히데쓰구를 그대로 둔다"
+      },
+      "imjin_jos_scuttle": {
+        "a": "배를 가라앉히고 수군을 성으로 보낸다",
+        "b": "서쪽 수영으로 물러난다",
+        "c": "맞서 싸운다"
       }
     },
     "event_title": {
@@ -6881,7 +6898,8 @@
       "imjin_jp_long_war": "길어진 원정",
       "imjin_jp_jinju": "태합이 진주를 원한다",
       "imjin_jp_noses": "죽인 자의 증거",
-      "imjin_jp_hidetsugu": "후계자가 태어나다"
+      "imjin_jp_hidetsugu": "후계자가 태어나다",
+      "imjin_jos_scuttle": "적선이 바다를 덮다"
     },
     "eventui": {
       "annex_warning": "경고: 이 선택을 하면 우리나라가 {country}에 합병됩니다",
@@ -13231,7 +13249,8 @@
       "imjin_jpw_road_maps": "길의 지도",
       "imjin_jpw_volleys": "번갈아 쏘기",
       "imjin_jpw_relay_castles": "중계 성",
-      "imjin_jpw_winter_gear": "솜옷"
+      "imjin_jpw_winter_gear": "솜옷",
+      "imjin_jos_cheongya": "들을 비움"
     },
     "spirit_desc": {
       "arg_neutral_course": "아르헨티나는 모든 편과 교역하되 누구의 전쟁에도 끼지 않는다.",
@@ -13621,7 +13640,8 @@
       "imjin_jpw_road_maps": "장수들이 한성 가는 길을 안다.",
       "imjin_jpw_volleys": "조총병들이 줄을 지어 번갈아 쏜다.",
       "imjin_jpw_relay_castles": "이키와 쓰시마의 성이 수송선단을 지켜 준다.",
-      "imjin_jpw_winter_gear": "군대가 추위를 견딜 옷을 갖췄다."
+      "imjin_jpw_winter_gear": "군대가 추위를 견딜 옷을 갖췄다.",
+      "imjin_jos_cheongya": "백성과 곡식이 성벽 안에 있습니다."
     },
     "stance": {
       "aggressive": "과감",

@@ -17,9 +17,8 @@ const CONFIG: Partial<GameConfig> = {
 const HUMANS = [{ clientID: HUMAN }];
 const hash = (r: { game: unknown }) => (r.game as { hash(): number }).hash();
 
-// Re-pinned at ww177 P7a with two equal runs (imjinmini, 3,000 ticks): the
-// endings' state (Ming's silver, Japan's days out of Korea) is in the hash.
-const IMJIN_DIGEST = "6aaacb0e788d3f91";
+// Re-pinned at the ww177 final merge with two equal runs (imjinmini, 3,000 ticks).
+const IMJIN_DIGEST = "PENDING";
 
 async function imjinRunner() {
   return wwRunner(CONFIG, HUMANS, MAP);

@@ -311,8 +311,13 @@ export const MING_METER_MAX = 10_000;
 export const MING_VANGUARD_BP = 6000;
 /** …and when the meter fills, the relief army (as Li Rusong's). */
 export const MING_RELIEF_BP = MING_METER_MAX;
-export const MING_VANGUARD_DIVISIONS = 2;
-export const MING_RELIEF_DIVISIONS = 6;
+// ww177 P7b (doctrine §7.1): Zu Chengxun's 5,000 and Li Rusong's 43,000;
+// Yang Hao's 55,000 for the second war.
+export const MING_VANGUARD_DIVISIONS = 1;
+export const MING_RELIEF_DIVISIONS = 8;
+export const MING_SECOND_RELIEF_DIVISIONS = 3;
+/** Global flag: Ming's second-war army has come. */
+export const MING_SECOND_RELIEF_GFLAG = "imjin_ming_second_relief";
 export const MING_FORCE_EQUIP_PCT = 80;
 /** After Ming's entry, a meter this low asks for a way out (the truce lane reads the flag). */
 export const MING_WEARY_BP = 2500;

@@ -31,10 +31,12 @@ export const SEA_START: readonly StartFleet[] = [
     base: "Yeosu",
     admiral: { gunnery: 5, tactics: 5, boarding: 2, nerve: 5 },
     formation: "line",
+    // ww177 P7b (doctrine §7.1): Yi's 24 panokseon and his one turtle
+    // ship of 1592 (none in 1590: the turtle preparation builds them).
     ships: [
       ["panokseon", 24],
-      ["turtle", 2],
-      ["hyeopseon", 6],
+      ["turtle", 1],
+      ["hyeopseon", 5],
     ],
   },
   {
@@ -43,8 +45,8 @@ export const SEA_START: readonly StartFleet[] = [
     admiral: { gunnery: 3, tactics: 3, boarding: 2, nerve: 3 },
     formation: "line",
     ships: [
-      ["panokseon", 18],
-      ["hyeopseon", 4],
+      ["panokseon", 25],
+      ["hyeopseon", 2],
     ],
   },
   {
@@ -69,9 +71,10 @@ export const SEA_START: readonly StartFleet[] = [
     base: "Nagoya",
     admiral: { gunnery: 2, tactics: 3, boarding: 4, nerve: 4 },
     formation: "wedge",
+    // Doctrine §7.1: Hansan's 36 large in 73 says more atakebune.
     ships: [
-      ["atakebune", 4],
-      ["sekibune", 22],
+      ["atakebune", 8],
+      ["sekibune", 30],
       ["kobaya", 10],
     ],
   },
@@ -81,8 +84,8 @@ export const SEA_START: readonly StartFleet[] = [
     admiral: { gunnery: 2, tactics: 3, boarding: 4, nerve: 3 },
     formation: "wedge",
     ships: [
-      ["atakebune", 2],
-      ["sekibune", 20],
+      ["atakebune", 4],
+      ["sekibune", 26],
       ["kobaya", 10],
     ],
   },
@@ -92,8 +95,8 @@ export const SEA_START: readonly StartFleet[] = [
     admiral: { gunnery: 1, tactics: 2, boarding: 5, nerve: 2 },
     formation: "column",
     ships: [
-      ["atakebune", 2],
-      ["sekibune", 24],
+      ["atakebune", 6],
+      ["sekibune", 22],
       ["kobaya", 10],
     ],
   },
@@ -110,7 +113,11 @@ export function seedSeaStart(im: WwImjin): void {
     const t = im.portTile(region.id);
     if (t < 0) continue;
     const kinds: ShipKind[] = [];
-    for (const [k, n] of f.ships) for (let i = 0; i < n; i++) kinds.push(k);
+    for (const [k, n] of f.ships) {
+      // The turtle ship was launched in the spring of 1592.
+      if (k === "turtle" && im.ww.imjinStart !== "y1592") continue;
+      for (let i = 0; i < n; i++) kinds.push(k);
+    }
     addFleet(
       im.st.sea,
       owner,
@@ -127,9 +134,10 @@ export const MING_FLEET: Omit<StartFleet, "base"> = {
   tag: "MIN",
   admiral: { gunnery: 3, tactics: 3, boarding: 3, nerve: 3 },
   formation: "line",
+  // Doctrine §6: Chen Lin's 6 large war junks and the lighter oared ships.
   ships: [
-    ["fuchuan", 8],
-    ["shachuan", 16],
+    ["fuchuan", 6],
+    ["shachuan", 20],
   ],
 };
 /** Days of Ming's war after which its fleet sails on its own account. */

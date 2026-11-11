@@ -4,7 +4,11 @@
 // its garrison's morale (organisation) falls each day; besiegers with guns
 // breach a fort level every 3 × level days, others starve it out. Battles
 // for it are fought against the walls (LandRound's storm numbers).
-import { ROW_MIX_OF } from "@openfront/engine-lib/imjin/LandRound";
+import {
+  BIGYEOK_SIEGE_DAYS,
+  BIGYEOK_SIEGE_MORALE,
+  DOCTRINE_FLAGS,
+} from "@openfront/engine-lib/imjin/Doctrine";
 import {
   fortLevelOf,
   type SiegeChoice,
@@ -14,10 +18,30 @@ import {
 } from "@openfront/engine-lib/imjin/LandRules";
 import { regionTerrain } from "@openfront/engine-lib/imjin/Terrain";
 import { effectiveLevel } from "../../ww1936/economy/Buildings";
+import type { SeaBattery } from "../sea/SeaCtx";
 import type { ImjinSiege, WwImjin } from "../WwImjin";
+import { mixOf } from "./ImjinDoctrine";
 
-/** Grain a fort holds, days (design §5: "days shown"). */
+/** Grain a fort holds, days (design §5: "days shown"; doctrine §7.3 by kind). */
 export const SIEGE_GRAIN_DAYS = 30;
+export const FORTRESS_GRAIN_DAYS = 90;
+export const WAJO_GRAIN_DAYS = 120;
+/** A wajō's wall (doctrine §2). */
+export const WAJO_LEVEL = 3;
+
+/**
+ * ww177 P7b (doctrine §2): once Japan has built its wajō, every Korean port
+ * region it holds is a coastal castle of level 3.
+ */
+function isWajo(im: WwImjin, region: number): boolean {
+  const jpn = im.idOf("JPN");
+  if (im.ww.land.controller[region] !== jpn) return false;
+  const sc = im.ww.scenario;
+  if (!sc.isPort(region) || sc.ownerByRegion()[region] === jpn) return false;
+  return (
+    im.ww.politics.country(jpn)?.flags.has(DOCTRINE_FLAGS.jpnWaeseong) === true
+  );
+}
 
 /** The fort level a region fights with (0: none). */
 export function imjinFortLevel(im: WwImjin, region: number): number {
@@ -25,34 +49,97 @@ export function imjinFortLevel(im: WwImjin, region: number): number {
   if (s !== undefined) return s.fort;
   const t = regionTerrain(im.ww.scenario, region);
   const lv = effectiveLevel(im.ww.economy, region, "fort");
-  return t === "walled" || t === "fortress" || lv > 0 ? fortLevelOf(t, lv) : 0;
+  const base =
+    t === "walled" || t === "fortress" || lv > 0 ? fortLevelOf(t, lv) : 0;
+  return isWajo(im, region) ? Math.max(base, WAJO_LEVEL) : base;
 }
 
-/** True when every land neighbour of `region` is held by an enemy of `owner`. */
+/** ww177 P7b: the wajō's shore batteries (doctrine §3). */
+export function wajoBatteries(im: WwImjin): SeaBattery[] {
+  const jpn = im.idOf("JPN");
+  if (
+    im.ww.politics.country(jpn)?.flags.has(DOCTRINE_FLAGS.jpnWaeseong) !== true
+  )
+    return [];
+  const out: SeaBattery[] = [];
+  for (const r of im.ww.scenario.landRegions) {
+    if (!isWajo(im, r.id)) continue;
+    const tile = im.portTile(r.id);
+    if (tile >= 0) out.push({ tile, owner: jpn, level: WAJO_LEVEL });
+  }
+  return out;
+}
+
+/** Men of `owner`'s enemies in the land neighbours, and of `owner` in the region. */
+function divisionsAround(
+  im: WwImjin,
+  region: number,
+  owner: number,
+): { enemy: number; garrison: number } {
+  const land = im.ww.land;
+  const t = land.divisions;
+  let enemy = 0;
+  let garrison = 0;
+  for (const row of land.rowsIn(region)) if (t.owner[row] === owner) garrison++;
+  for (const n of im.ww.scenario.regionNeighbours(region))
+    for (const row of land.rowsIn(n))
+      if (land.isEnemy(owner, t.owner[row])) enemy++;
+  return { enemy, garrison };
+}
+
+/**
+ * A fort is invested when every land neighbour is enemy-held, or (ww177
+ * P7b, doctrine §7.3) when the enemy holds at least half its neighbours
+ * with at least twice the garrison's divisions next to it: Hanseong and
+ * Suwon can be besieged.
+ */
 function surrounded(im: WwImjin, region: number, owner: number): boolean {
   const land = im.ww.land;
   const nb = im.ww.scenario.regionNeighbours(region);
   if (nb.length === 0) return false;
-  for (const n of nb) {
-    if (!land.isEnemy(owner, land.controller[n])) return false;
-  }
-  return true;
+  let held = 0;
+  for (const n of nb) if (land.isEnemy(owner, land.controller[n])) held++;
+  if (held === nb.length) return true;
+  if (held * 2 < nb.length) return false;
+  const d = divisionsAround(im, region, owner);
+  return d.enemy > 0 && d.enemy >= 2 * d.garrison;
 }
 
-/** The besiegers have guns (a cannon row in their army). */
-function besiegersHaveGuns(
+/** The besiegers' guns: any, Ming's (they breach twice as fast), Joseon's (the bigyeok). */
+function besiegersGuns(
   im: WwImjin,
   region: number,
   owner: number,
-): boolean {
+): { any: boolean; ming: boolean; joseon: boolean } {
   const land = im.ww.land;
+  const out = { any: false, ming: false, joseon: false };
   for (const n of im.ww.scenario.regionNeighbours(region)) {
     const c = land.controller[n];
     if (!land.isEnemy(owner, c)) continue;
+    if ((mixOf(im, c).cannon ?? 0) <= 0) continue;
+    out.any = true;
     const tag = im.ww.scenario.tagOfSmallId(c);
-    if (tag !== undefined && (ROW_MIX_OF[tag]?.cannon ?? 0) > 0) return true;
+    if (tag === "MIN") out.ming = true;
+    if (tag === "JOS") out.joseon = true;
   }
-  return false;
+  return out;
+}
+
+/** Grain the fort starts a siege with (doctrine §7.3). */
+function grainOf(im: WwImjin, region: number, owner: number): number {
+  if (isWajo(im, region)) return WAJO_GRAIN_DAYS;
+  const t = regionTerrain(im.ww.scenario, region);
+  if (t === "fortress") return FORTRESS_GRAIN_DAYS;
+  // 청야입보: the countryside's grain carried into Joseon's forts.
+  const jos = im.idOf("JOS");
+  if (
+    owner === jos &&
+    im.ww.politics
+      .country(jos)
+      ?.hasFlag(DOCTRINE_FLAGS.josCheongya, im.ww.day(im.mg.ticks())) === true
+  )
+    return FORTRESS_GRAIN_DAYS;
+  return SIEGE_GRAIN_DAYS;
 }
 
 /** One day of every siege: start, eat, breach or starve, end. */
@@ -73,7 +160,7 @@ export function siegeDays(im: WwImjin, day: number): void {
         region: r.id,
         owner,
         sinceDay: day,
-        grainDays: SIEGE_GRAIN_DAYS,
+        grainDays: grainOf(im, r.id, owner),
         fort,
         breachDays: 0,
         morale: 1000,
@@ -81,9 +168,8 @@ export function siegeDays(im: WwImjin, day: number): void {
       im.stats.sieges++;
     } else {
       const terrain = terrainRow(regionTerrain(ww.scenario, r.id));
-      const choice: SiegeChoice = besiegersHaveGuns(im, r.id, owner)
-        ? "breach"
-        : "starve";
+      const guns = besiegersGuns(im, r.id, owner);
+      const choice: SiegeChoice = guns.any ? "breach" : "starve";
       const n = siegeDay(
         {
           grainDays: s.grainDays,
@@ -95,8 +181,22 @@ export function siegeDays(im: WwImjin, day: number): void {
         choice === "breach",
         false,
         terrain,
+        guns.ming,
       );
       s = { ...s, ...n };
+      // ww177 P7b (doctrine §4): Joseon's guns lob the bigyeokjincheonroe
+      // over the walls once the siege has settled in.
+      if (guns.joseon && day - s.sinceDay >= BIGYEOK_SIEGE_DAYS) {
+        s.morale = Math.max(0, s.morale - BIGYEOK_SIEGE_MORALE);
+        for (const row of land.rowsIn(r.id)) {
+          if (t.owner[row] !== owner) continue;
+          const cut = Math.floor(
+            (land.orgMaxOf(row) * BIGYEOK_SIEGE_MORALE) / 1000,
+          );
+          t.org[row] = Math.max(0, t.org[row] - cut);
+          land.markArmy(t.army[row]);
+        }
+      }
       // Hunger: the garrison's organisation falls with the morale.
       if (s.grainDays === 0) {
         for (const row of land.rowsIn(r.id)) {

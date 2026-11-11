@@ -14,6 +14,7 @@
 //   Japan's busiest landing or joins Joseon's main fleet.
 // Once a day each fleet out of battle picks its aim (seaAiDay); every volley
 // each fleet in battle picks its order (seaAiVolley).
+import { DOCTRINE_FLAGS } from "@openfront/engine-lib/imjin/Doctrine";
 import type { Formation } from "@openfront/engine-lib/imjin/SeaRules";
 import {
   angleOf,
@@ -35,7 +36,7 @@ import { USE_SUPPLY } from "../../ww1936/navy/Convoys";
 import { navalPortsOf } from "../../ww1936/navy/Ports";
 import type { WwImjin } from "../WwImjin";
 import { flagsAt, type SeaCtx, tileAt, tileCentre } from "./SeaCtx";
-import { seaOrder } from "./SeaFleets";
+import { seaOrder, splitFleet } from "./SeaFleets";
 import { mingFleetByState } from "./SeaStart";
 import type { SeaBattle, SeaFleet, SeaShip, SeaState } from "./SeaState";
 import { fleetStrength, shipIndex } from "./SeaState";
@@ -117,7 +118,21 @@ export interface SeaAiView {
   ports(owner: number): readonly number[];
   /** Supply routes with convoys, in id order; `to` is the landing berth tile (-1: none). */
   routes: readonly { id: number; owner: number; got: number; to: number }[];
+  /**
+   * ww177 P7b (doctrine §3): Japan has lost 40 ships in 30 days and keeps
+   * to its harbours. Before it Japan attacks at 1.2× and chases a lure
+   * hard (Wakisaka at Hansan); absent: cautious (I5b's rules).
+   */
+  caution?: boolean;
 }
+
+/** Japan's attack bar and bait aggression before its caution (doctrine §3). */
+const BOLD_ATTACK_PCT = 120;
+const BOLD_BAIT_PM = 1200;
+/** Ships the main fleet sends out as a bait (doctrine §5). */
+const BAIT_SHIPS = 4;
+/** Days out after which an AI fleet heads home (doctrine §5). */
+const SORTIE_HOME_DAYS = 10;
 
 type Pt = { x: number; y: number };
 
@@ -282,6 +297,16 @@ function dayFleet(v: SeaAiView, f: SeaFleet): void {
     return;
   }
   if (!f.admiral.alive && straggle(v, f)) return;
+  // Sortie endurance (doctrine §5): after 10 days out, home to refit.
+  if (
+    (f.daysOut ?? 0) >= SORTIE_HOME_DAYS &&
+    home >= 0 &&
+    f.lureTo === undefined
+  ) {
+    if (f.pathIdx >= f.path.length || f.path[f.path.length - 1] !== home)
+      sailTo(v, f, home);
+    return;
+  }
   if (f.owner === v.jpn) boardDay(v, f, home);
   else rangeDay(v, f, home);
 }
@@ -479,7 +504,14 @@ function rangeTarget(
 function springLure(v: SeaAiView, f: SeaFleet, foe: SeaFleet): boolean {
   const { ctx } = v;
   const main = mainFleetOf(v, f.owner);
-  if (main !== f || f.admiral.tactics < 3) return false;
+  // ww177 P7b: any great fleet under an admiral who can set a trap (not
+  // only the strongest: Yi's at Yeosu and Yi Eok-gi's at Haenam are alike).
+  if (
+    main === undefined ||
+    f.admiral.tactics < 3 ||
+    fleetStrength(v.st, f) * 2 < fleetStrength(v.st, main)
+  )
+    return false;
   if (v.st.fleets.some((o) => o.owner === f.owner && o.lureTo !== undefined))
     return false;
   const foeD = dist(f, foe);
@@ -502,6 +534,18 @@ function springLure(v: SeaAiView, f: SeaFleet, foe: SeaFleet): boolean {
       bait = o;
       bd = d;
     }
+  }
+  // ww177 P7b (doctrine §5, Hansan): with no small fleet near, the main
+  // fleet sends a few of its own ships out as the bait.
+  if (bait === undefined && f.battle === 0 && f.ships.length > BAIT_SHIPS * 2) {
+    const idx = shipIndex(v.st);
+    const small = f.ships
+      .slice(1)
+      .filter((id) => idx.get(id)?.kind === "hyeopseon");
+    const rest = f.ships.slice(1).filter((id) => !small.includes(id));
+    bait = splitFleet(v.st, f.id, [...small, ...rest].slice(0, BAIT_SHIPS));
+    if (bait !== undefined)
+      bait.admiral = { ...f.admiral, gunnery: 2, tactics: 2 };
   }
   if (bait === undefined) return false;
   if (tileAt(ctx, f.x, f.y) === lee) holdFast(v, f);
@@ -608,7 +652,11 @@ function boardDay(v: SeaAiView, f: SeaFleet, home: number): void {
   // grapples): back to a harbour beyond the foe's home waters, the fleet
   // kept in being (after Hansan the Japanese fleets kept to theirs).
   const threat = threatTo(v, f);
-  if (threat !== null && threat.s * BOARD_ATTACK_PCT > mass * 100) {
+  if (
+    v.caution !== false &&
+    threat !== null &&
+    threat.s * BOARD_ATTACK_PCT > mass * 100
+  ) {
     const haven = havenOf(v, f, threat.e.owner, home);
     if (haven >= 0 && tileAt(ctx, f.x, f.y) !== haven) sailTo(v, f, haven);
     else holdFast(v, f);
@@ -701,7 +749,8 @@ function boardTarget(v: SeaAiView, f: SeaFleet, mass: number): number {
     if (d >= bd) continue;
     // Every foe that could sail into the circle counts.
     const foe = Math.max(1, massNear(v, f.owner, e, THREAT_MT, true));
-    if (foe * BOARD_ATTACK_PCT > mass * 100) continue;
+    const bar = v.caution === false ? BOLD_ATTACK_PCT : BOARD_ATTACK_PCT;
+    if (foe * bar > mass * 100) continue;
     if (flagsAt(ctx, e.x, e.y).channel && foe * BOARD_CHANNEL_PCT > mass * 100)
       continue;
     if (e.pathIdx < e.path.length && !baitTaken(v, f, e, mass, foe)) continue;
@@ -728,7 +777,9 @@ export function baitTaken(
     1500 +
     300 * tactics +
     (wwRoll(v.ctx.seed, P_SEA_AI_BAIT, f.id, e.id, v.ctx.day) % BAIT_ROLL_PM);
-  return takesBait(ratio, 600 + 100 * nerve, bar);
+  const aggression =
+    f.owner === v.jpn && v.caution === false ? BOLD_BAIT_PM : 600 + 100 * nerve;
+  return takesBait(ratio, aggression, bar);
 }
 
 // ---------------------------------------------------------------------------
@@ -794,7 +845,24 @@ function volleyFleet(
     seaOrder(st, ctx, f.owner, f.id, { kind: "break_off" });
     return;
   }
-  if (!channel) setFormation(v, f, f.ships.length >= 5 ? "crane" : "line");
+  // The crane wing by state (doctrine §5): against a column or a wedge, or
+  // a foe chasing a lure; otherwise the line.
+  if (!channel) {
+    const closing = members.some(
+      (o) =>
+        live(o) &&
+        ctx.hostile(f.owner, o.owner) &&
+        (o.formation === "column" || o.formation === "wedge"),
+    );
+    const lured = members.some(
+      (o) => live(o) && o.owner === f.owner && o.lureTo !== undefined,
+    );
+    setFormation(
+      v,
+      f,
+      f.ships.length >= 5 && (closing || lured) ? "crane" : "line",
+    );
+  }
   if (f.order !== "keep_range")
     seaOrder(st, ctx, f.owner, f.id, { kind: "engage", mode: "keep_range" });
 }
@@ -883,6 +951,7 @@ function viewOf(im: WwImjin, tick: number): SeaAiView {
     friends: (a, b) => land.sameSide(a, b),
     ports: (o) => navalPortsOf(ww, o).map((r) => im.portTile(r)),
     routes,
+    caution: ww.politics.gflags.has(DOCTRINE_FLAGS.jpnSeaCaution),
   };
 }
 

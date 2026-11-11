@@ -31,7 +31,13 @@ import { USE_SUPPLY } from "../ww1936/navy/Convoys";
 import { navalPortsOf } from "../ww1936/navy/Ports";
 import type { WorldWar } from "../ww1936/WorldWar";
 import { emptyEndState, ImjinEndings, type ImjinEndState } from "./Endings";
-import { siegeDays } from "./land/Sieges";
+import {
+  docHash,
+  doctrineDay,
+  type ImjinDocState,
+  scuttlePicks,
+} from "./land/ImjinDoctrine";
+import { siegeDays, wajoBatteries } from "./land/Sieges";
 import { imjinSeaAi, imjinSeaBattleAi } from "./sea/SeaAi";
 import { addConvoyGroup } from "./sea/SeaConvoys";
 import type { SeaCtx } from "./sea/SeaCtx";
@@ -92,6 +98,8 @@ export interface ImjinState {
   mingDay: number;
   /** ww177 P7a: Ming's silver, the days Japan is out, the ending. */
   end: ImjinEndState;
+  /** ww177 P7b: what each country's doctrine has learned (absent before the war). */
+  doc?: ImjinDocState;
 }
 
 /** What the sim and the screens count (not state: derived from events). */
@@ -213,6 +221,8 @@ export class WwImjin {
       portLevelAt: (owner, t) => this.portLevelAt(owner, t),
       currentAxis: (current) => currentAxisOf(ww, current),
       keepsPrizes: (owner) => owner !== this.idOf("JOS"),
+      japan: this.idOf("JPN"),
+      batteries: () => wajoBatteries(this),
     };
   }
 
@@ -270,6 +280,8 @@ export class WwImjin {
     this.launchGroups(day, tick);
     imjinSeaAi(this, day, tick);
     siegeDays(this, day);
+    scuttlePicks(this);
+    doctrineDay(this, day);
     this.endings.day(day);
     // Expired landings no longer feed.
     this.st.landed = this.st.landed.filter(
@@ -683,6 +695,7 @@ export class WwImjin {
     mix(this.st.warDay);
     mix(this.st.mingDay);
     mix(this.endings.hash());
+    docHash(this.st.doc, mix);
     return h >>> 0;
   }
 

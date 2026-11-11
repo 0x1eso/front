@@ -7,6 +7,7 @@ import {
   IMJIN_FLAGS,
   IMJIN_GFLAGS,
 } from "@openfront/engine-lib/imjin/CourtScenes";
+import { DOCTRINE_FLAGS } from "@openfront/engine-lib/imjin/Doctrine";
 import {
   JP_FLAG,
   JP_MARK,
@@ -101,6 +102,8 @@ describe("the Imjin scenes as a whole (merge 3)", () => {
       ...Object.values(IMJIN_GFLAGS),
       ...Object.values(JP_FLAG),
       ...Object.values(JP_MARK),
+      // ww177 P7b: ImjinDoctrine sets the doctrine's state flags.
+      ...Object.values(DOCTRINE_FLAGS),
     ])
       set.add(f);
     const fired = new Set<string>(Object.values(JP_SCENE));

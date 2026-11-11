@@ -196,12 +196,12 @@ describe("the Imjin round in the 1936 loop (LandRound)", () => {
     ambushed: false,
     broken: false,
   };
-  it("the opening is the bows' and guns', the walls double the defence", () => {
+  it("the opening is the bows' and guns', a fortress doubles the defence", () => {
     const open = imjinRound({ ...base, round: 1 });
     const clash = imjinRound(base);
     expect(open.step).toBe("opening");
     expect(open.attDealtPct).toBeLessThan(clash.attDealtPct);
-    const walls = imjinRound({ ...base, terrain: "walled", fort: 2 });
+    const walls = imjinRound({ ...base, terrain: "fortress", fort: 3 });
     expect(walls.attDealtPct * 2).toBeLessThanOrEqual(clash.attDealtPct);
     expect(walls.defDealtPct).toBeGreaterThan(clash.defDealtPct);
   });

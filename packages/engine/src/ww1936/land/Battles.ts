@@ -589,8 +589,8 @@ function fight(land: WwLand, b: Battle, tick: number): void {
     }
     // ww177 (Imjin design §5): below 150‰ a unit routs, along the line.
     if (ir !== null) {
-      imjinRouts(land, att.active);
-      imjinRouts(land, def.active);
+      imjinRouts(land, att.active, b.defLead);
+      imjinRouts(land, def.active, b.attLead);
     }
     // 5. Zero org: defenders retreat (or die), attackers drop out (spec §9.3-7).
     // ww7 (lane B): with a band left a broken defender stays put, out of the

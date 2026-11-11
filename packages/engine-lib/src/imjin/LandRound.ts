@@ -3,28 +3,38 @@
 // percentages the 1936 battle loop takes (Battles.fight). Divisions carry no
 // unit rows yet, so a country's mix stands for every division it fields.
 // Pure integer code; every chance is a stateless wwRoll.
+import type { DoctrinePerks } from "./Doctrine";
 import {
   ambushFx,
   type AttackOrder,
   battleStep,
   type BattleStep,
+  BIGYEOK_BARRAGE_MORALE,
   blockMulPct,
   chargeResult,
   COUNTER_OF_ORDER,
   type Crossing,
   type DefenceStance,
+  ESCALADE_MAX_FORT,
+  ESCALADE_PCT,
+  ESCALADE_RATIO_PCT,
   feintFlips,
   gapLands,
+  GATES_BLOWN_PCT,
   inCrossing,
+  IRON_SHIELDS_MULPCT,
   isCharge,
   isPhaseStart,
+  NIGHT_STORM_MULPCT,
   orderCountered,
   orderFx,
   rowDealtMulPct,
+  SAMURAI_CLASH_PCT,
   stormMulPct,
   terrainRow,
   UNIT_ROWS,
   type UnitRow,
+  VOLLEY_SHARE_PCT,
   volleyBeat,
   type VolleyBeat,
   volleyModeOf,
@@ -58,6 +68,8 @@ export interface RoundSide<T> {
   skill: number;
   /** Its hwacha have fired this battle. */
   hwachaUsed: boolean;
+  /** ww177 P7b: its doctrine's perks (absent: none). */
+  perks?: DoctrinePerks;
 }
 
 export interface RoundInput {
@@ -78,6 +90,14 @@ export interface RoundInput {
   ambushed: boolean;
   /** One side has broken (pursuit). */
   broken: boolean;
+  /** ww177 P7b: the lunar day (1-30; 0: unknown), for the moonlit storm. */
+  lunarDay?: number;
+  /** ww177 P7b: the attackers' strength over the defenders', % (escalade). */
+  ratioPct?: number;
+  /** ww177 P7b: the land regions the attack comes from (a walled town's width). */
+  sides?: number;
+  /** ww177 P7b: added to the defender's block (Joseon at home under 진관). */
+  homeBlockPct?: number;
 }
 
 export interface RoundOut {
@@ -117,6 +137,9 @@ function sideDealt(
   crossing: Crossing | null,
   hwachaUsed: boolean,
   cavalryMulPct: number,
+  rowMul: Partial<Record<UnitRow, number>> = {},
+  hwachaReload = false,
+  samuraiClashPct = SAMURAI_CLASH_PCT,
 ): number {
   const terrain = terrainRow(inp.terrain, inp.wet);
   let sum = 0;
@@ -134,8 +157,12 @@ function sideDealt(
       crossing,
       targetRouted: inp.broken,
       hwachaUsed,
+      hwachaReload,
+      samuraiClashPct,
     });
     if (row === "cavalry") v = pct(v, cavalryMulPct);
+    const m = rowMul[row];
+    if (m !== undefined) v = pct(v, m);
     sum += share * v;
   }
   return Math.floor(sum / 100);
@@ -170,9 +197,38 @@ export function imjinRound(inp: RoundInput): RoundOut {
     inp.att.order === "charge_gap" &&
     defMode === "massed" &&
     gapLands(inp.seed, inp.region, inp.battleStart, inp.round, inp.att.skill);
+  // ww177 P7b: the 살수 guard the gunners whatever their share.
+  const defSpearVsCharge =
+    inp.def.perks?.spearGuard === true && defSpear > 0
+      ? Math.max(defSpear, VOLLEY_SHARE_PCT)
+      : defSpear;
   const ch = charged
-    ? chargeResult(defMode, gap, defSpear)
+    ? chargeResult(defMode, gap, defSpearVsCharge)
     : chargeResult("none", false, 0);
+  // ww177 P7b: doctrine on each side's rows (doctrine §2, §4, §6).
+  const attPerks = inp.att.perks;
+  const defPerks = inp.def.perks;
+  const attRowMul: Partial<Record<UnitRow, number>> = {};
+  const defRowMul: Partial<Record<UnitRow, number>> = {};
+  const lunar = inp.lunarDay ?? 0;
+  if (
+    attPerks?.nightStorm === true &&
+    (inp.att.order === "storm" || inp.att.order === "advance") &&
+    lunar >= 13 &&
+    lunar <= 17
+  ) {
+    defRowMul.archer = NIGHT_STORM_MULPCT;
+    defRowMul.arquebus = NIGHT_STORM_MULPCT;
+    defRowMul.hwacha = NIGHT_STORM_MULPCT;
+  }
+  if (defPerks?.ironShields === true) attRowMul.arquebus = IRON_SHIELDS_MULPCT;
+  if (attPerks?.ironShields === true) defRowMul.arquebus = IRON_SHIELDS_MULPCT;
+  const clashOf = (enemy: DoctrinePerks | undefined) =>
+    enemy?.halvesShock === true
+      ? Math.floor(SAMURAI_CLASH_PCT / 2)
+      : SAMURAI_CLASH_PCT;
+  const defHwachaReload =
+    defPerks?.hwachaReload === true && inp.fort > 0 && phaseStart;
   let attDealt = sideDealt(
     inp.att.mix,
     false,
@@ -184,6 +240,9 @@ export function imjinRound(inp: RoundInput): RoundOut {
     crossing,
     inp.att.hwachaUsed,
     ch.dealtMulPct,
+    attRowMul,
+    false,
+    clashOf(defPerks),
   );
   let defDealt = sideDealt(
     inp.def.mix,
@@ -196,6 +255,9 @@ export function imjinRound(inp: RoundInput): RoundOut {
     null,
     inp.def.hwachaUsed,
     100,
+    defRowMul,
+    defHwachaReload,
+    clashOf(attPerks),
   );
   // The feigned retreat taken: the defender crosses after the bait into
   // the waiting volley (design §5): it fights the crossing's way.
@@ -207,9 +269,33 @@ export function imjinRound(inp: RoundInput): RoundOut {
   const storm = stormMulPct(inp.fort);
   attDealt = pct(attDealt, storm.attacker);
   defDealt = pct(defDealt, storm.defender);
+  if (inp.fort > 0 && inp.att.order !== "barrage") {
+    // Escalade (doctrine §7.3): ladders under covering fire, 3 to 1.
+    if (
+      attPerks?.escalade === true &&
+      inp.fort <= ESCALADE_MAX_FORT &&
+      (inp.ratioPct ?? 0) >= ESCALADE_RATIO_PCT &&
+      (attArq >= 20 || (inp.att.mix.cannon ?? 0) >= 10)
+    )
+      attDealt = pct(attDealt, 100 + ESCALADE_PCT);
+    // Ming's guns blow the gates (doctrine §6).
+    if (
+      attPerks?.bigGuns === true &&
+      inp.att.order === "storm" &&
+      (inp.att.mix.cannon ?? 0) >= 20
+    )
+      attDealt = pct(attDealt, 100 + GATES_BLOWN_PCT);
+  }
   const terrain = terrainRow(inp.terrain, inp.wet);
   let widthNum = terrain.widthNum;
   let widthDen = terrain.widthDen;
+  // A walled town stormed from several sides (doctrine §7.3): 1/2 and 1/8
+  // for each further side, up to the full width.
+  const sides = inp.sides ?? 1;
+  if (inp.terrain === "walled" && sides > 1) {
+    widthNum = 4 + Math.min(4, sides - 1);
+    widthDen = 8;
+  }
   if (crossing !== null) {
     widthNum *= crossing.widthNum;
     widthDen *= crossing.widthDen;
@@ -227,6 +313,13 @@ export function imjinRound(inp: RoundInput): RoundOut {
   let defMorale = 0;
   if (phaseStart) {
     defMorale += fx.defMoraleHit;
+    // The bigyeokjincheonroe lobbed over the walls (doctrine §4).
+    if (
+      attPerks?.bigyeok === true &&
+      inp.att.order === "barrage" &&
+      inp.fort > 0
+    )
+      defMorale += BIGYEOK_BARRAGE_MORALE;
     if (charged) {
       attMorale += ch.chargerMorale;
       defMorale += ch.defenderMorale;
@@ -245,7 +338,9 @@ export function imjinRound(inp: RoundInput): RoundOut {
     defBeat,
     attDealtPct: attDealt,
     defDealtPct: defDealt,
-    blockPct: blockMulPct(terrain, fx, defSpear, charged),
+    blockPct:
+      blockMulPct(terrain, fx, defSpearVsCharge, charged) +
+      (inp.homeBlockPct ?? 0),
     attTakenPct: attTaken,
     defTakenPct: fx.defTakenMulPct,
     widthNum,
@@ -253,7 +348,8 @@ export function imjinRound(inp: RoundInput): RoundOut {
     attMorale,
     defMorale,
     attHwacha: step === "opening" && (inp.att.mix.hwacha ?? 0) > 0,
-    defHwacha: step === "opening" && (inp.def.mix.hwacha ?? 0) > 0,
+    defHwacha:
+      (step === "opening" || defHwachaReload) && (inp.def.mix.hwacha ?? 0) > 0,
   };
 }
 
@@ -300,7 +396,9 @@ export function aiAttackOrder(
   const guns = mix.cannon ?? 0;
   const opts: AttackOrder[] = [];
   if (fort > 0) {
-    if (guns >= 10) opts.push("barrage", "barrage");
+    // ww177 P7b (doctrine §2): a barrage at walls needs guns and bows.
+    if (guns >= 10 && guns + (mix.archer ?? 0) >= 30)
+      opts.push("barrage", "barrage");
     opts.push("storm");
     if (arq >= 30) opts.push("volley_advance");
   } else {

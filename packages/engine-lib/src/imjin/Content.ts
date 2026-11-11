@@ -11,6 +11,12 @@ import {
 } from "../ww1936/content/registry";
 import { IMJIN_COURT_DECISIONS, IMJIN_COURT_EVENTS } from "./CourtScenes";
 import {
+  DOCTRINE_DECISIONS,
+  DOCTRINE_EVENTS,
+  DOCTRINE_FLAG_IDS,
+  DOCTRINE_SPIRITS,
+} from "./DoctrineContent";
+import {
   IMJIN_JAPAN_DECISIONS,
   IMJIN_JAPAN_EVENTS,
   IMJIN_JAPAN_FLAGS,
@@ -47,6 +53,8 @@ export const IMJIN_CONTENT_PARTS: ContentParts = {
     ...JOS_EVENTS,
     // ww177 I6b: Japan's run-up and war scenes (JapanWriting.ts).
     ...IMJIN_JPW_EVENTS,
+    // ww177 P7b: doctrine by state.
+    ...DOCTRINE_EVENTS,
   ],
   decisions: [
     ...CONTENT_PARTS.decisions.filter((d) => d.for === "any"),
@@ -54,12 +62,14 @@ export const IMJIN_CONTENT_PARTS: ContentParts = {
     ...IMJIN_JAPAN_DECISIONS,
     ...JOS_DECISIONS,
     ...IMJIN_JPW_DECISIONS,
+    ...DOCTRINE_DECISIONS,
   ],
   spirits: [
     ...CONTENT_PARTS.spirits,
     ...IMJIN_JAPAN_SPIRITS,
     ...JOS_SPIRITS,
     ...IMJIN_JPW_SPIRITS,
+    ...DOCTRINE_SPIRITS,
   ],
   flags: [
     ...CONTENT_PARTS.flags,
@@ -67,6 +77,7 @@ export const IMJIN_CONTENT_PARTS: ContentParts = {
     ...JOS_FLAGS,
     ...IMJIN_JPW_FLAGS,
     ...IMJIN_JPW_DECISION_FLAGS,
+    ...DOCTRINE_FLAG_IDS,
   ],
   groups: [...CONTENT_PARTS.groups, ...JOS_GROUPS, ...IMJIN_JPW_GROUPS],
   // ww177 merge 3: with their real dates, on the game's calendar.
