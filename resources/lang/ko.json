@@ -10352,7 +10352,7 @@
         "cause": {
           "calendar": "{year}년 {month}월, 정해진 달력이 끝났다.",
           "capitulation": "{year}년 {month}월, 조선이 무너졌다. 임금은 땅을 떠났고 고을은 모두 넘어갔다.",
-          "expelled": "{year}년 {month}월, 일본군이 조선 땅을 떠난 지 120일이 지났다.",
+          "expelled": "{year}년 {month}월, 일본군이 조선 땅을 떠난 지 {days}일이 지났다.",
           "treaty": "{year}년 {month}월, 화의가 맺어졌다."
         },
         "court_in_exile": {

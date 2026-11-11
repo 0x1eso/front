@@ -14609,7 +14609,7 @@
         "cause": {
           "calendar": "The war's calendar ran out in {month}/{year}.",
           "capitulation": "Joseon fell in {month}/{year}: its king left the land and every province was lost.",
-          "expelled": "By {month}/{year} Japan had been out of Korea for 120 days.",
+          "expelled": "By {month}/{year} Japan had been out of Korea for {days} days.",
           "treaty": "A peace was signed in {month}/{year}."
         },
         "court_in_exile": {

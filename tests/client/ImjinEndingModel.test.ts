@@ -82,6 +82,12 @@ describe("the Imjin end card", () => {
     expect(imjinEndView({ ...CARD, ending: "expulsion" }, null).share).toBe("");
   });
 
+  test("the expulsion's days come from the rule, not the words", () => {
+    // ww177 final: the rule moved to 180 days; the words read it.
+    for (const l of [EN, KO])
+      expect(at(l, "ww1936.imjin.end.cause.expelled")).toContain("{days}");
+  });
+
   test("every ending, cause and seat has its words in en and ko", () => {
     for (const ending of IMJIN_ENDINGS) {
       for (const cause of IMJIN_END_CAUSES) {

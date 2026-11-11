@@ -4,6 +4,7 @@
 // seat's own (a spectator reads both). Pure: the tests drive it alone.
 import type { ImjinEndingCard } from "@openfront/engine-api/imjin/ImjinTypes";
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
+import { IMJIN_EXPELLED_DAYS } from "@openfront/engine-lib/imjin/EndingRules";
 import { translateText } from "../../Utils";
 
 export interface ImjinEndView {
@@ -68,7 +69,10 @@ export function imjinEndView(
         : translateText(
             mine ? "ww1936.imjin.end.you_met" : "ww1936.imjin.end.you_failed",
           ),
-    cause: translateText(`ww1936.imjin.end.cause.${card.cause}`, when),
+    cause: translateText(`ww1936.imjin.end.cause.${card.cause}`, {
+      ...when,
+      days: IMJIN_EXPELLED_DAYS,
+    }),
     summary: translateText(`ww1936.imjin.end.${card.ending}.summary`),
     share:
       card.ending === "expulsion"
