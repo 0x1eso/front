@@ -51,6 +51,7 @@ import {
   lawText,
   lawWithdraw,
 } from "./Laws";
+import { landHolds } from "./Occupation";
 import {
   declareFromTab,
   pairHolds,
@@ -285,6 +286,11 @@ export function worldHolds(ctx: SceneCtx, c: GwWorldCond): boolean {
     case "front_months":
     case "peace_offered":
       return pairHolds(gw, seat, c);
+    case "land_taken":
+    case "land_lost":
+    case "beaten":
+    case "pair_table":
+      return landHolds(gw, seat, c);
   }
 }
 

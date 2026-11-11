@@ -280,6 +280,9 @@ export function leaveWar(gw: GreatWar, tag: GwTag, why: string): void {
   const n = gw.nation(tag);
   if (n === null || n.out) return;
   n.out = true;
+  // Knocked out, not a peace of two: its land is open to occupation (ww172).
+  gw.s.beaten ??= [];
+  gw.s.beaten.push({ tag, chapter: gw.s.chapter });
   for (const w of gw.s.wars) {
     if (w.ended === null && (w.a === tag || w.b === tag)) {
       w.ended = gw.s.chapter;

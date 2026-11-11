@@ -20,9 +20,10 @@ import { claimsOn } from "./Claims";
 import { warMonths } from "./Eras";
 import { warScore } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
+import { pairPeace } from "./PairWar";
 import { armistice, openTalks, TALKS_MONTHS } from "./Peace";
 import { GW_ACTORS, GW_ENTRIES, GW_ENTRY_BAR } from "./Tables";
-import { enter, makePeace, outsideCoalitions, warOf } from "./Wars";
+import { enter, outsideCoalitions, warOf } from "./Wars";
 import {
   clampTo,
   fights,
@@ -338,7 +339,7 @@ function collect(
       if (coalitions && lead.includes(n.tag)) {
         armistice(gw, "compromise", null);
       } else {
-        makePeace(gw, me.tag, n.tag, me.tag);
+        pairPeace(gw, me.tag, n.tag, me.tag);
       }
       return;
     }

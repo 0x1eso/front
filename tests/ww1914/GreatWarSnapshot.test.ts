@@ -33,11 +33,11 @@ async function restore(r: GameRunner): Promise<GameRunner> {
 
 // The pin of a short game. It moves with every change to the mode's rules or
 // content: re-pin it here when that is intended. Never WW1936_DIGEST for this.
-const GW_DIGEST = "28f58339a0c4d416";
+const GW_DIGEST = "7f0005bf81d5c6c9";
 
 describe("snapshot and hash", () => {
   test("the state is a versioned record", () => {
-    expect(GreatWarSnapshot.version).toBe(3);
+    expect(GreatWarSnapshot.version).toBe(4);
   });
 
   test("a restored game is the same game, mid-talk and through the end", async () => {

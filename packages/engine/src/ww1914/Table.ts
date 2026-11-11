@@ -6,6 +6,7 @@
 // A seat speaks by order; anyone else, or a seat that leaves it to its delegation,
 // answers by the same rules. The table talks at reading speed (`tableTick`).
 import {
+  GwPairTable,
   GwSeatState,
   GwSide,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
@@ -40,6 +41,13 @@ import { claimsHeld } from "./Claims";
 import { warScore } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { holderOf, moveLand } from "./Land";
+import {
+  beatenAt,
+  canAskFor,
+  hasLandGraph,
+  landLine,
+  monthsHeld,
+} from "./Occupation";
 import { weariness } from "./Terms";
 import {
   clampTo,
@@ -74,6 +82,9 @@ const COST_HEART = 25;
 const COST_FRIEND = 15;
 /** What makes it easier: it is in the claimant's hands, or it is its known case. */
 const EASE_HELD = 15;
+/** ww172: each month the claimant has held it, up to the most. */
+const EASE_MONTH = 1;
+const EASE_MONTHS_MOST = 12;
 const EASE_CASE = 15;
 const EASE_PAPERS = 5;
 /** The seat that said it would follow Wilson's points asks less easily. */
@@ -111,20 +122,40 @@ const OFFERS_MOST = 2;
 /** The most a bill takes off the money gauge. */
 const BILL_MOST = 3;
 
+/**
+ * Where a country sits. At the conference its coalition; at a bilateral table
+ * (ww172) the first chair is `central` and the second `entente`, whatever
+ * their coalitions, and nobody else sits.
+ */
+function sideOf(gw: GreatWar, tag: GwTag): GwSide | null {
+  const p = gw.s.table?.pair;
+  if (p !== undefined) {
+    return tag === p.a ? "central" : tag === p.b ? "entente" : null;
+  }
+  return gw.nation(tag)?.side ?? null;
+}
+
 /** Who won; null when nobody did. */
 export function winnerOf(gw: GreatWar): GwSide | null {
+  const p = gw.s.table?.pair;
+  if (p !== undefined) return p.winner === null ? null : sideOf(gw, p.winner);
   const k = gw.s.armistice?.kind;
   if (k === "central_lost") return "entente";
   if (k === "entente_lost") return "central";
   return null;
 }
 
-const sideOf = (gw: GreatWar, tag: GwTag): GwSide | null =>
-  gw.nation(tag)?.side ?? null;
+/** The conference's winner, from the armistice alone. */
+function armisticeWinner(gw: GreatWar): GwSide | null {
+  const k = gw.s.armistice?.kind;
+  if (k === "central_lost") return "entente";
+  if (k === "entente_lost") return "central";
+  return null;
+}
 
 /** A chair: those who fought, but not a country that left a war its side won. */
 function chairs(gw: GreatWar): GwTag[] {
-  const winner = winnerOf(gw);
+  const winner = armisticeWinner(gw);
   const seated = (tag: GwTag) => {
     const n = gw.nation(tag);
     if (n === null || n.side === null) return false;
@@ -169,8 +200,11 @@ function say(
 /** A month of the conference opens. */
 export function openSession(gw: GreatWar, ticks: number): void {
   const t = gw.s.table;
-  if (t === null || t.closed || gw.s.conferenceLeft === 0) return;
-  t.session = GW_TABLE_SESSIONS - gw.s.conferenceLeft;
+  if (t === null || t.closed) return;
+  // A bilateral table is one month, whatever the calendar (ww172).
+  if (t.pair === undefined && gw.s.conferenceLeft === 0) return;
+  t.session =
+    t.pair === undefined ? GW_TABLE_SESSIONS - gw.s.conferenceLeft : 0;
   t.round = 0;
   t.at = 0;
   t.done = t.order.length === 0;
@@ -203,17 +237,41 @@ function onTable(t: GwTableState, place: GwPlace): boolean {
   );
 }
 
+/**
+ * The owner came to this table beaten: its side lost, it lost the war of the
+ * two, or (at the conference) it was knocked out on its own.
+ */
+function beatenHere(gw: GreatWar, owner: GwTag): boolean {
+  const winner = winnerOf(gw);
+  const side = sideOf(gw, owner);
+  if (winner !== null && side !== null && side !== winner) return true;
+  return gw.s.table?.pair === undefined && beatenAt(gw, owner) !== null;
+}
+
+/**
+ * 9A (ww172): one's own land, a place one holds, or one in a group next to
+ * what one holds whose owner came here beaten; over the water with the sea.
+ */
+function reachable(gw: GreatWar, by: GwTag, place: GwPlace): boolean {
+  if (GW_PLACES[place].owner === by) return true;
+  return canAskFor(gw, by, place, (owner) => beatenHere(gw, owner));
+}
+
 /** Whoever would lose it; null when it can't be asked for at this table. */
 function againstOf(gw: GreatWar, by: GwTag, place: GwPlace): GwTag | null {
   const t = gw.s.table!;
   const side = sideOf(gw, by);
-  const friend = gw.s.seats.find(
-    (x) =>
-      x.tag !== by &&
-      x.claims.includes(place) &&
-      sideOf(gw, x.tag) === side &&
-      t.order.includes(x.tag),
-  );
+  if (!reachable(gw, by, place)) return null;
+  const friend =
+    t.pair !== undefined
+      ? undefined
+      : gw.s.seats.find(
+          (x) =>
+            x.tag !== by &&
+            x.claims.includes(place) &&
+            sideOf(gw, x.tag) === side &&
+            t.order.includes(x.tag),
+        );
   if (friend !== undefined) return friend.tag;
   const owner = GW_PLACES[place].owner;
   const holder = holderOf(gw, place);
@@ -233,11 +291,15 @@ function standing(gw: GreatWar, tag: GwTag): number {
       : side === winner
         ? STANDING.won
         : STANDING.lost;
+  const p = t.pair;
   if (side !== null) {
-    const score = Math.trunc(warScore(gw, side) / SCORE_PART);
+    const war =
+      p === undefined ? warScore(gw, side) : tag === p.a ? p.score : -p.score;
+    const score = Math.trunc(war / SCORE_PART);
     v += clampTo(score, -SCORE_MOST, SCORE_MOST);
   }
-  const seat = seatsOf(gw, tag)[0];
+  // The painted map is the conference's.
+  const seat = p === undefined ? seatsOf(gw, tag)[0] : undefined;
   if (seat !== undefined) {
     const painted = Math.trunc(seat.claims.length / PAINTED_EVERY);
     v -= Math.min(PAINTED_MOST, painted);
@@ -271,7 +333,10 @@ function placeCost(gw: GreatWar, c: GwTableClaim): number {
     v += COST_HEART;
   }
   if (sideOf(gw, c.by) === sideOf(gw, c.against)) v += COST_FRIEND;
-  if (holderOf(gw, c.place) === c.by) v -= EASE_HELD;
+  if (holderOf(gw, c.place) === c.by) {
+    v -= EASE_HELD;
+    v -= Math.min(EASE_MONTHS_MOST, monthsHeld(gw, c.place) * EASE_MONTH);
+  }
   if (known) {
     v -= EASE_CASE;
     if (papers.includes("f_e_held_treaty")) v -= EASE_PAPERS;
@@ -342,10 +407,22 @@ function overBy(gw: GreatWar, c: GwTableClaim): void {
   if (voice !== undefined) say(t, "over", voice, c.id);
 }
 
+/** A claim's end, as world news and a line on both seats (ww172). */
+function resultLines(
+  gw: GreatWar,
+  c: GwTableClaim,
+  end: "ceded" | "imposed" | "traded" | "refused" | "dropped",
+): void {
+  news(gw, `table_${end}`, c.by, c.against, null, c.place);
+  landLine(gw, c.by, `land_table_${end}_by`, c.against, c.place);
+  landLine(gw, c.against, `land_table_${end}_to`, c.by, c.place);
+}
+
 function give(gw: GreatWar, c: GwTableClaim, state: "agreed" | "imposed") {
   const t = gw.s.table!;
   c.state = state;
-  moveLand(gw, c.place, c.by, null);
+  moveLand(gw, c.place, c.by, null, "table");
+  resultLines(gw, c, state === "agreed" ? "ceded" : "imposed");
   if (state === "agreed") say(t, "yes", c.against, c.id);
   else say(t, "impose", c.by, c.id);
   if (claimsMade(t, c.by) > BEARS) overBy(gw, c);
@@ -370,6 +447,7 @@ function refuseToTheLast(gw: GreatWar, c: GwTableClaim): void {
   c.state = "refused";
   t.held[c.against] = (t.held[c.against] ?? 0) + 1;
   say(t, "hold", c.against, c.id);
+  resultLines(gw, c, "refused");
 }
 
 function settle(gw: GreatWar, c: GwTableClaim): void {
@@ -379,6 +457,7 @@ function settle(gw: GreatWar, c: GwTableClaim): void {
     t.bill[c.against] = (t.bill[c.against] ?? 0) + 1;
   }
   say(t, "traded", dueBy(c), c.id);
+  resultLines(gw, c, "traded");
 }
 
 /** A word on a claim, whoever says it. */
@@ -423,6 +502,7 @@ function word(
     case "drop":
       c.state = "dropped";
       say(t, "drop", tag, c.id);
+      resultLines(gw, c, "dropped");
       return;
   }
 }
@@ -476,32 +556,102 @@ function answer(gw: GreatWar, c: GwTableClaim, who: GwTag): void {
   }
 }
 
-/** How much of its list a country asks for: a hard man all of it. */
+/** How much of what it could ask for a country asks: a hard man most. */
 const APPETITE_PCT = {
   hardline: 100,
   opportunist: 80,
   principled: 60,
   cautious: 50,
 } as const;
+/** What a winner's appetite gains, and what a hard man asks past the bearable. */
+const APPETITE_WON = 10;
+const APPETITE_HARD_PAST = 2;
+/** How it ranks what it could ask for. */
+const WANT_OWN = 40;
+const WANT_HELD = 30;
+const WANT_MONTH = 2;
+const WANT_MONTHS_MOST = 20;
+const WANT_CASE = 25;
+const WANT_PORT = 5;
+const WANT_CAPITAL = 10;
+
+/**
+ * Nobody beaten at a bilateral table: each keeps what it stands on (design
+ * ww168 B6), so only its own land in the other's hands is worth asking for.
+ */
+const standsOn = (gw: GreatWar) =>
+  gw.s.table?.pair !== undefined && winnerOf(gw) === null;
+
+/**
+ * What a country nobody plays would ask for, the most wanted first: its own
+ * land back where each keeps what it stands on, else what it holds (the
+ * longer the dearer to it), then a beaten neighbour's land in reach. Its
+ * known case (GW_TABLE_AIMS) ranks a place up; on a map without the places
+ * only the case and what it holds count. Read off the state, not a list.
+ */
+function wishesOf(gw: GreatWar, tag: GwTag): GwPlace[] {
+  const aims = GW_TABLE_AIMS[tag] ?? [];
+  const even = winnerOf(gw) === null;
+  const keeps = standsOn(gw);
+  const graph = hasLandGraph(gw);
+  const out: { place: GwPlace; want: number }[] = [];
+  for (const place of GW_PLACE_KEYS) {
+    const owner = GW_PLACES[place].owner;
+    const holder = holderOf(gw, place);
+    const known = aims.indexOf(place);
+    let want: number;
+    if (owner === tag) {
+      if (holder === tag || !keeps) continue;
+      want = WANT_OWN;
+    } else if (holder === tag) {
+      if (keeps) continue;
+      const months = monthsHeld(gw, place) * WANT_MONTH;
+      want = WANT_HELD + Math.min(WANT_MONTHS_MOST, months);
+    } else if (even || keeps || (!graph && known < 0)) {
+      continue;
+    } else {
+      want = 0;
+    }
+    if (known >= 0) want += WANT_CASE - known;
+    if (GW_TABLE_PORTS.includes(place)) want += WANT_PORT;
+    if (GW_TABLE_CAPITALS.includes(place)) want -= WANT_CAPITAL;
+    out.push({ place, want });
+  }
+  out.sort(
+    (a, b) =>
+      b.want - a.want || (a.place < b.place ? -1 : a.place > b.place ? 1 : 0),
+  );
+  return out
+    .filter((x) => againstOf(gw, tag, x.place) !== null)
+    .map((x) => x.place);
+}
+
+/** How many of `count` wishes it asks for: its character, then its state. */
+function appetiteOf(gw: GreatWar, tag: GwTag, count: number): number {
+  const n = gw.nation(tag)!;
+  const won = winnerOf(gw) !== null && winnerOf(gw) === sideOf(gw, tag);
+  const pct = clampTo(
+    APPETITE_PCT[n.ai] - weariness(n) + (won ? APPETITE_WON : 0),
+    10,
+    100,
+  );
+  const most = BEARS + (n.ai === "hardline" ? APPETITE_HARD_PAST : 0);
+  return Math.min(most, Math.ceil((count * pct) / 100));
+}
 
 function pickFor(gw: GreatWar, tag: GwTag): GwPlace | null {
   const t = gw.s.table!;
-  const rows = GW_TABLE_AIMS[tag] ?? [];
   const n = gw.nation(tag);
   const winner = winnerOf(gw);
-  if (n === null || (winner !== null && n.side !== winner)) return null;
-  const most = Math.ceil((rows.length * APPETITE_PCT[n.ai]) / 100);
+  if (n === null || (winner !== null && sideOf(gw, tag) !== winner))
+    return null;
   const made = t.claims.filter((c) => c.by === tag).length;
-  if (made >= most) return null;
-  for (const place of rows) {
-    if (onTable(t, place) || againstOf(gw, tag, place) === null) continue;
-    // What it asked for and didn't get, it doesn't ask for again.
-    if (t.claims.some((c) => c.by === tag && c.place === place)) continue;
-    // With nobody beaten, a country keeps at most what it stands on.
-    if (winner === null && holderOf(gw, place) !== tag) continue;
-    return place;
-  }
-  return null;
+  // What it asked for, got or not, it doesn't ask for again.
+  const wishes = wishesOf(gw, tag).filter(
+    (place) => !t.claims.some((c) => c.by === tag && c.place === place),
+  );
+  if (made >= appetiteOf(gw, tag, wishes.length + made)) return null;
+  return wishes.find((place) => !onTable(t, place)) ?? null;
 }
 
 function put(gw: GreatWar, by: GwTag, place: GwPlace, against: GwTag): void {
@@ -585,14 +735,33 @@ function runOut(gw: GreatWar): void {
 /** Chapter step: the month closes; the last one signs. */
 export function tableStep(gw: GreatWar): void {
   const t = gw.s.table;
-  if (t === null || t.closed || gw.s.conferenceLeft === 0) return;
+  if (t === null || t.closed) return;
+  // A bilateral table sits one month: it signs as that month closes.
+  if (t.pair !== undefined) {
+    closeTable(gw);
+    return;
+  }
+  if (gw.s.conferenceLeft === 0) return;
   runOut(gw);
   if (gw.s.conferenceLeft === 1) closeTable(gw);
 }
 
-/** Land stays where the table put it and nowhere else. */
+/** Both of a bilateral table's countries, or neither: what it covers. */
+function ofThePair(t: GwTableState, owner: GwTag, holder: GwTag): boolean {
+  const p = t.pair;
+  if (p === undefined) return true;
+  const two = [p.a, p.b];
+  return two.includes(owner) && two.includes(holder) && owner !== holder;
+}
+
+/**
+ * Land stays where the table put it and nowhere else. A bilateral table
+ * covers only the two's land, and with nobody beaten each keeps what it
+ * stands on. A line for each country that gets land back.
+ */
 function returnLand(gw: GreatWar): void {
   const t = gw.s.table!;
+  if (standsOn(gw)) return;
   const kept = (place: GwPlace, tag: GwTag) =>
     t.claims.some(
       (c) =>
@@ -601,10 +770,38 @@ function returnLand(gw: GreatWar): void {
         (c.state === "agreed" || c.state === "imposed"),
     );
   const places = Object.keys(gw.s.held).sort() as GwPlace[];
+  const told = new Set<string>();
   for (const place of places) {
-    if (kept(place, gw.s.held[place]!)) continue;
-    moveLand(gw, place, GW_PLACES[place].owner, null);
+    const holder = gw.s.held[place]!;
+    const owner = GW_PLACES[place].owner;
+    if (!ofThePair(t, owner, holder) || kept(place, holder)) continue;
+    moveLand(gw, place, owner, null, "table");
+    if (holderOf(gw, place) !== owner || told.has(`${holder}>${owner}`)) {
+      continue;
+    }
+    told.add(`${holder}>${owner}`);
+    news(gw, "land_returned", holder, owner, null, place);
+    landLine(gw, owner, "land_returned_home", holder, place);
+    landLine(gw, holder, "land_returned_gave", owner, place);
   }
+}
+
+/**
+ * What a bilateral table covered (what was asked for, and the two's land in
+ * the other's hands as it signs) stays put until the two fight again.
+ */
+function settleLand(gw: GreatWar): void {
+  const t = gw.s.table!;
+  const s = gw.s;
+  if (t.pair === undefined) return;
+  const settled = new Set(s.settled ?? []);
+  for (const c of t.claims) settled.add(c.place);
+  for (const place of GW_PLACE_KEYS) {
+    if (ofThePair(t, GW_PLACES[place].owner, holderOf(gw, place))) {
+      settled.add(place);
+    }
+  }
+  s.settled = [...settled].sort();
 }
 
 function payBills(gw: GreatWar): void {
@@ -666,12 +863,146 @@ export function closeTable(gw: GreatWar): void {
   if (t === null || t.closed) return;
   runOut(gw);
   t.closed = true;
+  settleLand(gw);
   returnLand(gw);
   payBills(gw);
+  if (t.pair !== undefined) {
+    pairSigned(gw, t);
+    gw.touch();
+    return;
+  }
   for (const seat of gw.s.seats) seatCloses(gw, seat);
   news(gw, "table_signed");
   turn(gw, "table_signed");
   gw.touch();
+}
+
+// ---- The bilateral table (ww172, design ww168 B5-B6) ----
+
+/** The waiting row of a bilateral table now sitting, or null. */
+function rowOf(gw: GreatWar, t: GwTableState): GwPairTable | null {
+  const p = t.pair;
+  if (p === undefined) return null;
+  return (
+    (gw.s.pairTables ?? []).find(
+      (r) =>
+        r.a === p.a && r.b === p.b && r.opened !== null && r.signed === null,
+    ) ?? null
+  );
+}
+
+/** How the table came out for `tag`: `won`, `lost` or `even`. */
+function pairResult(p: NonNullable<GwTableState["pair"]>, tag: GwTag) {
+  if (p.winner === null) return "even";
+  return p.winner === tag ? "won" : "lost";
+}
+
+/** The two sign: news, a line and a memory on each seat. */
+function pairSigned(gw: GreatWar, t: GwTableState): void {
+  const p = t.pair!;
+  const row = rowOf(gw, t);
+  if (row !== null) row.signed = gw.s.chapter;
+  news(gw, "pair_table_signed", p.a, p.b);
+  for (const [me, them] of [
+    [p.a, p.b],
+    [p.b, p.a],
+  ] as const) {
+    for (const seat of seatsOf(gw, me)) {
+      const key = `pair_table_${pairResult(p, me)}`;
+      seat.log.push({ key, chapter: gw.s.chapter, tag: them });
+      seat.memory.push({
+        key: `pair_table_signed_${them.toLowerCase()}`,
+        who: null,
+        chapter: gw.s.chapter,
+        weight: 0,
+      });
+    }
+  }
+}
+
+/** A bilateral table sits down: the one who came out ahead speaks first. */
+function openPairTable(gw: GreatWar, row: GwPairTable): void {
+  const s = gw.s;
+  row.opened = s.chapter;
+  const first = row.winner ?? row.a;
+  const second = first === row.a ? row.b : row.a;
+  s.table = {
+    session: 0,
+    order: [first, second],
+    round: 0,
+    at: 0,
+    next: 0,
+    done: false,
+    closed: false,
+    claims: [],
+    lines: [],
+    bill: {},
+    over: {},
+    held: {},
+    pair: { a: row.a, b: row.b, winner: row.winner, score: row.score },
+  };
+  news(gw, "pair_table_open", row.a, row.b);
+  for (const [me, them] of [
+    [row.a, row.b],
+    [row.b, row.a],
+  ] as const) {
+    for (const seat of seatsOf(gw, me)) {
+      seat.log.push({ key: "pair_table_open", chapter: s.chapter, tag: them });
+    }
+  }
+}
+
+/**
+ * Chapter step, after the conference's: the next peace of two with land at
+ * stake sits down. With no seat at it, it talks and signs at once; with one,
+ * it sits through the next chapter and signs as it closes (tableStep). One at
+ * a time; none once an armistice brings the conference.
+ */
+export function pairTableStep(gw: GreatWar): void {
+  const s = gw.s;
+  for (let guard = 0; guard < 8; guard++) {
+    if (s.armistice !== null || s.conferenceLeft > 0) return;
+    const t = s.table;
+    if (t !== null && !t.closed) return;
+    const row = (s.pairTables ?? []).find((r) => r.opened === null);
+    if (row === undefined) return;
+    openPairTable(gw, row);
+    if (hasSeat(gw, row.a) || hasSeat(gw, row.b)) return;
+    const table = s.table!;
+    say(table, "open", table.order[0], -1);
+    closeTable(gw);
+  }
+}
+
+/**
+ * A peace of two (PairWar): a table waits for it when there is land at
+ * stake: one holds the other's, or one came out ahead.
+ */
+export function queuePairTable(
+  gw: GreatWar,
+  a: GwTag,
+  b: GwTag,
+  winner: GwTag | null,
+  score: number,
+): boolean {
+  const s = gw.s;
+  const stake = GW_PLACE_KEYS.some((place) => {
+    const owner = GW_PLACES[place].owner;
+    const holder = holderOf(gw, place);
+    return (owner === a && holder === b) || (owner === b && holder === a);
+  });
+  if (!stake && winner === null) return false;
+  s.pairTables ??= [];
+  s.pairTables.push({
+    a,
+    b,
+    chapter: s.chapter,
+    winner,
+    score,
+    opened: null,
+    signed: null,
+  });
+  return true;
 }
 
 const myTurn = (gw: GreatWar, seat: GwSeatState) => {
@@ -778,6 +1109,10 @@ function roleOf(gw: GreatWar, seat: GwSeatState): GwTableView["role"] {
 export function tableView(gw: GreatWar, seat: GwSeatState): GwTableView | null {
   const t = gw.s.table;
   if (t === null) return null;
+  // A bilateral table is the two's, and gone once signed.
+  if (t.pair !== undefined && (t.closed || !t.order.includes(seat.tag))) {
+    return null;
+  }
   const c = openClaim(t);
   const idle = t.done || t.closed || t.round >= GW_TABLE_ROUNDS;
   return {
@@ -791,6 +1126,7 @@ export function tableView(gw: GreatWar, seat: GwSeatState): GwTableView | null {
       const winner = winnerOf(gw);
       return winner !== null && sideOf(gw, tag) !== winner;
     }),
+    pair: t.pair === undefined ? null : [t.pair.a, t.pair.b],
     speaker: c !== undefined ? dueBy(c) : idle ? null : t.order[t.at],
     claims: t.claims,
     lines: t.lines.slice(-LINES_SHOWN),

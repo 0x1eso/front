@@ -3,24 +3,33 @@ import {
   GwEnding,
   GwMemoir,
   GwSeatState,
+  gwSecretsFor,
   GwSource,
   GwTheatre,
   GwUnknown,
-  gwSecretsFor,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { GwTag, isGwTag } from "@openfront/engine-api/ww1914/GwCountries";
+import {
+  GW_PLACE_KEYS,
+  GW_PLACES,
+} from "@openfront/engine-api/ww1914/GwPlaces";
 import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
 import {
   GW_ENDING_CODAS,
   GW_ENDING_ROWS,
+  GW_LAND_CODAS,
+  GW_STATE_ENDINGS,
 } from "@openfront/engine-lib/ww1914/EndingRows";
+import { GW_CAPITALS } from "@openfront/engine-lib/ww1914/PlaceRules";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
 import { daysFromCivil } from "@openfront/engine-lib/ww1936/Calendar";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { aimRecord } from "./Aims";
 import { warScore } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
+import { holderOf } from "./Land";
 import { GW_MANDATES } from "./Mandates";
+import { beatenAt, capitalHolder } from "./Occupation";
 import { chaptersPlayed } from "./Peace";
 import { holds } from "./SceneRun";
 import { closeTable, mapRecord } from "./Table";
@@ -82,6 +91,9 @@ const LONG_PEACE_DAY = daysFromCivil(1916, 7, 1);
 /** The seat's own flag: it signed for itself, it wasn't beaten. */
 export const SEPARATE_PEACE = "f_separate_peace";
 
+/** Places of beaten countries held at the end that make an occupation held. */
+const OCCUPIED_HELD = 4;
+
 /** A seat's game closes alone: its country is out, or it chose the memoir. */
 export function closeSeat(
   gw: GreatWar,
@@ -111,11 +123,7 @@ export function endingStep(gw: GreatWar): void {
   if (s.ended !== null || s.armistice !== null) return;
   for (const seat of s.seats) {
     if (seat.memoir !== null || gw.nation(seat.tag)?.out !== true) continue;
-    closeSeat(
-      gw,
-      seat,
-      gw.nation(seat.tag)?.side === null ? "deadline" : outEnding(gw, seat),
-    );
+    closeSeat(gw, seat, outEnding(gw, seat));
   }
   // Peace past hope of war: two years on, the long peace has been had.
   if (s.ended === null && s.warChapter === null && s.day >= LONG_PEACE_DAY) {
@@ -123,12 +131,65 @@ export function endingStep(gw: GreatWar): void {
   }
 }
 
-/** How a country that left early left: beaten or by its own peace. */
+/**
+ * How a country that left early left: by its own peace (a separate one, or
+ * a peace of two that left it nothing to fight), beaten in a war of its own,
+ * or beaten with its coalition's war going on.
+ */
 function outEnding(gw: GreatWar, seat: GwSeatState): GwEnding {
   const n = gw.nation(seat.tag);
   if (n === null) return "deadline";
-  if (seat.flags.includes(SEPARATE_PEACE)) return "compromise_peace";
+  if (seat.flags.includes(SEPARATE_PEACE)) return "separate_peace";
+  if (n.side === null) return "pair_war_lost";
+  if (beatenAt(gw, seat.tag) === null) return "separate_peace";
   return n.unrest >= 2 ? "home_collapse" : "armistice_conference";
+}
+
+/** The seat's wars, the last to end last; live ones count as not ended. */
+function warsOf(gw: GreatWar, tag: GwTag) {
+  return gw.s.wars
+    .filter((w) => w.a === tag || w.b === tag)
+    .sort((x, y) => (x.ended ?? 1e9) - (y.ended ?? 1e9));
+}
+
+/**
+ * A country outside the coalitions that fought wars of its own (ww172): the
+ * war goes on, or how the last one ended. Null: none of that.
+ */
+function ownWarEnding(gw: GreatWar, tag: GwTag): GwEnding | null {
+  const n = gw.nation(tag);
+  if (n === null || n.side !== null) return null;
+  const wars = warsOf(gw, tag);
+  const last = wars[wars.length - 1];
+  if (last === undefined) return null;
+  if (n.out) return "pair_war_lost";
+  if (last.ended === null) return "deadline";
+  if (last.won === undefined) return "compromise_peace";
+  return last.won === tag ? "pair_war_won" : "pair_war_lost";
+}
+
+/** Beaten countries' places `tag` holds, by owner, most first. */
+function occupiedBy(gw: GreatWar, tag: GwTag): [GwTag, number][] {
+  const count = new Map<GwTag, number>();
+  for (const p of GW_PLACE_KEYS) {
+    const owner = GW_PLACES[p].owner;
+    if (holderOf(gw, p) !== tag || owner === tag) continue;
+    if (beatenAt(gw, owner) === null && GW_CAPITALS[owner] !== p) continue;
+    count.set(owner, (count.get(owner) ?? 0) + 1);
+  }
+  return [...count].sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1));
+}
+
+/** The war goes on with land held: its own capital lost, or another's land held. */
+function occupationEnding(gw: GreatWar, tag: GwTag): GwEnding | null {
+  if (capitalHolder(gw, tag) !== null) return "under_occupation";
+  const held = occupiedBy(gw, tag);
+  const capital = held.some(([owner]) => {
+    const cap = GW_CAPITALS[owner];
+    return cap !== undefined && holderOf(gw, cap) === tag;
+  });
+  if (capital || (held[0]?.[1] ?? 0) >= OCCUPIED_HELD) return "occupation_held";
+  return null;
 }
 
 /** How the war stood for this seat when the game ran out. */
@@ -137,12 +198,17 @@ export function generalEnding(
   seat: GwSeatState | null,
 ): GwEnding {
   const s = gw.s;
-  if (s.warChapter === null) return "long_peace";
+  const own = seat === null ? null : ownWarEnding(gw, seat.tag);
+  if (s.warChapter === null) return own ?? "long_peace";
   const side = (seat === null ? null : gw.nation(seat.tag)?.side) ?? "central";
   if (s.armistice !== null) {
     if (s.armistice.kind === "compromise") return "compromise_peace";
     const lost = (s.armistice.kind === "central_lost") === (side === "central");
     return lost ? "armistice_conference" : "victory_peace";
+  }
+  if (own !== null) return own;
+  if (seat !== null && gw.nation(seat.tag)?.out === true) {
+    return outEnding(gw, seat);
   }
   const score = warScore(gw, side);
   if (gwChapters(s.calendar).length <= FIRST_WINTER_CHAPTERS) {
@@ -151,7 +217,39 @@ export function generalEnding(
     return "first_winter_level";
   }
   if (score >= AHEAD_AT * 2) return "victory_peace";
-  return score <= -AHEAD_AT * 2 ? "armistice_conference" : "deadline";
+  if (score <= -AHEAD_AT * 2) return "armistice_conference";
+  const held = seat === null ? null : occupationEnding(gw, seat.tag);
+  return held ?? "deadline";
+}
+
+/**
+ * Why the general ending came, for the memoir's line under its title
+ * (gw.ending_why.<key>, {country}); null for an ending a scene chose.
+ */
+function whyOf(
+  gw: GreatWar,
+  seat: GwSeatState,
+  general: GwEnding,
+): { key: string; tag: GwTag | null } | null {
+  // The world's endings, not a scene's or a country's own.
+  const known = [...GW_ENDINGS.slice(1, 10), ...GW_STATE_ENDINGS];
+  if (!known.includes(general)) return null;
+  const last = warsOf(gw, seat.tag)
+    .filter((w) => w.ended !== null)
+    .pop();
+  const foe = last === undefined ? null : last.a === seat.tag ? last.b : last.a;
+  switch (general) {
+    case "separate_peace":
+    case "pair_war_won":
+    case "pair_war_lost":
+      return { key: general, tag: foe };
+    case "under_occupation":
+      return { key: general, tag: capitalHolder(gw, seat.tag) };
+    case "occupation_held":
+      return { key: general, tag: occupiedBy(gw, seat.tag)[0]?.[0] ?? null };
+    default:
+      return { key: general, tag: null };
+  }
 }
 
 /** Past the last chapter, whatever stands. */
@@ -283,7 +381,10 @@ const OWN_EMBASSY: Partial<Record<GwTag, GwSource>> = {
 
 /** World turns have text (gw.turn.<key>); a scene's own memories don't. */
 function turnOf(key: string): { key: string; tag: GwTag | null } | null {
-  const m = /^(entered|out|pair_war_began|pair_peace_made)_([a-z]+)$/.exec(key);
+  const m =
+    /^(entered|out|pair_war_began|pair_peace_made|pair_table_signed)_([a-z]+)$/.exec(
+      key,
+    );
   if (m !== null) {
     const tag = m[2].toUpperCase();
     return isGwTag(tag) ? { key: m[1], tag } : null;
@@ -326,14 +427,17 @@ export function memoirOf(
     id,
     met: mandateMet(gw, seat, id),
   }));
-  const ending = ownEnding(gw, seat, general ?? generalOf(gw, seat));
-  const coda = (GW_ENDING_CODAS[seat.tag] ?? []).find((c) =>
-    holds({ gw, seat, cast: {} }, c.when),
-  );
+  const why = general ?? generalOf(gw, seat);
+  const ending = ownEnding(gw, seat, why);
+  const ctx = { gw, seat, cast: {} };
+  const coda =
+    (GW_ENDING_CODAS[seat.tag] ?? []).find((c) => holds(ctx, c.when)) ??
+    GW_LAND_CODAS.find((c) => holds(ctx, c.when));
   const rival = seat.story.rival;
   return {
     ending,
     coda: coda?.id ?? null,
+    why: whyOf(gw, seat, why),
     rival:
       rival.who === null
         ? null

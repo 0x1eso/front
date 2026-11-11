@@ -13,6 +13,7 @@ import {
   GwTheatre,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
+import type { GwPlace } from "@openfront/engine-api/ww1914/GwPlaces";
 import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
 import { moveMoney } from "./Budget";
@@ -120,8 +121,13 @@ export function news(
   a: GwTag | null = null,
   b: GwTag | null = null,
   theatre: GwTheatre | null = null,
+  place?: GwPlace,
 ): void {
-  gw.s.news.push({ key, chapter: gw.s.chapter, a, b, theatre });
+  gw.s.news.push(
+    place === undefined
+      ? { key, chapter: gw.s.chapter, a, b, theatre }
+      : { key, chapter: gw.s.chapter, a, b, theatre, place },
+  );
 }
 
 /** The power being used (Powers.takePower): lines written meanwhile name it. */

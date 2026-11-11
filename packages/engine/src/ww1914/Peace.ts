@@ -16,7 +16,7 @@ import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { warMonths } from "./Eras";
 import { warScore } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
-import { tableStart } from "./Table";
+import { closeTable, tableStart } from "./Table";
 import { GW_BEATEN, GwBeaten } from "./Tables";
 import { leaveWar } from "./Wars";
 import {
@@ -259,6 +259,8 @@ export function skipToConference(gw: GreatWar): void {
   const chapters = gwChapters(s.calendar);
   const last = chapters.length - 1;
   if (s.armistice === null || s.closingDay !== null) return;
+  // A bilateral table still sitting signs before the conference takes its place.
+  if (s.table !== null && s.table.pair !== undefined) closeTable(gw);
   s.closingDay = s.day + chapterOf(gw).spanDays;
   s.conferenceLeft = CONFERENCE_CHAPTERS;
   s.chapter = last - 1;
