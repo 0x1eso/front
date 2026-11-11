@@ -4,10 +4,7 @@ import type {
   BattleSummary,
   ModLine,
 } from "@openfront/engine-api/ww1936/LandTypes";
-import {
-  ATTACK_ORDERS,
-  DEFENCE_STANCES,
-} from "@openfront/engine-lib/imjin/LandRules";
+import { hasImjinTerrain } from "@openfront/engine-lib/imjin/Terrain";
 import { assetUrl } from "@openfront/shared/AssetUrls";
 import { EventBus } from "@openfront/shared/EventBus";
 import { html, LitElement, nothing, TemplateResult } from "lit";
@@ -18,6 +15,7 @@ import { SendWwOrderIntentEvent } from "../../Transport";
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view";
 import { fogModelOf } from "./FogModel";
+import { imjinBattleBlock } from "./ImjinLandUi";
 import {
   battleCard,
   BattleCardData,
@@ -27,6 +25,7 @@ import {
   regionName,
 } from "./LandModel";
 import { landSelectionOf, OpenWwBattleEvent } from "./LandSelection";
+import { imjinMonth, imjinTerrainLines, imjinTerrainName } from "./LensModel";
 import { navyCtx, NavyGame } from "./NavyModel";
 import { armyPriority, battleAirLine } from "./WingModel";
 import { countryName, today } from "./WorldWarModel";
@@ -128,6 +127,8 @@ export class WwBattleCard extends LitElement implements Controller {
       this.game.wwAir?.()?.version,
       this.game.wwNavy?.()?.version,
       this.region,
+      // ww177 I3b: the Imjin phase countdown moves every tick.
+      this.game.wwNavy?.()?.imjin ? this.game.ticks() : 0,
     ];
     if (key.some((v, i) => v !== this.redrawKey[i])) {
       this.redrawKey = key;
@@ -164,6 +165,7 @@ export class WwBattleCard extends LitElement implements Controller {
     const b = d.summary;
     const s = this.game.worldWarScenario()!;
     const name = regionName(s, b.region);
+    const imjin = hasImjinTerrain(s);
     return html`<section
       data-ww-battle-card=${b.region}
       aria-label=${name}
@@ -176,8 +178,10 @@ export class WwBattleCard extends LitElement implements Controller {
       <div class="flex items-center gap-1.5">
         <span class="font-bold text-sm">⚔ ${name}</span>
         <span class="text-white/70"
-          >${translateText(`ww1936.terrain.${d.land}`)} ·
-          ${translateText(`ww1936.weather.${d.weather}`)}</span
+          >${imjin
+            ? imjinTerrainName(s, b.region)
+            : translateText(`ww1936.terrain.${d.land}`)}
+          · ${translateText(`ww1936.weather.${d.weather}`)}</span
         >
         <button
           type="button"
@@ -198,7 +202,14 @@ export class WwBattleCard extends LitElement implements Controller {
           style="width: ${Math.max(0, Math.min(1000, b.progressPm)) / 10}%"
         ></div>
       </div>
-      ${this.renderImjin(b)} ${this.renderAir(d)}
+      ${imjin
+        ? html`<div data-ww-imjin-terrain class="flex flex-col text-white/70">
+            ${imjinTerrainLines(s, b.region, imjinMonth(this.game), false).map(
+              (l) => html`<span>${l}</span>`,
+            )}
+          </div>`
+        : nothing}
+      ${imjinBattleBlock(this.game, this.eventBus, b)} ${this.renderAir(d)}
       ${this.renderLuck(battleLuck(b, this.luckBand(b)))}
       ${(b.runRounds ?? 0) > 0 && this.luckBand(b) >= 3
         ? html`<div data-ww-battle-running class="text-amber-300">
@@ -255,78 +266,6 @@ export class WwBattleCard extends LitElement implements Controller {
           </button>`
         : nothing}
     </section>`;
-  }
-
-  /**
-   * ww177 (Imjin design §5 "Orders"): the order pair in effect, the siege,
-   * and my side's order chips for the next phase.
-   */
-  private renderImjin(
-    b: BattleCardData["summary"],
-  ): TemplateResult | typeof nothing {
-    const im = this.game.wwNavy?.()?.imjin ?? null;
-    if (im === null) return nothing;
-    const o = im.orders.find((x) => x.region === b.region);
-    const siege = im.sieges.find((x) => x.region === b.region);
-    const me = this.game.myPlayer()?.smallID() ?? 0;
-    const attack = me !== 0 && me === b.attacker;
-    const defend = me !== 0 && me === b.defender;
-    const list = attack ? ATTACK_ORDERS : defend ? DEFENCE_STANCES : null;
-    const pending = o === undefined ? -1 : attack ? o.pendAtt : o.pendDef;
-    const current = o === undefined ? -1 : attack ? o.att : o.def;
-    return html`<div data-ww-imjin-orders class="flex flex-col gap-1">
-      ${o === undefined
-        ? nothing
-        : html`<div class="text-white/80">
-            ${translateText("imjin.battle.orders_line", {
-              att: translateText(`imjin.battle.order.${ATTACK_ORDERS[o.att]}`),
-              def: translateText(
-                `imjin.battle.order.${DEFENCE_STANCES[o.def]}`,
-              ),
-            })}
-            ${o.ambushed !== 0
-              ? html`<span class="text-amber-300"
-                  >${translateText("imjin.battle.ambushed")}</span
-                >`
-              : nothing}
-          </div>`}
-      ${siege === undefined
-        ? nothing
-        : html`<div data-ww-imjin-siege class="text-amber-300">
-            ${translateText("imjin.battle.siege_line", {
-              days: siege.grainDays,
-              fort: siege.fort,
-            })}
-          </div>`}
-      ${list === null
-        ? nothing
-        : html`<div class="flex flex-wrap gap-1">
-            ${list.map(
-              (k, i) =>
-                html`<button
-                  type="button"
-                  data-ww-imjin-chip=${k}
-                  aria-pressed=${String(i === current || i === pending)}
-                  class="h-8 rounded-md border px-1.5 ${i === pending
-                    ? "border-amber-300 bg-amber-700/50"
-                    : i === current
-                      ? "border-white/40 bg-white/20"
-                      : "border-white/15 bg-white/5 hover:bg-white/15"}"
-                  @click=${() =>
-                    this.eventBus.emit(
-                      new SendWwOrderIntentEvent({
-                        kind: "imjin_battle",
-                        region: b.region,
-                        attack,
-                        index: i,
-                      }),
-                    )}
-                >
-                  ${translateText(`imjin.battle.order.${k}`)}
-                </button>`,
-            )}
-          </div>`}
-    </div>`;
   }
 
   /**

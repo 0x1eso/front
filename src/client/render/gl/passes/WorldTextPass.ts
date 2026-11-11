@@ -79,7 +79,26 @@ interface ActivePopup {
   colorB: number;
   scale: number;
   outlineWidth: number;
+  /** ww177 I3b: `scale` is screen-relative (divided by the zoom, like the place labels). */
+  screen?: boolean;
 }
+
+/** ww177 I3b: a word that rises and fades on the map (an Imjin rout, "패주"). */
+export interface WordPopup {
+  x: number;
+  y: number;
+  text: string;
+  colorR: number;
+  colorG: number;
+  colorB: number;
+}
+
+const WORD_POPUP_LIFETIME_MS = 4000;
+/** Screen px a second the word rises. */
+const WORD_POPUP_RISE_PX = 10;
+const WORD_POPUP_SCREEN_SCALE = 20.0;
+/** Screen px above the point the word starts (clear of the army token). */
+const WORD_POPUP_LIFT_PX = 22;
 
 /** A named place drawn on the map (the Imjin map's passes, fords, channels). */
 export interface PlaceLabel {
@@ -425,6 +444,27 @@ export class WorldTextPass {
     }
   }
 
+  /** ww177 I3b: words that rise and fade at a constant on-screen size. */
+  addWordPopups(words: readonly WordPopup[]): void {
+    const now = this.now();
+    for (const w of words) {
+      this.active.push({
+        x: w.x,
+        y: w.y,
+        text: w.text,
+        startMs: now,
+        lifetimeMs: WORD_POPUP_LIFETIME_MS,
+        riseSpeed: WORD_POPUP_RISE_PX,
+        colorR: w.colorR,
+        colorG: w.colorG,
+        colorB: w.colorB,
+        scale: WORD_POPUP_SCREEN_SCALE,
+        outlineWidth: PLACE_LABEL_OUTLINE_WIDTH,
+        screen: true,
+      });
+    }
+  }
+
   /**
    * Set or clear the ghost-cost label rendered under the build cursor.
    * `null` clears it. Called from Renderer.updateGhostPreview.
@@ -523,11 +563,15 @@ export class WorldTextPass {
       const alpha = Math.max(0, 1 - elapsed / popup.lifetimeMs);
       if (alpha <= 0) continue;
 
-      // Rise animation: move upward over time
+      // Rise animation: move upward over time (a screen popup rises in
+      // screen px, so its world speed shrinks as the camera zooms in).
+      const perWorld = popup.screen === true ? dpr / Math.max(zoom, 0.0001) : 1;
+      const lift = popup.screen === true ? WORD_POPUP_LIFT_PX : 0;
       const riseY =
         popup.riseSpeed > 0
-          ? popup.y - (elapsed / 1000) * popup.riseSpeed
+          ? popup.y - (lift + (elapsed / 1000) * popup.riseSpeed) * perWorld
           : popup.y;
+      const scale = popup.scale * perWorld;
 
       layoutString(
         popup.text,
@@ -554,7 +598,7 @@ export class WorldTextPass {
         this.instanceData[off + 5] = popup.colorR;
         this.instanceData[off + 6] = popup.colorG;
         this.instanceData[off + 7] = popup.colorB;
-        this.instanceData[off + 8] = popup.scale;
+        this.instanceData[off + 8] = scale;
         this.instanceData[off + 9] = popup.outlineWidth;
         count++;
       }

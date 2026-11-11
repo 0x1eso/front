@@ -14,6 +14,7 @@ import {
   type Weather,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { IDEOLOGIES } from "@openfront/engine-api/ww1936/PoliticsTypes";
+import { paddyWet, riverFrozen } from "@openfront/engine-lib/imjin/LandRules";
 import {
   IMJIN_TERRAINS,
   edgeBetween,
@@ -22,6 +23,7 @@ import {
   type ImjinEdge,
   type ImjinTerrain,
 } from "@openfront/engine-lib/imjin/Terrain";
+import { dateOfDay } from "@openfront/engine-lib/ww1936/Calendar";
 import { regionSlots } from "@openfront/engine-lib/ww1936/EconomyRules";
 import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import { weatherAt } from "@openfront/engine-lib/ww1936/Weather";
@@ -682,12 +684,27 @@ export interface LensLegend {
   gauge?: [number, number];
 }
 
+/** The river edges' water colours (region-river.frag.glsl). */
+export const IMJIN_EDGE_RGB: Readonly<Record<Exclude<ImjinEdge, "none">, Rgb>> =
+  {
+    great_river: [41, 92, 189],
+    small_river: [82, 143, 219],
+    ford: [158, 214, 245],
+  };
+
 function terrainRows(s: ScenarioIndex | null): LegendRow[] {
   if (s !== null && hasImjinTerrain(s)) {
-    return IMJIN_TERRAINS.map((t) => ({
-      rgb: IMJIN_TERRAIN_RGB[t],
-      label: translateText(IMJIN_TERRAIN_KEYS[t]),
-    }));
+    // ww177 I3b: the classes, then the river edges in their line colours.
+    return [
+      ...IMJIN_TERRAINS.map((t) => ({
+        rgb: IMJIN_TERRAIN_RGB[t],
+        label: translateText(IMJIN_TERRAIN_KEYS[t]),
+      })),
+      ...(["great_river", "small_river", "ford"] as const).map((e) => ({
+        rgb: IMJIN_EDGE_RGB[e],
+        label: translateText(`ww1936.imjin.legend.${e}`),
+      })),
+    ];
   }
   return LAND_TERRAINS.map((t) => ({
     rgb: TERRAIN_RGB[t],
@@ -695,15 +712,60 @@ function terrainRows(s: ScenarioIndex | null): LegendRow[] {
   }));
 }
 
+/** The game calendar's month (1-12) today: the paddies and rivers follow it. */
+export function imjinMonth(game: Parameters<typeof today>[0]): number {
+  return dateOfDay(today(game), wwEpoch()).month;
+}
+
+/** The Imjin map's region class name ("고개"). */
+export function imjinTerrainName(s: ScenarioIndex, region: number): string {
+  return translateText(IMJIN_TERRAIN_KEYS[regionTerrain(s, region)]);
+}
+
 /**
- * The Imjin map's hover words for a region: its class and what it does, then
- * each river edge it has, by neighbour ("임진: 여울: 한 번 건너며 −20%").
+ * ww177 I3b (design §4 "Paddy by state", decision 8B): what the season does
+ * to the region now: a paddy flooded or dry, a great river frozen. Null:
+ * nothing changes with the month here.
  */
-export function imjinTerrainLines(s: ScenarioIndex, region: number): string[] {
+export function imjinSeasonLine(
+  s: ScenarioIndex,
+  region: number,
+  month: number,
+): string | null {
+  if (regionTerrain(s, region) === "paddy") {
+    return translateText(
+      paddyWet(month, true)
+        ? "ww1936.imjin.now.paddy_wet"
+        : "ww1936.imjin.now.paddy_dry",
+    );
+  }
+  if (!riverFrozen(month)) return null;
+  for (const e of s.edgesOf(region)) {
+    if (edgeBetween(s, region, e.to) === "great_river") {
+      return translateText("ww1936.imjin.now.river_frozen");
+    }
+  }
+  return null;
+}
+
+/**
+ * The Imjin map's hover words for a region: its class and what it does, the
+ * season's state when `month` (1-12) is given, then each river edge it has,
+ * by neighbour ("임진: 여울: 한 번 건너며 −20%") unless `edges` is false.
+ */
+export function imjinTerrainLines(
+  s: ScenarioIndex,
+  region: number,
+  month?: number,
+  edges = true,
+): string[] {
   const t = regionTerrain(s, region);
   const lines = [
     `${translateText(IMJIN_TERRAIN_KEYS[t])}: ${translateText(IMJIN_WORDS_KEYS[t])}`,
   ];
+  const now = month === undefined ? null : imjinSeasonLine(s, region, month);
+  if (now !== null) lines.push(now);
+  if (!edges) return lines;
   for (const e of s.edgesOf(region)) {
     const kind = edgeBetween(s, region, e.to);
     if (kind === "none") continue;
@@ -765,8 +827,24 @@ export function lensLegend(
   };
   const c = ctxOf(game);
   switch (lens) {
-    case "terrain":
-      return { ...base, rows: terrainRows(c?.s ?? null) };
+    case "terrain": {
+      const rows = terrainRows(c?.s ?? null);
+      if (c === null || !hasImjinTerrain(c.s)) return { ...base, rows };
+      // ww177 I3b: what the season does now, and where the words are.
+      const notes = [translateText("ww1936.imjin.legend.tap")];
+      const month = imjinMonth(game);
+      notes.unshift(
+        translateText(
+          paddyWet(month, true)
+            ? "ww1936.imjin.now.paddy_wet"
+            : "ww1936.imjin.now.paddy_dry",
+        ),
+      );
+      if (riverFrozen(month)) {
+        notes.unshift(translateText("ww1936.imjin.now.river_frozen"));
+      }
+      return { ...base, rows, notes };
+    }
     case "weather":
       return { ...base, rows: weatherRows() };
     case "vp": {
@@ -982,7 +1060,7 @@ export function lensReadout(
   switch (lens) {
     case "terrain": {
       if (hasImjinTerrain(c.s)) {
-        lines.push(...imjinTerrainLines(c.s, region));
+        lines.push(...imjinTerrainLines(c.s, region, imjinMonth(game)));
         break;
       }
       const t = c.s.landOf(region);

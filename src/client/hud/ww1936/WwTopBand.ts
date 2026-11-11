@@ -30,6 +30,7 @@ import {
   WW_BAND_PX,
   wwActive,
 } from "./WorldWarModel";
+import { imjinCalendarOn } from "./WwClientCalendar";
 import {
   OpenWwDiplomacyEvent,
   OpenWwIndustryEvent,
@@ -471,6 +472,24 @@ export class WwTopBand extends LitElement implements Controller {
     }
   }
 
+  /**
+   * ww177 I3b: the Imjin date line ("1592년 4월 28일 · 음력 3월 17일 ·
+   * 선조 25년") is too long for a phone's band: there it takes two short
+   * lines, the date over the lunar date and the reign year.
+   */
+  private renderDate(label: string, inPrep: boolean, maxWidth: number) {
+    const parts = label.split(" · ");
+    if (inPrep || !imjinCalendarOn() || parts.length < 2 || maxWidth >= 480) {
+      return label;
+    }
+    return html`<span class="flex flex-col">
+      <span class="text-[12px] leading-[13px]">${parts[0]}</span>
+      <span class="text-[10px] font-normal leading-[11px] text-white/70"
+        >${parts.slice(1).join(" · ")}</span
+      >
+    </span>`;
+  }
+
   render() {
     if (!this.game?.worldWarScenario()) return null;
     const m = this.model ?? bandModel(this.game);
@@ -496,11 +515,12 @@ export class WwTopBand extends LitElement implements Controller {
       >
         <span
           data-ww-date
+          title=${m.label}
           class="shrink-0 font-semibold tabular-nums ${m.inPrep
             ? "text-amber-300"
             : ""}"
         >
-          ${m.label}
+          ${this.renderDate(m.label, m.inPrep, maxWidth)}
         </span>
         ${m.myTag === null
           ? nothing

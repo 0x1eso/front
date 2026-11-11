@@ -10030,6 +10030,17 @@
         "pass": "기병 돌격 불가, 활 +40%, 화포 −60%, 방어 +100%, 너비 1/4, 매복 두 배",
         "plain": "기병 +50%·돌격 가능, 조총·화포 +20%, 숨을 곳 없음",
         "walled": "성벽 위 돌격 불가, 조총 +20%, 활 +25%, 화포로 무너뜨림, 너비 1/2"
+      },
+      "legend": {
+        "ford": "여울 (강 선)",
+        "great_river": "큰 강 (강 선)",
+        "small_river": "작은 강 (강 선)",
+        "tap": "지역을 누르거나 올려 보면 그 땅의 효과가 나옵니다"
+      },
+      "now": {
+        "paddy_dry": "지금: 논이 말라 있음 (물 댄 논의 불리함 없음)",
+        "paddy_wet": "지금: 논에 물을 댐 (느림, 기병 돌격 불가)",
+        "river_frozen": "지금: 큰 강이 얼어 여울처럼 건넘"
       }
     },
     "intel": {
@@ -18186,7 +18197,52 @@
         "withdraw": "물러나기"
       },
       "orders_line": "{att} 대 {def}",
-      "siege_line": "포위됨: 군량 {days}일분, 성벽 {fort}단"
+      "siege_line": "포위됨: 군량 {days}일분, 성벽 {fort}단",
+      "ambush_locked": "매복에 걸렸습니다! {secs}초 동안 명령을 바꿀 수 없습니다 (너비 1/3, 피해 증가)",
+      "chips_locked": "매복에 걸려 명령이 묶였습니다",
+      "chips_title": "다음 국면 명령: 누르면 다음 국면부터 바뀝니다",
+      "crossing_done": "{edge}을(를) 건넜습니다",
+      "crossing_frozen": "(얼어서 여울처럼 건넘)",
+      "crossing_line": "{edge} 건너는 중: {n}국면 남음, 공격 {pct}%, 너비 {w}",
+      "edge": {
+        "ford": "여울",
+        "great_river": "큰 강",
+        "small_river": "작은 강"
+      },
+      "hint": {
+        "advance": "그냥 밀고 나갑니다: 덤도 없고 막히지도 않음",
+        "volley_advance": "조총 +25%, 일제 사격. 궁수 엄호에 막힘",
+        "charge": "기병 +30%. 버티기에 막히고, 장전된 일제 사격에 뛰어들면 크게 다침",
+        "charge_gap": "재장전 틈을 노린 돌격: 맞으면 피해 두 배. 교대 사격에 막힘",
+        "flank": "공격 +20%, 적 사기 −100. 물러나기에 막힘",
+        "barrage": "화포·활 +30%. 막히지 않음",
+        "storm": "성벽 공격: 공격 +20%, 피해 +20%. 역돌격에 막힘",
+        "feigned_retreat": "미끼로 물러남: 적이 역돌격하면 걸려듦. 아니면 공격 −20%",
+        "hold": "방어 +20%. 돌격을 막음",
+        "massed_volley": "조총이 30% 넘으면 세 라운드마다 2.5배 사격, 사이 두 라운드는 재장전",
+        "rolling_volley": "매 라운드 0.9배 사격. 틈을 노린 돌격을 막음",
+        "archer_screen": "활 +25%. 사격하며 전진을 막음",
+        "counter_charge": "기병 +30%. 성벽 공격을 막음 (사다리 앞 출격)",
+        "strike_crossing": "강을 건너는 적에게 1.5배. 건너는 적이 없으면 −20%",
+        "ambush": "숲·산·고개에서 이틀 가만히 있으면 숨었다가 덮침",
+        "withdraw": "공격 −50%, 피해 절반. 측면 공격을 막음"
+      },
+      "pending_line": "· 다음: {order}",
+      "phase_line": "{phase}국면 · {step} · 다음 국면까지 {secs}초",
+      "step": {
+        "clash": "백병전",
+        "opening": "원거리 교전",
+        "pursuit": "추격"
+      },
+      "volley": {
+        "fire": "일제 사격, 지금 쏩니다",
+        "foe": "적 조총",
+        "foe_hidden": "적 조총: 박자가 보이지 않음 (척후나 노련한 장수가 있어야 보임)",
+        "line": "{who}: {beat}",
+        "mine": "우리 조총",
+        "reload": "재장전 중 ({n}라운드 뒤 사격)",
+        "rolling": "교대 사격, 매 라운드 조금씩"
+      }
     },
     "sea": {
       "battle_title": "이 바다에서 해전 중",
@@ -18310,6 +18366,30 @@
       "mori": "모리 데루모토",
       "ukita": "우키타 히데이에",
       "hidekatsu": "도요토미 히데카쓰"
+    },
+    "rout": {
+      "news_foe": "{country} 군이 {place}에서 패주합니다",
+      "news_mine": "우리 군이 {place}에서 패주합니다",
+      "word": "패주"
+    },
+    "siege": {
+      "assault": "강공",
+      "assault_hint": "다음 국면부터 성벽을 오릅니다: 공격 +20%, 피해 +20%",
+      "assault_wait": "군대로 이 성을 공격하면 강공할 수 있습니다",
+      "breach": "성벽 깨기",
+      "breach_hint": "화포가 있는 쪽은 저절로 성벽을 깹니다",
+      "grain_hint": "군량이 떨어지면 사기가 매일 떨어집니다",
+      "method_breach": "적 화포가 {days}일마다 성벽을 한 단씩 무너뜨립니다",
+      "method_breach_mine": "우리 화포가 {days}일마다 성벽을 한 단씩 무너뜨립니다",
+      "method_starve": "적은 화포가 없어 성을 굶기고 있습니다",
+      "method_starve_mine": "화포가 없어 성을 굶기고 있습니다",
+      "morale": "사기 {pct}%",
+      "sortie": "출격",
+      "sortie_hint": "다음 국면부터 성 밖으로 나가 싸웁니다 (역돌격): 성벽 공격을 꺾습니다",
+      "sortie_wait": "적이 성을 공격할 때 출격할 수 있습니다",
+      "starve": "굶기기",
+      "starve_hint": "화포가 없는 쪽은 성을 굶깁니다",
+      "starving": "군량이 떨어져 사기가 매일 떨어집니다"
     }
   }
 }

@@ -5713,7 +5713,36 @@
   },
   "imjin": {
     "battle": {
+      "ambush_locked": "Ambushed! No new orders for {secs}s (width 1/3, losses up)",
       "ambushed": "Ambushed!",
+      "chips_locked": "Ambushed: the orders are locked",
+      "chips_title": "Orders for the next phase: a tap takes effect when it starts",
+      "crossing_done": "Across the {edge}",
+      "crossing_frozen": "(frozen: crossed like a ford)",
+      "crossing_line": "Crossing the {edge}: {n} phase(s) left, attack {pct}%, width {w}",
+      "edge": {
+        "ford": "ford",
+        "great_river": "great river",
+        "small_river": "small river"
+      },
+      "hint": {
+        "advance": "A plain push: no bonus, and nothing counters it",
+        "ambush": "Still for 2 days in forest, mountains or a pass: hidden, then it strikes",
+        "archer_screen": "Archers +25%; stops the volley advance",
+        "barrage": "Cannon and archers +30%; nothing counters it",
+        "charge": "Cavalry +30%; hold stops it, and a loaded volley cuts it down",
+        "charge_gap": "A charge timed for the reload: double damage if it lands; rolling volley stops it",
+        "counter_charge": "Cavalry +30%; stops the storm (the sally at the ladders)",
+        "feigned_retreat": "Pull back as bait: a counter-charge falls into it; otherwise attack −20%",
+        "flank": "Attack +20%, enemy morale −100; withdraw stops it",
+        "hold": "Block +20%; stops a charge",
+        "massed_volley": "With 30% arquebus: ×2.5 every third round, two reload rounds between",
+        "rolling_volley": "×0.9 every round; stops the charge at the gap",
+        "storm": "Storm the walls: attack +20%, losses +20%; counter-charge stops it",
+        "strike_crossing": "×1.5 on an enemy crossing a river; −20% when nobody crosses",
+        "volley_advance": "Arquebus +25% and massed fire; the archers' screen stops it",
+        "withdraw": "Attack −50%, losses halved; stops the flank"
+      },
       "order": {
         "advance": "Advance",
         "ambush": "Ambush",
@@ -5733,7 +5762,23 @@
         "withdraw": "Withdraw"
       },
       "orders_line": "{att} against {def}",
-      "siege_line": "Under siege: grain for {days} days, walls {fort}"
+      "pending_line": "· next: {order}",
+      "phase_line": "Phase {phase} · {step} · next phase in {secs}s",
+      "siege_line": "Under siege: grain for {days} days, walls {fort}",
+      "step": {
+        "clash": "clash",
+        "opening": "opening at range",
+        "pursuit": "pursuit"
+      },
+      "volley": {
+        "fire": "volley now",
+        "foe": "Enemy guns",
+        "foe_hidden": "Enemy guns: rhythm unseen (scouts or a skilled commander read it)",
+        "line": "{who}: {beat}",
+        "mine": "Our guns",
+        "reload": "reloading (fires in {n} rounds)",
+        "rolling": "rolling fire, a little every round"
+      }
     },
     "court": {
       "communist": "Southerners",
@@ -5809,6 +5854,11 @@
       "yeonggyu": "Yeonggyu",
       "yi_jeong_am": "Yi Jeong-am",
       "yujeong": "Yujeong"
+    },
+    "rout": {
+      "news_foe": "{country}'s army breaks and runs at {place}",
+      "news_mine": "Our army breaks and runs at {place}",
+      "word": "Rout!"
     },
     "sea": {
       "battle_title": "Sea battle in this circle",
@@ -5897,6 +5947,25 @@
         "1": "fair",
         "2": "strong"
       }
+    },
+    "siege": {
+      "assault": "Assault",
+      "assault_hint": "Storm the walls from the next phase: attack +20%, losses +20%",
+      "assault_wait": "Attack the town with an army to assault it",
+      "breach": "Breach",
+      "breach_hint": "Besiegers with cannon break the walls by themselves",
+      "grain_hint": "When the grain runs out, morale falls each day",
+      "method_breach": "Enemy cannon cut a wall level every {days} days",
+      "method_breach_mine": "Our cannon cut a wall level every {days} days",
+      "method_starve": "The enemy has no cannon: it starves the town",
+      "method_starve_mine": "No cannon: we starve them out",
+      "morale": "morale {pct}%",
+      "sortie": "Sortie",
+      "sortie_hint": "Sally out from the next phase (a counter-charge): it breaks a storm",
+      "sortie_wait": "You can sally when the enemy attacks the town",
+      "starve": "Starve",
+      "starve_hint": "Besiegers without cannon starve the town",
+      "starving": "Out of grain: morale falls each day"
     }
   },
   "inventory": {
@@ -14190,6 +14259,17 @@
         "small_river": "Small river: one crossing phase, attacker −30%"
       },
       "edge_line": "{name}: {kind}",
+      "legend": {
+        "ford": "Ford (river line)",
+        "great_river": "Great river (river line)",
+        "small_river": "Small river (river line)",
+        "tap": "Tap or hover a region for what its ground does"
+      },
+      "now": {
+        "paddy_dry": "Now: the paddies are dry (no wet-paddy penalties)",
+        "paddy_wet": "Now: the paddies are flooded (slow, no cavalry charge)",
+        "river_frozen": "Now: the great rivers are frozen and crossed like fords"
+      },
       "terrain": {
         "forest": "Forest",
         "fortress": "Mountain fortress",

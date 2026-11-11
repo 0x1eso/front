@@ -9,6 +9,7 @@ import { AllianceView } from "@openfront/engine-api/game/GameUpdates";
 import { UnitLike } from "@openfront/engine-api/game/ReadViews";
 import { ID_ARMY } from "@openfront/engine-api/ww1936/DepthTypes";
 import { renderNumber, renderTroops } from "@openfront/engine-lib/Format";
+import { hasImjinTerrain } from "@openfront/engine-lib/imjin/Terrain";
 import { assetUrl } from "@openfront/shared/AssetUrls";
 import { EventBus } from "@openfront/shared/EventBus";
 import { html, LitElement, nothing, TemplateResult } from "lit";
@@ -54,13 +55,20 @@ import {
 } from "../ww1936/EconomyModel";
 import { occRegionLine, zoneLine } from "../ww1936/EndgameModel";
 import { fogModelOf } from "../ww1936/FogModel";
+import { imjinSiegeBlock } from "../ww1936/ImjinLandUi";
 import {
   landSidesOf,
   levelBoxes,
   levelDots,
   regionLandLines,
 } from "../ww1936/LandModel";
-import { LENS_NAME_KEYS, lensReadout } from "../ww1936/LensModel";
+import {
+  imjinMonth,
+  imjinTerrainLines,
+  imjinTerrainName,
+  LENS_NAME_KEYS,
+  lensReadout,
+} from "../ww1936/LensModel";
 import { fleetName, regionSeaAirLines } from "../ww1936/NavyModel";
 import {
   countryName,
@@ -1070,9 +1078,10 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
               })}</span
             >`}
       </div>
-      ${this.renderRegionLens(tile)} ${this.renderRegionOccupation(tile)}
-      ${this.renderRegionEconomy(tile)} ${this.renderRegionLand(tile)}
-      ${this.renderRegionSeaAir(tile)} ${this.renderRegionDepth(tile)}`;
+      ${this.renderRegionLens(tile)} ${this.renderRegionImjin(tile)}
+      ${this.renderRegionOccupation(tile)} ${this.renderRegionEconomy(tile)}
+      ${this.renderRegionLand(tile)} ${this.renderRegionSeaAir(tile)}
+      ${this.renderRegionDepth(tile)}`;
   }
 
   /**
@@ -1096,6 +1105,37 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
       </div>
       ${r.lines.map((l) => html`<div class="text-white/90">${l}</div>`)}
     </div>`;
+  }
+
+  /**
+   * ww177 I3b (Imjin design §4 "words"): on the Imjin map the region's
+   * ground, the season's state and its river edges, lens or not (the
+   * terrain lens's own block says the same), and its siege panel.
+   */
+  private renderRegionImjin(tile: TileRef) {
+    const s = this.game.worldWarScenario();
+    if (s === null || !hasImjinTerrain(s)) return "";
+    const region = s.regionAt(tile);
+    if (s.region(region) === undefined) return "";
+    const lens = seaAirOf(this.game).selection.regionLens;
+    return html`${lens === "terrain"
+      ? ""
+      : html`<div
+          data-ww-region-imjin=${region}
+          class="border-t border-white/10 px-3 py-1.5 text-xs text-white/80"
+        >
+          ${imjinTerrainLines(s, region, imjinMonth(this.game)).map(
+            (l) => html`<div>${l}</div>`,
+          )}
+        </div>`}
+    ${(() => {
+      const siege = imjinSiegeBlock(this.game, region);
+      return siege === nothing
+        ? ""
+        : html`<div class="border-t border-white/10 px-3 py-1.5 text-xs">
+            ${siege}
+          </div>`;
+    })()}`;
   }
 
   /**
@@ -1324,7 +1364,9 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
     >
       <span
         >${translateText("ww1936.land.region_terrain")}:
-        ${translateText(`ww1936.terrain.${l.land}`)}</span
+        ${hasImjinTerrain(view.scenario)
+          ? imjinTerrainName(view.scenario, region)
+          : translateText(`ww1936.terrain.${l.land}`)}</span
       >
       <span
         >${translateText("ww1936.land.region_weather")}:
