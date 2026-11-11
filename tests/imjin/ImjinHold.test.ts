@@ -111,7 +111,7 @@ describe("Japan holds on by the rules (ww181)", () => {
     expect(joseonLevyCap(im, id("JOS"))).toBe("limited");
     ww.politics
       .country(id("JOS"))!
-      .flags.set(DOCTRINE_FLAGS.josHullyeon, ww.day(g.ticks()));
+      .flags.set(DOCTRINE_FLAGS.josHullyeon, [ww.day(g.ticks()), -1]);
     expect(joseonLevyCap(im, id("JOS"))).toBe("service");
   });
 

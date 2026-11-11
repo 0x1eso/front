@@ -996,7 +996,9 @@ export class WwArmyCard extends LitElement implements Controller {
     const sides = landSidesOf(this.game);
     const near = c.view.scenario.regionNeighbours(at);
     const s = im.sieges.find(
-      (x) => near.includes(x.region) && sides.isEnemy(c.me, x.owner),
+      (x) =>
+        near.includes(x.region) &&
+        sides.isEnemy(c.me, c.view.controller[x.region] ?? 0),
     );
     return s?.region ?? 0;
   }
