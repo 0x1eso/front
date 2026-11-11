@@ -63,7 +63,7 @@ export function openLadder(gw: GreatWar, tag: GwTag): GwLadder | null {
 /**
  * Two countries one of which could go to war on the other (design ww168 B5):
  * they share a front, they aren't in one coalition, and no treaty binds them
- * (a starting treaty, or a signed alliance or neutrality).
+ * (a starting alliance, or a signed alliance or neutrality).
  */
 export function canFight(gw: GreatWar, a: GwTag, b: GwTag): boolean {
   const na = gw.nation(a);
@@ -71,7 +71,7 @@ export function canFight(gw: GreatWar, a: GwTag, b: GwTag): boolean {
   if (na === null || nb === null || na.out || nb.out) return false;
   if (!reachable(a, b)) return false;
   if (na.side !== null && na.side === nb.side) return false;
-  return !startAllies(a, b) && !treatyAllies(gw, a, b);
+  return !startAllies(a, b, true) && !treatyAllies(gw, a, b);
 }
 
 /**

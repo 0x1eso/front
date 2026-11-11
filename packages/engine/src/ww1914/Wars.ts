@@ -465,11 +465,16 @@ export function declareWar(
 
 // ---- Treaties of June 1914 ----
 
-/** Partners in a starting treaty, either way round. */
-export function startAllies(a: GwTag, b: GwTag): boolean {
+/**
+ * Partners in a starting treaty, either way round. `binding`: only the ties
+ * that forbid a war between the two (an alliance, a protector, kin); a
+ * defensive pact can be broken by war, as Italy's and Romania's were.
+ */
+export function startAllies(a: GwTag, b: GwTag, binding = false): boolean {
   return GW_START_TREATIES.some(
     (r) =>
       r.kind !== "guarantee" &&
+      (!binding || r.kind !== "defensive") &&
       ((r.by === a && r.for === b) || (r.by === b && r.for === a)),
   );
 }
