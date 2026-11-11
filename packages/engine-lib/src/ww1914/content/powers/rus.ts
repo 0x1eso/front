@@ -85,40 +85,6 @@ const gaugeAt = (
 export const RUS_POWERS: readonly GwPowerRow[] = [
   // ---- 전쟁과 평화 ----
   {
-    // Art. 13. Before the general war: against Vienna or Berlin. The cascade
-    // of 1914 follows whoever is named (the `declare` effect closes the chain).
-    id: "rus_pw_war",
-    tag: "RUS",
-    group: "war",
-    kind: "lawful",
-    shows: reigns,
-    opens: [{ when: not(war), why: "war_on" }],
-    authority: 10,
-    once: true,
-    target: {
-      kind: "country",
-      of: [
-        { id: "AUH", effects: [doWorld({ do: "declare", tag: "AUH" })] },
-        { id: "DEU", effects: [doWorld({ do: "declare", tag: "DEU" })] },
-      ],
-    },
-    tags: ["war_offensive"],
-    effects: [
-      // With no crisis to point to, Paris and London were never asked.
-      {
-        kind: "maybe",
-        when: { kind: "temp", max: 4 },
-        then: [
-          trust("FRA", -1),
-          trust("GBR", -1),
-          opinion("parliament", -1),
-          reason("rus_pw_war_unasked"),
-        ],
-      },
-    ],
-    scene: "rus_pw_war_r",
-  },
-  {
     // Art. 13. The Straits are Russia's own aim.
     id: "rus_pw_war_ott",
     tag: "RUS",
@@ -1024,7 +990,6 @@ const card = (
 
 /** Result cards and other scenes the rows call. */
 export const RUS_POWER_SCENES: readonly GwScene[] = [
-  card("rus_pw_war_r", ["war"]),
   card("rus_pw_war_ott_r", ["war"]),
   card(
     "rus_pw_mobilise_r",
