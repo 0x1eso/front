@@ -2233,10 +2233,233 @@ const OPENING_SCENES: GwScene[] = [
   },
 ];
 
+// ---- ww173: the secret war, in Russia's voice (Spies.ts) ----
+// The service head (office `intelligence`, Batyushin in 1914) brings what the
+// codes say, the codebook from the Baltic, the plain radio, the spy hunt, the
+// nets in Galicia and the courting of the Balkan neutrals. Each pick does what
+// the 뒷공작 rows do (doWorld spy) or something small; none shows how it goes.
+
+const CHIEF: Cast = { chief: { office: "intelligence" } };
+const reading = (tag: "DEU" | "AUH"): GwCond =>
+  world({ is: "spy", can: "reading", tag });
+const spyCan = (
+  can: "net" | "sabotage" | "court",
+  tag: "DEU" | "AUH" | "ROU" | "BGR",
+): GwCond => world({ is: "spy", can, tag });
+const spy = (
+  act: "net" | "sabotage" | "court" | "blame" | "hide",
+  tag?: "DEU" | "AUH" | "ROU" | "BGR",
+): GwEffect =>
+  doWorld(tag === undefined ? { do: "spy", act } : { do: "spy", act, tag });
+const britainIn = world({ is: "entered", tag: "GBR", side: "entente" });
+
+/** A desk paper the service head brings himself. */
+const desk = (
+  id: string,
+  when: GwCond,
+  variants: GwVariant[],
+  options: GwOption[],
+  more: More = {},
+): GwScene => ({
+  id,
+  nation: ["RUS"],
+  kind: "proposal",
+  stage: ["war"],
+  when,
+  cast: CHIEF,
+  salience: 6,
+  tags: ["war", "foreign"],
+  variants,
+  options,
+  fallback: options[0].id,
+  cooldown: 8,
+  ...more,
+});
+
+const SPY_SCENES: GwScene[] = [
+  // We read their codes: use it, or play dumb so they never change them.
+  desk(
+    "rus_spy_read",
+    all(inWar, any(reading("DEU"), reading("AUH"))),
+    [v("deu", reading("DEU")), v("auh", reading("AUH")), v("base")],
+    [
+      o("use", [], [ear("stavka", 1), remember("k_spy_reading")]),
+      o(
+        "hide",
+        [],
+        [spy("hide"), ear("stavka", -1), remember("k_spy_reading")],
+      ),
+    ],
+  ),
+  // The Baltic codebook: an early read of Germany's traffic is the book.
+  desk(
+    "rus_spy_codebook",
+    all(inWar, reading("DEU"), world({ is: "war_months", max: 9 })),
+    [v("allied", britainIn), v("base")],
+    [
+      o("keep", [], [ear("stavka", 1), remember("k_spy_book_kept")]),
+      o(
+        "share",
+        [],
+        [trust("GBR", 1), remember("k_spy_book_shared")],
+        britainIn,
+      ),
+    ],
+    { once: true, salience: 7 },
+  ),
+  // They changed their codes: the window shut.
+  desk(
+    "rus_spy_code_lost",
+    all(
+      inWar,
+      memory("k_spy_reading"),
+      not(reading("DEU")),
+      not(reading("AUH")),
+    ),
+    [v("used", chose("rus_spy_read", "use")), v("base")],
+    [
+      o("rebuild", [], [gauge("money", -1), trustOf(role("chief"), 1)]),
+      o("scold", [], [trustOf(role("chief"), -1), ear("stavka", 1)]),
+    ],
+    { once: true },
+  ),
+  // Our own radio talks in the clear; the enemy listens.
+  desk(
+    "rus_spy_plain",
+    all(inWar, world({ is: "war_months", max: 3 })),
+    [
+      v(
+        "beaten",
+        world({
+          is: "battle",
+          theatre: "east",
+          of: ["advance", "break"],
+          by: "foe",
+        }),
+      ),
+      v("base"),
+    ],
+    [
+      o("cipher", [], [ear("stavka", -1), remember("k_spy_cipher")]),
+      o("leave", [], [ear("stavka", 1)]),
+    ],
+    { once: true, salience: 7 },
+  ),
+  // One of our operations was found out: the foreign ministry must answer.
+  desk(
+    "rus_spy_found_out",
+    all(
+      inWar,
+      world({ is: "spy", can: "out" }),
+      any(
+        { kind: "acted", act: "gw_a_spy_net", within: 2 },
+        { kind: "acted", act: "gw_a_spy_sabotage", within: 2 },
+        { kind: "acted", act: "gw_a_spy_court", within: 2 },
+        { kind: "memory", key: "k_spy_op", within: 2 },
+      ),
+    ),
+    [v("base")],
+    [
+      o("deny", [], [ear("ministers", -1), remember("k_spy_denied")]),
+      o("recall", [], [ear("stavka", -1), ear("ministers", 1)]),
+    ],
+    {
+      cast: { ...CHIEF, fm: { office: "foreign" } },
+      cooldown: 12,
+    },
+  ),
+  // After a defeat the service wants a traitor: Myasoedov's way.
+  desk(
+    "rus_spy_hunt",
+    all(inWar, world({ is: "spy", can: "blame" })),
+    [
+      v("again", chose("rus_spy_hunt", "sign")),
+      v("court", unrest(2)),
+      v("base"),
+    ],
+    [
+      o("sign", [], [spy("blame"), remember("k_spy_hunt")]),
+      o("refuse", [], [trustOf(role("chief"), -1), ear("court", 1)]),
+    ],
+    { cooldown: 10, tags: ["war", "home"] },
+  ),
+  // A net among the enemy's own Slavs, or in Germany itself.
+  desk(
+    "rus_spy_galicia",
+    all(inWar, any(spyCan("net", "AUH"), spyCan("net", "DEU"))),
+    [v("deu", not(spyCan("net", "AUH"))), v("base")],
+    [
+      o("wait", [], []),
+      o(
+        "auh",
+        [],
+        [gauge("money", -1), spy("net", "AUH"), remember("k_spy_op")],
+        spyCan("net", "AUH"),
+      ),
+      o(
+        "deu",
+        [],
+        [gauge("money", -1), spy("net", "DEU"), remember("k_spy_op")],
+        spyCan("net", "DEU"),
+      ),
+    ],
+    { cooldown: 12 },
+  ),
+  // Where a net works: the railway behind their front.
+  desk(
+    "rus_spy_rail",
+    all(inWar, any(spyCan("sabotage", "AUH"), spyCan("sabotage", "DEU"))),
+    [v("base")],
+    [
+      o("wait", [], []),
+      o(
+        "auh",
+        [],
+        [gauge("money", -1), spy("sabotage", "AUH"), remember("k_spy_op")],
+        spyCan("sabotage", "AUH"),
+      ),
+      o(
+        "deu",
+        [],
+        [gauge("money", -1), spy("sabotage", "DEU"), remember("k_spy_op")],
+        spyCan("sabotage", "DEU"),
+      ),
+    ],
+    { cooldown: 12 },
+  ),
+  // The Balkan neutrals: money for the papers in Bucharest or Sofia.
+  desk(
+    "rus_spy_neutral",
+    all(inWar, any(spyCan("court", "ROU"), spyCan("court", "BGR"))),
+    [
+      v("rou", spyCan("court", "ROU")),
+      v("bgr", spyCan("court", "BGR")),
+      v("base"),
+    ],
+    [
+      o("wait", [], []),
+      o(
+        "rou",
+        [],
+        [gauge("money", -1), spy("court", "ROU"), remember("k_spy_op")],
+        spyCan("court", "ROU"),
+      ),
+      o(
+        "bgr",
+        [],
+        [gauge("money", -1), spy("court", "BGR"), remember("k_spy_op")],
+        spyCan("court", "BGR"),
+      ),
+    ],
+    { cooldown: 12, tags: ["foreign"] },
+  ),
+];
+
 export const RUS_STORY_SCENES: readonly GwScene[] = [
   ...AIM_SCENES,
   ...BIG_SCENES,
   ...RIVAL_SCENES,
   ...THREAD_SCENES,
   ...OPENING_SCENES,
+  ...SPY_SCENES,
 ];
