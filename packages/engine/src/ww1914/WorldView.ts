@@ -41,6 +41,7 @@ import {
 import { generalsFor } from "./Post";
 import { pressView } from "./Press";
 import { holderOf, holds } from "./SceneRun";
+import { foeOn, foeRead, reads } from "./Spies";
 import { GW_ACTORS, GW_COMMAND_NAMED_AFTER } from "./Tables";
 import { sideIn } from "./Wars";
 import { lastOf, ownPeople } from "./World";
@@ -107,6 +108,7 @@ function frontView(
     up: GW_FRONT_UP[t.id],
     trench: t.trench,
     commander: namedCommander(gw, seat, t),
+    ...foeLine(gw, seat, t),
     last:
       b === undefined
         ? null
@@ -117,6 +119,21 @@ function frontView(
             theirs: b.lost[1 - mine],
             luck: b.luck,
           },
+  };
+}
+
+/** ww173: the card's "적의 사정" from the seat's own reports, and its reading. */
+function foeLine(
+  gw: GreatWar,
+  seat: GwSeatState,
+  t: GwTheatreState,
+): Pick<GwFrontView, "foe" | "reading"> {
+  const foe = foeOn(gw, t.id, seat.tag);
+  if (foe === null) return { foe: null, reading: false };
+  const r = foeRead(gw, seat, t.id, foe);
+  return {
+    foe: r === null ? null : { tag: foe, ...r },
+    reading: reads(gw, seat.tag, foe),
   };
 }
 

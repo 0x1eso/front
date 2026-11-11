@@ -85,6 +85,7 @@ import {
   GwPlaceGroupSchema,
   GwPlaceSchema,
 } from "./GwPlaces";
+import { GW_SPY_ACTS, GW_SPY_CANS, GwSpyAct, GwSpyCan } from "./GwSpies";
 
 const GW_BUDGET_WHATS = ["treasury", "load", "prices", "lent"] as const;
 type GwBudgetWhat = (typeof GW_BUDGET_WHATS)[number];
@@ -365,7 +366,9 @@ export type GwWorldCond =
       with?: GwTag;
       open?: boolean;
       result?: ("won" | "lost" | "even")[];
-    } & Range);
+    } & Range)
+  /** ww173: the secret war (GwSpies.GW_SPY_CANS). */
+  | { is: "spy"; can: GwSpyCan; tag?: GwTag };
 
 export type GwWorldEffect =
   /** Germany's plan for the war to come. */
@@ -531,7 +534,9 @@ export type GwWorldEffect =
   /** The seat offers `tag` a peace of the two alone. */
   | { do: "pair_peace"; tag: GwTag }
   /** The seat answers the peace offer it was sent. */
-  | { do: "pair_peace_answer"; yes: boolean };
+  | { do: "pair_peace_answer"; yes: boolean }
+  /** ww173: the secret war (engine/ww1914/Spies; GwSpies.GW_SPY_ACTS). */
+  | { do: "spy"; act: GwSpyAct; tag?: GwTag };
 
 const int = z.number().int();
 const yearMonth = z.string().regex(/^19[0-9]{2}-[01][0-9]$/);
@@ -718,6 +723,7 @@ export const GwWorldCondSchema = z.union([
     result: z.array(z.enum(["won", "lost", "even"])).optional(),
     ...range,
   }),
+  is("spy", { can: z.enum(GW_SPY_CANS), tag: tag.optional() }),
 ]) as unknown as z.ZodType<GwWorldCond>;
 
 export const GwWorldEffectSchema = z.union([
@@ -815,6 +821,7 @@ export const GwWorldEffectSchema = z.union([
   act("declare_war", { tag }),
   act("pair_peace", { tag }),
   act("pair_peace_answer", { yes: z.boolean() }),
+  act("spy", { act: z.enum(GW_SPY_ACTS), tag: tag.optional() }),
 ]) as unknown as z.ZodType<GwWorldEffect>;
 
 // ---- Authoring helpers ----

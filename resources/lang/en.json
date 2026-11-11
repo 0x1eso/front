@@ -2513,11 +2513,22 @@
         "3": "near to acting",
         "4": "about to act"
       },
+      "prep": {
+        "0": "no sign of an offensive",
+        "1": "preparing an offensive"
+      },
       "shells": {
         "0": "out of shells",
         "1": "short of shells",
         "2": "enough shells",
         "3": "plenty of shells"
+      },
+      "strain": {
+        "0": "holding well",
+        "1": "tiring",
+        "2": "worn",
+        "3": "near the end of its strength",
+        "4": "close to breaking"
       }
     },
     "front": {
@@ -3040,6 +3051,7 @@
       "order_capital": "The capital is restless.",
       "order_casualties": "Too many families have had the telegram.",
       "order_command": "The defeat fell on the sovereign.",
+      "order_contagion": "The revolution we sent east has come home.",
       "order_despair": "People have stopped believing the communiques.",
       "order_duma_shut": "The shut Duma talks in the streets.",
       "order_hunger": "There is no bread in the shops.",
@@ -3048,6 +3060,7 @@
       "order_nations": "The nationalities are drifting away.",
       "order_prices": "Prices have outrun wages.",
       "order_shop_floor": "The shop floor is restless.",
+      "order_spies_blamed": "Blaming the spies steadied the country for now.",
       "order_steadied": "The streets settled down.",
       "order_stirred": "Agitators from abroad fed the unrest.",
       "order_unpaid": "Wages and pensions are late.",
@@ -3056,6 +3069,7 @@
       "shells_blockade": "The blockade stopped copper and nitrate.",
       "shells_made": "The factories delivered.",
       "shells_no_factories": "There are too few factories.",
+      "shells_sabotaged": "Saboteurs blew up a munitions depot.",
       "shells_spent": "The offensive used up the stock.",
       "shells_stock_thin": "The reserve turned out smaller than the books said.",
       "shells_well_run": "The war ministry found another month of output.",
@@ -3269,6 +3283,14 @@
       "spark_balkan": "The Balkans have caught fire again.",
       "spark_colonial": "Gunboats off Morocco again.",
       "spark_straits": "The Straits are in question.",
+      "spy_arab_revolt": "The Arabs rose against {a}, backed by {b}.",
+      "spy_arms_taken": "{a} seized an arms ship sent by {b}.",
+      "spy_codes_changed": "{a} changed its codes.",
+      "spy_exposed": "{a} exposed {b}'s agents.",
+      "spy_irish_rising": "A rising broke out in Ireland, armed by {b}.",
+      "spy_jihad": "{a} called the Muslims of the world to a holy war.",
+      "spy_lenin": "{b} let exiled revolutionaries travel home to {a}.",
+      "spy_sabotage": "A munitions depot blew up in {a}.",
       "sued_for_peace": "{a} makes its own peace.",
       "table_ceded": "{b} cedes {place} to {a}.",
       "table_dropped": "{a} lets its claim to {place} go.",
@@ -3320,6 +3342,7 @@
       "finance": "Finance",
       "foreign": "Foreign Secretary",
       "hun_pm": "Hungarian Prime Minister",
+      "intelligence": "Head of Intelligence",
       "interior": "Interior",
       "ireland": "Ireland",
       "munitions": "Munitions",
@@ -3718,6 +3741,12 @@
       "shortage_rubber": "The country ran short of rubber.",
       "shortage_rubber_solved": "An answer was found for the shortage of rubber.",
       "soviet_grows": "The Soviet took more into its hands.",
+      "spy_blame_cost": "The spy hunt has cost the service and the house's trust.",
+      "spy_caught": "Our counter-intelligence caught foreign agents.",
+      "spy_code_lost": "The enemy changed his codes: we can no longer read him.",
+      "spy_code_read": "Our codebreakers are reading the enemy's traffic.",
+      "spy_codebook": "An enemy codebook has reached our codebreakers.",
+      "spy_ours_exposed": "Our agents abroad were caught and exposed.",
       "stavka_grows": "Stavka took more into its hands.",
       "successor_named": "{who} filled the empty office.",
       "talk_clash_cold": "They closed up at the cold words.",
@@ -3850,6 +3879,7 @@
     "source": {
       "agents": "Agents",
       "attache": "Military attaché",
+      "codes": "Codebreakers",
       "embassy_berlin": "Berlin embassy",
       "embassy_london": "London embassy",
       "embassy_paris": "Paris embassy",
@@ -3860,6 +3890,7 @@
       "own_eyes": "Seen in person",
       "police": "Political police",
       "press": "The press",
+      "prisoners": "Prisoners and papers",
       "staff": "General Staff estimate",
       "whip": "The whip's count"
     },
@@ -4362,7 +4393,9 @@
         "mob": "mobilisation",
         "morale": "morale",
         "plot": "plot",
-        "shells": "shells"
+        "prep": "offensive preparation",
+        "shells": "shells",
+        "strain": "the front's strain"
       },
       "fold": "Fold or unfold",
       "folded_title": "Small news meanwhile",
@@ -4371,6 +4404,9 @@
       "front_end_bloc": "Our side's end · {side}",
       "front_end_them": "Enemy end · {side}",
       "front_end_us": "Our end · {side}",
+      "front_foe": "The enemy's state: {what}",
+      "front_foe_unknown": "unknown",
+      "front_foe_word": "{word} ({stamp})",
       "front_key": "Our end is always on the left: green is the ground we hold. The white mark moving right, towards the enemy, is good for us; moving left is bad.",
       "front_key_neutral": "Our country is neutral. Each bar has the Central Powers' end on the left and the Entente's on the right.",
       "front_latest": "Latest fighting: {what}",
@@ -4386,6 +4422,7 @@
       },
       "front_not_ours": "Our country is not fighting here",
       "front_now": "Line at {line} · {who}: {how}",
+      "front_reading": "We are reading their codes.",
       "front_standing": {
         "ahead": "a little ahead of where the war began",
         "behind": "pushed back a little since the war began",
@@ -4603,6 +4640,7 @@
       },
       "report_corrected": "Corrected later: {claim}",
       "report_line": "{country} {fact}: {claim}",
+      "report_where": "{country} ({theatre})",
       "reports_title": "Reports received",
       "repute": {
         "1": "poorly thought of",

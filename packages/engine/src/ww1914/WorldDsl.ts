@@ -65,6 +65,7 @@ import { plotEffect, plotHolds } from "./Plots";
 import { changeRegime, regimeRow } from "./Regimes";
 import { SceneCtx, whoIn } from "./SceneRun";
 import { setUboats } from "./Sea";
+import { spyEffect, spyHolds } from "./Spies";
 import { enter, leaveWar } from "./Wars";
 import { clampTo, lastOf, moveGauge, news, reason } from "./World";
 
@@ -291,6 +292,8 @@ export function worldHolds(ctx: SceneCtx, c: GwWorldCond): boolean {
     case "beaten":
     case "pair_table":
       return landHolds(gw, seat, c);
+    case "spy":
+      return spyHolds(gw, seat, c.can, c.tag);
   }
 }
 
@@ -581,6 +584,9 @@ export function worldEffect(ctx: SceneCtx, e: GwWorldEffect): void {
       return;
     case "pair_peace_answer":
       peaceAnswer(ctx.gw, ctx.seat, e.yes);
+      return;
+    case "spy":
+      spyEffect(ctx.gw, ctx.seat, e.act, e.tag);
       return;
   }
 }

@@ -69,6 +69,8 @@ export const GW_OFFICES = [
   // Russia: nobody holds it in June 1914; empty means the Tsar leads himself.
   "supreme_commander",
   "agriculture",
+  // ww173: the secret service's head (Spies.ts): his skill adds to its rolls.
+  "intelligence",
 ] as const;
 export type GwOffice = (typeof GW_OFFICES)[number];
 
@@ -476,6 +478,72 @@ export const GwAllocSchema = z.object({
 });
 export type GwAlloc = z.infer<typeof GwAllocSchema>;
 
+/** ww173: what a report a country holds without a seat says (the AI's). */
+export const GwHeardSchema = z.object({
+  fact: z.enum(["prep", "strain"]),
+  tag: z.enum(GW_TAGS),
+  theatre: z.enum(GW_THEATRES),
+  claim: z.number().int(),
+  chapter: z.number().int(),
+});
+export type GwHeard = z.infer<typeof GwHeardSchema>;
+
+/**
+ * ww173: a country's secret service (engine/ww1914/Spies). Absent until the
+ * first use; Spies.intelOf fills the design's start values. Hidden: no view
+ * carries another country's.
+ */
+export const GwIntelSchema = z.object({
+  /** 0..3: reading others' traffic. */
+  crypt: z.number().int(),
+  /** 0..3: its own codes and signals discipline. */
+  secure: z.number().int(),
+  /** 0..3: counter-intelligence. */
+  counter: z.number().int(),
+  /** 0..3: agents it keeps in a country. */
+  net: z.partialRecord(z.enum(GW_TAGS), z.number().int()),
+  /** Countries whose codes it reads now. */
+  reads: z.array(z.enum(GW_TAGS)),
+  /** How near it is to changing its codes, by the reader it suspects. */
+  suspect: z.partialRecord(z.enum(GW_TAGS), z.number().int()),
+  /** Senders whose caught agents it turned: their reports on it lie. */
+  turned: z.array(z.enum(GW_TAGS)),
+  /** Without a seat: the reports it holds (a seat's are `s.reports`). */
+  heard: z.array(GwHeardSchema),
+  /** Fronts a code read named last chapter: acting there raises suspicion. */
+  readOn: z.array(
+    z.object({
+      tag: z.enum(GW_TAGS),
+      theatre: z.enum(GW_THEATRES),
+      chapter: z.number().int(),
+    }),
+  ),
+  /** Chapter of its last won raid, by theatre. */
+  raided: z.partialRecord(z.enum(GW_THEATRES), z.number().int()),
+  /** Foreign agents taken, waiting for the seat's word (counter 3). */
+  caught: z.array(
+    z.object({ tag: z.enum(GW_TAGS), chapter: z.number().int() }),
+  ),
+  /** Its own operations abroad, newest last: what the result card reads. */
+  ops: z.array(
+    z.object({
+      act: GwIdSchema,
+      tag: z.enum(GW_TAGS).nullable(),
+      ok: z.boolean(),
+      out: z.boolean(),
+      chapter: z.number().int(),
+    }),
+  ),
+  /** Day of its last subversion and sabotage; -1000000 never. */
+  subverted: z.number().int(),
+  sabotaged: z.number().int(),
+  /** What has happened once: magdeburg, plain_end, room40, hussein, arab... */
+  marks: z.array(GwIdSchema),
+  /** A price that comes later: `what` on `day`. */
+  later: z.array(z.object({ what: GwIdSchema, day: z.number().int() })),
+});
+export type GwIntel = z.infer<typeof GwIntelSchema>;
+
 export const GwNationStateSchema = z.object({
   tag: z.enum(GW_TAGS),
   gauges: z.record(z.enum(GW_GAUGES), z.number().int()),
@@ -536,6 +604,8 @@ export const GwNationStateSchema = z.object({
   budget: GwBudgetStateSchema,
   /** Bills taken up and laws in force; a bill nobody has touched has no row. */
   laws: z.array(GwLawStateSchema),
+  /** ww173: its secret service (Spies.ts); absent until first used. */
+  intel: GwIntelSchema.optional(),
 });
 export type GwNationState = z.infer<typeof GwNationStateSchema>;
 
@@ -560,6 +630,10 @@ export const GW_SOURCES = [
   "police",
   /** The envoy's word before an allied conference. */
   "envoy",
+  /** ww173: the enemy's own traffic, read (Spies.ts). */
+  "codes",
+  /** ww173: prisoners and papers taken in a raid. */
+  "prisoners",
 ] as const;
 export type GwSource = (typeof GW_SOURCES)[number];
 export const GW_STAMPS = ["confirmed", "unconfirmed", "estimate"] as const;
@@ -580,6 +654,10 @@ export const GW_FACT_KINDS = [
   "file",
   /** What an ally will do at a conference (S2). */
   "ally",
+  /** ww173: an offensive being prepared on a front: 1 yes, 0 no. */
+  "prep",
+  /** ww173: how near a front's end is to breaking, 0..4 (Spies.strainWord). */
+  "strain",
 ] as const;
 export type GwFactKind = (typeof GW_FACT_KINDS)[number];
 

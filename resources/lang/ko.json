@@ -14539,6 +14539,17 @@
         "0": "세게 밀어붙일 것이다",
         "1": "흥정하러 온다",
         "2": "우리 말을 들어 줄 것이다"
+      },
+      "prep": {
+        "0": "공세 준비 없음",
+        "1": "공세를 준비하는 중"
+      },
+      "strain": {
+        "0": "버틸 만함",
+        "1": "지쳐 감",
+        "2": "많이 지침",
+        "3": "한계에 가까움",
+        "4": "무너지기 직전"
       }
     },
     "front": {
@@ -14757,7 +14768,10 @@
       "act_order": "지시가 시행되었다.",
       "act_speech": "연설이 사람들을 움직였다.",
       "act_intrigue": "뒷공작이 먹혔다.",
-      "order_stirred": "밖에서 온 선동이 소요를 키웠다."
+      "order_stirred": "밖에서 온 선동이 소요를 키웠다.",
+      "shells_sabotaged": "공작원이 탄약고를 날렸다.",
+      "order_contagion": "동쪽으로 보낸 혁명이 우리 땅에도 번졌다.",
+      "order_spies_blamed": "간첩 탓으로 돌리자 나라가 잠시 진정됐다."
     },
     "mandate": {
       "deu_bread_for_the_winter": "겨울 빵을 남기기",
@@ -14939,7 +14953,15 @@
       "table_refused": "{b}이(가) {place}을(를) 끝까지 {a}에 내주지 않았다.",
       "table_dropped": "{a}이(가) {place}에 대한 요구를 거두었다.",
       "pair_table_open": "{a}과(와) {b}이(가) 둘 사이의 땅을 두고 마주 앉았다.",
-      "pair_table_signed": "{a}과(와) {b}이(가) 강화 조약에 서명했다."
+      "pair_table_signed": "{a}과(와) {b}이(가) 강화 조약에 서명했다.",
+      "spy_codes_changed": "{a}이(가) 암호를 바꿨다.",
+      "spy_exposed": "{a}에서 {b}의 요원들이 잡혀 드러났다.",
+      "spy_sabotage": "{a}의 탄약고가 폭발했다.",
+      "spy_lenin": "{b}이(가) 망명 혁명가들을 {a}(으)로 돌려보냈다.",
+      "spy_arms_taken": "{a}이(가) {b}이(가) 보낸 무기선을 붙잡았다.",
+      "spy_irish_rising": "{b}의 무기로 아일랜드에서 봉기가 일어났다.",
+      "spy_arab_revolt": "{b}의 지원을 받은 아랍인들이 {a}에 맞서 봉기했다.",
+      "spy_jihad": "{a}이(가) 세계의 무슬림에게 성전을 선포했다."
     },
     "odds": {
       "0": "될 일이 아닙니다.",
@@ -14967,7 +14989,8 @@
       "munitions": "군수대신",
       "sea_lord": "제1해군경",
       "agriculture": "농업대신",
-      "supreme_commander": "최고 사령관"
+      "supreme_commander": "최고 사령관",
+      "intelligence": "정보 책임자"
     },
     "panel": {
       "chapter": "{date}, {total}장 중 {n}장",
@@ -15329,7 +15352,13 @@
       "pair_table_open": "{country}과(와)의 강화에 땅이 걸렸다. 한 달 동안 탁자에서 정한다.",
       "pair_table_won": "{country}과(와)의 조약에 서명했다. 이기고 들어간 탁자였다.",
       "pair_table_lost": "{country}과(와)의 조약에 서명했다. 지고 들어간 탁자였다.",
-      "pair_table_even": "{country}과(와)의 조약에 서명했다. 바꾼 것 말고는 저마다 선 자리를 지킨다."
+      "pair_table_even": "{country}과(와)의 조약에 서명했다. 바꾼 것 말고는 저마다 선 자리를 지킨다.",
+      "spy_code_read": "암호 해독반이 적의 전신을 읽기 시작했다.",
+      "spy_code_lost": "적이 암호를 바꿨다. 더는 읽지 못한다.",
+      "spy_ours_exposed": "외국에 심은 우리 요원들이 잡혀 드러났다.",
+      "spy_caught": "방첩대가 외국 요원들을 잡았다.",
+      "spy_codebook": "적의 암호책이 우리 해독반 손에 들어왔다.",
+      "spy_blame_cost": "간첩 사냥의 값으로 정보기관이 흔들리고 의회의 신뢰가 줄었다."
     },
     "result": {
       "advance": "전진",
@@ -15395,7 +15424,9 @@
       "own_eyes": "직접 본 것",
       "whip": "원내 셈",
       "police": "정치 경찰",
-      "envoy": "특사"
+      "envoy": "특사",
+      "codes": "암호 해독",
+      "prisoners": "포로와 노획 문서"
     },
     "stamp": {
       "confirmed": "확인",
@@ -15716,7 +15747,9 @@
         "plot": "모의",
         "file": "서류",
         "ally": "속내",
-        "count": "표결 전망"
+        "count": "표결 전망",
+        "prep": "공세 준비",
+        "strain": "전선의 피로"
       },
       "fold": "접기 / 펴기",
       "folded_title": "그사이 들어온 작은 소식",
@@ -16129,7 +16162,12 @@
       "no_fronts_neutral": "우리나라는 중립이라 싸우는 전선이 없습니다.",
       "no_fronts_ours": "우리나라는 아직 어느 전선에서도 싸우지 않습니다.",
       "trench_now": "참호: {what}",
-      "front_end_bloc": "우리 진영 쪽 · {side}"
+      "front_end_bloc": "우리 진영 쪽 · {side}",
+      "report_where": "{country} ({theatre})",
+      "front_foe": "적의 사정: {what}",
+      "front_foe_word": "{word} ({stamp})",
+      "front_foe_unknown": "알 수 없다",
+      "front_reading": "암호를 읽고 있다"
     },
     "unknown": {
       "ai": "{country}의 원수는 {word} 인물이었다.",

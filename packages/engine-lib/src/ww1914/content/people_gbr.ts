@@ -395,7 +395,7 @@ export const GBR_PEOPLE: readonly GwPersonDef[] = [
     id: "gbr_hall",
     tag: "GBR",
     office: null,
-    fit: [],
+    fit: ["intelligence"],
     camps: ["hard"],
     temperaments: ["cunning", "cold"],
     rivals: ["gbr_grey"],
