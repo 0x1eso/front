@@ -116,6 +116,10 @@ describe("content", () => {
       ...GW_STALL_CALLED,
       // ww173: laid by Spies.agentsTaken.
       ...SPY_SCENES.map((x) => x.id),
+      // ww173: called by Offensives.callScene when a seat writes them.
+      ...["deu", "gbr", "auh", "rus", "fra"].flatMap((t) =>
+        ["prep", "result", "defended", "mutiny"].map((k) => `${t}_w_off_${k}`),
+      ),
     ];
     expect(gwContentProblems(scenes, people, outside)).toEqual([]);
     const lang = json("lang/en.json").gw.reason as Record<string, string>;
