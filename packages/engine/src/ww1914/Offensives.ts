@@ -412,7 +412,7 @@ function prepare(
 }
 
 /** Ends it, and its feint with it. */
-function end(gw: GreatWar, o: GwOffensive): void {
+function finish(gw: GreatWar, o: GwOffensive): void {
   o.done = gw.s.chapter;
   for (const f of list(gw)) {
     if (f.feint && live(f) && f.tag === o.tag) f.done = gw.s.chapter;
@@ -459,7 +459,7 @@ export function signOffensivePaper(
   switch (id) {
     case "prep_stop":
     case "stop":
-      end(gw, o);
+      finish(gw, o);
       reason(gw, seat, "off_called_off");
       return null;
     case "press_on":
@@ -531,7 +531,7 @@ export function offensiveStep(gw: GreatWar): void {
   for (const o of s.offensives) {
     if (!live(o)) continue;
     if (!stillOn(gw, o)) {
-      end(gw, o);
+      finish(gw, o);
       continue;
     }
     strikes(gw, o);
@@ -550,7 +550,7 @@ export function offensiveStep(gw: GreatWar): void {
       o.round++;
       o.weight = Math.floor(o.weight / 2);
     } else {
-      end(gw, o);
+      finish(gw, o);
       for (const seat of seatsOf(gw, o.tag)) reason(gw, seat, "off_over");
     }
   }
@@ -762,7 +762,7 @@ function round(gw: GreatWar, o: GwOffensive): void {
   ) {
     armyRefuses(gw, n);
   }
-  if (o.round >= ROUNDS) end(gw, o);
+  if (o.round >= ROUNDS) finish(gw, o);
 }
 
 /**

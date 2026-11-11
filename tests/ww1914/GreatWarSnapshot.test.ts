@@ -37,7 +37,7 @@ const GW_DIGEST = "a2cf31082bfaf02b";
 
 describe("snapshot and hash", () => {
   test("the state is a versioned record", () => {
-    expect(GreatWarSnapshot.version).toBe(4);
+    expect(GreatWarSnapshot.version).toBe(5);
   });
 
   test("a restored game is the same game, mid-talk and through the end", async () => {
