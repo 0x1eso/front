@@ -3,6 +3,7 @@
 // the same ones; whatever needs engine objects (who is alive, embargoes)
 // the caller works out first and hands in as a value.
 import { AIR_TYPES, AirType } from "@openfront/engine-api/ww1936/AirTypes";
+import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import {
   FACILITY_IDS,
   SPECIAL_PROJECTS,
@@ -29,6 +30,7 @@ import {
   WwOrderBlock,
   WwTechId,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
+import { techInTable } from "../imjin/ImjinTechs";
 import { exportCapacity, payRoomMilli } from "./EconomyRules";
 import {
   equipmentBuildable,
@@ -458,6 +460,11 @@ export interface ResearchState {
    * follows a project waits for it). None: no project finished.
    */
   projects?: number;
+  /**
+   * ww184: the Imjin War's table of this country (its tag): only its Imjin
+   * techs are researched. Absent: the 1936 table, no Imjin tech.
+   */
+  imjinTag?: CountryTag;
 }
 
 /**
@@ -498,6 +505,8 @@ export function researchBlockOf(
   const def = WW_TECHS[tech];
   // P6 plan decision 25: a retired doctrine tech is never researched again.
   if (def.retired === true) return "no_tech";
+  // ww184: each profile researches its own table.
+  if (!techInTable(tech, s.imjinTag)) return "no_tech";
   if (def.prereqs.some((p) => !s.researched.has(p))) return "prereq";
   // Research overhaul (changes §2.4, §2.5): the other line of an either/or
   // pair, a special project not finished.

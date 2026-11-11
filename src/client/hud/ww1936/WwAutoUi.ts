@@ -12,6 +12,7 @@ import {
 } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { html, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
+import { imjinCalendarOn } from "./WwClientCalendar";
 
 /** What the switches read of the game (GameView). */
 interface AutoGame {
@@ -93,9 +94,15 @@ export function renderAutoRow(
       <span class="mr-1 text-xs font-bold text-white/80"
         >🤖 ${translateText("ww1936.auto.title")}</span
       >
-      ${WW_AUTO_DOMAINS.filter((d) => d !== "diplomacy").map((d) =>
-        renderAutoSwitch(d, mask, send),
-      )}
+      ${WW_AUTO_DOMAINS.filter(
+        (d) =>
+          d !== "diplomacy" &&
+          // ww184: the Imjin War has no air, 1936 doctrine or intelligence.
+          !(
+            imjinCalendarOn() &&
+            (d === "air" || d === "thought" || d === "intel")
+          ),
+      ).map((d) => renderAutoSwitch(d, mask, send))}
     </div>
     <p class="m-0 mt-1 text-xs leading-snug text-white/60">
       ${translateText("ww1936.auto.hint")}

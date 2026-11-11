@@ -10417,6 +10417,37 @@
         },
         "you_failed": "목표를 이루지 못했다.",
         "you_met": "목표를 이뤘다."
+      },
+      "tech": {
+        "tab": {
+          "infantry": "병법",
+          "artillery": "화포",
+          "naval": "수군",
+          "industry": "성곽"
+        },
+        "row": {
+          "spear": "창병",
+          "arquebus": "조총병",
+          "archer": "궁수",
+          "cavalry": "기병",
+          "samurai": "사무라이",
+          "cannon": "화포",
+          "hwacha": "화차"
+        },
+        "fx": {
+          "row": "{row} 공격 +{n}%",
+          "wall_block": "성벽 뒤 방어 +{n}%",
+          "storm": "성벽을 칠 때 공격 +{n}%",
+          "barrage_morale": "성벽 포격: 수비군 사기가 국면마다 {n}% 더 떨어짐",
+          "breach": "성벽을 {n}% 빨리 무너뜨림",
+          "grain": "포위된 성의 군량 +{n}일",
+          "heavy": "{kind} 큰 포 +{n}문",
+          "light": "{kind} 작은 포 +{n}문",
+          "arq": "{kind} 조총 사격 +{n}",
+          "board": "{kind} 등선 공격 +{n}",
+          "hull": "{kind} 선체 +{n}%",
+          "gunnery": "포술 +{n} (명중 +{p}%p)"
+        }
       }
     },
     "intel": {
@@ -14204,7 +14235,36 @@
       "tank_drive_2": "고출력 전차 구동계",
       "tank_command": "전차 무선과 협동",
       "air_protection": "항공기 방호",
-      "air_range": "항속거리 연장"
+      "air_range": "항속거리 연장",
+      "imj_jos_cheonja": "천자·지자총통 증산",
+      "imj_jos_hyeonja": "현자·황자총통 증산",
+      "imj_jos_bigyeok": "비격진천뢰",
+      "imj_jos_hwacha": "화차 개량",
+      "imj_jos_pyeonjeon": "편전 사격",
+      "imj_jos_jochong": "조총 노획과 제작",
+      "imj_jos_samsu": "훈련도감 삼수병",
+      "imj_jos_jeolgang": "『기효신서』 절강 병법",
+      "imj_jos_panokseon": "판옥선 개량",
+      "imj_jos_turtle": "거북선 개량",
+      "imj_jos_drill": "수군 포술 조련",
+      "imj_jos_sanseong": "산성 수축",
+      "imj_jpn_teppo": "조총 대량 생산",
+      "imj_jpn_volley": "조총 교대 사격",
+      "imj_jpn_nagae": "장창 진법",
+      "imj_jpn_samurai": "사무라이 기병",
+      "imj_jpn_ladders": "성벽 사다리와 엄호 사격",
+      "imj_jpn_waeseong": "왜성 축조",
+      "imj_jpn_atakebune": "안택선 보강",
+      "imj_jpn_sekibune": "관선 조총 무장",
+      "imj_jpn_boarding": "승선전 조련",
+      "imj_jpn_cannon": "배에 대포 싣기",
+      "imj_min_folangji": "불랑기포",
+      "imj_min_hudun": "호준포",
+      "imj_min_dajiangjun": "대장군포",
+      "imj_min_yuanyang": "척가군 원앙진",
+      "imj_min_southern": "남병 조총수",
+      "imj_min_northern": "북병 기병",
+      "imj_jur_riders": "기마 궁술"
     },
     "terrain": {
       "desert": "사막",
@@ -18919,6 +18979,23 @@
       "starve": "굶기기",
       "starve_hint": "화포가 없는 쪽은 성을 굶깁니다",
       "starving": "군량이 떨어져 사기가 매일 떨어집니다"
+    },
+    "gov": {
+      "communist": "남인 집권",
+      "democratic": "서인 집권",
+      "fascist": "북인 집권",
+      "neutral": "왕의 친정"
+    },
+    "equip": {
+      "infantry_equipment": "병장기",
+      "support_equipment": "군수품",
+      "artillery": "총통·화포",
+      "convoy": "수송선"
+    },
+    "gov_of": {
+      "JPN": "도요토미 정권",
+      "MIN": "명 조정",
+      "JUR": "여진 추장들"
     }
   }
 }

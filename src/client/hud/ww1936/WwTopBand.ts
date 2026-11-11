@@ -891,7 +891,8 @@ export class WwTopBand extends LitElement implements Controller {
    */
   private renderFuel(mode: ChipMode) {
     const f = this.fuel;
-    if (f === null || mode === "none") return nothing;
+    // ww184: no oil, no fuel in the Imjin War.
+    if (f === null || mode === "none" || imjinCalendarOn()) return nothing;
     const label = f.short
       ? translateText("ww1936.navy.band_fuel_short", { pct: f.pct })
       : translateText("ww1936.navy.band_fuel", { n: f.text });

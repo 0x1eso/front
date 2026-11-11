@@ -1,6 +1,7 @@
 // World War 1936 P1 — industry and research
 // (docs/superpowers/specs/2026-10-20-ww1936-p1-industry-design.md).
 // zbin and snapshots store these lists by position: append only.
+import type { CountryTag } from "./Countries";
 import { WW_PLANE_DESIGN_SLOTS, WW_TANK_DESIGN_SLOTS } from "./DepthTypes";
 
 export const RESOURCE_IDS = [
@@ -698,6 +699,37 @@ export const WW_TECH_IDS = [
   "tank_command",
   "air_protection",
   "air_range",
+  // ww184: the Imjin War's tech table (imjin/ImjinTechs.ts), appended;
+  // researched only in the Imjin profile, never in 1936.
+  "imj_jos_cheonja",
+  "imj_jos_hyeonja",
+  "imj_jos_bigyeok",
+  "imj_jos_hwacha",
+  "imj_jos_pyeonjeon",
+  "imj_jos_jochong",
+  "imj_jos_samsu",
+  "imj_jos_jeolgang",
+  "imj_jos_panokseon",
+  "imj_jos_turtle",
+  "imj_jos_drill",
+  "imj_jos_sanseong",
+  "imj_jpn_teppo",
+  "imj_jpn_volley",
+  "imj_jpn_nagae",
+  "imj_jpn_samurai",
+  "imj_jpn_ladders",
+  "imj_jpn_waeseong",
+  "imj_jpn_atakebune",
+  "imj_jpn_sekibune",
+  "imj_jpn_boarding",
+  "imj_jpn_cannon",
+  "imj_min_folangji",
+  "imj_min_hudun",
+  "imj_min_dajiangjun",
+  "imj_min_yuanyang",
+  "imj_min_southern",
+  "imj_min_northern",
+  "imj_jur_riders",
 ] as const;
 export type WwTechId = (typeof WW_TECH_IDS)[number];
 
@@ -1091,6 +1123,8 @@ export interface WwSlotHint {
 /** Human countries only, on the days they are processed or ordered. */
 export interface WwCountryDetail {
   smallID: number;
+  /** ww184: the Imjin table's country (the Imjin profile); absent in 1936. */
+  imjinTag?: CountryTag;
   laws: CountryLaws;
   lawCooldownUntil: Record<LawKind, number>;
   queue: WwProjectData[];

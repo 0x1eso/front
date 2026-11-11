@@ -1,5 +1,6 @@
 // World War 1936: the research queues' judgements over plain data. The
 // engine (ResearchQueue) and the research screen call the same ones.
+import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import {
   WW_RESEARCH_QUEUE,
   WW_TECH_IDS,
@@ -20,6 +21,8 @@ export interface QueueState {
   projects?: number;
   /** One queue per slot index (may be shorter than slotCount). */
   queues: readonly (readonly WwTechId[])[];
+  /** ww184: the Imjin table's country (EconomyChecks.ResearchState). */
+  imjinTag?: CountryTag;
 }
 
 /** Every queued tech. */
@@ -57,6 +60,7 @@ export function reserveBlockOf(
       slots: occupants,
       slotCount: occupants.length + 1,
       projects: s.projects,
+      imjinTag: s.imjinTag,
     },
     tech,
   );

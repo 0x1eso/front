@@ -40,7 +40,13 @@ import type { TacticFx } from "@openfront/engine-lib/ww1936/TacticRules";
 import { generalOf } from "../../ww1936/land/GeneralsRun";
 import type { Battle, WwLand } from "../../ww1936/land/WwLand";
 import { EDGE_KINDS, type ImjinBattleOrders } from "../WwImjin";
-import { homeBlockPct, mixOf, noteRouts, perksAt } from "./ImjinDoctrine";
+import {
+  homeBlockPct,
+  mixOf,
+  noteRouts,
+  perksAt,
+  techOf,
+} from "./ImjinDoctrine";
 import { imjinFortLevel } from "./Sieges";
 
 const P_IMJIN_ORDER = idHash("imjin_order");
@@ -286,6 +292,7 @@ export function imjinRoundOf(land: WwLand, b: Battle, tick: number): RoundOut {
       skill: sideSkill(land, b.attackers, true),
       hwachaUsed: o.hwAtt === 1,
       perks: perksAt(im, b.attLead, b.region, true),
+      tech: techOf(im, b.attLead),
     },
     def: {
       order: DEFENCE_STANCES[o.def] ?? "hold",
@@ -293,6 +300,7 @@ export function imjinRoundOf(land: WwLand, b: Battle, tick: number): RoundOut {
       skill: sideSkill(land, b.defenders, false),
       hwachaUsed: o.hwDef === 1,
       perks: perksAt(im, defOwner, b.region, false),
+      tech: techOf(im, defOwner),
     },
     crossing,
     fort: imjinFortLevel(land.ww.imjinWar!, b.region),

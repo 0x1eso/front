@@ -89,6 +89,7 @@ export function researchBlock(
       slots: slotTechs(ce),
       slotCount: ce.totals.slotCount,
       projects: projectsDone(econ, ce),
+      imjinTag: econ.imjinTagOf(ce),
     },
     tech,
   );

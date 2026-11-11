@@ -22,6 +22,7 @@ import {
   START_OOB,
   startTemplates,
 } from "@openfront/engine-lib/ww1936/LandStart";
+import { templateOn } from "@openfront/engine-lib/ww1936/scenario/Profile";
 import {
   genMixOf,
   templateStats,
@@ -153,7 +154,10 @@ export function startLand(land: WwLand): void {
     for (const id of land.econ.regionsOf(cl.smallID)) civ += land.econ.civ[id];
     // (Its land techs came with economy.start: landStartTechs.)
     const dev = sc.devOf(cl.tag, civ);
+    // ww184: the Imjin War fields no 1936 armour or motor templates.
+    const gc = land.mg.config().gameConfig();
     for (const st of startTemplates(cl.tag, dev)) {
+      if (!templateOn(gc, st.def.battalions)) continue;
       cl.templates.push({
         id: cl.nextTemplateId++,
         key: st.key,
@@ -164,6 +168,7 @@ export function startLand(land: WwLand): void {
     }
     if (!land.ww.isHumanControlled(cl.smallID)) {
       for (const st of aiRoleTemplates(cl.tag, dev)) {
+        if (!templateOn(gc, st.def.battalions)) continue;
         cl.templates.push({
           id: cl.nextTemplateId++,
           key: st.key,

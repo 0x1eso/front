@@ -7,6 +7,7 @@ import {
   EQUIPMENT_TYPES,
   WW_TECH_IDS,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
+import { isImjinTech } from "@openfront/engine-lib/imjin/ImjinTechs";
 import {
   aheadPct,
   allocateResources,
@@ -335,12 +336,13 @@ describe("research (spec §9)", () => {
     expect(researchSlotCount(4, 4)).toBe(6);
   });
 
-  test("263 techs; prerequisites exist and come no later", () => {
+  test("263 techs and the Imjin War's 29; prerequisites exist and come no later", () => {
     // P1's 46, P2's 10 (P2 spec §4.6), P4's 56 (P4 spec §4.3, §12.3),
     // P5's military police (P5 spec §8.5), P6's 33 (P6 spec §1.4) and the
     // research overhaul's 108 (changes §2.3), w28's 2 (metal substitutes),
-    // ww82's 7 merged techs.
-    expect(WW_TECH_IDS.length).toBe(263);
+    // ww82's 7 merged techs; ww184's Imjin table (ImjinTechs), apart.
+    expect(WW_TECH_IDS.filter((id) => !isImjinTech(id)).length).toBe(263);
+    expect(WW_TECH_IDS.filter(isImjinTech).length).toBe(29);
     for (const id of WW_TECH_IDS) {
       expect(WW_TECHS[id].id).toBe(id);
       for (const p of WW_TECHS[id].prereqs) {

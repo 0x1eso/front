@@ -4,6 +4,7 @@
 // the court and 진관, Japan's ship losses for its caution at sea), sets the
 // flags the decisions wait on, and runs the daily sea rules of doctrine §3
 // and §5: sortie endurance and the scuttling of the Gyeongsang fleets.
+import type { WwTechId } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { pickFlag } from "@openfront/engine-lib/imjin/CourtScenes";
 import {
   BIGYEOK_SIEGE_DAYS,
@@ -17,6 +18,11 @@ import {
   uprisingRoom,
 } from "@openfront/engine-lib/imjin/Doctrine";
 import { SCUTTLE_SCENE } from "@openfront/engine-lib/imjin/DoctrineContent";
+import {
+  imjinTechTotals,
+  type ImjinTechTotals,
+  NO_IMJIN_TECH,
+} from "@openfront/engine-lib/imjin/ImjinTechs";
 import type { RowMix } from "@openfront/engine-lib/imjin/LandRound";
 import { MT } from "@openfront/engine-lib/imjin/SeaRules";
 import type { WwLand } from "../../ww1936/land/WwLand";
@@ -127,6 +133,24 @@ export function doctrineOf(im: WwImjin): DoctrineState {
 }
 
 /** A country's army now (its doctrine's mix). */
+/** ww184: the summed Imjin techs, by the researched set (it only grows; a restore makes a new one). */
+const TECH_CACHE = new WeakMap<
+  ReadonlySet<WwTechId>,
+  { n: number; t: ImjinTechTotals }
+>();
+
+/** ww184: `owner`'s researched Imjin techs (none: no country). */
+export function techOf(im: WwImjin, owner: number): ImjinTechTotals {
+  const ce = im.ww.economy.country(owner);
+  if (ce === null) return NO_IMJIN_TECH;
+  const set = ce.researched;
+  const c = TECH_CACHE.get(set);
+  if (c !== undefined && c.n === set.size) return c.t;
+  const t = imjinTechTotals(set);
+  TECH_CACHE.set(set, { n: set.size, t });
+  return t;
+}
+
 export function mixOf(im: WwImjin, owner: number): RowMix {
   return rowMixFor(im.ww.scenario.tagOfSmallId(owner) ?? "", doctrineOf(im));
 }

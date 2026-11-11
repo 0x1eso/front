@@ -1,6 +1,7 @@
 // Imjin sea layer: what the tick needs from the game, as plain functions, so
 // the rules run the same on a test map and on the real one (WwImjin.ctx builds
 // it from a Game).
+import type { ImjinTechTotals } from "@openfront/engine-lib/imjin/ImjinTechs";
 import { MT } from "@openfront/engine-lib/imjin/SeaRules";
 import type { SeaFlags } from "@openfront/engine-lib/imjin/Terrain";
 
@@ -36,6 +37,8 @@ export interface SeaCtx {
   japan?: number;
   /** ww177 P7b: fortified anchorages (the wajō) that fire on hostile ships. */
   batteries?(): readonly SeaBattery[];
+  /** ww184: `owner`'s researched Imjin techs (guns, hulls, boarding); absent: none. */
+  tech?(owner: number): ImjinTechTotals;
   /**
    * ww177 final (design §6.2): whether `owner`'s side holds both shores of
    * the channel at milli-tile (x, y) whose current is `current`, and so

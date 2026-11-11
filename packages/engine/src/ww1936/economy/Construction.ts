@@ -23,6 +23,7 @@ import {
   projectSpeedPct,
 } from "@openfront/engine-lib/ww1936/EconomyRules";
 import { isNoStrike } from "@openfront/engine-lib/ww1936/NoStrike";
+import { buildingOn } from "@openfront/engine-lib/ww1936/scenario/Profile";
 import {
   DEPTH_BUILDINGS,
   depthBuildBlock,
@@ -206,6 +207,8 @@ export function queueBuild(
 ): WwOrderBlock | null {
   // ww177: no railway where the profile switches rail off (the AI too).
   if (building === "rail" && !econ.ww.systemOn("rail")) return "system_off";
+  // ww184: nor the buildings of the other systems it switches off.
+  if (!buildingOn(econ.mg.config().gameConfig(), building)) return "system_off";
   const block = buildBlock(econ, ce, region, building, count);
   if (block !== null) return block;
   ce.queue.push({

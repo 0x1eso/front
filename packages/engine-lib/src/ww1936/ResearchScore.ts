@@ -19,6 +19,7 @@ import {
   WW_TECH_IDS,
   WwTechId,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
+import { imjinTechScore } from "../imjin/ImjinTechs";
 import { earlyPct, yearStartDay } from "./EconomyRules";
 import { HIST_CATALOGUE } from "./hist/index";
 import { techRelevance } from "./hist/Slots";
@@ -91,6 +92,8 @@ export interface ResearchScoreInput {
     airLosses?: boolean;
     shortResource?: boolean;
   };
+  /** ww184: the Imjin table's country (the Imjin profile); absent: 1936's table. */
+  imjinTag?: CountryTag;
 }
 
 // ---- The kinds of equipment a tech serves ----
@@ -551,6 +554,13 @@ function builds(i: ResearchScoreInput, use: TechUse): boolean {
  * back (−40), not left out, so a late air force is not far behind.
  */
 export function researchScores(i: ResearchScoreInput): (number | null)[] {
+  // ww184: the Imjin War researches its own table, by its own priorities.
+  const imjinTag = i.imjinTag;
+  if (imjinTag !== undefined) {
+    return WW_TECH_IDS.map((id, k) =>
+      imjinTechScore(id, imjinTag, wwRoll(i.seed, P_RESEARCH, i.smallID, k)),
+    );
+  }
   const area = researchAreaWeights(i);
   const favoured = new Set(FAVOURED_STAT[i.tag] ?? []);
   const catalogue = hasCatalogue(i.tag);
@@ -566,7 +576,7 @@ export function researchScores(i: ResearchScoreInput): (number | null)[] {
   const shared = new Map(i.shared);
   return WW_TECH_IDS.map((id, k) => {
     const d = WW_TECHS[id];
-    if (d.retired === true) return null;
+    if (d.retired === true || d.imjin !== undefined) return null;
     if (d.exclusive !== undefined && d.exclusive.line !== line) return null;
     const use = TECH_USE[k];
     const built = builds(i, use);

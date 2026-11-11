@@ -8,6 +8,7 @@ import {
   WwTechId,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import type { WwStats } from "@openfront/engine-api/ww1936/PoliticsTypes";
+import { IMJIN_TECH_DEFS, type ImjinTechMeta } from "../imjin/ImjinTechs";
 
 export interface TechEffects {
   constructionPct: number;
@@ -191,6 +192,8 @@ export interface WwTechDef {
   retired?: true;
   /** ww82: the old techs this one holds: finishing it marks them researched too. */
   absorbs?: readonly WwTechId[];
+  /** ww184: an Imjin War tech (imjin/ImjinTechs.ts); 1936 never offers it. */
+  imjin?: ImjinTechMeta;
 }
 
 /** The support companies (research overhaul changes §2.6: the support tab). */
@@ -1500,6 +1503,8 @@ const BASE_TECHS: Readonly<Record<WwTechId, WwTechDef>> = {
     { airRangePct: 15 },
     { cost: 1819 },
   ),
+  // ww184: the Imjin War's table.
+  ...IMJIN_TECH_DEFS,
 } as Record<WwTechId, WwTechDef>;
 
 /** P6 (plan decision 25, spec §1.4): the 20 old doctrine techs, retired. */

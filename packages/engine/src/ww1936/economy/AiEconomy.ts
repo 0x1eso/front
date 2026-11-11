@@ -665,6 +665,8 @@ export interface AiDeal {
 /** Everything an AI turn looks at (pre-flight R6.13), as plain data. */
 export interface AiInput {
   tag: CountryTag;
+  /** ww184: the Imjin table's country (the Imjin profile); absent: 1936's. */
+  imjinTag?: CountryTag;
   personality: AiPersonality;
   major: boolean;
   /** ww91: the plan it plays; none: the default. */
@@ -1693,6 +1695,7 @@ export function researchScoreInput(
     shared: r?.shared ?? [],
     researched,
     running,
+    ...(i.imjinTag === undefined ? {} : { imjinTag: i.imjinTag }),
     // ww81: fuel short stands for a resource shortage; the war situation
     // (armour gap, wing losses) comes from the research input.
     situation: mergeSituation(
@@ -1819,6 +1822,8 @@ export function planResearch(i: AiInput, orders: AiOrder[]): void {
     if (t !== null && leanOf(k) === 0) running[aiTechDomain(t)]++;
   });
   const capped = (t: WwTechId) => {
+    // ww184: the Imjin table has no land, sea and air shares.
+    if (i.imjinTag !== undefined) return false;
     const d = aiTechDomain(t);
     return d !== "land" && running[d] >= caps[d];
   };
@@ -1832,6 +1837,7 @@ export function planResearch(i: AiInput, orders: AiOrder[]): void {
     slots,
     slotCount: i.slotCount,
     projects: i.research?.projects ?? 0,
+    imjinTag: i.imjinTag,
   };
   const ahead = new Map<number, number>();
   const aheadOf = (year: number) => {
@@ -2276,8 +2282,10 @@ export function aiInput(
   let threat: number | null = null;
   let planned: boolean | null = null;
   let landNeed: AiLandNeed | undefined | null = null;
+  const imjinTag = econ.imjinTagOf(ce);
   return {
     tag: ce.tag,
+    ...(imjinTag === undefined ? {} : { imjinTag }),
     personality: aiPersonality(ce.tag),
     major,
     plan: planOfCountry(econ, ce),

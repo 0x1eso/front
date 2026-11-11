@@ -438,6 +438,36 @@ export function leadLines(tech: WwTechId): string[] {
   return out;
 }
 
+/** ww184: an Imjin tech's lines, one per effect the battle, siege or sea rules read. */
+export function imjinEffectLines(tech: WwTechId): string[] {
+  const fx = WW_TECHS[tech].imjin?.fx;
+  if (fx === undefined) return [];
+  const t = (k: string, p: Record<string, string | number> = {}) =>
+    translateText(`ww1936.imjin.tech.fx.${k}`, p);
+  const row = (r: string) => translateText(`ww1936.imjin.tech.row.${r}`);
+  const ship = (k: string) => translateText(`imjin.sea.kind.${k}`);
+  const out: string[] = [];
+  for (const [r, n] of Object.entries(fx.row ?? {}))
+    out.push(t("row", { row: row(r), n }));
+  if (fx.wallBlockPct) out.push(t("wall_block", { n: fx.wallBlockPct }));
+  if (fx.stormPct) out.push(t("storm", { n: fx.stormPct }));
+  if (fx.barrageMorale)
+    out.push(t("barrage_morale", { n: fx.barrageMorale / 10 }));
+  if (fx.breachPct) out.push(t("breach", { n: fx.breachPct }));
+  if (fx.grainDays) out.push(t("grain", { n: fx.grainDays }));
+  const ships = (k: string, m: Partial<Record<string, number>> | undefined) => {
+    for (const [kind, n] of Object.entries(m ?? {}))
+      out.push(t(k, { kind: ship(kind), n: n ?? 0 }));
+  };
+  ships("heavy", fx.heavy);
+  ships("light", fx.light);
+  ships("arq", fx.arq);
+  ships("board", fx.board);
+  ships("hull", fx.hullPct);
+  if (fx.gunnery) out.push(t("gunnery", { n: fx.gunnery, p: 3 * fx.gunnery }));
+  return out;
+}
+
 /** The lines of what a tech does itself: its unlocks, hard-coded rules and stat effects. */
 export function ownEffectLines(
   tech: WwTechId,
@@ -447,6 +477,7 @@ export function ownEffectLines(
     ...unlockLines(tech, opts),
     ...ruleLines(tech),
     ...statEffectLines(tech),
+    ...imjinEffectLines(tech),
   ];
 }
 

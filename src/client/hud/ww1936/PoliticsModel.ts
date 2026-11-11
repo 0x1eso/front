@@ -295,6 +295,12 @@ export function personName(id: string): string {
 /** Spec §5.3: the country's own government name, else the generic one. */
 export function governmentName(tag: CountryTag, ruling: number): string {
   const ideo = IDEOLOGIES[ruling];
+  // ww184: the Imjin War's court is led by a faction, not a 1936 government.
+  if (imjinCalendarOn()) {
+    return tag === "JOS"
+      ? translateText(`imjin.gov.${ideo}`)
+      : translateText(`imjin.gov_of.${tag}`);
+  }
   const def = content().countryIdx.get(tag);
   return def?.govNames?.includes(ideo)
     ? translateText(`ww1936.gov.${tag}.${ideo}`)
@@ -1280,7 +1286,10 @@ export function advisorTab(i: PoliticsModelInput): AdvisorSeat[] {
         slot: slotName(slot),
       }),
     };
-  });
+  }).filter(
+    // ww184: no air force in the Imjin War, so no air chief.
+    (_, k) => !(imjinCalendarOn() && ADVISOR_SLOTS[k] === "air_chief"),
+  );
 }
 
 // ---- Politics drawer: laws (spec §21.4-3, §7.2) ----
@@ -1623,7 +1632,8 @@ export interface SpiritView {
 /** My country's one-line style (the seven majors only; "" for any other). */
 export function styleLine(i: PoliticsModelInput): string {
   const tag = tagOf(i.game, i.me);
-  return tag !== null && COUNTRIES[tag].major
+  // ww184: 1936 Japan's style is not Hideyoshi's Japan.
+  return tag !== null && COUNTRIES[tag].major && !imjinCalendarOn()
     ? translateText(`ww1936.style.${tag}`)
     : "";
 }

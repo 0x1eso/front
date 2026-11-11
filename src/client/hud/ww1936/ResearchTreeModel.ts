@@ -9,6 +9,11 @@ import {
   WwCountryDetail,
   WwTechId,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
+import {
+  IMJIN_FIRST_YEAR,
+  IMJIN_LAST_YEAR,
+} from "@openfront/engine-lib/imjin/ImjinTechs";
+import { epochDaysOf } from "@openfront/engine-lib/ww1936/Calendar";
 import { aheadPct } from "@openfront/engine-lib/ww1936/EconomyRules";
 import {
   histEntriesBehind,
@@ -33,6 +38,7 @@ import {
   researchCards,
   researchSpeedPct,
 } from "./EconomyModel";
+import { imjinCalendarOn, wwEpoch } from "./WwClientCalendar";
 
 export const FIRST_YEAR = 1936;
 export const LAST_YEAR = 1945;
@@ -157,12 +163,27 @@ export interface TreeLayout {
   todayX: number;
 }
 
+/** ww184: the axis's first and last year: 1936-1945, or the Imjin War's 1590-1599. */
+export function axisYears(): { first: number; last: number } {
+  return imjinCalendarOn()
+    ? { first: IMJIN_FIRST_YEAR, last: IMJIN_LAST_YEAR }
+    : { first: FIRST_YEAR, last: LAST_YEAR };
+}
+
+/** ww184: a tech's year on the axis (an Imjin tech's own year). */
+export function axisYearOf(tech: WwTechId): number {
+  const d = WW_TECHS[tech];
+  return d.imjin?.year ?? d.year;
+}
+
 export function yearX(year: number): number {
-  return PAD + (year - FIRST_YEAR) * COL_W;
+  return PAD + (year - axisYears().first) * COL_W;
 }
 
 export function todayX(day: number): number {
-  return PAD + (Math.max(0, day) / DAYS_PER_YEAR) * COL_W;
+  // The game day of 1 January of the axis's first year (0 in 1936).
+  const start = epochDaysOf(`${axisYears().first}-01-01`) - wwEpoch();
+  return PAD + (Math.max(0, day - start) / DAYS_PER_YEAR) * COL_W;
 }
 
 export function nodeLook(card: ResearchCard): NodeLook {
@@ -209,9 +230,11 @@ export function treeLayout(
   const cards = researchCards(d, branch, day);
   const researched = new Set(d.researched);
   const ids = new Set(cards.map((c) => c.id));
+  const axis = axisYears();
   const byYear = [...cards].sort(
     (a, b) =>
-      a.year - b.year || WW_TECH_IDS.indexOf(a.id) - WW_TECH_IDS.indexOf(b.id),
+      axisYearOf(a.id) - axisYearOf(b.id) ||
+      WW_TECH_IDS.indexOf(a.id) - WW_TECH_IDS.indexOf(b.id),
   );
   const used = new Set<string>();
   const rowOf = new Map<WwTechId, number>();
@@ -221,7 +244,8 @@ export function treeLayout(
   for (const card of byYear) {
     const def = WW_TECHS[card.id];
     const col =
-      Math.min(LAST_YEAR, Math.max(FIRST_YEAR, card.year)) - FIRST_YEAR;
+      Math.min(axis.last, Math.max(axis.first, axisYearOf(card.id))) -
+      axis.first;
     const near = def.prereqs.find((p) => ids.has(p));
     let row = near === undefined ? 0 : (rowOf.get(near) ?? 0);
     // The wanted row, else the nearest free one (below first).
@@ -260,7 +284,7 @@ export function treeLayout(
   return {
     nodes,
     edges,
-    width: PAD * 2 + (LAST_YEAR - FIRST_YEAR + 1) * COL_W,
+    width: PAD * 2 + (axis.last - axis.first + 1) * COL_W,
     height: PAD * 2 + Math.max(1, rows) * ROW_H,
     todayX: todayX(day),
   };
@@ -346,6 +370,7 @@ export function recommendNext(
     shared: d.sharedResearch ?? [],
     researched,
     running,
+    ...(d.imjinTag === undefined ? {} : { imjinTag: d.imjinTag }),
   });
   const ranked = WW_TECH_IDS.map((id, k) => ({ id, s: scores[k] }))
     .filter((x): x is { id: WwTechId; s: number } => x.s !== null)

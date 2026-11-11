@@ -4,6 +4,7 @@
 // unit rows yet, so a country's mix stands for every division it fields.
 // Pure integer code; every chance is a stateless wwRoll.
 import type { DoctrinePerks } from "./Doctrine";
+import type { ImjinTechTotals } from "./ImjinTechs";
 import {
   ambushFx,
   type AttackOrder,
@@ -70,6 +71,8 @@ export interface RoundSide<T> {
   hwachaUsed: boolean;
   /** ww177 P7b: its doctrine's perks (absent: none). */
   perks?: DoctrinePerks;
+  /** ww184: its country's researched Imjin techs (absent: none). */
+  tech?: ImjinTechTotals;
 }
 
 export interface RoundInput {
@@ -140,6 +143,7 @@ function sideDealt(
   rowMul: Partial<Record<UnitRow, number>> = {},
   hwachaReload = false,
   samuraiClashPct = SAMURAI_CLASH_PCT,
+  techRow: Partial<Record<UnitRow, number>> = {},
 ): number {
   const terrain = terrainRow(inp.terrain, inp.wet);
   let sum = 0;
@@ -163,6 +167,9 @@ function sideDealt(
     if (row === "cavalry") v = pct(v, cavalryMulPct);
     const m = rowMul[row];
     if (m !== undefined) v = pct(v, m);
+    // ww184: the row's researched weapons and drill.
+    const tr = techRow[row];
+    if (tr !== undefined && tr !== 0) v = pct(v, 100 + tr);
     sum += share * v;
   }
   return Math.floor(sum / 100);
@@ -243,6 +250,7 @@ export function imjinRound(inp: RoundInput): RoundOut {
     attRowMul,
     false,
     clashOf(defPerks),
+    inp.att.tech?.row,
   );
   let defDealt = sideDealt(
     inp.def.mix,
@@ -258,6 +266,7 @@ export function imjinRound(inp: RoundInput): RoundOut {
     defRowMul,
     defHwachaReload,
     clashOf(attPerks),
+    inp.def.tech?.row,
   );
   // The feigned retreat taken: the defender crosses after the bait into
   // the waiting volley (design §5): it fights the crossing's way.
@@ -270,6 +279,9 @@ export function imjinRound(inp: RoundInput): RoundOut {
   attDealt = pct(attDealt, storm.attacker);
   defDealt = pct(defDealt, storm.defender);
   if (inp.fort > 0 && inp.att.order !== "barrage") {
+    // ww184: ladders and covering fire researched.
+    const st = inp.att.tech?.stormPct ?? 0;
+    if (st !== 0) attDealt = pct(attDealt, 100 + st);
     // Escalade (doctrine §7.3): ladders under covering fire, 3 to 1.
     if (
       attPerks?.escalade === true &&
@@ -320,6 +332,9 @@ export function imjinRound(inp: RoundInput): RoundOut {
       inp.fort > 0
     )
       defMorale += BIGYEOK_BARRAGE_MORALE;
+    // ww184: shells researched for the barrage at walls (the 비격진천뢰).
+    if (inp.att.order === "barrage" && inp.fort > 0)
+      defMorale += inp.att.tech?.barrageMorale ?? 0;
     if (charged) {
       attMorale += ch.chargerMorale;
       defMorale += ch.defenderMorale;
@@ -340,7 +355,9 @@ export function imjinRound(inp: RoundInput): RoundOut {
     defDealtPct: defDealt,
     blockPct:
       blockMulPct(terrain, fx, defSpearVsCharge, charged) +
-      (inp.homeBlockPct ?? 0),
+      (inp.homeBlockPct ?? 0) +
+      // ww184: walls and their builders researched.
+      (inp.fort > 0 ? (inp.def.tech?.wallBlockPct ?? 0) : 0),
     attTakenPct: attTaken,
     defTakenPct: fx.defTakenMulPct,
     widthNum,

@@ -654,6 +654,11 @@ export class WwEconomy {
   /** Derived, as damagedBits: the regions with a bit set there. */
   damagedRegions = 0;
 
+  /** ww184: the Imjin table's country of `ce` in the Imjin profile, else undefined (1936's table). */
+  imjinTagOf(ce: CountryEconomy): CountryTag | undefined {
+    return this.ww.imjin ? ce.tag : undefined;
+  }
+
   constructor(
     readonly mg: Game,
     readonly ww: WorldWar,
@@ -1618,6 +1623,7 @@ export class WwEconomy {
       ...(ce.slotLeans.length === 0 ? {} : { slotLeans: [...ce.slotLeans] }),
       ...(hasQueues(ce) ? { slotQueues: queueView(this, ce) } : {}),
       projectsDone: projectsDone(this, ce),
+      ...(this.ww.imjin ? { imjinTag: ce.tag } : {}),
       researched: WW_TECH_IDS.filter((id) => ce.researched.has(id)),
       ...(ce.savedResearch.length === 0
         ? {}

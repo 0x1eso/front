@@ -58,6 +58,7 @@ import {
   WwStatKey,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { renderNumber } from "@openfront/engine-lib/Format";
+import { techInTable } from "@openfront/engine-lib/imjin/ImjinTechs";
 import { dayIndex } from "@openfront/engine-lib/ww1936/Calendar";
 import {
   staticKeyOfCell,
@@ -137,6 +138,7 @@ import type { WwPoliticsView } from "../../view/WwPoliticsView";
 import { designDisplayName } from "./DesignName";
 import { staticItemName } from "./HistPicker";
 import { today, wwActive, type WwGame } from "./WorldWarModel";
+import { imjinCalendarOn } from "./WwClientCalendar";
 
 /** What the economy screens read from the game (a fake in tests). */
 export type WwEconGame = WwGame & Pick<GameView, "wwEconomy" | "wwEndgame">;
@@ -564,6 +566,36 @@ export const TECH_KEYS: Readonly<Record<WwTechId, string>> = {
   dispersed_3: "ww1936.tech.dispersed_3",
   tools_5: "ww1936.tech.tools_5",
   construction_5: "ww1936.tech.construction_5",
+  // ww184: the Imjin War's table.
+  imj_jos_cheonja: "ww1936.tech.imj_jos_cheonja",
+  imj_jos_hyeonja: "ww1936.tech.imj_jos_hyeonja",
+  imj_jos_bigyeok: "ww1936.tech.imj_jos_bigyeok",
+  imj_jos_hwacha: "ww1936.tech.imj_jos_hwacha",
+  imj_jos_pyeonjeon: "ww1936.tech.imj_jos_pyeonjeon",
+  imj_jos_jochong: "ww1936.tech.imj_jos_jochong",
+  imj_jos_samsu: "ww1936.tech.imj_jos_samsu",
+  imj_jos_jeolgang: "ww1936.tech.imj_jos_jeolgang",
+  imj_jos_panokseon: "ww1936.tech.imj_jos_panokseon",
+  imj_jos_turtle: "ww1936.tech.imj_jos_turtle",
+  imj_jos_drill: "ww1936.tech.imj_jos_drill",
+  imj_jos_sanseong: "ww1936.tech.imj_jos_sanseong",
+  imj_jpn_teppo: "ww1936.tech.imj_jpn_teppo",
+  imj_jpn_volley: "ww1936.tech.imj_jpn_volley",
+  imj_jpn_nagae: "ww1936.tech.imj_jpn_nagae",
+  imj_jpn_samurai: "ww1936.tech.imj_jpn_samurai",
+  imj_jpn_ladders: "ww1936.tech.imj_jpn_ladders",
+  imj_jpn_waeseong: "ww1936.tech.imj_jpn_waeseong",
+  imj_jpn_atakebune: "ww1936.tech.imj_jpn_atakebune",
+  imj_jpn_sekibune: "ww1936.tech.imj_jpn_sekibune",
+  imj_jpn_boarding: "ww1936.tech.imj_jpn_boarding",
+  imj_jpn_cannon: "ww1936.tech.imj_jpn_cannon",
+  imj_min_folangji: "ww1936.tech.imj_min_folangji",
+  imj_min_hudun: "ww1936.tech.imj_min_hudun",
+  imj_min_dajiangjun: "ww1936.tech.imj_min_dajiangjun",
+  imj_min_yuanyang: "ww1936.tech.imj_min_yuanyang",
+  imj_min_southern: "ww1936.tech.imj_min_southern",
+  imj_min_northern: "ww1936.tech.imj_min_northern",
+  imj_jur_riders: "ww1936.tech.imj_jur_riders",
 };
 
 export type EffectKey = keyof TechEffects | "unlock";
@@ -907,13 +939,32 @@ export const EQUIPMENT_ICONS: Readonly<Record<EquipmentType, string>> = {
 
 export const resourceName = (r: ResourceId) => translateText(RESOURCE_KEYS[r]);
 export const buildingName = (b: BuildingId) => translateText(BUILDING_KEYS[b]);
+/** ww184: the Imjin War's names of the equipment its armies use. */
+const IMJIN_EQUIPMENT: ReadonlySet<EquipmentType> = new Set<EquipmentType>([
+  "infantry_equipment",
+  "support_equipment",
+  "artillery",
+  "convoy",
+]);
 export const equipmentName = (e: EquipmentType) =>
-  translateText(EQUIPMENT_KEYS[e]);
+  imjinCalendarOn() && IMJIN_EQUIPMENT.has(e)
+    ? translateText(`imjin.equip.${e}`)
+    : translateText(EQUIPMENT_KEYS[e]);
 export const genName = (gen: number) => translateText(GEN_KEYS[gen - 1]);
 export const techName = (t: WwTechId) => translateText(TECH_KEYS[t]);
 export const lawName = (v: LawValue) => translateText(LAW_KEYS[v]);
 export const lawKindName = (k: LawKind) => translateText(LAW_KIND_KEYS[k]);
-export const branchName = (b: TechBranch) => translateText(BRANCH_KEYS[b]);
+/** ww184: the Imjin War names its four research tabs its own way. */
+const IMJIN_BRANCHES: ReadonlySet<TechBranch> = new Set<TechBranch>([
+  "infantry",
+  "artillery",
+  "naval",
+  "industry",
+]);
+export const branchName = (b: TechBranch) =>
+  imjinCalendarOn() && IMJIN_BRANCHES.has(b)
+    ? translateText(`ww1936.imjin.tech.tab.${b}`)
+    : translateText(BRANCH_KEYS[b]);
 export const schoolName = (s: DoctrineSchool) => translateText(SCHOOL_KEYS[s]);
 export const blockText = (b: WwOrderBlock) => translateText(BLOCK_KEYS[b]);
 export const regionCatName = (c: RegionCategory) =>
@@ -2418,6 +2469,7 @@ export function researchBlock(
       slots: slotTechs(detail),
       slotCount: detail.slotCount,
       projects: detail.projectsDone ?? 0,
+      imjinTag: detail.imjinTag,
     },
     tech,
   );
@@ -2433,10 +2485,15 @@ export function researchCards(
     slots: slotTechs(detail),
     slotCount: detail.slotCount,
     projects: detail.projectsDone ?? 0,
+    imjinTag: detail.imjinTag,
   };
   // P6 plan decision 25: the retired doctrine techs are never offered.
+  // ww184: each profile shows its own table.
   return WW_TECH_IDS.filter(
-    (id) => WW_TECHS[id].branch === branch && WW_TECHS[id].retired !== true,
+    (id) =>
+      WW_TECHS[id].branch === branch &&
+      WW_TECHS[id].retired !== true &&
+      techInTable(id, detail.imjinTag),
   ).map((id) => cardOf(detail, state, id, day));
 }
 
@@ -2487,6 +2544,7 @@ function queueState(detail: WwCountryDetail): QueueState {
     running: detail.slots.flatMap((s) => (s === null ? [] : [s.tech])),
     slotCount: detail.slotCount,
     projects: detail.projectsDone ?? 0,
+    imjinTag: detail.imjinTag,
     queues: (detail.slotQueues ?? []).map((q) => q.techs),
   };
 }
@@ -2557,6 +2615,7 @@ export function queueRows(detail: WwCountryDetail, day: number): QueueRow[] {
     slots: detail.slots.map((s) => s?.tech ?? null),
     slotCount: detail.slotCount,
     projects: detail.projectsDone ?? 0,
+    imjinTag: detail.imjinTag,
   };
   const rows = researchSlots(detail, day);
   const finish = new Map<WwTechId, number>();

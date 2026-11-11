@@ -40,6 +40,7 @@ function stateOf(econ: WwEconomy, ce: CountryEconomy): QueueState {
     slotCount: ce.totals.slotCount,
     projects: projectsDone(econ, ce),
     queues: ce.rq,
+    imjinTag: econ.imjinTagOf(ce),
   };
 }
 

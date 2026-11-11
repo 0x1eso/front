@@ -5,6 +5,14 @@
 // arquebus, boarding), then fire spreads, currents foul crowded fleets,
 // morale moves and the beaten flee.
 import {
+  type ImjinTechTotals,
+  NO_IMJIN_TECH,
+  techArq,
+  techBoard,
+  techGuns,
+  techHullTaken,
+} from "@openfront/engine-lib/imjin/ImjinTechs";
+import {
   admiralDeathPm,
   angleDiff,
   angleOf,
@@ -37,6 +45,7 @@ import {
   GUN_RANGE_MT,
   gunDamageMt,
   gunsOnVolley,
+  heavyFires,
   hiddenAt,
   hitPct,
   hullLossMorale,
@@ -848,6 +857,9 @@ function volley(
 
   const fullOf = new Map<number, number>();
   for (const s of all) add(fullOf, s.fleet, fullHull(s.kind));
+  // ww184: each side's researched guns, hulls and boarding drill.
+  const techOf = (owner: number): ImjinTechTotals =>
+    ctx.tech?.(owner) ?? NO_IMJIN_TECH;
   const hullDmg = new Map<number, number>();
   const crewDmg = new Map<number, number>();
   const captorOf = new Map<number, number>();
@@ -876,15 +888,17 @@ function volley(
     const f = L.fleets.get(s.fleet)!;
     if (f.fleeing || s.fouled || s.fireShip || !mayFire.has(s.id)) continue;
     const stats = shipStats(s.kind);
+    const tk = techOf(s.owner);
     const wav = f.morale < MORALE_WAVER;
-    const gunnery = f.admiral.alive ? f.admiral.gunnery : 0;
+    const gunnery = (f.admiral.alive ? f.admiral.gunnery : 0) + tk.gunnery;
     const amb = f.ambush === 1;
     const inCh = flagsAt(ctx, s.x, s.y).channel;
     const guns =
       gunsOnVolley(stats, vIdx, s.id) +
       (ctx.japan !== undefined && s.owner === ctx.japan
         ? prizeGuns(s.kind, prizes)
-        : 0);
+        : 0) +
+      techGuns(tk, s.kind, heavyFires(vIdx, s.id));
     if (guns > 0) {
       let tgt: SeaShip | null = null;
       let bd = Infinity;
@@ -933,7 +947,8 @@ function volley(
         if (amb) ambushed.add(tgt.fleet);
       }
     }
-    if (stats.arq > 0) {
+    const arq = stats.arq + techArq(tk, s.kind);
+    if (arq > 0) {
       const tgt = nearest(s, enemiesOf(s, ARQ_RANGE_MT), ARQ_RANGE_MT);
       if (tgt) {
         const ts = shipStats(tgt.kind);
@@ -948,7 +963,7 @@ function volley(
           crewDmg,
           tgt.id,
           arqCrewLoss(
-            stats.arq,
+            arq,
             hit,
             wwRoll(ctx.seed, P_SEA_ARQ, s.id, tick),
             ts.bulwarkPm,
@@ -984,7 +999,7 @@ function volley(
     const r = boardingRound(
       {
         crew: s.crew,
-        value: shipStats(s.kind).boardAtk,
+        value: shipStats(s.kind).boardAtk + techBoard(techOf(s.owner), s.kind),
         skill: f.admiral.alive ? f.admiral.boarding : 0,
       },
       {
@@ -1039,7 +1054,8 @@ function volley(
   const flagHit = new Map<number, number>();
   const hurt = new Set<number>();
   for (const s of all) {
-    const dh = hullDmg.get(s.id) ?? 0;
+    // ww184: a stouter hull researched takes less of it.
+    const dh = techHullTaken(techOf(s.owner), s.kind, hullDmg.get(s.id) ?? 0);
     if (dh > 0) {
       add(lost, s.fleet, Math.min(dh, s.hull));
       const f = L.fleets.get(s.fleet)!;

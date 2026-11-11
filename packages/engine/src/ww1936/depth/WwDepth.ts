@@ -615,7 +615,11 @@ export class WwDepth implements LandDepthHooks {
     this.world.damLevel = this.ww.scenario.damRegion.map((r) =>
       dams && r > 0 ? 1 : 0,
     );
-    this.mech.bop = BOP_DEFS.map((b, i) => [i, b.startPm, bopBand(b.startPm)]);
+    // ww184: the 1936 balances of power (Japan's army and navy, ...) are
+    // not the Imjin War's.
+    this.mech.bop = this.ww.imjin
+      ? []
+      : BOP_DEFS.map((b, i) => [i, b.startPm, bopBand(b.startPm)]);
     this.mech.treaty.members = ["GBR", "USA", "FRA"]
       .map((t) => this.ww.politics.idOfTag(t as never))
       .filter((id) => id > 0)

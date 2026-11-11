@@ -22,6 +22,7 @@ import type { LineDepthCtx } from "@openfront/engine-lib/ww1936/EconomyChecks";
 import { goodsMilliOf } from "@openfront/engine-lib/ww1936/EconomyRules";
 import { genTech, isDesignType } from "@openfront/engine-lib/ww1936/Equipment";
 import type { HistCountry } from "@openfront/engine-lib/ww1936/hist/Types";
+import { IMJIN_OFF_BUILDINGS } from "@openfront/engine-lib/ww1936/scenario/Profile";
 import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import { emptyStats } from "@openfront/engine-lib/ww1936/Stats";
 import { assetUrl } from "@openfront/shared/AssetUrls";
@@ -105,6 +106,7 @@ import {
   TwoTap,
   wwActive,
 } from "./WorldWarModel";
+import { imjinCalendarOn } from "./WwClientCalendar";
 import {
   OpenWwIndustryEvent,
   OpenWwPoliticsEvent,
@@ -135,6 +137,10 @@ import { TabUi } from "./WwTabUi";
 /** P6 (spec §20.8): the MIO and market tabs follow the four of P1. */
 type DepthTab = WwIndustryTab | "mio" | "market";
 const ALL_TABS: readonly DepthTab[] = [...WW_INDUSTRY_TABS, "mio", "market"];
+/** ww184: the Imjin War's tabs: building, production and manpower. */
+const IMJIN_TABS: readonly DepthTab[] = ALL_TABS.filter(
+  (t) => t !== "trade" && t !== "mio" && t !== "market",
+);
 
 const TAB_KEYS: Readonly<Record<DepthTab, string>> = {
   mio: "ww1936.mio.tab",
@@ -466,7 +472,8 @@ export class WwIndustryPanel extends WwDrawerBase {
       c.dead
         ? nothing
         : this.renderTabs(
-            ALL_TABS,
+            // ww184: no 1936 resources, industrial orgs or market in the Imjin War.
+            imjinCalendarOn() ? IMJIN_TABS : ALL_TABS,
             this.tab,
             (t) => translateText(TAB_KEYS[t]),
             (t) => {
@@ -823,7 +830,10 @@ export class WwIndustryPanel extends WwDrawerBase {
         aria-label=${translateText("ww1936.econ.new_build")}
         class="flex flex-wrap gap-1"
       >
-        ${BUILDABLE.map(
+        ${BUILDABLE.filter(
+          // ww184: the Imjin War builds none of the systems it switches off.
+          (b) => !imjinCalendarOn() || !IMJIN_OFF_BUILDINGS.includes(b),
+        ).map(
           (b) =>
             html`<button
               type="button"

@@ -12,6 +12,7 @@ import {
   WwCountryDetail,
   WwTechId,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
+import { IMJIN_TECH_TABS } from "@openfront/engine-lib/imjin/ImjinTechs";
 import { HIST_COUNTRIES } from "@openfront/engine-lib/ww1936/hist/Types";
 import { WW_TECHS } from "@openfront/engine-lib/ww1936/WwTechs";
 import { html, nothing, svg, TemplateResult } from "lit";
@@ -39,12 +40,13 @@ import {
   techName,
 } from "./EconomyModel";
 import {
+  axisYearOf,
+  axisYears,
   baseSpeedPct,
   bonusFor,
   BonusSource,
   bonusSources,
   COL_W,
-  FIRST_YEAR,
   freeSlotNumber,
   jointPct,
   LAST_YEAR,
@@ -73,6 +75,7 @@ import {
   wwActive,
 } from "./WorldWarModel";
 import { autoMaskOf, autoOnIn, renderAutoSwitch } from "./WwAutoUi";
+import { imjinCalendarOn } from "./WwClientCalendar";
 import { OpenWwResearchEvent, WwDrawerBase } from "./WwDrawer";
 import { renderProjectsTab } from "./WwProjectsTab";
 import { TabUi } from "./WwTabUi";
@@ -479,19 +482,21 @@ export class WwResearchPanel extends WwDrawerBase {
       <span class="shrink-0 text-white/60"
         >${translateText("ww1936.rtree.lean_label")}</span
       >
-      ${RESEARCH_LEANS.map(
-        (lean, i) =>
-          html`<button
-            type="button"
-            data-ww-lean=${lean}
-            aria-pressed=${String(i === now)}
-            class="h-8 shrink-0 rounded-md border px-2 ${i === now
-              ? "border-sky-300 bg-sky-800/70 font-bold"
-              : "border-white/20 bg-black/30"}"
-            @click=${() => this.sendOrder({ kind: "research_lean", lean })}
-          >
-            ${translateText(LEAN_KEYS[lean])}
-          </button>`,
+      ${RESEARCH_LEANS.map((lean, i) =>
+        // ww184: no air war in the Imjin War.
+        lean === "air" && imjinCalendarOn()
+          ? nothing
+          : html`<button
+              type="button"
+              data-ww-lean=${lean}
+              aria-pressed=${String(i === now)}
+              class="h-8 shrink-0 rounded-md border px-2 ${i === now
+                ? "border-sky-300 bg-sky-800/70 font-bold"
+                : "border-white/20 bg-black/30"}"
+              @click=${() => this.sendOrder({ kind: "research_lean", lean })}
+            >
+              ${translateText(LEAN_KEYS[lean])}
+            </button>`,
       )}
     </div>`;
   }
@@ -501,7 +506,7 @@ export class WwResearchPanel extends WwDrawerBase {
       data-ww-rail
       class="flex w-11 shrink-0 flex-col gap-0.5 overflow-y-auto"
     >
-      ${TECH_TABS.filter((t) => t !== "doctrine").map(
+      ${this.railTabs().map(
         (t) =>
           html`<button
             type="button"
@@ -527,10 +532,16 @@ export class WwResearchPanel extends WwDrawerBase {
     </nav>`;
   }
 
+  /** ww184: the Imjin War shows its own four tabs (ImjinTechs), 1936 all but doctrine. */
+  private railTabs(): readonly Tab[] {
+    return imjinCalendarOn()
+      ? IMJIN_TECH_TABS
+      : TECH_TABS.filter((t) => t !== "doctrine");
+  }
+
   private tabName(t: Tab): string {
-    return t === "projects"
-      ? translateText("ww1936.project_ui.tab")
-      : branchName(t);
+    if (t === "projects") return translateText("ww1936.project_ui.tab");
+    return branchName(t);
   }
 
   private renderMain(d: WwCountryDetail, day: number): TemplateResult {
@@ -642,6 +653,7 @@ export class WwResearchPanel extends WwDrawerBase {
     day: number,
   ): TemplateResult {
     const z = this.zoom;
+    const axis = axisYears();
     const w = layout.width;
     const h = layout.height + HEAD;
     const at = new Map(layout.nodes.map((n) => [n.card.id, n]));
@@ -665,14 +677,14 @@ export class WwResearchPanel extends WwDrawerBase {
           style="width:${w}px;height:${h}px;transform:scale(${z});transform-origin:0 0"
         >
           ${Array.from(
-            { length: LAST_YEAR - FIRST_YEAR + 1 },
+            { length: axis.last - axis.first + 1 },
             (_, k) =>
               html`<div
-                data-ww-year=${FIRST_YEAR + k}
+                data-ww-year=${axis.first + k}
                 class="absolute top-0 border-l border-white/10 pl-1 text-[11px] text-white/50"
                 style="left:${PAD + k * COL_W}px;height:${h}px"
               >
-                ${FIRST_YEAR + k}
+                ${axis.first + k}
               </div>`,
           )}
           <div
@@ -783,7 +795,7 @@ export class WwResearchPanel extends WwDrawerBase {
                 class="max-w-20 truncate text-white/70"
                 >${this.techLabel(c.id)}</span
               >`}
-          <span class="text-white/60">${c.year}</span>
+          <span class="text-white/60">${axisYearOf(c.id)}</span>
           ${n.look === "done"
             ? html`<span class="text-emerald-300">✓</span>`
             : nothing}
@@ -940,7 +952,8 @@ export class WwResearchPanel extends WwDrawerBase {
       <div class="text-sm font-bold">${this.techLabel(c.id)}</div>
       ${n.gear === null ? nothing : this.renderGear(n.gear)}
       <div class="text-white/70">
-        ${c.year} · ${translateText("ww1936.rtree.base_days", { n: c.days })}
+        ${axisYearOf(c.id)} ·
+        ${translateText("ww1936.rtree.base_days", { n: c.days })}
       </div>
       ${c.state === "done"
         ? html`<div data-ww-done class="font-semibold text-emerald-300">
@@ -1397,7 +1410,7 @@ export class WwResearchPanel extends WwDrawerBase {
           }}
         >
           <span class="font-bold">${this.techLabel(c.id)}</span>
-          <span class="text-white/60"> ${c.year}</span>
+          <span class="text-white/60"> ${axisYearOf(c.id)}</span>
           ${gear === null || gear.entries.length === 0
             ? nothing
             : html`<span
@@ -1522,7 +1535,11 @@ export class WwResearchPanel extends WwDrawerBase {
     >
       ${RESEARCH_LEANS.map(
         (lean, i) =>
-          html`<option value=${lean} ?selected=${i === now}>
+          html`<option
+            value=${lean}
+            ?selected=${i === now}
+            ?hidden=${lean === "air" && imjinCalendarOn()}
+          >
             ${translateText(LEAN_KEYS[lean])}
           </option>`,
       )}

@@ -994,11 +994,14 @@ export function breachDaysFor(
   t: TerrainRow,
   engineers: boolean,
   bigGuns = false,
+  breachPct = 0,
 ): number {
   if (level <= 0 || t.breachMulPct <= 0) return 0;
   let d = Math.floor((3 * level * 100) / t.breachMulPct);
   // ww177 P7b (doctrine §6): Ming's heavy guns breach twice as fast.
   if (bigGuns) d = Math.max(1, Math.floor(d / 2));
+  // ww184: siege guns and shells researched (ImjinTechs.breachPct).
+  if (breachPct > 0) d = Math.max(1, Math.floor((d * 100) / (100 + breachPct)));
   return engineers ? Math.max(1, d - Math.floor(d / 3)) : d;
 }
 
@@ -1013,12 +1016,13 @@ export function siegeDay(
   engineers: boolean,
   t: TerrainRow,
   bigGuns = false,
+  breachPct = 0,
 ): SiegeState {
   const n = { ...s };
   if (n.grainDays > 0) n.grainDays--;
   else n.morale = clampMorale(n.morale - STARVING_MORALE);
   if (choice === "breach" && cannon && n.fort > 0) {
-    const need = breachDaysFor(n.fort, t, engineers, bigGuns);
+    const need = breachDaysFor(n.fort, t, engineers, bigGuns, breachPct);
     n.breachDays++;
     if (need > 0 && n.breachDays >= need) {
       n.fort--;

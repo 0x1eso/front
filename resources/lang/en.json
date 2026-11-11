@@ -5849,6 +5849,12 @@
       "lunar": "lunar {month}/{day}",
       "lunar_leap": "lunar leap {month}/{day}"
     },
+    "equip": {
+      "artillery": "Guns",
+      "convoy": "Transports",
+      "infantry_equipment": "Arms",
+      "support_equipment": "Stores"
+    },
     "era": {
       "bunroku": "Bunroku {year}",
       "chongzhen": "Chongzhen {year}",
@@ -5861,6 +5867,17 @@
       "tensho": "Tenshō {year}",
       "tianqi": "Tianqi {year}",
       "wanli": "Wanli {year}"
+    },
+    "gov": {
+      "communist": "Southerners in power",
+      "democratic": "Westerners in power",
+      "fascist": "Northerners in power",
+      "neutral": "The king rules"
+    },
+    "gov_of": {
+      "JPN": "Toyotomi rule",
+      "JUR": "The Jurchen chiefs",
+      "MIN": "The Ming court"
     },
     "lobby": {
       "ai_note": "The AI plays {countries}.",
@@ -14687,6 +14704,37 @@
         "paddy_wet": "Now: the paddies are flooded (slow, no cavalry charge)",
         "river_frozen": "Now: the great rivers are frozen and crossed like fords"
       },
+      "tech": {
+        "fx": {
+          "arq": "{kind}: arquebus fire +{n}",
+          "barrage_morale": "Barrage at walls: the garrison loses {n}% more morale a phase",
+          "board": "{kind}: boarding attack +{n}",
+          "breach": "Breaches walls {n}% faster",
+          "grain": "A besieged fort holds {n} more days of grain",
+          "gunnery": "Gunnery +{n} (hit chance +{p} points)",
+          "heavy": "{kind}: heavy guns +{n}",
+          "hull": "{kind}: hull +{n}%",
+          "light": "{kind}: light guns +{n}",
+          "row": "{row}: damage +{n}%",
+          "storm": "Storming walls: damage +{n}%",
+          "wall_block": "Behind walls: defence +{n}%"
+        },
+        "row": {
+          "archer": "Archers",
+          "arquebus": "Arquebusiers",
+          "cannon": "Guns",
+          "cavalry": "Cavalry",
+          "hwacha": "Hwacha",
+          "samurai": "Samurai",
+          "spear": "Spearmen"
+        },
+        "tab": {
+          "artillery": "Guns",
+          "industry": "Walls",
+          "infantry": "Drill",
+          "naval": "Fleet"
+        }
+      },
       "terrain": {
         "forest": "Forest",
         "fortress": "Mountain fortress",
@@ -18559,6 +18607,35 @@
       "heavy_tank_3": "Heavy Tank III",
       "hedgehog": "Forward-throwing anti-submarine weapons",
       "hospital_2": "Field transfusion and evacuation",
+      "imj_jos_bigyeok": "Bigyeok jincheonroe shells",
+      "imj_jos_cheonja": "More cheonja and jija guns",
+      "imj_jos_drill": "Fleet gunnery drill",
+      "imj_jos_hwacha": "Improved hwacha",
+      "imj_jos_hyeonja": "More hyeonja and hwangja guns",
+      "imj_jos_jeolgang": "Jixiao Xinshu drill",
+      "imj_jos_jochong": "Captured and copied arquebuses",
+      "imj_jos_panokseon": "Stouter panokseon",
+      "imj_jos_pyeonjeon": "Pyeonjeon archery",
+      "imj_jos_samsu": "Hullyeon Dogam's three arms",
+      "imj_jos_sanseong": "Mountain fortress repairs",
+      "imj_jos_turtle": "Improved turtle ships",
+      "imj_jpn_atakebune": "Stouter atakebune",
+      "imj_jpn_boarding": "Boarding drill",
+      "imj_jpn_cannon": "Cannon aboard",
+      "imj_jpn_ladders": "Ladders under covering fire",
+      "imj_jpn_nagae": "Long-pike ranks",
+      "imj_jpn_samurai": "Mounted samurai",
+      "imj_jpn_sekibune": "Arquebuses on the sekibune",
+      "imj_jpn_teppo": "Mass-made arquebuses",
+      "imj_jpn_volley": "Volley fire by turns",
+      "imj_jpn_waeseong": "Wajō castles",
+      "imj_jur_riders": "Horse archery",
+      "imj_min_dajiangjun": "Great general guns",
+      "imj_min_folangji": "Folangji breech-loaders",
+      "imj_min_hudun": "Crouching tiger guns",
+      "imj_min_northern": "Northern horse",
+      "imj_min_southern": "Southern arquebusiers",
+      "imj_min_yuanyang": "Qi's mandarin duck squads",
       "inf_at_1": "Anti-tank rifles and grenades",
       "inf_at_2": "Portable anti-tank weapon",
       "inf_eq_1": "Infantry equipment I",

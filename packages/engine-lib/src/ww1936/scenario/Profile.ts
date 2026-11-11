@@ -5,6 +5,8 @@
 // and the starts, and switches whole systems off.
 import type { GameConfig } from "@openfront/engine-api/Schemas";
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
+import type { BuildingId } from "@openfront/engine-api/ww1936/EconomyTypes";
+import type { BattalionId } from "@openfront/engine-api/ww1936/LandTypes";
 import {
   IMJIN_CALENDAR_IDS,
   type ImjinCalendarId,
@@ -45,6 +47,50 @@ export type WwSystem = (typeof WW_SYSTEMS)[number];
 
 /** Design §2: everything above is off in the Imjin War. */
 export const IMJIN_OFF_SYSTEMS: readonly WwSystem[] = WW_SYSTEMS;
+
+/**
+ * ww184: the buildings of the systems the Imjin War switches off (rail,
+ * air, energy, dams, the special projects, the 1936 resources), which the
+ * construction screen hides and the engine refuses there.
+ */
+export const IMJIN_OFF_BUILDINGS: readonly BuildingId[] = [
+  "rail",
+  "air_base",
+  "anti_air",
+  "radar",
+  "synthetic_refinery",
+  "fuel_silo",
+  "facility_nuclear",
+  "facility_rocket",
+  "facility_science",
+  "rocket_site",
+  "power_plant",
+  "dam",
+  "alloy_plant",
+  "smelter",
+  "mine",
+];
+
+/** ww184: whether the profile builds `building` (1936: every one). */
+export function buildingOn(cfg: ScenarioCfg, building: BuildingId): boolean {
+  return !isImjin(cfg) || !IMJIN_OFF_BUILDINGS.includes(building);
+}
+
+/** ww184: the battalions a 1590s army has (no motor, armour or 1936 guns). */
+export const IMJIN_BATTALIONS: readonly BattalionId[] = [
+  "infantry",
+  "cavalry",
+  "mountain",
+  "artillery",
+];
+
+/** ww184: whether a start template fits the profile (1936: every one). */
+export function templateOn(
+  cfg: ScenarioCfg,
+  battalions: readonly BattalionId[],
+): boolean {
+  return !isImjin(cfg) || battalions.every((b) => IMJIN_BATTALIONS.includes(b));
+}
 
 /** Whether the profile runs `system` (1936: always). */
 export function wwSystemOn(cfg: ScenarioCfg, system: WwSystem): boolean {

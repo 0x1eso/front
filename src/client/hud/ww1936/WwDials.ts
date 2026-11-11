@@ -33,6 +33,7 @@ import {
 } from "./PoliticsModel";
 import { prepEndTick, today, wwActive } from "./WorldWarModel";
 import { autoMaskOf } from "./WwAutoUi";
+import { imjinCalendarOn } from "./WwClientCalendar";
 import {
   OpenWwAirEvent,
   OpenWwDiplomacyEvent,
@@ -301,21 +302,24 @@ export class WwDials extends LitElement implements Controller {
     if (detail === null) return null;
     const land = this.game.wwLand?.() ?? null;
     const pol = politicsInput(this.game);
+    const imjin = imjinCalendarOn();
     const ctx = navyCtx(this.game as unknown as NavyGame);
     return {
       industry: industryDial(detail, view.summary(me.smallID())),
       research: researchDial(detail),
       army: land === null ? null : armyDial(land, me.smallID()),
-      focus: pol === null ? null : focusDial(pol),
+      // ww184: no 1936 focus tree in the Imjin War (its preparations are decisions).
+      focus: pol === null || imjin ? null : focusDial(pol),
       politics: pol === null ? null : politicsDial(pol),
       diplomacy: pol === null ? null : diplomacyDial(pol),
       navy:
         ctx === null
           ? null
           : navyDial(ctx, dayStartTick(ctx.day, prepEndTick(this.game))),
-      air: ctx === null ? null : airDial(ctx),
-      doctrine: new DoctrineModel(this.game).thoughtDial(),
-      intel: new DoctrineModel(this.game).intelDial(),
+      // ww184: the Imjin War has no 1936 doctrine sliders, intelligence or air.
+      doctrine: imjin ? null : new DoctrineModel(this.game).thoughtDial(),
+      intel: imjin ? null : new DoctrineModel(this.game).intelDial(),
+      air: imjin || ctx === null ? null : airDial(ctx),
       airLayer: seaAirOf(this.game).selection.layer === "air",
       seaLayer: seaAirOf(this.game).selection.layer === "sea",
       compact: window.innerHeight <= COMPACT_MAX_HEIGHT,
@@ -463,7 +467,7 @@ export class WwDials extends LitElement implements Controller {
       () => this.holdStart(),
       () => this.holdEnd(),
     );
-    return html`${navy} ${air}`;
+    return html`${navy} ${imjinCalendarOn() ? nothing : air}`;
   }
 
   /**

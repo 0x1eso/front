@@ -36,6 +36,7 @@ import {
   doctrineDay,
   type ImjinDocState,
   scuttlePicks,
+  techOf,
 } from "./land/ImjinDoctrine";
 import { siegeDays, wajoBatteries } from "./land/Sieges";
 import { imjinSeaAi, imjinSeaBattleAi } from "./sea/SeaAi";
@@ -231,6 +232,7 @@ export class WwImjin {
       keepsPrizes: (owner) => owner !== this.idOf("JOS"),
       japan: this.idOf("JPN"),
       batteries: () => wajoBatteries(this),
+      tech: (owner) => techOf(this, owner),
       holdsShores: (owner, x, y, current) => {
         const sh = this.shoresOf(x, y, current);
         return sh !== 0 && land.sameSide(owner, sh);

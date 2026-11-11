@@ -9,6 +9,7 @@ import {
   BIGYEOK_SIEGE_MORALE,
   DOCTRINE_FLAGS,
 } from "@openfront/engine-lib/imjin/Doctrine";
+import { techGrainDays } from "@openfront/engine-lib/imjin/ImjinTechs";
 import {
   fortLevelOf,
   type SiegeChoice,
@@ -20,7 +21,7 @@ import { regionTerrain } from "@openfront/engine-lib/imjin/Terrain";
 import { effectiveLevel } from "../../ww1936/economy/Buildings";
 import type { SeaBattery } from "../sea/SeaCtx";
 import type { ImjinSiege, WwImjin } from "../WwImjin";
-import { mixOf } from "./ImjinDoctrine";
+import { mixOf, techOf } from "./ImjinDoctrine";
 
 /** Grain a fort holds, days (design §5: "days shown"; doctrine §7.3 by kind). */
 export const SIEGE_GRAIN_DAYS = 30;
@@ -118,14 +119,16 @@ function besiegersGuns(
   im: WwImjin,
   region: number,
   owner: number,
-): { any: boolean; ming: boolean; joseon: boolean } {
+): { any: boolean; ming: boolean; joseon: boolean; breachPct: number } {
   const land = im.ww.land;
-  const out = { any: false, ming: false, joseon: false };
+  const out = { any: false, ming: false, joseon: false, breachPct: 0 };
   for (const n of im.ww.scenario.regionNeighbours(region)) {
     const c = land.controller[n];
     if (!land.isEnemy(owner, c)) continue;
     if ((mixOf(im, c).cannon ?? 0) <= 0) continue;
     out.any = true;
+    // ww184: the best siege guns researched among the besiegers.
+    out.breachPct = Math.max(out.breachPct, techOf(im, c).breachPct);
     const tag = im.ww.scenario.tagOfSmallId(c);
     if (tag === "MIN") out.ming = true;
     if (tag === "JOS") out.joseon = true;
@@ -135,6 +138,11 @@ function besiegersGuns(
 
 /** Grain the fort starts a siege with (doctrine §7.3). */
 function grainOf(im: WwImjin, region: number, owner: number): number {
+  // ww184: granaries and walls researched add their days.
+  return techGrainDays(techOf(im, owner), baseGrainOf(im, region, owner));
+}
+
+function baseGrainOf(im: WwImjin, region: number, owner: number): number {
   if (isWajo(im, region)) return WAJO_GRAIN_DAYS;
   const t = regionTerrain(im.ww.scenario, region);
   if (t === "fortress") return FORTRESS_GRAIN_DAYS;
@@ -190,6 +198,7 @@ export function siegeDays(im: WwImjin, day: number): void {
         false,
         terrain,
         guns.ming,
+        guns.breachPct,
       );
       s = { ...s, ...n };
       // ww177 P7b (doctrine §4): Joseon's guns lob the bigyeokjincheonroe
