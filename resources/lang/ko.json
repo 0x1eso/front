@@ -14541,11 +14541,11 @@
         "2": "우리 말을 들어 줄 것이다"
       },
       "prep": {
-        "0": "공세 준비 없음",
-        "1": "공세를 준비하는 중"
+        "0": "낌새 없음",
+        "1": "포와 병력을 모으는 중"
       },
       "strain": {
-        "0": "버틸 만함",
+        "0": "아직 단단함",
         "1": "지쳐 감",
         "2": "많이 지침",
         "3": "한계에 가까움",
@@ -14774,9 +14774,9 @@
       "off_shells": "긴 포격에 쓸 포탄을 쌓았다.",
       "off_papers_talk": "신문들이 다가올 승리를 이야기한다.",
       "off_refusal": "군의 거부가 나라를 흔들었다.",
-      "shells_sabotaged": "공작원이 탄약고를 날렸다.",
-      "order_contagion": "동쪽으로 보낸 혁명이 우리 땅에도 번졌다.",
-      "order_spies_blamed": "간첩 탓으로 돌리자 나라가 잠시 진정됐다."
+      "shells_sabotaged": "외국 공작원들이 탄약고를 날렸다.",
+      "order_contagion": "동쪽으로 보낸 혁명이 돌아와 우리 공장과 병영에 번졌다.",
+      "order_spies_blamed": "배신자를 찾았다는 소식에 거리가 잠시 가라앉았다."
     },
     "mandate": {
       "deu_bread_for_the_winter": "겨울 빵을 남기기",
@@ -14969,13 +14969,13 @@
       "off_repulsed": "{a}의 대공세가 철조망 앞에서 멈췄다: {theatre}.",
       "off_refusal": "{a}의 병사들이 다시 나가기를 거부한다.",
       "spy_codes_changed": "{a}이(가) 암호를 바꿨다.",
-      "spy_exposed": "{a}에서 {b}의 요원들이 잡혀 드러났다.",
-      "spy_sabotage": "{a}의 탄약고가 폭발했다.",
-      "spy_lenin": "{b}이(가) 망명 혁명가들을 {a}(으)로 돌려보냈다.",
-      "spy_arms_taken": "{a}이(가) {b}이(가) 보낸 무기선을 붙잡았다.",
-      "spy_irish_rising": "{b}의 무기로 아일랜드에서 봉기가 일어났다.",
-      "spy_arab_revolt": "{b}의 지원을 받은 아랍인들이 {a}에 맞서 봉기했다.",
-      "spy_jihad": "{a}이(가) 세계의 무슬림에게 성전을 선포했다."
+      "spy_exposed": "{a}이(가) {b}의 요원들을 잡아 세상에 알렸다.",
+      "spy_sabotage": "{a}에서 탄약고가 터졌다.",
+      "spy_lenin": "망명 혁명가들이 {b}이(가) 열어 준 길로 {a}에 돌아갔다.",
+      "spy_arms_taken": "{b}이(가) 보낸 무기선이 {a} 해군에 붙잡혔다.",
+      "spy_irish_rising": "아일랜드에서 봉기가 일어났다. 소총은 {b}에서 왔다.",
+      "spy_arab_revolt": "메카의 샤리프가 {a}에 맞서 봉기했다. 뒤에 {b}의 금화와 소총이 있다.",
+      "spy_jihad": "{a}의 술탄이 칼리프의 이름으로 성전을 선포했다."
     },
     "odds": {
       "0": "될 일이 아닙니다.",
@@ -15398,10 +15398,10 @@
       "off_refusal": "군이 다시 공격하기를 거부했다.",
       "spy_code_read": "암호 해독반이 적의 전신을 읽기 시작했다.",
       "spy_code_lost": "적이 암호를 바꿨다. 더는 읽지 못한다.",
-      "spy_ours_exposed": "외국에 심은 우리 요원들이 잡혀 드러났다.",
+      "spy_ours_exposed": "외국에 심은 우리 요원들이 잡혔다. 그 나라가 세상에 알렸다.",
       "spy_caught": "방첩대가 외국 요원들을 잡았다.",
       "spy_codebook": "적의 암호책이 우리 해독반 손에 들어왔다.",
-      "spy_blame_cost": "간첩 사냥의 값으로 정보기관이 흔들리고 의회의 신뢰가 줄었다."
+      "spy_blame_cost": "간첩 사냥이 뒤탈을 남겼다. 방첩대는 엉뚱한 사람을 쫓았고, 위에서 하는 말을 믿는 사람이 줄었다."
     },
     "result": {
       "advance": "전진",
@@ -15468,7 +15468,7 @@
       "whip": "원내 셈",
       "police": "정치 경찰",
       "envoy": "특사",
-      "codes": "암호 해독",
+      "codes": "암호 해독반",
       "prisoners": "포로와 노획 문서"
     },
     "stamp": {
@@ -16253,8 +16253,8 @@
       "report_where": "{country} ({theatre})",
       "front_foe": "적의 사정: {what}",
       "front_foe_word": "{word} ({stamp})",
-      "front_foe_unknown": "알 수 없다",
-      "front_reading": "암호를 읽고 있다"
+      "front_foe_unknown": "알 수 없음",
+      "front_reading": "적의 암호를 읽고 있다"
     },
     "unknown": {
       "ai": "{country}의 원수는 {word} 인물이었다.",
