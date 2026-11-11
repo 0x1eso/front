@@ -204,11 +204,16 @@ export const WORLD_SCENES: readonly GwScene[] = [
         tell: [],
         effects: [doWorld({ do: "counter_offensive", pick: "strike" })],
       },
+      // "모르는 척한다": learned through his codes, we act as if we never
+      // knew, so the read raises no suspicion (Spies "hide", ww173 formatc).
       {
         id: "dumb",
         when: world({ is: "foe_offensive", code: true }),
         tell: [],
-        effects: [doWorld({ do: "counter_offensive", pick: "dumb" })],
+        effects: [
+          doWorld({ do: "counter_offensive", pick: "dumb" }),
+          doWorld({ do: "spy", act: "hide" }),
+        ],
       },
     ],
   },

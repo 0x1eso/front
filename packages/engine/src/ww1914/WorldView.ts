@@ -29,10 +29,10 @@ import { craftView } from "./Craft";
 import { dossierView } from "./Dossier";
 import { eraOf } from "./Eras";
 import { ownFronts, proposalsFor } from "./Fronts";
-import { prepView } from "./Offensives";
 import type { GreatWar } from "./GreatWar";
 import { houseView } from "./House";
 import { lawsAhead, lawViews } from "./Laws";
+import { prepView } from "./Offensives";
 import {
   candidatesFor,
   dismissPrice,

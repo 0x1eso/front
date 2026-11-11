@@ -10,6 +10,7 @@ import {
   believedStrain,
   expose,
   intelOf,
+  promiseCost,
   spiesStep,
   spyEffect,
   spyHolds,
@@ -103,7 +104,7 @@ describe("the services", () => {
       }),
     );
     expect(mine.some((r) => r.fact === "prep" && r.claim === 1)).toBe(true);
-    expect(fake.seen).toContainEqual([gw, russianPrep, "DEU"]);
+    expect(fake.seen).toContainEqual([gw, russianPrep, "DEU", true]);
     expect(believedStrain(gw, "DEU", "east", "RUS")).toBe(75);
     // The next chapter Germany's main effort goes east: Russia grows wary.
     gw.s.chapter += 1;
@@ -173,6 +174,15 @@ describe("abroad", () => {
     const heard = intelOf(gw, "RUS").heard.filter((h) => h.tag === "DEU");
     expect(heard.length).toBeGreaterThan(0);
     expect(heard.every((h) => h.claim !== 0)).toBe(true);
+  });
+
+  test("Britain's promise to Hussein weighs on France's Syria and Palestine at the table", () => {
+    expect(promiseCost(gw, "FRA", "damascus")).toBe(0);
+    intelOf(gw, "GBR").marks.push("hussein");
+    expect(promiseCost(gw, "FRA", "damascus")).toBeGreaterThan(0);
+    expect(promiseCost(gw, "FRA", "jerusalem")).toBeGreaterThan(0);
+    expect(promiseCost(gw, "GBR", "damascus")).toBe(0);
+    expect(promiseCost(gw, "FRA", "beirut")).toBeGreaterThan(0);
   });
 
   test("subversion waits for the state and comes once a year", () => {

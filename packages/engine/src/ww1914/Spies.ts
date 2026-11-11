@@ -15,6 +15,7 @@ import {
   GwTheatre,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
+import { GW_PLACES, GwPlace } from "@openfront/engine-api/ww1914/GwPlaces";
 import type { GwSpyAct, GwSpyCan } from "@openfront/engine-api/ww1914/GwSpies";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { allocOf } from "./Fronts";
@@ -268,7 +269,8 @@ function codesStep(gw: GreatWar, a: GwTag, foes: GwTag[]): void {
       learn(gw, a, "strain", f, t, "codes", "confirmed");
       for (const o of preparing(gw, f, t)) {
         learn(gw, a, "prep", f, t, "codes", "confirmed");
-        if (!seenBy(gw, o).includes(a)) markSeen(gw, o, a);
+        // Read in his codes: the counterplay offers "모르는 척한다".
+        markSeen(gw, o, a, true);
         ia.readOn.push({ tag: f, theatre: t, chapter: gw.s.chapter });
       }
     }
@@ -541,6 +543,20 @@ function rested(gw: GreatWar, a: GwTag): boolean {
 
 function marked(gw: GreatWar, tag: GwTag, mark: string): boolean {
   return gw.nation(tag)?.intel?.marks.includes(mark) === true;
+}
+
+/** What Britain's promise to Hussein adds to France's price for a place. */
+const HUSSEIN_COST = 15;
+const HUSSEIN_GROUPS: readonly string[] = ["syria", "palestine"];
+
+/**
+ * At the peace table, McMahon against Sykes-Picot: once Britain has backed
+ * the Arab revolt (`m_hussein_promise`), France's claims in Syria and
+ * Palestine cost it more to win.
+ */
+export function promiseCost(gw: GreatWar, by: GwTag, place: GwPlace): number {
+  if (by !== "FRA" || !marked(gw, "GBR", "hussein")) return 0;
+  return HUSSEIN_GROUPS.includes(GW_PLACES[place].group) ? HUSSEIN_COST : 0;
 }
 
 function mark(gw: GreatWar, tag: GwTag, m: string): void {

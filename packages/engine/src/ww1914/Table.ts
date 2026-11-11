@@ -48,6 +48,7 @@ import {
   landLine,
   monthsHeld,
 } from "./Occupation";
+import { promiseCost } from "./Spies";
 import { weariness } from "./Terms";
 import {
   clampTo,
@@ -344,6 +345,7 @@ function placeCost(gw: GreatWar, c: GwTableClaim): number {
   } else if (papers.includes("f_e_followed_wilson")) {
     v += WILSON_COST;
   }
+  v += promiseCost(gw, c.by, c.place);
   return v + claimsMade(t, c.by) * APPETITE;
 }
 
