@@ -21,7 +21,7 @@ import { gwRunner } from "./util";
 
 const fake = vi.hoisted(() => ({
   offensives: [] as unknown[],
-  strain: (_t: string, _tag: string) => 0,
+  strain: (_t: string, _tag: string): number => 0,
   seen: [] as unknown[][],
 }));
 vi.mock("@openfront/engine/ww1914/Offensives", async (orig) => ({
@@ -134,7 +134,7 @@ describe("the services", () => {
     expect(text).not.toContain('"intel"');
     expect(text).not.toContain('"crypt"');
     expect(text).not.toContain('"net"');
-    expect(v.reports.at(-1)?.corrected).toBeNull();
+    expect(v.reports.slice(-1)[0]?.corrected).toBeNull();
   });
 });
 
@@ -151,7 +151,7 @@ describe("abroad", () => {
     expect(usa.trust.DEU).toBe(-1);
     expect(usa.lean).toBe(1);
     expect(usa.readiness).toBe(30);
-    expect(gw.s.news.at(-1)).toMatchObject({
+    expect(gw.s.news.slice(-1)[0]).toMatchObject({
       key: "spy_exposed",
       a: "USA",
       b: "DEU",
@@ -163,7 +163,7 @@ describe("abroad", () => {
     intelOf(gw, "DEU").counter = 3;
     intelOf(gw, "RUS").net = { DEU: 1 };
     agentsTaken(gw, "DEU", "RUS");
-    expect(st().scheduled.at(-1)?.scene).toBe("gw_spy_caught");
+    expect(st().scheduled.slice(-1)[0]?.scene).toBe("gw_spy_caught");
     expect(spyHolds(gw, st(), "from", "RUS")).toBe(true);
     spyEffect(gw, st(), "double");
     expect(intelOf(gw, "DEU").turned).toEqual(["RUS"]);
