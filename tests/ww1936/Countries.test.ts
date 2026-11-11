@@ -5,6 +5,7 @@ import {
   FACTION_LEADER,
   isCountryTag,
   isDormantTag,
+  isImjinTag,
   MAJOR_TAGS,
   PICK_ORDER,
 } from "@openfront/engine-api/ww1936/Countries";
@@ -76,9 +77,9 @@ describe("the 1936 country table", () => {
       "ITA",
       "JPN",
     ]);
-    // P5 plan decision 3: never a dormant slot.
+    // P5 plan decision 3: never a dormant slot; ww177: nor an Imjin War tag.
     expect([...PICK_ORDER].sort()).toEqual(
-      COUNTRY_TAGS.filter((t) => !isDormantTag(t)).sort(),
+      COUNTRY_TAGS.filter((t) => !isDormantTag(t) && !isImjinTag(t)).sort(),
     );
   });
 
