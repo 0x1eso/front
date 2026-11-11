@@ -438,6 +438,16 @@ function propaganda(c: GwCtx): TemplateResult {
     );
   }
   const done = [...(v?.ops ?? [])].reverse();
+  // A campaign still on that has done nothing yet hasn't failed.
+  const still = (o: { act: string; tag: string | null }) =>
+    v !== undefined &&
+    (o.act === "home"
+      ? v.home
+      : o.act === "hush"
+        ? v.hush
+        : o.act === "leaflets"
+          ? v.leaflets.some((x) => x === o.tag)
+          : v.papers.some((x) => x === o.tag));
   return html`<section class=${BOX} data-gw-intel-prop>
     ${head("prop")}
     ${on.length === 0
@@ -464,7 +474,15 @@ function propaganda(c: GwCtx): TemplateResult {
                 —
                 ${o.ok === null
                   ? t("ops.waiting")
-                  : t(o.out ? "ops.out" : o.ok ? "ops.ok" : "ops.failed")}
+                  : o.out
+                    ? t("ops.out")
+                    : o.ok
+                      ? t("ops.ok")
+                      : still(o) &&
+                          o ===
+                            done.find((x) => x.act === o.act && x.tag === o.tag)
+                        ? t("prop.running")
+                        : t("ops.failed")}
               </p>`,
           )}`}
   </section>`;

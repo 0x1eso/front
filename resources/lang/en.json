@@ -2004,42 +2004,42 @@
     },
     "agent": {
       "bettignies": {
-        "bio": "A Frenchwoman of Lille whom British intelligence called 'Alice Dubois'. From January to September 1915 she ran a network of about a hundred people. Taken near Tournai on 20 October 1915, she was sentenced to death, then to forced labour, and died in prison in Cologne on 27 September 1918.",
+        "bio": "A Frenchwoman of Lille whom British intelligence called 'Alice Dubois'. From January to September 1915 she ran a network of about a hundred people. In history: taken near Tournai on 20 October 1915, she was sentenced to death, then to forced labour, and died in prison in Cologne on 27 September 1918.",
         "name": "Louise de Bettignies",
         "work": "Reports German movements from occupied Lille"
       },
       "bolo": {
-        "bio": "Paul Bolo, a businessman from Marseille. With German money passed through the former Khedive of Egypt he tried to buy into the French press. Arrested on 29 September 1917, he was shot at Vincennes on 17 April 1918.",
+        "bio": "Paul Bolo, a businessman from Marseille. With German money passed through the former Khedive of Egypt he tried to buy into the French press. In history: arrested on 29 September 1917, he was shot at Vincennes on 17 April 1918.",
         "name": "Bolo Pasha",
         "work": "Buys newspapers to break the enemy's nerve"
       },
       "dame_blanche": {
-        "bio": "A network in occupied Belgium working for British intelligence, set up in 1916 by Walthère Dewé, Herman Chauvin and others. People living by the railways counted every train, day and night. By 1918 it had over a thousand members and was never broken.",
+        "bio": "A network in occupied Belgium working for British intelligence, set up in 1916 by Walthère Dewé, Herman Chauvin and others. People living by the railways counted every train, day and night. In history: by 1918 it had over a thousand members and was never broken.",
         "name": "The White Lady network",
         "work": "Counts German trains day and night"
       },
       "duquesne": {
-        "bio": "A Boer who worked for Germany. From Bahia in Brazil he loaded bombs disguised as boxes of mineral samples onto British ships; three sailors died on the Tennyson in February 1916. He faked his own death, was taken in New York in 1917, and in May 1919 escaped from Bellevue Hospital dressed as a woman.",
+        "bio": "A Boer who worked for Germany. From Bahia in Brazil he loaded bombs disguised as boxes of mineral samples onto British ships; three sailors died on the Tennyson in February 1916. In history: he faked his own death, was taken in New York in 1917, and in May 1919 escaped from Bellevue Hospital dressed as a woman.",
         "name": "Fritz Joubert Duquesne",
         "work": "Puts bombs on British merchant ships"
       },
       "lody": {
-        "bio": "A German naval reserve officer. He landed on 27 August 1914 with the passport of an American, 'Charles A. Inglis'. Counter-intelligence opened every letter he sent. Taken at Killarney on 2 October, he was shot in the Tower of London on 6 November 1914.",
+        "bio": "A German naval reserve officer. He landed on 27 August 1914 with the passport of an American, 'Charles A. Inglis'. Counter-intelligence opened every letter he sent. In history: taken at Killarney on 2 October, he was shot in the Tower of London on 6 November 1914.",
         "name": "Carl Hans Lody",
         "work": "Watches the Royal Navy"
       },
       "mata_hari": {
-        "bio": "The Dutch dancer Margaretha Zelle. German intelligence named her H-21; in 1916 she also worked for Captain Ladoux of the French Deuxième Bureau. Arrested in Paris on 13 February 1917, she was shot at Vincennes on 15 October 1917.",
+        "bio": "The Dutch dancer Margaretha Zelle. German intelligence named her H-21; in 1916 she also worked for Captain Ladoux of the French Deuxième Bureau. In history: arrested in Paris on 13 February 1917, she was shot at Vincennes on 15 October 1917.",
         "name": "Mata Hari",
         "work": "Hears what officers say and passes it on"
       },
       "reilly": {
-        "bio": "An adventurer born in the Russian Empire. Early in the war he dealt in munitions in New York. In the spring of 1918 Cumming swore him into the Secret Intelligence Service and sent him to Russia, where he joined a plot to overthrow Lenin's government. When it failed he got out through Finland and reached London on 8 November 1918.",
+        "bio": "An adventurer born in the Russian Empire. Early in the war he dealt in munitions in New York. In the spring of 1918 Cumming swore him into the Secret Intelligence Service and sent him to Russia, where he joined a plot to overthrow Lenin's government. In history: when it failed he got out through Finland and reached London on 8 November 1918.",
         "name": "Sidney Reilly",
         "work": "Digs into what Russia's rulers mean to do"
       },
       "rintelen": {
-        "bio": "A German naval officer. He reached New York on 3 April 1915 on a false Swiss passport, hid cigar-shaped fire bombs in the holds of ships bound for the Allies, and paid for strikes in munitions works. Sailing home that August, he was taken off his ship by the British.",
+        "bio": "A German naval officer. He reached New York on 3 April 1915 on a false Swiss passport, hid cigar-shaped fire bombs in the holds of ships bound for the Allies, and paid for strikes in munitions works. In history: sailing home that August, he was taken off his ship by the British.",
         "name": "Franz von Rintelen",
         "work": "Hides fire bombs in munitions ships"
       }
@@ -3026,6 +3026,7 @@
         "leaflets_on": "Leaflets on: {countries}",
         "none": "No campaign can be started now. Rows appear here in wartime when a schedule slot is free.",
         "papers_on": "Papers we pay in: {countries}",
+        "running": "still running",
         "title": "Propaganda and censorship",
         "why": "Keep the nerve at home, shake the enemy's people, buy a neutral's opinion. Results come slowly, over months, and money found out turns a country against us."
       },
