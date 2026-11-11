@@ -648,12 +648,14 @@ describe("the screens", () => {
     await panel.updateComplete;
   };
 
-  test("the schedule sits beside the people tab and lists by kind", async () => {
+  test("the schedule sits after the people and 통치 tabs and lists by kind", async () => {
     const { panel } = await mount(seatWith(SCHEDULE));
     const tabs = [...panel.querySelectorAll("[data-gw-tab]")].map((x) =>
       x.getAttribute("data-gw-tab"),
     );
-    expect(tabs.indexOf("schedule")).toBe(tabs.indexOf("people") + 1);
+    // ww169 put the 통치 tab between them (GW_TABS).
+    expect(tabs.indexOf("rule")).toBe(tabs.indexOf("people") + 1);
+    expect(tabs.indexOf("schedule")).toBe(tabs.indexOf("rule") + 1);
     expect(
       panel.querySelector("[data-gw-tab=schedule]")!.textContent,
     ).toContain("2");
