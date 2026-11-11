@@ -25,21 +25,30 @@ import {
   occupationStep,
 } from "@openfront/engine/ww1914/Occupation";
 import { frontsBetween } from "@openfront/engine/ww1914/Tables";
-import { declareWar, memberEnd } from "@openfront/engine/ww1914/Wars";
+import {
+  declareWar,
+  memberEnd,
+  openGeneral,
+} from "@openfront/engine/ww1914/Wars";
 import { expect, test } from "vitest";
 import { realMap } from "./realMap";
 import { startOf } from "./sim/GwSim";
 
 const FLEETS: readonly GwTag[] = ["GBR", "DEU", "FRA", "RUS", "AUH"];
 
-/** Every open front `o` fights on at the far end against it; the sea to `t`'s side. */
+/**
+ * Every open front `o` fights on at the far end against it; the sea won by
+ * `t`'s side (its fleet can then land: supply runs from the ports it holds).
+ */
 function winThrough(gw: GreatWar, o: GwTag, t: GwTag): void {
   for (const th of gw.s.theatres) {
-    if (th.since === null) continue;
+    if (th.since === null && th.id !== "sea") continue;
     const top = (GW_LINES[th.id].length - 1) * GW_LINE_STEP;
     let pos: number | null = null;
     if (th.id === "sea") {
       const side = gw.nation(t)?.side ?? null;
+      // A war at sea too: its side has won the narrow seas.
+      if (side !== null) th.since ??= gw.s.chapter;
       if (side !== null) pos = side === "central" ? top : 0;
     } else {
       const end = memberEnd(gw, th.id, o);
@@ -89,9 +98,19 @@ test("every place of a country that can go to war can be taken while the war run
     const foes = tags.filter(
       (t) => frontsBetween(o, t).length > 0 || (FLEETS.includes(t) && t !== o),
     );
-    for (const t of foes) {
+    // Each foe alone, then in a general war of the coalitions.
+    const paths = foes.flatMap((t) => [
+      [t, false],
+      [t, true],
+    ]) as [GwTag, boolean][];
+    for (const [t, general] of paths) {
       gw.s = structuredClone(fresh);
       gw.s.chapter = long;
+      if (general) {
+        const [a, b] =
+          o === "DEU" || o === "FRA" ? ["AUH", "RUS"] : ["DEU", "FRA"];
+        openGeneral(gw, a as GwTag, b as GwTag, "test");
+      }
       if (!declareWar(gw, t, o, "test")) continue;
       winThrough(gw, o, t);
       for (let i = 0, still = 0; i < 60 && still < 2; i++) {

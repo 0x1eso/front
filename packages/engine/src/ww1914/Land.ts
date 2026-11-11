@@ -71,10 +71,12 @@ export function farPos(t: GwTheatreState["id"], e: GwSide): number {
 
 /**
  * ww179: the front has run past `owner`'s last line here: it fights on this
- * front and the other end stands at the far end. Its places the line no
- * longer names are then left to occupation, not handed back.
+ * front and the other end stands at the far end, or it is out of the war.
+ * Its places the line no longer names are then left to occupation, not
+ * handed back.
  */
 export function ranOn(gw: GreatWar, t: GwTheatreState, owner: GwTag): boolean {
+  if (gw.nation(owner)?.out === true) return true;
   const end = memberEnd(gw, t.id, owner);
   return end !== null && posOf(t) === farPos(t.id, other(end));
 }
@@ -95,7 +97,8 @@ function takerOf(
   const now = holderOf(gw, place);
   if (side === null) {
     // Past the owner's last line, what an enemy took stays taken (ww179).
-    const kept = now !== owner && atWarWith(gw, now, owner);
+    const out = gw.nation(owner)?.out === true;
+    const kept = now !== owner && (out || atWarWith(gw, now, owner));
     return kept && ranOn(gw, t, owner) ? now : owner;
   }
   const ownerSide = sideIn(gw, t.id, owner);

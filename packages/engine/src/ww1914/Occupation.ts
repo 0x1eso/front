@@ -61,6 +61,12 @@ import {
  * first group always goes.
  */
 export const GW_OCC_PLACES = 8;
+/**
+ * How far a spreading army's supply runs over held land (ww179): map tiles,
+ * place to place (east and north added). About Berlin to Moscow and on to
+ * the Volga; not across Siberia.
+ */
+export const GW_SUPPLY_REACH = 500;
 /** Rank of a group reached only over the water: after every land route. */
 const BY_SEA = 1_000_000;
 /** The sea line a side must hold for land over the water: `channel`. */
@@ -78,6 +84,10 @@ export interface GwLandGraph {
   readonly oceans: ReadonlyMap<string, readonly number[]>;
   /** Places joined by land to their owner's capital through its own land. */
   readonly home: ReadonlySet<GwPlace>;
+  /** Place -> places whose cells share a land border with its cell. */
+  readonly placeNear: ReadonlyMap<GwPlace, readonly GwPlace[]>;
+  /** Place -> the open seas its cell's coast reaches, sorted. */
+  readonly coast: ReadonlyMap<string, readonly number[]>;
 }
 
 const EMPTY: GwLandGraph = {
@@ -86,6 +96,8 @@ const EMPTY: GwLandGraph = {
   tiles: new Map(),
   oceans: new Map(),
   home: new Set(),
+  placeNear: new Map(),
+  coast: new Map(),
 };
 const GRAPHS = new WeakMap<ScenarioIndex, GwLandGraph>();
 
@@ -135,6 +147,7 @@ export function landGraph(gw: GreatWar): GwLandGraph {
   const cell = new Map<number, GwPlace>();
   for (const [p, ids] of placeCells(gw)) for (const id of ids) cell.set(id, p);
   const placeNear = new Map<GwPlace, Set<GwPlace>>();
+  const coast = new Map<string, Set<number>>();
   const zoneRoot = seaRoots(idx);
   const detached = detachedRegions(gw);
   for (const [id, p] of cell) {
@@ -151,6 +164,7 @@ export function landGraph(gw: GreatWar): GwLandGraph {
     for (const z of idx.regionSeaZones(id)) {
       if (placeOf.has(id)) add(sea, g, z);
       add(oceans, g, zoneRoot.get(z) ?? z);
+      add(coast, p, zoneRoot.get(z) ?? z);
     }
   }
   const home = new Set<GwPlace>();
@@ -190,6 +204,12 @@ export function landGraph(gw: GreatWar): GwLandGraph {
     tiles,
     oceans: sorted(oceans, (a, b) => a - b),
     home,
+    coast: sorted(coast, (a, b) => a - b),
+    placeNear: new Map(
+      [...placeNear]
+        .sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))
+        .map(([k, v]) => [k, [...v].sort()] as const),
+    ),
   };
   GRAPHS.set(idx, graph);
   return graph;
@@ -434,22 +454,81 @@ function hopsFrom(gw: GreatWar, tag: GwTag): Map<string, number> {
 }
 
 /**
- * How `tag` reaches group `g` for occupation: 0 by land from a group it
- * holds in, 1 over the water (its fleet rules the sea, and the open sea
- * joins a coast it holds to one of the group's), or null.
+ * Places `tag` holds that are in supply (ww179): linked back to its home
+ * land, or to a port it holds while its fleet rules the sea, over places it
+ * or a partner holds, a road of at most GW_SUPPLY_REACH map tiles from
+ * place to place. Occupation spreads only from these, so no army marches
+ * across a continent.
+ */
+export function suppliedPlaces(gw: GreatWar, tag: GwTag): Set<GwPlace> {
+  const graph = landGraph(gw);
+  const side = gw.nation(tag)?.side ?? null;
+  const ours = (t: GwTag) =>
+    t === tag || (side !== null && gw.nation(t)?.side === side);
+  const sea = hasSea(gw, tag);
+  const road = new Map<GwPlace, number>();
+  const done = new Set<GwPlace>();
+  for (const p of GW_PLACE_KEYS) {
+    if (!gw.world.places.has(p) || holderOf(gw, p) !== tag) continue;
+    const port = sea && (graph.coast.get(p) ?? []).length > 0;
+    if (GW_PLACES[p].owner === tag || port) road.set(p, 0);
+  }
+  for (;;) {
+    let at: GwPlace | null = null;
+    for (const [p, d] of road) {
+      if (done.has(p)) continue;
+      if (at === null || d < road.get(at)! || (d === road.get(at)! && p < at)) {
+        at = p;
+      }
+    }
+    if (at === null) break;
+    done.add(at);
+    const [x, y] = GW_PLACES[at].center;
+    for (const q of graph.placeNear.get(at) ?? []) {
+      if (done.has(q) || !ours(holderOf(gw, q))) continue;
+      const [qx, qy] = GW_PLACES[q].center;
+      const d = road.get(at)! + Math.abs(qx - x) + Math.abs(qy - y);
+      if (d <= GW_SUPPLY_REACH && d < (road.get(q) ?? Infinity)) road.set(q, d);
+    }
+  }
+  return new Set([...done].filter((p) => holderOf(gw, p) === tag));
+}
+
+/**
+ * Whether `to` may spread into `owner`'s land at all (ww179): the two fight
+ * each other on an open front, each on its own end. A country knocked out
+ * goes to the enemies of the war it lost (openTo), front or none.
+ */
+function facesOnFront(gw: GreatWar, to: GwTag, owner: GwTag): boolean {
+  if (gw.nation(owner)?.out === true) return true;
+  return gw.s.theatres.some((t) => {
+    if (t.since === null || !t.open) return false;
+    const end = memberEnd(gw, t.id, to);
+    return end !== null && memberEnd(gw, t.id, owner) === other(end);
+  });
+}
+
+/**
+ * How `tag` reaches group `g` for occupation: 0 by land, next to a place
+ * it holds in supply; 1 over the water (its fleet rules the sea, and the
+ * open sea joins a coast it holds in supply to one of the group's); or null.
  */
 function occupationReach(
   gw: GreatWar,
   tag: GwTag,
   g: string,
-  held: Set<string>,
+  supplied: Set<GwPlace>,
 ): 0 | 1 | null {
   const graph = landGraph(gw);
-  if ((graph.near.get(g) ?? []).some((x) => held.has(x))) return 0;
+  for (const p of GW_PLACE_KEYS) {
+    if (groupOf(p) !== g) continue;
+    if ((graph.placeNear.get(p) ?? []).some((q) => supplied.has(q))) return 0;
+  }
   const seas = graph.oceans.get(g) ?? [];
   if (seas.length === 0 || !hasSea(gw, tag)) return null;
-  for (const h of held) {
-    if ((graph.oceans.get(h) ?? []).some((z) => seas.includes(z))) return 1;
+  for (const p of supplied) {
+    const own = graph.coast.get(p) ?? [];
+    if (own.some((z) => seas.includes(z))) return 1;
   }
   return null;
 }
@@ -501,8 +580,13 @@ function nextTaken(
   const graph = landGraph(gw);
   let best: (Pick & { hops: number; group: string }) | null = null;
   for (const to of foesOf(gw, owner)) {
-    const held = heldGroups(gw, to);
+    if (!facesOnFront(gw, to, owner)) continue;
+    const held = suppliedPlaces(gw, to);
     let hops: Map<string, number> | null = null;
+    // Coasts it holds in supply, while its fleet rules the sea.
+    const seas = hasSea(gw, to)
+      ? new Set([...held].flatMap((p) => graph.coast.get(p) ?? []))
+      : new Set<number>();
     for (const group of groupsOf(owner)) {
       const how = occupationReach(gw, to, group, held);
       if (how === null) continue;
@@ -514,8 +598,21 @@ function nextTaken(
       ) {
         continue;
       }
-      if (!openTo(gw, owner, to, group, how === 0, fronts)) continue;
-      const places = movable(gw, group, owner, owner, fronts);
+      // Only the places next to its supplied land, and the coast it lands on.
+      const free = movable(gw, group, owner, owner, fronts);
+      const byLand = openTo(gw, owner, to, group, true, fronts)
+        ? free.filter((p) =>
+            (graph.placeNear.get(p) ?? []).some((q) => held.has(q)),
+          )
+        : [];
+      const bySea = openTo(gw, owner, to, group, false, fronts)
+        ? free.filter((p) =>
+            (graph.coast.get(p) ?? []).some((z) => seas.has(z)),
+          )
+        : [];
+      const places = free.filter(
+        (p) => byLand.includes(p) || bySea.includes(p),
+      );
       if (places.length === 0) continue;
       const tiles = places.reduce((n, p) => n + (graph.tiles.get(p) ?? 0), 0);
       best = { to, places, tiles, hops: d, group };
@@ -544,7 +641,7 @@ function nextFreed(
     for (const foe of n.atWar) {
       const places = movable(gw, group, owner, foe, fronts);
       if (places.length === 0) continue;
-      const byLand = occupationReach(gw, foe, group, heldGroups(gw, foe));
+      const byLand = occupationReach(gw, foe, group, suppliedPlaces(gw, foe));
       if (openTo(gw, owner, foe, group, byLand !== 1, fronts)) continue;
       const tiles = places.reduce((k, p) => k + (graph.tiles.get(p) ?? 0), 0);
       return { to: owner, places, tiles };
