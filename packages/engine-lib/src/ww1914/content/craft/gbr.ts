@@ -32,6 +32,7 @@ import type {
   GwShortageRow,
 } from "../../CraftRows";
 import {
+  FACTORY,
   footing,
   footingAt,
   inCharge,
@@ -207,6 +208,7 @@ export const GBR_PROJECTS: readonly GwProjectRow[] = [
     start: [gauge("money", -1)],
     done: [gauge("shells", 1), opinion("workers", 1)],
     failed: [opinion("press", -1)],
+    terms: FACTORY,
   },
   {
     id: "gbr_pj_ireland",

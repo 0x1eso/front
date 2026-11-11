@@ -24,6 +24,7 @@ import type {
   GwShortageRow,
 } from "../../CraftRows";
 import {
+  FACTORY,
   footing,
   footingAt,
   inCharge,
@@ -166,6 +167,7 @@ export const RUS_PROJECTS: readonly GwProjectRow[] = [
     start: [g("money", -1), opinion("business", -1)],
     done: [g("shells", 1), inst_("stavka", 1)],
     failed: [inst_("ministers", -1)],
+    terms: FACTORY,
   },
   {
     id: "rus_pj_grain",

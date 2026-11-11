@@ -10,6 +10,7 @@ import { describe, expect, test } from "vitest";
 import {
   craftSection,
   footingChip,
+  researchBox,
 } from "../../../src/client/hud/ww1914/GwCraft";
 import type { GwCtx, GwUi } from "../../../src/client/hud/ww1914/GwCtx";
 
@@ -32,7 +33,11 @@ const PACK = {
   scenes: {},
   craft: {
     deu_inv_gas: { name: "염소가스", note: "실린더로 내보내는 가스" },
-    deu_pj_canal: { name: "미텔란트 운하" },
+    deu_pj_canal: {
+      name: "미텔란트 운하",
+      aim: "운하로 석탄을 실어 나른다.",
+      done: "운하가 열려 석탄이 싸졌다.",
+    },
   },
 } as unknown as GwPack;
 
@@ -116,6 +121,64 @@ describe("statecraft on the country tab", () => {
     );
     expect(q(root, '[data-gw-project="deu_pj_canal"]')).not.toBeNull();
     expect(root.textContent).toContain("미텔란트 운하");
+  });
+
+  test("a running project says what it works on and its step; a done one what it changed (ww179)", () => {
+    const running = ctx(
+      view({
+        project: { id: "deu_pj_canal", phase: "prep", lead: null, year: 1915 },
+      }),
+    ).root;
+    expect(running.querySelector("[data-gw-project-aim]")).not.toBeNull();
+    expect(
+      running.querySelector('[data-gw-project-step="prep"]'),
+    ).not.toBeNull();
+    const done = ctx(
+      view({
+        past: [{ id: "deu_pj_canal", phase: "done", lead: null, year: 1915 }],
+        agenda: "ended",
+      }),
+    ).root;
+    expect(done.querySelector("[data-gw-project-changed]")).not.toBeNull();
+    expect(done.querySelector('[data-gw-agenda="ended"]')).not.toBeNull();
+    // Nothing yet: the box still shows, saying where the pick comes from.
+    const empty = ctx(view({ agenda: "desk" })).root;
+    expect(empty.querySelector('[data-gw-agenda="desk"]')).not.toBeNull();
+  });
+
+  test("research reads in words: the track, how far, what was reached (ww179)", () => {
+    const root = document.createElement("div");
+    const c = {
+      seat: {
+        world: {
+          war: {
+            techs: ["gas_heavy"],
+            research: {
+              track: "artillery",
+              active: true,
+              tracks: [
+                { id: "artillery", next: "barrage", step: 1, none: false },
+                {
+                  id: "infantry",
+                  next: "assault_groups",
+                  step: 0,
+                  none: false,
+                },
+                { id: "sea", next: null, step: 0, none: true },
+              ],
+            },
+          },
+        },
+      },
+    } as unknown as GwCtx;
+    render(researchBox(c), root);
+    expect(
+      root.querySelector('[data-gw-research-now="artillery"]'),
+    ).not.toBeNull();
+    expect(root.querySelectorAll("[data-gw-research-track]")).toHaveLength(3);
+    expect(root.querySelector('[data-gw-tech="gas_heavy"]')).not.toBeNull();
+    // Words, not numbers.
+    expect(root.textContent).not.toMatch(/[0-9]/);
   });
 
   test("the band names the footing once it has moved", () => {

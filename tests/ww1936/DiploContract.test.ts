@@ -432,11 +432,11 @@ describe("diplomacy L0: the digests that never move", () => {
     }
   });
 
-  // Re-pinned with occupation and the bilateral tables (ww172 phase 5): the
-  // Great War's own rules moved it, not the diplomacy.
+  // Re-pinned with ww179's named project lines, factory terms and sea
+  // research: the Great War's own rules moved it, not the diplomacy.
   test("the Great War pin is unchanged", () => {
     expect(read("ww1914/GreatWarSnapshot.test.ts")).toContain(
-      'const GW_DIGEST = "f96e78583bb59580";',
+      'const GW_DIGEST = "1f1a8fbd9436a245";',
     );
   });
 });

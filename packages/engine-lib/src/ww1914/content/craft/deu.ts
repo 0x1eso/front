@@ -32,6 +32,7 @@ import type {
   GwShortageRow,
 } from "../../CraftRows";
 import {
+  FACTORY,
   footing,
   footingAt,
   inCharge,
@@ -261,6 +262,7 @@ export const DEU_PROJECTS: readonly GwProjectRow[] = [
     aims: ["deu_aim_win"],
     start: [gauge("money", -1)],
     done: [gauge("shells", 1)],
+    terms: FACTORY,
   },
   {
     id: "deu_pj_air",

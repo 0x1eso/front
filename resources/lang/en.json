@@ -2234,7 +2234,19 @@
       "VEN": "Venezuela"
     },
     "craft": {
+      "agenda": {
+        "desk": "The paper to pick this year's project is on the desk. Pick one there.",
+        "ended": "This year's project is over. We pick the next one in the new year.",
+        "passed": "We chose no great work this year. We pick again in the new year.",
+        "soon": "The cabinet will soon lay this year's choices on the desk."
+      },
+      "aim": "What it works on: {text}",
+      "changed": "What changed: {text}",
       "early": "Went in early: the enemy was ready for it.",
+      "ended": {
+        "dropped": "Dropped partway; nothing gained.",
+        "failed": "It ended with nothing gained."
+      },
       "field": "Field it now",
       "field_sure": "Tap again to field it",
       "footing": {
@@ -2255,6 +2267,11 @@
         "idle": "Not begun",
         "opp": "Meeting opposition",
         "prep": "Being prepared"
+      },
+      "progress": {
+        "exec": "Last step: the work is under way. The result is reported when it ends.",
+        "opp": "Second step: getting past the opposition. One step to go.",
+        "prep": "First step: gathering people and money. Two steps to go."
       },
       "project_none": "No project this year yet.",
       "project_title": "This year's work",
@@ -2286,7 +2303,8 @@
       "terms": {
         "total": "Shells come fastest; bread and order run down.",
         "war": "Shells come faster; bread runs down."
-      }
+      },
+      "this_year": "this year's"
     },
     "diplo": {
       "clause_add": "Add a clause",
@@ -3070,6 +3088,7 @@
       "order_stirred": "Agitators from abroad fed the unrest.",
       "order_unpaid": "Wages and pensions are late.",
       "order_weary": "People are tired of the war.",
+      "project_works": "A factory the project built made more shells.",
       "shells_badly_run": "The war ministry lost a month to its own papers.",
       "shells_blockade": "The blockade stopped copper and nitrate.",
       "shells_made": "The factories delivered.",
@@ -3706,10 +3725,11 @@
       "press_tightened": "The censor was tightened.",
       "press_war_censor": "War brought the censor.",
       "price_refused": "Nothing was promised.",
-      "project_done": "The year's project was done.",
-      "project_dropped": "The year's project was given up.",
-      "project_failed": "The year's project failed. The man in charge must answer for it.",
-      "project_started": "The year's project began.",
+      "project_changed": "What changed: {what}",
+      "project_done": "The project was done: {what}.",
+      "project_dropped": "We dropped the project: {what}.",
+      "project_failed": "The project failed: {what}. Whoever led it must answer.",
+      "project_started": "We began the project: {what}.",
       "promise_broken": "A promise went past its date. They will come to you.",
       "promise_kept": "A promise kept. They won't forget it.",
       "promise_mended": "They agreed to let the broken promise go, this once.",
@@ -3804,16 +3824,16 @@
       "talk_fit_warm": "Kind words got through.",
       "talks_accepted": "The other side agreed to stop.",
       "talks_refused": "The other side refused to talk.",
-      "tech_assault_groups": "Assault groups reached the army.",
-      "tech_barrage": "The creeping barrage reached the army.",
-      "tech_convoys": "Convoys reached the army.",
-      "tech_depth_defence": "Defence in depth reached the army.",
-      "tech_gas_heavy": "Gas shells and heavy guns reached the army.",
-      "tech_infiltration": "Infiltration tactics reached the army.",
-      "tech_mine_nets": "Mine barrages and nets reached the army.",
-      "tech_ocean_boats": "Ocean-going submarines reached the army.",
-      "tech_predicted_fire": "Predicted fire reached the army.",
-      "tech_tanks": "Tanks reached the army.",
+      "tech_assault_groups": "Assault groups reached the army. Attacks go a little better, and broad-front attacks open up.",
+      "tech_barrage": "The creeping barrage reached the army. A wall of shells walks ahead of the infantry, so attacks go better.",
+      "tech_convoys": "Convoys reached the army. Merchant ships are guarded, so fewer are lost.",
+      "tech_depth_defence": "Defence in depth reached the army. Defence holds harder, and the army can step back and hold in depth.",
+      "tech_gas_heavy": "Gas shells and heavy guns reached the army. Our attacks hammer the enemy trenches harder.",
+      "tech_infiltration": "Infiltration tactics reached the army. Attacks go much better, and surprise attacks skip more trench lines.",
+      "tech_mine_nets": "Mine barrages and nets reached the army. The North Sea blockade tightens faster.",
+      "tech_ocean_boats": "Ocean-going submarines reached the army. Submarines sink more merchant ships.",
+      "tech_predicted_fire": "Predicted fire reached the army. Attacks go better, and surprise attacks open up.",
+      "tech_tanks": "Tanks reached the army. Attacks go much better, and surprise attacks open up.",
       "terms_no": "{country} refused our terms.",
       "terms_yes": "{country} accepted our terms.",
       "treaty_broken": "A partner broke a secret treaty.",
@@ -4028,6 +4048,18 @@
       "ocean_boats": "Ocean-going submarines",
       "predicted_fire": "Predicted fire",
       "tanks": "Tanks"
+    },
+    "tech_does": {
+      "assault_groups": "Attacks go a little better, and broad-front attacks open up.",
+      "barrage": "A wall of shells walks ahead of the infantry, so attacks go better.",
+      "convoys": "Merchant ships are guarded, so fewer are lost.",
+      "depth_defence": "Defence holds harder, and the army can step back and hold in depth.",
+      "gas_heavy": "Our attacks hammer the enemy trenches harder.",
+      "infiltration": "Attacks go much better, and surprise attacks skip more trench lines.",
+      "mine_nets": "The North Sea blockade tightens faster.",
+      "ocean_boats": "Submarines sink more merchant ships.",
+      "predicted_fire": "Attacks go better, and surprise attacks open up.",
+      "tanks": "Attacks go much better, and surprise attacks open up."
     },
     "tell": {
       "ally": "Allies",
@@ -4725,6 +4757,29 @@
         "infantry": "Infantry",
         "sea": "Navy"
       },
+      "research_aim": {
+        "artillery": "Builds up guns and gunnery.",
+        "infantry": "Builds up how infantry crosses trenches and holds them.",
+        "sea": "Builds up how we fight at sea."
+      },
+      "research_all": "Everything on this track has been reached.",
+      "research_got": "{tech}: {does}",
+      "research_how": "The track is picked with the plan paper on the fronts tab.",
+      "research_next": "Next: {tech} ({step})",
+      "research_none": "Our country has nothing to gain on this track.",
+      "research_now": "Now studying: {track}. {aim}",
+      "research_on": "Studying",
+      "research_peace": "Research builds up only in war. Once war comes, pick the track on the fronts tab's plan papers.",
+      "research_reached": "Reached",
+      "research_reached_none": "Nothing reached yet.",
+      "research_shared": "If the enemy has the same, our attacks gain less from it.",
+      "research_step": {
+        "0": "just begun",
+        "1": "about halfway",
+        "2": "nearly there",
+        "3": "ready, but the war must run longer before it can be used"
+      },
+      "research_title": "Research",
       "results_title": "Signed lately",
       "rival": {
         "broken": "You broke {name}.",

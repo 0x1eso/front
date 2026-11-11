@@ -5,6 +5,7 @@
 // put in, and the months of war that make it thinkable.
 import {
   GW_LINE_STEP,
+  GW_RESEARCH,
   GwEra,
   GwNationState,
   GwResearch,
@@ -12,6 +13,7 @@ import {
   GwTheatre,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
+import type { GwResearchTrackView } from "@openfront/engine-api/ww1914/GwWorldView";
 import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
 import type { GreatWar } from "./GreatWar";
 import { fights, news, reason, seatsOf, turn } from "./World";
@@ -107,7 +109,17 @@ export const GW_TECH_TABLE: readonly GwTechRow[] = [
     attack: 15,
     defence: 0,
   },
-  { id: "mine_nets", track: "sea", month: 10, need: 4, attack: 0, defence: 0 },
+  // ww179: only the Royal Navy's blockade uses the nets (Sea.ts), so only
+  // Britain reaches them: a fleet with nothing to gain shows the track shut.
+  {
+    id: "mine_nets",
+    track: "sea",
+    month: 10,
+    need: 4,
+    attack: 0,
+    defence: 0,
+    only: ["GBR"],
+  },
   {
     id: "ocean_boats",
     track: "sea",
@@ -127,6 +139,35 @@ export const GW_TECH_TABLE: readonly GwTechRow[] = [
     only: ["GBR", "USA", "FRA"],
   },
 ];
+
+/**
+ * ww179: how far the country's research has come on each track, in steps the
+ * screen words: 0 just begun, 1 halfway, 2 nearly, 3 done but the war is not
+ * yet long enough. `next` null: nothing more to reach; `none`: nothing on the
+ * track this country can ever reach.
+ */
+export function researchView(
+  gw: GreatWar,
+  n: GwNationState,
+): GwResearchTrackView[] {
+  const months = warMonths(gw);
+  return GW_RESEARCH.map((id) => {
+    const rows = GW_TECH_TABLE.filter(
+      (t) => t.track === id && (t.only === undefined || t.only.includes(n.tag)),
+    );
+    const next = rows.find((t) => !hasTech(n, t.id)) ?? null;
+    if (next === null)
+      return { id, next: null, step: 0, none: rows.length === 0 };
+    const put = n.tech[id] ?? 0;
+    const step =
+      put >= next.need
+        ? months < next.month
+          ? 3
+          : 2
+        : Math.min(2, Math.floor((put * 3) / next.need));
+    return { id, next: next.id, step, none: false };
+  });
+}
 
 /** Whole months since the war began; 0 at peace. */
 export function warMonths(gw: GreatWar, chapter = gw.s.chapter): number {

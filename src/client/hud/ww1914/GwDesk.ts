@@ -147,6 +147,22 @@ function cardBox(c: GwCtx, card: GwCardView): TemplateResult {
   </section>`;
 }
 
+/** ww179: a project's done paper says, under its story, what changed. */
+function projectDoneLine(
+  c: GwCtx,
+  scene: string,
+): TemplateResult | typeof nothing {
+  if (!scene.endsWith("_done")) return nothing;
+  const done = c.pack?.craft?.[scene.slice(0, -"_done".length)]?.done;
+  if (done === undefined) return nothing;
+  return html`<p
+    class="rounded border border-white/15 bg-white/5 p-2 text-sm text-white/85"
+    data-gw-project-done
+  >
+    ${translateText("gw.craft.changed", { text: done })}
+  </p>`;
+}
+
 /** A paper come back: what its author did with it. */
 function backLine(
   c: GwCtx,
@@ -366,6 +382,10 @@ function optionButton(
 ): TemplateResult {
   const armed = c.ui.armed?.uid === card.uid && c.ui.armed.option === o.id;
   const why = o.open ? undefined : c.pack?.scenes[card.scene]?.why?.[o.id];
+  // The year's pick (ww179): what each project works on, never its result.
+  const aim = card.scene.endsWith("_agenda")
+    ? (c.pack?.craft?.[o.id]?.aim ?? null)
+    : null;
   return html`<div class="space-y-0.5">
     <button
       class="${armed ? BTN_ON : BTN} w-full"
@@ -387,6 +407,11 @@ function optionButton(
         ></span
       >
     </button>
+    ${aim === null
+      ? nothing
+      : html`<p class="${MUTED} pl-1" data-gw-option-aim=${o.id}>
+          ${translateText("gw.craft.aim", { text: aim })}
+        </p>`}
     ${why === undefined
       ? nothing
       : html`<p class="${MUTED} pl-1" data-gw-why>
@@ -572,6 +597,7 @@ export function reader(c: GwCtx, card: GwCardView): TemplateResult {
       </div>
       ${card.scene.startsWith("gw_bm_") ? budgetStrip(c) : nothing}
       ${card.scene.startsWith("gw_lv_") ? lawStrip(c, card.scene) : nothing}
+      ${projectDoneLine(c, card.scene)}
       ${(card.folded ?? []).length === 0
         ? nothing
         : html`<div class="space-y-0.5" data-gw-folded>

@@ -5,7 +5,7 @@ import {
 import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
 import { budgetSummary } from "./GwBudget";
-import { craftSection } from "./GwCraft";
+import { craftSection, researchBox } from "./GwCraft";
 import type { GwCtx } from "./GwCtx";
 import { rich } from "./GwDict";
 import { govBox } from "./GwGov";
@@ -177,9 +177,11 @@ function war(c: GwCtx): TemplateResult {
     ${v.command
       ? html`<p class=${MUTED}>${translateText("gw.ui.command_self")}</p>`
       : nothing}
-    ${v.techs.map(
-      (t) => html`<p class=${MUTED}>${translateText(`gw.tech.${t}`)}</p>`,
-    )}
+    ${v.research !== undefined
+      ? nothing
+      : v.techs.map(
+          (t) => html`<p class=${MUTED}>${translateText(`gw.tech.${t}`)}</p>`,
+        )}
     ${v.votes.map(
       (x) =>
         html`<p class=${MUTED}>
@@ -201,8 +203,8 @@ export function countryTab(c: GwCtx): TemplateResult {
   const log = logByChapter(seat.log);
   return html`<div class="space-y-3" data-gw-country>
     ${rulerCard(c)} ${standing(c)} ${govBox(c)} ${budgetSummary(c)}
-    ${houseSection(c)} ${lawsSection(c)} ${craftSection(c)} ${war(c)}
-    ${gauges(c)}
+    ${houseSection(c)} ${lawsSection(c)} ${craftSection(c)} ${researchBox(c)}
+    ${war(c)} ${gauges(c)}
     ${insts.length === 0
       ? nothing
       : html`<section class=${BOX}>

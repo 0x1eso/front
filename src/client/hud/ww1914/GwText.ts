@@ -256,6 +256,9 @@ function withWho(text: string, pack: GwPack | null, who?: string | null) {
 
 /** What a schedule act's line moved (ww169 `what`), named by its key's family. */
 function whatText(pack: GwPack | null, key: string, what: string): string {
+  // The year's project (ww179): its name, or what it changed.
+  if (key === "project_changed") return pack?.craft?.[what]?.done ?? "";
+  if (key.startsWith("project_")) return pack?.craft?.[what]?.name ?? what;
   // Occupation and the tables (ww172): a place.
   if (key.startsWith("land_") && what in GW_PLACES) {
     return GW_PLACES[what as GwPlace].nameKo;
@@ -279,7 +282,9 @@ export function reasonText(pack: GwPack | null, r: GwReason): string {
     r.tag === undefined ? "" : translateText(`gw.country.${r.tag}`);
   const what =
     r.what === undefined || r.what === null
-      ? ""
+      ? r.key.startsWith("project_")
+        ? translateText("gw.craft.this_year")
+        : ""
       : whatText(pack, r.key, r.what);
   const text = withWho(
     line.replace(/\{country\}/g, country).replace(/\{what\}/g, what),

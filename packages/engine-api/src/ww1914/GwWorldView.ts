@@ -14,11 +14,13 @@ import type {
   GwOffice,
   GwOffMethod,
   GwPlan,
+  GwResearch,
   GwResult,
   GwSecret,
   GwSide,
   GwSource,
   GwStamp,
+  GwTech,
   GwTempo,
   GwTheatre,
   GwThread,
@@ -164,6 +166,19 @@ export interface GwCountryView {
   mobFull?: string | null;
 }
 
+/**
+ * ww179: one research track of the seat's own country, as the country tab
+ * words it. `step`: 0 just begun, 1 halfway, 2 nearly, 3 ready but the war is
+ * not long enough yet. `next` null: nothing more to reach on it; `none`:
+ * nothing this country can ever reach on it.
+ */
+export interface GwResearchTrackView {
+  id: GwResearch;
+  next: GwTech | null;
+  step: number;
+  none: boolean;
+}
+
 /** The war at large: what the papers and the admiralty can tell anyone. */
 export interface GwWarView {
   era: GwEra;
@@ -178,6 +193,13 @@ export interface GwWarView {
   america: number;
   /** What the seat's country has reached: gw.tech.<id>. */
   techs: readonly string[];
+  /** ww179: its research, track by track, and the track it works on now. */
+  research?: {
+    track: GwResearch;
+    /** Research is put in only while the country fights. */
+    active: boolean;
+    tracks: readonly GwResearchTrackView[];
+  };
   /** The fighting has stopped. */
   armistice: GwArmisticeKind | null;
   votes: readonly {

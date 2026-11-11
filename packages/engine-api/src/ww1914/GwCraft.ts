@@ -171,5 +171,11 @@ export interface GwCraftView {
   project: GwProjectView | null;
   /** Projects that ended, in order. */
   past: GwProjectView[];
+  /**
+   * ww179: with no project running, where the year's pick stands: its paper
+   * is on the desk, the year was let pass, this year's ended, or the paper
+   * comes soon. Absent while one runs or for a country with no projects.
+   */
+  agenda?: "desk" | "passed" | "ended" | "soon";
   shortages: { id: GwShortage; solved: boolean }[];
 }
