@@ -68,6 +68,8 @@ export function declareWarBlock(
   if (ww.isAtWar(a, b)) return "at_war";
   // White peace: a truce holds for WW_TRUCE_DAYS (joins too).
   if (eg.truceUntil(a, b) > ww.day(tick)) return "truce_active";
+  // ww177 I4b: Japan strikes Joseon once its readiness passes the bar.
+  if (ww.japan?.mayDeclare(a, b) === false) return "not_ready";
   // P3 spec §14.5: the appended reasons.
   const block = declareWarRules(ww.politics, a, b, join).block;
   if (block !== null) return block;

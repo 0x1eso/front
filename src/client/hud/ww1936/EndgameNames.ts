@@ -170,6 +170,7 @@ export const ENDGAME_NOTICES: ReadonlySet<string> = new Set([
   "events_display.ww1936_declare_blocked_exile",
   "events_display.ww1936_declare_blocked_congress",
   "events_display.ww1936_declare_blocked_truce_active",
+  "events_display.ww1936_declare_blocked_not_ready",
   "events_display.ww1936_autonomy_request",
   "events_display.ww1936_occ_law",
   "events_display.ww1936_garrison_short",

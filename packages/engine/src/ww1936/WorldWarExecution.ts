@@ -76,6 +76,8 @@ export class WorldWarExecution implements Execution {
     ww.politics.tick(ticks);
     // ww177 P4 (lane I4a): the Joseon court and Ming's meter, once a day.
     ww.imjinJm?.tick(ticks);
+    // ww177 I4b: the Imjin War's Japan, once a day after politics' day.
+    ww.japan?.tick(ticks);
     // P5 (spec §2.2 orders 2–3): the endgame's common day and its countries.
     ww.endgame.clock(ticks);
     // P6 (plan decision 3): the depth systems' common day and countries,

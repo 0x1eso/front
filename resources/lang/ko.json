@@ -1650,7 +1650,23 @@
     "ww1936_imjin_seat_fell": "조정이 머물던 {region} 함락. 임금이 허둥지둥 북으로 빠져나갔습니다.",
     "ww1936_imjin_temple_burned": "적군이 {region}의 절을 불태웠습니다.",
     "ww1936_imjin_yi_appointed": "이순신이 전라좌수사에 올랐습니다.",
-    "ww1936_imjin_yi_passed": "수군 자리는 품계대로 정해졌습니다."
+    "ww1936_imjin_yi_passed": "수군 자리는 품계대로 정해졌습니다.",
+    "ww1936_declare_blocked_not_ready": "선전포고하지 못했습니다: 아직 출병 준비가 되지 않았습니다",
+    "ww1936_imjin_jp_daimyo_wavers": "{daimyo}의 충성이 흔들립니다. 그의 군단이 굼뜨게 움직입니다",
+    "ww1936_imjin_jp_daimyo_defiant": "{daimyo}이(가) 대놓고 명령을 거스르기 직전입니다",
+    "ww1936_imjin_jp_taiko_failing": "태합의 기력이 쇠하고 있습니다",
+    "ww1936_imjin_jp_taiko_bedridden": "태합이 병석에 누웠습니다",
+    "ww1936_imjin_jp_taiko_grave": "태합의 병세가 위중합니다",
+    "ww1936_imjin_jos_taiko_rumour": "일본에서 소문이 들려옵니다: 히데요시가 병들었다고 합니다",
+    "ww1936_imjin_jos_taiko_dead": "일본에서 소문이 들려옵니다: 히데요시가 죽었다고 합니다",
+    "ww1936_imjin_jp_wave_thin": "동원이 끝나기 전에 선봉이 바다를 건넜습니다",
+    "ww1936_imjin_jp_wave_ordinary": "선봉이 조선으로 건너갔습니다",
+    "ww1936_imjin_jp_wave_full": "대군이 모두 조선으로 건너갔습니다",
+    "ww1936_imjin_jos_unwarned": "왜군이 상륙했는데 나라는 대비가 되어 있지 않습니다",
+    "ww1936_imjin_jos_half_warned": "왜군이 상륙했습니다. 나라는 반쯤밖에 대비하지 못했습니다",
+    "ww1936_imjin_jos_warned": "왜군이 상륙했지만 나라는 대비를 마쳤습니다",
+    "ww1936_imjin_jp_ming_refuses": "명이 태합의 조건을 받아들이지 않습니다. 담판이 깨졌습니다",
+    "ww1936_imjin_jp_withdraws": "{country}이(가) 조선에서 군대를 불러들입니다"
   },
   "featured_stream": {
     "expand": "펼치기",
@@ -4214,7 +4230,12 @@
       "gen_science_mobilisation": "전시 과학 동원",
       "imjin_envoy_ming": "명에 사신을 보낸다",
       "imjin_command_righteous": "의병을 지휘한다",
-      "imjin_muster_righteous": "의병을 관군에 편입한다"
+      "imjin_muster_righteous": "의병을 관군에 편입한다",
+      "imjin_jp_muster_daimyo": "다이묘 동원령",
+      "imjin_jp_build_sekibune": "수송선 건조",
+      "imjin_jp_nagoya_castle": "나고야성 축조",
+      "imjin_jp_demands_so": "소 가문을 통한 요구",
+      "imjin_jp_grant_fiefs": "영지와 금 하사"
     },
     "decision_desc": {
       "bgr_demand_dobruja": "1913년에 루마니아에 내준 남도브루자를 돌려 달라고 요구한다.",
@@ -4301,7 +4322,12 @@
       "gen_science_mobilisation": "과학자와 기술자를 전쟁 연구에 동원한다. 연구 칸이 하나 늘고, 그 뒤로도 줄지 않는다.",
       "imjin_envoy_ming": "북경에 사신을 보내 왜의 속셈을 알리고 도움을 청합니다.",
       "imjin_command_righteous": "의병장들에게 조정의 명령을 내립니다. 따를지는 조정의 위신에 달렸습니다.",
-      "imjin_muster_righteous": "의병을 관군으로 거둬들입니다. 적의 뒤를 치는 일은 그만두게 됩니다."
+      "imjin_muster_righteous": "의병을 관군으로 거둬들입니다. 적의 뒤를 치는 일은 그만두게 됩니다.",
+      "imjin_jp_muster_daimyo": "모든 큰 영주에게 출병할 군사를 할당대로 모으라고 명한다.",
+      "imjin_jp_build_sekibune": "해안의 영지들에 바다를 건널 세키부네와 수송선을 짓게 한다.",
+      "imjin_jp_nagoya_castle": "히젠 해안에 전쟁의 거점이 될 큰 성을 쌓는다.",
+      "imjin_jp_demands_so": "쓰시마의 소 가문에게 태합의 요구를 조선 조정에 전하게 한다.",
+      "imjin_jp_grant_fiefs": "큰 영주들에게 상을 내려 충성을 붙잡아 둔다."
     },
     "declare": {
       "block": {
@@ -4318,7 +4344,8 @@
         "prep": "준비 시간에는 선포할 수 없습니다",
         "self": "자기 나라에는 선포할 수 없습니다",
         "subject_restricted": "속국은 종주국의 적과만 싸울 수 있습니다",
-        "truce_active": "백지 평화 휴전 중입니다 (1년)"
+        "truce_active": "백지 평화 휴전 중입니다 (1년)",
+        "not_ready": "아직 출병 준비가 되지 않았습니다"
       },
       "button": "선전포고",
       "confirm": "확인: 선전포고{n, plural, =0 {} other { (진영 회원 #개국도 참전)}}"
@@ -5283,7 +5310,23 @@
       "imjin_appoint_yi": "류성룡이 현감 이순신을 전라좌도 수군절도사로 천거합니다. 여러 품계를 건너뛰는 일이라 대간들이 벌써 반대합니다.",
       "imjin_appoint_gwon": "광주 목사 권율이 스스로 군사를 모았습니다. 조정에 지휘를 맡겨 달라고 청합니다.",
       "imjin_double_agent": "적진을 오가는 사람이 가토 기요마사의 배가 언제 어디로 건너올지 알려 왔습니다. 조정은 수군이 나가 바다에서 길목을 막기를 바랍니다. 통제사는 함정이라고 의심합니다.",
-      "imjin_monks_call": "적군이 산사를 불태웠습니다. 큰스님들이 전갈을 보냅니다. 임금이 부르면 승려들도 무기를 들겠다고 합니다."
+      "imjin_monks_call": "적군이 산사를 불태웠습니다. 큰스님들이 전갈을 보냅니다. 임금이 부르면 승려들도 무기를 들겠다고 합니다.",
+      "imjin_jp_strike_ready": "규슈의 포구마다 배가 모였고 첫 군단들이 나고야 주변에 진을 쳤다. 동원은 다 끝나지 않았지만, 다이묘들은 지금 바다를 건널 수 있다고 말한다.",
+      "imjin_jp_strike_full": "모든 군단이 모였다. 나고야와 쓰시마에 배와 쌀, 화약이 갖추어졌고 다이묘들은 명령만 기다린다.",
+      "imjin_jp_strike_again": "휴전은 끝났다. 다이묘들이 다시 군사를 모았고, 조선 남해안의 왜성에는 아직 일본 수비대가 남아 있다.",
+      "imjin_jp_daimyo_grumble": "큰 영주들이 잃은 군사와 써 버린 쌀을 헤아린다. 진영마다 이 전쟁이 무엇을 주었느냐는 말이 돌고, 고향으로 가는 편지 몇 통에는 태합을 예전만큼 공경하지 않는 말이 섞여 있다.",
+      "imjin_jp_taiko_ailing": "히데요시가 며칠씩 방에서 나오지 않는다. 의원들은 목소리를 낮추고, 후계자는 아직 어린아이다.",
+      "imjin_jp_taiko_dies": "도요토미 히데요시가 죽었다. 다섯 대로가 후계자를 대신해 다스리게 되었고, 조선에 있는 군대는 아직 이 사실을 모른다.",
+      "imjin_jp_regents_press": "섭정들은 조선에서의 전쟁이 나라의 쌀과 사람을 삼키고 있으며, 군대가 바다 건너에 있는 동안에는 아무도 다이묘들을 붙잡아 둘 수 없다고 말한다.",
+      "imjin_jp_talks": "명의 사신 심유경이 고니시 유키나가의 진영에 왔다. 양쪽이 조건을 보내면 담판으로 전쟁을 끝낼 수 있다고 한다.",
+      "imjin_jp_ming_reply": "고니시가 명의 답신을 가져왔다. 베이징이 태합에게 사신을 보내겠다고 한다. 사신이 올 때까지 군대는 해안을 지키고 싸움을 멈추라는 것이다.",
+      "imjin_jp_investiture": "명의 사신들이 히데요시 앞에 나아가고 국서를 소리 내어 읽는다. 국서는 그를 일본 국왕으로 봉한다. 그가 보낸 조건에 대해서는 한마디도 없다.",
+      "imjin_jp_investiture_regents": "명의 사신들이 태합에게 보내는 국서를 가지고 왔지만 태합은 이미 세상을 떠났다. 섭정들이 대신 사신을 맞는다.",
+      "imjin_jos_omens": "어부들과 쓰시마 상인들이 해협 건너에서 배를 짓고 규슈에 군사가 모인다고 전한다.",
+      "imjin_jos_omens_grave": "해안의 장수들 사이에 더는 의심이 없다. 나고야에 큰 군대가 모이고, 쓰시마의 포구는 수송선으로 가득하다.",
+      "imjin_jos_demand": "쓰시마 소 가문의 사자가 히데요시의 요구를 전한다. 명으로 가는 일본군에게 길을 내어 달라는 것이다.",
+      "imjin_jos_truce": "명과 일본이 싸움을 멈추었다. 일본군은 남해안의 성들을 차지하고 있는데, 명의 장수들은 사신이 오가는 동안 우리 군대가 그들을 치지 못하게 한다.",
+      "imjin_jos_truce_broken": "일본에서 소식이 왔다. 태합이 노하여 명의 사신들을 내쫓았다고 한다. 일본이 다시 군사를 모으고 있다."
     },
     "event_opt": {
       "aus_curtin_appeal": {
@@ -6198,6 +6241,70 @@
       "imjin_monks_call": {
         "a": "승병을 일으키라고 부른다",
         "b": "승려들은 수행하게 둔다"
+      },
+      "imjin_jp_strike_ready": {
+        "a": "지금 부산으로 건너간다",
+        "b": "동원이 다 끝날 때까지 기다린다"
+      },
+      "imjin_jp_strike_full": {
+        "a": "출병을 명한다",
+        "b": "아직 때가 아니다"
+      },
+      "imjin_jp_strike_again": {
+        "a": "다시 군대를 보낸다",
+        "b": "기다린다"
+      },
+      "imjin_jp_daimyo_grumble": {
+        "a": "영지와 금을 내린다",
+        "b": "가장 불온한 자를 본보기로 벌한다",
+        "c": "불평하게 내버려 둔다"
+      },
+      "imjin_jp_taiko_ailing": {
+        "a": "지금 섭정들을 정해 둔다",
+        "b": "병환을 숨긴다"
+      },
+      "imjin_jp_taiko_dies": {
+        "a": "죽음을 숨기고 군대를 불러들인다",
+        "b": "섭정들이 다스리고 전쟁은 계속한다"
+      },
+      "imjin_jp_regents_press": {
+        "a": "군대를 불러들인다",
+        "b": "거절한다"
+      },
+      "imjin_jp_talks": {
+        "a": "고니시에게 심유경과의 담판을 맡긴다",
+        "b": "담판은 없다"
+      },
+      "imjin_jp_ming_reply": {
+        "a": "휴전에 동의한다",
+        "b": "싸움을 계속한다"
+      },
+      "imjin_jp_investiture": {
+        "a": "사신을 내쫓고 다시 군사를 모은다",
+        "b": "칭호를 받고 화평을 지킨다"
+      },
+      "imjin_jp_investiture_regents": {
+        "a": "국서를 받고 화평을 지킨다",
+        "b": "사신을 돌려보낸다"
+      },
+      "imjin_jos_omens": {
+        "a": "해안과 성을 보강한다",
+        "b": "조정을 동요시키지 않는다"
+      },
+      "imjin_jos_omens_grave": {
+        "a": "전쟁에 대비한다",
+        "b": "허세일 뿐이다"
+      },
+      "imjin_jos_demand": {
+        "a": "단호히 거절한다",
+        "b": "애매하게 답한다"
+      },
+      "imjin_jos_truce": {
+        "a": "참는다",
+        "b": "명의 장수들에게 항의한다"
+      },
+      "imjin_jos_truce_broken": {
+        "a": "나라를 다시 전시 태세로 돌린다"
       }
     },
     "event_title": {
@@ -6463,7 +6570,23 @@
       "imjin_appoint_yi": "전라좌수사를 누구에게",
       "imjin_appoint_gwon": "권율이 군사를 맡겠다고 한다",
       "imjin_double_agent": "적진에서 온 귀띔",
-      "imjin_monks_call": "절이 불탔다"
+      "imjin_monks_call": "절이 불탔다",
+      "imjin_jp_strike_ready": "출병 준비",
+      "imjin_jp_strike_full": "나고야에 모인 대군",
+      "imjin_jp_strike_again": "다시 바다를 건너다",
+      "imjin_jp_daimyo_grumble": "다이묘들의 불만",
+      "imjin_jp_taiko_ailing": "태합의 병환",
+      "imjin_jp_taiko_dies": "태합의 죽음",
+      "imjin_jp_regents_press": "섭정들이 철군을 요구하다",
+      "imjin_jp_talks": "강화 논의",
+      "imjin_jp_ming_reply": "명의 답신",
+      "imjin_jp_investiture": "명의 책봉 사신",
+      "imjin_jp_investiture_regents": "섭정들 앞의 사신",
+      "imjin_jos_omens": "남해안의 보고",
+      "imjin_jos_omens_grave": "일본이 군대를 모으다",
+      "imjin_jos_demand": "소 가문의 요구",
+      "imjin_jos_truce": "우리를 빼놓은 휴전",
+      "imjin_jos_truce_broken": "휴전이 깨지다"
     },
     "eventui": {
       "annex_warning": "경고: 이 선택을 하면 우리나라가 {country}에 합병됩니다",
@@ -12654,7 +12777,12 @@
       "nat_gbr_unit": "코만도",
       "nat_fra_unit": "외인부대",
       "nat_jpn_unit": "특별육전대",
-      "nat_ita_unit": "알피니"
+      "nat_ita_unit": "알피니",
+      "imjin_jp_thin_wave": "얇은 선봉",
+      "imjin_jp_full_wave": "총동원 출병",
+      "imjin_jos_caught_unready": "대비 없는 기습",
+      "imjin_jos_half_ready": "어설픈 대비",
+      "imjin_jp_regency_spirit": "다섯 대로의 섭정"
     },
     "spirit_desc": {
       "arg_neutral_course": "아르헨티나는 모든 편과 교역하되 누구의 전쟁에도 끼지 않는다.",
@@ -13002,7 +13130,12 @@
       "nat_gbr_unit": "해병 대대가 코만도가 된다. 돌파가 빠르고 조직력이 많지만 덜 튼튼하고 훈련이 오래 걸린다. 코만도 습격은 성공률이 10%p 오르고 준비 기간이 4분의 3으로 준다.",
       "nat_fra_unit": "돌격보병 대대가 외인부대가 된다. 조직력이 크게 오르지만 보급을 더 쓰고 훈련이 오래 걸린다.",
       "nat_jpn_unit": "해병 대대가 특별육전대가 된다. 공격이 강하지만 장비가 가볍고 덜 튼튼하며 보급을 덜 쓴다.",
-      "nat_ita_unit": "돌격보병 대대가 알피니가 된다. 돌파가 빠르고 조직력이 많지만 덜 튼튼하고 보급을 더 쓴다. 강과 요새의 불이익을 85%가 아니라 70%만 받는다."
+      "nat_ita_unit": "돌격보병 대대가 알피니가 된다. 돌파가 빠르고 조직력이 많지만 덜 튼튼하고 보급을 더 쓴다. 강과 요새의 불이익을 85%가 아니라 70%만 받는다.",
+      "imjin_jp_thin_wave": "동원이 끝나기 전에 바다를 건넜다.",
+      "imjin_jp_full_wave": "모든 군단이 넉넉한 보급과 함께 한꺼번에 건넜다.",
+      "imjin_jos_caught_unready": "수비군은 소집되지 않았고 성벽은 고쳐지지 않았다.",
+      "imjin_jos_half_ready": "성벽 일부를 고치고 수비군 일부를 불렀지만 모자랐다.",
+      "imjin_jp_regency_spirit": "다섯 대로가 태합의 후계자를 대신해 다스리지만 서로를 믿지 않는다."
     },
     "stance": {
       "aggressive": "과감",
@@ -18084,6 +18217,17 @@
       "hyujeong": "휴정",
       "yujeong": "유정",
       "yeonggyu": "영규"
+    },
+    "daimyo": {
+      "konishi": "고니시 유키나가",
+      "kato": "가토 기요마사",
+      "kuroda": "구로다 나가마사",
+      "shimazu": "시마즈 요시히로",
+      "fukushima": "후쿠시마 마사노리",
+      "kobayakawa": "고바야카와 다카카게",
+      "mori": "모리 데루모토",
+      "ukita": "우키타 히데이에",
+      "hidekatsu": "도요토미 히데카쓰"
     }
   }
 }

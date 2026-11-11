@@ -143,6 +143,8 @@ export const DECLARE_BLOCK_KEYS: Readonly<Record<DeclareWarBlock, string>> = {
   congress: "ww1936.declare.block.congress",
   // White peace: a one-year truce.
   truce_active: "ww1936.declare.block.truce_active",
+  // ww177 I4b: the Imjin War: Japan's muster is not ready.
+  not_ready: "ww1936.declare.block.not_ready",
 };
 
 export function factionName(id: FactionKey, game?: WwGame): string {
@@ -525,6 +527,11 @@ export function translateCountryParams(
 ): Record<string, string | number> {
   const out: Record<string, string | number> = { ...params };
   for (const [k, v] of Object.entries(params)) {
+    // ww177 I4b: a "…Person" param is a person's name key (imjin.daimyo.*).
+    if (k.endsWith("Person") && typeof v === "string") {
+      out[k.slice(0, -6)] = translateText(v);
+      continue;
+    }
     if (!k.endsWith("Tag") || typeof v !== "string") continue;
     out[k.slice(0, -3)] = isCountryTag(v) ? countryName(v) : "";
   }

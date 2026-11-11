@@ -764,7 +764,9 @@ export class WwDepth implements LandDepthHooks {
     const q = this.modQuery;
     q.owner = owner;
     q.armyId = armyId;
-    return commandLandMods(this, q);
+    const m = commandLandMods(this, q);
+    // ww177 I4b: a Japanese corps under its great daimyo (Imjin only).
+    return this.ww.japan?.armyMods(owner, armyId, m) ?? m;
   }
 
   /** The readiness cut `victim`'s enemies impose at `region` (recon W2, trickster D), bp ≤ 0. */
