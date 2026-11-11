@@ -134,11 +134,15 @@ export interface ConvoyGroup {
   cargo: number;
   /** Fleet ids that have already raided it (sorted). */
   raidedBy: number[];
+  /** ww181: the region it ships to (its route's hub; 0 in older saves). */
+  hub?: number;
 }
 
 export interface SeaArrival {
   owner: number;
   route: number;
+  /** ww181: the group's hub (0: unknown). */
+  hub?: number;
   convoys: number;
   cargo: number;
   tick: number;
@@ -367,6 +371,7 @@ export function seaHash(st: SeaState): number {
       g.cargo,
     ])
       h = fold(h, v);
+    if (g.hub !== undefined) h = fold(h, g.hub + 17);
     for (const id of g.raidedBy) h = fold(h, id);
   }
   if (st.mingFleet !== undefined) h = fold(h, st.mingFleet + 1);

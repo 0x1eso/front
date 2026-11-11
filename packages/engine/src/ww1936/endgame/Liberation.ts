@@ -29,6 +29,8 @@ export function returnLiberated(
     if (ww.isAtWar(c, owner) || !eg.isActor(owner) || eg.isZone(r.id)) {
       continue;
     }
+    // ww181: the Imjin truce leaves Japan its coast forts (ImjinJapan).
+    if (ww.japan?.keepsHeldLand(c, owner) === true) continue;
     transferRegionPeaceful(ww.land, r.id, owner, tick);
     back.add(owner);
   }

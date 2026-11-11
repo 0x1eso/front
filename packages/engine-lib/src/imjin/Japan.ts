@@ -148,6 +148,17 @@ export function meanLoyalty(loyalty: readonly number[]): number {
 }
 
 /**
+ * ww181 (doctrine §7.1, land balance): once the war is on, the whole
+ * realm's levies stand behind the first wave: the eastern daimyo held at
+ * Nagoya, the drafts that followed it, and the 1597 army (124,100 after a
+ * first war that cost about a third of 158,800). The map's Japan is its
+ * western half and weighs half Joseon's people; this adds the rest, so the
+ * pool can fill its losses and a second invasion can sail. The first wave
+ * itself is the map's (the run-up does not get it).
+ */
+export const REALM_LEVY_PCT = 100;
+
+/**
  * Japan's country stats from the daimyo and the regency (design §7):
  * mobilisation drags with the mean loyalty; after Hideyoshi's death the
  * pressure to withdraw wears stability down week by week.
@@ -156,13 +167,14 @@ export function japanStats(
   meanLoy: number,
   pressure: number,
   regency: boolean,
+  realmLevy = false,
 ): { trainPct: number; recruitablePct: number; stabilityWeeklyBp: number } {
   const trainPct =
     meanLoy < 600 ? -Math.min(60, Math.floor((600 - meanLoy) / 8)) : 0;
   const recruitablePct =
-    meanLoy < LOYALTY_LOW
+    (meanLoy < LOYALTY_LOW
       ? -Math.min(25, Math.floor((LOYALTY_LOW - meanLoy) / 20))
-      : 0;
+      : 0) + (realmLevy ? REALM_LEVY_PCT : 0);
   const stabilityWeeklyBp = regency
     ? -Math.min(200, Math.floor(pressure / 5))
     : 0;

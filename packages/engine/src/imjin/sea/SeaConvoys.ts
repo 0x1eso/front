@@ -27,6 +27,7 @@ export function addConvoyGroup(
   to: number,
   convoys: number,
   cargo: number,
+  hub = 0,
 ): ConvoyGroup | null {
   const path = from === to ? [to] : ctx.path(from, to);
   if (!path || path.length === 0) return null;
@@ -43,6 +44,7 @@ export function addConvoyGroup(
     cargo,
     raidedBy: [],
   };
+  if (hub !== 0) g.hub = hub;
   st.groups.push(g);
   return g;
 }
@@ -92,6 +94,7 @@ export function convoyStep(st: SeaState, ctx: SeaCtx): void {
       st.arrivals.push({
         owner: g.owner,
         route: g.route,
+        hub: g.hub ?? 0,
         convoys: g.convoys,
         cargo: g.cargo,
         tick: ctx.tick,

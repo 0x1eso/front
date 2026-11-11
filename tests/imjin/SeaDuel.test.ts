@@ -261,7 +261,7 @@ describe("SeaDuel", () => {
       {
         "ended": 376,
         "fled": 8,
-        "hash": 1604641666,
+        "hash": 195174531,
         "japan": 2,
         "joseon": 8,
         "opened": 1,

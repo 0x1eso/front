@@ -62,6 +62,23 @@ export const NO_DOCTRINE: DoctrineState = {
   mingRelief: false,
 };
 
+/**
+ * ww181 (doctrine §7.1, [S1]): at most about 170,000 Joseon men were
+ * mobilised, irregulars included. The occupation's uprisings (1936 spec
+ * §8.6: two divisions raised in the county, not from the pool) rise into
+ * Joseon's army only while it is under this; above it the county still
+ * rises and is taken back, with no new division. Unbounded, a Japan that
+ * held most of Korea faced 57 Joseon divisions (about 260,000) by 1594.
+ */
+export const JOS_MOBILISED_MAX_MEN = 170_000;
+
+/** ww181: of an uprising's `n` divisions of `men` each, those that fit under the ceiling. */
+export function uprisingRoom(armyMen: number, n: number, men: number): number {
+  if (men <= 0) return n;
+  const room = JOS_MOBILISED_MAX_MEN - armyMen;
+  return Math.max(0, Math.min(n, Math.floor(room / men)));
+}
+
 /** Captured arquebuses Joseon needs before its own gunners show (§4 stage B). */
 export const JOS_ARQ_POINTS = 6;
 /** Days after the 훈련도감's founding that its first and its full drill take. */

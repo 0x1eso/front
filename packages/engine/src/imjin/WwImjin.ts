@@ -80,11 +80,19 @@ export interface ImjinSiege {
   morale: number;
 }
 
-/** A supply route's last landed cargo (milli a day) and its day. */
+/**
+ * A supply route's last landed cargo (milli a day) and its day. ww181: kept
+ * by the hub it landed at and its owner, so the grain of a group whose
+ * route the daily sync dropped and drew again (a new id) still feeds the
+ * port it reached.
+ */
 export interface ImjinLanded {
   route: number;
   perDay: number;
   day: number;
+  /** ww181: the hub region and its owner (absent in older saves). */
+  hub?: number;
+  owner?: number;
 }
 
 export interface ImjinState {
@@ -309,7 +317,8 @@ export class WwImjin {
     // Expired landings no longer feed.
     this.st.landed = this.st.landed.filter(
       (l) =>
-        day - l.day <= LANDED_KEEP_DAYS && this.ww.navy.routes.has(l.route),
+        day - l.day <= LANDED_KEEP_DAYS &&
+        (l.hub !== undefined || this.ww.navy.routes.has(l.route)),
     );
   }
 
@@ -325,11 +334,25 @@ export class WwImjin {
     for (const a of sea.arrivals) {
       this.stats.groupsLanded++;
       const perDay = Math.floor(a.cargo / GROUP_DAYS);
-      const i = this.st.landed.findIndex((l) => l.route === a.route);
-      if (i >= 0) this.st.landed[i] = { route: a.route, perDay, day };
+      const hub = a.hub ?? 0;
+      const i = this.st.landed.findIndex((l) =>
+        hub === 0
+          ? l.hub === undefined && l.route === a.route
+          : l.hub === hub && l.owner === a.owner,
+      );
+      const l: ImjinLanded =
+        hub === 0
+          ? { route: a.route, perDay, day }
+          : { route: a.route, perDay, day, hub, owner: a.owner };
+      if (i >= 0) this.st.landed[i] = l;
       else {
-        this.st.landed.push({ route: a.route, perDay, day });
-        this.st.landed.sort((x, y) => x.route - y.route);
+        this.st.landed.push(l);
+        this.st.landed.sort(
+          (x, y) =>
+            (x.hub ?? 0) - (y.hub ?? 0) ||
+            (x.owner ?? 0) - (y.owner ?? 0) ||
+            x.route - y.route,
+        );
       }
     }
     sea.arrivals = [];
@@ -371,7 +394,7 @@ export class WwImjin {
       if (to < 0 || from < 0) continue;
       const cargo = imjinRouteCapacityMilli(r) * GROUP_DAYS;
       if (cargo <= 0) continue;
-      addConvoyGroup(sea, ctx, r.owner, r.id, from, to, r.got, cargo);
+      addConvoyGroup(sea, ctx, r.owner, r.id, from, to, r.got, cargo, r.ref);
     }
   }
 
@@ -389,7 +412,17 @@ export class WwImjin {
 
   /** The cargo a route landed lately, milli a day (0: nothing landed). */
   landedPerDay(route: number): number {
-    return this.st.landed.find((l) => l.route === route)?.perDay ?? 0;
+    const r = this.ww.navy.routes.get(route);
+    const byHub =
+      r === undefined
+        ? undefined
+        : this.st.landed.find((l) => l.hub === r.ref && l.owner === r.owner);
+    return (
+      byHub?.perDay ??
+      this.st.landed.find((l) => l.hub === undefined && l.route === route)
+        ?.perDay ??
+      0
+    );
   }
 
   // ---- Land battles' orders ----
@@ -699,8 +732,10 @@ export class WwImjin {
       ])
         mix(v);
     }
-    for (const l of this.st.landed)
+    for (const l of this.st.landed) {
       for (const v of [l.route, l.perDay, l.day]) mix(v);
+      if (l.hub !== undefined) for (const v of [l.hub, l.owner ?? 0]) mix(v);
+    }
     mix(this.st.warDay);
     mix(this.st.mingDay);
     mix(this.endings.hash());

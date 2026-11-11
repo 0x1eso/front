@@ -70,7 +70,12 @@ export function wajoBatteries(im: WwImjin): SeaBattery[] {
   return out;
 }
 
-/** Men of `owner`'s enemies in the land neighbours, and of `owner` in the region. */
+/**
+ * Divisions of `owner`'s enemies next to the fort, and of `owner` in it.
+ * ww181: the enemy's divisions inside the region count as next to it: a
+ * deep region's outer bands fall first (Bands.ts), and the besiegers who
+ * took them stand in the region, before the walls.
+ */
 function divisionsAround(
   im: WwImjin,
   region: number,
@@ -80,7 +85,10 @@ function divisionsAround(
   const t = land.divisions;
   let enemy = 0;
   let garrison = 0;
-  for (const row of land.rowsIn(region)) if (t.owner[row] === owner) garrison++;
+  for (const row of land.rowsIn(region)) {
+    if (t.owner[row] === owner) garrison++;
+    else if (land.isEnemy(owner, t.owner[row])) enemy++;
+  }
   for (const n of im.ww.scenario.regionNeighbours(region))
     for (const row of land.rowsIn(n))
       if (land.isEnemy(owner, t.owner[row])) enemy++;

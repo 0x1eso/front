@@ -870,6 +870,8 @@ function volley(
       ? Math.max(5, Math.floor((hit * (100 - BATTERY_COVER_PCT)) / 100))
       : hit;
 
+  const boards: { s: SeaShip; f: SeaFleet; tgt: SeaShip }[] = [];
+  const boarders = new Map<number, number>();
   for (const s of all) {
     const f = L.fleets.get(s.fleet)!;
     if (f.fleeing || s.fouled || s.fireShip || !mayFire.has(s.id)) continue;
@@ -965,28 +967,38 @@ function volley(
       });
       const tgt = nearest(s, cands, BOARD_RANGE_MT);
       if (tgt) {
-        const tf = L.fleets.get(tgt.fleet)!;
-        const r = boardingRound(
-          {
-            crew: s.crew,
-            value: stats.boardAtk,
-            skill: f.admiral.alive ? f.admiral.boarding : 0,
-          },
-          {
-            crew: tgt.crew,
-            value:
-              (tf.caught ?? 0) > 0
-                ? shipStats(tgt.kind).boardDef >> 1
-                : shipStats(tgt.kind).boardDef,
-            skill: tf.admiral.alive ? tf.admiral.boarding : 0,
-          },
-          wwRoll(ctx.seed, P_SEA_BOARD, s.id, tick),
-        );
-        add(crewDmg, s.id, r.attLoss);
-        add(crewDmg, tgt.id, r.defLoss);
+        boards.push({ s, f, tgt });
+        if (!((f.disorder ?? 0) > 0)) add(boarders, tgt.id, 1);
         if (!captorOf.has(tgt.id)) captorOf.set(tgt.id, f.id);
       }
     }
+  }
+  // ww181 (doctrine §3, "crews, not ships"): boarders who close in order
+  // and grapple the same ship share its crew among them; each fights the
+  // share that meets it (was the whole crew against every one of them).
+  // Chasers strung out after a lure come on one by one and meet it whole.
+  for (const { s, f, tgt } of boards) {
+    const tf = L.fleets.get(tgt.fleet)!;
+    const n =
+      (f.disorder ?? 0) > 0 ? 1 : Math.max(1, boarders.get(tgt.id) ?? 1);
+    const r = boardingRound(
+      {
+        crew: s.crew,
+        value: shipStats(s.kind).boardAtk,
+        skill: f.admiral.alive ? f.admiral.boarding : 0,
+      },
+      {
+        crew: Math.ceil(tgt.crew / n),
+        value:
+          (tf.caught ?? 0) > 0
+            ? shipStats(tgt.kind).boardDef >> 1
+            : shipStats(tgt.kind).boardDef,
+        skill: tf.admiral.alive ? tf.admiral.boarding : 0,
+      },
+      wwRoll(ctx.seed, P_SEA_BOARD, s.id, tick),
+    );
+    add(crewDmg, s.id, r.attLoss);
+    add(crewDmg, tgt.id, r.defLoss);
   }
 
   // ww177 P7b (doctrine §3): a fortified anchorage fires on hostile ships

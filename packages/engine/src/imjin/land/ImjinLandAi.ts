@@ -252,26 +252,25 @@ export const IMJIN_SPEAR_MIN = 4;
 
 /**
  * What a castle costs the drive to take by assault, in march cost: walls
- * that no siege has starved are gone round (the siege picks, design §5:
- * no guns to breach them, so the drive surrounds them and lets them
- * starve); once the grain is out, or when the spearhead outnumbers the
- * garrison IMJIN_STORM_ODDS to one, they are stormed.
+ * that a garrison holds and no siege has starved are gone round (the
+ * siege picks, design §5: the drive surrounds them and lets them starve,
+ * doctrine §7.3's investment); once the grain is out, or with nobody on
+ * the walls, they are stormed. ww181: the odds no longer storm them (13
+ * divisions fed into one gate at Gaeseong for four months, Anju for a
+ * year): a garrison dug in behind walls holds whatever stands at the gate.
  */
 export const IMJIN_WALL_DETOUR = 8;
-export const IMJIN_STORM_ODDS = 3;
 
 /**
  * The drive's next region: the enemy region next to our side's land that
- * lies nearest the aim by the cheapest march, walls counted at
- * IMJIN_WALL_DETOUR more unless `force` divisions storm them at the odds
- * (not a pocket left to starve; ties: the fewer defenders, the smaller
- * id). 0 when none.
+ * lies nearest the aim by the cheapest march, held walls counted at
+ * IMJIN_WALL_DETOUR more (not a pocket left to starve; ties: the fewer
+ * defenders, the smaller id). 0 when none.
  */
 export function imjinNextStep(
   land: WwLand,
   me: number,
   aim: number,
-  force = 0,
   skip: readonly number[] = [],
 ): number {
   const sc = land.scenario;
@@ -292,12 +291,10 @@ export function imjinNextStep(
       continue;
     }
     if (imjinStarving(land, me, r.id)) continue;
-    const n = land.rowsIn(r.id).length;
-    const walls =
-      im !== null &&
-      imjinFortLevel(im, r.id) > 0 &&
-      !im.st.sieges.some((x) => x.region === r.id) &&
-      force < IMJIN_STORM_ODDS * Math.max(1, n);
+    let n = 0;
+    for (const row of land.rowsIn(r.id))
+      if (land.isEnemy(me, land.divisions.owner[row])) n++;
+    const walls = im !== null && n > 0 && unbrokenWalls(land, r.id);
     const cost = d[r.id] + (walls ? IMJIN_WALL_DETOUR : 0);
     if (
       cost < bestD ||
@@ -371,7 +368,7 @@ export function imjinDrive(
         taken.push(spear.order.targets[0]);
       continue;
     }
-    const step = imjinNextStep(land, me, aim, spear.divisions.length, taken);
+    const step = imjinNextStep(land, me, aim, taken);
     if (step === 0) continue;
     taken.push(step);
     const on =
@@ -396,7 +393,7 @@ export function imjinDrive(
   let more = corps - spears.length;
   for (const a of cands) {
     if (more <= 0) return;
-    const step = imjinNextStep(land, me, aim, a.divisions.length, taken);
+    const step = imjinNextStep(land, me, aim, taken);
     if (step !== 0 && issue(order(a, step))) {
       taken.push(step);
       more--;

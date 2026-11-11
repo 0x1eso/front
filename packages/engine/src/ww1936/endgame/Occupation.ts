@@ -48,6 +48,7 @@ import {
   genMixOf,
   templateStats,
 } from "@openfront/engine-lib/ww1936/TemplateStats";
+import { uprisingDivisions } from "../../imjin/land/ImjinDoctrine";
 import { damageBuilding, effectiveBuildings } from "../economy/Buildings";
 import { retreatDivision } from "../land/Battles";
 import { setGarrison } from "../land/Orders";
@@ -530,6 +531,13 @@ function spawnUprising(eg: WwEndgame, k: number, region: number): void {
     }
   });
   const org = templateStats(tpl.def, ce.stats, genMixOf(slots)).orgMilli;
+  // ww181 (Imjin, doctrine §7.1): Joseon's levy ceiling counts these too.
+  const im = eg.ww.imjinWar;
+  const n =
+    im === null
+      ? WW_UPRISING_DIVISIONS
+      : uprisingDivisions(im, k, WW_UPRISING_DIVISIONS, s.men);
+  if (n <= 0) return;
   const army =
     land.newArmy(k) ??
     land
@@ -541,7 +549,7 @@ function spawnUprising(eg: WwEndgame, k: number, region: number): void {
       ) ??
     null;
   if (army === null) return;
-  for (let i = 0; i < WW_UPRISING_DIVISIONS; i++) {
+  for (let i = 0; i < n; i++) {
     land.spawnDivision(k, tpl.id, region, army, s.men, slots, org);
   }
 }

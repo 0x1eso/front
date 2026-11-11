@@ -218,6 +218,26 @@ export class ImjinJapan {
     return this.s.deathDay < 0;
   }
 
+  /**
+   * ww181: whether `holder` keeps the Korean land `legal` owns while they
+   * are not at war (WwEndgame's liberation leaves it). Japan keeps what it
+   * holds, the coast forts, from the truce (makeTruce) through the
+   * envoys, a broken truce and a peace by the forged letters, until it
+   * goes home (withdraw gives the land back itself) or a new war decides.
+   */
+  keepsHeldLand(holder: number, legal: number): boolean {
+    if (holder !== this.jpn || this.jpn === 0) return false;
+    if (legal !== this.jos && (legal !== this.min || this.min === 0))
+      return false;
+    const ph = this.s.phase;
+    return (
+      ph === P.truce ||
+      ph === P.envoysAsked ||
+      ph === P.broken ||
+      ph === P.peace
+    );
+  }
+
   /** Whether `a` may declare war on `b` now (Diplomacy.declareWarBlock). */
   mayDeclare(a: number, b: number): boolean {
     if (a !== this.jpn || b !== this.jos || this.jpn === 0) return true;
@@ -268,6 +288,7 @@ export class ImjinJapan {
       meanLoyalty(this.s.loyalty),
       this.s.pressure,
       !this.alive(),
+      this.s.warDay >= 0 && this.s.phase !== P.withdrawn,
     );
     const out = this.statsScratch;
     out.trainPct = st.trainPct;

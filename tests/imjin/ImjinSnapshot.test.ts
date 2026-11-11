@@ -17,8 +17,8 @@ const CONFIG: Partial<GameConfig> = {
 const HUMANS = [{ clientID: HUMAN }];
 const hash = (r: { game: unknown }) => (r.game as { hash(): number }).hash();
 
-// Re-pinned at the ww177 final merge with two equal runs (imjinmini, 3,000 ticks).
-const IMJIN_DIGEST = "ceb7b7110b67b4df";
+// Re-pinned at ww181 with two equal runs (imjinmini, 3,000 ticks).
+const IMJIN_DIGEST = "0024f36f7c87e989";
 
 async function imjinRunner() {
   return wwRunner(CONFIG, HUMANS, MAP);

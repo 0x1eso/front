@@ -14,6 +14,7 @@ import {
   MUSTER_ORG_PCT,
   perksOf,
   rowMixFor,
+  uprisingRoom,
 } from "@openfront/engine-lib/imjin/Doctrine";
 import { SCUTTLE_SCENE } from "@openfront/engine-lib/imjin/DoctrineContent";
 import type { RowMix } from "@openfront/engine-lib/imjin/LandRound";
@@ -212,10 +213,34 @@ export function recentJosRouts(im: WwImjin): number[] {
   return out;
 }
 
-/** Joseon's conscription stops at "limited" until the 훈련도감 (doctrine §7.1). */
-export function joseonLevyCapped(im: WwImjin, owner: number): boolean {
+/**
+ * Joseon's conscription stops at "limited" until the 훈련도감 (doctrine
+ * §7.1). ww181: and at "service" after it: at most about 170,000 were
+ * mobilised, irregulars included (doctrine §7.1, [S1]); unbounded, the
+ * AI's levy reached 300,000 by 1593. Null: no cap (not Joseon).
+ */
+export function joseonLevyCap(
+  im: WwImjin,
+  owner: number,
+): "limited" | "service" | null {
   const jos = im.idOf("JOS");
-  return owner === jos && flagDay(im, jos, D.josHullyeon) < 0;
+  if (owner !== jos) return null;
+  return flagDay(im, jos, D.josHullyeon) < 0 ? "limited" : "service";
+}
+
+/**
+ * ww181: how many of an uprising's `n` divisions of `men` each rise into
+ * `owner`'s army (WwEndgame's uprisingNow): Joseon's, while its army stays
+ * within JOS_MOBILISED_MAX_MEN; every other country's, all of them.
+ */
+export function uprisingDivisions(
+  im: WwImjin,
+  owner: number,
+  n: number,
+  men: number,
+): number {
+  if (owner !== im.idOf("JOS")) return n;
+  return uprisingRoom(im.ww.land.armyMen(owner), n, men);
 }
 
 /** A division Joseon raises in the war waits at its muster point (§4 stage A). */
