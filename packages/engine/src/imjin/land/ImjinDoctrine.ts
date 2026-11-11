@@ -49,7 +49,7 @@ const JAPANESE_HULLS: readonly string[] = ["atakebune", "sekibune", "kobaya"];
 /** Japan keeps to harbour once it lost this many ships within CAUTION_DAYS (§3). */
 export const CAUTION_SHIPS = 40;
 /** Game days: a battle runs for weeks of the game's compressed clock. */
-export const CAUTION_DAYS = 90;
+export const CAUTION_DAYS = 120;
 /** Ming's drill masters are in the country this long after its relief came. */
 const DRILL_DAYS = 60;
 /** Sortie endurance (§5): days out, the AI's turn for home, the morale a day after. */
@@ -62,6 +62,8 @@ const IN_PORT_MT = 6 * MT;
 const LANDED_DIVISIONS = 5;
 const SCUTTLE_ODDS = 5;
 const SCUTTLE_NERVE = 2;
+/** A squadron, not a few ships that broke off or were sent out. */
+const SCUTTLE_MIN_SHIPS = 6;
 const SCUTTLE_COHESION_BP = 2000;
 const SCUTTLE_REACH_MT = 40 * MT;
 
@@ -340,10 +342,14 @@ function scuttle(im: WwImjin): void {
   const human = ww.politics.isHuman(jos);
   const cohesion = ww.politics.country(jos)?.stabBp ?? 10000;
   for (const f of [...sea.fleets].sort((a, b) => a.id - b.id)) {
+    // A commander decides it: ships that broke off alone keep sailing home.
     if (f.owner !== jos || f.ships.length === 0 || f.battle !== 0) continue;
+    if (!f.admiral.alive || f.ships.length < SCUTTLE_MIN_SHIPS) continue;
     if (doc.scuttleAsked.includes(f.id)) continue;
-    const nerve = f.admiral.alive ? f.admiral.nerve : 0;
-    const weak = nerve <= SCUTTLE_NERVE || cohesion < SCUTTLE_COHESION_BP;
+    const nerve = f.admiral.nerve;
+    const weak =
+      nerve <= SCUTTLE_NERVE ||
+      (nerve <= SCUTTLE_NERVE + 1 && cohesion < SCUTTLE_COHESION_BP);
     if (!weak) continue;
     let foe = 0;
     for (const e of sea.fleets)
@@ -359,7 +365,7 @@ function scuttle(im: WwImjin): void {
     if (human) {
       if (doc.scuttleFleet >= 0) continue;
       doc.scuttleFleet = f.id;
-      ww.politics.queueEvent(SCUTTLE_SCENE, jos, jos, 0, 0);
+      ww.politics.queueEvent("imjin_jos_scuttle", jos, jos, 0, 0);
     } else scuttleFleet(im, f);
   }
 }

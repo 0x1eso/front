@@ -36,7 +36,7 @@ import { USE_SUPPLY } from "../../ww1936/navy/Convoys";
 import { navalPortsOf } from "../../ww1936/navy/Ports";
 import type { WwImjin } from "../WwImjin";
 import { flagsAt, type SeaCtx, tileAt, tileCentre } from "./SeaCtx";
-import { seaOrder } from "./SeaFleets";
+import { seaOrder, splitFleet } from "./SeaFleets";
 import { mingFleetByState } from "./SeaStart";
 import type { SeaBattle, SeaFleet, SeaShip, SeaState } from "./SeaState";
 import { fleetStrength, shipIndex } from "./SeaState";
@@ -129,6 +129,8 @@ export interface SeaAiView {
 /** Japan's attack bar and bait aggression before its caution (doctrine §3). */
 const BOLD_ATTACK_PCT = 120;
 const BOLD_BAIT_PM = 1200;
+/** Ships the main fleet sends out as a bait (doctrine §5). */
+const BAIT_SHIPS = 4;
 /** Days out after which an AI fleet heads home (doctrine §5). */
 const SORTIE_HOME_DAYS = 10;
 
@@ -502,7 +504,14 @@ function rangeTarget(
 function springLure(v: SeaAiView, f: SeaFleet, foe: SeaFleet): boolean {
   const { ctx } = v;
   const main = mainFleetOf(v, f.owner);
-  if (main !== f || f.admiral.tactics < 3) return false;
+  // ww177 P7b: any great fleet under an admiral who can set a trap (not
+  // only the strongest: Yi's at Yeosu and Yi Eok-gi's at Haenam are alike).
+  if (
+    main === undefined ||
+    f.admiral.tactics < 3 ||
+    fleetStrength(v.st, f) * 2 < fleetStrength(v.st, main)
+  )
+    return false;
   if (v.st.fleets.some((o) => o.owner === f.owner && o.lureTo !== undefined))
     return false;
   const foeD = dist(f, foe);
@@ -525,6 +534,18 @@ function springLure(v: SeaAiView, f: SeaFleet, foe: SeaFleet): boolean {
       bait = o;
       bd = d;
     }
+  }
+  // ww177 P7b (doctrine §5, Hansan): with no small fleet near, the main
+  // fleet sends a few of its own ships out as the bait.
+  if (bait === undefined && f.battle === 0 && f.ships.length > BAIT_SHIPS * 2) {
+    const idx = shipIndex(v.st);
+    const small = f.ships
+      .slice(1)
+      .filter((id) => idx.get(id)?.kind === "hyeopseon");
+    const rest = f.ships.slice(1).filter((id) => !small.includes(id));
+    bait = splitFleet(v.st, f.id, [...small, ...rest].slice(0, BAIT_SHIPS));
+    if (bait !== undefined)
+      bait.admiral = { ...f.admiral, gunnery: 2, tactics: 2 };
   }
   if (bait === undefined) return false;
   if (tileAt(ctx, f.x, f.y) === lee) holdFast(v, f);

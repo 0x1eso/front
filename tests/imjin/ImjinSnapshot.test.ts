@@ -18,7 +18,7 @@ const HUMANS = [{ clientID: HUMAN }];
 const hash = (r: { game: unknown }) => (r.game as { hash(): number }).hash();
 
 // Re-pinned at the ww177 merge 3 with two equal runs (imjinmini, 3,000 ticks).
-const IMJIN_DIGEST = "50e327f9b22fd212";
+const IMJIN_DIGEST = "af8891a87198de74";
 
 async function imjinRunner() {
   return wwRunner(CONFIG, HUMANS, MAP);

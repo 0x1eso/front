@@ -2,7 +2,7 @@
  * ww177 P7b: the sea duel fit (doctrine §7.2.4), seeded like
  * scripts/ww1936/duel-fit.ts:
  *
- *   npx tsx scripts/imjin/sea-duel-fit.ts [--duels 40] [--seed 1]
+ *   npx tsx scripts/ww1936/imjin-sea-duel-fit.ts [--duels 40] [--seed 1]
  *
  * plays `--duels` duels of each target row on an open test sea (a channel
  * for Myeongnyang) through the real sea tick and the real sea AI's battle
@@ -20,7 +20,10 @@
 import type { ShipKind } from "@openfront/engine-lib/imjin/SeaRules";
 import { MT, VOLLEY_TICKS } from "@openfront/engine-lib/imjin/SeaRules";
 import type { SeaFlags } from "@openfront/engine-lib/imjin/Terrain";
-import { seaAiVolley, type SeaAiView } from "../../packages/engine/src/imjin/sea/SeaAi";
+import {
+  seaAiVolley,
+  type SeaAiView,
+} from "../../packages/engine/src/imjin/sea/SeaAi";
 import type { SeaCtx } from "../../packages/engine/src/imjin/sea/SeaCtx";
 import { seaOrder } from "../../packages/engine/src/imjin/sea/SeaFleets";
 import {
@@ -41,8 +44,22 @@ const H = 80;
 const JOSEON = 1;
 const JAPAN = 2;
 
-const OPEN: SeaFlags = { coastal: false, lee: false, channel: false, shoal: false, current: 0, currentDir: 0 };
-const CHANNEL: SeaFlags = { coastal: true, lee: false, channel: true, shoal: false, current: 1, currentDir: 0 };
+const OPEN: SeaFlags = {
+  coastal: false,
+  lee: false,
+  channel: false,
+  shoal: false,
+  current: 0,
+  currentDir: 0,
+};
+const CHANNEL: SeaFlags = {
+  coastal: true,
+  lee: false,
+  channel: true,
+  shoal: false,
+  current: 1,
+  currentDir: 0,
+};
 
 function ctxOf(seed: number, channel: boolean): SeaCtx {
   return {
@@ -104,12 +121,50 @@ interface Row {
   lured: boolean;
 }
 
-const rep = <T,>(k: T, n: number): T[] => Array.from({ length: n }, () => k);
+const rep = <T>(k: T, n: number): T[] => Array.from({ length: n }, () => k);
 const ROWS: Row[] = [
-  { key: "a 8 vs 12 open", joseon: rep("panokseon", 8), japan: rep("sekibune", 12), channel: false, jpFormation: "wedge", gap: 10, lured: false },
-  { key: "b 8 vs 24 board", joseon: rep("panokseon", 8), japan: rep("sekibune", 24), channel: false, jpFormation: "wedge", gap: 10, lured: false },
-  { key: "c 13 vs 60 channel", joseon: rep("panokseon", 13), japan: [...rep("atakebune" as ShipKind, 6), ...rep("sekibune" as ShipKind, 54)], channel: true, jpFormation: "column", gap: 8, lured: false },
-  { key: "d crane on lured column 2.5x", joseon: rep("panokseon", 10), japan: [...rep("atakebune" as ShipKind, 4), ...rep("sekibune" as ShipKind, 21)], channel: false, jpFormation: "column", gap: 6, lured: true },
+  {
+    key: "a 8 vs 12 open",
+    joseon: rep("panokseon", 8),
+    japan: rep("sekibune", 12),
+    channel: false,
+    jpFormation: "wedge",
+    gap: 10,
+    lured: false,
+  },
+  {
+    key: "b 8 vs 24 board",
+    joseon: rep("panokseon", 8),
+    japan: rep("sekibune", 24),
+    channel: false,
+    jpFormation: "wedge",
+    gap: 10,
+    lured: false,
+  },
+  {
+    key: "c 13 vs 60 channel",
+    joseon: rep("panokseon", 13),
+    japan: [
+      ...rep("atakebune" as ShipKind, 6),
+      ...rep("sekibune" as ShipKind, 54),
+    ],
+    channel: true,
+    jpFormation: "column",
+    gap: 8,
+    lured: false,
+  },
+  {
+    key: "d crane on lured column 2.5x",
+    joseon: rep("panokseon", 10),
+    japan: [
+      ...rep("atakebune" as ShipKind, 4),
+      ...rep("sekibune" as ShipKind, 21),
+    ],
+    channel: false,
+    jpFormation: "column",
+    gap: 6,
+    lured: true,
+  },
 ];
 
 function seedOf(n: number): number {
@@ -126,11 +181,18 @@ function duel(row: Row, n: number) {
   // Myeongnyang: Joseon holds the strait's east mouth, Japan comes in from the west.
   const jx = row.channel ? 70 : 60;
   const kx = jx + row.gap;
-  const jp = addFleet(st, JAPAN, jx * MT + 500, (40 + dy) * MT + 500, row.japan, {
-    formation: row.jpFormation,
-    heading: 0,
-    admiral: { gunnery: 2, tactics: 3, boarding: 4, nerve: 3 },
-  });
+  const jp = addFleet(
+    st,
+    JAPAN,
+    jx * MT + 500,
+    (40 + dy) * MT + 500,
+    row.japan,
+    {
+      formation: row.jpFormation,
+      heading: 0,
+      admiral: { gunnery: 2, tactics: 3, boarding: 4, nerve: 3 },
+    },
+  );
   const js = addFleet(st, JOSEON, kx * MT + 500, 40 * MT + 500, row.joseon, {
     formation: row.lured ? "crane" : "line",
     heading: 512,
@@ -164,9 +226,19 @@ function duel(row: Row, n: number) {
     if (t % VOLLEY_TICKS === 0 && st.battles.length > 0) seaAiVolley(view);
     seaTick(st, ctx);
     if (process.env.TRACE && t % 100 === 0)
-      console.log(t, st.fleets.map((f) => `${f.owner}:${f.ships.length}@${(f.x / MT).toFixed(1)},${(f.y / MT).toFixed(1)} ${f.order} ${f.formation} m${f.morale} b${f.battle} fl${f.fleeing}`).join(" | "), st.ships.filter((s) => s.fouled).length);
+      console.log(
+        t,
+        st.fleets
+          .map(
+            (f) =>
+              `${f.owner}:${f.ships.length}@${(f.x / MT).toFixed(1)},${(f.y / MT).toFixed(1)} ${f.order} ${f.formation} m${f.morale} b${f.battle} fl${f.fleeing}`,
+          )
+          .join(" | "),
+        st.ships.filter((s) => s.fouled).length,
+      );
     for (const e of st.events) {
-      if (process.env.TRACE && e.kind !== "battle_join") console.log(t, e.kind, e.a, e.b);
+      if (process.env.TRACE && e.kind !== "battle_join")
+        console.log(t, e.kind, e.a, e.b);
       if (e.kind === "battle_open" && opened < 0) opened = t;
       if (e.kind === "battle_end") ended = t;
     }
@@ -175,12 +247,15 @@ function duel(row: Row, n: number) {
   if (ended < 0) ended = 6000;
   // Lost: sunk, burnt or taken.
   const lostOf = (ids: number[], o: number) =>
-    ids.filter((id) => !st.ships.some((s) => s.id === id && s.owner === o)).length;
+    ids.filter((id) => !st.ships.some((s) => s.id === id && s.owner === o))
+      .length;
   const josLost = lostOf(josIds, JOSEON);
   const jpnLost = lostOf(jpnIds, JAPAN);
   // The side whose fleets all fled or went down lost; else the one that lost the larger share.
   const fled = (o: number) =>
-    st.fleets.filter((f) => f.owner === o && f.ships.length > 0).every((f) => f.fleeing === 1);
+    st.fleets
+      .filter((f) => f.owner === o && f.ships.length > 0)
+      .every((f) => f.fleeing === 1);
   const josShare = (josLost * 1000) / j0;
   const jpnShare = (jpnLost * 1000) / n0;
   let joseonWins: boolean;
@@ -195,7 +270,9 @@ function duel(row: Row, n: number) {
   };
 }
 
-for (const row of ROWS.filter((r) => !process.env.ROW || r.key.startsWith(process.env.ROW))) {
+for (const row of ROWS.filter(
+  (r) => !process.env.ROW || r.key.startsWith(process.env.ROW),
+)) {
   let wins = 0;
   let secs = 0;
   let lo = Infinity;

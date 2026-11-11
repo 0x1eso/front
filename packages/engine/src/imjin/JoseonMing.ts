@@ -87,8 +87,10 @@ import {
   IMJIN_GFLAGS,
   pickFlag,
 } from "@openfront/engine-lib/imjin/CourtScenes";
+import { DOCTRINE_FLAGS } from "@openfront/engine-lib/imjin/Doctrine";
 import { JOS_RESULTS } from "@openfront/engine-lib/imjin/JoseonContent";
 import type { ImjinStartId } from "@openfront/engine-lib/imjin/Starts";
+import { regionTerrain } from "@openfront/engine-lib/imjin/Terrain";
 import { zInt } from "@openfront/engine-lib/snapshot/SnapshotType";
 import { addPopularity } from "@openfront/engine-lib/ww1936/PoliticsRules";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
@@ -104,6 +106,9 @@ import { setGovernment } from "../ww1936/politics/Ideology";
 import type { WorldWar } from "../ww1936/WorldWar";
 import { applyJosResult } from "./JoseonPicks";
 import { recentJosRouts } from "./land/ImjinDoctrine";
+
+/** 청야입보: the supply an enemy keeps next to Joseon's mountain fortresses (‰). */
+const CHEONGYA_SUPPLY_PM = 700;
 
 const P_RISE = idHash("imjin_rise");
 const P_FALL = idHash("imjin_fall");
@@ -901,9 +906,22 @@ export class ImjinJoseonMing {
 
   /** The supply Joseon's enemies keep in `region`, permille (1000: no raid). */
   raidPm(region: number): number {
-    const pm = this.raid.get(region);
-    if (pm === undefined) return 1000;
-    return this.enemyOfJoseon(this.ww.land.controller[region]) ? pm : 1000;
+    if (!this.enemyOfJoseon(this.ww.land.controller[region])) return 1000;
+    const pm = this.raid.get(region) ?? 1000;
+    // ww177 P7b (doctrine §4, 청야입보): the counties next to a Joseon
+    // mountain fortress were emptied into it; the enemy finds 30 % less.
+    return Math.min(pm, this.cheongyaPm(region));
+  }
+
+  private cheongyaPm(region: number): number {
+    const c = this.court();
+    if (!c.flags.has(DOCTRINE_FLAGS.josCheongya)) return 1000;
+    const sc = this.ww.scenario;
+    const ctl = this.ww.land.controller;
+    const emptied = sc
+      .regionNeighbours(region)
+      .some((n) => ctl[n] === this.jos && regionTerrain(sc, n) === "fortress");
+    return emptied ? CHEONGYA_SUPPLY_PM : 1000;
   }
 
   // ---- Ming ----
