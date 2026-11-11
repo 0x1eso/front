@@ -18,6 +18,7 @@ import {
 } from "../../../src/client/GwRecentRuns";
 import { fifthOf, nowLines } from "../../../src/client/hud/ww1914/GwNow";
 import { GwPanel } from "../../../src/client/hud/ww1914/GwPanel";
+import { installTapTip } from "../../../src/client/hud/ww1914/GwTapTip";
 import {
   fillGw,
   rivalLine,
@@ -1182,5 +1183,33 @@ describe("the years", () => {
     localStorage.setItem("gw1914.prologue", "not json");
     expect(gwProloguePicks("DEU")).toEqual([]);
     localStorage.clear();
+  });
+});
+
+describe("hover lines on a phone (ww179)", () => {
+  function tap(el: Element, pointerType: string): void {
+    const e = new Event("pointerup", { bubbles: true });
+    Object.defineProperty(e, "pointerType", { value: pointerType });
+    el.dispatchEvent(e);
+  }
+
+  test("a tap shows the hover line, a tap away hides it, a mouse does not", () => {
+    const root = document.createElement("div");
+    root.innerHTML = `<span title="포탄: 전선에 보낼 포탄"><b>포탄</b></span><span id="plain">x</span>`;
+    document.body.appendChild(root);
+    const stop = installTapTip(root);
+    const tip = () => document.querySelector('[role="tooltip"]');
+    tap(root.querySelector("b")!, "mouse");
+    expect(tip()).toBeNull();
+    tap(root.querySelector("b")!, "touch");
+    expect(tip()?.textContent).toContain("포탄: 전선에 보낼 포탄");
+    tap(root.querySelector("#plain")!, "touch");
+    expect(tip()).toBeNull();
+    tap(root.querySelector("b")!, "touch");
+    expect(tip()).not.toBeNull();
+    tap(document.body, "touch");
+    expect(tip()).toBeNull();
+    stop();
+    root.remove();
   });
 });

@@ -56,6 +56,7 @@ import { GLASS } from "./GwStyle";
 import { paintPane, paintTags, speech, tableTab, tableTags } from "./GwTable";
 import { paintCells, tableCells, togglePlace } from "./GwTableModel";
 import { activeTalk, syncTranscripts, talkView } from "./GwTalk";
+import { installTapTip } from "./GwTapTip";
 import { ticker, tickerLines } from "./GwTicker";
 
 /** The ticker moves to its next line this often, ms. */
@@ -184,6 +185,20 @@ export class GwPanel extends LitElement implements Controller {
 
   createRenderRoot() {
     return this;
+  }
+
+  /** Undoes the phone tap for hover lines (GwTapTip). */
+  private untapTip: (() => void) | null = null;
+
+  connectedCallback() {
+    super.connectedCallback();
+    this.untapTip ??= installTapTip(this);
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.untapTip?.();
+    this.untapTip = null;
   }
 
   init() {

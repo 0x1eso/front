@@ -22,6 +22,7 @@ import {
 } from "./GwLensModel";
 import { RAIL_LINGER_DAYS, railClock, running } from "./GwRailModel";
 import { GLASS, MUTED } from "./GwStyle";
+import { installTapTip } from "./GwTapTip";
 import { textOrNull } from "./GwText";
 
 const GAUGE_OF: Readonly<Partial<Record<Lens, GwGauge>>> = {
@@ -49,6 +50,20 @@ export class GwLens extends LitElement implements Controller {
 
   createRenderRoot() {
     return this;
+  }
+
+  /** Undoes the phone tap for hover lines (GwTapTip). */
+  private untapTip: (() => void) | null = null;
+
+  connectedCallback() {
+    super.connectedCallback();
+    this.untapTip ??= installTapTip(this);
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.untapTip?.();
+    this.untapTip = null;
   }
 
   init() {}
