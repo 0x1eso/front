@@ -183,7 +183,11 @@ function send(c: GwCtx, p: GwPowerView, d: GwRuleDraft, without: boolean) {
   c.ui.notes.push({
     chapter: c.data.chapter,
     title: powerName(c.pack, p.id),
-    pick: o.target === null ? "" : targetLabel(c, p, o.target),
+    // What was named: the target, else each field's pick (the war row's foe).
+    pick:
+      o.target !== null
+        ? targetLabel(c, p, o.target)
+        : p.fields.map((f, i) => fieldLabel(c, p, f.id, o.picks[i])).join(", "),
     rest: "",
     tell: [],
   });

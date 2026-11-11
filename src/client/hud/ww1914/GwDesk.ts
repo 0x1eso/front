@@ -262,7 +262,9 @@ function resultsBox(c: GwCtx): TemplateResult | typeof nothing {
       (n: GwResultNote) =>
         html`<div class="space-y-0.5" data-gw-result>
           <p class="text-sm text-white/90">
-            <b>${n.title}</b> · ${rich(c, n.pick)}
+            <b>${n.title}</b>${n.pick === ""
+              ? nothing
+              : html` · ${rich(c, n.pick)}`}
           </p>
           ${n.rest === ""
             ? nothing
