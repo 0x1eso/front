@@ -885,6 +885,11 @@ export class WwFleetCard extends LitElement implements Controller {
       >
       ${wide ? nothing : html`${this.foldButton(false)} ${this.closeButton()}`}
     </div>`;
+    // On a wide card the battle runs under both columns, so its bars keep their width.
+    const battle =
+      data === undefined || data.battle === 0
+        ? nothing
+        : this.imjinBattle(c, data.battle);
     const info = html`<div class="flex min-w-0 flex-1 flex-col gap-0.5">
       ${head}
       ${data !== undefined && data.battle !== 0
@@ -894,10 +899,7 @@ export class WwFleetCard extends LitElement implements Controller {
             ["morale", f.orgPm, "bg-sky-400"],
           ])}
       ${data === undefined ? nothing : this.imjinStatus(c, data)}
-      ${data === undefined || data.battle === 0
-        ? nothing
-        : this.imjinBattle(c, data.battle)}
-      ${this.imjinLine(c, data?.battle ?? 0)}
+      ${wide ? nothing : battle} ${this.imjinLine(c, data?.battle ?? 0)}
     </div>`;
     const chips = html`<div
       data-ww-card-buttons="imjin"
@@ -918,7 +920,7 @@ export class WwFleetCard extends LitElement implements Controller {
       data-collapsed="false"
       aria-label=${d.name}
       class="fixed z-[1001] flex ${wide
-        ? "flex-row gap-2"
+        ? "flex-row flex-wrap gap-x-2 gap-y-1"
         : "flex-col gap-1"} max-h-[25vh] overflow-y-auto rounded-lg border border-white/15 bg-gray-900/92 p-1.5 text-xs text-white shadow-xl"
       style=${`${placeStyle(this.place)} width: ${this.place.maxWidth}px;`}
       @contextmenu=${(e: Event) => e.preventDefault()}
@@ -926,8 +928,11 @@ export class WwFleetCard extends LitElement implements Controller {
       ${info} ${chips}
       ${wide
         ? html`<div class="flex shrink-0 flex-col gap-1">
-            ${this.foldButton(false)} ${this.closeButton()}
-          </div>`
+              ${this.foldButton(false)} ${this.closeButton()}
+            </div>
+            ${battle === nothing
+              ? nothing
+              : html`<div class="basis-full">${battle}</div>`}`
         : nothing}
     </section>`;
   }
@@ -1060,11 +1065,7 @@ export class WwFleetCard extends LitElement implements Controller {
       <span class="font-semibold text-red-200"
         >${translateText("imjin.sea.battle_title")}</span
       >
-      <div
-        class="grid ${this.place.maxWidth >= 520
-          ? "grid-cols-1 gap-0.5"
-          : "grid-cols-2 gap-2"}"
-      >
+      <div class="grid grid-cols-2 gap-2">
         ${side(v.sides[0], "us")} ${side(v.sides[1], "them")}
       </div>
       ${current === 0
