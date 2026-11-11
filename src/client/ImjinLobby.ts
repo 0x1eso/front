@@ -12,8 +12,8 @@ import { assetUrl } from "@openfront/shared/AssetUrls";
 import { html, TemplateResult } from "lit";
 import { translateText } from "./Utils";
 
-/** ww183: the owner closed the Imjin War for now; set true to reopen it. */
-export const IMJIN_OPEN = false;
+/** ww183/ww185: the lobby toggle for the Imjin War (owner reopened it). */
+export const IMJIN_OPEN = true;
 
 const rowClass = (on: boolean, shut = false) =>
   `rounded border px-3 py-1.5 text-left text-sm text-white ${
