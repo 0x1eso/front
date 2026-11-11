@@ -2916,6 +2916,41 @@
         "title": "The enemy on each front",
         "why": "Whether the enemy is preparing an offensive, and how worn his line is, can only be learned from these reports."
       },
+      "fund": {
+        "air_hint": "Before Neuve Chapelle in March 1915 British airmen photographed the German trenches, and the maps were drawn from the photographs.",
+        "air_no": "Air photographs: not yet. Artillery research brings them, and then the enemy's preparation for an offensive shows more easily.",
+        "air_yes": "Air photographs: our aircraft photograph the enemy's trenches and batteries, so his preparation for an offensive shows more easily.",
+        "broke": "The treasury is empty: a bigger share makes no branch grow now.",
+        "nets": {
+          "1": "Nets can be kept in one country only. More agents abroad make room for more.",
+          "2": "Nets can be kept in two countries. More agents abroad make room for more.",
+          "3": "Nets can be kept in three countries. More agents abroad make room for more.",
+          "4": "Nets can be kept in four countries."
+        },
+        "none": "The service hasn't worked yet. After the next chapter you can share its money and men here.",
+        "share": {
+          "0": "Cut",
+          "1": "As now",
+          "2": "More",
+          "3": "Much more"
+        },
+        "share_hint": {
+          "0": "Take its money and men for other things. Saves a little, but the branch slowly shrinks.",
+          "1": "Give it what it has now. The branch stays as it is.",
+          "2": "Give it more money. The branch grows slowly.",
+          "3": "Give it much more money. The branch grows faster, and counter-intelligence and agents abroad also take men."
+        },
+        "title": "Money and men",
+        "trend": {
+          "down": "shrinking",
+          "fast": "growing fast",
+          "full": "as big as it can get",
+          "hold": "holding",
+          "up": "growing slowly"
+        },
+        "trend_hint": "Where this branch is heading with its share now. Growing takes a year or so.",
+        "why": "How the service's money and men are shared among its four branches. More makes a branch grow slowly; a cut lets it shrink. More costs money, and much more for counter-intelligence or agents abroad also takes men. Britain's counter-intelligence grew from about sixteen people in 1914 to over eight hundred by 1918."
+      },
       "held": "Checked later: it was right.",
       "intro": "Everything the service knows, in one place. Reports can be wrong: see who sent each one and how sure it is.",
       "nets": {
@@ -2958,6 +2993,14 @@
         "we_rolled_up": "On mobilisation day our counter-intelligence took every foreign ring it knew of."
       },
       "skill": {
+        "abroad": {
+          "0": "almost none",
+          "1": "a few men",
+          "2": "well set up",
+          "3": "everywhere",
+          "hint": "How many men we can place and run in other countries. The more, the more countries can hold our nets, the better operations go, and the better the enemy's preparation shows.",
+          "name": "Agents abroad"
+        },
         "guard": {
           "0": "easily read",
           "1": "weak",
@@ -3235,6 +3278,8 @@
       "money_credit_cliff": "New York is calling in its credit.",
       "money_dollars": "The dollar account is draining.",
       "money_scene": "A decision moved the treasury.",
+      "money_service": "More was spent on the secret service.",
+      "money_service_cut": "Cutting the secret service's share saved some money.",
       "money_war_costs": "The war eats credit.",
       "morale_committees": "Soldiers' committees are running the regiments.",
       "morale_refusals": "Divisions have refused to attack.",
@@ -3516,6 +3561,7 @@
       "table_signed": "The peace treaty has been signed.",
       "table_traded": "{b} keeps {place} and gives {a} something else for it.",
       "talks_refused": "Peace feelers from {a} are refused.",
+      "tech_aerial_photos": "{a} is first with: Air photographs.",
       "tech_assault_groups": "{a} is first with: Assault groups.",
       "tech_barrage": "{a} is first with: The creeping barrage.",
       "tech_convoys": "{a} is first with: Convoys.",
@@ -4003,9 +4049,17 @@
       "spy_code_read": "Our codebreakers are reading the enemy's traffic.",
       "spy_codebook": "An enemy codebook has reached our codebreakers.",
       "spy_dip_read": "The code-breakers began reading a rival's diplomatic telegrams.",
+      "spy_grew_abroad": "More agents abroad: nets can be kept in more countries.",
+      "spy_grew_counter": "Counter-intelligence grew: enemy agents at home are found more easily.",
+      "spy_grew_crypt": "Our codebreakers grew: they read enemy telegrams better.",
+      "spy_grew_secure": "Our own codes grew stronger.",
       "spy_incident": "A spy case turned into a diplomatic row. An ambassador was called in.",
       "spy_ours_exposed": "Our agents abroad were caught, and their country told the world.",
       "spy_rolled_up": "On mobilisation day counter-intelligence took in every foreign ring it knew of.",
+      "spy_shrank_abroad": "With money and men taken away, fewer agents work abroad.",
+      "spy_shrank_counter": "With money and men taken away, counter-intelligence weakened.",
+      "spy_shrank_crypt": "With money and men taken away, our codebreakers fell back.",
+      "spy_shrank_secure": "With money and men taken away, our own codes grew weaker.",
       "stavka_grows": "Stavka took more into its hands.",
       "successor_named": "{who} filled the empty office.",
       "talk_clash_cold": "They closed up at the cold words.",
@@ -4020,6 +4074,7 @@
       "talk_fit_warm": "Kind words got through.",
       "talks_accepted": "The other side agreed to stop.",
       "talks_refused": "The other side refused to talk.",
+      "tech_aerial_photos": "Air photographs reached the army. The enemy's preparation for an offensive now shows more easily.",
       "tech_assault_groups": "Assault groups reached the army. Attacks go a little better, and broad-front attacks open up.",
       "tech_barrage": "The creeping barrage reached the army. A wall of shells walks ahead of the infantry, so attacks go better.",
       "tech_convoys": "Convoys reached the army. Merchant ships are guarded, so fewer are lost.",
@@ -4239,6 +4294,7 @@
       "your_turn": "Our turn to speak."
     },
     "tech": {
+      "aerial_photos": "Air photographs",
       "assault_groups": "Assault groups",
       "barrage": "The creeping barrage",
       "convoys": "Convoys",
@@ -4251,6 +4307,7 @@
       "tanks": "Tanks"
     },
     "tech_does": {
+      "aerial_photos": "The enemy's preparation for an offensive shows more easily, and the chief of staff guesses less wildly.",
       "assault_groups": "Attacks go a little better, and broad-front attacks open up.",
       "barrage": "A wall of shells walks ahead of the infantry, so attacks go better.",
       "convoys": "Merchant ships are guarded, so fewer are lost.",

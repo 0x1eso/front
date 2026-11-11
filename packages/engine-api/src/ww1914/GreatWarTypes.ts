@@ -413,6 +413,8 @@ export const GW_TECHS = [
   "mine_nets",
   "ocean_boats",
   "convoys",
+  /** ww180: photographs from the air: spotting the enemy's preparation. */
+  "aerial_photos",
 ] as const;
 export type GwTech = (typeof GW_TECHS)[number];
 
@@ -568,6 +570,22 @@ export const GwIntelSchema = z.object({
   marks: z.array(GwIdSchema),
   /** A price that comes later: `what` on `day`. */
   later: z.array(z.object({ what: GwIdSchema, day: z.number().int() })),
+  /** ww180: agents abroad, 0..3; absent is 1. It keeps nets in one more country. */
+  abroad: z.number().int().optional(),
+  /**
+   * ww180: the service's money and men (Spies.fundStep), by GW_SERVICE_BRANCHES:
+   * the share each gets (0..3), its growth towards the next level (in
+   * share-days; negative while it is starved), and what is owed in money and
+   * men, paid a step at a time.
+   */
+  fund: z
+    .object({
+      split: z.array(z.number().int()),
+      grow: z.array(z.number().int()),
+      owed: z.number().int(),
+      men: z.number().int(),
+    })
+    .optional(),
 });
 export type GwIntel = z.infer<typeof GwIntelSchema>;
 

@@ -20,7 +20,10 @@ import {
   planEdge,
   planOf,
   promiseCost,
+  serviceOf,
+  serviceOrder,
   spiesStep,
+  spotBonus,
   spyEffect,
   spyHolds,
 } from "@openfront/engine/ww1914/Spies";
@@ -351,5 +354,65 @@ describe("in peace (ww178)", () => {
     ]) {
       expect(text).not.toContain(hidden);
     }
+  });
+});
+
+describe("the service grows (ww180)", () => {
+  test("a bigger share grows a branch, a cut one shrinks, and both show in money and words", () => {
+    const i = intelOf(gw, "DEU");
+    expect(serviceOf(gw, "DEU")).toEqual({
+      crypt: 1,
+      counter: 1,
+      secure: 1,
+      net: 2,
+    });
+    expect(serviceOrder(gw, st(), "crypt", 3)).toBeNull();
+    expect(serviceOrder(gw, st(), "secure", 0)).toBeNull();
+    const before = gw.nation("DEU")!.budget.treasury;
+    // Nearly a level put in: the next chapter tips it; nearly one lost.
+    i.fund!.grow = [359, 0, -359, 0];
+    i.fund!.owed = 2159;
+    spiesStep(gw);
+    expect(i.crypt).toBe(2);
+    expect(i.secure).toBe(0);
+    expect(gw.nation("DEU")!.budget.treasury).toBeLessThan(before);
+    const keys = st().log.map((l) => l.key);
+    expect(keys).toContain("spy_grew_crypt");
+    expect(keys).toContain("spy_shrank_secure");
+    const fund = worldView(gw, st()).service!.fund!;
+    expect(fund.branches.map((b) => b.share)).toEqual([3, 1, 0, 1]);
+    expect(fund.branches.map((b) => b.trend)).toEqual([2, 0, 0, 0]);
+    expect(fund.nets).toBe(2);
+    // An empty treasury buys no growth.
+    gw.nation("DEU")!.budget.treasury = 0;
+    expect(worldView(gw, st()).service!.fund!.branches[0].trend).toBe(0);
+  });
+
+  test("the AI shares by its character, and agents abroad set how many nets it keeps", () => {
+    gw.nation("FRA")!.ai = "cautious";
+    gw.nation("RUS")!.ai = "opportunist";
+    spiesStep(gw);
+    expect(intelOf(gw, "FRA").fund!.split).toEqual([1, 2, 2, 1]);
+    // In peace nobody pours in "much more".
+    expect(intelOf(gw, "RUS").fund!.split).toEqual([1, 1, 0, 2]);
+    // The seat's room for nets: two countries, then a third once grown.
+    const deu = intelOf(gw, "DEU");
+    deu.net = { RUS: 1, FRA: 1 };
+    expect(spyHolds(gw, st(), "net", "RUS")).toBe(true);
+    expect(spyHolds(gw, st(), "net", "GBR")).toBe(false);
+    deu.abroad = 2;
+    expect(serviceOf(gw, "DEU").net).toBe(3);
+    expect(spyHolds(gw, st(), "net", "GBR")).toBe(true);
+  });
+
+  test("air photographs and agents abroad help spot preparation", () => {
+    war();
+    expect(spotBonus(gw, "DEU", "east")).toBe(0);
+    gw.nation("DEU")!.techs.push("aerial_photos");
+    expect(spotBonus(gw, "DEU", "east")).toBe(15);
+    expect(spotBonus(gw, "DEU", "palestine")).toBe(8);
+    intelOf(gw, "DEU").abroad = 3;
+    expect(spotBonus(gw, "DEU", "east")).toBe(25);
+    expect(worldView(gw, st()).service!.fund!.air).toBe(true);
   });
 });

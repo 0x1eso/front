@@ -43,7 +43,7 @@ import {
 import { generalsFor } from "./Post";
 import { pressView } from "./Press";
 import { holderOf, holds } from "./SceneRun";
-import { foeOn, foeRead, reads, rivalsOf } from "./Spies";
+import { foeOn, foeRead, fundView, reads, rivalsOf } from "./Spies";
 import { endStrain, strainWord } from "./Strain";
 import { GW_ACTORS, GW_COMMAND_NAMED_AFTER } from "./Tables";
 import { sideIn } from "./Wars";
@@ -189,6 +189,7 @@ export function intelView(gw: GreatWar, seat: GwSeatState): GwIntelView {
       out: pending(o) ? null : o.out,
       chapter: o.chapter,
     })),
+    fund: fundView(gw, seat.tag),
   };
 }
 

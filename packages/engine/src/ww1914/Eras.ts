@@ -60,6 +60,16 @@ export const GW_TECH_TABLE: readonly GwTechRow[] = [
     attack: 8,
     defence: 0,
   },
+  // ww180: the gunners' observers photograph the enemy's lines from the air
+  // (from 1915): no edge in battle, but his preparation is seen (spotBonus).
+  {
+    id: "aerial_photos",
+    track: "artillery",
+    month: 10,
+    need: 8,
+    attack: 0,
+    defence: 0,
+  },
   {
     id: "barrage",
     track: "artillery",

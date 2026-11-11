@@ -3,6 +3,11 @@
 // we read, our nets abroad and the rings caught, and the 뒷공작 rows. Only the
 // seat's own view: reports as they came, the service as it knows itself.
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
+import {
+  GW_SERVICE_BRANCHES,
+  GW_SERVICE_SHARE_MAX,
+  type GwServiceBranch,
+} from "@openfront/engine-api/ww1914/GwSpies";
 import type {
   GwReportView,
   GwSourceView,
@@ -13,7 +18,7 @@ import { translateText } from "../../Utils";
 import type { GwCtx } from "./GwCtx";
 import { personRow } from "./GwPeople";
 import { actRow } from "./GwSchedule";
-import { BTN, CHIP, HEAD, MUTED } from "./GwStyle";
+import { BTN, BTN_ON, CHIP, HEAD, MUTED } from "./GwStyle";
 import { country, factText } from "./GwText";
 
 const BOX = "space-y-1.5 rounded border border-white/15 bg-black/35 p-2.5";
@@ -134,6 +139,19 @@ export function rivalsOf(c: GwCtx): GwTag[] {
 function chief(c: GwCtx): TemplateResult {
   const p = c.seat.people.find((x) => x.office === "intelligence");
   const levels = c.seat.world.service?.levels ?? null;
+  // ww180: the agents abroad grow too; 1 until the service is funded.
+  const abroad =
+    c.seat.world.service?.fund?.branches[GW_SERVICE_BRANCHES.indexOf("abroad")]
+      ?.level ?? 1;
+  const skill = (k: string, level: number) =>
+    html`<div
+      class="flex justify-between gap-2 text-sm"
+      data-gw-intel-skill=${k}
+      title=${t(`skill.${k}.hint`)}
+    >
+      <span class="text-white/70">${t(`skill.${k}.name`)}</span>
+      <span>${t(`skill.${k}.${level}`)}</span>
+    </div>`;
   return html`<section class=${BOX} data-gw-intel-chief>
     ${head("chief")}
     ${p !== undefined
@@ -156,17 +174,94 @@ function chief(c: GwCtx): TemplateResult {
             </button>`}
     ${levels === null
       ? empty("skill.none")
-      : (["read", "guard", "hunt"] as const).map(
-          (k) =>
-            html`<div
-              class="flex justify-between gap-2 text-sm"
-              data-gw-intel-skill=${k}
-              title=${t(`skill.${k}.hint`)}
-            >
-              <span class="text-white/70">${t(`skill.${k}.name`)}</span>
-              <span>${t(`skill.${k}.${levels[k]}`)}</span>
-            </div>`,
+      : html`${(["read", "guard", "hunt"] as const).map((k) =>
+          skill(k, levels[k]),
         )}
+        ${skill("abroad", abroad)}`}
+  </section>`;
+}
+
+/** A branch's heading, -1 .. 3, as its word. */
+const TREND = ["down", "hold", "up", "fast", "full"] as const;
+
+/** The chief's skill word for each branch the money goes to. */
+const BRANCH_SKILL: Record<GwServiceBranch, string> = {
+  crypt: "read",
+  counter: "hunt",
+  secure: "guard",
+  abroad: "abroad",
+};
+
+/**
+ * ww180: the service's money and men. Each branch gets a share in words; a
+ * bigger one makes it grow slowly, a cut lets it decay. What the share will
+ * bring is not shown before the pick: only where each branch is heading now.
+ */
+function fund(c: GwCtx): TemplateResult {
+  const f = c.seat.world.service?.fund;
+  if (f === undefined) {
+    return html`<section class=${BOX} data-gw-intel-fund>
+      ${head("fund")} ${empty("fund.none")}
+    </section>`;
+  }
+  const shares = Array.from({ length: GW_SERVICE_SHARE_MAX + 1 }, (_, i) => i);
+  return html`<section class=${BOX} data-gw-intel-fund>
+    ${head("fund")}
+    ${f.branches
+      .map((b, k) => ({ ...b, id: GW_SERVICE_BRANCHES[k] }))
+      .map(
+        (b) =>
+          html`<div
+            class="space-y-1 border-t border-white/10 pt-1.5"
+            data-gw-intel-branch=${b.id}
+          >
+            <div class="flex flex-wrap items-baseline justify-between gap-x-2">
+              <span
+                class="text-sm text-white/85"
+                title=${t(`skill.${BRANCH_SKILL[b.id]}.hint`)}
+                >${t(`skill.${BRANCH_SKILL[b.id]}.name`)}</span
+              >
+              <span
+                class=${b.trend < 0 ? "text-xs text-amber-200" : MUTED}
+                title=${t("fund.trend_hint")}
+                data-gw-intel-trend=${b.trend}
+                >${t(`fund.trend.${TREND[b.trend + 1] ?? "hold"}`)}</span
+              >
+            </div>
+            <div class="flex flex-wrap gap-1">
+              ${shares.map(
+                (v) =>
+                  html`<button
+                    class="${v === b.share ? BTN_ON : BTN} !px-2 !py-1"
+                    data-gw-pick=${`service:${b.id}:${v}`}
+                    aria-pressed=${v === b.share ? "true" : "false"}
+                    title=${t(`fund.share_hint.${v}`)}
+                    @click=${() =>
+                      v === b.share
+                        ? undefined
+                        : c.send({ kind: "service", branch: b.id, share: v })}
+                  >
+                    ${t(`fund.share.${v}`)}
+                  </button>`,
+              )}
+            </div>
+          </div>`,
+      )}
+    <p class="${MUTED} border-t border-white/10 pt-1.5" data-gw-intel-room>
+      ${t(`fund.nets.${Math.min(4, Math.max(1, f.nets))}`)}
+    </p>
+    ${f.broke
+      ? html`<p class="text-sm text-amber-200" data-gw-intel-broke>
+          ${t("fund.broke")}
+        </p>`
+      : nothing}
+    <p
+      class=${f.air ? "text-sm text-white/85" : MUTED}
+      data-gw-intel-air=${f.air ? "yes" : "no"}
+      title=${t("fund.air_hint")}
+    >
+      ${t(f.air ? "fund.air_yes" : "fund.air_no")}
+    </p>
   </section>`;
 }
 
@@ -374,7 +469,7 @@ export function intelTab(c: GwCtx): TemplateResult {
   const rivals = rivalsOf(c);
   return html`<div class="space-y-2.5" data-gw-intel>
     <p class="text-sm text-white/75">${t("intro")}</p>
-    ${chief(c)} ${fronts(c)} ${countries(c, rivals)} ${codes(c, rivals)}
-    ${nets(c)} ${ops(c)}
+    ${chief(c)} ${fund(c)} ${fronts(c)} ${countries(c, rivals)}
+    ${codes(c, rivals)} ${nets(c)} ${ops(c)}
   </div>`;
 }

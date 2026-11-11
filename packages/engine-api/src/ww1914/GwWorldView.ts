@@ -167,6 +167,24 @@ export interface GwIntelView {
     out: boolean | null;
     chapter: number;
   }[];
+  /**
+   * ww180: the service's money and men, in GW_SERVICE_BRANCHES order (no ids,
+   * so no word of a service's insides leaks by name): each branch's level (0..3), the share the seat gave it (0..3), and where it is heading:
+   * -1 falling, 0 holding, 1 rising, 2 rising fast, 3 as far as it goes.
+   * `nets`: how many countries it can keep nets in. `broke`: the treasury is
+   * empty, so a bigger share buys nothing. `air`: photographs from the air
+   * help it see the enemy's preparation.
+   */
+  fund?: {
+    branches: readonly {
+      level: number;
+      share: number;
+      trend: number;
+    }[];
+    nets: number;
+    broke: boolean;
+    air: boolean;
+  };
 }
 
 export interface GwSourceView {

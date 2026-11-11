@@ -24,10 +24,19 @@ import {
   GwTheatre,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
+import type { GwOrderBlock } from "@openfront/engine-api/ww1914/GwOrders";
 import { GW_PLACES, GwPlace } from "@openfront/engine-api/ww1914/GwPlaces";
-import type { GwSpyAct, GwSpyCan } from "@openfront/engine-api/ww1914/GwSpies";
+import {
+  GW_SERVICE_BRANCHES,
+  GW_SERVICE_SHARE_MAX,
+  type GwServiceBranch,
+  type GwSpyAct,
+  type GwSpyCan,
+} from "@openfront/engine-api/ww1914/GwSpies";
+import type { GwIntelView } from "@openfront/engine-api/ww1914/GwWorldView";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
-import { warMonths } from "./Eras";
+import { moveMoney } from "./Budget";
+import { hasTech, warMonths } from "./Eras";
 import { allocOf } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { learn, sendReport } from "./Intel";
@@ -52,6 +61,7 @@ import {
   warOf,
 } from "./Wars";
 import {
+  chapterOf,
   clampTo,
   defOf,
   fights,
@@ -114,8 +124,6 @@ const CATCH_COUNTER = 6;
 const CATCH_NET = 2;
 /** An operation's chance to be found out rises this much a point of counter. */
 const OUT_COUNTER = 3;
-/** Nets abroad an AI service keeps at most: good men are few. */
-const AI_NETS = 2;
 /** Percent a chapter an AI service tries a new net (bold, others). */
 const AI_NET_PCT_BOLD = 6;
 const AI_NET_PCT = 4;
@@ -319,6 +327,260 @@ export function reads(gw: GreatWar, viewer: GwTag, of: GwTag): boolean {
   return gw.nation(viewer)?.intel?.reads.includes(of) === true;
 }
 
+// ---- ww180: the service grows on money and men ----
+//
+// Each branch gets a share of the service's money and men: cut, as now, more
+// or much more. A bigger share raises the branch's level slowly, a year a
+// level at "more", to 3; a cut one decays. Money the treasury hasn't got buys
+// nothing. Beyond "as now" a share costs money, and "much more" for the
+// hunters and the agents costs men; a cut saves a little. The seat sets the
+// shares in the 정보부 tab; the AI plans them by its character.
+
+const BRANCH_LEVEL_MAX = 3;
+/** Growth a level takes: share-days, so a year at "more", half at "much more". */
+const BRANCH_STEP = 360;
+/** Growth a day by share: cut, as now, more, much more. */
+const SHARE_RATE: readonly number[] = [-1, 0, 1, 2];
+/** Share-days beyond "as now" that cost one step of money (six share-years). */
+const FUND_MONEY_STEP = 2160;
+/** Days of a branch at "much more" that cost one point of men. */
+const FUND_MEN_STEP = 360;
+/** Branches whose "much more" takes men: the hunters at home, the agents abroad. */
+const MEN_BRANCHES: readonly GwServiceBranch[] = ["counter", "abroad"];
+/** Ops' odds, and the spotting, a level of agents abroad is worth. */
+const ABROAD_PCT = 5;
+/** Air reconnaissance's spotting, on the near fronts and the far ones. */
+const AIR_PCT = 15;
+const AIR_FAR_PCT = 8;
+const FAR_FRONTS: readonly GwTheatre[] = [
+  "caucasus",
+  "mesopotamia",
+  "palestine",
+  "persia",
+];
+
+/** A branch's level: the agents abroad are 1 until they first grew. */
+function levelOf(i: GwIntel, b: GwServiceBranch): number {
+  return b === "abroad" ? (i.abroad ?? 1) : i[b];
+}
+
+function setLevel(i: GwIntel, b: GwServiceBranch, v: number): void {
+  if (b === "abroad") i.abroad = v;
+  else i[b] = v;
+}
+
+/** The service's money and men, filled with "as now" on first use. */
+function fundOf(i: GwIntel): NonNullable<GwIntel["fund"]> {
+  i.fund ??= {
+    split: GW_SERVICE_BRANCHES.map(() => 1),
+    grow: GW_SERVICE_BRANCHES.map(() => 0),
+    owed: 0,
+    men: 0,
+  };
+  return i.fund;
+}
+
+/**
+ * What the service can do, without filling its state: the codebreakers, the
+ * hunters, our own codes, and how many countries it can keep nets in.
+ */
+export function serviceOf(
+  gw: GreatWar,
+  tag: GwTag,
+): { crypt: number; counter: number; secure: number; net: number } {
+  const i = gw.nation(tag)?.intel;
+  if (i === undefined) {
+    return {
+      crypt: CRYPT_START[tag] ?? 1,
+      counter: COUNTER_START[tag] ?? 1,
+      secure: SECURE_START[tag] ?? 1,
+      net: 2,
+    };
+  }
+  return {
+    crypt: i.crypt,
+    counter: i.counter,
+    secure: i.secure,
+    net: levelOf(i, "abroad") + 1,
+  };
+}
+
+/**
+ * The extra percent `tag` has to spot the enemy's preparation on `theatre`:
+ * photographs from the air (less on the far fronts), and the agents abroad as
+ * they grew or were starved. Also narrows the chief's estimate (Fronts.fogOf).
+ */
+export function spotBonus(
+  gw: GreatWar,
+  tag: GwTag,
+  theatre: GwTheatre,
+): number {
+  const n = gw.nation(tag);
+  if (n === null) return 0;
+  const air = hasTech(n, "aerial_photos")
+    ? FAR_FRONTS.includes(theatre)
+      ? AIR_FAR_PCT
+      : AIR_PCT
+    : 0;
+  const abroad = n.intel === undefined ? 1 : levelOf(n.intel, "abroad");
+  return air + ABROAD_PCT * (abroad - 1);
+}
+
+/** The treasury is empty: a bigger share buys nothing. */
+function broke(gw: GreatWar, tag: GwTag): boolean {
+  return (gw.nation(tag)?.budget.treasury ?? 0) <= 0;
+}
+
+/** A branch's growth a day at this share, with the money as it is. */
+function rateOf(share: number, isBroke: boolean): number {
+  const r = SHARE_RATE[clampTo(share, 0, GW_SERVICE_SHARE_MAX)];
+  return isBroke ? Math.min(r, 0) : r;
+}
+
+/**
+ * Where a branch is heading, for the seat's words: -1 falling, 0 holding,
+ * 1 rising, 2 rising fast, 3 as far as it goes.
+ */
+function trendOf(level: number, rate: number): number {
+  if (rate > 0) return level >= BRANCH_LEVEL_MAX ? 3 : rate;
+  if (rate < 0) return level > 0 ? -1 : 0;
+  return 0;
+}
+
+/**
+ * The AI's shares, by its character (ww180): the hardliner reads and sends
+ * agents, the opportunist pours men into agents and lets its own codes go,
+ * the cautious one guards home, the principled one keeps its codes and its
+ * hands clean. A long war pushes everyone into codebreaking; an empty
+ * treasury holds every share at "as now" or below.
+ */
+function aiSplit(gw: GreatWar, a: GwTag): number[] {
+  const n = gw.nation(a)!;
+  const s = [1, 1, 1, 1];
+  const [crypt, counter, secure, abroad] = [0, 1, 2, 3];
+  switch (n.ai) {
+    case "hardline":
+      s[crypt] = 2;
+      s[abroad] = 2;
+      break;
+    case "opportunist":
+      s[abroad] = 3;
+      s[secure] = 0;
+      break;
+    case "cautious":
+      s[counter] = 2;
+      s[secure] = 2;
+      break;
+    case "principled":
+      s[crypt] = 2;
+      s[secure] = 2;
+      s[abroad] = 0;
+      break;
+  }
+  if (fights(n) && warMonths(gw) >= 12) s[crypt] = Math.max(s[crypt], 2);
+  if (!fights(n)) for (let k = 0; k < s.length; k++) s[k] = Math.min(s[k], 2);
+  if (broke(gw, a)) for (let k = 0; k < s.length; k++) s[k] = Math.min(s[k], 1);
+  return s;
+}
+
+/** Chapter step: the service grows or decays by its shares, and pays for them. */
+function fundStep(gw: GreatWar, a: GwTag): void {
+  const n = gw.nation(a)!;
+  const i = intelOf(gw, a);
+  const f = fundOf(i);
+  if (!ruledBySeat(gw, a)) f.split = aiSplit(gw, a);
+  const days = chapterOf(gw).spanDays;
+  const isBroke = broke(gw, a);
+  let extra = 0;
+  let men = 0;
+  GW_SERVICE_BRANCHES.forEach((b, k) => {
+    const share = f.split[k] ?? 1;
+    extra += share - 1;
+    if (share >= GW_SERVICE_SHARE_MAX && MEN_BRANCHES.includes(b)) men++;
+    const was = levelOf(i, b);
+    let level = was;
+    let grow = (f.grow[k] ?? 0) + rateOf(share, isBroke) * days;
+    while (grow >= BRANCH_STEP && level < BRANCH_LEVEL_MAX) {
+      grow -= BRANCH_STEP;
+      level++;
+    }
+    while (grow <= -BRANCH_STEP && level > 0) {
+      grow += BRANCH_STEP;
+      level--;
+    }
+    // Nothing banks above the cap or below the floor.
+    if (level >= BRANCH_LEVEL_MAX) grow = Math.min(grow, 0);
+    if (level <= 0) grow = Math.max(grow, 0);
+    f.grow[k] = grow;
+    if (level === was) return;
+    setLevel(i, b, level);
+    // Codes we can no longer break are lost at once.
+    if (b === "crypt") {
+      i.reads = i.reads.filter((x) => level > intelOf(gw, x).secure);
+    }
+    const seat = seatOf(gw, a);
+    if (seat !== undefined) {
+      reason(gw, seat, `spy_${level > was ? "grew" : "shrank"}_${b}`);
+    }
+  });
+  f.owed += extra * days;
+  while (f.owed >= FUND_MONEY_STEP) {
+    f.owed -= FUND_MONEY_STEP;
+    moveMoney(gw, n, -1, "money_service");
+  }
+  while (f.owed <= -FUND_MONEY_STEP) {
+    f.owed += FUND_MONEY_STEP;
+    moveMoney(gw, n, 1, "money_service_cut");
+  }
+  f.men += men * days;
+  while (f.men >= FUND_MEN_STEP) {
+    f.men -= FUND_MEN_STEP;
+    n.manpower = Math.max(0, n.manpower - 1);
+  }
+}
+
+/** The seat's word: the share of money and men `branch` gets from now on. */
+export function serviceOrder(
+  gw: GreatWar,
+  seat: GwSeatState,
+  branch: GwServiceBranch,
+  share: number,
+): GwOrderBlock | null {
+  if (!GW_SPY_POWERS.includes(seat.tag) || !live(gw, seat.tag)) return "closed";
+  const f = fundOf(intelOf(gw, seat.tag));
+  f.split[GW_SERVICE_BRANCHES.indexOf(branch)] = clampTo(
+    share,
+    0,
+    GW_SERVICE_SHARE_MAX,
+  );
+  return null;
+}
+
+/** The seat's view of its service's money and men (WorldView.intelView). */
+export function fundView(
+  gw: GreatWar,
+  tag: GwTag,
+): NonNullable<GwIntelView["fund"]> | undefined {
+  const n = gw.nation(tag);
+  const i = n?.intel;
+  if (n === null || i === undefined) return undefined;
+  const isBroke = broke(gw, tag);
+  return {
+    branches: GW_SERVICE_BRANCHES.map((id, k) => {
+      const share = i.fund?.split[k] ?? 1;
+      const level = levelOf(i, id);
+      return {
+        level,
+        share,
+        trend: trendOf(level, rateOf(share, isBroke)),
+      };
+    }),
+    nets: levelOf(i, "abroad") + 1,
+    broke: isBroke,
+    air: hasTech(n, "aerial_photos"),
+  };
+}
+
 // ---- Codes (Room 40's dilemma) ----
 
 /**
@@ -418,7 +680,8 @@ function spotStep(gw: GreatWar): void {
           15 * net +
           (raided ? 10 : 0) -
           10 * intelOf(gw, o.tag).secure +
-          skillOf(gw, a),
+          skillOf(gw, a) +
+          spotBonus(gw, a, o.theatre),
         5,
         95,
       );
@@ -607,7 +870,11 @@ function opRoll(
   const k = idHash(act);
   const ok =
     roll(gw, P_OP, idx(gw, a), idx(gw, x), k) <
-    base + 10 * net + skillOf(gw, a) - 12 * ix.counter;
+    base +
+      10 * net +
+      skillOf(gw, a) +
+      ABROAD_PCT * (levelOf(ia, "abroad") - 1) -
+      12 * ix.counter;
   const out =
     roll(gw, P_OP_OUT, idx(gw, a), idx(gw, x), k) <
     outBase + OUT_COUNTER * ix.counter;
@@ -1063,7 +1330,7 @@ function aiStep(gw: GreatWar, a: GwTag, foes: GwTag[]): void {
   );
   const nets = Object.values(ia.net).filter((v) => (v ?? 0) > 0).length;
   const netPct = bold ? AI_NET_PCT_BOLD : AI_NET_PCT;
-  if (nets < AI_NETS && roll(gw, P_AI, k, 1) < netPct) {
+  if (nets < serviceOf(gw, a).net && roll(gw, P_AI, k, 1) < netPct) {
     const pool = [...foes, ...neutrals].filter((x) => (ia.net[x] ?? 0) < 3);
     if (pool.length > 0) {
       plantNet(gw, a, pool[roll(gw, P_AI, k, 2) % pool.length]);
@@ -1097,6 +1364,7 @@ export function spiesStep(gw: GreatWar): void {
   const s = gw.s;
   eventsStep(gw);
   ongoingStep(gw);
+  for (const a of GW_SPY_POWERS) if (live(gw, a)) fundStep(gw, a);
   for (const a of GW_SPY_POWERS) {
     if (!fights(gw.nation(a))) continue;
     suspicionStep(gw, a);
@@ -1188,7 +1456,8 @@ export function spyHolds(
   const lastOp = i?.ops[i.ops.length - 1];
   switch (can) {
     case "net":
-      return net < 3;
+      // ww180: a new country needs room in the service (serviceOf.net).
+      return net < 3 && (net > 0 || netsKept(gw, a) < serviceOf(gw, a).net);
     case "sabotage":
       return net > 0 && fights(na) && gw.s.day - (i?.sabotaged ?? NEVER) >= 30;
     case "court":
@@ -1230,6 +1499,12 @@ export function spyHolds(
     case "sealed":
       return marked(gw, "DEU", "lenin");
   }
+}
+
+/** How many countries `a` keeps nets in. */
+function netsKept(gw: GreatWar, a: GwTag): number {
+  const net = gw.nation(a)?.intel?.net ?? {};
+  return Object.values(net).filter((v) => (v ?? 0) > 0).length;
 }
 
 /** A battle went against the seat's end in the last two chapters. */

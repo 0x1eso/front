@@ -107,7 +107,7 @@ describe("the 정보부 tab", () => {
 
   test("every section says what it is, and empty ones say what to do", () => {
     const { root } = ctx({ service: service() });
-    expect(root.querySelectorAll("[data-gw-intel-why]").length).toBe(5);
+    expect(root.querySelectorAll("[data-gw-intel-why]").length).toBe(6);
     // A chief not met yet is not a vacancy; a vacant one points to people.
     expect(q(root, "[data-gw-intel-to-people]")).toBeNull();
     const vacant = ctx({
@@ -122,7 +122,39 @@ describe("the 정보부 tab", () => {
     expect(
       root.querySelectorAll("[data-gw-intel-empty]").length,
     ).toBeGreaterThan(3);
-    expect(root.querySelectorAll("[data-gw-intel-skill]").length).toBe(3);
+    expect(root.querySelectorAll("[data-gw-intel-skill]").length).toBe(4);
+  });
+
+  test("ww180: each branch's share is picked in words and says where it heads", () => {
+    const { root, sent } = ctx({
+      service: service({
+        fund: {
+          branches: [
+            { level: 1, share: 2, trend: 1 },
+            { level: 1, share: 1, trend: 0 },
+            { level: 1, share: 0, trend: -1 },
+            { level: 2, share: 1, trend: 0 },
+          ],
+          nets: 3,
+          broke: true,
+          air: false,
+        },
+      }),
+    });
+    const trend = (b: string) =>
+      q(root, `[data-gw-intel-branch="${b}"] [data-gw-intel-trend]`)!;
+    expect(trend("crypt").textContent).toContain("gw.intel.fund.trend.up");
+    expect(trend("secure").textContent).toContain("gw.intel.fund.trend.down");
+    expect(q(root, '[data-gw-pick="service:crypt:2"]')!.ariaPressed).toBe(
+      "true",
+    );
+    q(root, '[data-gw-pick="service:abroad:3"]')!.click();
+    expect(sent).toEqual([{ kind: "service", branch: "abroad", share: 3 }]);
+    expect(q(root, "[data-gw-intel-broke]")).not.toBeNull();
+    expect(q(root, '[data-gw-intel-air="no"]')).not.toBeNull();
+    expect(q(root, '[data-gw-intel-skill="abroad"]')!.textContent).toContain(
+      "gw.intel.skill.abroad.2",
+    );
   });
 
   test("reports go under their front or country with who, how sure and how old", () => {

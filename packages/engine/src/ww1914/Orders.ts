@@ -57,6 +57,7 @@ import {
 } from "./SceneRun";
 import { answerSlow, askSlow, closeByHost, noteActed } from "./Seats";
 import { sendBack } from "./SendBack";
+import { serviceOrder } from "./Spies";
 import { inOpening, newcomers } from "./Story";
 import { tableClaim, tableNext, tablePass, tableWord } from "./Table";
 import { applyReply, summonScenes } from "./Talk";
@@ -254,6 +255,9 @@ export function applyGwOrder(
       if (o.tempo === null) delete seat.tempo;
       else seat.tempo = o.tempo;
       return null;
+    case "service":
+      // ww180: a standing word on the service's money and men.
+      return serviceOrder(gw, seat, o.branch, o.share);
   }
 }
 

@@ -19,6 +19,7 @@ import {
   GW_TREATY_CLAUSES_MAX,
 } from "./GreatWarTypes";
 import { GW_TAGS } from "./GwCountries";
+import { GW_SERVICE_BRANCHES, GW_SERVICE_SHARE_MAX } from "./GwSpies";
 import { GW_TABLE_TRADES, GW_TABLE_WORDS } from "./GwTable";
 
 const Id = zb.string({ min: 1, max: 48, regex: /^[a-z][a-z0-9_]*$/ });
@@ -221,6 +222,12 @@ export const GwOrderSchema = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("front_tempo"),
     tempo: z.enum(GW_TEMPOS).nullable(),
+  }),
+  /** ww180: the share of the service's money and men a branch gets (0..3). */
+  z.object({
+    kind: z.literal("service"),
+    branch: z.enum(GW_SERVICE_BRANCHES),
+    share: zb.uint({ max: GW_SERVICE_SHARE_MAX }),
   }),
 ]);
 export type GwOrder = z.infer<typeof GwOrderSchema>;

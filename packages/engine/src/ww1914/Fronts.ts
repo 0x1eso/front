@@ -47,6 +47,7 @@ import {
   believedStrain,
   foeOn,
   planEdge,
+  spotBonus,
   strainWord,
 } from "./Spies";
 import { collapseAnswers, pressureStep } from "./Stalemate";
@@ -953,7 +954,11 @@ function fogOf(gw: GreatWar, seat: GwSeatState, t: GwTheatreState): number {
   const massing =
     foe !== null && believedPrep(gw, seat.tag, t.id, foe) ? -10 : 0;
   if (believed === null || foe === null) {
-    return (wwRoll(gw.s.seed, P_ESTIMATE, gw.s.chapter, k) % 41) - 20 + massing;
+    // ww180: photographs from the air and agents abroad narrow the guess.
+    const spread =
+      20 - Math.min(10, Math.max(0, spotBonus(gw, seat.tag, t.id)) >> 1);
+    const roll = wwRoll(gw.s.seed, P_ESTIMATE, gw.s.chapter, k);
+    return (roll % (2 * spread + 1)) - spread + massing;
   }
   const truth = strainWord(strainOf(gw, t.id, foe));
   const off = (believed / 25 - truth) * 10;

@@ -49,3 +49,21 @@ export const GW_SPY_CANS = [
   "sealed",
 ] as const;
 export type GwSpyCan = (typeof GW_SPY_CANS)[number];
+
+/**
+ * ww180: the service's four branches, in the order of `GwIntel.fund`:
+ * codebreakers (crypt), counter-intelligence (counter), our own codes
+ * (secure) and agents abroad (abroad).
+ */
+export const GW_SERVICE_BRANCHES = [
+  "crypt",
+  "counter",
+  "secure",
+  "abroad",
+] as const;
+export type GwServiceBranch = (typeof GW_SERVICE_BRANCHES)[number];
+/**
+ * ww180: a branch's share of the service's money and men, 0..3: cut, as now,
+ * more, much more. The seat picks it in words (gw.intel.fund.share.<n>).
+ */
+export const GW_SERVICE_SHARE_MAX = 3;
