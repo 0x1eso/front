@@ -13,8 +13,10 @@
 
 import type { MapLayer } from "@openfront/engine-api/game/MapFiles";
 import type { Config } from "@openfront/engine-lib/configuration/Config";
+import { hasImjinTerrain } from "@openfront/engine-lib/imjin/Terrain";
 import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import { fogOfAir, fogOfLand, fogOfNavy } from "../../hud/ww1936/FogModel";
+import { RoutWatch } from "../../hud/ww1936/ImjinLandModel";
 import type { WwLandSelection } from "../../hud/ww1936/LandSelection";
 import { multiSelectOf } from "../../hud/ww1936/MultiSelect";
 import type { SeaAirSelection } from "../../hud/ww1936/SeaAirSelection";
@@ -350,6 +352,9 @@ export class GPURenderer {
   private landFlagsAir = -1;
   /** Paradrop planes flown through PlanePass (spec §7.6). */
   private readonly paradrops = new ParadropFlights();
+  /** ww177 I3b: Imjin routs, a "패주" word rising where an army broke. */
+  private routWatch: RoutWatch | null = null;
+  private routVersion = -1;
   private readonly openParachutes = (x: number, y: number, owner: number) =>
     this.airFxPass.spawnParadrop(x, y, owner);
   /** R8UI terrain-bytes texture shared by all layer passes. */
@@ -1140,6 +1145,7 @@ export class GPURenderer {
         gameTick,
         this.openParachutes,
       );
+      if (this.routWatch !== null) this.showRouts(this.wwLand.view);
     }
     this.planePass.updateUnits(planeUnits, gameTick, this.lastStructures);
     this.samRadiusPass.setTick(gameTick);
@@ -2145,6 +2151,8 @@ export class GPURenderer {
       world: new LandFrontWorld(view, war),
     };
     this.landClock.reset(war?.ticks() ?? 0, performance.now());
+    this.routWatch = hasImjinTerrain(view.scenario) ? new RoutWatch() : null;
+    this.routVersion = -1;
     // P6 (final review C I1): the name plates' troop rows through the fog.
     this.namePass.setTroopFog(() => fogOfLand(view));
     // ww7: the odds badges' words come from the language in use.
@@ -2160,6 +2168,35 @@ export class GPURenderer {
       arrows: new PlanArrowPass(this.gl),
     };
     this.landFlagsStale = true;
+  }
+
+  /** ww177 I3b: a rising word over each army that broke since the last look. */
+  private showRouts(view: WwLandView): void {
+    if (view.version === this.routVersion) return;
+    this.routVersion = view.version;
+    const routs = this.routWatch!.update(
+      view.armies.values(),
+      view.battles.values(),
+    );
+    if (routs.length === 0) return;
+    const fog = fogOfLand(view);
+    const w = view.scenario.width;
+    const text = translateText("imjin.rout.word");
+    this.worldTextPass.addWordPopups(
+      routs
+        .filter((r) => fog === undefined || fog.armyView(r.army).visible)
+        .map((r) => {
+          const t = view.scenario.centerTile(r.region);
+          return {
+            x: t % w,
+            y: Math.floor(t / w),
+            text,
+            colorR: 1,
+            colorG: 0.45,
+            colorB: 0.35,
+          };
+        }),
+    );
   }
 
   /** Great War 1914: the name plates' troop row is left empty. */
@@ -2178,6 +2215,7 @@ export class GPURenderer {
     this.wwLand = null;
     this.namePass.setTroopFog(null);
     this.paradrops.reset();
+    this.routWatch = null;
   }
 
   /**

@@ -1,12 +1,18 @@
-import { CountryTag } from "@openfront/engine-api/ww1936/Countries";
+import {
+  CountryTag,
+  isCountryTag,
+} from "@openfront/engine-api/ww1936/Countries";
+import { hasImjinTerrain } from "@openfront/engine-lib/imjin/Terrain";
 import { EventBus } from "@openfront/shared/EventBus";
 import { html, LitElement, nothing } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { Controller } from "../../Controller";
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view";
+import { RoutWatch } from "./ImjinLandModel";
+import { regionName } from "./LandModel";
 import { flagUrl, newsTag, newsText } from "./PoliticsModel";
-import { WW_BAND_PX, WW_STRIP_EXTRA } from "./WorldWarModel";
+import { countryName, WW_BAND_PX, WW_STRIP_EXTRA } from "./WorldWarModel";
 import { OpenWwDiplomacyEvent } from "./WwDrawer";
 
 /** Spec §21.7: a news line stays this long, ms. */
@@ -34,6 +40,8 @@ export class WwNewsTicker extends LitElement implements Controller {
   @state() private queue: Line[] = [];
   /** When the first line of the queue went up (Date.now); 0: nothing shown. */
   private shownAt = 0;
+  private routWatch: RoutWatch | null = null;
+  private routVersion = -1;
 
   createRenderRoot() {
     return this;
@@ -55,15 +63,13 @@ export class WwNewsTicker extends LitElement implements Controller {
       queue = queue.slice(1);
       this.shownAt = queue.length > 0 ? now : 0;
     }
-    const fresh = view.takeFreshNews();
+    const fresh: Line[] = view.takeFreshNews().map((n) => ({
+      tag: newsTag(n.params),
+      text: newsText(this.game, n.id, n.params),
+    }));
+    fresh.push(...this.routLines());
     if (fresh.length > 0) {
-      queue = [
-        ...queue,
-        ...fresh.map((n) => ({
-          tag: newsTag(n.params),
-          text: newsText(this.game, n.id, n.params),
-        })),
-      ];
+      queue = [...queue, ...fresh];
       if (queue.length > NEWS_QUEUE) {
         // Too many waiting: the oldest fold at once.
         queue = queue.slice(queue.length - NEWS_QUEUE);
@@ -72,6 +78,39 @@ export class WwNewsTicker extends LitElement implements Controller {
       if (this.shownAt === 0) this.shownAt = now;
     }
     if (queue !== this.queue) this.queue = queue;
+  }
+
+  /**
+   * ww177 I3b (Imjin design §5): a news line when one of my armies breaks,
+   * or one I fought. The first look only learns the armies.
+   */
+  private routLines(): Line[] {
+    const land = this.game.wwLand?.() ?? null;
+    const s = this.game.worldWarScenario();
+    if (land === null || s === null || !hasImjinTerrain(s)) return [];
+    if (land.version === this.routVersion) return [];
+    this.routVersion = land.version;
+    this.routWatch ??= new RoutWatch();
+    const me = this.game.myPlayer()?.smallID() ?? 0;
+    const out: Line[] = [];
+    for (const r of this.routWatch.update(
+      land.armies.values(),
+      land.battles.values(),
+    )) {
+      if (me === 0 || (r.owner !== me && r.foe !== me)) continue;
+      const tag = s.tagOfSmallId(r.owner) ?? null;
+      out.push({
+        tag: tag !== null && isCountryTag(tag) ? tag : null,
+        text: translateText(
+          r.owner === me ? "imjin.rout.news_mine" : "imjin.rout.news_foe",
+          {
+            place: regionName(s, r.region),
+            country: tag !== null && isCountryTag(tag) ? countryName(tag) : "",
+          },
+        ),
+      });
+    }
+    return out;
   }
 
   render() {

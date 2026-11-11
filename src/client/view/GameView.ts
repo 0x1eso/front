@@ -562,7 +562,7 @@ export class GameView implements GameLike {
     }
     // P4 (plan decision 4): after P3's.
     for (const u of gu.updates[GameUpdateType.WwImjin] ?? []) {
-      this._wwNavy?.applyImjin(u.data);
+      this._wwNavy?.applyImjin(u.data, gu.tick);
     }
     for (const u of gu.updates[GameUpdateType.WwNavy] ?? []) {
       this._wwNavy?.apply(u.data, gu.tick);

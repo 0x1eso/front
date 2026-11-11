@@ -7,6 +7,7 @@ import {
   WwNavyData,
 } from "@openfront/engine-api/ww1936/NavyTypes";
 import { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
+import { ImjinBattleClock } from "../hud/ww1936/ImjinLandModel";
 import {
   IMJIN_FLEET_ID_BASE,
   IMJIN_MT,
@@ -41,6 +42,8 @@ export class WwNavyView {
   private arrived = new Map<number, number>();
   /** ww177: the Imjin War's own view (tile fleets, battle orders, sieges). */
   imjin: ImjinData | null = null;
+  /** ww177 I3b: the tick each Imjin land battle's round 1 reached the client. */
+  readonly imjinClock = new ImjinBattleClock();
   /** ww177: each tile fleet's position in tiles, by screen id. */
   readonly imjinXY = new Map<number, [number, number]>();
 
@@ -75,8 +78,9 @@ export class WwNavyView {
   }
 
   /** ww177: the Imjin War's tile fleets, as fleet summaries at their tiles. */
-  applyImjin(d: ImjinData): void {
+  applyImjin(d: ImjinData, tick = 0): void {
     this.imjin = d;
+    this.imjinClock.note(d, tick);
     for (const id of [...this.fleets.keys()]) {
       if (isImjinFleet(id)) this.fleets.delete(id);
     }

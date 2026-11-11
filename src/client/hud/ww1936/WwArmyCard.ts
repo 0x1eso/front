@@ -16,6 +16,7 @@ import {
   WW_MAX_TARGETS,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { WW_INVASION_LAUNCH_SUP_PM } from "@openfront/engine-api/ww1936/NavyTypes";
+import { hasImjinTerrain } from "@openfront/engine-lib/imjin/Terrain";
 import { RAID_TARGETS } from "@openfront/engine-lib/ww1936/ProjectRules";
 import { EventBus } from "@openfront/shared/EventBus";
 import { html, LitElement, nothing, TemplateResult } from "lit";
@@ -80,6 +81,7 @@ import {
   WwPlannerEvent,
   WwSelectArmyEvent,
 } from "./LandSelection";
+import { imjinTerrainName } from "./LensModel";
 import {
   invadeButtonBlock,
   invasionOf,
@@ -1751,7 +1753,13 @@ export class WwArmyCard extends LitElement implements Controller {
         sides,
         (n, owner) => fog.previewEnemyValue(n, owner),
       );
-      if (p !== null) body = this.renderAttack(name, p, compact);
+      if (p !== null) {
+        // ww177 I3b: on the Imjin map, the target's own ground class.
+        const ground = hasImjinTerrain(c.view.scenario)
+          ? imjinTerrainName(c.view.scenario, region)
+          : null;
+        body = this.renderAttack(name, p, compact, ground);
+      }
     }
     return html`<span
       data-ww-preview=${kind ?? ""}
@@ -1778,6 +1786,7 @@ export class WwArmyCard extends LitElement implements Controller {
     name: string,
     p: NonNullable<ReturnType<typeof attackPreview>>,
     compact: boolean,
+    ground: string | null = null,
   ): TemplateResult {
     // The bar: 1.0 in the middle, 2.0 or more full.
     const fill = Math.max(0, Math.min(1, p.ratioPm / 2000));
@@ -1799,7 +1808,7 @@ export class WwArmyCard extends LitElement implements Controller {
         >${translateText("ww1936.land.preview_days", { days: p.days })}</span
       >
       <span class="text-white/70"
-        >${translateText(`ww1936.terrain.${p.land}`)}${p.river > 0
+        >${ground ?? translateText(`ww1936.terrain.${p.land}`)}${p.river > 0
           ? ` · ${"🌊".repeat(p.river)}`
           : ""}${p.strait ? " · ⚓" : ""}${p.fort > 0
           ? ` · 🏰${p.fort}`
