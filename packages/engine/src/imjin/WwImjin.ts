@@ -14,12 +14,7 @@ import {
 } from "@openfront/engine-lib/imjin/LandRules";
 import { shipKindIndex, shipStats } from "@openfront/engine-lib/imjin/SeaRules";
 import { seaFlagsAt } from "@openfront/engine-lib/imjin/Terrain";
-import {
-  dateOfDay,
-  dayStartTick,
-  epochDaysOf,
-} from "@openfront/engine-lib/ww1936/Calendar";
-import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
+import { dateOfDay, dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import type { Game } from "../game/Game";
 import { PathFinding } from "../pathfinding/PathFinder";
 import { effectiveLevel } from "../ww1936/economy/Buildings";
@@ -96,16 +91,10 @@ export interface ImjinStats {
   sieges: number;
 }
 
-const P_IMJIN_WAR = idHash("imjin_war_day");
-/** Design §8: the war opens between autumn 1591 and spring 1593. */
-const WAR_FROM_ISO = "1591-09-01";
-const WAR_TO_ISO = "1593-03-01";
 /** Days of supply a convoy group carries; groups leave this often. */
 const GROUP_DAYS = 3;
 /** A landing feeds its hub this many days (a group lands every GROUP_DAYS). */
 const LANDED_KEEP_DAYS = 2 * GROUP_DAYS;
-/** Ming comes in once Japan holds this share of Joseon's start regions (‰). */
-const MING_ENTRY_PM = 300;
 
 export const EDGE_KINDS = [
   "none",
@@ -260,8 +249,8 @@ export class WwImjin {
   }
 
   private daily(day: number, tick: number): void {
-    this.openWar(day, tick);
-    this.mingEntry(day, tick);
+    this.openWar(day);
+    this.mingEntry(day);
     this.launchGroups(day, tick);
     imjinSeaAi(this, day, tick);
     siegeDays(this, day);
@@ -295,45 +284,22 @@ export class WwImjin {
   }
 
   /**
-   * Design §8: Japan strikes once it is ready; until P4's readiness bar,
-   * an AI Japan picks its day from the seed in the design's window. A
-   * human Japan declares the war itself.
+   * Design §8: the war's opening is ImjinJapan's (readiness and the strike);
+   * this only notes the day it opened, for the sea layer and the screens.
    */
-  private openWar(day: number, tick: number): void {
+  private openWar(day: number): void {
     if (this.st.warDay >= 0) return;
-    const jpn = this.idOf("JPN");
-    const jos = this.idOf("JOS");
-    if (this.ww.isAtWar(jpn, jos)) {
+    if (this.ww.isAtWar(this.idOf("JPN"), this.idOf("JOS"))) {
       this.st.warDay = day;
-      return;
     }
-    if (this.ww.isHumanControlled(jpn)) return;
-    const from = Math.max(0, epochDaysOf(WAR_FROM_ISO) - this.ww.epoch);
-    const to = Math.max(from + 1, epochDaysOf(WAR_TO_ISO) - this.ww.epoch);
-    const at =
-      from +
-      (wwRoll(this.ww.politics.seed, P_IMJIN_WAR, jpn, jos) % (to - from));
-    if (day < at) return;
-    this.ww.setWar(jpn, jos, tick);
-    this.st.warDay = day;
   }
 
-  /** Until P4's Ming meter: Ming answers once Japan holds enough of Joseon. */
-  private mingEntry(day: number, tick: number): void {
+  /** Ming's entry is the meter's (JoseonMing); this notes the day it came. */
+  private mingEntry(day: number): void {
     if (this.st.mingDay >= 0 || this.st.warDay < 0) return;
-    const jpn = this.idOf("JPN");
-    const min = this.idOf("MIN");
-    const sc = this.ww.scenario;
-    let start = 0;
-    let held = 0;
-    for (const r of sc.landRegions) {
-      if (r.owner !== "JOS") continue;
-      start++;
-      if (this.ww.land.controller[r.id] === jpn) held++;
+    if (this.ww.isAtWar(this.idOf("MIN"), this.idOf("JPN"))) {
+      this.st.mingDay = day;
     }
-    if (start === 0 || held * 1000 < start * MING_ENTRY_PM) return;
-    if (!this.ww.isAtWar(min, jpn)) this.ww.setWar(min, jpn, tick);
-    this.st.mingDay = day;
   }
 
   /**
