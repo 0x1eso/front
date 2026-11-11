@@ -47,6 +47,7 @@ export const GW_PACK_SHARES: Readonly<
     "powers",
     "wars",
     "lands",
+    "offensive",
   ],
   GBR: [
     "crisis",
@@ -68,6 +69,7 @@ export const GW_PACK_SHARES: Readonly<
     "powers",
     "wars",
     "lands",
+    "offensive",
   ],
   AUH: [
     "crisis",
@@ -89,6 +91,7 @@ export const GW_PACK_SHARES: Readonly<
     "powers",
     "wars",
     "lands",
+    "offensive",
   ],
   RUS: [
     "crisis",
@@ -110,6 +113,7 @@ export const GW_PACK_SHARES: Readonly<
     "powers",
     "wars",
     "lands",
+    "offensive",
   ],
   FRA: [
     "crisis",
@@ -131,6 +135,7 @@ export const GW_PACK_SHARES: Readonly<
     "powers",
     "wars",
     "lands",
+    "offensive",
   ],
 };
 
