@@ -161,8 +161,8 @@ const IMJIN_FORMATION_ICONS: Readonly<
   loose: "∴",
 };
 
-/** Ms a formation change is shown as under way before the data must show it. */
-const FORMATION_WAIT_MS = 20_000;
+/** Ticks a formation change is shown as under way before the data must show it (15 s and some). */
+const FORMATION_WAIT_TICKS = 200;
 
 @customElement("ww-fleet-card")
 export class WwFleetCard extends LitElement implements Controller {
@@ -887,10 +887,12 @@ export class WwFleetCard extends LitElement implements Controller {
     </div>`;
     const info = html`<div class="flex min-w-0 flex-1 flex-col gap-0.5">
       ${head}
-      ${this.imjinBars([
-        ["hull", f.hpPm, "bg-emerald-400"],
-        ["morale", f.orgPm, "bg-sky-400"],
-      ])}
+      ${data !== undefined && data.battle !== 0
+        ? nothing
+        : this.imjinBars([
+            ["hull", f.hpPm, "bg-emerald-400"],
+            ["morale", f.orgPm, "bg-sky-400"],
+          ])}
       ${data === undefined ? nothing : this.imjinStatus(c, data)}
       ${data === undefined || data.battle === 0
         ? nothing
@@ -899,7 +901,7 @@ export class WwFleetCard extends LitElement implements Controller {
     </div>`;
     const chips = html`<div
       data-ww-card-buttons="imjin"
-      class="flex shrink-0 flex-col gap-1 ${wide ? "w-72" : ""}"
+      class="flex shrink-0 flex-col gap-1 ${wide ? "w-80" : ""}"
     >
       ${this.imjinChipRow(
         "formation",
@@ -918,7 +920,7 @@ export class WwFleetCard extends LitElement implements Controller {
       class="fixed z-[1001] flex ${wide
         ? "flex-row gap-2"
         : "flex-col gap-1"} max-h-[25vh] overflow-y-auto rounded-lg border border-white/15 bg-gray-900/92 p-1.5 text-xs text-white shadow-xl"
-      style=${placeStyle(this.place)}
+      style=${`${placeStyle(this.place)} width: ${this.place.maxWidth}px;`}
       @contextmenu=${(e: Event) => e.preventDefault()}
     >
       ${info} ${chips}
@@ -1132,7 +1134,7 @@ export class WwFleetCard extends LitElement implements Controller {
     chips: TemplateResult[],
   ): TemplateResult {
     return html`<div data-imjin-row=${title} class="flex items-center gap-1">
-      <span class="w-8 shrink-0 text-[11px] leading-tight text-white/60"
+      <span class="w-7 shrink-0 text-[11px] leading-tight text-white/60"
         >${translateText(`imjin.sea.row_${title}`)}</span
       >
       <div
@@ -1169,7 +1171,9 @@ export class WwFleetCard extends LitElement implements Controller {
       @click=${act}
     >
       <span aria-hidden="true" class="text-sm">${icon}</span>
-      <span class="max-w-full truncate text-[11px]">${label}</span>
+      <span class="max-w-full truncate text-[10px] tracking-tight"
+        >${label}</span
+      >
     </button>`;
   }
 
@@ -1178,12 +1182,12 @@ export class WwFleetCard extends LitElement implements Controller {
     data: { formation: string } | undefined,
     x: (typeof IMJIN_FORMATIONS)[number],
   ): TemplateResult {
-    const now = Date.now();
+    const now = this.game.ticks();
     let p = this.imjinFormation;
     if (
       p !== null &&
       (p.fleet !== fleet ||
-        now - p.at > FORMATION_WAIT_MS ||
+        now - p.at > FORMATION_WAIT_TICKS ||
         data?.formation === p.to)
     ) {
       p = this.imjinFormation = null;
@@ -1196,7 +1200,7 @@ export class WwFleetCard extends LitElement implements Controller {
       () => {
         this.imjinNote = { kind: "formation", id: x };
         if (data?.formation === x && p === null) return;
-        this.imjinFormation = { fleet, to: x, at: Date.now() };
+        this.imjinFormation = { fleet, to: x, at: this.game.ticks() };
         this.send(imjinFleetOrder(fleet, "formation", { formation: x }));
       },
       {
