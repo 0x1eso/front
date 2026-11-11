@@ -15227,8 +15227,8 @@
     },
     {
       "id": 664,
-      "name": "West Azarbaijan",
-      "nameKo": "서아제르바이잔",
+      "name": "Urmia",
+      "nameKo": "우르미아",
       "owner": "IRN",
       "vp": 0,
       "cat": "rural",
@@ -15246,6 +15246,7 @@
       "wcell": 346,
       "rail": 0,
       "fort": 0,
+      "place": "urmia",
       "gwOwner": "IRN",
       "sr": 66
     },
@@ -15864,8 +15865,8 @@
     },
     {
       "id": 690,
-      "name": "East Azarbaijan",
-      "nameKo": "동아제르바이잔",
+      "name": "Tabriz",
+      "nameKo": "타브리즈",
       "owner": "IRN",
       "vp": 0,
       "cat": "town",
@@ -15883,6 +15884,7 @@
       "wcell": 346,
       "rail": 0,
       "fort": 0,
+      "place": "tabriz",
       "gwOwner": "IRN",
       "sr": 80
     },
@@ -16232,8 +16234,8 @@
     },
     {
       "id": 705,
-      "name": "Gilan",
-      "nameKo": "길란",
+      "name": "Rasht",
+      "nameKo": "라슈트",
       "owner": "IRN",
       "vp": 0,
       "cat": "rural",
@@ -16251,6 +16253,7 @@
       "wcell": 346,
       "rail": 0,
       "fort": 0,
+      "place": "rasht",
       "gwOwner": "IRN",
       "sr": 80
     },
@@ -17164,6 +17167,7 @@
       "wcell": 346,
       "rail": 0,
       "fort": 0,
+      "place": "qazvin",
       "gwOwner": "IRN",
       "sr": 80
     },
@@ -17434,6 +17438,7 @@
       "wcell": 347,
       "rail": 0,
       "fort": 0,
+      "place": "tehran",
       "gwOwner": "IRN",
       "sr": 80
     },
@@ -17761,6 +17766,7 @@
       "wcell": 346,
       "rail": 0,
       "fort": 0,
+      "place": "hamadan",
       "gwOwner": "IRN",
       "sr": 80
     },
@@ -17955,6 +17961,7 @@
       "wcell": 346,
       "rail": 0,
       "fort": 0,
+      "place": "kermanshah",
       "gwOwner": "IRN",
       "sr": 96
     },
@@ -18056,8 +18063,8 @@
     },
     {
       "id": 782,
-      "name": "Diyala",
-      "nameKo": "디얄라",
+      "name": "Khanaqin",
+      "nameKo": "하나킨",
       "owner": "IRQ",
       "vp": 0,
       "cat": "pastoral",
@@ -18075,6 +18082,7 @@
       "wcell": 346,
       "rail": 0,
       "fort": 0,
+      "place": "khanaqin",
       "gwOwner": "OTT",
       "sr": 96
     },
@@ -18256,7 +18264,7 @@
     },
     {
       "id": 790,
-      "name": "Esfahan",
+      "name": "Isfahan",
       "nameKo": "이스파한",
       "owner": "IRN",
       "vp": 0,
@@ -18275,6 +18283,7 @@
       "wcell": 347,
       "rail": 0,
       "fort": 0,
+      "place": "isfahan",
       "gwOwner": "IRN",
       "sr": 80
     },
@@ -18722,8 +18731,8 @@
     },
     {
       "id": 810,
-      "name": "Khuzestan",
-      "nameKo": "후제스탄",
+      "name": "Mohammerah",
+      "nameKo": "모하메라",
       "owner": "IRN",
       "vp": 0,
       "cat": "town",
@@ -18741,6 +18750,7 @@
       "wcell": 346,
       "rail": 0,
       "fort": 0,
+      "place": "mohammerah",
       "gwOwner": "IRN",
       "sr": 96,
       "harbor": 40158
@@ -19188,8 +19198,8 @@
     },
     {
       "id": 833,
-      "name": "Fars",
-      "nameKo": "파르스",
+      "name": "Shiraz",
+      "nameKo": "시라즈",
       "owner": "IRN",
       "vp": 0,
       "cat": "town",
@@ -19207,6 +19217,7 @@
       "wcell": 311,
       "rail": 0,
       "fort": 0,
+      "place": "shiraz",
       "gwOwner": "IRN",
       "sr": 103
     },
@@ -19431,6 +19442,7 @@
       "wcell": 311,
       "rail": 0,
       "fort": 0,
+      "place": "bushehr",
       "gwOwner": "IRN",
       "sr": 103,
       "harbor": 40158

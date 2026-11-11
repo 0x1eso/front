@@ -1877,6 +1877,78 @@
       "key": "dakar",
       "name": ["Dakar", "다카르"],
       "group": "west_africa"
+    },
+    {
+      "id": 690,
+      "key": "tabriz",
+      "name": ["Tabriz", "타브리즈"],
+      "group": "north_persia"
+    },
+    {
+      "id": 664,
+      "key": "urmia",
+      "name": ["Urmia", "우르미아"],
+      "group": "north_persia"
+    },
+    {
+      "id": 705,
+      "key": "rasht",
+      "name": ["Rasht", "라슈트"],
+      "group": "north_persia"
+    },
+    {
+      "id": 744,
+      "key": "qazvin",
+      "name": ["Qazvin", "카즈빈"],
+      "group": "north_persia"
+    },
+    {
+      "id": 755,
+      "key": "tehran",
+      "name": ["Tehran", "테헤란"],
+      "group": "north_persia"
+    },
+    {
+      "id": 769,
+      "key": "hamadan",
+      "name": ["Hamadan", "하마단"],
+      "group": "west_persia"
+    },
+    {
+      "id": 777,
+      "key": "kermanshah",
+      "name": ["Kermanshah", "케르만샤"],
+      "group": "west_persia"
+    },
+    {
+      "id": 790,
+      "key": "isfahan",
+      "name": ["Isfahan", "이스파한"],
+      "group": "south_persia"
+    },
+    {
+      "id": 810,
+      "key": "mohammerah",
+      "name": ["Mohammerah", "모하메라"],
+      "group": "south_persia"
+    },
+    {
+      "id": 833,
+      "key": "shiraz",
+      "name": ["Shiraz", "시라즈"],
+      "group": "south_persia"
+    },
+    {
+      "id": 842,
+      "key": "bushehr",
+      "name": ["Bushehr", "부셰르"],
+      "group": "south_persia"
+    },
+    {
+      "id": 782,
+      "key": "khanaqin",
+      "name": ["Khanaqin", "하나킨"],
+      "group": "mesopotamia"
     }
   ],
   "aliases": {
