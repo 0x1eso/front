@@ -432,11 +432,11 @@ describe("diplomacy L0: the digests that never move", () => {
     }
   });
 
-  // Re-pinned with war between any pair (ww171 phase 4): the Great War's own
-  // rules moved it, not the diplomacy.
+  // Re-pinned with occupation and the bilateral tables (ww172 phase 5): the
+  // Great War's own rules moved it, not the diplomacy.
   test("the Great War pin is unchanged", () => {
     expect(read("ww1914/GreatWarSnapshot.test.ts")).toContain(
-      'const GW_DIGEST = "72690037815a7183";',
+      'const GW_DIGEST = "7f0005bf81d5c6c9";',
     );
   });
 });
