@@ -4287,7 +4287,18 @@
       "imjin_jos_prep_somogun": "속오군을 편성한다",
       "imjin_jos_prep_jochong": "노획한 조총을 본떠 만든다",
       "imjin_jos_prep_blank_titles": "공명첩을 판다",
-      "imjin_jos_prep_relief": "피란민을 구휼한다"
+      "imjin_jos_prep_relief": "피란민을 구휼한다",
+      "imjin_jp_kunitomo_guns": "구니토모와 사카이의 조총",
+      "imjin_jp_rice_stores": "나고야의 군량 창고",
+      "imjin_jp_korea_roads": "한성 가는 길의 지도",
+      "imjin_jp_volley_drill": "조총대 조련",
+      "imjin_jp_hostages": "오사카의 다이묘 가족",
+      "imjin_jp_kuki_ships": "구키 요시타카의 조선소",
+      "imjin_jp_relay_castles": "이키와 쓰시마의 중계 성",
+      "imjin_jp_wajo": "남해안의 왜성",
+      "imjin_jp_second_levy": "두 번째 동원",
+      "imjin_jp_winter_clothes": "군대에 솜옷 보내기",
+      "imjin_jp_village_notices": "마을에 내건 방문"
     },
     "decision_desc": {
       "bgr_demand_dobruja": "1913년에 루마니아에 내준 남도브루자를 돌려 달라고 요구한다.",
@@ -4394,7 +4405,18 @@
       "imjin_jos_prep_somogun": "양인과 천인을 가리지 않고 고을마다 속오군으로 묶어 농한기에 훈련시킵니다.",
       "imjin_jos_prep_jochong": "빼앗은 왜군의 조총을 대장장이들이 뜯어보고 우리 손으로 만들게 합니다.",
       "imjin_jos_prep_blank_titles": "이름 칸을 비워 둔 벼슬 문서를 곡식이나 은을 내는 사람에게 팝니다.",
-      "imjin_jos_prep_relief": "피란민이 모이는 길목에 구휼소를 엽니다."
+      "imjin_jos_prep_relief": "피란민이 모이는 길목에 구휼소를 엽니다.",
+      "imjin_jp_kunitomo_guns": "구니토모와 사카이의 대장장이들에게 조총과 대포를 주문한다.",
+      "imjin_jp_rice_stores": "나고야와 이키, 쓰시마의 창고를 바다 건너 군대가 먹을 쌀로 채운다.",
+      "imjin_jp_korea_roads": "소 가문의 상인들에게 부산에서 조선 도성까지의 길과 고개, 나루를 그리게 한다.",
+      "imjin_jp_volley_drill": "조총병들이 줄을 지어, 한 줄이 장전하는 동안 다른 줄이 쏘도록 조련한다.",
+      "imjin_jp_hostages": "큰 영주마다 군사가 바다 건너에 있는 동안 아내와 후계자를 오사카에 머물게 한다.",
+      "imjin_jp_kuki_ships": "구키 요시타카와 해안의 영주들에게 바다를 건널 수송선을 더 짓게 한다.",
+      "imjin_jp_relay_castles": "수송선단이 쉬고 물을 싣고 궂은 날씨를 피할 성을 이키와 쓰시마에 짓고, 쓰시마의 물길 안내인을 쓴다.",
+      "imjin_jp_wajo": "조선 남해안의 곶마다 일본식 성을 쌓아 상륙지를 지킨다.",
+      "imjin_jp_second_levy": "본국의 영지에서 군사를 더 불러 조선의 군단을 채운다.",
+      "imjin_jp_winter_clothes": "추위가 오기 전에 솜옷과 짚신, 담요를 바다 건너로 보낸다.",
+      "imjin_jp_village_notices": "들로 돌아가는 농민은 건드리지 않고 세금도 가볍게 하겠다는 방문을 내건다."
     },
     "declare": {
       "block": {
@@ -5382,16 +5404,16 @@
       "imjin_jp_strike_full": "모든 군단이 모였다. 나고야와 쓰시마에 배와 쌀, 화약이 갖추어졌고 다이묘들은 명령만 기다린다.",
       "imjin_jp_strike_again": "휴전은 끝났다. 다이묘들이 다시 군사를 모았고, 조선 남해안의 왜성에는 아직 일본 수비대가 남아 있다.",
       "imjin_jp_daimyo_grumble": "큰 영주들이 잃은 군사와 써 버린 쌀을 헤아린다. 진영마다 이 전쟁이 무엇을 주었느냐는 말이 돌고, 고향으로 가는 편지 몇 통에는 태합을 예전만큼 공경하지 않는 말이 섞여 있다.",
-      "imjin_jp_taiko_ailing": "히데요시가 며칠씩 방에서 나오지 않는다. 의원들은 목소리를 낮추고, 후계자는 아직 어린아이다.",
+      "imjin_jp_taiko_ailing": "히데요시가 후시미성의 방에서 며칠씩 나오지 않는다. 의원들은 목소리를 낮추고, 후계자는 아직 어린아이다.",
       "imjin_jp_taiko_dies": "도요토미 히데요시가 죽었다. 다섯 대로가 후계자를 대신해 다스리게 되었고, 조선에 있는 군대는 아직 이 사실을 모른다.",
       "imjin_jp_regents_press": "섭정들은 조선에서의 전쟁이 나라의 쌀과 사람을 삼키고 있으며, 군대가 바다 건너에 있는 동안에는 아무도 다이묘들을 붙잡아 둘 수 없다고 말한다.",
-      "imjin_jp_talks": "명의 사신 심유경이 고니시 유키나가의 진영에 왔다. 양쪽이 조건을 보내면 담판으로 전쟁을 끝낼 수 있다고 한다.",
+      "imjin_jp_talks": "명의 중재자 심유경이 고니시 유키나가의 진영에 왔다. 양쪽이 조건을 보내면 담판으로 전쟁을 끝낼 수 있다고 한다.",
       "imjin_jp_ming_reply": "고니시가 명의 답신을 가져왔다. 베이징이 태합에게 사신을 보내겠다고 한다. 사신이 올 때까지 군대는 해안을 지키고 싸움을 멈추라는 것이다.",
-      "imjin_jp_investiture": "명의 사신들이 히데요시 앞에 나아가고 국서를 소리 내어 읽는다. 국서는 그를 일본 국왕으로 봉한다. 그가 보낸 조건에 대해서는 한마디도 없다.",
+      "imjin_jp_investiture": "오사카성에서 명의 사신들이 히데요시 앞에 나아가고 국서가 소리 내어 읽힌다. 국서는 그를 일본 국왕으로 봉한다. 그가 보낸 조건에 대해서는 한마디도 없다.",
       "imjin_jp_investiture_regents": "명의 사신들이 태합에게 보내는 국서를 가지고 왔지만 태합은 이미 세상을 떠났다. 섭정들이 대신 사신을 맞는다.",
-      "imjin_jos_omens": "어부들과 쓰시마 상인들이 해협 건너에서 배를 짓고 규슈에 군사가 모인다고 전한다.",
-      "imjin_jos_omens_grave": "해안의 장수들 사이에 더는 의심이 없다. 나고야에 큰 군대가 모이고, 쓰시마의 포구는 수송선으로 가득하다.",
-      "imjin_jos_demand": "쓰시마 소 가문의 사자가 히데요시의 요구를 전한다. 명으로 가는 일본군에게 길을 내어 달라는 것이다.",
+      "imjin_jos_omens": "어부들과 대마도 상인들이 해협 건너에서 배를 짓고 규슈에 군사가 모인다고 전한다.",
+      "imjin_jos_omens_grave": "해안의 장수들 사이에 더는 의심이 없다. 나고야에 큰 군대가 모이고, 대마도의 포구는 수송선으로 가득하다.",
+      "imjin_jos_demand": "대마도 소 가문의 사자가 히데요시의 요구를 전한다. 명으로 가는 일본군에게 길을 내어 달라는 것이다.",
       "imjin_jos_truce": "명과 일본이 싸움을 멈추었다. 일본군은 남해안의 성들을 차지하고 있는데, 명의 장수들은 사신이 오가는 동안 우리 군대가 그들을 치지 못하게 한다.",
       "imjin_jos_truce_broken": "일본에서 소식이 왔다. 태합이 노하여 명의 사신들을 내쫓았다고 한다. 일본이 다시 군사를 모으고 있다.",
       "imjin_jos_tsushima": "소 가문 사람들이 한 달 안에 왜의 배가 바다를 건널 것이라고 넌지시 알리고, 대마도 상인들은 규슈의 동원이 아직 끝나지 않았는데도 포구마다 군사가 가득하다고 전한다.",
@@ -5408,7 +5430,25 @@
       "imjin_jos_haengju": "권율이 군사와 승병, 의병을 이끌고 한성 서쪽 한강 가의 행주산성에 올랐습니다. 한성의 적이 그 모습을 내려다봅니다. 성을 쌓고 버티자는 장수도 있고, 명군과 합치러 가자는 장수도 있습니다.",
       "imjin_jos_famine": "전쟁이 한 해 넘게 들판을 짓밟았습니다. 피란민이 길을 메우고, 적에게 빼앗기지 않은 창고도 거의 비었습니다. 군사에게도 곡식이 필요하고, 굶주리는 백성에게도 필요합니다.",
       "imjin_jos_second_war": "화의는 깨졌고 왜군이 다시 바다를 건너옵니다. 조정은 이들을 어떻게 맞을지 정해야 합니다.",
-      "imjin_jos_pyongyang": "명의 대군이 큰 포를 끌고 평양성 앞에 섰고, 명의 장수들은 성을 치려 합니다. 우리 장수들은 조선 군사도 함께 사다리를 오를지, 성벽은 명군에게 맡길지 묻습니다."
+      "imjin_jos_pyongyang": "명의 대군이 큰 포를 끌고 평양성 앞에 섰고, 명의 장수들은 성을 치려 합니다. 우리 장수들은 조선 군사도 함께 사다리를 오를지, 성벽은 명군에게 맡길지 묻습니다.",
+      "imjin_jp_so_plea": "쓰시마의 소 요시토시가 교토에 왔다. 그의 섬은 부산과의 교역으로 먹고산다. 그는 태합의 요구를 자기 방식대로 전하게 해 달라고 청한다. 먼저 조선에 사신을 청하고, 명으로 가는 길 이야기는 나중에 꺼내겠다는 것이다.",
+      "imjin_jp_embassy": "조선의 사신들이 교토에 와 왕의 국서와 예물을 가지고 주라쿠다이 궁에서 기다린다. 돌아가기 전에 태합의 답서를 받아 가려 한다.",
+      "imjin_jp_tsurumatsu": "태합의 어린 아들 쓰루마쓰가 세 살도 되기 전에 열병으로 죽었다. 히데요시는 상투를 잘라 슬픔을 드러냈고, 누구도 그에게 다른 일을 꺼내지 못한다.",
+      "imjin_jp_kampaku": "동원이 시작되었고, 태합은 나고야에서 전쟁을 지휘하려 한다. 조카 히데쓰구는 다 자랐으니 간파쿠 자리를 물려받아 태합이 없는 동안 본국을 다스릴 수 있다.",
+      "imjin_jp_shimazu_late": "규슈의 영주들이 모두 할당된 군사를 나고야로 보냈지만 사쓰마의 시마즈만은 예외다. 군사들이 배 몇 척씩 찔끔찔끔 들어오고, 시마즈 요시히로는 배를 구하기 어렵다는 편지를 보낸다.",
+      "imjin_jp_umekita": "나고야로 가던 시마즈 가문의 가신 우메키타 구니카네가 발길을 돌려, 가토 기요마사가 전쟁에 나가 있는 사이 히고에 있는 가토의 사시키성을 차지했다. 바다를 건너기 싫은 자들이 그에게 모여든다.",
+      "imjin_jp_busan": "부산과 동래가 우리 손에 들어왔다. 길을 비켜 달라는 말에 동래 부사 송상현은 싸워 죽기는 쉬우나 길을 내주기는 어렵다고 답했었다. 이제 북으로 가는 길이 열렸다.",
+      "imjin_jp_race": "고니시와 가토는 서로를 미워하고, 둘 다 조선의 도성에 먼저 들어가겠다고 맹세했다. 두 군단은 다른 길로 행군하며 서로 아무 소식도 주고받지 않는다.",
+      "imjin_jp_hanseong": "조선의 도성이 우리 손에 들어왔다. 궁궐 위로 아직 연기가 오르고, 군단장들이 모여 다음 할 일을 묻는다.",
+      "imjin_jp_pyongyang": "평양이 우리 손에 들어왔다. 그 너머로 길은 압록강과 명으로 이어진다. 군사들은 지쳤고 곡식은 더디게 오며, 서해안을 따라 군사를 더 싣고 오기로 한 배들은 보이지 않는다.",
+      "imjin_jp_princes": "먼 북쪽 회령에서 국경인이 이끄는 고을 사람들이 조선의 두 왕자와 그 식솔들을 붙잡아 가토 기요마사에게 넘겼다.",
+      "imjin_jp_sea_admiral": "선장들이 여수의 조선 수군 장수 이야기를 전한다. 그는 군사들을 혹독하게 조련하고, 대포를 실은 큰 배들을 갖추었다고 한다. 우리 수군 장수들은 그를 어떻게 다룰지 의견이 갈린다.",
+      "imjin_jp_righteous": "우리 군단 뒤에서 농민과 선비, 승려들이 무기를 들었다. 산길에서 쌀 수레를 덮치고 전령을 죽인 뒤 마을로 사라진다.",
+      "imjin_jp_ming_army": "명이 전쟁에 뛰어들었다. 명군이 기병과 큰 대포를 이끌고 압록강을 건너고 있다.",
+      "imjin_jp_long_war": "전쟁이 누가 약속한 것보다 길어졌다. 옷은 해지고 진영마다 병이 돌며 쌀 배는 늦는다. 장수들은 점령한 고을을 모두 지켜야 하느냐고 묻는다.",
+      "imjin_jp_jinju": "진주는 남강가의 성벽 뒤에서 아직 버티며 전라도로 가는 길을 막고 있다. 나고야에서 온 편지에 따르면 태합은 진주를 용서하지 않을 것이며 반드시 함락하라고 한다.",
+      "imjin_jp_noses": "전쟁이 다시 시작되었다. 태합은 죽인 적마다 증거를 원하는데, 머리는 배로 실어 보내기에 너무 무겁다. 봉행들은 군단마다 대신 코를 소금에 절여 보내고, 그 수를 세어 영수증을 끊고, 그 수에 따라 상을 주자고 한다.",
+      "imjin_jp_hidetsugu": "요도도노가 태합의 아들을 낳았다. 히데쓰구는 간파쿠 자리와 본국을 쥐고 있고, 조정에서는 태합이 그것을 내준 일을 후회한다는 수군거림이 돈다."
     },
     "event_opt": {
       "aus_curtin_appeal": {
@@ -6453,6 +6493,79 @@
       "imjin_jos_pyongyang": {
         "a": "우리 군사도 함께 성벽을 오른다",
         "b": "성 공격은 명군에게 맡긴다"
+      },
+      "imjin_jp_so_plea": {
+        "a": "소 가문의 방식에 맡긴다",
+        "b": "태합의 말을 그대로 전하게 한다"
+      },
+      "imjin_jp_embassy": {
+        "a": "조선이 명으로 가는 길에 앞장서라고 쓴다",
+        "b": "예를 갖춘 답서와 예물을 보낸다"
+      },
+      "imjin_jp_tsurumatsu": {
+        "a": "전쟁 준비에 몰두한다",
+        "b": "한동안 물러나 애도한다"
+      },
+      "imjin_jp_kampaku": {
+        "a": "히데쓰구에게 간파쿠 자리와 본국을 맡긴다",
+        "b": "모든 자리를 손에 쥐고 놓지 않는다"
+      },
+      "imjin_jp_shimazu_late": {
+        "a": "기한을 못 박은 엄한 서신을 보낸다",
+        "b": "제 속도로 오게 둔다"
+      },
+      "imjin_jp_umekita": {
+        "a": "진압하고 시마즈 가문에도 책임을 묻는다",
+        "b": "진압하되 반란자들에게만 책임을 묻는다"
+      },
+      "imjin_jp_busan": {
+        "a": "곧장 길을 따라 북으로 진군한다",
+        "b": "먼저 온 군대를 상륙시킨다"
+      },
+      "imjin_jp_race": {
+        "a": "경쟁하게 둔다",
+        "b": "하나의 작전에 따라 행군하게 한다"
+      },
+      "imjin_jp_hanseong": {
+        "a": "팔도를 군단마다 나누어 맡긴다",
+        "b": "곧장 북으로 밀고 올라간다",
+        "c": "태합에게 직접 건너와 지휘해 달라고 청한다"
+      },
+      "imjin_jp_pyongyang": {
+        "a": "평양을 지키며 함대를 기다린다",
+        "b": "압록강을 향해 계속 나아간다"
+      },
+      "imjin_jp_princes": {
+        "a": "협상의 볼모로 붙잡아 둔다",
+        "b": "아버지에게 돌려보낸다"
+      },
+      "imjin_jp_sea_admiral": {
+        "a": "함대는 포구를 지키며 수송선단을 호위한다",
+        "b": "함대를 모아 그를 찾아 나선다"
+      },
+      "imjin_jp_righteous": {
+        "a": "길과 성에 수비군을 둔다",
+        "b": "그들을 숨겨 주는 마을을 불태운다"
+      },
+      "imjin_jp_ming_army": {
+        "a": "북쪽을 지킨다",
+        "b": "한성으로 물러난다"
+      },
+      "imjin_jp_long_war": {
+        "a": "남해안의 왜성으로 물러난다",
+        "b": "점령한 고을을 모두 지킨다"
+      },
+      "imjin_jp_jinju": {
+        "a": "어떤 대가를 치르더라도 진주를 친다",
+        "b": "진주는 두고 해안을 지킨다"
+      },
+      "imjin_jp_noses": {
+        "a": "코의 수로 공을 센다",
+        "b": "들판의 싸움에서 거둔 공만 센다"
+      },
+      "imjin_jp_hidetsugu": {
+        "a": "히데쓰구에게서 모든 것을 거두어들인다",
+        "b": "히데쓰구를 그대로 둔다"
       }
     },
     "event_title": {
@@ -6749,7 +6862,25 @@
       "imjin_jos_haengju": "행주산성의 권율",
       "imjin_jos_famine": "기근",
       "imjin_jos_second_war": "왜군이 다시 왔다",
-      "imjin_jos_pyongyang": "평양성 앞에서"
+      "imjin_jos_pyongyang": "평양성 앞에서",
+      "imjin_jp_so_plea": "소 가문의 청",
+      "imjin_jp_embassy": "주라쿠다이의 조선 사신",
+      "imjin_jp_tsurumatsu": "쓰루마쓰의 죽음",
+      "imjin_jp_kampaku": "본국은 누가 다스리나",
+      "imjin_jp_shimazu_late": "늦는 시마즈",
+      "imjin_jp_umekita": "사시키의 반란",
+      "imjin_jp_busan": "부산과 동래가 떨어지다",
+      "imjin_jp_race": "한성을 향한 경주",
+      "imjin_jp_hanseong": "한성 함락",
+      "imjin_jp_pyongyang": "평양 함락",
+      "imjin_jp_princes": "회령의 왕자들",
+      "imjin_jp_sea_admiral": "남해의 수군 장수",
+      "imjin_jp_righteous": "길 위의 의병",
+      "imjin_jp_ming_army": "명군이 압록강을 건너다",
+      "imjin_jp_long_war": "길어진 원정",
+      "imjin_jp_jinju": "태합이 진주를 원한다",
+      "imjin_jp_noses": "죽인 자의 증거",
+      "imjin_jp_hidetsugu": "후계자가 태어나다"
     },
     "eventui": {
       "annex_warning": "경고: 이 선택을 하면 우리나라가 {country}에 합병됩니다",
@@ -11452,7 +11583,43 @@
       "usa_westover": "오스카 웨스토버",
       "yug_macek": "블라드코 마체크",
       "yug_peter_ii": "페타르 2세",
-      "zaf_smuts": "얀 스뮈츠"
+      "zaf_smuts": "얀 스뮈츠",
+      "imjin_ishida_mitsunari": "이시다 미쓰나리",
+      "imjin_otani_yoshitsugu": "오타니 요시쓰구",
+      "imjin_mashita_nagamori": "마시타 나가모리",
+      "imjin_natsuka_masaie": "나쓰카 마사이에",
+      "imjin_asano_nagamasa": "아사노 나가마사",
+      "imjin_maeda_geni": "마에다 겐이",
+      "imjin_tokugawa_ieyasu": "도쿠가와 이에야스",
+      "imjin_maeda_toshiie": "마에다 도시이에",
+      "imjin_uesugi_kagekatsu": "우에스기 가게카쓰",
+      "imjin_toyotomi_hidetsugu": "도요토미 히데쓰구",
+      "imjin_konishi_yukinaga": "고니시 유키나가",
+      "imjin_so_yoshitoshi": "소 요시토시",
+      "imjin_genso": "게이테쓰 겐소",
+      "imjin_yanagawa_shigenobu": "야나가와 시게노부",
+      "imjin_naito_joan": "나이토 조안",
+      "imjin_saisho_jotai": "사이쇼 조타이",
+      "imjin_kato_kiyomasa": "가토 기요마사",
+      "imjin_kuroda_nagamasa": "구로다 나가마사",
+      "imjin_shimazu_yoshihiro": "시마즈 요시히로",
+      "imjin_kobayakawa_takakage": "고바야카와 다카카게",
+      "imjin_tachibana_muneshige": "다치바나 무네시게",
+      "imjin_ukita_hideie": "우키타 히데이에",
+      "imjin_fukushima_masanori": "후쿠시마 마사노리",
+      "imjin_mori_terumoto": "모리 데루모토",
+      "imjin_kobayakawa_hideaki": "고바야카와 히데아키",
+      "imjin_nabeshima_naoshige": "나베시마 나오시게",
+      "imjin_chosokabe_motochika": "조소카베 모토치카",
+      "imjin_hosokawa_tadaoki": "호소카와 다다오키",
+      "imjin_hachisuka_iemasa": "하치스카 이에마사",
+      "imjin_matsura_shigenobu": "마쓰라 시게노부",
+      "imjin_arima_harunobu": "아리마 하루노부",
+      "imjin_kuki_yoshitaka": "구키 요시타카",
+      "imjin_todo_takatora": "도도 다카토라",
+      "imjin_wakisaka_yasuharu": "와키자카 야스하루",
+      "imjin_kato_yoshiaki": "가토 요시아키",
+      "imjin_kurushima_michifusa": "구루시마 미치후사"
     },
     "planner": {
       "btn_clear": "지우기",
@@ -12969,7 +13136,31 @@
       "imjin_jos_samsu": "훈련도감",
       "imjin_jos_jochong": "우리 조총",
       "imjin_jos_scorched": "산으로 옮긴 곡식",
-      "imjin_jos_storm": "함께 성을 오른다"
+      "imjin_jos_storm": "함께 성을 오른다",
+      "imjin_jpw_forced_march": "강행군",
+      "imjin_jpw_beachhead": "굳힌 상륙지",
+      "imjin_jpw_race": "북진 경쟁",
+      "imjin_jpw_one_plan": "하나의 작전",
+      "imjin_jpw_provinces": "나누어 맡은 팔도",
+      "imjin_jpw_chase_king": "북으로 밀어붙이기",
+      "imjin_jpw_hold_pyongyang": "평양 고수",
+      "imjin_jpw_push_yalu": "압록강으로",
+      "imjin_jpw_sea_hold": "포구를 지키는 함대",
+      "imjin_jpw_sea_seek": "적 함대 수색",
+      "imjin_jpw_road_garrisons": "길목 수비",
+      "imjin_jpw_reprisals": "불탄 마을",
+      "imjin_jpw_hold_north": "북방 고수",
+      "imjin_jpw_fall_back": "한성으로 후퇴",
+      "imjin_jpw_pull_south": "해안으로 후퇴",
+      "imjin_jpw_hold_all": "모든 고을 고수",
+      "imjin_jpw_jinju": "진주를 쳐라",
+      "imjin_jpw_kampaku_home": "본국의 간파쿠",
+      "imjin_jpw_taiko_alone": "태합의 독단",
+      "imjin_jpw_rice_stores": "군량 창고",
+      "imjin_jpw_road_maps": "길의 지도",
+      "imjin_jpw_volleys": "번갈아 쏘기",
+      "imjin_jpw_relay_castles": "중계 성",
+      "imjin_jpw_winter_gear": "솜옷"
     },
     "spirit_desc": {
       "arg_neutral_course": "아르헨티나는 모든 편과 교역하되 누구의 전쟁에도 끼지 않는다.",
@@ -13335,7 +13526,31 @@
       "imjin_jos_samsu": "포수, 사수, 살수가 상비군으로 함께 훈련합니다.",
       "imjin_jos_jochong": "조선 대장장이가 빼앗은 조총을 본떠 만든 총입니다.",
       "imjin_jos_scorched": "곡식은 산에 숨기고 들판은 비워 두었습니다.",
-      "imjin_jos_storm": "조선 군사가 명군과 나란히 성벽을 오릅니다."
+      "imjin_jos_storm": "조선 군사가 명군과 나란히 성벽을 오릅니다.",
+      "imjin_jpw_forced_march": "군단들이 짐수레를 기다리지 않고 길을 따라 진군한다.",
+      "imjin_jpw_beachhead": "온 군대가 상륙을 마친 뒤에 진군했다.",
+      "imjin_jpw_race": "장수들이 공을 다투며 앞다투어 나아간다.",
+      "imjin_jpw_one_plan": "군단들이 하나의 작전에 따라 움직이며 서로 연락한다.",
+      "imjin_jpw_provinces": "군단마다 조선의 한 도를 맡아 다스린다.",
+      "imjin_jpw_chase_king": "적이 다시 모이기 전에 군단들이 북으로 밀고 올라간다.",
+      "imjin_jpw_hold_pyongyang": "군대가 평양에 진을 굳혔다.",
+      "imjin_jpw_push_yalu": "군대가 보급이 닿는 곳을 넘어 북으로 나아간다.",
+      "imjin_jpw_sea_hold": "함대가 싸움을 피하고 수송선단을 지킨다.",
+      "imjin_jpw_sea_seek": "함대를 모아 조선의 배들을 찾아 나선다.",
+      "imjin_jpw_road_garrisons": "수비군이 길과 그 사이의 성들을 지킨다.",
+      "imjin_jpw_reprisals": "의병을 숨겨 준 마을들이 불탔다.",
+      "imjin_jpw_hold_north": "군대가 북쪽에서 명군에 맞선다.",
+      "imjin_jpw_fall_back": "군대가 도성 주위로 전선을 좁힌다.",
+      "imjin_jpw_pull_south": "군대가 쌀이 가까운 바닷가 성에서 버틴다.",
+      "imjin_jpw_hold_all": "얇은 수비군이 점령한 고을을 모두 지킨다.",
+      "imjin_jpw_jinju": "태합의 명령이 군대를 진주로 몬다.",
+      "imjin_jpw_kampaku_home": "히데쓰구가 본국을 다스린다.",
+      "imjin_jpw_taiko_alone": "모든 결정이 히데요시를 기다린다.",
+      "imjin_jpw_rice_stores": "나고야와 이키, 쓰시마의 창고가 군대를 먹인다.",
+      "imjin_jpw_road_maps": "장수들이 한성 가는 길을 안다.",
+      "imjin_jpw_volleys": "조총병들이 줄을 지어 번갈아 쏜다.",
+      "imjin_jpw_relay_castles": "이키와 쓰시마의 성이 수송선단을 지켜 준다.",
+      "imjin_jpw_winter_gear": "군대가 추위를 견딜 옷을 갖췄다."
     },
     "stance": {
       "aggressive": "과감",
