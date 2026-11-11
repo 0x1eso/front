@@ -1,6 +1,8 @@
 import {
   GW_FRONT_START,
+  GW_FRONT_UP,
   GW_LINE_STEP,
+  GW_LINES,
   GwSide,
   GwTheatreState,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
@@ -9,11 +11,13 @@ import { GW_PLACES, GwPlace } from "@openfront/engine-api/ww1914/GwPlaces";
 import {
   frontLandAt,
   frontPlaces,
+  isOpenGround,
 } from "@openfront/engine-lib/ww1914/FrontLand";
 import { posOf } from "./Eras";
 import type { GreatWar } from "./GreatWar";
 import { GW_FRONT_ENDS } from "./Tables";
-import { atWarWith, membersOf, sideIn } from "./Wars";
+import { atWarWith, memberEnd, membersOf, sideIn } from "./Wars";
+import { other } from "./World";
 
 /** Who holds a place now. */
 export function holderOf(gw: GreatWar, place: GwPlace): GwTag {
@@ -56,11 +60,26 @@ export function moveLand(
   gw.touch();
 }
 
+/** The position a theatre's end `e` drives its line towards. */
+export function farPos(t: GwTheatreState["id"], e: GwSide): number {
+  return e === GW_FRONT_UP[t] ? (GW_LINES[t].length - 1) * GW_LINE_STEP : 0;
+}
+
+/**
+ * ww179: the front has run past `owner`'s last line here: it fights on this
+ * front and the other end stands at the far end. Its places the line no
+ * longer names are then left to occupation, not handed back.
+ */
+export function ranOn(gw: GreatWar, t: GwTheatreState, owner: GwTag): boolean {
+  const end = memberEnd(gw, t.id, owner);
+  return end !== null && posOf(t) === farPos(t.id, other(end));
+}
+
 /**
  * Who a place falls to with the front's end `side` on it. A country gets its
  * own land back, the land of a country this front isn't the war of stays out
- * of it, and what is taken goes to the lead there (ww171: by ends, not only
- * coalitions).
+ * of it (but for open ground, ww179), and what is taken goes to the lead
+ * there (ww171: by ends, not only coalitions).
  */
 function takerOf(
   gw: GreatWar,
@@ -70,10 +89,14 @@ function takerOf(
 ): GwTag {
   const owner = GW_PLACES[place].owner;
   const now = holderOf(gw, place);
-  if (side === null) return owner;
+  if (side === null) {
+    // Past the owner's last line, what an enemy took stays taken (ww179).
+    const kept = now !== owner && atWarWith(gw, now, owner);
+    return kept && ranOn(gw, t, owner) ? now : owner;
+  }
   const ownerSide = sideIn(gw, t.id, owner);
   if (ownerSide === side) return owner;
-  if (ownerSide === null) return now;
+  if (ownerSide === null && !isOpenGround(t.id, owner)) return now;
   if (sideIn(gw, t.id, now) === side) return now;
   const listed = GW_FRONT_ENDS[t.id][side].find(
     (tag) => sideIn(gw, t.id, tag) === side && gw.nation(tag)?.out !== true,

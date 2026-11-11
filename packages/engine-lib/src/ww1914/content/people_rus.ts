@@ -733,3 +733,50 @@ export const RUS_VOICE_NOTES: Readonly<Record<string, string>> = {
   fra_paleologue:
     "소설 쓰는 대사. 프랑스의 숨 가쁜 호소를 문학처럼 한다. 들은 말을 바로 일기에 옮긴다. 먼저 본국의 뜻을 밝히고 다음에 자기 뜻을 끼운다.",
 };
+
+/**
+ * ww179: names for the vacancy box of an office that had none: the court, the
+ * Paris embassy and the secret service. Appended after every other list in
+ * Content.ts, so the seed rolls of the cast before them stay as they were.
+ */
+export const RUS_POSTS: readonly GwPersonDef[] = [
+  {
+    id: "rus_voeikov",
+    tag: "RUS",
+    office: null,
+    fit: ["court"],
+    camps: ["military", "court", "hard"],
+    temperaments: ["arrogant", "cunning"],
+    rivals: [],
+    allies: ["rus_fredericks", "rus_nicholas"],
+    fame: 2,
+    source:
+      "Vladimir Voeikov, b. 1868; palace commandant 1913-1917; married Eugenia, Fredericks's eldest daughter, 1894; godfather of the Tsesarevich; memoir 'With the Tsar and without the Tsar' 1936 (tsarnicholas.org, Those Who Served the Tsar)",
+  },
+  {
+    id: "rus_v_maklakov",
+    tag: "RUS",
+    office: null,
+    fit: ["ambassador_paris"],
+    camps: ["civil", "duma", "moderate"],
+    temperaments: ["cunning", "cold"],
+    rivals: [],
+    allies: ["rus_milyukov"],
+    fame: 2,
+    source:
+      "Vasily Maklakov, b. 1870; Kadet deputy in the Duma from 1907; named ambassador to France in Izvolsky's place Oct 1917, reached Paris 7 Nov 1917 and kept the embassy until France recognised the Soviet government in 1924 (en.wikipedia Vasily Maklakov; russiancouncil.ru Russian diplomacy 1917; Hoover finding aid). Elder brother of the interior minister Nikolay; counsel in the Beilis trial 1913 (memory)",
+  },
+  {
+    id: "rus_bonch",
+    tag: "RUS",
+    office: null,
+    fit: ["intelligence"],
+    camps: ["military", "duma", "hard"],
+    temperaments: ["stubborn", "cunning"],
+    rivals: [],
+    allies: ["rus_batyushin", "rus_ruzsky"],
+    fame: 1,
+    source:
+      "Mikhail Bonch-Bruyevich, b. 1870; chief of staff of the Northern Front under Ruzsky 28 Aug 1915-25 Feb 1916 (en.wikipedia Mikhail Bonch-Bruyevich, Northern Front (Russian Empire)); his 'clear counter-intelligence', guarding only the secret papers (Izvestiya of Saratov University 2025, on the army's counter-intelligence). His part in the Myasoedov case, Batyushin his man (memory)",
+  },
+];

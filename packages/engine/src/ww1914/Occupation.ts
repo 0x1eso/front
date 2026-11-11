@@ -1,17 +1,23 @@
-// Great War 1914 (ww172 phase 5, design ww168 B6 and 9A): land beyond the
-// fronts. When a country is out of the war (beaten, collapsed, sued), or an
-// enemy at war with it holds its capital, its enemies take its remaining
-// places a group a chapter, from the groups they already hold, by adjacency
-// on the map; a country with its capital back takes its own land back the
-// same way. Islands and land over the water need the sea. The same reach
-// decides what can be asked for at a table: a place one holds, or a place in
-// a group next to one held whose owner is beaten.
+// Great War 1914 (ww172 phase 5, design ww168 B6 and 9A; ww179 reach):
+// land beyond the fronts. An enemy at war with a country takes its places a
+// group a chapter, from the groups it already holds, by adjacency on the
+// map, once nothing defends them against it: the country is out of the war
+// (beaten, collapsed, sued), an enemy holds its capital, or every front it
+// stood on against that enemy's side has been won through to its last line,
+// so the front runs on into the interior. Land over the water needs a fleet
+// whose side rules the sea; a colony or island cut off from home falls to it
+// once no front of its own holds there. A country that stands again takes
+// its land back the same way. The table asks within the old reach: a place
+// one holds, or one in a group next to it whose owner is beaten.
 //
 // Region adjacency is derived from the map files the first time it is asked
-// for and never stored. A map without the 1914 places has none: there nothing
-// is occupied and the table's reach stays as it was.
+// for and never stored: each place's cell is its region and the nearest
+// regions of its own country that are no place, so the interior links up.
+// A map without the 1914 places has none: there nothing is occupied and the
+// table's reach stays as it was.
 import {
   GW_FRONT_START,
+  GW_LINE_STEP,
   GwSeatState,
   GwSide,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
@@ -22,18 +28,36 @@ import {
   GwPlace,
 } from "@openfront/engine-api/ww1914/GwPlaces";
 import type { GwWorldCond } from "@openfront/engine-api/ww1914/WorldDsl";
-import { frontPlaces } from "@openfront/engine-lib/ww1914/FrontLand";
+import {
+  frontLandAt,
+  frontPlaces,
+} from "@openfront/engine-lib/ww1914/FrontLand";
 import { GW_CAPITALS } from "@openfront/engine-lib/ww1914/PlaceRules";
 import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
+import { posOf } from "./Eras";
 import type { GreatWar } from "./GreatWar";
-import { holderOf, moveLand } from "./Land";
-import { atWarWith } from "./Wars";
-import { fights, isLongChapter, monthsFrom, news, seatsOf } from "./World";
+import {
+  farPos,
+  holderOf,
+  lineStep,
+  moveLand,
+  ranOn,
+  reachedLine,
+} from "./Land";
+import { atWarWith, memberEnd, sideIn } from "./Wars";
+import {
+  fights,
+  isLongChapter,
+  monthsFrom,
+  news,
+  other,
+  seatsOf,
+} from "./World";
 
 /** Tiles occupation may move in a chapter; the first group always goes. */
 export const GW_OCC_TILES = 2500;
-/** Groups away from the taker's own 1914 land it reaches by occupation. */
-const OCC_HOPS = 2;
+/** Rank of a group reached only over the water: after every land route. */
+const BY_SEA = 1_000_000;
 /** The sea line a side must hold for land over the water: `channel`. */
 const SEA_CHANNEL = 2;
 
@@ -45,16 +69,42 @@ export interface GwLandGraph {
   readonly sea: ReadonlyMap<string, readonly number[]>;
   /** Place -> its land tiles. */
   readonly tiles: ReadonlyMap<GwPlace, number>;
+  /** Group -> the open seas its cells' coasts reach (ww179), sorted. */
+  readonly oceans: ReadonlyMap<string, readonly number[]>;
+  /** Places joined by land to their owner's capital through its own land. */
+  readonly home: ReadonlySet<GwPlace>;
 }
 
 const EMPTY: GwLandGraph = {
   near: new Map(),
   sea: new Map(),
   tiles: new Map(),
+  oceans: new Map(),
+  home: new Set(),
 };
 const GRAPHS = new WeakMap<ScenarioIndex, GwLandGraph>();
 
 const groupOf = (p: GwPlace) => GW_PLACES[p].group;
+
+/** Sea zone -> the lowest zone of the waters it joins (seas by their edges). */
+function seaRoots(idx: ScenarioIndex): Map<number, number> {
+  const up = new Map<number, number>();
+  const find = (z: number): number => {
+    let r = z;
+    while ((up.get(r) ?? r) !== r) r = up.get(r)!;
+    up.set(z, r);
+    return r;
+  };
+  for (const z of idx.data.seaZones) up.set(z.id, z.id);
+  for (const e of idx.data.seaEdges ?? []) {
+    const a = find(e[0]);
+    const b = find(e[1]);
+    if (a !== b) up.set(Math.max(a, b), Math.min(a, b));
+  }
+  const out = new Map<number, number>();
+  for (const z of idx.data.seaZones) out.set(z.id, find(z.id));
+  return out;
+}
 
 /** The places' land and sea neighbours, from the region files, once. */
 export function landGraph(gw: GreatWar): GwLandGraph {
@@ -69,18 +119,63 @@ export function landGraph(gw: GreatWar): GwLandGraph {
   }
   const near = new Map<string, Set<string>>();
   const sea = new Map<string, Set<number>>();
+  const oceans = new Map<string, Set<number>>();
   const add = <T>(m: Map<string, Set<T>>, k: string, v: T) => {
     let s = m.get(k);
     if (s === undefined) m.set(k, (s = new Set()));
     s.add(v);
   };
-  for (const [id, p] of placeOf) {
+  // Each place's cell (ww179): its region and the regions of its own country
+  // that are no place, nearest first, ties to the lower region id.
+  const owners = gw.world.owners;
+  const cell = new Map<number, GwPlace>();
+  let edge = [...placeOf.keys()].sort((a, b) => a - b);
+  for (const id of edge) cell.set(id, placeOf.get(id)!);
+  while (edge.length > 0) {
+    const next: number[] = [];
+    for (const id of edge) {
+      const p = cell.get(id)!;
+      const own = owners[gw.world.places.get(p)!];
+      for (const n of idx.regionNeighbours(id)) {
+        if (cell.has(n) || placeOf.has(n) || owners[n] !== own) continue;
+        cell.set(n, p);
+        next.push(n);
+      }
+    }
+    edge = next.sort((a, b) => a - b);
+  }
+  const placeNear = new Map<GwPlace, Set<GwPlace>>();
+  const zoneRoot = seaRoots(idx);
+  for (const [id, p] of cell) {
     const g = groupOf(p);
     for (const n of idx.regionNeighbours(id)) {
-      const q = placeOf.get(n);
-      if (q !== undefined && groupOf(q) !== g) add(near, g, groupOf(q));
+      const q = cell.get(n);
+      if (q === undefined || q === p) continue;
+      let s = placeNear.get(p);
+      if (s === undefined) placeNear.set(p, (s = new Set()));
+      s.add(q);
+      if (groupOf(q) !== g) add(near, g, groupOf(q));
     }
-    for (const z of idx.regionSeaZones(id)) add(sea, g, z);
+    for (const z of idx.regionSeaZones(id)) {
+      if (placeOf.has(id)) add(sea, g, z);
+      add(oceans, g, zoneRoot.get(z) ?? z);
+    }
+  }
+  const home = new Set<GwPlace>();
+  for (const [tag, cap] of Object.entries(GW_CAPITALS)) {
+    if (cap === undefined || !gw.world.places.has(cap)) continue;
+    const q = [cap];
+    home.add(cap);
+    while (q.length > 0) {
+      for (const n of placeNear.get(q.pop()!) ?? []) {
+        if (GW_PLACES[n].owner !== tag || home.has(n)) continue;
+        home.add(n);
+        q.push(n);
+      }
+    }
+  }
+  for (const p of placeOf.values()) {
+    if (GW_CAPITALS[GW_PLACES[p].owner] === undefined) home.add(p);
   }
   const tilesById = new Map<number, number>();
   for (const r of idx.data.regions) tilesById.set(r.id, r.tiles);
@@ -96,6 +191,8 @@ export function landGraph(gw: GreatWar): GwLandGraph {
     near: sorted(near, (a, b) => (a < b ? -1 : a > b ? 1 : 0)),
     sea: sorted(sea, (a, b) => a - b),
     tiles,
+    oceans: sorted(oceans, (a, b) => a - b),
+    home,
   };
   GRAPHS.set(idx, graph);
   return graph;
@@ -211,29 +308,111 @@ export function capitalHolder(gw: GreatWar, tag: GwTag): GwTag | null {
   return h !== tag && atWarWith(gw, h, tag) ? h : null;
 }
 
+// ---- Who still stands (ww179) ----
+
 /**
- * Who takes `owner`'s land now: the enemies it fought to the end if it is
- * out, or its enemies while one of them holds its capital. Those still in
- * the game, the nations' order.
+ * Whether `owner` still has an army in the way of `foe`: on an open front it
+ * fights on, whose other end can still go forward, and has not yet reached
+ * its last line. Fronts where it faces `foe`'s side decide; with none, any
+ * front it holds does (a country with no front left is open to all). Where
+ * the other end could never go forward (its line starts at its last), the
+ * front holds nothing of the owner's and is left out.
  */
-function takersOf(gw: GreatWar, owner: GwTag): GwTag[] {
-  const s = gw.s;
-  const at = beatenAt(gw, owner);
-  let foes: GwTag[] = [];
-  if (at !== null && gw.nation(owner)?.out === true) {
-    for (const w of s.wars) {
-      if (w.ended !== at || (w.a !== owner && w.b !== owner)) continue;
-      foes.push(w.a === owner ? w.b : w.a);
-    }
-  } else if (capitalHolder(gw, owner) !== null) {
-    foes = [...(gw.nation(owner)?.atWar ?? [])];
+export function standsAgainst(gw: GreatWar, owner: GwTag, foe: GwTag): boolean {
+  let faced = false;
+  let field = false;
+  for (const t of gw.s.theatres) {
+    if (t.since === null || !t.open) continue;
+    const end = memberEnd(gw, t.id, owner);
+    if (end === null) continue;
+    const far = farPos(t.id, other(end));
+    if (far === GW_FRONT_START[t.id] * GW_LINE_STEP) continue;
+    const holding = posOf(t) !== far;
+    if (holding) field = true;
+    if (sideIn(gw, t.id, foe) !== other(end)) continue;
+    if (holding) return true;
+    faced = true;
   }
-  return s.nations
-    .filter((n) => !n.out && foes.includes(n.tag))
+  return !faced && field;
+}
+
+/**
+ * Places of every theatre that has opened: the fronts move those. Past the
+ * owner's last line, those the line no longer names are occupation's (ww179).
+ */
+function frontLand(gw: GreatWar): Set<GwPlace> {
+  const out = new Set<GwPlace>();
+  for (const t of gw.s.theatres) {
+    if (t.since === null) continue;
+    const named = frontLandAt(
+      t.id,
+      reachedLine(t),
+      lineStep(t),
+      t.salient ?? 0,
+    );
+    for (const p of frontPlaces(t.id)) {
+      if (!named.has(p) && ranOn(gw, t, GW_PLACES[p].owner)) continue;
+      out.add(p);
+    }
+  }
+  return out;
+}
+
+/**
+ * Whether `owner`'s land in `group` is open to `to`, at war with it: the
+ * owner is out of the war `to` fought it in, its capital is held, or it no
+ * longer stands against `to`. Over the water only, a colony or island cut off
+ * from the owner's capital is open once no front's place there is the
+ * owner's own any more.
+ */
+function openTo(
+  gw: GreatWar,
+  owner: GwTag,
+  to: GwTag,
+  group: string,
+  byLand: boolean,
+  fronts: Set<GwPlace>,
+): boolean {
+  const n = gw.nation(to);
+  if (n === null || n.out) return false;
+  const at = beatenAt(gw, owner);
+  if (at !== null && gw.nation(owner)?.out === true) {
+    return gw.s.wars.some(
+      (w) =>
+        w.ended === at &&
+        ((w.a === owner && w.b === to) || (w.a === to && w.b === owner)),
+    );
+  }
+  if (!atWarWith(gw, owner, to)) return false;
+  if (capitalHolder(gw, owner) !== null) return true;
+  if (!standsAgainst(gw, owner, to)) return true;
+  if (byLand) return false;
+  const graph = landGraph(gw);
+  return GW_PLACE_KEYS.every(
+    (p) =>
+      groupOf(p) !== group ||
+      GW_PLACES[p].owner !== owner ||
+      !gw.world.places.has(p) ||
+      (!graph.home.has(p) && !(fronts.has(p) && holderOf(gw, p) === owner)),
+  );
+}
+
+/** Countries that could take `owner`'s land: at war with it, or its victors. */
+function foesOf(gw: GreatWar, owner: GwTag): GwTag[] {
+  const at = beatenAt(gw, owner);
+  const foes = new Set<GwTag>(gw.nation(owner)?.atWar ?? []);
+  if (at !== null) {
+    for (const w of gw.s.wars) {
+      if (w.ended === at && w.a === owner) foes.add(w.b);
+      if (w.ended === at && w.b === owner) foes.add(w.a);
+    }
+  }
+  return gw.s.nations
+    .filter((n) => !n.out && foes.has(n.tag))
     .map((n) => n.tag);
 }
 
-/** Groups from the taker's own 1914 land, by land, up to OCC_HOPS. */
+/** Groups from the taker's own 1914 land, by land: how many steps away. */
 function hopsFrom(gw: GreatWar, tag: GwTag): Map<string, number> {
   const graph = landGraph(gw);
   const out = new Map<string, number>();
@@ -243,7 +422,7 @@ function hopsFrom(gw: GreatWar, tag: GwTag): Map<string, number> {
     out.set(groupOf(p), 0);
     edge.push(groupOf(p));
   }
-  for (let d = 1; d <= OCC_HOPS; d++) {
+  for (let d = 1; edge.length > 0; d++) {
     const next: string[] = [];
     for (const g of edge) {
       for (const n of graph.near.get(g) ?? []) {
@@ -257,14 +436,25 @@ function hopsFrom(gw: GreatWar, tag: GwTag): Map<string, number> {
   return out;
 }
 
-/** Places of every theatre that has opened: the fronts move those. */
-function frontLand(gw: GreatWar): Set<GwPlace> {
-  const out = new Set<GwPlace>();
-  for (const t of gw.s.theatres) {
-    if (t.since === null) continue;
-    for (const p of frontPlaces(t.id)) out.add(p);
+/**
+ * How `tag` reaches group `g` for occupation: 0 by land from a group it
+ * holds in, 1 over the water (its fleet rules the sea, and the open sea
+ * joins a coast it holds to one of the group's), or null.
+ */
+function occupationReach(
+  gw: GreatWar,
+  tag: GwTag,
+  g: string,
+  held: Set<string>,
+): 0 | 1 | null {
+  const graph = landGraph(gw);
+  if ((graph.near.get(g) ?? []).some((x) => held.has(x))) return 0;
+  const seas = graph.oceans.get(g) ?? [];
+  if (seas.length === 0 || !hasSea(gw, tag)) return null;
+  for (const h of held) {
+    if ((graph.oceans.get(h) ?? []).some((z) => seas.includes(z))) return 1;
   }
-  return out;
+  return null;
 }
 
 interface Pick {
@@ -303,8 +493,8 @@ function groupsOf(owner: GwTag): string[] {
 }
 
 /**
- * The next group an enemy takes from `owner`: by land within OCC_HOPS of the
- * taker's own land, the nearest first, then by name; over the sea last.
+ * The next group an enemy takes from `owner`: from a group it holds in, by
+ * land the nearest to its own land first, then by name; over the sea last.
  */
 function nextTaken(
   gw: GreatWar,
@@ -313,21 +503,21 @@ function nextTaken(
 ): Pick | null {
   const graph = landGraph(gw);
   let best: (Pick & { hops: number; group: string }) | null = null;
-  for (const to of takersOf(gw, owner)) {
+  for (const to of foesOf(gw, owner)) {
     const held = heldGroups(gw, to);
-    const hops = hopsFrom(gw, to);
+    let hops: Map<string, number> | null = null;
     for (const group of groupsOf(owner)) {
-      if (!reachesGroup(gw, to, group, held)) continue;
-      const byLand = (graph.near.get(group) ?? []).some((x) => held.has(x));
-      const h = hops.get(group);
-      if (byLand && h === undefined) continue;
-      const d = byLand ? h! : OCC_HOPS + 1;
+      const how = occupationReach(gw, to, group, held);
+      if (how === null) continue;
+      hops ??= hopsFrom(gw, to);
+      const d = how === 0 ? (hops.get(group) ?? BY_SEA - 1) : BY_SEA;
       if (
         best !== null &&
         (best.hops < d || (best.hops === d && best.group <= group))
       ) {
         continue;
       }
+      if (!openTo(gw, owner, to, group, how === 0, fronts)) continue;
       const places = movable(gw, group, owner, owner, fronts);
       if (places.length === 0) continue;
       const tiles = places.reduce((n, p) => n + (graph.tiles.get(p) ?? 0), 0);
@@ -337,7 +527,10 @@ function nextTaken(
   return best;
 }
 
-/** A country with its capital its own takes back its land from an enemy. */
+/**
+ * A country that stands again takes back its land from an enemy its land is
+ * no longer open to, a group a chapter, from what it holds.
+ */
 function nextFreed(
   gw: GreatWar,
   owner: GwTag,
@@ -354,6 +547,8 @@ function nextFreed(
     for (const foe of n.atWar) {
       const places = movable(gw, group, owner, foe, fronts);
       if (places.length === 0) continue;
+      const byLand = occupationReach(gw, foe, group, heldGroups(gw, foe));
+      if (openTo(gw, owner, foe, group, byLand !== 1, fronts)) continue;
       const tiles = places.reduce((k, p) => k + (graph.tiles.get(p) ?? 0), 0);
       return { to: owner, places, tiles };
     }

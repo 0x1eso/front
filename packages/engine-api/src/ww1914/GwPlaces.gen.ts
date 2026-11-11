@@ -330,6 +330,14 @@ export const GW_PLACES = {
     owner: "AUH",
     center: [2166, 678],
   },
+  bushehr: {
+    id: 842,
+    name: "Bushehr",
+    nameKo: "부셰르",
+    group: "south_persia",
+    owner: "IRN",
+    center: [2570, 944],
+  },
   cairo: {
     id: 767,
     name: "Cairo",
@@ -626,6 +634,14 @@ export const GW_PLACES = {
     owner: "DEU",
     center: [2244, 596],
   },
+  hamadan: {
+    id: 769,
+    name: "Hamadan",
+    nameKo: "하마단",
+    group: "west_persia",
+    owner: "IRN",
+    center: [2539, 870],
+  },
   hamburg: {
     id: 267,
     name: "Hamburg",
@@ -649,6 +665,14 @@ export const GW_PLACES = {
     group: "romania",
     owner: "ROU",
     center: [2300, 702],
+  },
+  isfahan: {
+    id: 790,
+    name: "Isfahan",
+    nameKo: "이스파한",
+    group: "south_persia",
+    owner: "IRN",
+    center: [2582, 891],
   },
   izmit: {
     id: 2117,
@@ -713,6 +737,22 @@ export const GW_PLACES = {
     group: "silesia",
     owner: "DEU",
     center: [2207, 663],
+  },
+  kermanshah: {
+    id: 777,
+    name: "Kermanshah",
+    nameKo: "케르만샤",
+    group: "west_persia",
+    owner: "IRN",
+    center: [2518, 875],
+  },
+  khanaqin: {
+    id: 782,
+    name: "Khanaqin",
+    nameKo: "하나킨",
+    group: "mesopotamia",
+    owner: "OTT",
+    center: [2500, 882],
   },
   kielce: {
     id: 2057,
@@ -986,6 +1026,14 @@ export const GW_PLACES = {
     owner: "RUS",
     center: [2251, 561],
   },
+  mohammerah: {
+    id: 810,
+    name: "Mohammerah",
+    nameKo: "모하메라",
+    group: "south_persia",
+    owner: "IRN",
+    center: [2543, 912],
+  },
   mons: {
     id: 2012,
     name: "Mons",
@@ -1258,6 +1306,14 @@ export const GW_PLACES = {
     owner: "AUH",
     center: [2248, 668],
   },
+  qazvin: {
+    id: 744,
+    name: "Qazvin",
+    nameKo: "카즈빈",
+    group: "north_persia",
+    owner: "IRN",
+    center: [2552, 855],
+  },
   radom: {
     id: 2056,
     name: "Radom",
@@ -1265,6 +1321,14 @@ export const GW_PLACES = {
     group: "russian_poland",
     owner: "RUS",
     center: [2235, 647],
+  },
+  rasht: {
+    id: 705,
+    name: "Rasht",
+    nameKo: "라슈트",
+    group: "north_persia",
+    owner: "IRN",
+    center: [2549, 839],
   },
   reichenberg: {
     id: 2082,
@@ -1386,6 +1450,14 @@ export const GW_PLACES = {
     owner: "RUS",
     center: [2381, 733],
   },
+  shiraz: {
+    id: 833,
+    name: "Shiraz",
+    nameKo: "시라즈",
+    group: "south_persia",
+    owner: "IRN",
+    center: [2590, 939],
+  },
   siauliai: {
     id: 243,
     name: "Šiauliai",
@@ -1466,6 +1538,14 @@ export const GW_PLACES = {
     owner: "RUS",
     center: [2255, 609],
   },
+  tabriz: {
+    id: 690,
+    name: "Tabriz",
+    nameKo: "타브리즈",
+    group: "north_persia",
+    owner: "IRN",
+    center: [2517, 831],
+  },
   tannenberg: {
     id: 2074,
     name: "Tannenberg",
@@ -1489,6 +1569,14 @@ export const GW_PLACES = {
     group: "galicia",
     owner: "AUH",
     center: [2235, 665],
+  },
+  tehran: {
+    id: 755,
+    name: "Tehran",
+    nameKo: "테헤란",
+    group: "north_persia",
+    owner: "IRN",
+    center: [2570, 865],
   },
   telsiai: {
     id: 2079,
@@ -1593,6 +1681,14 @@ export const GW_PLACES = {
     group: "upper_hungary",
     owner: "AUH",
     center: [2258, 690],
+  },
+  urmia: {
+    id: 664,
+    name: "Urmia",
+    nameKo: "우르미아",
+    group: "north_persia",
+    owner: "IRN",
+    center: [2502, 834],
   },
   uzice: {
     id: 2103,

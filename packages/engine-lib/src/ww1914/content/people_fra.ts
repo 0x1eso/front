@@ -99,13 +99,13 @@ export const FRA_PEOPLE: readonly GwPersonDef[] = [
     id: "fra_noulens",
     tag: "FRA",
     office: "finance",
-    fit: ["finance", "war", "agriculture"],
+    fit: ["finance", "war", "agriculture", "ambassador_petersburg"],
     camps: ["civil", "radical", "moderate"],
     temperaments: ["cold", "stubborn"],
     rivals: ["fra_caillaux"],
     allies: ["fra_viviani"],
     fame: 1,
-    source: `Finance in Viviani's first government, Jun-Aug 1914 (${VIVIANI_I}); Agriculture and Food from Jul 1919 (${CLEMENCEAU_II}). War minister 1913-1914 under Doumergue; ambassador in Petrograd 1917 (memory)`,
+    source: `Finance in Viviani's first government, Jun-Aug 1914 (${VIVIANI_I}); Agriculture and Food from Jul 1919 (${CLEMENCEAU_II}). War minister 1913-1914 under Doumergue (memory); named ambassador in Petrograd Jun 1917, left in Feb 1918 for Vologda (en.wikipedia Joseph Noulens; FRUS Paris 1919 vol. III)`,
   },
   {
     id: "fra_david",
@@ -714,3 +714,24 @@ export const FRA_VOICE_NOTES: Readonly<Record<string, string>> = {
   fra_bourgeois:
     "중재와 연대의 원로. 법률가의 긴 설명. 전쟁 뒤의 국제 기구를 말한다. 몸이 약하다고 하면서 위원회를 맡는다.",
 };
+
+/**
+ * ww179: a name for the Vienna embassy's vacancy box, which had none; Jules
+ * Cambon (people.ts) and Noulens fit the other empty embassies. Appended after
+ * every other list in Content.ts, so the seed rolls before it stay.
+ */
+export const FRA_POSTS: readonly GwPersonDef[] = [
+  {
+    id: "fra_crozier",
+    tag: "FRA",
+    office: null,
+    fit: ["ambassador_vienna"],
+    camps: ["civil", "moderate"],
+    temperaments: ["cold", "weary"],
+    rivals: [],
+    allies: [],
+    fame: 1,
+    source:
+      "Philippe Crozier, ambassador in Vienna 23 Jan 1907-18 May 1912, Dumaine after him (archivesdiplomatiques.diplomatie.gouv.fr, list of heads of post; en.wikipedia List of ambassadors of France to Austria); dealt with Aehrenthal (Mitteilungen des Österreichischen Staatsarchivs 35, 1982). Birth and later life not checked",
+  },
+];

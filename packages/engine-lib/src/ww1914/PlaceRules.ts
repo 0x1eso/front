@@ -35,6 +35,7 @@ export const GW_CAPITALS: Readonly<Partial<Record<GwTag, GwPlace>>> = {
   BGR: "sofia",
   GRC: "athens",
   ALB: "durazzo",
+  IRN: "tehran",
 };
 
 /** Offices that sit somewhere of their own; the rest sit in the capital. */

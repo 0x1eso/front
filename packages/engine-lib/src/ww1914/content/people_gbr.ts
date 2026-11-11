@@ -533,3 +533,64 @@ export const GBR_VOICE_NOTES: Readonly<Record<string, string>> = {
   gbr_buchanan:
     "단정한 은발의 대사. 예의를 지키다 한 번 선을 넘어 경고한다. 차르를 좋아한다. 궁정의 문이 닫혀 가는 것을 숫자처럼 적는다.",
 };
+
+/**
+ * ww179: names for the vacancy box of an office that had none: the court and
+ * the embassies in Paris, Petrograd and Washington. Appended after every
+ * other list in Content.ts, so the seed rolls of the cast before them stay.
+ */
+export const GBR_POSTS: readonly GwPersonDef[] = [
+  {
+    id: "gbr_wigram",
+    tag: "GBR",
+    office: null,
+    fit: ["court"],
+    camps: ["moderate"],
+    temperaments: ["cold", "weary"],
+    rivals: [],
+    allies: ["gbr_stamfordham", "gbr_george_v"],
+    fame: 1,
+    source:
+      "Clive Wigram, b. 5 Jul 1873; Indian Army officer; assistant private secretary and equerry to the King 1910-1931, then private secretary after Stamfordham, 1931-1936 (en.wikipedia Clive Wigram, 1st Baron Wigram)",
+  },
+  {
+    id: "gbr_derby",
+    tag: "GBR",
+    office: null,
+    fit: ["ambassador_paris", "war"],
+    camps: ["unionist", "hard", "west"],
+    temperaments: ["anxious", "weary"],
+    rivals: ["gbr_lloyd_george"],
+    allies: ["gbr_haig", "gbr_robertson"],
+    fame: 3,
+    source:
+      "Edward Stanley, 17th Earl of Derby, b. 4 Apr 1865; Secretary of State for War Dec 1916-Apr 1918, replaced by Milner; ambassador to France Apr 1918-1920 after Bertie, Hardinge after him; war diary 'Paris 1918' (en.wikipedia Edward Stanley, 17th Earl of Derby). The Derby scheme of 1915 and the Pals battalions of Liverpool (memory)",
+  },
+  {
+    id: "gbr_hardinge",
+    tag: "GBR",
+    office: null,
+    fit: ["ambassador_petersburg", "ambassador_paris"],
+    camps: ["civil", "moderate"],
+    temperaments: ["cold", "arrogant"],
+    rivals: [],
+    allies: ["gbr_grey"],
+    fame: 2,
+    arrives: "1916-04-04",
+    source:
+      "Charles Hardinge, b. 20 Jun 1858; ambassador in St Petersburg 1904-1906; permanent under-secretary 1906-1910; Viceroy of India 1910 to 4 Apr 1916, then permanent under-secretary again 1916-1920; ambassador in Paris after Derby (en.wikipedia Charles Hardinge, 1st Baron Hardinge of Penshurst; iranicaonline Hardinge)",
+  },
+  {
+    id: "gbr_reading",
+    tag: "GBR",
+    office: null,
+    fit: ["ambassador_washington"],
+    camps: ["liberal", "moderate"],
+    temperaments: ["cunning", "cold"],
+    rivals: [],
+    allies: ["gbr_asquith", "gbr_lloyd_george"],
+    fame: 3,
+    source:
+      "Rufus Isaacs, b. 10 Oct 1860; Lord Chief Justice 1913-1921; high commissioner to the United States and Canada Sep 1917; ambassador in Washington 1918-1919 while still Lord Chief Justice (britannica Rufus Daniel Isaacs; en.wikipedia Rufus Isaacs). The Marconi affair 1912-1913 (memory)",
+  },
+];

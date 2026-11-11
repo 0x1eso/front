@@ -72,7 +72,7 @@ describe("the map's land", () => {
 });
 
 describe("occupation", () => {
-  test("a beaten country loses a group a chapter to the enemy next to it, never its far heart", async () => {
+  test("a beaten country loses a group a chapter to the enemy next to it, its heart last", async () => {
     const gw = await world("GWOCC1");
     openGeneral(gw, "DEU", "RUS", "test");
     if (warOf(gw, "AUH", "RUS") === null) declareWar(gw, "AUH", "RUS", "test");
@@ -82,6 +82,7 @@ describe("occupation", () => {
     gw.s.landMoves = [];
     occupationStep(gw);
     // Bukovina is Austria's: Bessarabia is next to it, and goes first.
+    expect(holderOf(gw, "moscow")).toBe("RUS");
     for (const p of ownedBy("RUS", "bessarabia")) {
       expect(holderOf(gw, p)).toBe("AUH");
       expect(gw.s.heldSince?.[p]).toBe(gw.s.chapter);
@@ -95,12 +96,16 @@ describe("occupation", () => {
       occupationStep(gw);
     }
     expect(holderOf(gw, "odessa")).toBe("AUH");
-    // Moscow and Petrograd are no army's neighbours here, and no fleet's.
-    expect(holderOf(gw, "moscow")).toBe("RUS");
-    expect(holderOf(gw, "petrograd")).toBe("RUS");
     const auh = seatOf("AUH");
     expect(landHolds(gw, auh, { is: "land_taken", from: "RUS" })).toBe(true);
     expect(landHolds(gw, auh, { is: "beaten", tag: "RUS", max: 6 })).toBe(true);
+    // ww179: no reach limit; the interior goes on, a group a chapter.
+    for (let i = 0; i < 6; i++) {
+      gw.s.chapter = longChapter(gw, gw.s.chapter + 1);
+      occupationStep(gw);
+    }
+    expect(holderOf(gw, "moscow")).not.toBe("RUS");
+    expect(holderOf(gw, "petrograd")).not.toBe("RUS");
   });
 
   test("the war goes on with a capital held: occupation held, and under occupation", async () => {

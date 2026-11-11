@@ -5,6 +5,7 @@ import {
   GwSide,
   GwTheatre,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import type { GwPlace } from "@openfront/engine-api/ww1914/GwPlaces";
 
 export interface GwLineLand {
@@ -198,20 +199,44 @@ export const GW_FRONT_LAND: Readonly<
     varna: { entente: ["varna"] },
     constanta: { central: ["constanta"] },
   },
-  persia: {},
+  // ww179: the Persian campaign, on Persia's own ground (GW_OPEN_GROUND). The
+  // Ottomans took Urmia and Tabriz in Jan 1915 and again in summer 1918, and
+  // Kermanshah (2 Jul 1916) and Hamadan (10 Aug 1916) from Baratov's corps;
+  // the Russians stood before Khanaqin on the Baghdad road in Jun 1916.
+  persia: {
+    baghdad_road: { entente: ["khanaqin"] },
+    hamadan: { central: ["kermanshah", "hamadan"] },
+    tabriz: { central: ["urmia", "tabriz"] },
+  },
 };
 
 /**
  * Lines of the new fronts with no place on the map to change hands: the
- * ground is there, the regions aren't (Piedmont, the Danube delta, Persia).
+ * ground is there, the regions aren't (Piedmont, the Danube delta).
  */
 export const GW_FRONT_BARE: Readonly<
   Partial<Record<GwTheatre, readonly string[]>>
 > = {
   alps: ["po"],
   dobruja: ["delta"],
-  persia: ["baghdad_road", "hamadan", "tabriz"],
 };
+
+/**
+ * Neutrals whose land a front is fought over all the same (ww179): Persia
+ * declared itself neutral in Nov 1914 and the Ottomans, the Russians and the
+ * British fought on its ground to the end. A place of theirs falls to the end
+ * that stands on it while they keep out of the war, and goes back to them
+ * when nobody does; at war they fight for it like any country.
+ */
+export const GW_OPEN_GROUND: Readonly<
+  Partial<Record<GwTheatre, readonly GwTag[]>>
+> = {
+  persia: ["IRN"],
+};
+
+/** Whether `owner`'s land is fought over on `t` even while it stays out. */
+export const isOpenGround = (t: GwTheatre, owner: GwTag): boolean =>
+  GW_OPEN_GROUND[t]?.includes(owner) === true;
 
 /** Every place a theatre's lines can move. */
 export function frontPlaces(t: GwTheatre): GwPlace[] {

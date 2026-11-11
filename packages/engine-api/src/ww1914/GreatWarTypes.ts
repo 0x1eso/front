@@ -342,7 +342,9 @@ export const GW_FRONT_UP: Readonly<Record<GwTheatre, GwSide>> = {
   thrace: "entente",
   low_countries: "central",
   dobruja: "central",
-  persia: "entente",
+  // ww179: the Ottomans' advance goes up, deeper into Persia (Kermanshah,
+  // Hamadan, Tabriz); the Russians' goes down, to the Baghdad road.
+  persia: "central",
 };
 
 /** Index into GW_LINES where a theatre's war begins. */
