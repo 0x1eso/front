@@ -2002,6 +2002,48 @@
       },
       "tone_label": "Tone"
     },
+    "agent": {
+      "bettignies": {
+        "bio": "A Frenchwoman of Lille whom British intelligence called 'Alice Dubois'. From January to September 1915 she ran a network of about a hundred people. Taken near Tournai on 20 October 1915, she was sentenced to death, then to forced labour, and died in prison in Cologne on 27 September 1918.",
+        "name": "Louise de Bettignies",
+        "work": "Reports German movements from occupied Lille"
+      },
+      "bolo": {
+        "bio": "Paul Bolo, a businessman from Marseille. With German money passed through the former Khedive of Egypt he tried to buy into the French press. Arrested on 29 September 1917, he was shot at Vincennes on 17 April 1918.",
+        "name": "Bolo Pasha",
+        "work": "Buys newspapers to break the enemy's nerve"
+      },
+      "dame_blanche": {
+        "bio": "A network in occupied Belgium working for British intelligence, set up in 1916 by Walthère Dewé, Herman Chauvin and others. People living by the railways counted every train, day and night. By 1918 it had over a thousand members and was never broken.",
+        "name": "The White Lady network",
+        "work": "Counts German trains day and night"
+      },
+      "duquesne": {
+        "bio": "A Boer who worked for Germany. From Bahia in Brazil he loaded bombs disguised as boxes of mineral samples onto British ships; three sailors died on the Tennyson in February 1916. He faked his own death, was taken in New York in 1917, and in May 1919 escaped from Bellevue Hospital dressed as a woman.",
+        "name": "Fritz Joubert Duquesne",
+        "work": "Puts bombs on British merchant ships"
+      },
+      "lody": {
+        "bio": "A German naval reserve officer. He landed on 27 August 1914 with the passport of an American, 'Charles A. Inglis'. Counter-intelligence opened every letter he sent. Taken at Killarney on 2 October, he was shot in the Tower of London on 6 November 1914.",
+        "name": "Carl Hans Lody",
+        "work": "Watches the Royal Navy"
+      },
+      "mata_hari": {
+        "bio": "The Dutch dancer Margaretha Zelle. German intelligence named her H-21; in 1916 she also worked for Captain Ladoux of the French Deuxième Bureau. Arrested in Paris on 13 February 1917, she was shot at Vincennes on 15 October 1917.",
+        "name": "Mata Hari",
+        "work": "Hears what officers say and passes it on"
+      },
+      "reilly": {
+        "bio": "An adventurer born in the Russian Empire. Early in the war he dealt in munitions in New York. In the spring of 1918 Cumming swore him into the Secret Intelligence Service and sent him to Russia, where he joined a plot to overthrow Lenin's government. When it failed he got out through Finland and reached London on 8 November 1918.",
+        "name": "Sidney Reilly",
+        "work": "Digs into what Russia's rulers mean to do"
+      },
+      "rintelen": {
+        "bio": "A German naval officer. He reached New York on 3 April 1915 on a false Swiss passport, hid cigar-shaped fire bombs in the holds of ships bound for the Allies, and paid for strikes in munitions works. Sailing home that August, he was taken off his ship by the British.",
+        "name": "Franz von Rintelen",
+        "work": "Hides fire bombs in munitions ships"
+      }
+    },
     "ai": {
       "cautious": "cautious",
       "hardline": "hardline",
@@ -2887,6 +2929,31 @@
         "2": "a little old",
         "3": "old news: it may have changed"
       },
+      "agents": {
+        "at": "Works in {country}",
+        "fate": {
+          "executed": "shot",
+          "fled": "got away; can't be used again",
+          "jailed": "in prison",
+          "recalled": "called home when the net was lost",
+          "swapped": "traded home",
+          "working": "at work"
+        },
+        "hire": "Hire this one",
+        "mine": "Our agents",
+        "mine_none": "Nobody hired yet. Pick from the people below.",
+        "none": "Our service has no well-known agent to call on. It works with nets alone.",
+        "open": "Can be hired now",
+        "pool": "Who we could hire",
+        "title": "Named agents",
+        "wait": {
+          "date": "His time has not come yet",
+          "full": "Two of ours are at work already",
+          "gone": "That country is out of the war",
+          "no_net": "Plant a net in {country} first"
+        },
+        "why": "Well-known spies put into a country where we have a net. Reports from there come oftener and surer. If one is caught he is tried, and the net and our standing with that country suffer."
+      },
       "chief": {
         "title": "Head of intelligence",
         "to_people": "Appoint one in People",
@@ -2931,10 +2998,14 @@
       "op": {
         "arab": "Help the Arab revolt",
         "court": "Court a neutral",
+        "home": "Propaganda at home",
+        "hush": "Keeping bad news out",
         "ireland": "Arms for Ireland",
         "jihad": "Call the holy war",
+        "leaflets": "Leaflets",
         "lenin": "Send the exiles home",
         "net": "Plant a net",
+        "papers": "Neutral papers",
         "sabotage": "Sabotage"
       },
       "ops": {
@@ -2946,6 +3017,17 @@
         "title": "Covert operations",
         "waiting": "waiting for the result",
         "why": "Secret work in another country, paid for in money. Each uses a schedule slot; the result reaches the desk a turn later."
+      },
+      "prop": {
+        "done": "Past campaigns",
+        "home_on": "A campaign at home is under way",
+        "hush_on": "The censor is keeping bad news out of the papers",
+        "idle": "No campaign under way.",
+        "leaflets_on": "Leaflets on: {countries}",
+        "none": "No campaign can be started now. Rows appear here in wartime when a schedule slot is free.",
+        "papers_on": "Papers we pay in: {countries}",
+        "title": "Propaganda and censorship",
+        "why": "Keep the nerve at home, shake the enemy's people, buy a neutral's opinion. Results come slowly, over months, and money found out turns a country against us."
       },
       "rings": {
         "caught": "We hold {country}'s agents. Decide what to do with them on the desk.",
@@ -3237,6 +3319,9 @@
       "money_scene": "A decision moved the treasury.",
       "money_war_costs": "The war eats credit.",
       "morale_committees": "Soldiers' committees are running the regiments.",
+      "morale_defeatist_press": "Defeatist papers wore down the nation's nerve.",
+      "morale_hush_out": "The bad news we had kept back came out all at once.",
+      "morale_propaganda": "The propaganda worked: spirits rose.",
       "morale_refusals": "Divisions have refused to attack.",
       "morale_regiments": "Regiments no longer understand one another.",
       "morale_rumour": "Rumour ate at the country.",
@@ -3254,6 +3339,7 @@
       "order_duma_shut": "The shut Duma talks in the streets.",
       "order_hunger": "There is no bread in the shops.",
       "order_ireland": "Ireland is restless.",
+      "order_leaflets": "Enemy leaflets went round the streets.",
       "order_left_splits": "The left has split over the credits.",
       "order_nations": "The nationalities are drifting away.",
       "order_prices": "Prices have outrun wages.",
@@ -3398,6 +3484,18 @@
       "to_map": "Show on the map"
     },
     "news": {
+      "agent_bettignies": "{a} caught {b}'s agent Louise de Bettignies.",
+      "agent_bolo": "{a} caught {b}'s agent Bolo Pasha.",
+      "agent_dame_blanche": "{a} rolled up {b}'s White Lady network.",
+      "agent_duquesne": "{a} caught {b}'s agent Fritz Joubert Duquesne.",
+      "agent_fate_executed": "A court in {a} had the agent shot.",
+      "agent_fate_fled": "The agent slipped out of {a}'s hands.",
+      "agent_fate_jailed": "{a} put the agent on trial and in prison.",
+      "agent_fate_swapped": "{a} and {b} traded the agent for people of their own.",
+      "agent_lody": "{a} caught {b}'s agent Carl Hans Lody.",
+      "agent_mata_hari": "{a} caught {b}'s agent Mata Hari.",
+      "agent_reilly": "{a} caught {b}'s agent Sidney Reilly.",
+      "agent_rintelen": "{a} caught {b}'s agent Franz von Rintelen.",
       "america_entered": "America has entered the war.",
       "armistice_central_lost": "The Central Powers ask for an armistice.",
       "armistice_compromise": "The guns stop where they stand.",
@@ -3472,6 +3570,8 @@
       "pair_peace_refused": "{a} refused {b}'s offer of peace.",
       "pair_table_open": "{a} and {b} sit down to settle the land between them.",
       "pair_table_signed": "{a} and {b} sign their treaty.",
+      "prop_hush_out": "In {a}, defeats the censor had kept out of the papers came out all at once.",
+      "prop_papers_out": "{a}'s papers were found to take money from {b}.",
       "regent_took_over": "{a}: a regent is running the government.",
       "regime_austria_republic": "{a}: Republic of Austria.",
       "regime_coalition": "{a}: Coalition.",
@@ -3686,6 +3786,8 @@
       "ready": "{country}: gathered"
     },
     "reason": {
+      "agent_ours_lost": "One of our named agents abroad was taken.",
+      "agent_we_took": "Counter-intelligence took a well-known foreign agent.",
       "aim_changed": "You went back on the aim you declared.",
       "ally_worn_asks": "{country} asks for men: its front is worn out.",
       "amnesty_granted": "The courts martial were withdrawn.",
@@ -3926,6 +4028,8 @@
       "promise_broken": "A promise went past its date. They will come to you.",
       "promise_kept": "A promise kept. They won't forget it.",
       "promise_mended": "They agreed to let the broken promise go, this once.",
+      "prop_hush_cost": "The house asks why the papers are so quiet.",
+      "prop_papers_out": "The money we gave a neutral's papers came to light.",
       "proxy_signed": "The chapter closed with the paper undecided: it was signed by proxy.",
       "quota_left": "The two halves were left to settle the grain.",
       "raid_lost": "The enemy raided our trenches in the night.",
@@ -4550,6 +4654,9 @@
       "war_began": "The war began."
     },
     "ui": {
+      "agents_hint": "Our service's well-known agents abroad. They are hired in the Intelligence tab.",
+      "agents_title": "Agents",
+      "agents_to_intel": "Go to Intelligence",
       "alloc_now": "The plan in force: {main}, {posture}, {scale}",
       "alloc_research": "Research",
       "alloc_title": "This chapter's war plan",

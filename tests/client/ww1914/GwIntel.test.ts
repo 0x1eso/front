@@ -107,7 +107,8 @@ describe("the 정보부 tab", () => {
 
   test("every section says what it is, and empty ones say what to do", () => {
     const { root } = ctx({ service: service() });
-    expect(root.querySelectorAll("[data-gw-intel-why]").length).toBe(5);
+    // ww180: named agents and propaganda have sections too.
+    expect(root.querySelectorAll("[data-gw-intel-why]").length).toBe(7);
     // A chief not met yet is not a vacancy; a vacant one points to people.
     expect(q(root, "[data-gw-intel-to-people]")).toBeNull();
     const vacant = ctx({

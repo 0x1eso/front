@@ -52,6 +52,14 @@ import {
   GwWarEnd,
 } from "./GreatWarTypes";
 import {
+  GW_AGENT_CANS,
+  GW_PROP_ACTS,
+  GW_PROP_CANS,
+  GwAgentCan,
+  GwPropAct,
+  GwPropCan,
+} from "./GwAgents";
+import {
   GW_BUDGET_ITEMS,
   GW_BUDGET_LINES,
   GW_BUDGET_SOURCES,
@@ -412,7 +420,14 @@ export type GwWorldCond =
       tag?: GwTag;
       /** ww178: true holds only while the seat's country is at peace. */
       peace?: boolean;
-    };
+    }
+  /** ww180: named agents (GwAgents.GW_AGENT_CANS); `id` a GW_AGENTS id. */
+  | { is: "agent"; can: GwAgentCan; id?: string }
+  /**
+   * ww180: propaganda (GwAgents.GW_PROP_CANS): an act with `tag` where it
+   * takes one; ok/out of the newest campaign of `act`.
+   */
+  | { is: "prop"; can: GwPropCan; tag?: GwTag; act?: GwPropAct };
 
 export type GwWorldEffect =
   /** Germany's plan for the war to come. */
@@ -583,7 +598,11 @@ export type GwWorldEffect =
   /** The answer to the enemy offensive the seat learned of (`foe_offensive`). */
   | { do: "counter_offensive"; pick: GwOffCounter }
   /** ww173: the secret war (engine/ww1914/Spies; GwSpies.GW_SPY_ACTS). */
-  | { do: "spy"; act: GwSpyAct; tag?: GwTag };
+  | { do: "spy"; act: GwSpyAct; tag?: GwTag }
+  /** ww180: hire a named agent (engine/ww1914/Agents); none named: the best open. */
+  | { do: "agent"; id?: string }
+  /** ww180: a propaganda campaign (engine/ww1914/Propaganda). */
+  | { do: "prop"; act: GwPropAct; tag?: GwTag };
 
 const int = z.number().int();
 const yearMonth = z.string().regex(/^19[0-9]{2}-[01][0-9]$/);
@@ -792,6 +811,12 @@ export const GwWorldCondSchema = z.union([
     tag: tag.optional(),
     peace: z.boolean().optional(),
   }),
+  is("agent", { can: z.enum(GW_AGENT_CANS), id: GwIdSchema.optional() }),
+  is("prop", {
+    can: z.enum(GW_PROP_CANS),
+    tag: tag.optional(),
+    act: z.enum(GW_PROP_ACTS).optional(),
+  }),
 ]) as unknown as z.ZodType<GwWorldCond>;
 
 export const GwWorldEffectSchema = z.union([
@@ -891,6 +916,8 @@ export const GwWorldEffectSchema = z.union([
   act("pair_peace_answer", { yes: z.boolean() }),
   act("counter_offensive", { pick: z.enum(GW_OFF_COUNTERS) }),
   act("spy", { act: z.enum(GW_SPY_ACTS), tag: tag.optional() }),
+  act("agent", { id: GwIdSchema.optional() }),
+  act("prop", { act: z.enum(GW_PROP_ACTS), tag: tag.optional() }),
 ]) as unknown as z.ZodType<GwWorldEffect>;
 
 // ---- Authoring helpers ----

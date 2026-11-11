@@ -194,6 +194,13 @@ export function turn(gw: GreatWar, key: string): void {
 }
 
 /** Moves a gauge and writes why on the country's seats. */
+/** ww180: morale lines a censor's hush holds back (Propaganda.ts). */
+const HUSHED: readonly string[] = [
+  "casualty_lists",
+  "front_collapsed",
+  "morale_rumour",
+];
+
 export function moveGauge(
   gw: GreatWar,
   tag: GwTag,
@@ -206,6 +213,14 @@ export function moveGauge(
   if (gauge === "money") {
     moveMoney(gw, n, delta, key);
     return;
+  }
+  // ww180: the censor keeps this blow out of the papers (Propaganda.ts).
+  if (delta < 0 && gauge === "morale" && HUSHED.includes(key)) {
+    const p = n.prop;
+    if (p !== undefined && p.hush >= gw.s.day) {
+      p.hidden++;
+      return;
+    }
   }
   const was = n.gauges[gauge];
   n.gauges[gauge] = clampTo(was + delta, 0, GW_GAUGE_MAX[gauge]);

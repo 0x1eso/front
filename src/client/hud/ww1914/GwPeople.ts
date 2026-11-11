@@ -19,6 +19,7 @@ import { authorityChip } from "./GwNow";
 import { officeTitle } from "./GwOffice";
 import { BTN, BTN_ON, CHIP, HEAD, MUTED } from "./GwStyle";
 import {
+  country,
   personBio,
   personLean,
   personName,
@@ -354,6 +355,63 @@ function privateMeetings(c: GwCtx): TemplateResult | typeof nothing {
   </section>`;
 }
 
+/** ww180: our named agents abroad, with their story; hired in 정보부. */
+function agents(c: GwCtx): TemplateResult | typeof nothing {
+  const mine = c.seat.world.agents?.mine ?? [];
+  const pool = c.seat.world.agents?.pool ?? [];
+  if (mine.length === 0 && pool.length === 0) return nothing;
+  return html`<section
+    class="space-y-1.5 rounded border border-white/15 bg-black/35 p-2.5"
+    data-gw-people-agents
+  >
+    <h3 class=${HEAD}>${translateText("gw.ui.agents_title")}</h3>
+    <p class="text-sm text-white/70">${translateText("gw.ui.agents_hint")}</p>
+    ${mine.length === 0
+      ? html`<p class=${MUTED}>
+          ${translateText("gw.intel.agents.mine_none")}
+        </p>`
+      : mine.map(
+          (a) =>
+            html`<div
+              class="space-y-0.5 border-t border-white/10 pt-1.5"
+              data-gw-people-agent=${a.id}
+            >
+              <div class="flex items-center gap-2">
+                ${rowFace(c, a.id, translateText(`gw.agent.${a.id}.name`))}
+                <span class="min-w-0 flex-1">
+                  <span class="block truncate text-sm font-bold"
+                    >${translateText(`gw.agent.${a.id}.name`)}</span
+                  >
+                  <span class="${MUTED} block truncate"
+                    >${translateText("gw.intel.agents.at", {
+                      country: country(a.at),
+                    })}</span
+                  >
+                </span>
+                <span class=${CHIP}
+                  >${translateText(
+                    `gw.intel.agents.fate.${a.fate ?? "working"}`,
+                  )}</span
+                >
+              </div>
+              <p class="text-sm text-white/80">
+                ${translateText(`gw.agent.${a.id}.bio`)}
+              </p>
+            </div>`,
+        )}
+    <button
+      class="${BTN} !px-2 !py-1"
+      data-gw-people-to-intel
+      @click=${() => {
+        c.ui.tab = "intel";
+        c.redraw();
+      }}
+    >
+      ${translateText("gw.ui.agents_to_intel")}
+    </button>
+  </section>`;
+}
+
 /** The people tab: the cabinet and the court, summons left, who to call. */
 export function peopleTab(c: GwCtx): TemplateResult {
   const { seat } = c;
@@ -375,5 +433,6 @@ export function peopleTab(c: GwCtx): TemplateResult {
       ? nothing
       : html`<div class=${MUTED}>${translateText("gw.ui.outside")}</div>
           ${rest.map((p) => personRow(c, p))}`}
+    ${agents(c)}
   </div>`;
 }
