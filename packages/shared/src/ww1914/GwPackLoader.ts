@@ -45,6 +45,7 @@ export const GW_PACK_SHARES: Readonly<
     "craft",
     "house",
     "powers",
+    "wars",
   ],
   GBR: [
     "crisis",
@@ -64,6 +65,7 @@ export const GW_PACK_SHARES: Readonly<
     "craft",
     "house",
     "powers",
+    "wars",
   ],
   AUH: [
     "crisis",
@@ -83,6 +85,7 @@ export const GW_PACK_SHARES: Readonly<
     "craft",
     "house",
     "powers",
+    "wars",
   ],
   RUS: [
     "crisis",
@@ -102,6 +105,7 @@ export const GW_PACK_SHARES: Readonly<
     "craft",
     "house",
     "powers",
+    "wars",
   ],
   FRA: [
     "crisis",
@@ -121,6 +125,7 @@ export const GW_PACK_SHARES: Readonly<
     "craft",
     "house",
     "powers",
+    "wars",
   ],
 };
 
