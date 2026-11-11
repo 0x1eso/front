@@ -2,6 +2,7 @@
 // armies and Ming's meter, from fixed states on the imjinmini map
 // (1 Hanseong, 2 Chungju (hills), 4 Daegu (Japan's, next to Ming),
 // 5 Pyongyang, 6-7 Ming).
+import { GameMapType } from "@openfront/engine-api/game/GameTypes";
 import type { GameConfig } from "@openfront/engine-api/Schemas";
 import { IDEO_COM, IDEO_DEM } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
@@ -29,6 +30,7 @@ import { describe, expect, test } from "vitest";
 import { byTag, HUMAN, step, takeRegion, wwRunner } from "../ww1936/util";
 
 const CONFIG: Partial<GameConfig> = {
+  gameMap: GameMapType.Imjin1592,
   ww1936Scenario: "imjin1590",
   ww1936Designer: undefined,
 };

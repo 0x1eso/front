@@ -228,7 +228,9 @@ export class ImjinJapan {
     }
     if (this.ww.politics.isHuman(a)) {
       if (s.readiness < STRIKE_BAR) return false;
-      // An early strike sails only after Joseon has had its warning.
+      // A second invasion goes at the bar; Joseon knows what is coming.
+      if (s.warDay >= 0) return true;
+      // An early first strike sails only after Joseon has had its warning.
       if (s.strikeDay >= 0) return this.ww.day(this.mg.ticks()) >= s.strikeDay;
       return !isEarlyStrike(s.readiness);
     }

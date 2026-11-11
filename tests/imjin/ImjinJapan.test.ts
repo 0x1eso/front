@@ -1,6 +1,7 @@
 // ww177 I4b: Japan's politics and the truce, with fixed states: the pure
 // rules, then the engine's run-up, the war's start, Hideyoshi's death and
 // the forged truce from talks to the second invasion.
+import { GameMapType } from "@openfront/engine-api/game/GameTypes";
 import type { GameConfig } from "@openfront/engine-api/Schemas";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import {
@@ -35,6 +36,7 @@ import { describe, expect, test } from "vitest";
 import { byTag, HUMAN, step, stepTo, wwRunner } from "../ww1936/util";
 
 const CONFIG: Partial<GameConfig> = {
+  gameMap: GameMapType.Imjin1592,
   ww1936Scenario: "imjin1590",
   ww1936Designer: undefined,
 };
