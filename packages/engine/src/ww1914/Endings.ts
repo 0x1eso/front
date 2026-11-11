@@ -283,7 +283,7 @@ const OWN_EMBASSY: Partial<Record<GwTag, GwSource>> = {
 
 /** World turns have text (gw.turn.<key>); a scene's own memories don't. */
 function turnOf(key: string): { key: string; tag: GwTag | null } | null {
-  const m = /^(entered|out)_([a-z]+)$/.exec(key);
+  const m = /^(entered|out|pair_war_began|pair_peace_made)_([a-z]+)$/.exec(key);
   if (m !== null) {
     const tag = m[2].toUpperCase();
     return isGwTag(tag) ? { key: m[1], tag } : null;

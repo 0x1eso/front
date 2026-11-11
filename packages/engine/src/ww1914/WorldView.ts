@@ -42,6 +42,7 @@ import { generalsFor } from "./Post";
 import { pressView } from "./Press";
 import { holderOf, holds } from "./SceneRun";
 import { GW_ACTORS, GW_COMMAND_NAMED_AFTER } from "./Tables";
+import { sideIn } from "./Wars";
 import { lastOf, ownPeople } from "./World";
 
 const NEWS_SHOWN = 16;
@@ -93,7 +94,8 @@ function frontView(
   seat: GwSeatState,
   t: GwTheatreState,
 ): GwFrontView {
-  const side = gw.nation(seat.tag)?.side ?? GW_SIDES[0];
+  const side =
+    sideIn(gw, t.id, seat.tag) ?? gw.nation(seat.tag)?.side ?? GW_SIDES[0];
   const mine = GW_SIDES.indexOf(side);
   const b = lastOf(gw.s.battles.filter((x) => x.theatre === t.id));
   return {

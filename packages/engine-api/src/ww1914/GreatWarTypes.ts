@@ -282,6 +282,14 @@ export const GW_THEATRES = [
   "palestine",
   "sea",
   "colonies",
+  // ww171 phase 4: fronts for pairs the two coalitions never set against
+  // each other. APPEND ONLY: a theatre's index is its place in the state.
+  "alps",
+  "danube",
+  "thrace",
+  "low_countries",
+  "dobruja",
+  "persia",
 ] as const;
 export type GwTheatre = (typeof GW_THEATRES)[number];
 
@@ -305,6 +313,12 @@ export const GW_LINES: Readonly<Record<GwTheatre, readonly string[]>> = {
   palestine: ["suez", "gaza", "jerusalem", "damascus"],
   sea: ["blockade", "north_sea", "channel", "atlantic"],
   colonies: ["togo", "kamerun", "southwest", "east_africa"],
+  alps: ["po", "alps", "dauphine", "rhone"],
+  danube: ["moldavia", "carpathians", "brasso", "kolozsvar"],
+  thrace: ["salonika", "dedeagach", "maritsa", "edirne"],
+  low_countries: ["cologne", "aachen", "border", "amsterdam"],
+  dobruja: ["varna", "dobrich", "constanta", "delta"],
+  persia: ["baghdad_road", "kermanshah", "hamadan", "tabriz"],
 };
 
 /** The side whose advance moves a theatre's line up. */
@@ -319,6 +333,14 @@ export const GW_FRONT_UP: Readonly<Record<GwTheatre, GwSide>> = {
   palestine: "entente",
   sea: "central",
   colonies: "entente",
+  // A new front's ends are not coalitions: "central" names the end listed
+  // first in Tables.GW_FRONT_ENDS, whoever stands there.
+  alps: "central",
+  danube: "entente",
+  thrace: "entente",
+  low_countries: "central",
+  dobruja: "central",
+  persia: "entente",
 };
 
 /** Index into GW_LINES where a theatre's war begins. */
@@ -333,6 +355,12 @@ export const GW_FRONT_START: Readonly<Record<GwTheatre, number>> = {
   palestine: 0,
   sea: 1,
   colonies: 0,
+  alps: 1,
+  danube: 1,
+  thrace: 2,
+  low_countries: 2,
+  dobruja: 1,
+  persia: 1,
 };
 
 export const GW_POSTURES = ["offensive", "hold"] as const;
@@ -1401,6 +1429,37 @@ export const GW_SLOW_MAX = 3;
 /** Empty chapters in a row before the regent takes the seat. */
 export const GW_REGENT_AFTER = 2;
 
+/**
+ * A war between two countries (ww171 phase 4, design ww168 B5): the source of
+ * truth for who fights whom; a nation's `atWar` is derived from these. `a`
+ * declared it. `cause` says how it came (`july`, `treaty`, `ladder`, `ai`,
+ * `declared`, `entered`, ...).
+ */
+export const GwWarSchema = z.object({
+  a: z.enum(GW_TAGS),
+  b: z.enum(GW_TAGS),
+  since: z.number().int(),
+  cause: GwIdSchema,
+  /** Chapter the pair made peace (or one of them left the war); null: on. */
+  ended: z.number().int().nullable(),
+});
+export type GwWar = z.infer<typeof GwWarSchema>;
+
+/**
+ * A declaration or a peace offer from one seat to another (friends at one
+ * table): it goes as an order and arrives next chapter. A declaration takes
+ * effect as the chapter closes; a peace offer waits for the other seat's card.
+ */
+export const GW_PAIR_NOTE_KINDS = ["war", "peace"] as const;
+export type GwPairNoteKind = (typeof GW_PAIR_NOTE_KINDS)[number];
+export const GwPairNoteSchema = z.object({
+  from: z.enum(GW_TAGS),
+  to: z.enum(GW_TAGS),
+  kind: z.enum(GW_PAIR_NOTE_KINDS),
+  chapter: z.number().int(),
+});
+export type GwPairNote = z.infer<typeof GwPairNoteSchema>;
+
 /** All of the mode's state. Version bumps go through GreatWarSnapshot. */
 export const GreatWarStateSchema = z.object({
   seed: z.number().int(),
@@ -1478,5 +1537,9 @@ export const GreatWarStateSchema = z.object({
   nextTreaty: z.number().int().default(1),
   /** Crisis ladders from the 통치 tab, open and closed, in order (ww170). */
   ladders: z.array(GwLadderSchema).default([]),
+  /** Every war between two countries, in the order they began (ww171). */
+  wars: z.array(GwWarSchema).default([]),
+  /** Seat-to-seat declarations and peace offers on their way (ww171). */
+  pairNotes: z.array(GwPairNoteSchema).default([]),
 });
 export type GreatWarState = z.infer<typeof GreatWarStateSchema>;

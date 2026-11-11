@@ -51,6 +51,13 @@ import {
   lawText,
   lawWithdraw,
 } from "./Laws";
+import {
+  declareFromTab,
+  pairHolds,
+  peaceAnswer,
+  seatDeclares,
+  seatOffersPeace,
+} from "./PairWar";
 import { armistice, openTalks, sue } from "./Peace";
 import { keepPerson, openLetter, personLeaves, recordResult } from "./People";
 import { plotEffect, plotHolds } from "./Plots";
@@ -58,7 +65,7 @@ import { changeRegime, regimeRow } from "./Regimes";
 import { SceneCtx, whoIn } from "./SceneRun";
 import { setUboats } from "./Sea";
 import { enter, leaveWar } from "./Wars";
-import { clampTo, lastOf, moveGauge, news, other, reason } from "./World";
+import { clampTo, lastOf, moveGauge, news, reason } from "./World";
 
 const inRange = (v: number, c: { min?: number; max?: number }) =>
   v >= (c.min ?? -Infinity) && v <= (c.max ?? Infinity);
@@ -271,6 +278,13 @@ export function worldHolds(ctx: SceneCtx, c: GwWorldCond): boolean {
       return monthsHold(gw, seat, c);
     case "ladder_target":
       return ladderTargets(gw, seat.tag).includes(c.tag);
+    case "war_target":
+    case "peace_target":
+    case "pair_war":
+    case "pair_peace":
+    case "front_months":
+    case "peace_offered":
+      return pairHolds(gw, seat, c);
   }
 }
 
@@ -311,15 +325,11 @@ export function worldEffect(ctx: SceneCtx, e: GwWorldEffect): void {
       return;
     }
     case "declare": {
-      if (s.warChapter === null) closeChain(gw, "war");
-      const foe = gw.nation(e.tag);
-      if (foe === null || nation === null) return;
-      if (foe.side === null && nation.side !== null) {
-        enter(gw, e.tag, other(nation.side), "war_declared");
-      } else if (foe.side !== null && nation.side === null) {
-        // A neutral seat comes in against a country already at war.
-        enter(gw, seat.tag, other(foe.side), "war_declared");
-      }
+      // In the July crisis a declaration is the general war's (Crises); then
+      // the seat's own war on the country named (ww171: any pair).
+      if (s.warChapter === null && s.chain !== null) closeChain(gw, "war");
+      if (nation === null || gw.nation(e.tag) === null) return;
+      seatDeclares(gw, seat, e.tag);
       return;
     }
     case "offer": {
@@ -556,6 +566,15 @@ export function worldEffect(ctx: SceneCtx, e: GwWorldEffect): void {
       return;
     case "ladder_press":
       ladderPress(ctx.gw, ctx.seat, e.on);
+      return;
+    case "declare_war":
+      declareFromTab(ctx.gw, ctx.seat, e.tag);
+      return;
+    case "pair_peace":
+      seatOffersPeace(ctx.gw, ctx.seat, e.tag);
+      return;
+    case "pair_peace_answer":
+      peaceAnswer(ctx.gw, ctx.seat, e.yes);
       return;
   }
 }

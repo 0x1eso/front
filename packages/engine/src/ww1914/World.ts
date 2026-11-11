@@ -52,6 +52,13 @@ export function everyMonths(gw: GreatWar, k: number, offset = 0): boolean {
   return end > 0 && beats(end) > beats(start);
 }
 
+/** Whole months from chapter `from` to this one, on the calendar's dates. */
+export function monthsFrom(gw: GreatWar, from: number): number {
+  const days = gwChapters(gw.s.calendar);
+  const a = days[Math.max(0, Math.min(from, days.length - 1))].day;
+  return Math.floor((days[gw.s.chapter].day - a) / 30);
+}
+
 /** The last of a list, or undefined. */
 export function lastOf<T>(list: readonly T[]): T | undefined {
   return list[list.length - 1];
@@ -75,8 +82,9 @@ export function ruledBySeat(gw: GreatWar, tag: GwTag): boolean {
   );
 }
 
+/** In the war: a coalition's member still in it, or a country at war alone. */
 export function fights(n: GwNationState | null): boolean {
-  return n !== null && n.side !== null && !n.out;
+  return n !== null && !n.out && (n.side !== null || n.atWar.length > 0);
 }
 
 /** The person who is the seat now: never on its own cast tab. */

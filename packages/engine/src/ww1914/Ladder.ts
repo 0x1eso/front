@@ -1,16 +1,18 @@
 // Great War 1914 (ww170 S3, design ww168 B4): scenes by state, and the crisis
 // ladder. The July chain stays the first crisis; after it a seat can send a
-// note from the 통치 tab to a country it could fight: a member of a coalition
-// it is not in, or a neutral. The ladder is the same as July's, shorter:
-// the note, the answer, mobilisation, then war or a climb-down. War still joins
-// the existing coalitions (any-pair war is phase 4).
+// note from the 통치 tab to any country it could fight (ww171 phase 4: a pair
+// that shares a front, not in one coalition, not bound by a treaty), and an
+// AI sends its own by its state (PairWar.aiWarStep). The ladder is the same
+// as July's, shorter: the note, the answer, mobilisation, then war or a
+// climb-down. The war is the pair's (Wars.declareWar): the coalitions and the
+// treaties make of it what they will.
 //
 // Steps run as a chapter closes:
 // - `sent`: the other side answers. A seat answers on a card it is dealt the
 //   chapter the note goes out (`gw_ladder_note`); an AI by its character,
 //   strength and friends, with a seeded roll.
 // - `rejected`: the sender's card (`gw_ladder_refused`) says mobilise or climb
-//   down; nobody deciding climbs down.
+//   down; an AI sender presses by its character and strength.
 // - `mobilised`: one last chance (`gw_ladder_last` to a seat), then war.
 // Every step writes the seat's reason lines and the world's news.
 import {
@@ -18,11 +20,9 @@ import {
   GwLadder,
   GwLadderStep,
   GwSeatState,
-  GwSide,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import type { GwWorldCond } from "@openfront/engine-api/ww1914/WorldDsl";
-import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
 import {
   GW_LADDER_LAST,
   GW_LADDER_NOTE,
@@ -31,34 +31,24 @@ import {
 } from "@openfront/engine-lib/ww1914/content/ladder";
 import { civilFromDays } from "@openfront/engine-lib/ww1936/Calendar";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
-import { closeChain } from "./Crises";
 import { warMonths } from "./Eras";
 import type { GreatWar } from "./GreatWar";
 import { moveRuler } from "./Ruler";
-import { GW_ENTRIES } from "./Tables";
-import { enter, openWar } from "./Wars";
-import { clampTo, news, other, reason, seatsOf, turn } from "./World";
+import { reachable } from "./Tables";
+import { treatyAllies } from "./Treaties";
+import { declareWar, naturalSide, startAllies } from "./Wars";
+import {
+  clampTo,
+  monthsFrom,
+  news,
+  reason,
+  ruledBySeat,
+  seatsOf,
+  turn,
+} from "./World";
 
 const P_LADDER = idHash("gw_ladder");
-
-/** Who stood where when the July war came, and the neutrals' leanings. */
-const CASCADE: Readonly<Partial<Record<GwTag, GwSide>>> = {
-  DEU: "central",
-  AUH: "central",
-  RUS: "entente",
-  FRA: "entente",
-  SRB: "entente",
-  MNE: "entente",
-  BEL: "entente",
-  GBR: "entente",
-};
-
-/** The side a country would stand on in the general war, if it is known. */
-export function naturalSide(gw: GreatWar, tag: GwTag): GwSide | null {
-  const n = gw.nation(tag);
-  if (n !== null && n.side !== null) return n.side;
-  return CASCADE[tag] ?? GW_ENTRIES.find((e) => e.tag === tag)?.natural ?? null;
-}
+const P_PRESS = idHash("gw_ladder_press");
 
 /** A ladder still running that has `tag` in it. */
 export function openLadder(gw: GreatWar, tag: GwTag): GwLadder | null {
@@ -71,26 +61,34 @@ export function openLadder(gw: GreatWar, tag: GwTag): GwLadder | null {
 }
 
 /**
- * Whom `from` may send a note to now: a country it is not at war with that is
- * in a coalition it isn't, or a neutral; before the general war, one the July
- * war would put across from it. Neither side may be in another ladder.
+ * Two countries one of which could go to war on the other (design ww168 B5):
+ * they share a front, they aren't in one coalition, and no treaty binds them
+ * (a starting alliance, or a signed alliance or neutrality).
+ */
+export function canFight(gw: GreatWar, a: GwTag, b: GwTag): boolean {
+  const na = gw.nation(a);
+  const nb = gw.nation(b);
+  if (na === null || nb === null || na.out || nb.out) return false;
+  if (!reachable(a, b)) return false;
+  if (na.side !== null && na.side === nb.side) return false;
+  return !startAllies(a, b, true) && !treatyAllies(gw, a, b);
+}
+
+/**
+ * Whom `from` may send a note to now: a country it could fight that it is not
+ * at war with. Neither side may be in another ladder. A seat sends only to
+ * the countries its tab lists (GW_LADDER_REACH).
  */
 export function ladderTargets(gw: GreatWar, from: GwTag): GwTag[] {
   const me = gw.nation(from);
   if (me === null || me.out || openLadder(gw, from) !== null) return [];
-  const mine = naturalSide(gw, from);
+  const seat = ruledBySeat(gw, from);
   const out: GwTag[] = [];
   for (const n of gw.s.nations) {
-    if (n.tag === from || n.out || me.atWar.includes(n.tag)) continue;
-    if (!GW_LADDER_REACH.includes(n.tag)) continue;
+    if (n.tag === from || me.atWar.includes(n.tag)) continue;
+    if (seat && !GW_LADDER_REACH.includes(n.tag)) continue;
     if (openLadder(gw, n.tag) !== null) continue;
-    const theirs = naturalSide(gw, n.tag);
-    // In the war: anyone outside our coalition. Before it: across the July lines.
-    const across =
-      gw.s.warChapter !== null
-        ? n.side === null || (me.side !== null && n.side !== me.side)
-        : mine !== null && theirs !== null && theirs !== mine;
-    if (across) out.push(n.tag);
+    if (canFight(gw, from, n.tag)) out.push(n.tag);
   }
   return out;
 }
@@ -110,9 +108,14 @@ export function sendUltimatum(
   seat: GwSeatState,
   to: GwTag,
 ): void {
-  if (!ladderTargets(gw, seat.tag).includes(to)) return;
+  if (sendNote(gw, seat.tag, to)) reason(gw, seat, "ladder_sent");
+}
+
+/** `from` sends `to` a note, a seat's or an AI's; false when it can't. */
+export function sendNote(gw: GreatWar, from: GwTag, to: GwTag): boolean {
+  if (!ladderTargets(gw, from).includes(to)) return false;
   const l: GwLadder = {
-    from: seat.tag,
+    from,
     to,
     step: "sent",
     opened: gw.s.chapter,
@@ -120,12 +123,12 @@ export function sendUltimatum(
   };
   gw.s.ladders.push(l);
   gw.s.temp = clampTo(gw.s.temp + 1, 0, 10);
-  news(gw, "ladder_sent", seat.tag, to);
+  news(gw, "ladder_sent", from, to);
   turn(gw, "ladder_sent");
-  reason(gw, seat, "ladder_sent");
   for (const t of seatsOf(gw, to)) {
     t.scheduled.push({ scene: GW_LADDER_NOTE, chapter: gw.s.chapter + 1 });
   }
+  return true;
 }
 
 /** The ladder the seat has a part in, by that part. */
@@ -163,6 +166,11 @@ export function ladderPress(
   const l = ladderOf(gw, seat, "from");
   if (l === null || l.step !== "rejected") return;
   if (!on) return backDown(gw, l);
+  press(gw, l);
+}
+
+/** The sender mobilises: one last chance for the other, then war. */
+function press(gw: GreatWar, l: GwLadder): void {
   setStep(gw, l, "mobilised");
   const n = gw.nation(l.from);
   if (n !== null) n.mob = 2;
@@ -220,45 +228,68 @@ function backDown(gw: GreatWar, l: GwLadder): void {
 }
 
 /**
- * War: before the general war, the ladder lights it (the July chain if one is
- * open, else the war itself); then the two are put across from each other.
+ * War: the sender declares it (Wars.declareWar). Between two powers of
+ * opposite camps before the general war, that is the general war; otherwise
+ * the pair's own, and the treaties make of it what they will.
  */
 function toWar(gw: GreatWar, l: GwLadder): void {
   setStep(gw, l, "war");
-  if (gw.s.warChapter === null) {
-    if (gw.s.chain !== null) closeChain(gw, "war");
-    else {
-      const topic = gw.s.crisis ?? "balkan";
+  if (gw.s.warChapter === null && gw.s.chain === null) {
+    const topic = gw.s.crisis ?? "balkan";
+    const was = gw.s.warChapter;
+    declareWar(gw, l.from, l.to, "ladder");
+    if (was === null && gw.s.warChapter !== null) {
       gw.s.chains.push({ topic, outcome: "war", chapter: gw.s.chapter });
-      openWar(gw);
     }
-  }
-  const a = gw.nation(l.from);
-  const b = gw.nation(l.to);
-  if (a === null || b === null) return;
-  if (b.side === null && a.side !== null) {
-    enter(gw, l.to, other(a.side), "war_declared");
-  } else if (a.side === null && b.side !== null) {
-    enter(gw, l.from, other(b.side), "war_declared");
-  } else if (a.side === null && b.side === null) {
-    const side = naturalSide(gw, l.from) ?? "central";
-    enter(gw, l.from, side, "war_declared");
-    enter(gw, l.to, other(side), "war_declared");
+  } else {
+    declareWar(gw, l.from, l.to, "ladder");
   }
   news(gw, "ladder_war", l.from, l.to);
   lineFor(gw, l.from, "ladder_war");
   lineFor(gw, l.to, "ladder_war");
 }
 
-/** How much a country weighs: its armies' base bands. */
-function weight(gw: GreatWar, tag: GwTag): number {
+/** The ladder a seat's own war row closes: its note to `to`, refused. */
+export function closeLadder(gw: GreatWar, from: GwTag, to: GwTag): void {
+  const l = gw.s.ladders.find(
+    (x) =>
+      GW_LADDER_OPEN.includes(x.step) &&
+      ((x.from === from && x.to === to) || (x.from === to && x.to === from)),
+  );
+  if (l !== undefined) setStep(gw, l, "war");
+}
+
+/**
+ * Percent an AI sender presses on after a refusal: its character, and who is
+ * the stronger with friends counted.
+ */
+export function pressOn(gw: GreatWar, l: GwLadder): number {
+  const from = gw.nation(l.from);
+  if (from === null) return 0;
+  let odds = { hardline: 70, opportunist: 55, principled: 45, cautious: 25 }[
+    from.ai
+  ];
+  odds += sideWeight(gw, l.from) > sideWeight(gw, l.to) ? 15 : -15;
+  if (from.atWar.length > 0) odds -= 20;
+  return clampTo(odds, 5, 90);
+}
+
+/**
+ * How much a country weighs: its two strongest armies and the men behind
+ * them (ww171: not the sum of every front it could stand on, which made a
+ * country of many small fronts look like a great power).
+ */
+export function weight(gw: GreatWar, tag: GwTag): number {
   const n = gw.nation(tag);
   if (n === null) return 0;
-  return Object.values(n.base).reduce((a, b) => a + (b ?? 0), 0);
+  const bands = Object.values(n.base)
+    .map((b) => b ?? 0)
+    .sort((a, b) => b - a);
+  return (bands[0] ?? 0) + (bands[1] ?? 0) + Math.floor(n.manpower / 20);
 }
 
 /** Its side's weight with it: friends who would come. */
-function sideWeight(gw: GreatWar, tag: GwTag): number {
+export function sideWeight(gw: GreatWar, tag: GwTag): number {
   const side = naturalSide(gw, tag);
   if (side === null) return weight(gw, tag);
   return gw.s.nations
@@ -302,7 +333,9 @@ export function ladderStep(gw: GreatWar): void {
       else if (l.step === "mobilised") toWar(gw, l);
       else refuse(gw, l);
     } else if (l.step === "rejected" && !seatFrom) {
-      backDown(gw, l);
+      const roll = wwRoll(s.seed, P_PRESS, s.chapter, idHash(l.from)) % 100;
+      if (roll < pressOn(gw, l)) press(gw, l);
+      else backDown(gw, l);
     } else if (l.step === "rejected" && s.chapter - l.chapter > 1) {
       // The paper lay unanswered: the moment passed.
       backDown(gw, l);
@@ -315,12 +348,7 @@ export function ladderStep(gw: GreatWar): void {
 const inRange = (v: number, c: { min?: number; max?: number }) =>
   v >= (c.min ?? -Infinity) && v <= (c.max ?? Infinity);
 
-/** Whole months since chapter `from`, on the calendar's dates. */
-function monthsSince(gw: GreatWar, from: number): number {
-  const days = gwChapters(gw.s.calendar);
-  const a = days[Math.max(0, Math.min(from, days.length - 1))].day;
-  return Math.floor((days[gw.s.chapter].day - a) / 30);
-}
+const monthsSince = monthsFrom;
 
 export function monthsHold(
   gw: GreatWar,

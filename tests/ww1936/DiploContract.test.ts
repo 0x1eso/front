@@ -432,11 +432,11 @@ describe("diplomacy L0: the digests that never move", () => {
     }
   });
 
-  // Re-pinned with scenes by state (ww170 merge): the Great War's own content
-  // moved it, not the diplomacy.
+  // Re-pinned with war between any pair (ww171 phase 4): the Great War's own
+  // rules moved it, not the diplomacy.
   test("the Great War pin is unchanged", () => {
     expect(read("ww1914/GreatWarSnapshot.test.ts")).toContain(
-      'const GW_DIGEST = "1954cfb78d05f7ff";',
+      'const GW_DIGEST = "72690037815a7183";',
     );
   });
 });

@@ -11,6 +11,8 @@ import {
   GwNationState,
   GwPersonState,
   GwSeatState,
+  GwTheatre,
+  GwTheatreState,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import { gwPressStart } from "@openfront/engine-api/ww1914/GwPress";
@@ -52,9 +54,36 @@ import { gwView } from "./View";
  */
 export const GreatWarSnapshot = snapshotType({
   name: "GreatWar",
-  version: 2,
+  version: 3,
   schema: GreatWarStateSchema,
   migrations: {
+    // ww171 phase 4: wars are pairs, and six more fronts. A save from before
+    // has its wars only in each nation's `atWar`.
+    2: (d: {
+      chapter?: number;
+      nations?: { tag: string; atWar?: string[]; entered?: number | null }[];
+      theatres?: { id: string }[];
+      wars?: unknown[];
+    }) => {
+      const nations = d.nations ?? [];
+      const wars: Record<string, unknown>[] = [];
+      nations.forEach((n, i) => {
+        for (const x of n.atWar ?? []) {
+          const j = nations.findIndex((m) => m.tag === x);
+          if (j <= i) continue;
+          const since = Math.max(n.entered ?? 0, nations[j].entered ?? 0);
+          wars.push({ a: n.tag, b: x, since, cause: "entered", ended: null });
+        }
+      });
+      d.wars ??= wars;
+      const theatres = d.theatres ?? [];
+      for (const id of GW_THEATRES) {
+        if (theatres.some((t) => t.id === id)) continue;
+        theatres.push(blankTheatre(id));
+      }
+      d.theatres = theatres;
+      return d;
+    },
     // ww158: a bill's house fields. Saves from before have bills with none.
     1: (d: { nations?: { laws?: Record<string, unknown>[] }[] }) => {
       for (const n of d.nations ?? []) {
@@ -157,17 +186,7 @@ export class GreatWar {
         letter: null,
         ailing: null,
       })),
-      theatres: GW_THEATRES.map((id) => ({
-        id,
-        line: 0,
-        progress: 0,
-        trench: 0,
-        open: false,
-        attacker: null,
-        defender: null,
-        commander: null,
-        since: null,
-      })),
+      theatres: GW_THEATRES.map(blankTheatre),
       seats: [],
       nextCard: 1,
       chain: null,
@@ -198,6 +217,8 @@ export class GreatWar {
       treaties: [],
       nextTreaty: 1,
       ladders: [],
+      wars: [],
+      pairNotes: [],
     };
   }
 
@@ -359,6 +380,20 @@ export function gwSaveHeader(s: GreatWarState): GwSaveHeader {
     seats: s.seats.map((x) => x.tag),
     chapter: s.chapter,
     date: formatIsoDate(civilFromDays(s.day)),
+  };
+}
+
+function blankTheatre(id: GwTheatre): GwTheatreState {
+  return {
+    id,
+    line: 0,
+    progress: 0,
+    trench: 0,
+    open: false,
+    attacker: null,
+    defender: null,
+    commander: null,
+    since: null,
   };
 }
 

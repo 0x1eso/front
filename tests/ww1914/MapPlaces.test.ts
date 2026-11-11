@@ -13,6 +13,7 @@ import { ScenarioDataSchema } from "@openfront/engine-api/ww1936/ScenarioTypes";
 import {
   frontLandAt,
   frontPlaces,
+  GW_FRONT_BARE,
   GW_FRONT_LAND,
 } from "@openfront/engine-lib/ww1914/FrontLand";
 import { scenarioFolderOf } from "@openfront/engine-lib/ww1914/ModeConfig";
@@ -26,7 +27,7 @@ import {
 import type { GreatWar } from "@openfront/engine/ww1914/GreatWar";
 import { frontLandStep, holderOf } from "@openfront/engine/ww1914/Land";
 import { closeTable, tableStart } from "@openfront/engine/ww1914/Table";
-import { GW_THEATRE_SIDES } from "@openfront/engine/ww1914/Tables";
+import { GW_FRONT_ENDS } from "@openfront/engine/ww1914/Tables";
 import fs from "fs";
 import path from "path";
 import { beforeAll, describe, expect, test } from "vitest";
@@ -172,7 +173,7 @@ describe("the table of fronts", () => {
       for (const land of Object.values(GW_FRONT_LAND[t])) {
         for (const side of GW_SIDES) {
           for (const p of land[side] ?? []) {
-            const mine: readonly GwTag[] = GW_THEATRE_SIDES[t][side];
+            const mine: readonly GwTag[] = GW_FRONT_ENDS[t][side];
             expect(mine, `${t} ${p}`).not.toContain(GW_PLACES[p].owner);
           }
         }
@@ -185,6 +186,8 @@ describe("the table of fronts", () => {
       if (t === "sea") continue;
       GW_LINES[t].forEach((line, i) => {
         if (i === GW_FRONT_START[t]) return;
+        // A new front's line with no place on the map says so (ww171).
+        if (GW_FRONT_BARE[t]?.includes(line) === true) return;
         expect(GW_FRONT_LAND[t][line], `${t} ${line}`).toBeDefined();
       });
     }

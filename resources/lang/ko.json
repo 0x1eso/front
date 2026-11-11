@@ -14602,6 +14602,42 @@
         "paris": "파리",
         "rhine": "라인강",
         "somme": "솜강"
+      },
+      "alps": {
+        "po": "포강",
+        "alps": "알프스 고개",
+        "dauphine": "도피네",
+        "rhone": "론강"
+      },
+      "danube": {
+        "moldavia": "몰다비아",
+        "carpathians": "카르파티아산맥",
+        "brasso": "브라쇼",
+        "kolozsvar": "콜로주바르"
+      },
+      "thrace": {
+        "salonika": "살로니카",
+        "dedeagach": "데데아가치",
+        "maritsa": "마리차강",
+        "edirne": "에디르네"
+      },
+      "low_countries": {
+        "cologne": "쾰른",
+        "aachen": "아헨",
+        "border": "국경",
+        "amsterdam": "암스테르담"
+      },
+      "dobruja": {
+        "varna": "바르나",
+        "dobrich": "도브리치",
+        "constanta": "콘스탄차",
+        "delta": "도나우 삼각주"
+      },
+      "persia": {
+        "baghdad_road": "바그다드 가도",
+        "kermanshah": "케르만샤",
+        "hamadan": "하마단",
+        "tabriz": "타브리즈"
       }
     },
     "gauge": {
@@ -14884,7 +14920,11 @@
       "ladder_rejected": "{a}이(가) {b}의 통첩을 거절했다.",
       "ladder_mobilised": "{a}이(가) {b}에 맞서 동원했다.",
       "ladder_backed_down": "{a}이(가) {b}에 보낸 통첩을 거두었다.",
-      "ladder_war": "{a}이(가) {b}에 보낸 통첩이 전쟁으로 끝났다."
+      "ladder_war": "{a}이(가) {b}에 보낸 통첩이 전쟁으로 끝났다.",
+      "war_pair": "{a}이(가) {b}에 선전포고했다.",
+      "pair_peace": "{a}과(와) {b}이(가) 둘만의 강화를 맺었다.",
+      "pair_peace_offered": "{a}이(가) {b}에 단독 강화를 제의했다.",
+      "pair_peace_refused": "{a}이(가) {b}의 강화 제의를 거절했다."
     },
     "odds": {
       "0": "될 일이 아닙니다.",
@@ -15233,7 +15273,28 @@
       "react_harsh_quiet": "거리는 당분간 조용해졌다.",
       "react_harsh_streets": "이미 들끓던 거리는 그것을 싸움을 거는 일로 받아들였다.",
       "react_harsh_again": "가혹한 조치가 거듭되자 중립국 수도들이 귀를 닫았다.",
-      "budget_by_decree": "예산이 의회를 거치지 않고 칙령으로 나갔다."
+      "budget_by_decree": "예산이 의회를 거치지 않고 칙령으로 나갔다.",
+      "pair_war_began": "{country}과(와) 전쟁에 들어갔다.",
+      "pair_peace_made": "{country}과(와) 강화를 맺었다.",
+      "treaty_calls": "우리 조약이 전쟁에 나서라고 부른다. 아직 응하지 않았다.",
+      "treaty_honoured": "조약의 약속을 지켜 전쟁에 나섰다.",
+      "war_note_sent": "{country}에 선전포고문이 나갔다. 이달이 끝나면 전쟁이다.",
+      "peace_offer_sent": "{country}에 단독 강화를 제의했다.",
+      "peace_offer_refused": "{country}이(가) 우리 강화 제의를 거절했다.",
+      "peace_offer_we_refused": "{country}의 강화 제의를 거절했다.",
+      "neutral_joined": "{country}이(가) 참전했다.",
+      "front_alps_won": "알프스 전선: 우리 쪽으로 기울었다.",
+      "front_alps_lost": "알프스 전선: 우리에게 불리하게 갔다.",
+      "front_danube_won": "루마니아 전선: 우리 쪽으로 기울었다.",
+      "front_danube_lost": "루마니아 전선: 우리에게 불리하게 갔다.",
+      "front_thrace_won": "트라키아: 우리 쪽으로 기울었다.",
+      "front_thrace_lost": "트라키아: 우리에게 불리하게 갔다.",
+      "front_low_countries_won": "저지대: 우리 쪽으로 기울었다.",
+      "front_low_countries_lost": "저지대: 우리에게 불리하게 갔다.",
+      "front_dobruja_won": "도브루자: 우리 쪽으로 기울었다.",
+      "front_dobruja_lost": "도브루자: 우리에게 불리하게 갔다.",
+      "front_persia_won": "페르시아: 우리 쪽으로 기울었다.",
+      "front_persia_lost": "페르시아: 우리에게 불리하게 갔다."
     },
     "result": {
       "advance": "전진",
@@ -15441,7 +15502,13 @@
       "palestine": "팔레스타인",
       "sea": "바다",
       "straits": "해협",
-      "west": "서부 전선"
+      "west": "서부 전선",
+      "alps": "알프스 전선",
+      "danube": "루마니아 전선",
+      "thrace": "트라키아",
+      "low_countries": "저지대",
+      "dobruja": "도브루자",
+      "persia": "페르시아"
     },
     "thread": {
       "alsace_unrest": "알자스의 불안",
@@ -15513,7 +15580,9 @@
       "gov_held_fra_elysee": "엘리제를 향한 말을 가라앉혔다",
       "ladder_sent": "최후통첩이 나갔다.",
       "ladder_accepted": "통첩을 받은 나라가 물러섰다.",
-      "ladder_backed_down": "보낸 통첩이 거두어졌다."
+      "ladder_backed_down": "보낸 통첩이 거두어졌다.",
+      "pair_war_began": "{country}과(와)의 전쟁이 시작됐다.",
+      "pair_peace_made": "{country}과(와) 강화했다."
     },
     "ui": {
       "alloc_now": "지금: {main}, {posture}, {scale}",

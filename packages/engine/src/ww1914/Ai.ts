@@ -7,15 +7,14 @@ import {
   GwTheatre,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
-import { daysFromCivil } from "@openfront/engine-lib/ww1936/Calendar";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
-import { aiResearch, pressOdds, warScore } from "./Fronts";
+import { aiResearch, pairScore, pressOdds, warScore } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { peaceStep } from "./Peace";
 import { AMERICA_BAR, americaCan } from "./Sea";
 import { GW_AI_MAIN, GW_ENTRIES, GW_ENTRY_BAR, GwEntry } from "./Tables";
 import { brokenWords, treatyBars } from "./Treaties";
-import { enter, membersOf } from "./Wars";
+import { declareWar, enter, memberEnd } from "./Wars";
 import {
   clampTo,
   everyMonths,
@@ -26,16 +25,7 @@ import {
 } from "./World";
 
 const P_AI_MOVE = idHash("gw_ai_move");
-const P_HISTORY = idHash("gw_ai_history");
 const P_OFFER = idHash("gw_ai_offer");
-
-/** Design §15 no. 13: how often an AI simply does what history did. */
-const HISTORY_PCT = 50;
-
-const dayOf = (iso: string) => {
-  const [y, m, d] = iso.split("-").map(Number);
-  return daysFromCivil(y, m, d);
-};
 
 /** Who is winning, as a neutral's envoy would tell it; up for the side. */
 function winning(gw: GreatWar): GwSide | null {
@@ -99,10 +89,15 @@ function bids(gw: GreatWar, e: GwEntry, n: GwNationState): void {
   }
 }
 
-/** A seat is asked its price when a neutral it could buy comes up. */
+/** Readiness a neutral needs to come in: its character's bar and its own. */
+export const entryBar = (n: GwNationState, e: GwEntry): number =>
+  GW_ENTRY_BAR[n.ai] + e.holds;
+
+/** A seat is asked its price when a neutral it could buy comes near. */
 function askSeats(gw: GreatWar, e: GwEntry, n: GwNationState): void {
   const s = gw.s;
-  if (s.day < dayOf(e.earliest) - 120 || !everyMonths(gw, 5, 1)) return;
+  const near = n.readiness + 4 * 12 + 20 >= entryBar(n, e);
+  if (!near || !everyMonths(gw, 5, 1)) return;
   for (const seat of s.seats) {
     const side = gw.nation(seat.tag)?.side ?? null;
     if (side === null || (n.offers[side] ?? 0) >= e.offers[side]) continue;
@@ -111,11 +106,14 @@ function askSeats(gw: GreatWar, e: GwEntry, n: GwNationState): void {
   }
 }
 
+/**
+ * A neutral comes in when the war has made it ready (ww171: no date). Its
+ * readiness grows with the war's pressure, the going price and a side going
+ * forward where it watches; its bar is its character's and its own `holds`.
+ */
 function neutralStep(gw: GreatWar, e: GwEntry): void {
-  const s = gw.s;
   const n = gw.nation(e.tag);
-  if (n === null || n.side !== null || ruledBySeat(gw, e.tag)) return;
-  const late = s.day >= dayOf(e.earliest);
+  if (n === null || n.side !== null || n.out || ruledBySeat(gw, e.tag)) return;
   const bold = n.ai === "hardline" ? 3 : n.ai === "cautious" ? 0 : 1;
   // Nobody sits out for nothing: the war's pressure and the going price add up.
   n.readiness = clampTo(
@@ -125,31 +123,52 @@ function neutralStep(gw: GreatWar, e: GwEntry): void {
   );
   bids(gw, e, n);
   askSeats(gw, e, n);
-  if (!late) return;
   const side = neutralChoice(gw, n, e);
   const price = n.offers[side] ?? 0;
-  if (n.readiness + price * 12 < GW_ENTRY_BAR[n.ai]) return;
+  if (n.readiness + price * 12 < entryBar(n, e)) return;
   enter(gw, e.tag, side, "entered_war");
+  if (n.side !== null) reasonAll(gw, e.tag, "neutral_joined");
 }
 
-/** Britain: Belgium decides it, or the pressure of France in danger does. */
+/** Every seat hears why a neutral came in: the line names it. */
+function reasonAll(gw: GreatWar, tag: GwNationState["tag"], key: string): void {
+  for (const seat of gw.s.seats) {
+    if (seat.memoir !== null) continue;
+    seat.log.push({ key, chapter: gw.s.chapter, tag });
+  }
+}
+
+/**
+ * Britain: the 1839 guarantee decides it when Belgium is attacked, or the
+ * pressure of France in danger does. Against a coalition's member Britain
+ * joins the other; against a war of Belgium's own it declares on the attacker.
+ */
 function britainStep(gw: GreatWar): void {
   const s = gw.s;
   const n = gw.nation("GBR");
-  if (n === null || n.side !== null || ruledBySeat(gw, "GBR")) return;
-  const belgium = gw.nation("BEL")?.side === "entente";
+  if (n === null || n.side !== null || n.out || ruledBySeat(gw, "GBR")) return;
+  const bel = gw.nation("BEL");
+  const attacker = bel === null || bel.out ? undefined : bel.atWar[0];
+  const belgium = attacker !== undefined;
+  if (!belgium && s.warChapter === null) return;
   const west = s.theatres.find((t) => t.id === "west")!;
   const add = belgium ? 40 + n.lean * 20 : 6 + n.lean * 4;
   const france = west.line >= 4 ? 25 : 0;
   n.readiness = clampTo(n.readiness + add + france, 0, 100);
   if (s.secrets.includes("anglo_russian_naval_talks")) n.readiness += 5;
   const bar = belgium ? 40 : n.ai === "principled" ? 90 : 70;
-  if (n.readiness >= bar) enter(gw, "GBR", "entente", "britain_entered");
+  if (n.readiness < bar) return;
+  const foe = belgium ? gw.nation(attacker!) : null;
+  if (foe === null || foe.side === "central") {
+    enter(gw, "GBR", "entente", "britain_entered");
+  } else {
+    declareWar(gw, "GBR", foe.tag, "treaty");
+  }
 }
 
 function americaEnters(gw: GreatWar): void {
   const n = gw.nation("USA");
-  if (n === null || n.side !== null || ruledBySeat(gw, "USA")) return;
+  if (n === null || n.side !== null || n.out || ruledBySeat(gw, "USA")) return;
   if (!americaCan(gw) || n.readiness < AMERICA_BAR) return;
   enter(gw, "USA", "entente", "america_entered");
 }
@@ -184,7 +203,7 @@ function corpsEast(gw: GreatWar): void {
 function ownFront(gw: GreatWar, n: GwNationState): GwTheatre | null {
   const list = (GW_AI_MAIN[n.tag] ?? []).filter((t) => {
     const th = gw.s.theatres.find((x) => x.id === t)!;
-    return th.open && membersOf(gw, t, n.side!).includes(n.tag);
+    return th.open && memberEnd(gw, t, n.tag) !== null;
   });
   if (list.length === 0) return null;
   // The first weeks run on the plan drawn up in peace.
@@ -195,7 +214,10 @@ function ownFront(gw: GreatWar, n: GwNationState): GwTheatre | null {
   }
   if (russiansOnGermanSoil(gw, n) && list.includes("east")) return "east";
   const best = list
-    .map((t, i) => ({ t, odds: pressOdds(gw, t, n.side!) - i * 15 }))
+    .map((t, i) => ({
+      t,
+      odds: pressOdds(gw, t, memberEnd(gw, t, n.tag)!) - i * 15,
+    }))
     .sort((a, b) => b.odds - a.odds)[0];
   return best.t;
 }
@@ -237,17 +259,27 @@ function wantsAttack(gw: GreatWar, n: GwNationState, t: GwTheatre): boolean {
   const rested = s.chapter - n.spent;
   if (rested <= 1 && n.ai !== "hardline") return false;
   const roll = wwRoll(s.seed, P_AI_MOVE, s.chapter, s.nations.indexOf(n)) % 100;
-  const odds = pressOdds(gw, t, n.side!);
+  const end = memberEnd(gw, t, n.tag);
+  if (end === null) return false;
+  const odds = pressOdds(gw, t, end);
   // Every staff has its season: bad odds don't stop the year's great attack.
   if (rested >= CAMPAIGN_REST[n.ai] && odds >= CAMPAIGN_FLOOR && roll < 55) {
     return true;
   }
   if (odds < ATTACK_FLOOR[n.ai]) return false;
-  const score = warScore(gw, n.side!);
+  // A war of its own is weighed on its own fronts (ww171).
+  const foe = gw.s.theatres.find((x) => x.id === t)!;
+  const rival = foe.attacker === n.tag ? foe.defender : foe.attacker;
+  const score =
+    n.side !== null
+      ? warScore(gw, n.side)
+      : rival === null
+        ? 0
+        : pairScore(gw, n.tag, rival);
   const base = { hardline: 70, opportunist: 45, principled: 40, cautious: 25 }[
     n.ai
   ];
-  const up = GW_FRONT_UP[t] === n.side;
+  const up = GW_FRONT_UP[t] === end;
   return roll < base + (score < 0 ? 10 : 0) + (up ? 0 : 5);
 }
 
@@ -265,38 +297,26 @@ function aiAlloc(gw: GreatWar, n: GwNationState): GwAlloc | null {
   };
 }
 
-function history(gw: GreatWar, i: number): boolean {
-  return wwRoll(gw.s.seed, P_HISTORY, i) % 100 < HISTORY_PCT;
-}
-
-/** What the AI does when the history rail is on: the theatre the war had. */
-function historyMain(gw: GreatWar, n: GwNationState): GwTheatre | null {
-  const age = gw.s.chapter - (gw.s.warChapter ?? gw.s.chapter);
-  if (n.tag === "AUH" && age <= 1) return "balkan";
-  if (n.tag === "OTT") return "caucasus";
-  return null;
-}
-
-/** Chapter step: AI countries plan the coming chapter and neutrals decide. */
+/**
+ * Chapter step: AI countries plan the coming chapter and neutrals decide. No
+ * history rail (ww171): every staff picks its front by its own odds. A war of
+ * a pair's own is planned for before the general war too.
+ */
 export function aiStep(gw: GreatWar): void {
   const s = gw.s;
-  if (s.warChapter === null) return;
   if (s.armistice !== null) return;
   britainStep(gw);
-  seatEntry(gw);
-  americaEnters(gw);
-  corpsEast(gw);
-  for (const e of GW_ENTRIES) neutralStep(gw, e);
-  s.nations.forEach((n, i) => {
-    if (!fights(n) || ruledBySeat(gw, n.tag)) return;
+  if (s.warChapter !== null) {
+    seatEntry(gw);
+    americaEnters(gw);
+    corpsEast(gw);
+    for (const e of GW_ENTRIES) neutralStep(gw, e);
+  }
+  for (const n of s.nations) {
+    if (!fights(n) || ruledBySeat(gw, n.tag)) continue;
     n.alloc = aiAlloc(gw, n);
-    if (n.alloc !== null && history(gw, i + s.chapter * 16)) {
-      const main = historyMain(gw, n);
-      if (main !== null && membersOf(gw, main, n.side!).includes(n.tag)) {
-        n.alloc.main = main;
-      }
-    }
-  });
+  }
+  if (s.warChapter === null) return;
   peaceFeelers(gw);
   peaceStep(gw);
 }

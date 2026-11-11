@@ -188,7 +188,8 @@ function ladder(gw: GreatWar, n: GwNationState): void {
 /** Chapter step: the home front of every country, with its reason lines. */
 export function homeStep(gw: GreatWar): void {
   successionStep(gw);
-  const atWar = gw.s.warChapter !== null;
+  // A war of a pair's own strains its home front too (ww171).
+  const atWar = gw.s.warChapter !== null || gw.s.wars.length > 0;
   for (const n of gw.s.nations) {
     authorityStep(gw, n);
     if (!fights(n) || !atWar || !isLongChapter(gw)) continue;

@@ -222,6 +222,16 @@ export function treatyBars(gw: GreatWar, tag: GwTag, side: GwSide): boolean {
   });
 }
 
+/** A signed treaty binds the two not to fight: an alliance, or neutrality. */
+export function treatyAllies(gw: GreatWar, a: GwTag, b: GwTag): boolean {
+  return gw.s.treaties.some(
+    (t) =>
+      t.state === "signed" &&
+      ((t.from === a && t.to === b) || (t.from === b && t.to === a)) &&
+      t.clauses.some((c) => c.kind === "alliance" || c.kind === "neutrality"),
+  );
+}
+
 /** What a clause is worth to an AI party: paying out counts against. */
 function clauseValue(c: GwClause, ai: GwTag): number {
   const mine = c.by === ai;
@@ -300,7 +310,12 @@ function checkAlliance(gw: GreatWar, t: GwTreaty): boolean {
     return true;
   }
   const late = fights(a) ? b : a;
-  const side = (fights(a) ? a : b).side!;
+  const side = (fights(a) ? a : b).side;
+  // A partner in a war of its own (ww171) asks nothing of this treaty.
+  if (side === null) {
+    t.waiting = null;
+    return true;
+  }
   if (late.out || honour(gw, late.tag, side)) {
     t.waiting = null;
     return true;

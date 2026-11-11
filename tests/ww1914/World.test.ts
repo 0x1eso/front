@@ -18,7 +18,7 @@ import { sendReport } from "@openfront/engine/ww1914/Intel";
 import { GW_MANDATES } from "@openfront/engine/ww1914/Mandates";
 import { dismissPrice } from "@openfront/engine/ww1914/People";
 import { holds, runEffect } from "@openfront/engine/ww1914/SceneRun";
-import { GW_ENTRIES, GW_THEATRE_SIDES } from "@openfront/engine/ww1914/Tables";
+import { GW_ENTRIES, GW_FRONT_ENDS } from "@openfront/engine/ww1914/Tables";
 import { openWar } from "@openfront/engine/ww1914/Wars";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { gwRunner, order, playChapter, seat, view } from "./util";
@@ -105,8 +105,8 @@ describe("the rolled world", () => {
     const gw = gwOf(runner);
     for (const t of GW_THEATRES) {
       for (const tag of [
-        ...GW_THEATRE_SIDES[t].central,
-        ...GW_THEATRE_SIDES[t].entente,
+        ...GW_FRONT_ENDS[t].central,
+        ...GW_FRONT_ENDS[t].entente,
       ]) {
         const band = gw.nation(tag)!.strength[t];
         expect(band, `${tag} ${t}`).toBeGreaterThanOrEqual(1);
