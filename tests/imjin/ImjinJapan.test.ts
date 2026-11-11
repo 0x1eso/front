@@ -6,9 +6,12 @@ import type { GameConfig } from "@openfront/engine-api/Schemas";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import {
   aiStrikePlan,
+  BAD_NEWS_BLOW,
+  constitutionOf,
   corpsOfArmy,
   corpsPlanSpeedPct,
   corpsRecoveryPct,
+  dailyHealthLoss,
   DEATH_LOYALTY,
   EARLY_NOTICE_DAYS,
   EARLY_WARNING,
@@ -26,6 +29,7 @@ import {
   JP_SPIRIT,
 } from "@openfront/engine-lib/imjin/JapanContent";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
+import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import {
   ImjinJapanStateSchema,
   TRUCE_PHASE,
@@ -74,6 +78,31 @@ describe("the pure rules", () => {
       expect(p.patience).toBeLessThanOrEqual(150);
     }
     expect(aiStrikePlan(7, true).bar).toBe(1000);
+  });
+
+  test("Hideyoshi's death falls by seed and state, mostly from 1597", () => {
+    // A 1590 game (day 0 = 1590-04-01): war on Joseon from May 1592, Ming
+    // from autumn, a defeat every six months. The day health runs out:
+    const R = idHash("imjin_jp_health");
+    const deathDay = (seed: number, blowEvery: number) => {
+      let h = constitutionOf(wwRoll(seed, R, 1), wwRoll(seed, R, 2));
+      for (let d = 0; d < 4000; d++) {
+        const wars = (d >= 760 ? 1 : 0) + (d >= 900 ? 1 : 0);
+        const years = d >= 760 ? Math.floor((d - 760) / 365) : 0;
+        h -= dailyHealthLoss(d, wars, years);
+        if (d > 760 && (d - 760) % blowEvery === 0) h -= BAD_NEWS_BLOW;
+        if (h <= 0) return d;
+      }
+      return 4000;
+    };
+    const days = [1, 2, 3, 4, 5, 6, 7, 8].map((s) => deathDay(s, 180));
+    const from1597 = 2467; // 1597-01-01
+    expect(days.filter((d) => d >= from1597).length).toBeGreaterThanOrEqual(6);
+    expect(Math.max(...days) - Math.min(...days)).toBeGreaterThan(365);
+    // A war of a defeat every two months brings every death forward.
+    const hard = [1, 2, 3, 4, 5, 6, 7, 8].map((s) => deathDay(s, 60));
+    hard.forEach((d, i) => expect(d).toBeLessThan(days[i]));
+    expect(Math.max(...hard)).toBeLessThan(from1597);
   });
 });
 

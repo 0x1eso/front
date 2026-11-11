@@ -183,25 +183,50 @@ export function japanStats(
 
 // ---- Hideyoshi's health (design §7: never a date) ----
 
-/** Health is in points; a constitution of 100,000 to 130,000 by seed. */
-export const HEALTH_BASE = 100_000;
-export const HEALTH_SPREAD = 30_000;
-/** The war's strain a day while Japan fights Joseon or Ming. */
-export const WAR_STRAIN = 10;
-/** The blow of one piece of bad news. */
-export const BAD_NEWS_BLOW = 3_000;
-
 /**
- * Age: a day's loss grows as he ages (`ageDay` counts from April 1590, when
- * he was 53). About 8 years of a hard war leave little.
+ * Health is in points. The constitution is 72,000 to 117,000 by seed, the
+ * sum of two rolls, so the middle is likelier than the ends. With an average
+ * war he fails around 1598 (he died in September 1598, at about 61); a light
+ * war or a hale seed carries him past 1600, a run of defeats takes him
+ * years early.
  */
-export function ageLoss(ageDay: number): number {
-  return 10 + Math.floor(Math.max(0, ageDay) / 73);
+export const HEALTH_BASE = 72_000;
+export const HEALTH_SPREAD = 45_000;
+/** The war's strain a day on each front (Joseon, Ming) Japan fights on. */
+export const WAR_STRAIN = 4;
+/** The blow of one piece of bad news (a defeat, Ming coming in, a lie found). */
+export const BAD_NEWS_BLOW = 2_500;
+
+/** A seed's constitution from two rolls. */
+export function constitutionOf(rollA: number, rollB: number): number {
+  const half = HEALTH_SPREAD / 2;
+  return (
+    HEALTH_BASE + ((rollA >>> 0) % (half + 1)) + ((rollB >>> 0) % (half + 1))
+  );
 }
 
-/** Health lost in one day. */
-export function dailyHealthLoss(ageDay: number, wars: number): number {
-  return ageLoss(ageDay) + WAR_STRAIN * Math.min(2, wars);
+/**
+ * Age: a day's loss grows slowly as he ages (`ageDay` counts from April
+ * 1590, when he was 53). Age alone would take a mean constitution into the
+ * early 1600s; the war brings that forward.
+ */
+export function ageLoss(ageDay: number): number {
+  return 8 + Math.floor(Math.max(0, ageDay) / 250);
+}
+
+/**
+ * Health lost in one day. `wars` is how many of Joseon and Ming Japan fights;
+ * `warYears` the whole years since the war began: each year of a long war
+ * weighs a point more on each front.
+ */
+export function dailyHealthLoss(
+  ageDay: number,
+  wars: number,
+  warYears = 0,
+): number {
+  return (
+    ageLoss(ageDay) + Math.min(2, wars) * (WAR_STRAIN + Math.max(0, warYears))
+  );
 }
 
 /** The aging of the days before a later start, taken off at once. */

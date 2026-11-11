@@ -17,8 +17,8 @@ const CONFIG: Partial<GameConfig> = {
 const HUMANS = [{ clientID: HUMAN }];
 const hash = (r: { game: unknown }) => (r.game as { hash(): number }).hash();
 
-// Re-pinned at ww181 with two equal runs (imjinmini, 3,000 ticks).
-const IMJIN_DIGEST = "0024f36f7c87e989";
+// Re-pinned at ww182 (Hideyoshi's health) with two equal runs (imjinmini, 3,000 ticks).
+const IMJIN_DIGEST = "7eb3181366d9eebf";
 
 async function imjinRunner() {
   return wwRunner(CONFIG, HUMANS, MAP);

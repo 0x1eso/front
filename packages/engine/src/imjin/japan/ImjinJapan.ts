@@ -25,6 +25,7 @@ import {
   aiStrikePlan,
   BAD_NEWS_BLOW,
   BROKER,
+  constitutionOf,
   corpsOfArmy,
   corpsPlanSpeedPct,
   corpsRecoveryPct,
@@ -41,7 +42,6 @@ import {
   GREAT_DAIMYO,
   HARDLINER,
   HEALTH_BASE,
-  HEALTH_SPREAD,
   healthBand,
   HEED_WARNING,
   isEarlyStrike,
@@ -318,8 +318,10 @@ export class ImjinJapan {
     s.aiBar = plan.bar;
     s.aiPatience = plan.patience;
     s.secondBar = secondBar(wwRoll(seed, R_SECOND, 1));
-    s.constitution =
-      HEALTH_BASE + (wwRoll(seed, R_HEALTH, 1) % (HEALTH_SPREAD + 1));
+    s.constitution = constitutionOf(
+      wwRoll(seed, R_HEALTH, 1),
+      wwRoll(seed, R_HEALTH, 2),
+    );
     s.health = s.constitution - (y1592 ? agingBefore(AGE_DAYS_1592) : 0);
     s.hband = healthBand(s.health, s.constitution);
     s.seeded = true;
@@ -600,7 +602,9 @@ export class ImjinJapan {
     const s = this.s;
     if (!this.alive()) return;
     const ageDay = day + (this.ww.imjinStart === "y1592" ? AGE_DAYS_1592 : 0);
-    s.health -= dailyHealthLoss(ageDay, (atJos ? 1 : 0) + (atMin ? 1 : 0));
+    const wars = (atJos ? 1 : 0) + (atMin ? 1 : 0);
+    const warYears = s.warDay >= 0 ? Math.floor((day - s.warDay) / 365) : 0;
+    s.health -= dailyHealthLoss(ageDay, wars, warYears);
     const band = healthBand(s.health, s.constitution);
     if (band > s.hband) {
       s.hband = band;
