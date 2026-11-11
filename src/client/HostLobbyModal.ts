@@ -71,7 +71,7 @@ import {
   gwSeatPicker,
 } from "./GwLobby";
 import { gwSaves, resumeInLobby } from "./GwResume";
-import { imjinLobby } from "./ImjinLobby";
+import { IMJIN_OPEN, imjinLobby } from "./ImjinLobby";
 import { SendPickCountryEvent, SendPickSeatEvent } from "./LobbyEvents";
 import { JoinLobbyEvent } from "./Main";
 import { setOpenRoom } from "./OpenRooms";
@@ -918,10 +918,15 @@ export class HostLobbyModal extends BaseModal {
                             labelKey: "game_settings.great_war_1914",
                             checked: false,
                           },
-                          {
-                            labelKey: "game_settings.imjin_war",
-                            checked: false,
-                          },
+                          // ww183: the Imjin War is closed for now (owner).
+                          ...(IMJIN_OPEN
+                            ? [
+                                {
+                                  labelKey: "game_settings.imjin_war",
+                                  checked: false,
+                                },
+                              ]
+                            : []),
                           // Host cheats and public listing are mutually exclusive
                           // (the server rejects both combinations), so the controls
                           // disappear while the lobby is listed.

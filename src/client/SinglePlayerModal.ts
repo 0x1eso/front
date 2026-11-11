@@ -50,7 +50,7 @@ import { gamePortal } from "./GamePortal";
 import { GameStartingModal } from "./GameStartingModal";
 import { gwCalendarPicker } from "./GwLobby";
 import { gwPlayedTags, gwPrologueField, gwRecentBodies } from "./GwRecentRuns";
-import { imjinLobby } from "./ImjinLobby";
+import { IMJIN_OPEN, imjinLobby } from "./ImjinLobby";
 import { showInGameAlert } from "./InGameModal";
 import { JoinLobbyEvent } from "./Main";
 import { fallbackPlayerName, ResolvedPlayerName } from "./PlayerName";
@@ -765,10 +765,15 @@ export class SinglePlayerModal extends BaseModal {
                             labelKey: "game_settings.great_war_1914",
                             checked: false,
                           },
-                          {
-                            labelKey: "game_settings.imjin_war",
-                            checked: false,
-                          },
+                          // ww183: the Imjin War is closed for now (owner).
+                          ...(IMJIN_OPEN
+                            ? [
+                                {
+                                  labelKey: "game_settings.imjin_war",
+                                  checked: false,
+                                },
+                              ]
+                            : []),
                         ],
                 inputCards:
                   this.worldWar1936 || this.greatWar1914 || this.imjin
