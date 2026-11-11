@@ -88,6 +88,7 @@ export const SLOW_TESTS: readonly string[] = [
   "tests/ww1914/GwSim.test.ts",
   "tests/ww1914/Integration.test.ts",
   "tests/ww1914/Laws.test.ts",
+  "tests/ww1914/PairWarSim.test.ts",
   "tests/ww1914/PressGame.test.ts",
   "tests/ww1914/RulerGame.test.ts",
   "tests/ww1914/Seats.test.ts",

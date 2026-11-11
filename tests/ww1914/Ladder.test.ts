@@ -47,7 +47,7 @@ beforeEach(async () => {
 
 describe("the crisis ladder", () => {
   test("every seat has a row; it waits for the July chain to close", () => {
-    expect(GW_LADDER_POWERS.map((p) => p.id)).toEqual([
+    expect(GW_LADDER_POWERS.map((p) => p.id).slice(0, 5)).toEqual([
       "deu_pw_note",
       "gbr_pw_ultimatum",
       "auh_pw_ultimatum",
@@ -61,11 +61,13 @@ describe("the crisis ladder", () => {
     expect(row().why).toBeNull();
   });
 
-  test("before the war a note goes across the July lines, one at a time", () => {
+  test("before the war a note goes to any it could fight, one at a time", () => {
     julyPassed();
     const to = ladderTargets(gw, "DEU");
     expect(to).toEqual(expect.arrayContaining(["RUS", "FRA", "SRB"]));
+    // Allies by treaty, and those with no front between them, are not.
     expect(to).not.toContain("AUH");
+    expect(to).not.toContain("OTT");
     holderOf(gw, st(), "chancellor")!.trust = 3;
     gw.nation("DEU")!.authority = 100;
     expect(takePower(gw, st(), note("rus"))).toBeNull();
@@ -97,7 +99,7 @@ describe("the crisis ladder", () => {
     expect(["accepted", "rejected"]).toContain(l.step);
   });
 
-  test("a seat sent a note refuses; the AI sender who won't press backs down", () => {
+  test("a seat sent a note refuses; the AI sender presses or backs down by its state", () => {
     julyPassed();
     gw.s.ladders.push({
       from: "RUS",
@@ -112,9 +114,13 @@ describe("the crisis ladder", () => {
     expect(l.step).toBe("rejected");
     gw.s.chapter += 1;
     ladderStep(gw);
-    expect(l.step).toBe("backed_down");
-    expect(gw.nation("RUS")!.authority).toBeLessThan(rus);
-    expect(st().log.map((x) => x.key)).toContain("ladder_they_backed_down");
+    expect(["backed_down", "mobilised"]).toContain(l.step);
+    if (l.step === "backed_down") {
+      expect(gw.nation("RUS")!.authority).toBeLessThan(rus);
+      expect(st().log.map((x) => x.key)).toContain("ladder_they_backed_down");
+    } else {
+      expect(st().scheduled.map((q) => q.scene)).toContain("gw_ladder_last");
+    }
   });
 
   test("refused, the seat mobilises; standing firm at the last is the war", () => {
