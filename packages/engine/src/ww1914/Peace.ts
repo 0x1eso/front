@@ -16,6 +16,7 @@ import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { warMonths } from "./Eras";
 import { warScore } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
+import { STRAIN_WORN, worstStrain } from "./Strain";
 import { closeTable, tableStart } from "./Table";
 import { GW_BEATEN, GwBeaten } from "./Tables";
 import { leaveWar } from "./Wars";
@@ -62,6 +63,10 @@ const CONFERENCE_DAYS = 30;
 const LOST_SCORE = -40;
 /** Months before a staff nobody plays admits a lost war: 1914's men don't. */
 const LEADER_ASKS_MONTHS = 30;
+/** Months sooner a staff whose front is worn admits it (ww173). */
+const WORN_ASKS_SOONER = 6;
+/** Strain at which a front is about to give: the war is plainly lost there. */
+const STRAIN_BROKEN = 80;
 /** Months before anyone will hear of stopping: the first year has no bill yet. */
 export const TALKS_MONTHS = 10;
 
@@ -90,8 +95,13 @@ function groundStep(gw: GreatWar): void {
 function followerDone(gw: GreatWar, n: GwNationState): boolean {
   const side = n.side;
   if (side === null || ruledBySeat(gw, n.tag)) return false;
-  const lost = warScore(gw, side) <= LOST_SCORE;
-  const tired = n.gauges.morale <= 1 && n.gauges.order <= 1;
+  // A worn front makes a lost war plain sooner (ww173).
+  const worn = worstStrain(gw, n.tag);
+  const score = warScore(gw, side);
+  const lost =
+    score <= LOST_SCORE || (worn >= STRAIN_WORN && score <= LOST_SCORE / 2);
+  const tired =
+    (n.gauges.morale <= 1 && n.gauges.order <= 1) || worn >= STRAIN_BROKEN;
   const r = wwRoll(gw.s.seed, P_MINOR, gw.s.chapter, gw.s.nations.indexOf(n));
   return lost && tired && r % 100 < 35;
 }
@@ -137,12 +147,14 @@ function leaderAsks(gw: GreatWar, tag: GwTag): boolean {
   const n = gw.nation(tag);
   if (n === null || !fights(n) || n.side === null) return false;
   if (ruledBySeat(gw, tag)) return false;
-  if (warMonths(gw) < LEADER_ASKS_MONTHS) return false;
+  const worn = worstStrain(gw, tag);
+  const early = worn >= STRAIN_WORN ? WORN_ASKS_SOONER : 0;
+  if (warMonths(gw) < LEADER_ASKS_MONTHS - early) return false;
   const score = warScore(gw, n.side);
   const friends = gw.s.nations.filter(
     (x) => x.side === n.side && x.tag !== tag && fights(x),
   ).length;
-  const broken = n.gauges.morale <= 1 || n.unrest >= 2;
+  const broken = n.gauges.morale <= 1 || n.unrest >= 2 || worn >= STRAIN_BROKEN;
   return score <= LOST_SCORE && (broken || friends === 0);
 }
 

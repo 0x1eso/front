@@ -18,6 +18,7 @@ import type {
   GwSide,
   GwSource,
   GwStamp,
+  GwTempo,
   GwTheatre,
   GwThread,
 } from "./GreatWarTypes";
@@ -69,6 +70,11 @@ export interface GwFrontView {
   up: GwSide;
   trench: number;
   commander: string | null;
+  /**
+   * ww173: our own end's strain in words, 0 holding .. 3 near breaking.
+   * Never the enemy's: that comes only by reports.
+   */
+  strain?: number;
   last: {
     result: GwResult;
     by: GwSide | null;
@@ -162,6 +168,8 @@ export interface GwWorldView {
   /** A plan was signed this chapter. */
   signed: boolean;
   proposals: readonly GwProposal[];
+  /** ww173: the standing word on the fronts the seat gave; null: the chief's own way. */
+  tempo?: GwTempo | null;
   fronts: readonly GwFrontView[];
   /** Generals who can be sent to a front. */
   generals?: readonly string[];

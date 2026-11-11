@@ -12,9 +12,17 @@ import { aiResearch, pairScore, pressOdds, warScore } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { peaceStep } from "./Peace";
 import { AMERICA_BAR, americaCan } from "./Sea";
+import { believedStrain } from "./Spies";
+import {
+  easeStrain,
+  endStrain,
+  NEW_ARMIES_EASE,
+  STRAIN_WORN,
+  worstStrain,
+} from "./Strain";
 import { GW_AI_MAIN, GW_ENTRIES, GW_ENTRY_BAR, GwEntry } from "./Tables";
 import { brokenWords, treatyBars } from "./Treaties";
-import { declareWar, enter, memberEnd } from "./Wars";
+import { declareWar, enter, memberEnd, membersOf } from "./Wars";
 import {
   clampTo,
   everyMonths,
@@ -171,6 +179,7 @@ function americaEnters(gw: GreatWar): void {
   if (n === null || n.side !== null || n.out || ruledBySeat(gw, "USA")) return;
   if (!americaCan(gw) || n.readiness < AMERICA_BAR) return;
   enter(gw, "USA", "entente", "america_entered");
+  easeStrain(gw, "west", "entente", -NEW_ARMIES_EASE);
 }
 
 /** Russians past the frontier: no German staff leaves that alone. */
@@ -261,7 +270,18 @@ function wantsAttack(gw: GreatWar, n: GwNationState, t: GwTheatre): boolean {
   const roll = wwRoll(s.seed, P_AI_MOVE, s.chapter, s.nations.indexOf(n)) % 100;
   const end = memberEnd(gw, t, n.tag);
   if (end === null) return false;
+  // A worn army holds: its staff knows what its own men can take (ww173).
+  const th = gw.s.theatres.find((x) => x.id === t)!;
+  if (endStrain(th, end) >= STRAIN_WORN) return false;
   const odds = pressOdds(gw, t, end);
+  // An enemy its reports call worn is worth a push (S7c's reports; they can
+  // be wrong).
+  const foeLead = membersOf(gw, t, other(end))[0];
+  const believed =
+    foeLead === undefined ? null : believedStrain(gw, n.tag, t, foeLead);
+  if (believed !== null && believed >= STRAIN_WORN && odds >= CAMPAIGN_FLOOR) {
+    return roll < 70;
+  }
   // Every staff has its season: bad odds don't stop the year's great attack.
   if (rested >= CAMPAIGN_REST[n.ai] && odds >= CAMPAIGN_FLOOR && roll < 55) {
     return true;
@@ -317,8 +337,45 @@ export function aiStep(gw: GreatWar): void {
     n.alloc = aiAlloc(gw, n);
   }
   if (s.warChapter === null) return;
+  wornAsk(gw);
   peaceFeelers(gw);
   peaceStep(gw);
+}
+
+/**
+ * A staff whose own front is worn asks its friends for men (ww173 §3): a
+ * friend nobody plays, fresh itself and not attacking, sends some; a seat
+ * on its side hears the ask, every few months.
+ */
+function wornAsk(gw: GreatWar): void {
+  const s = gw.s;
+  for (const n of s.nations) {
+    if (!fights(n) || n.side === null || ruledBySeat(gw, n.tag)) continue;
+    if (worstStrain(gw, n.tag) < STRAIN_WORN) continue;
+    for (const f of s.nations) {
+      if (f === n || !fights(f) || f.side !== n.side) continue;
+      if (ruledBySeat(gw, f.tag)) {
+        if (!everyMonths(gw, 3, 1)) continue;
+        for (const seat of seatsOf(gw, f.tag)) {
+          const same = seat.log.some(
+            (l) => l.key === "ally_worn_asks" && l.chapter === s.chapter,
+          );
+          if (!same) {
+            seat.log.push({
+              key: "ally_worn_asks",
+              chapter: s.chapter,
+              tag: n.tag,
+            });
+          }
+        }
+        continue;
+      }
+      const a = f.alloc;
+      if (a === null || a.posture !== "hold") continue;
+      if (worstStrain(gw, f.tag) >= STRAIN_WORN / 2) continue;
+      f.alloc = { ...a, allyShare: 1 };
+    }
+  }
 }
 
 /** Late in a hard war, a quiet offer comes: the way out is always shown. */

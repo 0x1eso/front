@@ -227,11 +227,14 @@ export function frontPlaces(t: GwTheatre): GwPlace[] {
  * away from the start, towards the next one (negative: towards the lower
  * index). The next line's places fall a share at a time, in list order, so a
  * line of seventeen places does not change hands in one chapter.
+ * `salient` (-2..2, ww173) is what small moves bit past that: one place each,
+ * + for the end a rising line favours. Places only: the line stays.
  */
 export function frontLandAt(
   t: GwTheatre,
   line: number,
   step = 0,
+  salient = 0,
 ): Map<GwPlace, GwSide> {
   const start = GW_FRONT_START[t];
   const out = new Map<GwPlace, GwSide>();
@@ -242,12 +245,50 @@ export function frontLandAt(
     for (const p of land?.entente ?? []) out.set(p, "entente");
     if (i === line) break;
   }
-  if (step === 0) return out;
-  const next = GW_FRONT_LAND[t][GW_LINES[t][line + Math.sign(step)]];
-  for (const side of ["central", "entente"] as const) {
-    const list = next?.[side] ?? [];
-    const n = Math.ceil((list.length * Math.abs(step)) / GW_LINE_STEP);
-    for (const p of list.slice(0, n)) out.set(p, side);
+  if (step !== 0) {
+    const next = GW_FRONT_LAND[t][GW_LINES[t][line + Math.sign(step)]];
+    for (const side of ["central", "entente"] as const) {
+      const list = next?.[side] ?? [];
+      for (const p of list.slice(0, shareOf(list, step))) out.set(p, side);
+    }
   }
+  if (salient !== 0) bite(out, t, line, step, salient);
   return out;
+}
+
+/** Places of a line's list a step past it has taken. */
+const shareOf = (list: readonly GwPlace[], step: number) =>
+  Math.ceil((list.length * Math.abs(step)) / GW_LINE_STEP);
+
+/**
+ * A salient's places: going on away from the start, the next of the next
+ * line's list; coming back, the last taken go back to their owners.
+ */
+function bite(
+  out: Map<GwPlace, GwSide>,
+  t: GwTheatre,
+  line: number,
+  step: number,
+  salient: number,
+): void {
+  const start = GW_FRONT_START[t];
+  const way = Math.sign(salient);
+  const k = Math.abs(salient);
+  const away = step !== 0 ? Math.sign(step) : Math.sign(line - start);
+  const entry = (i: number) => GW_FRONT_LAND[t][GW_LINES[t][i] ?? ""];
+  if (away === 0 || way === away) {
+    const next = entry(line + way);
+    for (const side of ["central", "entente"] as const) {
+      const list = next?.[side] ?? [];
+      const n = step === 0 ? 0 : shareOf(list, step);
+      for (const p of list.slice(n, n + k)) out.set(p, side);
+    }
+    return;
+  }
+  const own = step === 0 ? entry(line) : entry(line + Math.sign(step));
+  for (const side of ["central", "entente"] as const) {
+    const list = own?.[side] ?? [];
+    const n = step === 0 ? list.length : shareOf(list, step);
+    for (const p of list.slice(Math.max(0, n - k), n)) out.delete(p);
+  }
 }

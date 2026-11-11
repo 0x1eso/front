@@ -109,7 +109,7 @@ export function frontLandStep(gw: GreatWar): void {
   const settled = gw.s.settled ?? [];
   for (const t of gw.s.theatres) {
     if (t.since === null) continue;
-    const held = frontLandAt(t.id, reachedLine(t), lineStep(t));
+    const held = frontLandAt(t.id, reachedLine(t), lineStep(t), t.salient ?? 0);
     for (const place of frontPlaces(t.id)) {
       const to = takerOf(gw, t, place, held.get(place) ?? null);
       // What a table settled moves again only in a new war of the two (ww172).

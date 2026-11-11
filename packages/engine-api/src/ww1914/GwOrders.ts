@@ -13,6 +13,7 @@ import {
   GW_RESEARCH,
   GW_SCALES,
   GW_TELEGRAM_MAX,
+  GW_TEMPOS,
   GW_THEATRES,
   GW_TREATY_CLAUSES_MAX,
 } from "./GreatWarTypes";
@@ -205,6 +206,14 @@ export const GwOrderSchema = z.discriminatedUnion("kind", [
    * price, and the decision waits on the desk for it.
    */
   z.object({ kind: z.literal("ask"), card: Card, topic: Id }),
+  /**
+   * ww173: the chief's standing word on the fronts: raids ("active"), a tacit
+   * truce ("quiet"), or null for his own way.
+   */
+  z.object({
+    kind: z.literal("front_tempo"),
+    tempo: z.enum(GW_TEMPOS).nullable(),
+  }),
 ]);
 export type GwOrder = z.infer<typeof GwOrderSchema>;
 

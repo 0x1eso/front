@@ -1,6 +1,8 @@
 import {
   GW_RESEARCH,
+  GW_TEMPOS,
   type GwSide,
+  type GwTempo,
   type GwTheatre,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { GW_PLACES } from "@openfront/engine-api/ww1914/GwPlaces";
@@ -17,6 +19,13 @@ import { BTN, BTN_ON, CHIP, HEAD, MUTED } from "./GwStyle";
 import { frontLine, personName } from "./GwText";
 
 const TRENCH_MAX = 5;
+/** Our strain's word, by its tone. */
+const STRAIN_TONE = [
+  "text-white/80",
+  "text-amber-200",
+  "text-orange-300",
+  "text-red-300",
+] as const;
 
 const TONE = ["text-red-300", "text-white/80", "text-emerald-300"] as const;
 const ARROW: Readonly<Record<-1 | 0 | 1, string>> = {
@@ -60,16 +69,30 @@ const HALVES: Readonly<Record<FrontKind, readonly [string, string]>> = {
   neutral: ["bg-amber-200/60", "bg-sky-300/40"],
 };
 
+/** Our half fades a step for each word of strain (ww173 §3). */
+const OURS_BY_STRAIN = [
+  "bg-emerald-400/85",
+  "bg-emerald-400/65",
+  "bg-emerald-400/45",
+  "bg-emerald-400/30",
+] as const;
+
 /**
  * The tug of war: the reader's side holds the bar from the left, so its
- * advance always moves the mark right, towards the enemy's end.
+ * advance always moves the mark right, towards the enemy's end. `strain`:
+ * our end's word, which fades our half.
  */
 function frontBar(
   id: GwTheatre,
   r: FrontRead,
   kind: FrontKind,
+  strain?: number,
 ): TemplateResult {
-  const [mine, theirs] = HALVES[kind];
+  const [plain, theirs] = HALVES[kind];
+  const mine =
+    kind === "ours" && strain !== undefined
+      ? OURS_BY_STRAIN[Math.max(0, Math.min(strain, 3))]
+      : plain;
   const pct = Math.round(r.fill * 1000) / 10;
   const n = r.names.length - 1;
   const end = (s: GwSide, at: "left" | "right") => {
@@ -174,7 +197,7 @@ function frontCard(c: GwCtx, f: GwFrontView): TemplateResult {
             })}</span
           >`}
     </div>
-    ${frontBar(f.id, r, "ours")} ${standingLine(f.id, r, "ours")}
+    ${frontBar(f.id, r, "ours", f.strain)} ${standingLine(f.id, r, "ours")}
     ${lastBattle(f, side)}
     <div class=${MUTED}>
       ${translateText("gw.ui.trench_now", {
@@ -183,6 +206,19 @@ function frontCard(c: GwCtx, f: GwFrontView): TemplateResult {
         ),
       })}
     </div>
+    ${f.strain === undefined
+      ? nothing
+      : html`<div
+            class="text-sm ${STRAIN_TONE[f.strain] ?? ""}"
+            data-gw-strain=${f.strain}
+          >
+            ${translateText("gw.ui.strain_ours", {
+              what: translateText(`gw.ui.strain_word.${f.strain}`),
+            })}
+          </div>
+          <div class=${MUTED} data-gw-strain-foe>
+            ${translateText("gw.ui.strain_foe_unknown")}
+          </div>`}
   </section>`;
 }
 
@@ -271,6 +307,33 @@ function paper(c: GwCtx, p: GwProposal): TemplateResult {
   </div>`;
 }
 
+/**
+ * The standing word on the fronts between battles (ww173 §5): raids, a quiet
+ * front, or the chief's own way. Not a paper: it holds until changed.
+ */
+function tempoRow(c: GwCtx): TemplateResult {
+  const now = c.seat.world.tempo ?? null;
+  const pick = (v: GwTempo) =>
+    html`<button
+      class="${v === now ? BTN_ON : BTN} !px-2 !py-1"
+      data-gw-pick=${`tempo:${v}`}
+      aria-pressed=${v === now ? "true" : "false"}
+      @click=${() =>
+        c.send({ kind: "front_tempo", tempo: v === now ? null : v })}
+    >
+      ${translateText(`gw.ui.tempo.${v}`)}
+    </button>`;
+  return html`<div class="space-y-1" data-gw-tempo>
+    <div class=${MUTED}>${translateText("gw.ui.tempo_title")}</div>
+    <div class="flex flex-wrap gap-1">${GW_TEMPOS.map(pick)}</div>
+    <p class=${MUTED}>
+      ${translateText("gw.ui.tempo_now", {
+        what: translateText(`gw.ui.tempo.${now ?? "chief"}`),
+      })}
+    </p>
+  </div>`;
+}
+
 /** The chief of staff's papers: one is signed a chapter (design §4.2). */
 function papers(c: GwCtx): TemplateResult | typeof nothing {
   const { proposals, signed } = c.seat.world;
@@ -305,6 +368,7 @@ function papers(c: GwCtx): TemplateResult | typeof nothing {
         )}
       </div>
     </div>
+    ${tempoRow(c)}
     <p class=${MUTED}>
       ${translateText("gw.ui.alloc_now", {
         main: translateText(`gw.ui.theatre.${cur.main}`),
