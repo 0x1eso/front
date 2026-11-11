@@ -2063,6 +2063,219 @@ const AIM_REMINDER: GwScene = {
   ],
 };
 
+// ---- ww173: the secret war, the Evidenzbureau's desk ----
+// Drawn by the state (Spies: reads, last operation, the 뒷공작 rows), each
+// with the service's head in the chair: Urbański, Hranilović, Ronge or whoever
+// holds `intelligence` (their own paragraphs are the pack's `voice.chief`).
+
+const chief = role("chief");
+const service = { chief: holder("intelligence") };
+const reading = (t: GwTag) => world({ is: "spy", can: "reading", tag: t });
+const READ_FOES: GwTag[] = ["RUS", "ITA", "SRB", "ROU", "FRA", "GBR", "USA"];
+const unflag = (f: string): GwEffect => ({ kind: "unflag", flag: f });
+const actedIn = (act: string, within: number): GwCond => ({
+  kind: "acted",
+  act,
+  within,
+});
+const pickedIn = (act: string, ...of: string[]): GwCond => ({
+  kind: "picked",
+  field: "where",
+  of,
+  act,
+});
+/** A code we read went dark while the war with its owner goes on. */
+const darkened = (t: GwTag, f: string): GwCond =>
+  all(flag(f), not(reading(t)), atWar(t), not(world({ is: "out", tag: t })));
+const markRead: GwEffect[] = [
+  maybe(reading("RUS"), setFlag("f_auh_read_rus")),
+  maybe(reading("ITA"), setFlag("f_auh_read_ita")),
+];
+const clearDark: GwEffect[] = [
+  maybe(not(reading("RUS")), unflag("f_auh_read_rus")),
+  maybe(not(reading("ITA")), unflag("f_auh_read_ita")),
+];
+const wonBreak = (t: "east" | "italy" | "balkan") =>
+  world({ is: "battle", theatre: t, of: ["break"], by: "seat" });
+const opBlown = all(
+  world({ is: "spy", can: "out" }),
+  any(
+    actedIn("gw_a_spy_net", 2),
+    actedIn("gw_a_spy_sabotage", 2),
+    actedIn("gw_a_spy_court", 2),
+  ),
+);
+
+/** A paper the service head brings to the desk; drawn, not scheduled. */
+const desk = (
+  id: string,
+  when: GwCond,
+  variants: GwVariant[],
+  options: GwOption[],
+  cooldown: number,
+): GwScene => ({
+  id,
+  nation: NATION,
+  kind: "proposal",
+  when,
+  cast: service,
+  salience: 6,
+  tags: ["war", "foreign"],
+  cooldown,
+  variants,
+  fallback: options[0].id,
+  options,
+  noBack: true,
+});
+
+const SPY_DESK: GwScene[] = [
+  // We read their codes: use it, or play dumb so they never change them.
+  desk(
+    "auh_spy_read",
+    all(inWar, any(...READ_FOES.map(reading))),
+    [v("rus", reading("RUS")), v("ita", reading("ITA")), base],
+    [
+      opt(
+        "use",
+        ["trust:+1"],
+        [...markRead, trustOf(chief, 1), reason("auh_spy_read_used")],
+      ),
+      opt(
+        "hide",
+        [],
+        [
+          ...markRead,
+          doWorld({ do: "spy", act: "hide" }),
+          reason("auh_spy_read_hidden"),
+        ],
+      ),
+      opt(
+        "berlin",
+        ["deu:+1", "berlin:+1"],
+        [
+          ...markRead,
+          trust("DEU", 1),
+          inst("berlin", 1),
+          reason("auh_spy_read_shared"),
+        ],
+      ),
+    ],
+    8,
+  ),
+  // The codes we read changed: the cipher room is blind again.
+  desk(
+    "auh_spy_dark",
+    all(
+      inWar,
+      any(darkened("RUS", "f_auh_read_rus"), darkened("ITA", "f_auh_read_ita")),
+    ),
+    [
+      v("rus", darkened("RUS", "f_auh_read_rus")),
+      v("ita", darkened("ITA", "f_auh_read_ita")),
+      base,
+    ],
+    [
+      opt(
+        "rebuild",
+        ["money:-1"],
+        [...clearDark, gauge("money", -1), reason("auh_spy_dark_rebuild")],
+      ),
+      opt("agents", [], [...clearDark, reason("auh_spy_dark_agents")]),
+    ],
+    2,
+  ),
+  // A breakthrough took a staff's papers, a codebook among them.
+  desk(
+    "auh_spy_codebook",
+    all(inWar, any(wonBreak("east"), wonBreak("italy"), wonBreak("balkan"))),
+    [v("east", wonBreak("east")), v("italy", wonBreak("italy")), base],
+    [
+      opt(
+        "cipher",
+        ["trust:+1"],
+        [trustOf(chief, 1), reason("auh_spy_codebook_kept")],
+      ),
+      opt(
+        "share",
+        ["deu:+1"],
+        [trust("DEU", 1), reason("auh_spy_codebook_shared")],
+      ),
+    ],
+    12,
+  ),
+  // Our own men abroad found out: the sender's side of an exposure.
+  desk(
+    "auh_spy_blown",
+    all(inWar, opBlown),
+    [
+      v(
+        "zurich",
+        all(
+          actedIn("gw_a_spy_sabotage", 2),
+          pickedIn("gw_a_spy_sabotage", "ita"),
+        ),
+      ),
+      v("sabotage", actedIn("gw_a_spy_sabotage", 2)),
+      v("court", actedIn("gw_a_spy_court", 2)),
+      base,
+    ],
+    [
+      opt(
+        "disown",
+        ["trust:-1"],
+        [trustOf(chief, -1), reason("auh_spy_blown_disowned")],
+      ),
+      opt(
+        "ransom",
+        ["money:-1"],
+        [gauge("money", -1), reason("auh_spy_blown_ransomed")],
+      ),
+    ],
+    4,
+  ),
+  // After the spies were blamed: how far the hunt goes at home.
+  desk(
+    "auh_spy_hunt",
+    all(inWar, actedIn("gw_a_spy_blame", 1)),
+    [
+      v("karl", karl),
+      v("east", eastBroken),
+      v(
+        "serbia",
+        world({
+          is: "battle",
+          theatre: "balkan",
+          of: ["advance", "break"],
+          by: "foe",
+        }),
+      ),
+      base,
+    ],
+    [
+      opt(
+        "camps",
+        ["order:+1", "nations:-1"],
+        [gauge("order", 1), inst("nations", -1), reason("auh_spy_hunt_camps")],
+      ),
+      opt(
+        "courts",
+        ["trust:+1"],
+        [trustOf(chief, 1), reason("auh_spy_hunt_courts")],
+      ),
+      opt(
+        "release",
+        ["nations:+1", "trust:-1"],
+        [
+          inst("nations", 1),
+          trustOf(chief, -1),
+          reason("auh_spy_hunt_release"),
+        ],
+      ),
+    ],
+    8,
+  ),
+];
+
 /** The opening, the big scenes, the rival, the letters, the aim's pressure. */
 export const AUH_STORY_SCENES: readonly GwScene[] = [
   ...OPENING_SCENES,
@@ -2073,4 +2286,5 @@ export const AUH_STORY_SCENES: readonly GwScene[] = [
   ...LETTERS,
   ...AIM_SCENES,
   AIM_REMINDER,
+  ...SPY_DESK,
 ];
