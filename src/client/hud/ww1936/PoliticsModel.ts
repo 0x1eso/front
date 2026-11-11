@@ -70,7 +70,7 @@ import {
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import type { DeclareWarBlock } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { imjinContent } from "@openfront/engine-lib/imjin/Content";
-import { dayOfDate } from "@openfront/engine-lib/ww1936/Calendar";
+import { dayOfDateIn } from "@openfront/engine-lib/ww1936/Calendar";
 import { CONTENT as CONTENT_1936 } from "@openfront/engine-lib/ww1936/content/registry";
 import {
   DescLine,
@@ -144,7 +144,7 @@ import {
   type WwGame,
   wwSeconds,
 } from "./WorldWarModel";
-import { imjinCalendarOn } from "./WwClientCalendar";
+import { imjinCalendarOn, wwEpoch } from "./WwClientCalendar";
 
 /**
  * ww177 P6 (lane I6a): the game's own content. Imjin has its own scenes,
@@ -695,7 +695,7 @@ function paramText(
     case "name":
       return translateText(`ww1936.faction_name.${v}`, { country: "" });
     case "date":
-      return dateLabel(dayOfDate(v));
+      return dateLabel(dayOfDateIn(v, wwEpoch()));
   }
   return v;
 }
@@ -1216,7 +1216,7 @@ export function advisorTab(i: PoliticsModelInput): AdvisorSeat[] {
     iso === undefined
       ? null
       : translateText("ww1936.pol.adv.until", {
-          date: dateLabel(dayOfDate(iso)),
+          date: dateLabel(dayOfDateIn(iso, wwEpoch())),
         });
   return ADVISOR_SLOTS.map((slot, index) => {
     const held = d.advisors[index] ?? null;
@@ -1227,7 +1227,8 @@ export function advisorTab(i: PoliticsModelInput): AdvisorSeat[] {
       .map((c): AdvisorCandidate => {
         const p = content().personIdx.get(c);
         const traits = traitsOf(c);
-        const fromDay = p?.from === undefined ? -1 : dayOfDate(p.from);
+        const fromDay =
+          p?.from === undefined ? -1 : dayOfDateIn(p.from, wwEpoch());
         return {
           id: c,
           name: personName(c),

@@ -12,7 +12,7 @@ import {
   WW_CRISIS_DAYS,
   WW_ELECTION_DAYS,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
-import { dateOfDay, dayOfDate } from "@openfront/engine-lib/ww1936/Calendar";
+import { dateOfDay, dayOfDateIn } from "@openfront/engine-lib/ww1936/Calendar";
 import {
   addPopularity,
   largestOther,
@@ -25,7 +25,7 @@ import { addSpirit, hasRule } from "./Spirits";
 import type { WwPolitics } from "./WwPolitics";
 
 /** Spec §5.7: after the 26 February incident Japan's leader is a title. */
-const JPN_TITLES_FROM = dayOfDate("1936-02-26");
+const JPN_TITLES_FROM = "1936-02-26";
 const JPN_TITLE = "title:jpn_prime_minister";
 
 /**
@@ -151,12 +151,13 @@ export function governmentLeader(
   const title = `title:leader_${name}`;
   const leader = pol.content.countryIdx.get(c.tag)?.leaders[name] ?? title;
   if (leader.startsWith("title:")) return leader;
-  if (c.tag === "JPN" && day >= JPN_TITLES_FROM) return JPN_TITLE;
+  if (c.tag === "JPN" && day >= dayOfDateIn(JPN_TITLES_FROM, pol.ww.epoch))
+    return JPN_TITLE;
   const p = pol.content.personIdx.get(leader);
   if (
     p?.until !== undefined &&
     !p.roles.includes("advisor") &&
-    dayOfDate(p.until) <= day
+    dayOfDateIn(p.until, pol.ww.epoch) <= day
   ) {
     return title;
   }

@@ -12,21 +12,18 @@ import {
   TraitId,
   WW_ADVISOR_LOCK_DAYS,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
-import { dayOfDate } from "@openfront/engine-lib/ww1936/Calendar";
+import { dayOfDateIn } from "@openfront/engine-lib/ww1936/Calendar";
 import { GENERALS } from "@openfront/engine-lib/ww1936/Generals";
 import { costWith } from "@openfront/engine-lib/ww1936/PoliticsRules";
 import { payPp } from "./PayPp";
 import type { CountryPol, WwPolitics } from "./WwPolitics";
 
-/** ISO date → day number, parsed once per string. */
-const DAYS = new Map<string, number>();
-function dayOf(iso: string): number {
-  let d = DAYS.get(iso);
-  if (d === undefined) {
-    d = dayOfDate(iso);
-    DAYS.set(iso, d);
-  }
-  return d;
+/**
+ * ISO date → game day, on the game's own calendar (ww177 merge 3: the
+ * Imjin War's people date from the 1590s; dayOfDate parses once a string).
+ */
+function dayOf(pol: WwPolitics, iso: string): number {
+  return dayOfDateIn(iso, pol.ww.epoch);
 }
 
 /** Plan decision 19: the person's P2 general leads one of `id`'s armies now. */
@@ -77,8 +74,8 @@ function personOpen(
   if (!advisorFitsIdeology(pol, c, p.id, c.ruling)) return false;
   if (!c.candidates.includes(p.id)) {
     if (p.locked === true) return false;
-    if (p.from !== undefined && day < dayOf(p.from)) return false;
-    if (p.until !== undefined && day >= dayOf(p.until)) return false;
+    if (p.from !== undefined && day < dayOf(pol, p.from)) return false;
+    if (p.until !== undefined && day >= dayOf(pol, p.until)) return false;
   }
   return !leadsArmy(pol, c.smallID, p);
 }
@@ -213,7 +210,7 @@ export function dismissExpired(
   c.advisors.forEach((a, i) => {
     if (a === null || a.startsWith("title:")) return;
     const p = pol.content.personIdx.get(a);
-    if (p?.until === undefined || day < dayOf(p.until)) return;
+    if (p?.until === undefined || day < dayOf(pol, p.until)) return;
     if (c.candidates.includes(a)) return;
     c.advisors[i] = null;
     changed = true;

@@ -33,6 +33,7 @@ import {
   JOS_PERSONS,
   JOS_SPIRITS,
 } from "./JoseonContent";
+import { withImjinDates } from "./PersonDates";
 
 export const IMJIN_CONTENT_PARTS: ContentParts = {
   ...CONTENT_PARTS,
@@ -68,7 +69,8 @@ export const IMJIN_CONTENT_PARTS: ContentParts = {
     ...IMJIN_JPW_DECISION_FLAGS,
   ],
   groups: [...CONTENT_PARTS.groups, ...JOS_GROUPS, ...IMJIN_JPW_GROUPS],
-  persons: [...JOS_PERSONS, ...IMJIN_JPW_PERSONS],
+  // ww177 merge 3: with their real dates, on the game's calendar.
+  persons: withImjinDates([...JOS_PERSONS, ...IMJIN_JPW_PERSONS]),
   beats: [],
   countries: [],
   claims: [],

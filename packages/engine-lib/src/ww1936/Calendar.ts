@@ -81,6 +81,15 @@ export function dayOfDate(iso: string): number {
   return day;
 }
 
+/**
+ * ww177 merge 3: the game day of an ISO date when day 0 is `epoch` (days
+ * since 1970, Profile.wwEpochDays); absent, 1936's, where it is dayOfDate.
+ * Person rows (from/until) read their dates through it.
+ */
+export function dayOfDateIn(iso: string, epoch: number = EPOCH_1936): number {
+  return dayOfDate(iso) + EPOCH_1936 - epoch;
+}
+
 export function formatIsoDate(d: CivilDate): string {
   const pad = (n: number) => (n < 10 ? `0${n}` : `${n}`);
   return `${d.year}-${pad(d.month)}-${pad(d.day)}`;
