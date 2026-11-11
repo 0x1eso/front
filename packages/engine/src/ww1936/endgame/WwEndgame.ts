@@ -669,11 +669,16 @@ export class WwEndgame {
       aiOccupationDay(this, id, day, tick); // O
       aiSubjectsDay(this, id, day, tick); // S
       aiAidDay(this, id, day, tick); // A
-      aiPeaceDay(this, id, day, tick); // white peace
-      aiLinePeaceDay(this, id, day, tick); // peace on the current line
-      aiAskTermsDay(this, id, day, tick); // ww88: a beaten AI asks for terms
-      // Diplomacy (ww161 Design B): D1, D3, D4, D5, D2.
-      aiSeparatePeaceDay(this, id, day, tick);
+      // ww177 I5a (Imjin design §7, §10): the Imjin War stops by its own
+      // truce (Konishi's talks), Japan going home or a capitulation, not
+      // by 1936's stalemate, line or separate peace.
+      if (!this.ww.imjin) {
+        aiPeaceDay(this, id, day, tick); // white peace
+        aiLinePeaceDay(this, id, day, tick); // peace on the current line
+        aiAskTermsDay(this, id, day, tick); // ww88: a beaten AI asks for terms
+        // Diplomacy (ww161 Design B): D1, D3, D4, D5, D2.
+        aiSeparatePeaceDay(this, id, day, tick);
+      }
       aiDealDay(this, id, day, tick);
       aiPromiseDay(this, id, day, tick);
       aiUltimatumDay(this, id, day, tick);

@@ -257,10 +257,34 @@ export function imjinRound(inp: RoundInput): RoundOut {
   };
 }
 
+/** What the AI reads of the battle beyond the last order (design §9). */
+export interface AiOrderCtx {
+  /** The enemy's volley rhythm shows (scouts, or a commander of skill 3+). */
+  seesRhythm?: boolean;
+  /** The defender's ground (its stance's choice). */
+  terrain?: ImjinTerrain;
+  /** The attacker is still crossing a river this phase. */
+  crossing?: boolean;
+}
+
+const HIDING: ReadonlySet<ImjinTerrain> = new Set([
+  "pass",
+  "forest",
+  "mountain",
+  "hills",
+]);
+
 /**
- * The AI's pick for the next phase (design §9): the stance that counters
- * the order it last met, or the order the last stance does not counter;
- * otherwise the row mix's natural choice, with a roll to vary it.
+ * The AI's pick for the next phase (design §5, §9), from the orders a
+ * player has, by what it sees:
+ * - against walls, the siege picks: a breach by the guns where it has
+ *   them, else the ladders (storm), or a volley advance;
+ * - on open ground, the arquebus line advances by volleys;
+ * - its horse charges where the ground allows; against a massed volley it
+ *   charges at the gap only when it can read the reload, never blind;
+ * - a counter-charge it met is baited with a feigned retreat;
+ * - never the order the last stance counters, when it has another.
+ * A roll varies the rest.
  */
 export function aiAttackOrder(
   mix: RowMix,
@@ -268,17 +292,32 @@ export function aiAttackOrder(
   fort: number,
   lastStance: DefenceStance | null,
   roll: number,
+  ctx: AiOrderCtx = {},
 ): AttackOrder {
-  if (fort > 0) return roll % 3 === 0 ? "barrage" : "storm";
   const t = terrainRow(terrain);
   const cav = mix.cavalry ?? 0;
   const arq = mix.arquebus ?? 0;
-  const opts: AttackOrder[] = ["advance", "flank"];
-  if (arq >= 30) opts.push("volley_advance", "volley_advance");
-  if (cav >= 20 && t.charge && t.cavalryPct >= 0) {
-    opts.push(lastStance === "massed_volley" ? "charge_gap" : "charge");
+  const guns = mix.cannon ?? 0;
+  const opts: AttackOrder[] = [];
+  if (fort > 0) {
+    if (guns >= 10) opts.push("barrage", "barrage");
+    opts.push("storm");
+    if (arq >= 30) opts.push("volley_advance");
+  } else {
+    opts.push("advance", "flank");
+    if (arq >= 30) {
+      opts.push("volley_advance");
+      // Volleys on open ground: the guns are at their best there.
+      if (t.charge && t.arquebusPct >= 0) opts.push("volley_advance");
+    }
+    if (cav >= 20 && t.charge && t.cavalryPct >= 0) {
+      if (lastStance === "massed_volley") {
+        if (ctx.seesRhythm === true) opts.push("charge_gap", "charge_gap");
+      } else opts.push("charge");
+      if (lastStance === "counter_charge") opts.push("feigned_retreat");
+    }
+    if (guns + (mix.archer ?? 0) >= 30) opts.push("barrage");
   }
-  if ((mix.cannon ?? 0) + (mix.archer ?? 0) >= 30) opts.push("barrage");
   const ok = opts.filter(
     (o) => lastStance === null || !orderCountered(o, lastStance),
   );
@@ -286,17 +325,34 @@ export function aiAttackOrder(
   return list[roll % list.length];
 }
 
+/**
+ * The AI's stance: it strikes an attacker caught crossing; it answers the
+ * order it met with its counter (most phases); otherwise its army's way:
+ * massed volleys on open ground and rolling ones in rough country, the
+ * archers' screen where the ground hides them, and the counter-charge
+ * where horse can ride.
+ */
 export function aiDefenceStance(
   mix: RowMix,
   lastOrder: AttackOrder | null,
   roll: number,
+  ctx: AiOrderCtx = {},
 ): DefenceStance {
+  if (ctx.crossing === true && roll % 4 !== 0) return "strike_crossing";
   const c = lastOrder === null ? null : COUNTER_OF_ORDER[lastOrder];
   if (c !== null && roll % 4 !== 0) return c;
+  const t = terrainRow(ctx.terrain ?? "plain");
+  const rough = ctx.terrain !== undefined && HIDING.has(ctx.terrain);
   const arq = mix.arquebus ?? 0;
   const opts: DefenceStance[] = ["hold"];
-  if (arq >= 30) opts.push("massed_volley", "massed_volley", "rolling_volley");
-  if ((mix.archer ?? 0) >= 30) opts.push("archer_screen");
-  if ((mix.cavalry ?? 0) >= 20) opts.push("counter_charge");
+  if (arq >= 30) {
+    if (rough) opts.push("rolling_volley", "rolling_volley");
+    else opts.push("massed_volley", "massed_volley", "rolling_volley");
+  }
+  if ((mix.archer ?? 0) >= 30) {
+    opts.push("archer_screen");
+    if (rough) opts.push("archer_screen");
+  }
+  if ((mix.cavalry ?? 0) >= 20 && t.charge) opts.push("counter_charge");
   return opts[roll % opts.length];
 }

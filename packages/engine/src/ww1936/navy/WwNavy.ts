@@ -1548,7 +1548,10 @@ export class WwNavy {
    */
   easyInvasion(smallID: number): boolean {
     const p = this.mg.playerBySmallID(smallID);
-    return p.isPlayer() && this.ww.isHumanControlled(smallID);
+    // ww177 I5a: in the Imjin War the AI lands by the player's rules.
+    return (
+      p.isPlayer() && (this.ww.imjin || this.ww.isHumanControlled(smallID))
+    );
   }
 
   message(

@@ -100,8 +100,6 @@ export const AI_PROPOSE_WS_BP = 5000;
  * peace: a lopsided colonial war goes on (Italy in Ethiopia).
  */
 export const AI_PEACE_STRONGER_RATIO = 3;
-/** ww177: the Imjin War offers no stalemate peace before this many days of war. */
-export const IMJIN_STALEMATE_MIN_DAYS = 365;
 /** The front "barely changed": at most this many regions changed hands since the stalemate began. */
 export const WW_STALEMATE_REGIONS = 2;
 /** Occupation rows an offer's card shows. */
@@ -1083,10 +1081,9 @@ export function aiWantsPeace(
   if (cap >= AI_PROPOSE_CAP_PM || st.heldByTarget >= AI_PROPOSE_LOST_PM) {
     return true;
   }
-  // ww177 (Imjin design §7): a stalemate peace is P4's truce; until then
-  // the Imjin War's sides fight on its first year out (the landings and the
-  // march take months before any front stands).
-  if (eg.ww.imjin && day - w.startDay < IMJIN_STALEMATE_MIN_DAYS) return false;
+  // ww177 (Imjin design §7): the Imjin War's stalemate ends in Konishi's
+  // truce (ImjinJapan), never in a 1936 stalemate peace.
+  if (eg.ww.imjin) return false;
   const ws = eg.ww.politics.country(id)?.wsBp ?? AI_PROPOSE_WS_BP;
   return (
     whole &&
