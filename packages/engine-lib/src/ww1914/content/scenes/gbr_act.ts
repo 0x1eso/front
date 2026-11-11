@@ -5,6 +5,7 @@ import type {
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import type { GwBloc } from "@openfront/engine-api/ww1914/GwPress";
+import type { GwSpyAct } from "@openfront/engine-api/ww1914/GwSpies";
 import {
   all,
   any,
@@ -160,6 +161,11 @@ const irishHeat = (min: number): GwCond => ({
   min,
 });
 const seen = (scene: string): GwCond => ({ kind: "seen", scene });
+const headIs = (person: string): GwCond => ({
+  kind: "holder",
+  office: "intelligence",
+  person,
+});
 const picked = (field: string, ...of: string[]): GwCond => ({
   kind: "picked",
   field,
@@ -2193,6 +2199,311 @@ const COUSIN_LETTERS: GwScene[] = [
   ),
 ];
 
+// ---- ww173 W7c: the secret war, in the Prime Minister's voice ----
+// Kell holds the service in June 1914 (MI5, at home); Hall (Room 40) and
+// Cumming (abroad) are fit for it. Each scene's chief speaks in his own
+// paragraph (pack `voice.chief`). The codes: the German book comes, the read
+// is used or hidden, the codes are changed. Abroad: an exposure, Hussein and
+// Paris, the Belgian train-watchers, Wellington House, the spy fever.
+
+const spy = (act: GwSpyAct, tag?: GwTag): GwEffect =>
+  doWorld(tag === undefined ? { do: "spy", act } : { do: "spy", act, tag });
+const readsDeu = world({ is: "spy", can: "reading", tag: "DEU" });
+const chief = {
+  any_of: [{ office: "intelligence" as const }, { person: "gbr_hall" }],
+};
+const fo = {
+  any_of: [{ office: "foreign" as const }, { office: "chancellor" as const }],
+};
+const codesRead = remember("m_gbr_codes_read");
+const fraAlly = world({ is: "entered", tag: "FRA", side: "entente" });
+/** A paper the desk deals when the state calls it. */
+const desk = (
+  id: string,
+  cast: GwScene["cast"],
+  when: GwCond,
+  variants: GwVariant[],
+  options: GwOption[],
+  more: Partial<GwScene> = {},
+): GwScene => ({
+  id,
+  nation: NATION,
+  kind: "proposal",
+  when,
+  cast,
+  salience: 6,
+  tags: ["war", "foreign"],
+  variants,
+  fallback: options[0].id,
+  options,
+  ...more,
+});
+
+const SPY_WAR: GwScene[] = [
+  desk(
+    "gbr_a_spy_codebook",
+    { chief },
+    all(war, atDeu, readsDeu),
+    [v("hall", headIs("gbr_hall")), v("base")],
+    [
+      o(
+        "small_room",
+        [],
+        [
+          codesRead,
+          remember("m_gbr_codes_tight"),
+          reason("gbr_spy_room_small"),
+        ],
+      ),
+      o(
+        "share_army",
+        [],
+        [
+          codesRead,
+          remember("m_gbr_codes_wide"),
+          trust("FRA", 1),
+          reason("gbr_spy_room_wide"),
+        ],
+        fraAlly,
+      ),
+      o(
+        "thank_russia",
+        [],
+        [codesRead, trust("RUS", 1), reason("gbr_spy_thank_russia")],
+        world({ is: "entered", tag: "RUS", side: "entente" }),
+      ),
+    ],
+    { once: true, salience: 7 },
+  ),
+  desk(
+    "gbr_a_spy_read",
+    { chief },
+    all(war, atDeu, readsDeu, seen("gbr_a_spy_codebook")),
+    [
+      v("tight", memory("m_gbr_codes_tight")),
+      v("wide", memory("m_gbr_codes_wide")),
+      v("base"),
+    ],
+    [
+      o(
+        "use",
+        [],
+        [
+          codesRead,
+          gauge("morale", 1),
+          remember("m_gbr_read_used"),
+          reason("gbr_spy_read_used"),
+        ],
+      ),
+      o(
+        "hide",
+        [],
+        [
+          codesRead,
+          spy("hide"),
+          gauge("morale", -1),
+          reason("gbr_spy_read_hid"),
+        ],
+      ),
+      o(
+        "cover",
+        [],
+        [
+          codesRead,
+          spy("hide"),
+          gauge("money", -1),
+          reason("gbr_spy_read_cover"),
+        ],
+      ),
+    ],
+    { cooldown: 6, salience: 7 },
+  ),
+  desk(
+    "gbr_a_spy_lost",
+    { chief },
+    all(war, atDeu, memory("m_gbr_codes_read"), not(readsDeu)),
+    [v("used", memory("m_gbr_read_used")), v("base")],
+    [
+      o(
+        "rebuild",
+        [],
+        [
+          { kind: "forget", key: "m_gbr_codes_read" },
+          gauge("money", -1),
+          reason("gbr_spy_lost_rebuild"),
+        ],
+      ),
+      o(
+        "hunt",
+        [],
+        [
+          { kind: "forget", key: "m_gbr_codes_read" },
+          cabinet(-1),
+          remember("m_gbr_leak_hunt"),
+          reason("gbr_spy_lost_hunt"),
+        ],
+      ),
+      o(
+        "shrug",
+        [],
+        [
+          { kind: "forget", key: "m_gbr_codes_read" },
+          trustOf(role("chief"), -1),
+          reason("gbr_spy_lost_shrug"),
+        ],
+      ),
+    ],
+    { cooldown: 4 },
+  ),
+  desk(
+    "gbr_a_spy_exposed",
+    { fo, chief },
+    all(war, world({ is: "spy", can: "out" })),
+    [v("again", memory("m_gbr_spy_denied")), v("base")],
+    [
+      o(
+        "deny",
+        [],
+        [
+          remember("m_gbr_spy_denied"),
+          trustOf(role("fo"), -1),
+          reason("gbr_spy_denied"),
+        ],
+      ),
+      o(
+        "recall",
+        [],
+        [
+          trustOf(role("fo"), 1),
+          trustOf(role("chief"), -1),
+          reason("gbr_spy_recalled"),
+        ],
+      ),
+      o(
+        "freelance",
+        [],
+        [
+          trustOf(role("chief"), -1),
+          remember("m_gbr_spy_disowned"),
+          reason("gbr_spy_disowned"),
+        ],
+      ),
+    ],
+    { cooldown: 6 },
+  ),
+  desk(
+    "gbr_a_spy_hussein",
+    { fo },
+    all(war, world({ is: "spy", can: "arab" })),
+    [v("ally", fraAlly), v("base")],
+    [
+      o(
+        "vague",
+        [],
+        [remember("m_gbr_hussein_wide"), reason("gbr_spy_hussein_wide")],
+      ),
+      o(
+        "carve",
+        [],
+        [
+          remember("m_gbr_hussein_narrow"),
+          trust("FRA", 1),
+          reason("gbr_spy_hussein_narrow"),
+        ],
+      ),
+      o("wait", [], [trustOf(role("fo"), 1), reason("gbr_spy_hussein_wait")]),
+    ],
+    { once: true },
+  ),
+  desk(
+    "gbr_a_spy_paris",
+    { fo },
+    all(war, fraAlly, { kind: "acted", act: "gbr_a_spy_arab" }),
+    [
+      v("wide", memory("m_gbr_hussein_wide")),
+      v("narrow", memory("m_gbr_hussein_narrow")),
+      v("base"),
+    ],
+    [
+      o(
+        "both",
+        [],
+        [remember("m_gbr_two_promises"), reason("gbr_spy_two_promises")],
+      ),
+      o("tell", [], [trust("FRA", -1), reason("gbr_spy_told_paris")]),
+      o(
+        "paris_first",
+        [],
+        [
+          trust("FRA", 1),
+          remember("m_gbr_hussein_slighted"),
+          reason("gbr_spy_paris_first"),
+        ],
+      ),
+    ],
+    { once: true, salience: 7 },
+  ),
+  desk(
+    "gbr_a_spy_trains",
+    { chief },
+    all(war, atDeu, world({ is: "spy", can: "sabotage", tag: "DEU" })),
+    [v("cumming", headIs("gbr_cumming")), v("base")],
+    [
+      o(
+        "watch",
+        [],
+        [
+          trustOf(role("chief"), 1),
+          remember("m_gbr_trains_watched"),
+          reason("gbr_spy_trains_watch"),
+        ],
+      ),
+      o("bridge", [], [spy("sabotage", "DEU")]),
+      o("more", [], [gauge("money", -1), spy("net", "DEU")]),
+    ],
+    { cooldown: 12 },
+  ),
+  desk(
+    "gbr_a_spy_wellington",
+    { fo },
+    all(war, world({ is: "spy", can: "court", tag: "USA" })),
+    [v("base")],
+    [
+      o("writers", [], [spy("court", "USA")]),
+      o(
+        "plain",
+        [],
+        [remember("m_gbr_plain_facts"), reason("gbr_spy_plain_facts")],
+      ),
+    ],
+    { cooldown: 10 },
+  ),
+  desk(
+    "gbr_a_spy_fever",
+    { chief },
+    all(war, world({ is: "spy", can: "blame" })),
+    [v("kell", headIs("gbr_kell")), v("base")],
+    [
+      o(
+        "refuse",
+        [],
+        [trustOf(role("chief"), 1), reason("gbr_spy_fever_refused")],
+      ),
+      o("blame", [], [remember("m_gbr_spies_blamed"), spy("blame")]),
+      o(
+        "intern",
+        [],
+        [
+          gauge("order", 1),
+          remember("m_gbr_aliens_interned"),
+          reason("gbr_spy_interned"),
+        ],
+      ),
+    ],
+    { cooldown: 8, tags: ["war", "home"] },
+  ),
+];
+
 export const GBR_ACT_SCENES: readonly GwScene[] = [
   ...VISITS,
   ...LETTERS,
@@ -2204,4 +2515,5 @@ export const GBR_ACT_SCENES: readonly GwScene[] = [
   ...QUIET_CARDS,
   ...RIVAL_SCENES,
   ...COUSIN_LETTERS,
+  ...SPY_WAR,
 ];
