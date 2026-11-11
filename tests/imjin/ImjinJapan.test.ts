@@ -9,9 +9,12 @@ import {
   corpsPlanSpeedPct,
   corpsRecoveryPct,
   DEATH_LOYALTY,
+  EARLY_NOTICE_DAYS,
+  EARLY_WARNING,
   forgeChancePct,
   GREAT_DAIMYO,
   healthBand,
+  isEarlyStrike,
   japanStats,
   warnedOf,
   waveOf,
@@ -92,6 +95,31 @@ async function game(country: "JOS" | "JPN") {
 }
 
 describe("the engine", () => {
+  test("an early strike is told to Joseon a month before; never less warned", async () => {
+    const { r, g, ww, s, jpn, jos, nextDay } = await game("JOS");
+    step(r, WW_PREP_TICKS + 2);
+    nextDay();
+    // The AI's bar is met below a full muster: an early strike.
+    s.readiness = 650;
+    s.aiBar = 650;
+    s.aiPatience = 0;
+    s.readyDay = 0;
+    s.warning = 100;
+    nextDay();
+    expect(isEarlyStrike(650)).toBe(true);
+    expect(s.strikeDay).toBe(ww.day(g.ticks()) + EARLY_NOTICE_DAYS);
+    expect(s.warning).toBeGreaterThanOrEqual(100 + EARLY_WARNING);
+    expect(ww.isAtWar(jpn.smallID(), jos.smallID())).toBe(false);
+    const until = s.strikeDay;
+    while (ww.day(g.ticks()) < until) nextDay();
+    nextDay();
+    expect(ww.isAtWar(jpn.smallID(), jos.smallID())).toBe(true);
+    const spirits = (id: number) =>
+      ww.politics.country(id)!.spirits.map((x) => x.id);
+    expect(spirits(jpn.smallID())).toContain(JP_SPIRIT.thinWave);
+    expect(spirits(jos.smallID())).not.toContain(JP_SPIRIT.unready);
+  }, 60_000);
+
   test("the AI strikes only past its bar; the first wave by readiness", async () => {
     const { r, g, ww, jp, s, jpn, jos, nextDay } = await game("JOS");
     step(r, WW_PREP_TICKS + 2);

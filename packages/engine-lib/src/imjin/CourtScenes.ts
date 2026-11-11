@@ -172,6 +172,9 @@ export const IMJIN_COURT_DECISIONS: readonly DecisionDef[] = [
     category: "diplomacy",
     for: ["JOS"],
     visible: not(gflag(IMJIN_GFLAGS.mingRelief)),
+    // ww177 m2: Joseon asks Ming for an army only once Japan has struck;
+    // before the war the envoys filled the meter and Ming came in on day one.
+    available: { kind: "war_days_ge", days: 1 },
     cost: { pp: 25 },
     cooldownDays: 45,
     effects: [{ kind: "set_flag", flag: pickFlag("envoy", "ming") }],

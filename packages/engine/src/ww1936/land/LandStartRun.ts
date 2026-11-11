@@ -189,7 +189,9 @@ export function startLand(land: WwLand): void {
     counts.set(
       cl.smallID,
       oob === null
-        ? genericDivisions(army, dev, first.men)
+        ? // ww177 m2: an Imjin start's army is the men in the field
+          // (Starts.ts), all of them fielded (dev 3 fields 100%).
+          genericDivisions(army, land.ww.imjin ? 3 : dev, first.men)
         : oob.reduce(
             (n, a) => n + a.divisions.reduce((m, [, k]) => m + k, 0),
             0,

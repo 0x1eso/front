@@ -386,6 +386,16 @@ function planInvasion(
       from,
     });
   }
+  // ww177 m2: an Imjin landing is made on the mainland, where the army
+  // can march on (an island like Geoje held a whole army that went nowhere).
+  if (
+    ww.imjin &&
+    cands.some((c) => sc.region(c.target)?.island === undefined)
+  ) {
+    for (let i = cands.length - 1; i >= 0; i--) {
+      if (sc.region(cands[i].target)?.island !== undefined) cands.splice(i, 1);
+    }
+  }
   // ww177 (Imjin design §8): the war's landing goes for the nearest shore
   // (a sea crossing is short and the convoys turn round fast).
   if (ww.imjin && cands.length > 0) {

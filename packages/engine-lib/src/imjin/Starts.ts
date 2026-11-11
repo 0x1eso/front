@@ -5,6 +5,14 @@
 // (artillery) and support (the baggage and engineers). History is the guide,
 // not a script: the numbers are a plausible start, and the state decides
 // the rest.
+//
+// ww177 merge 2: the opening in historical scale. `army` is the men in the
+// field, all fielded (LandStartRun). Japan opens far larger and better
+// armed: about 158,000 crossed in the first invasion, with its arquebus
+// and guns, and Hideyoshi's levies draw on every adult man (all_adults).
+// Joseon's standing force is thin, on the volunteer register; its strength
+// comes later, from mobilisation (its laws), its walls, its navy and the
+// righteous armies.
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import type {
   CountryLaws,
@@ -41,9 +49,9 @@ export const IMJIN_STARTS: Readonly<
       laws: {
         economy: "civilian",
         trade: "limited_exports",
-        conscription: "limited",
+        conscription: "volunteer",
       },
-      army: 45_000,
+      army: 18_000,
       infReserve: 600,
       stock: { artillery: 300, support_equipment: 150, convoy: 60 },
       techs: GUN_TECHS,
@@ -53,11 +61,11 @@ export const IMJIN_STARTS: Readonly<
       laws: {
         economy: "partial_mobilization",
         trade: "export_focus",
-        conscription: "extensive",
+        conscription: "all_adults",
       },
-      army: 120_000,
-      infReserve: 1_500,
-      stock: { artillery: 40, support_equipment: 400, convoy: 500 },
+      army: 110_000,
+      infReserve: 6_000,
+      stock: { artillery: 800, support_equipment: 600, convoy: 500 },
       techs: BASE_TECHS,
       researchSlots: 3,
     },
@@ -67,8 +75,8 @@ export const IMJIN_STARTS: Readonly<
         trade: "closed_economy",
         conscription: "limited",
       },
-      army: 90_000,
-      infReserve: 1_000,
+      army: 27_000,
+      infReserve: 7_300,
       stock: { artillery: 500, support_equipment: 300, convoy: 120 },
       techs: GUN_TECHS,
       researchSlots: 3,
@@ -79,8 +87,8 @@ export const IMJIN_STARTS: Readonly<
         trade: "export_focus",
         conscription: "extensive",
       },
-      army: 12_000,
-      infReserve: 100,
+      army: 6_000,
+      infReserve: 700,
       stock: { support_equipment: 30 },
       techs: BASE_TECHS,
       researchSlots: 2,
@@ -93,9 +101,9 @@ export const IMJIN_STARTS: Readonly<
       laws: {
         economy: "civilian",
         trade: "limited_exports",
-        conscription: "limited",
+        conscription: "volunteer",
       },
-      army: 55_000,
+      army: 22_000,
       infReserve: 800,
       stock: { artillery: 350, support_equipment: 180, convoy: 80 },
       techs: GUN_TECHS,
@@ -105,11 +113,11 @@ export const IMJIN_STARTS: Readonly<
       laws: {
         economy: "war_economy",
         trade: "limited_exports",
-        conscription: "service",
+        conscription: "all_adults",
       },
       army: 160_000,
-      infReserve: 2_500,
-      stock: { artillery: 60, support_equipment: 600, convoy: 700 },
+      infReserve: 4_000,
+      stock: { artillery: 1_200, support_equipment: 900, convoy: 700 },
       techs: BASE_TECHS,
       researchSlots: 3,
     },
@@ -119,8 +127,8 @@ export const IMJIN_STARTS: Readonly<
         trade: "closed_economy",
         conscription: "limited",
       },
-      army: 90_000,
-      infReserve: 1_000,
+      army: 27_000,
+      infReserve: 7_300,
       stock: { artillery: 500, support_equipment: 300, convoy: 120 },
       techs: GUN_TECHS,
       researchSlots: 3,
@@ -131,8 +139,8 @@ export const IMJIN_STARTS: Readonly<
         trade: "export_focus",
         conscription: "extensive",
       },
-      army: 15_000,
-      infReserve: 150,
+      army: 7_500,
+      infReserve: 900,
       stock: { support_equipment: 40 },
       techs: BASE_TECHS,
       researchSlots: 2,
