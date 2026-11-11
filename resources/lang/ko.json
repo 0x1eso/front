@@ -16032,7 +16032,13 @@
         "palestine": "팔레스타인",
         "sea": "바다",
         "straits": "해협",
-        "west": "서부"
+        "west": "서부",
+        "alps": "알프스",
+        "danube": "루마니아",
+        "dobruja": "도브루자",
+        "low_countries": "저지대",
+        "persia": "페르시아",
+        "thrace": "트라키아"
       },
       "threads_title": "오래 끓는 일",
       "topic_count": "지금 꺼낼 이야기 {n}개",
