@@ -1060,7 +1060,11 @@ export class WwFleetCard extends LitElement implements Controller {
       <span class="font-semibold text-red-200"
         >${translateText("imjin.sea.battle_title")}</span
       >
-      <div class="grid grid-cols-2 gap-2">
+      <div
+        class="grid ${this.place.maxWidth >= 520
+          ? "grid-cols-1 gap-0.5"
+          : "grid-cols-2 gap-2"}"
+      >
         ${side(v.sides[0], "us")} ${side(v.sides[1], "them")}
       </div>
       ${current === 0
