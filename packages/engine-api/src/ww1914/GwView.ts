@@ -100,6 +100,11 @@ export interface GwCardView {
   asks?: readonly GwAskView[];
   /** A talk asked from a decision: that card's uid, to go back to. */
   askFrom?: number;
+  /**
+   * ww178: a note's card, when the seat reads the other side's diplomatic
+   * traffic: what it read of their resolve (gw.ui.decrypt_word.<word>).
+   */
+  decrypt?: { tag: GwTag; word: number; stamp: GwStamp };
 }
 
 /** A field of a schedule entry: pick `count` from what it holds. */

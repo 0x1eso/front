@@ -1,15 +1,24 @@
 // ww173 C1-C2 (design ww173 §6): the secret war on fixed states. The
 // offensives and the strain belong to other modules (S7b, S7a): here they are
 // stood in for, with the shapes the interfaces fix.
+import { GW_THEATRES } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GameRunner } from "@openfront/engine/GameRunner";
 import type { GreatWar } from "@openfront/engine/ww1914/GreatWar";
 import { learn } from "@openfront/engine/ww1914/Intel";
+import {
+  ladderAnswer,
+  ladderStep,
+  meansToStand,
+} from "@openfront/engine/ww1914/Ladder";
 import type { GwOffensiveView } from "@openfront/engine/ww1914/Offensives";
 import {
   agentsTaken,
   believedStrain,
+  decryptFor,
   expose,
   intelOf,
+  planEdge,
+  planOf,
   promiseCost,
   spiesStep,
   spyEffect,
@@ -73,7 +82,7 @@ describe("the services", () => {
   test("start values and the heads of the services", () => {
     expect(intelOf(gw, "RUS")).toMatchObject({ crypt: 1, secure: 0 });
     expect(intelOf(gw, "FRA")).toMatchObject({ crypt: 2, secure: 1 });
-    expect(intelOf(gw, "GBR")).toMatchObject({ crypt: 1, counter: 1 });
+    expect(intelOf(gw, "GBR")).toMatchObject({ crypt: 1, counter: 2 });
     const holder = (tag: string) =>
       gw.s.people.find(
         (p) => p.office === "intelligence" && p.id.startsWith(tag),
@@ -215,5 +224,132 @@ describe("abroad", () => {
     expect(spyHolds(gw, st(), "ireland")).toBe(false);
     gw.s.day += 366;
     expect(spyHolds(gw, st(), "ireland")).toBe(true);
+  });
+});
+
+describe("in peace (ww178)", () => {
+  /** No war yet: the services work on their rivals. */
+  function peace(): void {
+    gw.s.chapter += 1;
+    expect(gw.s.warChapter).toBeNull();
+    expect(gw.nation("DEU")!.atWar).toEqual([]);
+  }
+  const mine = (fact: string) =>
+    gw.s.reports.filter((r) => r.smallID === st().smallID && r.fact === fact);
+
+  test("a net in a rival reports its war plan, and the plan read pays in the war's first month", () => {
+    peace();
+    intelOf(gw, "DEU").net = { FRA: 2 };
+    for (let i = 0; i < 4 && mine("plan").length === 0; i++) {
+      gw.s.chapter += 1;
+      spiesStep(gw);
+    }
+    const r = mine("plan")[0];
+    expect(r).toMatchObject({ tag: "FRA", source: "agents", theatre: null });
+    expect(r.truth).toBe(GW_THEATRES.indexOf(planOf(gw, "FRA")!));
+    // France's service read Germany's plan in peace; the war comes west.
+    intelOf(gw, "FRA").heard.push({
+      fact: "plan",
+      tag: "DEU",
+      theatre: null,
+      claim: GW_THEATRES.indexOf("west"),
+      chapter: gw.s.chapter,
+    });
+    war();
+    expect(planOf(gw, "DEU")).toBe("west");
+    expect(planEdge(gw, "west", "entente")).toBeGreaterThan(0);
+    expect(planEdge(gw, "west", "central")).toBeLessThan(0);
+  });
+
+  test("a read code tells the seat a note is a bluff; calling it raises suspicion", () => {
+    peace();
+    intelOf(gw, "DEU").crypt = 3;
+    expect(intelOf(gw, "RUS").secure).toBe(0);
+    // Find a note Russia would not press: a bluff, read as one.
+    let found = false;
+    for (let k = 0; k < 40 && !found; k++) {
+      gw.s.ladders = [
+        {
+          from: "RUS",
+          to: "DEU",
+          step: "sent",
+          opened: gw.s.chapter,
+          chapter: gw.s.chapter,
+        },
+      ];
+      spiesStep(gw);
+      const r = mine("resolve").slice(-1)[0];
+      expect(r).toMatchObject({ tag: "RUS", source: "codes" });
+      expect(r.truth).toBe(meansToStand(gw, gw.s.ladders[0], "RUS"));
+      if (r.stamp !== "unconfirmed") expect(r.claim).toBe(r.truth);
+      found = r.truth === 0 && r.claim === 0 && r.chapter === gw.s.chapter;
+      if (!found) gw.s.chapter += 1;
+    }
+    expect(found).toBe(true);
+    // The note's card says it, with the stamp.
+    expect(decryptFor(gw, st())).toMatchObject({ tag: "RUS", word: 0 });
+    ladderAnswer(gw, st(), false);
+    expect(intelOf(gw, "RUS").suspect.DEU).toBe(1);
+    gw.s.chapter += 1;
+    ladderStep(gw);
+    expect(gw.s.ladders[0].step).toBe("backed_down");
+  });
+
+  test("a ring is caught in peace, and rolled up on mobilisation day", () => {
+    peace();
+    intelOf(gw, "DEU").counter = 2;
+    intelOf(gw, "FRA").net = { DEU: 1 };
+    const temp = gw.s.temp;
+    for (let i = 0; i < 400 && intelOf(gw, "FRA").net.DEU !== undefined; i++) {
+      gw.s.chapter += 1;
+      spiesStep(gw);
+    }
+    expect(intelOf(gw, "FRA").net.DEU).toBeUndefined();
+    expect(gw.s.news).toContainEqual(
+      expect.objectContaining({ key: "spy_exposed", a: "DEU", b: "FRA" }),
+    );
+    expect(gw.s.temp).toBeGreaterThan(temp);
+    expect(gw.nation("DEU")!.trust.FRA).toBeLessThan(0);
+    // Kell's MI5: Britain mobilises and takes every German ring at once.
+    expect(intelOf(gw, "GBR").counter).toBe(2);
+    intelOf(gw, "DEU").net = { GBR: 2 };
+    gw.nation("GBR")!.mob = 2;
+    spiesStep(gw);
+    expect(intelOf(gw, "DEU").net.GBR).toBeUndefined();
+    expect(gw.s.news.slice(-1)[0]).toMatchObject({
+      key: "spy_rolled_up",
+      a: "GBR",
+    });
+  });
+
+  test("what peace's services hold never reaches the seat's view", () => {
+    peace();
+    intelOf(gw, "DEU").crypt = 3;
+    intelOf(gw, "DEU").net = { RUS: 2, FRA: 1 };
+    intelOf(gw, "RUS").net = { DEU: 2 };
+    intelOf(gw, "FRA").heard.push({
+      fact: "plan",
+      tag: "DEU",
+      theatre: null,
+      claim: 0,
+      chapter: gw.s.chapter,
+    });
+    for (let i = 0; i < 3; i++) {
+      gw.s.chapter += 1;
+      spiesStep(gw);
+    }
+    const v = worldView(gw, st());
+    expect(v.reports.length).toBeGreaterThan(0);
+    const text = JSON.stringify(v);
+    for (const hidden of [
+      '"truth"',
+      '"intel"',
+      '"crypt"',
+      '"heard"',
+      '"suspect"',
+      '"net"',
+    ]) {
+      expect(text).not.toContain(hidden);
+    }
   });
 });

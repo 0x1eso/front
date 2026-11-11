@@ -1,5 +1,6 @@
 import {
   GW_LINES,
+  GW_THEATRES,
   GwFactKind,
   GwMemoir,
   GwNews,
@@ -437,6 +438,11 @@ export function frontLine(t: GwTheatre, line: string | number): string {
 
 /** What a fact's value reads as ("총동원"). */
 export function factText(fact: GwFactKind, value: number): string {
+  // ww178: a war plan names the front its main force goes to.
+  const plan = fact === "plan" ? GW_THEATRES[value] : undefined;
+  if (plan !== undefined) {
+    return translateText("gw.ui.fact_plan_to", { theatre: theatreName(plan) });
+  }
   return textOrNull(`gw.fact.${fact}.${value}`) ?? String(value);
 }
 

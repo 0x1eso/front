@@ -70,7 +70,7 @@ import { plotEffect, plotHolds } from "./Plots";
 import { changeRegime, regimeRow } from "./Regimes";
 import { SceneCtx, whoIn } from "./SceneRun";
 import { setUboats } from "./Sea";
-import { spyEffect, spyHolds } from "./Spies";
+import { atPeace, spyEffect, spyHolds } from "./Spies";
 import { collapseHolds } from "./Stalemate";
 import { enter, leaveWar } from "./Wars";
 import { clampTo, lastOf, moveGauge, news, reason } from "./World";
@@ -305,6 +305,7 @@ export function worldHolds(ctx: SceneCtx, c: GwWorldCond): boolean {
     case "offensive":
       return offensiveHolds(gw, seat.tag, c);
     case "spy":
+      if (c.peace === true && !atPeace(gw, seat.tag)) return false;
       return spyHolds(gw, seat, c.can, c.tag);
   }
 }

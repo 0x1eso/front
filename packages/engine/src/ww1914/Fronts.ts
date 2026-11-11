@@ -42,7 +42,13 @@ import {
   signOffensivePaper,
 } from "./Offensives";
 import { officeHolder, recordResult } from "./People";
-import { believedPrep, believedStrain, foeOn, strainWord } from "./Spies";
+import {
+  believedPrep,
+  believedStrain,
+  foeOn,
+  planEdge,
+  strainWord,
+} from "./Spies";
 import { collapseAnswers, pressureStep } from "./Stalemate";
 import {
   easeStrain,
@@ -369,6 +375,11 @@ function commandOf(gw: GreatWar, t: GwTheatreState, side: GwSide): number {
 
 /** The first weeks' plan and the world's secrets, percent. */
 function openingBias(gw: GreatWar, t: GwTheatre, by: GwSide): number {
+  return planBias(gw, t, by) + planEdge(gw, t, by);
+}
+
+/** The plans of August: the first chapters run on what was drawn in peace. */
+function planBias(gw: GreatWar, t: GwTheatre, by: GwSide): number {
   const s = gw.s;
   const first =
     s.warChapter !== null && s.chapter <= s.warChapter + OPENING_CHAPTERS;

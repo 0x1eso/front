@@ -23,6 +23,11 @@ import type { GwScene } from "@openfront/engine-api/ww1914/SceneDsl";
 import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
 import {
+  GW_LADDER_LAST,
+  GW_LADDER_NOTE,
+  GW_LADDER_REFUSED,
+} from "@openfront/engine-lib/ww1914/content/ladder";
+import {
   GW_BIG_SCENE_PLACES,
   sceneNear,
 } from "@openfront/engine-lib/ww1914/PlaceRules";
@@ -52,6 +57,7 @@ import {
 } from "./SceneRun";
 import { isHost } from "./Seats";
 import { backOpen, backWho } from "./SendBack";
+import { decryptFor } from "./Spies";
 import { inOpening, newcomers } from "./Story";
 import { tableView } from "./Table";
 import { GW_HIDE_UNMET } from "./Tables";
@@ -124,7 +130,21 @@ function cardView(
     ...(scene.prologue === undefined ? {} : { past: scene.prologue }),
     ...(letterFrom === undefined ? {} : { letterFrom }),
     ...asksOf(gw, seat, c),
+    ...decryptOf(gw, seat, c.scene),
   };
+}
+
+/** ww178: a note's card carries what the code-breakers read of the other side. */
+function decryptOf(
+  gw: GreatWar,
+  seat: GwSeatState,
+  scene: string,
+): Pick<GwCardView, "decrypt"> {
+  if (![GW_LADDER_NOTE, GW_LADDER_REFUSED, GW_LADDER_LAST].includes(scene)) {
+    return {};
+  }
+  const d = decryptFor(gw, seat);
+  return d === null ? {} : { decrypt: d };
 }
 
 /** What can be asked from a decision first, and where an asked talk goes back to. */

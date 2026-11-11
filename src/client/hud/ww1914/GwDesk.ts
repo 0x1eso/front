@@ -500,6 +500,18 @@ function threadBox(
   </div>`;
 }
 
+/** ww178: "외무부 해독: 저쪽은 물러설 생각이 없다 — 추정", on a note's card. */
+function decryptLine(card: GwCardView): TemplateResult | typeof nothing {
+  const d = card.decrypt;
+  if (d === undefined) return nothing;
+  return html`<p class=${MUTED} data-gw-decrypt>
+    ${translateText("gw.ui.decrypt_line", {
+      word: translateText(`gw.ui.decrypt_word.${d.word}`),
+      stamp: translateText(`gw.ui.stamp.${d.stamp}`),
+    })}
+  </p>`;
+}
+
 /** The reader: the whole document, the voices around the table, the options. */
 export function reader(c: GwCtx, card: GwCardView): TemplateResult {
   if (card.silent === true) return silentPage(c, card);
@@ -569,6 +581,7 @@ export function reader(c: GwCtx, card: GwCardView): TemplateResult {
         ${after === null
           ? nothing
           : html`<p class="text-white/70" data-gw-broken-line>${after}</p>`}
+        ${decryptLine(card)}
       </div>
       ${card.scene.startsWith("gw_bm_") ? budgetStrip(c) : nothing}
       ${card.scene.startsWith("gw_lv_") ? lawStrip(c, card.scene) : nothing}

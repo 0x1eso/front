@@ -1,4 +1,5 @@
 import {
+  GW_THEATRES,
   GwFactKind,
   GwReport,
   GwSeatState,
@@ -11,7 +12,14 @@ import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { allocOf } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { offensivesOf } from "./Offensives";
-import { intelOf, spiesStep, strainWord } from "./Spies";
+import {
+  intelOf,
+  planOf,
+  resolveTruth,
+  spiesStep,
+  strainWord,
+  treatyTruth,
+} from "./Spies";
 import { strainOf } from "./Strain";
 import { clampTo, reason } from "./World";
 
@@ -59,6 +67,17 @@ export function factTruth(
         : 0;
     case "strain":
       return t === null ? 0 : strainWord(strainOf(gw, t, tag));
+    // ww178: peace's facts (Spies).
+    case "resolve":
+      return resolveTruth(gw, tag);
+    case "plan": {
+      const p = planOf(gw, tag);
+      return p === null ? 0 : GW_THEATRES.indexOf(p);
+    }
+    case "treaty":
+      return treatyTruth(gw, tag);
+    case "unrest":
+      return n.unrest;
     // Filed by their own systems (House, S2), never sent through here.
     case "count":
     case "plot":
@@ -87,6 +106,10 @@ function wrongClaim(
     ally: [0, 2],
     prep: [0, 1],
     strain: [0, 4],
+    resolve: [0, 1],
+    plan: [0, GW_THEATRES.length - 1],
+    treaty: [0, 1],
+    unrest: [0, 4],
   };
   const [lo, hi] = bounds[fact];
   const moved = clampTo(truth + (up ? 1 : -1), lo, hi);
@@ -173,9 +196,9 @@ function stampOf(
 export function learn(
   gw: GreatWar,
   viewer: GwTag,
-  fact: "prep" | "strain",
+  fact: GwFactKind,
   tag: GwTag,
-  theatre: GwTheatre,
+  theatre: GwTheatre | null,
   source: GwSource,
   force?: GwReportForce,
   onlyWrong = false,
@@ -191,7 +214,8 @@ export function learn(
     return r.claim;
   }
   const n = gw.nation(viewer);
-  if (n === null) return null;
+  // ww178: an AI keeps only what it acts on.
+  if (n === null || !isHeard(fact)) return null;
   const uid = s.nextReport++;
   const truth = factTruth(gw, fact, tag, theatre);
   const { wrong } = stampOf(gw, source, uid, force);
@@ -200,6 +224,10 @@ export function learn(
   heardBy(gw, viewer).push({ fact, tag, theatre, claim, chapter: s.chapter });
   return claim;
 }
+
+const HEARD_FACTS = ["prep", "strain", "resolve", "plan"] as const;
+const isHeard = (f: GwFactKind): f is (typeof HEARD_FACTS)[number] =>
+  (HEARD_FACTS as readonly string[]).includes(f);
 
 /** Lines an AI service keeps: the newest win. */
 const HEARD_KEPT = 12;

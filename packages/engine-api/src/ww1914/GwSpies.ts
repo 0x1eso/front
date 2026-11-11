@@ -22,11 +22,12 @@ export type GwSpyAct = (typeof GW_SPY_ACTS)[number];
  * What a condition asks. The acts: whether the seat can order it now (with
  * `tag` for net, sabotage, court). ok / out: how its last operation went (out:
  * found out). from: a caught agent waits whose sender is `tag`. reading: the
- * seat reads `tag`'s codes. ship: the Irish arms ship was read and taken.
+ * seat reads `tag`'s codes (anyone's without a tag). ship: the Irish arms ship was read and taken.
  * exposed: the seat's agents were taken and named lately, by anyone's
  * counter-intelligence (in `tag` when given), not only its last operation.
  * codebook: the Baltic codebook touched the seat's country (Germany lost it;
  * Britain or Russia got it). sealed: Germany sent the exiles home to Russia.
+ * With `peace` (ww178) any of them holds only while the seat is at peace.
  */
 export const GW_SPY_CANS = [
   "net",

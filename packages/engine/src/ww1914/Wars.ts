@@ -353,7 +353,7 @@ function transfers(gw: GreatWar, out: GwTag): void {
 }
 
 /** Germany nobody plays still has its generals: most go west, not all. */
-function germanPlan(gw: GreatWar): GwPlan {
+export function germanPlan(gw: GreatWar): GwPlan {
   const deu = gw.nation("DEU");
   if (deu === null || gw.s.seats.some((x) => x.tag === "DEU")) return "west";
   const east = { cautious: 25, principled: 15, opportunist: 10, hardline: 0 };
@@ -513,18 +513,14 @@ function honours(
   age: number,
 ): boolean {
   const s = gw.s;
-  const n = gw.nation(row.by)!;
   if (ruledBySeat(gw, row.by)) {
     if (s.warChapter === s.chapter) return true;
     for (const seat of seatsOf(gw, row.by)) reason(gw, seat, "treaty_calls");
     return false;
   }
-  if (row.by === "ROU" && s.secrets.includes("rou_treaty_dead")) return false;
   // The first answer counts most: a partner that let the war start alone
   // rarely finds its courage a month later.
-  let pct = row.pct + HONOUR_BY_AI[n.ai] - age * 25;
-  if (n.unrest >= 2) pct -= 20;
-  if (row.kind === "protector" && s.temp >= 6) pct += 10;
+  const pct = honourPct(gw, row) - age * 25;
   const roll =
     wwRoll(
       s.seed,
@@ -534,6 +530,23 @@ function honours(
       idHash(foe),
     ) % 100;
   return roll < pct;
+}
+
+/**
+ * The percent a government nobody plays honours `row` when first called (a
+ * seat always does in the war's first chapter). ww178: what a rival's
+ * diplomatic traffic tells of it.
+ */
+export function honourPct(gw: GreatWar, row: GwStartTreaty): number {
+  const s = gw.s;
+  const n = gw.nation(row.by);
+  if (n === null || n.out) return 0;
+  if (ruledBySeat(gw, row.by)) return 100;
+  if (row.by === "ROU" && s.secrets.includes("rou_treaty_dead")) return 0;
+  let pct = row.pct + HONOUR_BY_AI[n.ai];
+  if (n.unrest >= 2) pct -= 20;
+  if (row.kind === "protector" && s.temp >= 6) pct += 10;
+  return pct;
 }
 
 /** `by` comes in at `of`'s side against `foe`. */
