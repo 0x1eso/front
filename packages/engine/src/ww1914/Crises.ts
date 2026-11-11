@@ -1,13 +1,16 @@
 import {
   GW_FRONT_UP,
+  GW_LADDER_OPEN,
   GW_TEMP_MAX,
   GW_TOPICS,
   GwChainOutcome,
+  GwNationState,
   GwSeatState,
   GwTheatre,
   GwTopic,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
+import { budgetRow } from "@openfront/engine-lib/ww1914/BudgetRules";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import type { GreatWar } from "./GreatWar";
 import { ladderTargets, sendNote } from "./Ladder";
@@ -26,6 +29,7 @@ import {
 
 const P_CRISIS = idHash("gw_crisis");
 const P_SPARK = idHash("gw_spark");
+const P_DRIFT = idHash("gw_temp_drift");
 
 /** July's links, one a chapter. Scenes read them with world cond `chain`. */
 export const GW_LINKS = [
@@ -87,11 +91,39 @@ const NOTE_PAIRS: Readonly<
     ["OTT", "RUS"],
     ["GRC", "OTT"],
     ["OTT", "GRC"],
+    // Petersburg and Berlin over a German general at Constantinople, as in
+    // the Liman von Sanders affair of 1913.
+    ["RUS", "DEU"],
   ],
 };
 
+/** At this heat a spark's note goes first between two great powers (ww179). */
+const EDGE_AT = 8;
+
+/** A later spark's own step, by a roll of six: rarely down, now and then up. */
+const SHORT_MOVES = [-1, 0, 0, 0, 0, 1] as const;
+
 /** Calm crises in a row past the first that push the next spark a chapter on. */
 const CALM_GAP_MAX = 3;
+
+/**
+ * What heats the world between crises (ww179), each read off the state: a
+ * great power arming, a great power in the streets, notes going round, a
+ * small war (or else a treaty leaked), agents caught, a question long
+ * unsettled. The news key is `heat_<cause>`.
+ */
+type HeatCause =
+  | "arms"
+  | "unrest"
+  | "notes"
+  | "incident"
+  | "leak"
+  | "spies"
+  | "question";
+/** Chapters a note, an incident or a spy affair keeps the world hot. */
+const HEAT_FRESH = 2;
+/** In four, the chance no cause, one, two, three, four or more raise it a step. */
+const HEAT_ODDS = [0, 1, 1, 2, 3] as const;
 
 const TEMP_BY_OPENING = {
   sarajevo: 3,
@@ -103,6 +135,69 @@ const TEMP_BY_OPENING = {
 
 function heat(gw: GreatWar, delta: number): void {
   gw.s.temp = clampTo(gw.s.temp + delta, 0, GW_TEMP_MAX);
+}
+
+/** It spends more on its army and fleet than it did in June 1914. */
+function arming(n: GwNationState): boolean {
+  const peace = budgetRow(n.tag).peace;
+  const now = n.budget.plan.shares;
+  return (now[0] ?? 0) + (now[1] ?? 0) > (peace[0] ?? 0) + (peace[1] ?? 0);
+}
+
+/** What heats the world now, each with who it is about (news `heat_*`). */
+function heatCauses(
+  gw: GreatWar,
+): { cause: HeatCause; a: GwTag | null; b: GwTag | null }[] {
+  const s = gw.s;
+  const out: { cause: HeatCause; a: GwTag | null; b: GwTag | null }[] = [];
+  const fresh = (chapter: number) => s.chapter - chapter <= HEAT_FRESH;
+  const great = s.nations.filter((n) => !n.out && GW_GREAT.includes(n.tag));
+  const arms = great.find((n) => n.mob >= 1 || arming(n));
+  if (arms !== undefined) out.push({ cause: "arms", a: arms.tag, b: null });
+  const streets = great.find((n) => n.unrest >= 2);
+  if (streets !== undefined) {
+    out.push({ cause: "unrest", a: streets.tag, b: null });
+  }
+  const note = s.ladders.find(
+    (l) => fresh(l.opened) || GW_LADDER_OPEN.includes(l.step),
+  );
+  if (note !== undefined) {
+    out.push({ cause: "notes", a: note.from, b: note.to });
+  }
+  const war = s.wars.find((w) => w.ended === null);
+  const leak = s.news.find(
+    (x) => x.key === "treaty_leaked" && fresh(x.chapter),
+  );
+  if (war !== undefined) out.push({ cause: "incident", a: war.a, b: war.b });
+  else if (leak !== undefined) {
+    out.push({ cause: "leak", a: leak.a, b: leak.b });
+  }
+  const spy = s.news.find((x) => x.key === "spy_exposed" && fresh(x.chapter));
+  if (spy !== undefined) out.push({ cause: "spies", a: spy.a, b: spy.b });
+  if (SPARK_TOPICS.some((t) => s.pressure[t] >= SPARK_AT)) {
+    out.push({ cause: "question", a: null, b: null });
+  }
+  return out;
+}
+
+/**
+ * Between crises the world grows hotter by its state (ww179), a step at a
+ * time, and nothing cools it but what somebody does: a pick that costs, a
+ * mediation, a note given way to or a climb-down. A crisis, July's or a
+ * later one, runs on its links.
+ */
+function drift(gw: GreatWar): void {
+  const s = gw.s;
+  if (s.chain !== null) return;
+  if (s.chains.length === 0 && s.opening !== "no_sarajevo") return;
+  if (s.temp >= GW_TEMP_MAX) return;
+  const causes = heatCauses(gw);
+  if (causes.length === 0) return;
+  const odds = HEAT_ODDS[Math.min(causes.length, HEAT_ODDS.length - 1)];
+  if (wwRoll(s.seed, P_DRIFT, s.chapter) % 4 >= odds) return;
+  const pick = causes[wwRoll(s.seed, P_DRIFT, s.chapter, 1) % causes.length];
+  heat(gw, 1);
+  news(gw, `heat_${pick.cause}`, pick.a, pick.b);
 }
 
 /** The opening's crisis, or the wait for a later spark. */
@@ -132,7 +227,11 @@ function setSpark(gw: GreatWar, from: number): void {
   // The world stays restless, but calm after calm lets the gap grow (ww176).
   let calm = 0;
   for (let i = n - 1; i >= 0 && s.chains[i].outcome !== "war"; i--) calm++;
-  const later = Math.min(CALM_GAP_MAX, Math.max(0, calm - 1));
+  // A world still hot after it (ww179) does not wait longer.
+  const later =
+    s.temp >= GENERAL_WAR_AT
+      ? 0
+      : Math.min(CALM_GAP_MAX, Math.max(0, calm - 1));
   s.spark = {
     topic: pick % 2 === 0 ? hottest[0] : topics[pick % 3],
     chapter: from + later + (wwRoll(s.seed, P_SPARK, n, 1) % 4),
@@ -194,8 +293,10 @@ export function closeChain(
     openWar(gw);
     return;
   }
-  // It cools, the grudge stays, and the next spark is on its way.
-  s.temp = Math.floor(s.temp / 2);
+  // The grudge stays, and the next spark is on its way. It cools a step
+  // (ww179), two when a side stood aside; a crisis that closes into a note
+  // does not cool at all.
+  if (!quiet) heat(gw, outcome === "humiliation" ? -2 : -1);
   s.pressure[c.topic] += 2;
   setSpark(gw, s.chapter + 3);
 }
@@ -205,7 +306,9 @@ function moves(gw: GreatWar, link: number): number {
   const s = gw.s;
   const kind = (t: "AUH" | "RUS" | "GBR" | "FRA" | "DEU") =>
     ruledBySeat(gw, t) ? undefined : gw.nation(t)?.ai;
-  let d = (wwRoll(s.seed, P_CRISIS, s.chapter) % 3) - 1;
+  const roll = wwRoll(s.seed, P_CRISIS, s.chapter);
+  // A later spark rarely cools by itself (ww179): one link in six.
+  let d = s.chain?.short === true ? SHORT_MOVES[roll % 6] : (roll % 3) - 1;
   if (link === 1 && kind("AUH") === "hardline") d++;
   if (link === 1 && kind("AUH") === "cautious") d--;
   if (link === 2 && s.secrets.includes("srb_officers_plot")) d++;
@@ -310,6 +413,10 @@ function sparkNote(gw: GreatWar, topic: GwTopic): void {
       ladderTargets(gw, from).includes(to) &&
       (ruledBySeat(gw, from) || !notedLately(gw, from)),
   );
+  // At the edge the great powers face each other first (ww179).
+  const great = ([a, b]: readonly [GwTag, GwTag]) =>
+    GW_GREAT.includes(a) && GW_GREAT.includes(b) ? 0 : 1;
+  if (s.temp >= EDGE_AT) pairs.sort((x, y) => great(x) - great(y));
   const pair =
     pairs.find(([from]) => !ruledBySeat(gw, from)) ?? pairs[0] ?? null;
   if (pair === null) return closeChain(gw, "compromise");
@@ -388,6 +495,7 @@ export function crisisStep(gw: GreatWar): void {
   const s = gw.s;
   readSignatures(gw);
   if (s.warChapter !== null) return;
+  drift(gw);
   if (isLongChapter(gw)) {
     for (const t of GW_TOPICS) s.pressure[t]++;
   }

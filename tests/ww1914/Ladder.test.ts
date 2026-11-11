@@ -181,6 +181,62 @@ describe("the crisis ladder", () => {
     }
     expect(gw.s.wars.some((w) => w.cause === "july")).toBe(false);
   });
+
+  test("between crises the heat rises from the state and does not fall by itself (ww179)", () => {
+    julyPassed();
+    // A calm crisis cools a step, no longer by half.
+    gw.s.chain = { topic: "balkan", step: 4, hold: 0, short: true };
+    gw.s.temp = 7;
+    closeChain(gw, "compromise");
+    expect(gw.s.temp).toBe(6);
+    const quiet = () => {
+      gw.s.spark = { topic: "balkan", chapter: 99 };
+      for (const n of gw.s.nations) {
+        n.mob = 0;
+        n.unrest = 0;
+        n.budget.plan.shares = [0, 0, 100, 0, 0];
+      }
+      for (const t of ["straits", "colonial", "balkan"] as const) {
+        gw.s.pressure[t] = 0;
+      }
+    };
+    // Nothing heats it: six chapters on it stands where it was.
+    const from = gw.s.chapter;
+    for (let i = 1; i <= 6; i++) {
+      quiet();
+      gw.s.chapter = from + i;
+      crisisStep(gw);
+    }
+    expect(gw.s.temp).toBe(6);
+    expect(gw.s.news.some((x) => x.key.startsWith("heat_"))).toBe(false);
+    // Armies on foot, streets out, the Balkans unsettled: it climbs.
+    const temps: number[] = [];
+    for (let i = 0; i < 6; i++) {
+      quiet();
+      gw.nation("RUS")!.mob = 1;
+      gw.nation("AUH")!.unrest = 2;
+      gw.s.pressure.balkan = 9;
+      gw.s.chapter = from + 1 + i;
+      crisisStep(gw);
+      temps.push(gw.s.temp);
+    }
+    expect(temps.every((t, i) => t >= (temps[i - 1] ?? 6))).toBe(true);
+    expect(gw.s.temp).toBeGreaterThanOrEqual(8);
+    expect(gw.s.news.some((x) => x.key.startsWith("heat_"))).toBe(true);
+    // At the edge an AI gives way less readily.
+    gw.s.ladders.push({
+      from: "AUH",
+      to: "SRB",
+      step: "sent",
+      opened: gw.s.chapter,
+      chapter: gw.s.chapter,
+    });
+    const l = gw.s.ladders[0];
+    gw.s.temp = 4;
+    const cool = yieldOdds(gw, l);
+    gw.s.temp = 10;
+    expect(yieldOdds(gw, l)).toBeLessThan(cool);
+  });
 });
 
 describe("conditions by state", () => {
