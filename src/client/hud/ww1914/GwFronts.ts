@@ -319,7 +319,7 @@ function offensivePicks(c: GwCtx, p: GwProposal): TemplateResult {
         (m) =>
           html`<p class=${MUTED}>
             ${translateText(`gw.ui.off_method.${m.method}`)}:
-            ${planWhy(c.seat.tag, m.why)}
+            ${planWhy(c.seat.tag, m.why ?? "")}
           </p>`,
       )}
     <div class=${MUTED}>${translateText("gw.ui.off_months_head")}</div>
@@ -475,7 +475,7 @@ function paper(c: GwCtx, p: GwProposal): TemplateResult {
           ${translateText("gw.ui.sign")}
         </button>`
       : html`<p class=${MUTED} data-gw-paper-why>
-          ${planWhy(c.seat.tag, p.why)}
+          ${planWhy(c.seat.tag, p.why ?? "")}
         </p>`}
   </div>`;
 }
