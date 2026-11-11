@@ -671,9 +671,7 @@ export const GwCardSchema = z.object({
    * A talk asked from a decision (ww172): that card's uid, and the tick it was
    * asked at. The chapter's clock waits while it runs. Absent otherwise.
    */
-  ask: z
-    .object({ from: z.number().int(), at: z.number().int() })
-    .optional(),
+  ask: z.object({ from: z.number().int(), at: z.number().int() }).optional(),
 });
 export type GwCard = z.infer<typeof GwCardSchema>;
 

@@ -400,11 +400,7 @@ function optionButton(
  * "먼저 묻는다": the talk that may open a locked option, called from here. The
  * name only: what the talk brings shows when it is over, back on this card.
  */
-function askButton(
-  c: GwCtx,
-  card: GwCardView,
-  a: GwAskView,
-): TemplateResult {
+function askButton(c: GwCtx, card: GwCardView, a: GwAskView): TemplateResult {
   return html`<div class="space-y-0.5 pl-3">
     <button
       class="${BTN} w-full border-dashed"

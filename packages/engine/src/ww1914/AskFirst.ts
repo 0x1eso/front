@@ -3,10 +3,16 @@
 // once, past its own window, at a summons' price, and the decision waits for
 // it with the chapter's clock held. Also: a talk whose keys nobody will read
 // again, and that leaves nothing else, no longer comes (spentTalk).
-import { GwCard, GwSeatState } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import {
+  GwCard,
+  GwSeatState,
+} from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwOrderBlock } from "@openfront/engine-api/ww1914/GwOrders";
 import type { GwScene } from "@openfront/engine-api/ww1914/SceneDsl";
-import { gwAskIndex, gwMemoryKeys } from "@openfront/engine-lib/ww1914/AskIndex";
+import {
+  gwAskIndex,
+  gwMemoryKeys,
+} from "@openfront/engine-lib/ww1914/AskIndex";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
 import { makeCard, placeCard } from "./Desk";
 import type { GreatWar } from "./GreatWar";
@@ -128,7 +134,10 @@ export function askFirst(
   const card = seat.desk.find((c) => c.uid === uid);
   if (card === undefined) return "no_card";
   const talk = sceneOf(topic);
-  if (talk === null || !askOffers(gw, seat, card).some((x) => x.topic === topic)) {
+  if (
+    talk === null ||
+    !askOffers(gw, seat, card).some((x) => x.topic === topic)
+  ) {
     return "no_topic";
   }
   const price = summonPrice(seat, talk, topic);

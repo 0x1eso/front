@@ -4,10 +4,7 @@ import {
   GwOrderBlock,
   GwOrderSchema,
 } from "@openfront/engine-api/ww1914/GwOrders";
-import {
-  GW_READ_ONLY_KINDS,
-  GwScene,
-} from "@openfront/engine-api/ww1914/SceneDsl";
+import { GW_READ_ONLY_KINDS } from "@openfront/engine-api/ww1914/SceneDsl";
 import { zPlayerRef } from "@openfront/engine-lib/snapshot/SnapshotType";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
 import { GW_PREMIER_PICKS } from "@openfront/engine-lib/ww1914/StoryRows";
@@ -265,7 +262,6 @@ export function openTopics(
     )
     .map(({ x }) => x.id);
 }
-
 
 function ownPerson(seat: GwSeatState, id: string): boolean {
   if (id === seatPerson(seat)) return false;
