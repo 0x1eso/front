@@ -122,6 +122,7 @@ export function splitFleet(
     ambush: 0,
     lurk: 0,
   };
+  delete nf.lureTo;
   f.ships = f.ships.filter((id) => !moving.includes(id));
   for (const id of moving) idx.get(id)!.fleet = nf.id;
   st.fleets.push(nf);
@@ -197,8 +198,8 @@ export function strategicStep(
       if (f.fleeing) {
         f.fleeing = 0;
         f.morale = Math.max(f.morale, MORALE_RALLY);
-        rejoin(st, f, idx);
       }
+      rejoin(st, f, idx);
     }
   }
   f.still = f.x === x0 && f.y === y0 ? f.still + 1 : 0;
@@ -235,6 +236,14 @@ export function strategicStep(
       s.y += Math.trunc((dy * step) / d);
       s.heading = angleOf(dx, dy);
     }
+    // ww177 I5b: the straight run to the slot may cross a headland; a ship
+    // never stops on land (a battle would find it there and it could not
+    // move again): it keeps to the flagship's wake instead.
+    const st2 = tileAt(ctx, s.x, s.y);
+    if (st2 < 0 || !ctx.isWater(st2)) {
+      s.x = f.x;
+      s.y = f.y;
+    }
     s.tx = s.x;
     s.ty = s.y;
   }
@@ -242,7 +251,8 @@ export function strategicStep(
 
 /**
  * ww177 m2: ships that fled one by one (no admiral aboard) join a friendly
- * fleet lying within 3 tiles of the port they reach.
+ * fleet lying within 3 tiles of the port they reach; I5b: so does any
+ * fleet without an admiral that ends a voyage there.
  */
 function rejoin(st: SeaState, f: SeaFleet, idx: Map<number, SeaShip>): void {
   if (f.admiral.alive) return;

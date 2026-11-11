@@ -117,6 +117,13 @@ function join(st: SeaState, ctx: SeaCtx, f: SeaFleet, b: SeaBattle): void {
   f.pathIdx = 0;
   for (const s of st.ships) {
     if (s.fleet !== f.id) continue;
+    // ww177 I5b: a ship found on land (an old slot run over a headland)
+    // starts the battle in the fleet's wake, where it can sail.
+    const t = tileAt(ctx, s.x, s.y);
+    if (t < 0 || !ctx.isWater(t)) {
+      s.x = f.x;
+      s.y = f.y;
+    }
     s.tx = s.x;
     s.ty = s.y;
   }
@@ -419,6 +426,7 @@ function tacticalFleet(
   } else if ((f.order === "move" || f.order === "lure") && f.target >= 0) {
     flagTarget = tileCentre(ctx, f.target);
   }
+  flagTarget = aroundLand(L, f, flag, flagTarget);
 
   const pursued = near !== null && dist(flag, near) <= GUN_RANGE_MT;
   const radius = commandRadiusMt(f.admiral.alive ? f.admiral.tactics : 0);
@@ -463,6 +471,93 @@ function tacticalFleet(
   f.y = lead.y;
   f.heading = lead.heading;
   f.still = f.x === x0 && f.y === y0 ? f.still + 1 : 0;
+}
+
+/** Ticks a flagship must have stood still before it looks for a way round. */
+const DETOUR_STILL_TICKS = 3;
+/** A waypoint counts as reached this close; the flagship steers this many tiles ahead (wider than its turning circle). */
+const DETOUR_REACH_MT = 1500;
+const DETOUR_AHEAD = 3;
+
+/**
+ * ww177 I5b: a flagship whose straight course is blocked by land (an
+ * island, a headland) follows the water A* to its aim instead of standing
+ * against the shore for the rest of the battle; the detour lives in the
+ * fleet's path while in battle (join and leave clear it). It steers a few
+ * tiles ahead on the path; the detour is dropped once the aim moves 3 tiles off
+ * its end or the flagship reaches it.
+ */
+/** Every half tile on the straight line from a ship to a point is water it may enter. */
+function clearWater(ctx: SeaCtx, s: SeaShip, p: Pt): boolean {
+  const stats = shipStats(s.kind);
+  const n = Math.ceil((2 * dist(s, p)) / MT);
+  for (let k = 1; k <= n; k++) {
+    const t = tileAt(
+      ctx,
+      s.x + Math.trunc(((p.x - s.x) * k) / n),
+      s.y + Math.trunc(((p.y - s.y) * k) / n),
+    );
+    if (t < 0 || !ctx.isWater(t) || !canEnter(stats, ctx.flags(t).shoal))
+      return false;
+  }
+  return true;
+}
+
+function aroundLand(L: Live, f: SeaFleet, flag: SeaShip, aim: Pt): Pt {
+  const ctx = L.ctx;
+  if (f.path.length > 0) {
+    const end = tileCentre(ctx, f.path[f.path.length - 1]);
+    if (dist(end, aim) > 3 * MT) {
+      f.path = [];
+      f.pathIdx = 0;
+    } else {
+      // Reached: the furthest waypoint in the window ahead that is near.
+      const last = Math.min(f.path.length - 1, f.pathIdx + DETOUR_AHEAD);
+      for (let i = last; i >= f.pathIdx; i--) {
+        if (dist(flag, tileCentre(ctx, f.path[i])) <= DETOUR_REACH_MT) {
+          f.pathIdx = i + 1;
+          break;
+        }
+      }
+      if (f.pathIdx >= f.path.length) {
+        f.path = [];
+        f.pathIdx = 0;
+        return aim;
+      }
+      // Steer for the furthest waypoint ahead in clear water; past a
+      // corner it cut, back to the last one it can reach straight.
+      const hi = Math.min(f.path.length - 1, f.pathIdx + DETOUR_AHEAD);
+      const lo = Math.max(0, f.pathIdx - DETOUR_AHEAD);
+      for (let i = hi; i >= lo; i--) {
+        const w = tileCentre(ctx, f.path[i]);
+        if (clearWater(ctx, flag, w)) return w;
+      }
+      return tileCentre(ctx, f.path[f.pathIdx]);
+    }
+  }
+  if (f.still < DETOUR_STILL_TICKS || dist(flag, aim) <= MT) return aim;
+  if (ctx.tick % DETOUR_STILL_TICKS !== 0) return aim;
+  // Open water a tile ahead toward the aim: nothing to go round.
+  const a = angleOf(aim.x - flag.x, aim.y - flag.y);
+  const ahead = tileAt(
+    ctx,
+    flag.x + Math.trunc((icos(a) * MT) / 1024),
+    flag.y + Math.trunc((isin(a) * MT) / 1024),
+  );
+  if (
+    ahead >= 0 &&
+    ctx.isWater(ahead) &&
+    canEnter(shipStats(flag.kind), ctx.flags(ahead).shoal)
+  )
+    return aim;
+  const from = tileAt(ctx, flag.x, flag.y);
+  const to = tileAt(ctx, aim.x, aim.y);
+  if (from < 0 || to < 0 || from === to || !ctx.isWater(to)) return aim;
+  const p = ctx.path(from, to);
+  if (!p || p.length === 0) return aim;
+  f.path = p;
+  f.pathIdx = 0;
+  return tileCentre(ctx, p[0]);
 }
 
 function fireShipContacts(L: Live, b: SeaBattle): void {
