@@ -2836,6 +2836,118 @@
       },
       "whip_line": "{name} counts: \"{word}\""
     },
+    "intel": {
+      "age": {
+        "0": "just in",
+        "1": "came in last time",
+        "2": "a little old",
+        "3": "old news: it may have changed"
+      },
+      "chief": {
+        "title": "Head of intelligence",
+        "to_people": "Appoint one in People",
+        "vacant": "The post is empty. Without a head, codes and operations go badly.",
+        "why": "The person who runs the service. The abler he is, the better codes are broken, operations go and enemy agents are caught."
+      },
+      "codes": {
+        "none": "We read nobody's codes now. Ours must be better than their codes to read them.",
+        "quiet": "We can't tell whether they suspect. As long as we don't show what we read, we keep reading.",
+        "read": "We read {country}'s codes.",
+        "reading": "reading his codes",
+        "risk": "A telegram we read named moves on {fronts}. Sending our main effort there at once may tell them their codes leak.",
+        "title": "Codebreaking",
+        "unread": "Codes we can't read yet: {countries}",
+        "why": "Reading enemy telegrams brings his plans for certain. Act on them too openly and he notices and changes his codes."
+      },
+      "countries": {
+        "none": "No rival to watch yet. Countries appear here once a camp stands against us.",
+        "nothing": "Nothing known yet. Plant a net here (covert operations below) and reports come in.",
+        "title": "What we know of each country",
+        "why": "Reports on rivals' strength, morale, mobilisation and intentions. They can be wrong, so see who sent them."
+      },
+      "from": "From: {source}",
+      "fronts": {
+        "none": "Nothing known yet. Plant a net in that country (covert operations below) or read its codes, and reports come in.",
+        "title": "The enemy on each front",
+        "why": "Whether the enemy is preparing an offensive, and how worn his line is, can only be learned from these reports."
+      },
+      "held": "Checked later: it was right.",
+      "intro": "Everything the service knows, in one place. Reports can be wrong: see who sent each one and how sure it is.",
+      "nets": {
+        "none": "No nets abroad. You can plant one under covert operations below.",
+        "size": {
+          "1": "a few men",
+          "2": "well set up",
+          "3": "dense"
+        },
+        "title": "Nets and counter-intelligence",
+        "why": "A net is our agents in another country. It reports on that country, but if caught the net is lost and relations sour."
+      },
+      "op": {
+        "arab": "Help the Arab revolt",
+        "court": "Court a neutral",
+        "ireland": "Arms for Ireland",
+        "jihad": "Call the holy war",
+        "lenin": "Send the exiles home",
+        "net": "Plant a net",
+        "sabotage": "Sabotage"
+      },
+      "ops": {
+        "done": "Past operations",
+        "failed": "failed",
+        "none": "No covert operation can be started now. Rows appear here when the time comes and a schedule slot is free.",
+        "ok": "done",
+        "out": "found out",
+        "title": "Covert operations",
+        "waiting": "waiting for the result",
+        "why": "Secret work in another country, paid for in money. Each uses a schedule slot; the result reaches the desk a turn later."
+      },
+      "rings": {
+        "caught": "We hold {country}'s agents. Decide what to do with them on the desk.",
+        "none": "No spies caught on either side yet.",
+        "ours_caught": "Our net in {country} was caught.",
+        "title": "Spies caught",
+        "turned": "We turned {country}'s agents. Their reports on us now carry lies.",
+        "we_caught": "We caught {country}'s spy ring and made it public."
+      },
+      "skill": {
+        "guard": {
+          "0": "easily read",
+          "1": "weak",
+          "2": "fairly strong",
+          "3": "very strong",
+          "hint": "How hard our telegrams are to read. The stronger, the less the enemy learns of our plans.",
+          "name": "Our own codes"
+        },
+        "hunt": {
+          "0": "idle",
+          "1": "weak",
+          "2": "useful",
+          "3": "sharp",
+          "hint": "How well we find enemy agents at home. The sharper, the shorter their nets last.",
+          "name": "Catching spies"
+        },
+        "none": "The service hasn't worked yet, so its skill is unknown. It shows after the first operation or code broken.",
+        "read": {
+          "0": "hardly at all",
+          "1": "clumsy",
+          "2": "useful",
+          "3": "excellent",
+          "hint": "How well we read enemy telegrams. Codes weaker than this can be read.",
+          "name": "Breaking their codes"
+        }
+      },
+      "sure": {
+        "confirmed": "certain",
+        "estimate": "only a guess",
+        "unconfirmed": "not yet checked, may be wrong"
+      },
+      "track": {
+        "good": "This channel has mostly been right so far.",
+        "mixed": "This channel has been right and wrong.",
+        "poor": "This channel has often been wrong."
+      }
+    },
     "issue": {
       "bef": "Sending the army to France",
       "coalition": "Coalition",
@@ -4803,6 +4915,7 @@
         "desk": "Desk",
         "diplo": "Diplomacy",
         "fronts": "Fronts",
+        "intel": "Intelligence",
         "memoir": "Memoir",
         "notebook": "Notebook",
         "people": "People",

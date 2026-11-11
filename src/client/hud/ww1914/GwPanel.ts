@@ -30,6 +30,7 @@ import { dictCard } from "./GwDict";
 import { diploTab, finaleView } from "./GwDiplo";
 import { loadGwFaces } from "./GwFace";
 import { frontsTab } from "./GwFronts";
+import { intelTab } from "./GwIntel";
 import { setMapBusy } from "./GwLensModel";
 import { GwMap } from "./GwMap";
 import { GwMapPaint } from "./GwMapPaint";
@@ -496,6 +497,8 @@ export class GwPanel extends LitElement implements Controller {
         return scheduleTab(c);
       case "fronts":
         return frontsTab(c);
+      case "intel":
+        return intelTab(c);
       case "country":
         return countryTab(c);
       case "notebook":

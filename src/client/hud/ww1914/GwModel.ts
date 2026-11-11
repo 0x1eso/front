@@ -50,6 +50,7 @@ export const GW_TABS = [
   "rule",
   "schedule",
   "fronts",
+  "intel",
   "country",
   "notebook",
   "blocs",
@@ -187,6 +188,9 @@ export function tabBadge(seat: GwSeatView, tab: GwTab, seenWires = 0): number {
       return dangers(seat).length;
     case "table":
       return (seat.table?.due ?? null) === null ? 0 : 1;
+    case "intel":
+      // Agents taken, waiting for the seat's word (ww179).
+      return seat.world.service?.caught.length ?? 0;
     case "diplo":
       return (
         seat.diplo.treaties.filter((t) => t.answer).length +

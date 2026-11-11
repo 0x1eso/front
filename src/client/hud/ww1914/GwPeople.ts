@@ -163,7 +163,7 @@ function topicBadge(n: number): TemplateResult | typeof nothing {
   >`;
 }
 
-function row(c: GwCtx, p: GwPersonView): TemplateResult {
+export function personRow(c: GwCtx, p: GwPersonView): TemplateResult {
   const open = c.ui.openPerson === p.id;
   const lean = personLean(c.pack, p.id);
   const bio = personBio(c.pack, p.id);
@@ -364,10 +364,10 @@ export function peopleTab(c: GwCtx): TemplateResult {
       >
       <span class=${MUTED}>${translateText("gw.ui.audiences_hint")}</span>
     </div>
-    ${privateMeetings(c)} ${vacancies(c)} ${office.map((p) => row(c, p))}
+    ${privateMeetings(c)} ${vacancies(c)} ${office.map((p) => personRow(c, p))}
     ${rest.length === 0
       ? nothing
       : html`<div class=${MUTED}>${translateText("gw.ui.outside")}</div>
-          ${rest.map((p) => row(c, p))}`}
+          ${rest.map((p) => personRow(c, p))}`}
   </div>`;
 }

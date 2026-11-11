@@ -134,6 +134,37 @@ export interface GwReportView {
   about?: string | null;
 }
 
+/**
+ * ww179: the seat's own secret service, as its 정보부 tab shows it. Only what
+ * the service knows of itself: never another country's service, how near a
+ * foe is to changing its codes, or a result whose card hasn't come yet.
+ */
+export interface GwIntelView {
+  /**
+   * 0..3 words: breaking others' codes, our own codes, catching spies; null
+   * while the service has never been used.
+   */
+  levels: { read: number; guard: number; hunt: number } | null;
+  /**
+   * Countries whose codes we read now, with the fronts a read named this
+   * chapter: putting the main effort there may tell them.
+   */
+  reads: readonly { tag: GwTag; named: readonly GwTheatre[] }[];
+  /** Our agents abroad, 1..3, as far as results already reported say. */
+  nets: readonly { tag: GwTag; size: number }[];
+  /** Foreign agents we took, waiting for our word; agents we turned. */
+  caught: readonly { tag: GwTag; chapter: number }[];
+  turned: readonly GwTag[];
+  /** Our operations abroad, newest last; `ok`/`out` null until the card came. */
+  ops: readonly {
+    act: string;
+    tag: GwTag | null;
+    ok: boolean | null;
+    out: boolean | null;
+    chapter: number;
+  }[];
+}
+
 export interface GwSourceView {
   id: GwSource;
   right: number;
@@ -210,6 +241,8 @@ export interface GwWorldView {
   chainEnds: readonly { topic: string; outcome: GwChainOutcome }[];
   reports: readonly GwReportView[];
   sources: readonly GwSourceView[];
+  /** ww179: the 정보부 tab's own service; absent in old views. */
+  service?: GwIntelView;
   mandates: readonly string[];
   secrets: readonly GwSecret[];
   threads: readonly GwThread[];

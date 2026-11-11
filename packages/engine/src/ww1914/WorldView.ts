@@ -13,6 +13,7 @@ import type {
   GwCountryView,
   GwFrontView,
   GwGaugeView,
+  GwIntelView,
   GwPersonWorldView,
   GwReportView,
   GwWorldView,
@@ -144,6 +145,51 @@ function foeLine(
   };
 }
 
+/**
+ * ww179: the 정보부 tab. Only the seat's own service, read without filling it
+ * (`intelOf` would write state). An operation ordered this chapter keeps its
+ * result, and a net it planted, until its card comes next chapter.
+ */
+export function intelView(gw: GreatWar, seat: GwSeatState): GwIntelView {
+  const i = gw.nation(seat.tag)?.intel;
+  if (i === undefined) {
+    return {
+      levels: null,
+      reads: [],
+      nets: [],
+      caught: [],
+      turned: [],
+      ops: [],
+    };
+  }
+  const now = gw.s.chapter;
+  const pending = (o: { chapter: number }) => o.chapter >= now;
+  const unseen = (tag: string) =>
+    i.ops.filter((o) => pending(o) && o.act === "net" && o.ok && o.tag === tag)
+      .length;
+  return {
+    levels: { read: i.crypt, guard: i.secure, hunt: i.counter },
+    reads: i.reads.map((tag) => ({
+      tag,
+      named: [
+        ...new Set(i.readOn.filter((e) => e.tag === tag).map((e) => e.theatre)),
+      ],
+    })),
+    nets: (Object.keys(i.net) as (keyof typeof i.net)[])
+      .map((tag) => ({ tag, size: (i.net[tag] ?? 0) - unseen(tag) }))
+      .filter((n) => n.size > 0),
+    caught: i.caught.map((c) => ({ tag: c.tag, chapter: c.chapter })),
+    turned: [...i.turned],
+    ops: i.ops.map((o) => ({
+      act: o.act,
+      tag: o.tag,
+      ok: pending(o) ? null : o.ok,
+      out: pending(o) ? null : o.out,
+      chapter: o.chapter,
+    })),
+  };
+}
+
 function reportView(gw: GreatWar, seat: GwSeatState): GwReportView[] {
   return gw.s.reports
     .filter((r) => r.smallID === seat.smallID)
@@ -272,6 +318,7 @@ export function worldView(gw: GreatWar, seat: GwSeatState): GwWorldView {
         : { topic: s.chain.topic, step: s.chain.step, hold: s.chain.hold },
     chainEnds: s.chains.map((c) => ({ topic: c.topic, outcome: c.outcome })),
     reports: reportView(gw, seat),
+    service: intelView(gw, seat),
     sources: s.sources.map((x) => ({
       id: x.id,
       right: x.right,
