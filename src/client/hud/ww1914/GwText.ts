@@ -290,12 +290,12 @@ export function reasonText(
   r: GwReason,
   seatTag?: string,
 ): string {
-  const own =
-    seatTag === undefined
-      ? null
-      : textOrNull(`gw.reason_by.${seatTag}.${r.key}`);
+  // A seat may name its own people (Germany's 재상): gw.reason_by.<TAG>.<key>.
+  const ownKey = `gw.reason_by.${seatTag}.${r.key}`;
+  const own = seatTag === undefined ? ownKey : translateText(ownKey);
   const line =
-    pack?.reasons?.[r.key] ?? own ?? translateText(`gw.reason.${r.key}`);
+    pack?.reasons?.[r.key] ??
+    (own === ownKey ? translateText(`gw.reason.${r.key}`) : own);
   const country =
     r.tag === undefined ? "" : translateText(`gw.country.${r.tag}`);
   const what =
