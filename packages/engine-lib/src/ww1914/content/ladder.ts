@@ -285,34 +285,104 @@ const WAR_NEEDS: Readonly<
   },
 };
 
+/** The chain's step once its ultimatum link has run (Crises GW_LINKS). */
+const GW_JULY_ULTIMATUM_DONE = 4;
+
+/**
+ * Petersburg in July (ww179): the Tsar alone may answer Vienna with war once
+ * its note has gone to Belgrade, or once it is at war with Serbia. The
+ * declaration is July's own: it closes the chain into the general war.
+ */
+const rusJuly: GwCond = {
+  kind: "all",
+  of: [
+    world({ is: "chain", short: false }),
+    {
+      kind: "any",
+      of: [
+        world({ is: "chain", min: GW_JULY_ULTIMATUM_DONE }),
+        world({ is: "pair_war", tag: "AUH", with: "SRB" }),
+      ],
+    },
+  ],
+};
+
+/** Whether a seat has a declaration of its own in July, and on whom. */
+const JULY_WAR: Readonly<Partial<Record<GwTag, { on: GwTag; when: GwCond }>>> =
+  { RUS: { on: "AUH", when: rusJuly } };
+
 /**
  * War on any country the seat could fight (ww171 phase 4): once an ultimatum
  * between the two was refused, or at once on one at war with the seat's
  * coalition or treaty partners. Its procedure is the seat's own (WAR_NEEDS).
+ * A seat with a July declaration (JULY_WAR) may also use it in July, on that
+ * country only.
  */
-const warRow = (tag: GwTag): GwPowerRow => ({
-  id: `${tag.toLowerCase()}_pw_war_on`,
-  tag,
-  group: "war",
-  kind: "lawful",
-  opens: [{ when: afterJuly, why: "ladder_july" }],
-  needs: WAR_NEEDS[tag],
-  authority: 15,
-  cooldown: 2,
-  fields: [
-    {
-      id: "on",
-      options: GW_LADDER_REACH.filter((t) => t !== tag).map((t) => ({
-        id: t.toLowerCase(),
-        when: world({ is: "war_target", tag: t }),
-        effects: [doWorld({ do: "declare_war", tag: t })],
-      })),
-    },
-  ],
-  tags: ["war_offensive"],
-  effects: [],
-  scene: "gw_war_sent",
-});
+const warRow = (tag: GwTag): GwPowerRow => {
+  const july = JULY_WAR[tag];
+  const declareOn = (t: GwTag): GwEffect =>
+    doWorld({ do: "declare_war", tag: t });
+  return {
+    id: `${tag.toLowerCase()}_pw_war_on`,
+    tag,
+    group: "war",
+    kind: "lawful",
+    opens: [
+      {
+        when:
+          july === undefined
+            ? afterJuly
+            : { kind: "any", of: [afterJuly, july.when] },
+        why: "ladder_july",
+      },
+    ],
+    needs: WAR_NEEDS[tag],
+    authority: 15,
+    cooldown: 2,
+    fields: [
+      {
+        id: "on",
+        options: GW_LADDER_REACH.filter((t) => t !== tag).map((t) => {
+          const target = world({ is: "war_target", tag: t });
+          if (july === undefined) {
+            return {
+              id: t.toLowerCase(),
+              when: target,
+              effects: [declareOn(t)],
+            };
+          }
+          if (july.on !== t) {
+            return {
+              id: t.toLowerCase(),
+              when: { kind: "all", of: [afterJuly, target] },
+              effects: [declareOn(t)],
+            };
+          }
+          // In July the declaration closes the chain into the general war.
+          return {
+            id: t.toLowerCase(),
+            when: { kind: "any", of: [target, july.when] },
+            effects: [
+              {
+                kind: "maybe",
+                when: { kind: "not", of: world({ is: "chain" }) },
+                then: [declareOn(t)],
+              },
+              {
+                kind: "maybe",
+                when: world({ is: "chain" }),
+                then: [doWorld({ do: "declare", tag: t })],
+              },
+            ],
+          };
+        }),
+      },
+    ],
+    tags: ["war_offensive"],
+    effects: [],
+    scene: "gw_war_sent",
+  };
+};
 
 /** A peace of the two alone with any country the seat is at war with. */
 const peaceRow = (tag: GwTag): GwPowerRow => ({

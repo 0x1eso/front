@@ -146,6 +146,39 @@ describe("the crisis ladder", () => {
     expect(gw.nation("RUS")!.side).toBe("entente");
   });
 
+  test("the Tsar may answer Vienna's July note with war; the other seats' rows still wait (ww179)", () => {
+    const war = (id: string, on: string) => ({
+      id,
+      target: null,
+      picks: [on],
+      without: false,
+      sound: false,
+    });
+    const c = gw.s.chain!;
+    expect(c.short).toBe(false);
+    gw.nation("RUS")!.authority = 100;
+    gw.nation("DEU")!.authority = 100;
+    holderOf(gw, st(), "chancellor")!.trust = 3;
+    // Before Vienna's note goes to Belgrade, nobody's war row is open.
+    c.step = 2;
+    st().tag = "RUS";
+    expect(takePower(gw, st(), war("rus_pw_war_on", "auh"))).not.toBeNull();
+    // The note is out: Petersburg may declare on Vienna, and on no one else.
+    c.step = 4;
+    expect(takePower(gw, st(), war("rus_pw_war_on", "deu"))).not.toBeNull();
+    st().tag = "DEU";
+    expect(takePower(gw, st(), war("deu_pw_war_on", "rus"))).not.toBeNull();
+    expect(gw.s.chain).not.toBeNull();
+    st().tag = "RUS";
+    expect(takePower(gw, st(), war("rus_pw_war_on", "auh"))).toBeNull();
+    // July's declaration: the chain closes into the general war.
+    expect(gw.s.chain).toBeNull();
+    expect(gw.s.warChapter).not.toBeNull();
+    expect(gw.nation("RUS")!.atWar).toContain("AUH");
+    expect(gw.nation("RUS")!.side).toBe("entente");
+    expect(gw.nation("AUH")!.side).toBe("central");
+  });
+
   test("a later spark starts as hot as the world and ends in a note, not a war (ww176)", () => {
     julyPassed();
     // Calm after calm: no longer a hotter start each time.
