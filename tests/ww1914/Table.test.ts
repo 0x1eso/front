@@ -21,7 +21,11 @@ async function war(tag: GwTag = "DEU", id = "GWT1") {
   gw.s.temp = 9;
   closeChain(gw, "war");
   // The mini map's war is small: the sides a real one would have by the end.
+  // Since a defensive pact no longer drags its two in (b278d6832), Germany
+  // and France stay out of the mini map's Balkan war: seat them as well.
   gw.nation("GBR")!.side = "entente";
+  gw.nation("FRA")!.side = "entente";
+  gw.nation("DEU")!.side = "central";
   return { runner, gw, seat: gw.s.seats[0] };
 }
 
