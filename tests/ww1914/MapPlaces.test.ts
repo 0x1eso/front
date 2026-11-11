@@ -15,6 +15,7 @@ import {
   frontPlaces,
   GW_FRONT_BARE,
   GW_FRONT_LAND,
+  isOpenGround,
 } from "@openfront/engine-lib/ww1914/FrontLand";
 import { scenarioFolderOf } from "@openfront/engine-lib/ww1914/ModeConfig";
 import { gwWorldOf } from "@openfront/engine-lib/ww1914/World1914";
@@ -26,6 +27,7 @@ import {
 } from "@openfront/engine/GameRunner";
 import type { GreatWar } from "@openfront/engine/ww1914/GreatWar";
 import { frontLandStep, holderOf } from "@openfront/engine/ww1914/Land";
+import { landGraph } from "@openfront/engine/ww1914/Occupation";
 import { closeTable, tableStart } from "@openfront/engine/ww1914/Table";
 import { GW_FRONT_ENDS } from "@openfront/engine/ww1914/Tables";
 import fs from "fs";
@@ -173,7 +175,10 @@ describe("the table of fronts", () => {
       for (const land of Object.values(GW_FRONT_LAND[t])) {
         for (const side of GW_SIDES) {
           for (const p of land[side] ?? []) {
-            const mine: readonly GwTag[] = GW_FRONT_ENDS[t][side];
+            // Open ground (ww179) is a neutral's: at war, it keeps its own.
+            const mine: readonly GwTag[] = GW_FRONT_ENDS[t][side].filter(
+              (tag) => !isOpenGround(t, tag),
+            );
             expect(mine, `${t} ${p}`).not.toContain(GW_PLACES[p].owner);
           }
         }
@@ -321,6 +326,52 @@ describe("fronts move land on the real map", () => {
     expect(ownerAt(runner, "strasbourg")).toBe("FRA");
     standAt("liege");
     expect(ownerAt(runner, "strasbourg")).toBe("DEU");
+  });
+
+  test("Persia's ground changes hands while Persia stays out (ww179)", () => {
+    const ott = gw.nation("OTT")!;
+    const rus = gw.nation("RUS")!;
+    const irn = gw.nation("IRN")!;
+    const before = [ott.atWar, rus.atWar, irn.atWar];
+    ott.atWar = ["RUS"];
+    rus.atWar = ["OTT"];
+    const persia = gw.s.theatres.find((t) => t.id === "persia")!;
+    persia.since = 0;
+    persia.progress = 0;
+    const at = (line: string) => {
+      persia.line = GW_LINES.persia.indexOf(line);
+      frontLandStep(gw);
+    };
+    // The Ottomans' advance: Kermanshah and Hamadan, then Azerbaijan.
+    at("hamadan");
+    expect(ownerAt(runner, "kermanshah")).toBe("OTT");
+    expect(ownerAt(runner, "hamadan")).toBe("OTT");
+    expect(ownerAt(runner, "tabriz")).toBe("IRN");
+    at("tabriz");
+    expect(ownerAt(runner, "tabriz")).toBe("OTT");
+    expect(ownerAt(runner, "urmia")).toBe("OTT");
+    // The Russians' advance gives Persia its towns back and takes Khanaqin.
+    at("baghdad_road");
+    expect(ownerAt(runner, "hamadan")).toBe("IRN");
+    expect(ownerAt(runner, "tabriz")).toBe("IRN");
+    expect(ownerAt(runner, "khanaqin")).toBe("RUS");
+    at("kermanshah");
+    expect(ownerAt(runner, "khanaqin")).toBe("OTT");
+    // Persia in the war on the Ottoman end holds its own ground itself.
+    irn.atWar = ["RUS"];
+    rus.atWar = ["OTT", "IRN"];
+    at("hamadan");
+    expect(ownerAt(runner, "hamadan")).toBe("IRN");
+    at("kermanshah");
+    expect(Object.keys(gw.s.held)).toEqual([]);
+    [ott.atWar, rus.atWar, irn.atWar] = before;
+    persia.since = null;
+    // Occupation reaches Persia over land: from the Caucasus and Mesopotamia.
+    const near = landGraph(gw).near;
+    expect(near.get("north_persia")).toContain("caucasus");
+    expect(near.get("west_persia")).toContain("mesopotamia");
+    expect(near.get("south_persia")).toContain("mesopotamia");
+    expect(near.get("north_persia")).toContain("west_persia");
   });
 
   test("the table moves land at once; what wasn't agreed goes home at the end", () => {

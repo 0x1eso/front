@@ -295,14 +295,14 @@ export const GW_PEOPLE: readonly GwPersonDef[] = [
     id: "fra_cambon",
     tag: "FRA",
     office: null,
-    fit: [],
+    fit: ["ambassador_london", "ambassador_washington"],
     camps: ["civil", "moderate"],
     temperaments: ["cunning", "cold"],
     rivals: ["deu_moltke"],
     allies: [],
     fame: 3,
     source:
-      "b. 5 Apr 1845; ambassador in Berlin 1907-1914, worked for détente; brother Paul in London (en.wikipedia Jules Cambon). Passed on the Potsdam talk of Nov 1913 (press on the Graham biography, Mental Floss). Jagow denied to him knowing the note (firstworldwar.com). How he left Berlin not checked",
+      "b. 5 Apr 1845; ambassador in Berlin 1907-1914, worked for détente; brother Paul in London (en.wikipedia Jules Cambon). Passed on the Potsdam talk of Nov 1913 (press on the Graham biography, Mental Floss). Jagow denied to him knowing the note (firstworldwar.com). How he left Berlin not checked. Ambassador to the United States from Oct 1897, the peace of 1898; secretary-general of the Quai during the war (britannica Jules Cambon)",
   },
   {
     id: "ott_enver",

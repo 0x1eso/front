@@ -432,11 +432,12 @@ describe("diplomacy L0: the digests that never move", () => {
     }
   });
 
-  // Re-pinned with occupation and the bilateral tables (ww172 phase 5): the
-  // Great War's own rules moved it, not the diplomacy.
+  // Re-pinned with occupation and the bilateral tables (ww172 phase 5), and
+  // with Persia's places and the vacancy names (ww179): the Great War's own
+  // rules and content moved it, not the diplomacy.
   test("the Great War pin is unchanged", () => {
     expect(read("ww1914/GreatWarSnapshot.test.ts")).toContain(
-      'const GW_DIGEST = "f96e78583bb59580";',
+      'const GW_DIGEST = "ca9606f523f4a696";',
     );
   });
 });

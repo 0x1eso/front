@@ -9,6 +9,7 @@ import { GW_PLACES, GwPlace } from "@openfront/engine-api/ww1914/GwPlaces";
 import {
   frontLandAt,
   frontPlaces,
+  isOpenGround,
 } from "@openfront/engine-lib/ww1914/FrontLand";
 import { posOf } from "./Eras";
 import type { GreatWar } from "./GreatWar";
@@ -59,8 +60,8 @@ export function moveLand(
 /**
  * Who a place falls to with the front's end `side` on it. A country gets its
  * own land back, the land of a country this front isn't the war of stays out
- * of it, and what is taken goes to the lead there (ww171: by ends, not only
- * coalitions).
+ * of it (but for open ground, ww179), and what is taken goes to the lead
+ * there (ww171: by ends, not only coalitions).
  */
 function takerOf(
   gw: GreatWar,
@@ -73,7 +74,7 @@ function takerOf(
   if (side === null) return owner;
   const ownerSide = sideIn(gw, t.id, owner);
   if (ownerSide === side) return owner;
-  if (ownerSide === null) return now;
+  if (ownerSide === null && !isOpenGround(t.id, owner)) return now;
   if (sideIn(gw, t.id, now) === side) return now;
   const listed = GW_FRONT_ENDS[t.id][side].find(
     (tag) => sideIn(gw, t.id, tag) === side && gw.nation(tag)?.out !== true,
