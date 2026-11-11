@@ -1,5 +1,9 @@
 // Schedule entries every seat has. Text in resources/ww1914/ko/common.acts.json.
 import type { GwAct, GwActOption } from "@openfront/engine-api/ww1914/GwActs";
+import {
+  GW_AGENTS,
+  type GwPropAct,
+} from "@openfront/engine-api/ww1914/GwAgents";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import type { GwSpyAct } from "@openfront/engine-api/ww1914/GwSpies";
 import type {
@@ -203,4 +207,133 @@ export const SPY_SCENES: readonly GwScene[] = [
       base,
     ],
   },
+];
+
+// ---- ww180: named agents and the war of words (Agents.ts, Propaganda.ts) ----
+
+const prop = (act: GwPropAct, tag?: GwTag): GwEffect =>
+  doWorld(tag === undefined ? { do: "prop", act } : { do: "prop", act, tag });
+/** Countries whose home front leaflets can reach: any enemy. */
+const ENEMIES: GwTag[] = ["DEU", "AUH", "RUS", "FRA", "GBR", "ITA", "OTT"];
+
+function propWhere(
+  act: "leaflets" | "papers",
+  tags: GwTag[],
+  first: string,
+): GwActOption[] {
+  return [
+    { id: first, effects: [prop(act)] },
+    ...tags.map((t) => ({
+      id: t.toLowerCase(),
+      when: world({ is: "prop", can: act, tag: t }),
+      effects: [prop(act, t)],
+    })),
+  ];
+}
+
+export const AGENT_ACTS: readonly GwAct[] = [
+  {
+    id: "gw_a_agent_hire",
+    nation: SEATS,
+    kind: "intrigue",
+    stage: ["war"],
+    when: world({ is: "agent", can: "hire" }),
+    cooldown: 2,
+    scene: "gw_agent_hire_r",
+    wait: 1,
+    tell: ["money:-1"],
+    effects: [money],
+    fields: [
+      {
+        id: "who",
+        options: [
+          // The service's own pick: the surest hand it can get.
+          { id: "best", effects: [doWorld({ do: "agent" })] },
+          ...GW_AGENTS.map((d) => ({
+            id: d.id,
+            when: world({ is: "agent", can: "hire", id: d.id }),
+            effects: [doWorld({ do: "agent", id: d.id })],
+          })),
+        ],
+      },
+    ],
+  },
+  {
+    id: "gw_a_prop_home",
+    nation: SEATS,
+    kind: "intrigue",
+    stage: ["war"],
+    when: world({ is: "prop", can: "home" }),
+    cooldown: 4,
+    scene: "gw_prop_home_r",
+    wait: 2,
+    tell: ["money:-1"],
+    effects: [money, prop("home")],
+  },
+  {
+    id: "gw_a_prop_hush",
+    nation: SEATS,
+    kind: "intrigue",
+    stage: ["war"],
+    when: world({ is: "prop", can: "hush" }),
+    cooldown: 4,
+    scene: "gw_prop_hush_r",
+    wait: 4,
+    effects: [prop("hush")],
+  },
+  {
+    id: "gw_a_prop_leaflets",
+    nation: SEATS,
+    kind: "intrigue",
+    stage: ["war"],
+    when: world({ is: "prop", can: "leaflets" }),
+    cooldown: 6,
+    scene: "gw_prop_leaflets_r",
+    wait: 3,
+    tell: ["money:-1"],
+    effects: [money],
+    fields: [
+      { id: "where", options: propWhere("leaflets", ENEMIES, "weakest") },
+    ],
+  },
+  {
+    id: "gw_a_prop_papers",
+    nation: SEATS,
+    kind: "intrigue",
+    stage: ["war"],
+    when: world({ is: "prop", can: "papers" }),
+    cooldown: 4,
+    scene: "gw_prop_papers_r",
+    wait: 2,
+    tell: ["money:-1"],
+    effects: [money],
+    fields: [
+      { id: "where", options: propWhere("papers", NEUTRALS, "nearest") },
+    ],
+  },
+];
+
+const pv = (id: string, act: GwPropAct, can: "ok" | "out"): GwVariant => ({
+  id,
+  when: world({ is: "prop", can, act }),
+});
+
+export const AGENT_SCENES: readonly GwScene[] = [
+  card("gw_agent_hire_r", [
+    { id: "out", when: world({ is: "agent", can: "lost" }) },
+    { id: "ok", when: world({ is: "agent", can: "working" }) },
+    base,
+  ]),
+  card("gw_prop_home_r", [pv("ok", "home", "ok"), base]),
+  card("gw_prop_hush_r", [
+    pv("out", "hush", "out"),
+    pv("ok", "hush", "ok"),
+    base,
+  ]),
+  card("gw_prop_leaflets_r", [pv("ok", "leaflets", "ok"), base]),
+  card("gw_prop_papers_r", [
+    pv("out", "papers", "out"),
+    pv("ok", "papers", "ok"),
+    base,
+  ]),
 ];

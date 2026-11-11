@@ -11,7 +11,13 @@ import type { GwHouseContent } from "../HouseRows";
 import type { GwPowerContent } from "../PowerRows";
 import { withRuler } from "../RulerRows";
 import { AUH_ACT_SCENES, AUH_ACTS, AUH_AIMS } from "./acts/auh";
-import { COMMON_ACT_SCENES, COMMON_ACTS, SPY_SCENES } from "./acts/common";
+import {
+  AGENT_ACTS,
+  AGENT_SCENES,
+  COMMON_ACT_SCENES,
+  COMMON_ACTS,
+  SPY_SCENES,
+} from "./acts/common";
 import { DEU_ACT_SCENES, DEU_ACTS, DEU_AIMS } from "./acts/deu";
 import { FRA_ACT_SCENES, FRA_ACTS, FRA_AIMS } from "./acts/fra";
 import { GBR_ACT_SCENES, GBR_ACTS, GBR_AIMS } from "./acts/gbr";
@@ -240,6 +246,7 @@ export const GW_CONTENT: GwContent = {
         ...[
           ...COMMON_ACT_SCENES,
           ...NAVAL_ACT_SCENES,
+          ...AGENT_SCENES,
           ...DEU_ACT_SCENES,
           ...GBR_ACT_SCENES,
           ...AUH_ACT_SCENES,
@@ -320,6 +327,7 @@ export const GW_CONTENT: GwContent = {
   acts: [
     ...COMMON_ACTS,
     ...NAVAL_ACTS,
+    ...AGENT_ACTS,
     ...DEU_ACTS,
     ...GBR_ACTS,
     ...AUH_ACTS,

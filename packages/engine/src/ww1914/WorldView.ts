@@ -24,6 +24,7 @@ import {
   civilFromDays,
   formatIsoDate,
 } from "@openfront/engine-lib/ww1936/Calendar";
+import { agentsView } from "./Agents";
 import { tasksShown } from "./Aims";
 import { budgetView } from "./Budget";
 import { craftView } from "./Craft";
@@ -43,6 +44,7 @@ import {
 } from "./People";
 import { generalsFor } from "./Post";
 import { pressView } from "./Press";
+import { propView } from "./Propaganda";
 import { holderOf, holds } from "./SceneRun";
 import { foeOn, foeRead, fundView, reads, rivalsOf } from "./Spies";
 import { endStrain, strainWord } from "./Strain";
@@ -329,6 +331,8 @@ export function worldView(gw: GreatWar, seat: GwSeatState): GwWorldView {
     reports: reportView(gw, seat),
     service: intelView(gw, seat),
     sea: seaView(gw, seat),
+    agents: agentsView(gw, seat),
+    prop: propView(gw, seat),
     sources: s.sources.map((x) => ({
       id: x.id,
       right: x.right,

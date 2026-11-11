@@ -9,9 +9,11 @@ import {
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
+import { agentsStep } from "./Agents";
 import { allocOf } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { offensivesOf } from "./Offensives";
+import { propagandaStep } from "./Propaganda";
 import {
   intelOf,
   planOf,
@@ -442,4 +444,6 @@ export function intelStep(gw: GreatWar): void {
     else sendWarReports(gw, seat);
   }
   spiesStep(gw);
+  agentsStep(gw);
+  propagandaStep(gw);
 }

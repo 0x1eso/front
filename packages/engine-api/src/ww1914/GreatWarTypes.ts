@@ -613,6 +613,66 @@ export const GwNavalSchema = z.object({
 });
 export type GwNaval = z.infer<typeof GwNavalSchema>;
 
+/** ww180: how a named agent's service ended. APPEND ONLY. */
+export const GW_AGENT_FATES = [
+  "executed", // tried and shot
+  "jailed", // tried and held to the end
+  "swapped", // traded home for one of theirs
+  "fled", // slipped away; burned for good
+  "recalled", // his net was lost: called home
+] as const;
+export type GwAgentFate = (typeof GW_AGENT_FATES)[number];
+
+/**
+ * ww180: a named agent once hired (engine/ww1914/Agents). One row per agent
+ * and service a game: lost is lost. Hidden: a view carries only the seat's own.
+ */
+export const GwAgentStateSchema = z.object({
+  /** GW_AGENTS id. */
+  id: GwIdSchema,
+  /** The service that hired him, and the country he works in. */
+  by: z.enum(GW_TAGS),
+  at: z.enum(GW_TAGS),
+  since: z.number().int(),
+  fate: z.enum(GW_AGENT_FATES).nullable(),
+  /** Chapter he was lost; null while he works. */
+  end: z.number().int().nullable(),
+  /** Who took him (his country, or a foe who read the traffic). */
+  takenBy: z.enum(GW_TAGS).nullable(),
+});
+export type GwAgentState = z.infer<typeof GwAgentStateSchema>;
+
+/**
+ * ww180: a country's propaganda and censorship (engine/ww1914/Propaganda).
+ * Absent until first used. Days count as `s.day`.
+ */
+export const GwPropStateSchema = z.object({
+  /** Last day of the home campaign; -1000000 none. */
+  home: z.number().int(),
+  /** Campaigns at home so far: people tire of them. */
+  worn: z.number().int(),
+  /** Last day bad news is kept out of the papers; -1000000 none. */
+  hush: z.number().int(),
+  /** Blows kept out of the papers so far, still to come out or not. */
+  hidden: z.number().int(),
+  /** Leaflets on an enemy's home front, and papers bought in a neutral. */
+  leaflets: z.array(
+    z.object({ tag: z.enum(GW_TAGS), until: z.number().int() }),
+  ),
+  papers: z.array(z.object({ tag: z.enum(GW_TAGS), until: z.number().int() })),
+  /** What each campaign did, newest last: what the result card reads. */
+  ops: z.array(
+    z.object({
+      act: GwIdSchema,
+      tag: z.enum(GW_TAGS).nullable(),
+      ok: z.boolean(),
+      out: z.boolean(),
+      chapter: z.number().int(),
+    }),
+  ),
+});
+export type GwPropState = z.infer<typeof GwPropStateSchema>;
+
 export const GwNationStateSchema = z.object({
   tag: z.enum(GW_TAGS),
   gauges: z.record(z.enum(GW_GAUGES), z.number().int()),
@@ -677,6 +737,8 @@ export const GwNationStateSchema = z.object({
   intel: GwIntelSchema.optional(),
   /** ww180: its direction-finding chain at sea (NavalIntel.ts); absent until ordered. */
   naval: GwNavalSchema.optional(),
+  /** ww180: its propaganda and censorship (Propaganda.ts); absent until used. */
+  prop: GwPropStateSchema.optional(),
 });
 export type GwNationState = z.infer<typeof GwNationStateSchema>;
 
@@ -1834,5 +1896,7 @@ export const GreatWarStateSchema = z.object({
   // ww173 phase B: absent until the first great offensive is prepared.
   /** Great offensives in preparation, running, or lately ended. */
   offensives: z.array(GwOffensiveSchema).optional(),
+  /** ww180: named agents hired so far, in order (absent until the first). */
+  agents: z.array(GwAgentStateSchema).optional(),
 });
 export type GreatWarState = z.infer<typeof GreatWarStateSchema>;

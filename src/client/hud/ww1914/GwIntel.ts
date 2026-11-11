@@ -491,10 +491,164 @@ function sea(c: GwCtx): TemplateResult | typeof nothing {
   </section>`;
 }
 
+/** ww180: the rows with a section of their own below. */
+const AGENT_ACT = "gw_a_agent_hire";
+const PROP_ACTS: readonly string[] = [
+  "gw_a_prop_home",
+  "gw_a_prop_hush",
+  "gw_a_prop_leaflets",
+  "gw_a_prop_papers",
+];
+
+/** An agent's name, with what he does and his story on hover. */
+function agentName(id: string): TemplateResult {
+  return html`<span
+    class="text-sm font-bold"
+    title=${translateText(`gw.agent.${id}.bio`)}
+    >${translateText(`gw.agent.${id}.name`)}</span
+  >`;
+}
+
+/** ww180: our named agents, and whom the service could still hire. */
+function agents(c: GwCtx): TemplateResult {
+  const v = c.seat.world.agents;
+  const mine = v?.mine ?? [];
+  const pool = v?.pool ?? [];
+  const row = (c.seat.acts ?? []).find((a) => a.id === AGENT_ACT);
+  return html`<section class=${BOX} data-gw-intel-agents>
+    ${head("agents")}
+    ${mine.length === 0 && pool.length === 0
+      ? empty("agents.none")
+      : html`<div class=${MUTED}>${t("agents.mine")}</div>
+          ${mine.length === 0 ? empty("agents.mine_none") : nothing}`}
+    ${mine.map(
+      (a) =>
+        html`<div class="text-sm" data-gw-intel-agent=${a.id}>
+          <div class="flex items-center gap-2">
+            ${agentName(a.id)}
+            <span class="${CHIP} ml-auto"
+              >${t(`agents.fate.${a.fate ?? "working"}`)}</span
+            >
+          </div>
+          <p class=${MUTED}>
+            ${t("agents.at", { country: country(a.at) })} ·
+            ${translateText(`gw.agent.${a.id}.work`)}
+          </p>
+        </div>`,
+    )}
+    ${pool.length === 0
+      ? nothing
+      : html`<div class=${MUTED}>${t("agents.pool")}</div>`}
+    ${pool.map(
+      (p) =>
+        html`<div class="space-y-0.5 text-sm" data-gw-intel-pool=${p.id}>
+          <div class="flex items-center gap-2">
+            ${agentName(p.id)}
+            <span class="${MUTED} ml-auto">${country(p.at)}</span>
+          </div>
+          <p class="text-white/75">${translateText(`gw.agent.${p.id}.work`)}</p>
+          ${p.open && row !== undefined
+            ? html`<button
+                class="${BTN} !px-2 !py-1"
+                data-gw-intel-hire=${p.id}
+                ?disabled=${(c.seat.actsLeft ?? 0) <= 0}
+                @click=${() => {
+                  c.ui.actOpen = AGENT_ACT;
+                  c.ui.actPicks = { who: [p.id] };
+                  c.redraw();
+                }}
+              >
+                ${t("agents.hire")}
+              </button>`
+            : html`<p class=${p.open ? "text-amber-100" : MUTED}>
+                ${p.open
+                  ? t("agents.open")
+                  : t(`agents.wait.${p.wait ?? "gone"}`, {
+                      country: country(p.at),
+                    })}
+              </p>`}
+        </div>`,
+    )}
+    ${row === undefined ? nothing : actRow(c, row)}
+  </section>`;
+}
+
+/** ww180: propaganda and censorship: what runs, the rows, how it went. */
+function propaganda(c: GwCtx): TemplateResult {
+  const v = c.seat.world.prop;
+  const rows = (c.seat.acts ?? []).filter((a) => PROP_ACTS.includes(a.id));
+  const on: string[] = [];
+  if (v?.home === true) on.push(t("prop.home_on"));
+  if (v?.hush === true) on.push(t("prop.hush_on"));
+  if ((v?.leaflets.length ?? 0) > 0) {
+    on.push(
+      t("prop.leaflets_on", { countries: v!.leaflets.map(country).join(", ") }),
+    );
+  }
+  if ((v?.papers.length ?? 0) > 0) {
+    on.push(
+      t("prop.papers_on", { countries: v!.papers.map(country).join(", ") }),
+    );
+  }
+  const done = [...(v?.ops ?? [])].reverse();
+  // A campaign still on that has done nothing yet hasn't failed.
+  const still = (o: { act: string; tag: string | null }) =>
+    v !== undefined &&
+    (o.act === "home"
+      ? v.home
+      : o.act === "hush"
+        ? v.hush
+        : o.act === "leaflets"
+          ? v.leaflets.some((x) => x === o.tag)
+          : v.papers.some((x) => x === o.tag));
+  return html`<section class=${BOX} data-gw-intel-prop>
+    ${head("prop")}
+    ${on.length === 0
+      ? empty("prop.idle")
+      : on.map(
+          (x) =>
+            html`<p class="text-sm text-white/85" data-gw-intel-prop-on>
+              ${x}
+            </p>`,
+        )}
+    ${rows.length === 0 ? empty("prop.none") : rows.map((a) => actRow(c, a))}
+    ${done.length === 0
+      ? nothing
+      : html`<div class=${MUTED}>${t("prop.done")}</div>
+          ${done.map(
+            (o) =>
+              html`<p
+                class="text-sm text-white/85"
+                data-gw-intel-prop-op=${o.act}
+              >
+                ${t(`op.${o.act}`)}${o.tag === null
+                  ? ""
+                  : ` · ${country(o.tag)}`}
+                —
+                ${o.ok === null
+                  ? t("ops.waiting")
+                  : o.out
+                    ? t("ops.out")
+                    : o.ok
+                      ? t("ops.ok")
+                      : still(o) &&
+                          o ===
+                            done.find((x) => x.act === o.act && x.tag === o.tag)
+                        ? t("prop.running")
+                        : t("ops.failed")}
+              </p>`,
+          )}`}
+  </section>`;
+}
+
 /** The 뒷공작 rows, as on the schedule, and how the last ones went. */
 function ops(c: GwCtx): TemplateResult {
   const rows = (c.seat.acts ?? []).filter(
-    (a) => a.kind === "intrigue" && !a.id.startsWith(SEA_ROW),
+    (a) =>
+      a.kind === "intrigue" &&
+      !a.id.startsWith(SEA_ROW) &&
+      a.id !== AGENT_ACT &&
+      !PROP_ACTS.includes(a.id),
   );
   const done = [...(c.seat.world.service?.ops ?? [])].reverse();
   return html`<section class=${BOX} data-gw-intel-ops>
@@ -530,6 +684,7 @@ export function intelTab(c: GwCtx): TemplateResult {
   return html`<div class="space-y-2.5" data-gw-intel>
     <p class="text-sm text-white/75">${t("intro")}</p>
     ${chief(c)} ${fund(c)} ${fronts(c)} ${countries(c, rivals)}
-    ${codes(c, rivals)} ${sea(c)} ${nets(c)} ${ops(c)}
+    ${codes(c, rivals)} ${sea(c)} ${nets(c)} ${agents(c)} ${ops(c)}
+    ${propaganda(c)}
   </div>`;
 }

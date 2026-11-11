@@ -25,6 +25,7 @@ import type {
   GwTheatre,
   GwThread,
 } from "./GreatWarTypes";
+import type { GwAgentsView, GwPropView } from "./GwAgents";
 import type { GwBudgetView } from "./GwBudget";
 import type { GwTag } from "./GwCountries";
 import type { GwCraftView } from "./GwCraft";
@@ -308,6 +309,10 @@ export interface GwWorldView {
   service?: GwIntelView;
   /** ww180: the chain at sea; absent for a country with no fleet on that front. */
   sea?: GwSeaView;
+  /** ww180: the seat's named agents and the pool; absent in old views. */
+  agents?: GwAgentsView;
+  /** ww180: the seat's propaganda campaigns; absent in old views. */
+  prop?: GwPropView;
   mandates: readonly string[];
   secrets: readonly GwSecret[];
   threads: readonly GwThread[];

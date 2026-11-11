@@ -52,6 +52,14 @@ import {
   GwWarEnd,
 } from "./GreatWarTypes";
 import {
+  GW_AGENT_CANS,
+  GW_PROP_ACTS,
+  GW_PROP_CANS,
+  GwAgentCan,
+  GwPropAct,
+  GwPropCan,
+} from "./GwAgents";
+import {
   GW_BUDGET_ITEMS,
   GW_BUDGET_LINES,
   GW_BUDGET_SOURCES,
@@ -420,7 +428,14 @@ export type GwWorldCond =
       peace?: boolean;
     }
   /** ww180: the direction-finding chain at sea (GwNaval.GW_NAVAL_CANS). */
-  | { is: "naval"; can: GwNavalCan };
+  | { is: "naval"; can: GwNavalCan }
+  /** ww180: named agents (GwAgents.GW_AGENT_CANS); `id` a GW_AGENTS id. */
+  | { is: "agent"; can: GwAgentCan; id?: string }
+  /**
+   * ww180: propaganda (GwAgents.GW_PROP_CANS): an act with `tag` where it
+   * takes one; ok/out of the newest campaign of `act`.
+   */
+  | { is: "prop"; can: GwPropCan; tag?: GwTag; act?: GwPropAct };
 
 export type GwWorldEffect =
   /** Germany's plan for the war to come. */
@@ -593,7 +608,11 @@ export type GwWorldEffect =
   /** ww173: the secret war (engine/ww1914/Spies; GwSpies.GW_SPY_ACTS). */
   | { do: "spy"; act: GwSpyAct; tag?: GwTag }
   /** ww180: the chain at sea (engine/ww1914/NavalIntel; GwNaval.GW_NAVAL_ACTS). */
-  | { do: "naval"; act: GwNavalAct };
+  | { do: "naval"; act: GwNavalAct }
+  /** ww180: hire a named agent (engine/ww1914/Agents); none named: the best open. */
+  | { do: "agent"; id?: string }
+  /** ww180: a propaganda campaign (engine/ww1914/Propaganda). */
+  | { do: "prop"; act: GwPropAct; tag?: GwTag };
 
 const int = z.number().int();
 const yearMonth = z.string().regex(/^19[0-9]{2}-[01][0-9]$/);
@@ -803,6 +822,12 @@ export const GwWorldCondSchema = z.union([
     peace: z.boolean().optional(),
   }),
   is("naval", { can: z.enum(GW_NAVAL_CANS) }),
+  is("agent", { can: z.enum(GW_AGENT_CANS), id: GwIdSchema.optional() }),
+  is("prop", {
+    can: z.enum(GW_PROP_CANS),
+    tag: tag.optional(),
+    act: z.enum(GW_PROP_ACTS).optional(),
+  }),
 ]) as unknown as z.ZodType<GwWorldCond>;
 
 export const GwWorldEffectSchema = z.union([
@@ -903,6 +928,8 @@ export const GwWorldEffectSchema = z.union([
   act("counter_offensive", { pick: z.enum(GW_OFF_COUNTERS) }),
   act("spy", { act: z.enum(GW_SPY_ACTS), tag: tag.optional() }),
   act("naval", { act: z.enum(GW_NAVAL_ACTS) }),
+  act("agent", { id: GwIdSchema.optional() }),
+  act("prop", { act: z.enum(GW_PROP_ACTS), tag: tag.optional() }),
 ]) as unknown as z.ZodType<GwWorldEffect>;
 
 // ---- Authoring helpers ----

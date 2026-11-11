@@ -14,6 +14,7 @@ import { tilted } from "@openfront/engine-lib/ww1914/BudgetRules";
 import { civilFromDays } from "@openfront/engine-lib/ww1936/Calendar";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { noteFx } from "./ActNote";
+import { agentHolds, hire } from "./Agents";
 import { askEffect, askHolds } from "./Asks";
 import { holdVote, voteCount } from "./Authority";
 import {
@@ -68,6 +69,7 @@ import {
 import { armistice, openTalks, sue } from "./Peace";
 import { keepPerson, openLetter, personLeaves, recordResult } from "./People";
 import { plotEffect, plotHolds } from "./Plots";
+import { propEffect, propHolds } from "./Propaganda";
 import { changeRegime, regimeRow } from "./Regimes";
 import { SceneCtx, whoIn } from "./SceneRun";
 import { setUboats } from "./Sea";
@@ -310,6 +312,10 @@ export function worldHolds(ctx: SceneCtx, c: GwWorldCond): boolean {
       return spyHolds(gw, seat, c.can, c.tag);
     case "naval":
       return navalHolds(gw, seat, c.can);
+    case "agent":
+      return agentHolds(gw, seat, c.can, c.id);
+    case "prop":
+      return propHolds(gw, seat, c.can, c.tag, c.act);
   }
 }
 
@@ -609,6 +615,12 @@ export function worldEffect(ctx: SceneCtx, e: GwWorldEffect): void {
       return;
     case "naval":
       navalEffect(ctx.gw, ctx.seat, e.act);
+      return;
+    case "agent":
+      hire(ctx.gw, ctx.seat.tag, e.id);
+      return;
+    case "prop":
+      propEffect(ctx.gw, ctx.seat.tag, e.act, e.tag);
       return;
   }
 }
