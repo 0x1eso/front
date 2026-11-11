@@ -1,17 +1,19 @@
 import {
   GW_RESEARCH,
+  type GwOffMethod,
   type GwSide,
   type GwTheatre,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { GW_PLACES } from "@openfront/engine-api/ww1914/GwPlaces";
 import type { GwTheatreView } from "@openfront/engine-api/ww1914/GwView";
 import type {
+  GwFrontPrepView,
   GwFrontView,
   GwProposal,
 } from "@openfront/engine-api/ww1914/GwWorldView";
 import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
-import type { GwCtx } from "./GwCtx";
+import type { GwCtx, GwOffPick } from "./GwCtx";
 import { frontMove, frontRead, frontTone, type FrontRead } from "./GwModel";
 import { BTN, BTN_ON, CHIP, HEAD, MUTED } from "./GwStyle";
 import { frontLine, personName } from "./GwText";
@@ -183,8 +185,122 @@ function frontCard(c: GwCtx, f: GwFrontView): TemplateResult {
         ),
       })}
     </div>
+    ${f.prep === undefined || f.prep === null ? nothing : prepLine(f.prep)}
   </section>`;
 }
+
+/** Our own great offensive on this front, in words (ww173). */
+function prepLine(p: GwFrontPrepView): TemplateResult {
+  const method = translateText(`gw.ui.off_method.${p.method}`);
+  const text =
+    p.round > 0
+      ? translateText("gw.ui.off_round", {
+          round: translateText(`gw.ui.off_round_word.${Math.min(4, p.round)}`),
+        })
+      : p.ready
+        ? translateText("gw.ui.off_ready", { method })
+        : translateText("gw.ui.off_prep", {
+            method,
+            month: translateText(`gw.ui.off_month.${Math.min(5, p.month)}`),
+          });
+  return html`<p class="text-sm text-amber-100" data-gw-front-prep>${text}</p>`;
+}
+
+/** The great offensive's paper: how, how long, a feint, quietly (ww173). */
+function offensivePicks(c: GwCtx, p: GwProposal): TemplateResult {
+  const off = p.offensive!;
+  const pick = offPickOf(c, p);
+  const set = (next: Partial<GwOffPick>) => {
+    c.ui.offPick = { ...pick, ...next };
+    c.redraw();
+  };
+  const signed = c.seat.world.signed;
+  const btn = (on: boolean) => `${on ? BTN_ON : BTN} !px-2 !py-1`;
+  return html`<div class="space-y-1" data-gw-off-picks>
+    <p class="text-sm text-white/80">
+      ${translateText("gw.ui.off_paper_note")}
+    </p>
+    <div class=${MUTED}>${translateText("gw.ui.off_method_head")}</div>
+    <div class="flex flex-wrap gap-1">
+      ${off.methods.map(
+        (m) =>
+          html`<button
+            class=${btn(m.method === pick.method)}
+            data-gw-pick=${`off_method:${m.method}`}
+            ?disabled=${signed || !m.open}
+            @click=${() => set({ method: m.method })}
+          >
+            ${translateText(`gw.ui.off_method.${m.method}`)}
+          </button>`,
+      )}
+    </div>
+    ${off.methods
+      .filter((m) => !m.open && m.why !== null)
+      .map(
+        (m) =>
+          html`<p class=${MUTED}>
+            ${translateText(`gw.ui.off_method.${m.method}`)}:
+            ${translateText(`gw.plan_why.${m.why}`)}
+          </p>`,
+      )}
+    <div class=${MUTED}>${translateText("gw.ui.off_months_head")}</div>
+    <div class="flex flex-wrap gap-1">
+      ${([1, 3] as const).map(
+        (n) =>
+          html`<button
+            class=${btn(pick.months === n)}
+            data-gw-pick=${`off_months:${n}`}
+            ?disabled=${signed}
+            @click=${() => set({ months: n })}
+          >
+            ${translateText(`gw.ui.off_months.${n}`)}
+          </button>`,
+      )}
+    </div>
+    <div class="flex flex-wrap gap-1">
+      ${off.feints.map(
+        (t) =>
+          html`<button
+            class=${btn(pick.feint === t)}
+            data-gw-pick=${`off_feint:${t}`}
+            ?disabled=${signed}
+            @click=${() => set({ feint: pick.feint === t ? null : t })}
+          >
+            ${translateText("gw.ui.off_feint", {
+              front: translateText(`gw.ui.theatre.${t}`),
+            })}
+          </button>`,
+      )}
+      <button
+        class=${btn(pick.quiet)}
+        data-gw-pick="off_quiet"
+        ?disabled=${signed}
+        @click=${() => set({ quiet: !pick.quiet })}
+      >
+        ${translateText("gw.ui.off_quiet")}
+      </button>
+    </div>
+  </div>`;
+}
+
+/** The picks on this paper: the first open method, a month, plainly. */
+function offPickOf(c: GwCtx, p: GwProposal): GwOffPick {
+  const cur = c.ui.offPick;
+  if (cur !== undefined && cur !== null && cur.main === p.main) return cur;
+  const first: GwOffMethod =
+    p.offensive?.methods.find((m) => m.open)?.method ?? "long";
+  return { main: p.main, method: first, months: 1, feint: null, quiet: false };
+}
+
+/** Papers of the great offensive: their order says which by id. */
+const OFF_PAPERS: readonly string[] = [
+  "offensive",
+  "prep_go",
+  "launch",
+  "prep_stop",
+  "press_on",
+  "stop",
+];
 
 /** A front the seat's country is not fighting on: where it stands, plainly. */
 function otherCard(t: GwTheatreView, side: GwSide | null): TemplateResult {
@@ -221,10 +337,14 @@ function paper(c: GwCtx, p: GwProposal): TemplateResult {
         >${translateText(`gw.ui.theatre.${p.main}`)}</span
       >
     </div>
-    <div class="flex flex-wrap gap-1">
-      <span class=${CHIP}>${translateText(`gw.ui.posture.${p.posture}`)}</span>
-      <span class=${CHIP}>${translateText(`gw.ui.scale.${p.scale}`)}</span>
-    </div>
+    ${p.offensive !== undefined
+      ? offensivePicks(c, p)
+      : html`<div class="flex flex-wrap gap-1">
+          <span class=${CHIP}
+            >${translateText(`gw.ui.posture.${p.posture}`)}</span
+          >
+          <span class=${CHIP}>${translateText(`gw.ui.scale.${p.scale}`)}</span>
+        </div>`}
     ${p.by === null
       ? nothing
       : html`<p class="text-sm text-white/80">
@@ -253,6 +373,7 @@ function paper(c: GwCtx, p: GwProposal): TemplateResult {
               rest: "",
               tell: p.tell,
             });
+            const off = p.offensive === undefined ? null : offPickOf(c, p);
             c.send({
               kind: "allocate",
               main: p.main,
@@ -260,6 +381,15 @@ function paper(c: GwCtx, p: GwProposal): TemplateResult {
               scale: p.scale,
               allyShare: p.allyShare,
               research,
+              ...(OFF_PAPERS.includes(p.id) ? { paper: p.id } : {}),
+              ...(off === null
+                ? {}
+                : {
+                    method: off.method,
+                    months: off.months,
+                    quiet: off.quiet,
+                    ...(off.feint === null ? {} : { feint: off.feint }),
+                  }),
             });
           }}
         >

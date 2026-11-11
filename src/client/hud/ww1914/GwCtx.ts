@@ -3,6 +3,7 @@ import type {
   GwBackDirection,
   GwClause,
   GwGiveClause,
+  GwOffMethod,
   GwReason,
   GwResearch,
   GwTheatre,
@@ -103,6 +104,8 @@ export interface GwUi {
   armedField?: string | null;
   /** The research picked for the paper about to be signed. */
   research: GwResearch | null;
+  /** ww173: the great offensive's picks on its paper, by front; null fresh. */
+  offPick?: GwOffPick | null;
   /** The budget panel is open. */
   budgetOpen: boolean;
   /** The plan being changed there; null shows the draft. */
@@ -190,4 +193,13 @@ export interface GwCtx {
   card(uid: number): GwCardView | undefined;
   /** The name of the friend in a seat; null with nobody known. */
   holder?(smallID: number): string | null;
+}
+
+/** What is picked on the great offensive's paper before it is signed. */
+export interface GwOffPick {
+  main: GwTheatre;
+  method: GwOffMethod;
+  months: 1 | 3;
+  feint: GwTheatre | null;
+  quiet: boolean;
 }
