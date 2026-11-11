@@ -110,8 +110,9 @@ describe("the 정보부 tab", () => {
     // A vacant chief points to the people tab.
     expect(q(root, "[data-gw-intel-to-people]")).not.toBeNull();
     // Rivals by camp, nothing known yet: the empty line, not a bare blank.
-    expect(q(root, "[data-gw-intel-country=RUS]")).not.toBeNull();
-    expect(q(root, "[data-gw-intel-country=FRA]")).not.toBeNull();
+    expect(q(root, "[data-gw-intel-blank]")!.dataset.gwIntelBlank).toBe(
+      "RUS FRA",
+    );
     expect(
       root.querySelectorAll("[data-gw-intel-empty]").length,
     ).toBeGreaterThan(3);

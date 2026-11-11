@@ -14,7 +14,7 @@ import type { GwCtx } from "./GwCtx";
 import { personRow } from "./GwPeople";
 import { actRow } from "./GwSchedule";
 import { BTN, CHIP, HEAD, MUTED } from "./GwStyle";
-import { country, factText, reportText } from "./GwText";
+import { country, factText } from "./GwText";
 
 const BOX = "space-y-1.5 rounded border border-white/15 bg-black/35 p-2.5";
 /** Reports about the seat's own house and allies: they belong elsewhere. */
@@ -23,7 +23,7 @@ const HOME_FACTS: readonly string[] = ["plot", "file", "count", "ally"];
 const FRONT_FACTS: readonly string[] = ["strain", "prep"];
 
 const t = (key: string, params: Record<string, string | number> = {}) =>
-  applyJosa(translateText(`gw.service.${key}`, params));
+  applyJosa(translateText(`gw.intel.${key}`, params));
 
 /** One plain line under a section's title: what it is and why it matters. */
 function head(key: string): TemplateResult {
@@ -53,9 +53,11 @@ export function trackWord(s: GwSourceView | undefined): string {
 function report(c: GwCtx, r: GwReportView, front: boolean): TemplateResult {
   const src = c.seat.world.sources.find((s) => s.id === r.source);
   const track = trackWord(src);
-  const what = front
-    ? `${translateText(`gw.ui.fact.${r.fact}`)}: ${factText(r.fact, r.claim)}`
-    : reportText(r, c.pack);
+  const where =
+    !front && r.theatre !== null
+      ? ` (${translateText(`gw.ui.theatre.${r.theatre}`)})`
+      : "";
+  const what = `${translateText(`gw.ui.fact.${r.fact}`)}${where}: ${factText(r.fact, r.claim)}`;
   return html`<div class="text-sm" data-gw-intel-report=${r.uid}>
     <p class="text-white/85">${what}</p>
     <p class=${MUTED}>
@@ -203,25 +205,40 @@ function countries(c: GwCtx, rivals: readonly GwTag[]): TemplateResult {
   const rows = foreign(c).filter(
     (r) => r.theatre === null || !fronts.has(r.theatre),
   );
+  const known = rivals.map((tag) => ({
+    tag,
+    rows: newest(
+      rows.filter((r) => r.tag === tag),
+      (r) => `${r.fact}.${r.theatre ?? ""}`,
+    ),
+  }));
+  // Countries with nothing known fold into one line, with what to do.
+  const blank = known.filter((k) => k.rows.length === 0).map((k) => k.tag);
   return html`<section class=${BOX} data-gw-intel-countries>
     ${head("countries")}
-    ${rivals.length === 0
-      ? empty("countries.none")
-      : rivals.map((tag) => {
-          const mine = newest(
-            rows.filter((r) => r.tag === tag),
-            (r) => `${r.fact}.${r.theatre ?? ""}`,
-          );
-          return html`<div
+    ${rivals.length === 0 ? empty("countries.none") : nothing}
+    ${known
+      .filter((k) => k.rows.length > 0)
+      .map(
+        (k) =>
+          html`<div
             class="space-y-1 border-t border-white/10 pt-1.5"
-            data-gw-intel-country=${tag}
+            data-gw-intel-country=${k.tag}
           >
-            <div class="text-sm font-bold">${country(tag)}</div>
-            ${mine.length === 0
-              ? empty("countries.nothing")
-              : mine.map((r) => report(c, r, false))}
-          </div>`;
-        })}
+            <div class="text-sm font-bold">${country(k.tag)}</div>
+            ${k.rows.map((r) => report(c, r, false))}
+          </div>`,
+      )}
+    ${blank.length === 0
+      ? nothing
+      : html`<p
+          class="${MUTED} border-t border-white/10 pt-1.5"
+          data-gw-intel-blank=${blank.join(" ")}
+        >
+          ${t("countries.nothing", {
+            countries: blank.map(country).join(", "),
+          })}
+        </p>`}
   </section>`;
 }
 

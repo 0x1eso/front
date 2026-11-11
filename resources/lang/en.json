@@ -2861,7 +2861,7 @@
       },
       "countries": {
         "none": "No rival to watch yet. Countries appear here once a camp stands against us.",
-        "nothing": "Nothing known yet. Plant a net here (covert operations below) and reports come in.",
+        "nothing": "Nothing known yet of {countries}. Plant a net there (covert operations below) and reports come in.",
         "title": "What we know of each country",
         "why": "Reports on rivals' strength, morale, mobilisation and intentions. They can be wrong, so see who sent them."
       },
