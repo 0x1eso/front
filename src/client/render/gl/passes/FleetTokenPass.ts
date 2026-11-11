@@ -33,11 +33,8 @@ import {
   shipCount,
   tokenClass,
 } from "../../../view/FleetTokenLayout";
-import {
-  classOfKind,
-  IMJIN_FLEET_ID_BASE,
-  IMJIN_MT,
-} from "../../../view/ImjinFleets";
+import { IMJIN_FLEET_ID_BASE, IMJIN_MT } from "../../../view/ImjinFleets";
+import { imjinShipCell } from "../../../view/ImjinSea";
 import type { WwNavyView } from "../../../view/WwNavyView";
 import { DynamicInstanceBuffer } from "../DynamicBuffer";
 import fragSrc from "../shaders/fleet-token/fleet-token.frag.glsl?raw";
@@ -524,8 +521,9 @@ export class FleetTokenPass {
     const kind = layout.lod === 0 ? KIND_TOKEN : KIND_CHIP;
     const b = this.batch;
     b.begin(layout.count);
-    // ww177 (Imjin design §6.2): close in, each ship of a tile fleet as a
-    // silhouette in its slot, under the tokens.
+    // ww177 (Imjin design §6.2): close in, each ship of a tile fleet as its
+    // era silhouette (P3: the atlas's five hulls) in its slot, under the
+    // tokens; a burning ship drawn faint.
     const imjin = view.imjin;
     if (imjin !== null && layout.lod === 0) {
       for (const s of imjin.ships) {
@@ -539,7 +537,7 @@ export class FleetTokenPass {
         b.putSprite(
           s[3] / IMJIN_MT,
           s[4] / IMJIN_MT,
-          CLASS_CELL[classOfKind(s[6])],
+          SHIP_CELL[imjinShipCell(s[6])],
           heading > 256 && heading < 768 ? -1 : 1,
           s[7] !== 0 ? 0.6 : 1,
           IMJIN_SHIP_PX,

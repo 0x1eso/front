@@ -37,7 +37,9 @@ export type SeaAirTapMode =
   | "move"
   | "port_strike"
   | "merge"
-  | "invade";
+  | "invade"
+  // ww177 P3: an Imjin fleet's decoy (lure) runs for the sea tile tapped.
+  | "lure";
 
 /** The sea or air layer was switched (the dials). */
 export class WwSeaLayerEvent {
@@ -64,6 +66,11 @@ export class SeaAirSelection {
   lensResource: LensResource = "";
   lensDiplo: LensDiplo = "faction";
   tapMode: SeaAirTapMode = "mission";
+  /**
+   * ww177 P3: a heading drag from the chosen Imjin fleet (tiles, from the
+   * fleet to the pointer) while it lasts; the map draws it as an arrow.
+   */
+  aim: { fx: number; fy: number; x: number; y: number } | null = null;
   /** Bumped on every change; screens redraw when it moves. */
   version = 0;
 
@@ -96,6 +103,11 @@ export class SeaAirSelection {
     this.lensDiplo = d;
     this.version++;
   }
+  setAim(aim: SeaAirSelection["aim"]): void {
+    this.aim = aim;
+    this.version++;
+  }
+
   setTapMode(mode: SeaAirTapMode): void {
     this.tapMode = mode;
     this.version++;

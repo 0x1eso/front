@@ -18189,8 +18189,34 @@
       "siege_line": "포위됨: 군량 {days}일분, 성벽 {fort}단"
     },
     "sea": {
+      "battle_title": "이 바다에서 해전 중",
       "board": "등선 육박",
       "break_off": "전투 이탈",
+      "break_off_closed": "해전 중에만 쓸 수 있습니다.",
+      "burning": "{n}척 불타는 중",
+      "current_desc": "양쪽 해안을 우리가 쥐고 있어 물살이 언제 바뀌는지 압니다. 물살을 거스르는 큰 함대는 엉킵니다.",
+      "current_hidden": "물살: 양쪽 해안을 쥐면 바뀌는 때가 보입니다",
+      "current_turns": "물살이 {s}초 뒤 바뀝니다",
+      "desc": {
+        "board": "다가붙어 갈고리를 걸고, 갑판에서 맞붙어 싸웁니다.",
+        "break_off": "해전에서 빠져나와 물러납니다.",
+        "fire_ship": "작은 배에 불을 붙여 적에게 보냅니다.",
+        "hold": "멈춰서 이 바다를 지킵니다. 섬 그늘에 멈춘 함대는 숨습니다.",
+        "keep_range": "2~4칸 떨어져 포를 쏘고, 적이 붙지 못하게 합니다.",
+        "lure": "배 몇 척이 모습을 드러내고 누른 바다로 달아나 적을 끌어들입니다."
+      },
+      "dir": {
+        "e": "동",
+        "n": "북",
+        "ne": "북동",
+        "nw": "북서",
+        "s": "남",
+        "se": "남동",
+        "sw": "남서",
+        "w": "서"
+      },
+      "fire_ship": "화공선",
+      "fire_ship_closed": "화공선은 아직 명령할 수 없습니다.",
       "formation": {
         "column": "장사진",
         "crane": "학익진",
@@ -18198,8 +18224,57 @@
         "loose": "산개",
         "wedge": "첨자진"
       },
+      "formation_desc": {
+        "column": "좁은 물길을 빨리 지나지만 앞 배만 쏘고, 맞기 쉽습니다.",
+        "crane": "U자로 감싸 적 선두에 포를 모읍니다.",
+        "line": "옆으로 늘어서 모든 배의 포가 앞을 향합니다.",
+        "loose": "흩어져 덜 맞고 불이 덜 번지지만, 한데 모여 등선하지 못합니다.",
+        "wedge": "뾰족하게 파고들어 등선하기 좋지만, 촘촘해 맞기 쉽습니다."
+      },
+      "hint_lure": "미끼가 달아날 바다를 누르세요",
+      "hint_steer": "바다를 누르면 그리로 갑니다 · 함대에서 끌면 그 방향으로 나아갑니다",
+      "hint_steer_battle": "해전 중: 바다를 누르면 움직이고, 함대에서 끌면 방향을 틉니다 · 아래 칩으로 명령",
       "hold": "정지",
-      "keep_range": "거리 유지"
+      "hull": "선체",
+      "hull_desc": "남은 선체입니다. 0이 되면 가라앉고, 1%를 잃을 때마다 사기가 떨어집니다.",
+      "keep_range": "거리 유지",
+      "kind": {
+        "atakebune": "안택선",
+        "fuchuan": "복선",
+        "hyeopseon": "협선",
+        "kobaya": "소조선",
+        "panokseon": "판옥선",
+        "sekibune": "관선",
+        "shachuan": "사선",
+        "transport": "수송선",
+        "turtle": "거북선"
+      },
+      "kind_count": "{kind} {n}",
+      "lure": "유인",
+      "morale": "사기",
+      "morale_desc": "30% 아래면 흔들려 등선하지 못하고 포가 약해지며, 15% 아래면 달아납니다.",
+      "no_ships": "배 없음",
+      "row_formation": "진형",
+      "row_orders": "명령",
+      "side_them": "적 · {n}척",
+      "side_us": "아군 · {n}척",
+      "state": {
+        "board": "등선 육박 중",
+        "break_off": "이탈 중",
+        "escort": "호위 중",
+        "hold": "정지",
+        "keep_range": "거리 유지",
+        "lure": "유인 중",
+        "move": "항해 중"
+      },
+      "wind": "바람 {arrow} {from}풍 · {strength}",
+      "wind_calm": "바람: 잔잔함",
+      "wind_desc": "돛 위주의 배는 순풍에 빠르고 역풍에 느리며, 노 젓는 배는 덜 탑니다. 화공선은 역풍이면 쓰지 못합니다.",
+      "wind_strength": {
+        "0": "잔잔함",
+        "1": "보통",
+        "2": "강함"
+      }
     },
     "court": {
       "democratic": "서인",

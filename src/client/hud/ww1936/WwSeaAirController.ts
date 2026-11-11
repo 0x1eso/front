@@ -16,9 +16,11 @@ import { SEA_ZONE_BASE } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { EventBus, GameEvent } from "@openfront/shared/EventBus";
 import { registerBackClosable } from "../../BackGuard";
 import { Controller } from "../../Controller";
+import { ClaimDragEvent, WwStrokeEvent } from "../../InputHandler";
 import { SendWwOrderIntentEvent } from "../../Transport";
 import { hitFleet, layoutFleets } from "../../view/FleetTokenLayout";
 import { imjinFleetOrder, isImjinFleet } from "../../view/ImjinFleets";
+import { headingTarget } from "../../view/ImjinSea";
 import { landSelectionOf, WwSelectArmyEvent } from "./LandSelection";
 import {
   invasionPreview,
@@ -92,6 +94,8 @@ export interface SeaAirTapDeps {
   layout: typeof layoutFleets;
   hit: typeof hitFleet;
   now: () => number;
+  /** Screen px to tile coords (the TransformHandler's), for a drag's heading. */
+  toWorld: (x: number, y: number) => { x: number; y: number };
 }
 
 /** What glows on the map now (spec §18.3): sea regions, or land regions; null: nothing. */
@@ -126,6 +130,8 @@ export class WwSeaAirController implements Controller {
   readonly draft: SeaAirDraft;
   private readonly deps: SeaAirTapDeps;
   private unregisterBack: (() => void) | null = null;
+  /** ww177 P3: the chosen Imjin fleet's place when a press on it was claimed as a drag. */
+  private dragFrom: { x: number; y: number } | null = null;
 
   constructor(
     private readonly game: NavyGame,
@@ -141,6 +147,7 @@ export class WwSeaAirController implements Controller {
       layout: layoutFleets,
       hit: hitFleet,
       now: () => Date.now(),
+      toWorld: (x, y) => ({ x, y }),
       ...deps,
     };
   }
@@ -169,6 +176,78 @@ export class WwSeaAirController implements Controller {
     this.eventBus.on(WwSeaAirModeEvent, (e) =>
       this.setMode(e.mode, e.mission, e.army),
     );
+    this.eventBus.on(ClaimDragEvent, (e) => this.claimDrag(e));
+    this.eventBus.on(WwStrokeEvent, (e) => this.stroke(e));
+  }
+
+  /** ww177 P3: the chosen Imjin fleet of mine and its tile position, or null. */
+  private chosenImjin(): { id: number; x: number; y: number } | null {
+    const id = this.selection.fleet;
+    if (!isImjinFleet(id) || this.myId() === null) return null;
+    const ctx = navyCtx(this.game);
+    if (ctx === null || ctx.navy.fleets.get(id)?.owner !== ctx.me) return null;
+    const at = ctx.navy.imjinXY.get(id);
+    return at === undefined ? null : { id, x: at[0], y: at[1] };
+  }
+
+  /** A press on (or right by) the chosen Imjin fleet is a heading drag. */
+  claimDrag(e: ClaimDragEvent): void {
+    // Every press asks first: a stale press never answers a later stroke.
+    this.dragFrom = null;
+    if (e.claimed || e.shift) return;
+    const mode = this.draft.mode;
+    if (mode !== "none" && mode !== "move") return;
+    const f = this.chosenImjin();
+    if (f === null) return;
+    const w = this.deps.toWorld(e.x, e.y);
+    const r = 28 / Math.max(1e-6, this.zoom());
+    if ((w.x - f.x) ** 2 + (w.y - f.y) ** 2 > r * r) return;
+    e.claimed = true;
+    this.dragFrom = { x: f.x, y: f.y };
+  }
+
+  /** The drag's stroke: the heading follows the pointer; the release orders it. */
+  stroke(e: WwStrokeEvent): void {
+    const from = this.dragFrom;
+    if (from === null) return;
+    const d = this.draft;
+    if (e.phase === "cancel") {
+      this.dragFrom = null;
+      this.selection.setAim(null);
+      this.changed();
+      return;
+    }
+    const w = this.deps.toWorld(e.x, e.y);
+    if (e.phase !== "end") {
+      this.selection.setAim({ fx: from.x, fy: from.y, x: w.x, y: w.y });
+      this.changed();
+      return;
+    }
+    this.dragFrom = null;
+    this.selection.setAim(null);
+    const aim = { fx: from.x, fy: from.y };
+    const ctx = navyCtx(this.game);
+    const f = this.chosenImjin();
+    if (ctx !== null && f !== null) {
+      const s = ctx.scenario;
+      const tile = headingTarget(
+        aim.fx,
+        aim.fy,
+        w.x,
+        w.y,
+        s.width,
+        s.height,
+        (t) => this.waterTileAt(ctx, t % s.width, Math.floor(t / s.width)) >= 0,
+      );
+      if (tile >= 0) {
+        this.eventBus.emit(
+          new SendWwOrderIntentEvent(imjinFleetOrder(f.id, "move", { tile })),
+        );
+        d.mode = "none";
+        d.pending = 0;
+      }
+    }
+    this.changed();
   }
 
   private myId(): number | null {
@@ -217,6 +296,20 @@ export class WwSeaAirController implements Controller {
     if (hit !== 0 && ctx.navy.fleets.get(hit)?.owner === ctx.me) {
       this.selectFleet(hit);
       return true;
+    }
+    // ww177 P3 (Imjin design §6.2): a chosen Imjin fleet is steered by a
+    // tap: it sails at once for the sea tile tapped (land lets it go).
+    if (sel.fleet !== 0 && isImjinFleet(sel.fleet) && !armyChosen) {
+      const tile = this.waterTileAt(ctx, x, y);
+      if (tile >= 0) {
+        this.eventBus.emit(
+          new SendWwOrderIntentEvent(
+            imjinFleetOrder(sel.fleet, "move", { tile }),
+          ),
+        );
+        this.changed();
+        return true;
+      }
     }
     if (armyChosen) return false;
     if (sel.layer === "air") {
@@ -323,16 +416,26 @@ export class WwSeaAirController implements Controller {
         }));
         return;
       }
-      case "move": {
-        // ww177: an Imjin tile fleet sails to the very tile tapped.
+      case "move":
+      case "lure": {
+        // ww177: an Imjin tile fleet sails (or its decoy runs) for the
+        // very tile tapped, at once: it is steered, not planned.
         if (isImjinFleet(f.id)) {
           const tile = this.waterTileAt(ctx, x, y);
           if (tile < 0) return this.cancel();
-          this.targetTap(tile + 1, () =>
-            imjinFleetOrder(f.id, "move", { tile }),
+          this.eventBus.emit(
+            new SendWwOrderIntentEvent(
+              imjinFleetOrder(f.id, d.mode === "lure" ? "lure" : "move", {
+                tile,
+              }),
+            ),
           );
+          d.mode = "none";
+          d.pending = 0;
+          this.changed();
           return;
         }
+        if (d.mode === "lure") return this.cancel();
         const zone = this.zoneAt(ctx, x, y);
         if (zone === 0 || moveTarget(ctx, f, zone).km === null) {
           return this.cancel();

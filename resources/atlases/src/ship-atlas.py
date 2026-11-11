@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Writes the World War 1936 P4 ship atlas as SVG (16 x 2 cells of 64 px):
+"""Writes the World War 1936 P4 ship atlas as SVG (16 x 3 cells of 64 px):
 white ship silhouettes, mission and state icons, check, cross and digits,
 each with a dark rim. Drawn for this fork from scratch: no ensigns, no
 insignia, no national marks (P4 spec §22). Cell order:
@@ -12,7 +12,7 @@ import sys
 
 CELL = 64
 COLS = 16
-ROWS = 2
+ROWS = 3
 OUT = "rgba(0,0,0,0.85)"
 W = "#ffffff"
 
@@ -269,6 +269,81 @@ DIGITS = [
 ]
 for n, d in enumerate(DIGITS):
     cell(18 + n, stroke_pair(d, 7))
+
+
+# ---- Rows 1-2: the Imjin War's era hulls (ww177 P3, Imjin design §6.2) ----
+
+# 28 panokseon: a tall flat hull, a full upper deck, the command pavilion, a mast, oars.
+cell(
+    28,
+    ship(
+        [
+            "M4,36 L59,34 L62,33 L57,44 L8,44 L4,40 Z",
+            rect(10, 28, 44, 7),
+            rect(25, 21, 13, 7),
+            "M22,21.5 L31.5,15.5 L41,21.5 Z",
+            rect(46, 10, 1.6, 18),
+            barrel(16, 44, 13, 50, 1.3),
+            barrel(26, 44, 23, 50, 1.3),
+            barrel(36, 44, 33, 50, 1.3),
+            barrel(46, 44, 43, 50, 1.3),
+        ]
+    ),
+)
+
+# 29 turtle ship: a low hull under a domed shell, the dragon head at the bow, oars.
+cell(
+    29,
+    ship(
+        [
+            "M5,39 L57,38 L58,45 L10,45 L5,42 Z",
+            "M8,39.5 Q31,20 55,38.5 Z",
+            "M54,38 L58,31 L63,30.5 L62.5,34 L59,36 L58,39 Z",
+            barrel(18, 45, 15, 51, 1.3),
+            barrel(30, 45, 27, 51, 1.3),
+            barrel(42, 45, 39, 51, 1.3),
+        ]
+    ),
+)
+
+# 30 small boat (hyeopseon, kobaya): a short hull, one mast, a square sail.
+cell(
+    30,
+    ship(
+        [
+            "M14,40 L51,39 L56,37 L52,45 L18,45 L14,42 Z",
+            rect(32.5, 17, 1.6, 23),
+            "M26,19 L41,19 L40,33 L27,33 Z",
+        ]
+    ),
+)
+
+# 31 atakebune (and the Ming junks): a long boxed hull, a castle tower, a mast.
+cell(
+    31,
+    ship(
+        [
+            "M3,37 L59,35 L62,34 L57,45 L7,45 L3,41 Z",
+            rect(8, 27, 48, 9),
+            rect(30, 17, 15, 10),
+            "M27,17.5 L37.5,11 L48,17.5 Z",
+            rect(18, 9, 1.6, 18),
+        ]
+    ),
+)
+
+# 32 sekibune (the line; also transports): a lean hull, a low deckhouse, a mast with a sail.
+cell(
+    32,
+    ship(
+        [
+            "M6,39 L57,37 L61,36 L56,45 L10,45 L6,42 Z",
+            rect(12, 32.5, 38, 6),
+            rect(35, 11, 1.6, 22),
+            "M28,13 L44,13 L43,28 L29,28 Z",
+        ]
+    ),
+)
 
 
 def main(path):

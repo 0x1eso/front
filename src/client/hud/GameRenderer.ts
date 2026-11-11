@@ -691,6 +691,11 @@ export function createRenderer(
         game,
         eventBus,
         () => transformHandler.scale,
+        {
+          // ww177 P3: a drag from an Imjin fleet reads where it ends.
+          toWorld: (x, y) =>
+            transformHandler.screenToWorldCoordinatesFloat(x, y),
+        },
       );
       // Lane R's passes read the shared choice (the layer, the fleet, the
       // zone) and what a map tap may aim at glows (spec §18.3).

@@ -26,6 +26,16 @@ import {
   imjinFleetOrder,
   isImjinFleet,
 } from "../../view/ImjinFleets";
+import {
+  burningShips,
+  currentCountdown,
+  type ImjinBattleSide,
+  imjinBattleViews,
+  imjinSeed,
+  imjinWindAt,
+  shipsByKind,
+  windShown,
+} from "../../view/ImjinSea";
 import { DepthMiscModel } from "./DepthMiscModel";
 import { blockText } from "./EconomyModel";
 import { fogModelOf } from "./FogModel";
@@ -67,6 +77,7 @@ import {
   placeStyle,
   samePlace,
 } from "./WwArmyCard";
+import { wwEpoch } from "./WwClientCalendar";
 import { WwDrawerEvent } from "./WwDrawer";
 import {
   seaAirOf,
@@ -117,6 +128,42 @@ type Panel =
 
 const GAP = 8;
 
+/** ww177 P3 (Imjin design §6.2): an Imjin fleet's order chips, in order. */
+const IMJIN_ORDER_CHIPS = [
+  "hold",
+  "keep_range",
+  "board",
+  "fire_ship",
+  "lure",
+  "break_off",
+] as const;
+type ImjinOrderChip = (typeof IMJIN_ORDER_CHIPS)[number];
+type ImjinChip =
+  | { kind: "order"; id: ImjinOrderChip; refused: boolean }
+  | { kind: "formation"; id: (typeof IMJIN_FORMATIONS)[number] };
+
+const IMJIN_ORDER_ICONS: Readonly<Record<ImjinOrderChip, string>> = {
+  hold: "■",
+  keep_range: "↔",
+  board: "⚔",
+  fire_ship: "🔥",
+  lure: "🎣",
+  break_off: "↩",
+};
+
+const IMJIN_FORMATION_ICONS: Readonly<
+  Record<(typeof IMJIN_FORMATIONS)[number], string>
+> = {
+  line: "═",
+  column: "║",
+  crane: "◡",
+  wedge: "▲",
+  loose: "∴",
+};
+
+/** Ticks a formation change is shown as under way before the data must show it (15 s and some). */
+const FORMATION_WAIT_TICKS = 200;
+
 @customElement("ww-fleet-card")
 export class WwFleetCard extends LitElement implements Controller {
   public game: GameView;
@@ -134,6 +181,11 @@ export class WwFleetCard extends LitElement implements Controller {
   @state() private openWhileOrdering = false;
   /** The named ships' list under the class counts. */
   @state() private showShips = false;
+  /** ww177 P3: the Imjin chip last tapped: the line says what it does. */
+  @state() private imjinNote: ImjinChip | null = null;
+  /** ww177 P3: a formation asked for and not yet taken up (fleet, formation, when). */
+  private imjinFormation: { fleet: number; to: string; at: number } | null =
+    null;
   private wasOrdering = false;
   private shownFleet = 0;
   private readonly twoTap = new TwoTap();
@@ -193,6 +245,7 @@ export class WwFleetCard extends LitElement implements Controller {
       this.panel = "main";
       this.refused = null;
       this.showShips = false;
+      this.imjinNote = null;
       this.collapsed = window.innerHeight <= CARD_FOLD_MAX_HEIGHT;
     }
     const ordering = draft.mode !== "none" && draft.mode !== "invade";
@@ -414,6 +467,7 @@ export class WwFleetCard extends LitElement implements Controller {
   private renderFull(c: { ctx: NavyCtx; card: FleetCardData }): TemplateResult {
     const d = c.card;
     const f = d.fleet;
+    if (isImjinFleet(f.id)) return this.renderImjin(c);
     const line = this.renderLine(c);
     // A landscape phone's card (two rows of 36 px at most) stacks: the
     // name, ships and bars in one row, every button in the next; the
@@ -620,6 +674,10 @@ export class WwFleetCard extends LitElement implements Controller {
       >`;
     }
     switch (d.mode) {
+      case "lure":
+        return html`<span data-ww-hint="lure" class="${cls}text-amber-200"
+          >${translateText("imjin.sea.hint_lure")}</span
+        >`;
       case "mission": {
         if (d.pending === 0) {
           return html`<span data-ww-hint="mission" class="${cls}text-amber-200"
@@ -787,67 +845,405 @@ export class WwFleetCard extends LitElement implements Controller {
     </button>`;
   }
 
-  /** ww177: an Imjin tile fleet's orders (Imjin design §6.2; P3 adds the rest). */
-  private imjinButtons(
-    c: { ctx: NavyCtx; card: FleetCardData },
-    mode: string,
-  ): TemplateResult[] {
-    const f = c.card.fleet;
-    const data = c.ctx.navy.imjin?.fleets.find(
-      (x) => x.id === f.id - IMJIN_FLEET_ID_BASE,
+  // ---- ww177 P3 (Imjin design §6.2): the sea by hand ----
+
+  /** The Imjin card: ships by hull, hull and morale, wind, the battle circle, chips. */
+  private renderImjin(c: {
+    ctx: NavyCtx;
+    card: FleetCardData;
+  }): TemplateResult {
+    const d = c.card;
+    const f = d.fleet;
+    const im = c.ctx.navy.imjin;
+    const id = f.id - IMJIN_FLEET_ID_BASE;
+    const data = im?.fleets.find((x) => x.id === id);
+    const wide = this.place.maxWidth >= 520;
+    const kinds = im === null ? [] : shipsByKind(im, id);
+    const head = html`<div class="flex min-w-0 items-center gap-1.5">
+      <span class="shrink-0 text-sm font-bold">${d.name}</span>
+      <span
+        data-imjin-kinds
+        class="min-w-0 flex-1 truncate tabular-nums text-white/80"
+        title=${kinds
+          .map(([k, n]) =>
+            translateText("imjin.sea.kind_count", {
+              kind: translateText(`imjin.sea.kind.${k}`),
+              n,
+            }),
+          )
+          .join(" · ")}
+        >${kinds.length === 0
+          ? translateText("imjin.sea.no_ships")
+          : kinds
+              .map(([k, n]) =>
+                translateText("imjin.sea.kind_count", {
+                  kind: translateText(`imjin.sea.kind.${k}`),
+                  n,
+                }),
+              )
+              .join(" · ")}</span
+      >
+      ${wide ? nothing : html`${this.foldButton(false)} ${this.closeButton()}`}
+    </div>`;
+    // On a wide card the battle runs under both columns, so its bars keep their width.
+    const battle =
+      data === undefined || data.battle === 0
+        ? nothing
+        : this.imjinBattle(c, data.battle);
+    const info = html`<div class="flex min-w-0 flex-1 flex-col gap-0.5">
+      ${head}
+      ${data !== undefined && data.battle !== 0
+        ? nothing
+        : this.imjinBars([
+            ["hull", f.hpPm, "bg-emerald-400"],
+            ["morale", f.orgPm, "bg-sky-400"],
+          ])}
+      ${data === undefined ? nothing : this.imjinStatus(c, data)}
+      ${wide ? nothing : battle} ${this.imjinLine(c, data?.battle ?? 0)}
+    </div>`;
+    const chips = html`<div
+      data-ww-card-buttons="imjin"
+      class="flex shrink-0 flex-col gap-1 ${wide ? "w-80" : ""}"
+    >
+      ${this.imjinChipRow(
+        "formation",
+        IMJIN_FORMATIONS.map((x) => this.formationChip(f.id, data, x)),
+      )}
+      ${this.imjinChipRow(
+        "orders",
+        IMJIN_ORDER_CHIPS.map((x) => this.orderChip(f.id, data, x)),
+      )}
+    </div>`;
+    return html`<section
+      data-ww-fleet-card=${f.id}
+      data-imjin-card
+      data-collapsed="false"
+      aria-label=${d.name}
+      class="fixed z-[1001] flex ${wide
+        ? "flex-row flex-wrap gap-x-2 gap-y-1"
+        : "flex-col gap-1"} max-h-[25vh] overflow-y-auto rounded-lg border border-white/15 bg-gray-900/92 p-1.5 text-xs text-white shadow-xl"
+      style=${`${placeStyle(this.place)} width: ${this.place.maxWidth}px;`}
+      @contextmenu=${(e: Event) => e.preventDefault()}
+    >
+      ${info} ${chips}
+      ${wide
+        ? html`<div class="flex shrink-0 flex-col gap-1">
+              ${this.foldButton(false)} ${this.closeButton()}
+            </div>
+            ${battle === nothing
+              ? nothing
+              : html`<div class="basis-full">${battle}</div>`}`
+        : nothing}
+    </section>`;
+  }
+
+  private imjinBars(
+    rows: [string, number, string][],
+    tag = "",
+  ): TemplateResult {
+    return html`<div class="flex flex-col gap-0.5">
+      ${rows.map(([key, pm, color]) => {
+        const pct = Math.round(Math.max(0, Math.min(1000, pm)) / 10);
+        const label = translateText(`imjin.sea.${key}`);
+        return html`<div
+          data-ww-bar=${tag + key}
+          class="flex items-center gap-1.5"
+          title=${translateText(`imjin.sea.${key}_desc`)}
+        >
+          <span class="w-9 shrink-0 text-white/70">${label}</span>
+          <span
+            role="img"
+            aria-label=${`${label} ${pct}%`}
+            class="h-1.5 flex-1 rounded bg-white/10"
+            ><span
+              class="block h-1.5 rounded ${color}"
+              style="width: ${pct}%"
+            ></span
+          ></span>
+          <span class="w-9 shrink-0 text-right tabular-nums">${pct}%</span>
+        </div>`;
+      })}
+    </div>`;
+  }
+
+  /** The order and formation in force, fires aboard, and the wind over the fleet. */
+  private imjinStatus(
+    c: { ctx: NavyCtx },
+    data: NonNullable<NavyCtx["navy"]["imjin"]>["fleets"][number],
+  ): TemplateResult {
+    const im = c.ctx.navy.imjin!;
+    const burning = burningShips(im, data.id);
+    const wind = windShown(
+      imjinWindAt(
+        c.ctx.scenario,
+        imjinSeed(String(this.game.gameID())),
+        data.x,
+        data.y,
+        c.ctx.day,
+        wwEpoch(),
+      ),
     );
-    const formation = (data?.formation ??
-      "line") as (typeof IMJIN_FORMATIONS)[number];
-    const order = data?.order ?? "hold";
-    const next =
-      IMJIN_FORMATIONS[
-        (IMJIN_FORMATIONS.indexOf(formation) + 1) % IMJIN_FORMATIONS.length
-      ];
-    const busy = data !== undefined && data.battle !== 0;
-    return [
-      this.button(
-        "move",
-        translateText(BUTTON_KEYS.move),
-        BUTTON_ICONS.move,
-        () => this.setMode(mode === "move" ? "none" : "move"),
-        { pressed: mode === "move" },
-      ),
-      this.button(
-        "imjin_hold",
-        translateText("imjin.sea.hold"),
-        "■",
-        () => this.send(imjinFleetOrder(f.id, "hold")),
-        { pressed: order === "hold" },
-      ),
-      this.button(
-        "imjin_keep_range",
-        translateText("imjin.sea.keep_range"),
-        "↔",
-        () => this.send(imjinFleetOrder(f.id, "keep_range")),
-        { pressed: order === "keep_range" },
-      ),
-      this.button(
-        "imjin_board",
-        translateText("imjin.sea.board"),
-        "⚔",
-        () => this.send(imjinFleetOrder(f.id, "board")),
-        { pressed: order === "board" },
-      ),
-      this.button(
-        "imjin_break_off",
-        translateText("imjin.sea.break_off"),
-        "↩",
-        () => this.send(imjinFleetOrder(f.id, "break_off")),
-        { grey: !busy, pressed: order === "break_off" },
-      ),
-      this.button(
-        "imjin_formation",
-        translateText(`imjin.sea.formation.${formation}`),
-        "◇",
-        () =>
-          this.send(imjinFleetOrder(f.id, "formation", { formation: next })),
-      ),
-    ];
+    const moving = data.target >= 0 && data.order === "move";
+    return html`<div
+      data-imjin-status
+      class="flex flex-wrap items-baseline gap-x-2 text-white/80"
+    >
+      <span
+        >${translateText(
+          moving ? "imjin.sea.state.move" : `imjin.sea.state.${data.order}`,
+        )}
+        · ${translateText(`imjin.sea.formation.${data.formation}`)}</span
+      >
+      ${burning > 0
+        ? html`<span data-imjin-burning class="text-orange-300"
+            >${translateText("imjin.sea.burning", { n: burning })}</span
+          >`
+        : nothing}
+      <span
+        data-imjin-wind=${wind.strength === 0 ? "calm" : wind.from}
+        title=${translateText("imjin.sea.wind_desc")}
+        >${wind.strength === 0
+          ? translateText("imjin.sea.wind_calm")
+          : translateText("imjin.sea.wind", {
+              arrow: wind.arrow,
+              from: translateText(`imjin.sea.dir.${wind.from}`),
+              strength: translateText(
+                `imjin.sea.wind_strength.${wind.strength}`,
+              ),
+            })}</span
+      >
+    </div>`;
+  }
+
+  /** The battle circle my fleet is in: both sides' hull and morale, and the current. */
+  private imjinBattle(
+    c: { ctx: NavyCtx },
+    battle: number,
+  ): TemplateResult | typeof nothing {
+    const ctx = c.ctx;
+    const im = ctx.navy.imjin;
+    if (im === null) return nothing;
+    const friends = (a: number, b: number) =>
+      a === b || ctx.sides.sameSide(a, b);
+    const v = imjinBattleViews(im, ctx.me, friends).find(
+      (x) => x.id === battle,
+    );
+    if (v === undefined) return nothing;
+    const b = im.battles.find((x) => x.id === battle)!;
+    const current = ctx.navy.imjinBattleCurrent.get(battle) ?? 0;
+    const cd = currentCountdown({
+      sc: ctx.scenario,
+      seed: imjinSeed(String(this.game.gameID())),
+      battleId: battle,
+      current,
+      cx: b.cx,
+      cy: b.cy,
+      startTick: ctx.navy.imjinBattleStart.get(battle) ?? -1,
+      tick: this.game.ticks(),
+      holds: (r) => {
+        const owner = ctx.economy.controller[r] ?? 0;
+        return owner !== 0 && friends(owner, ctx.me);
+      },
+    });
+    const side = (s: ImjinBattleSide, k: "us" | "them") =>
+      html`<div data-imjin-side=${k} class="flex flex-col">
+        <span class="text-white/70"
+          >${translateText(`imjin.sea.side_${k}`, { n: s.ships })}</span
+        >
+        ${this.imjinBars(
+          [
+            ["hull", s.hullPm, "bg-emerald-400"],
+            ["morale", s.morale, "bg-sky-400"],
+          ],
+          `${k}_`,
+        )}
+      </div>`;
+    return html`<div
+      data-imjin-battle=${battle}
+      class="flex flex-col gap-0.5 rounded border border-red-400/30 bg-red-950/30 p-1"
+    >
+      <span class="font-semibold text-red-200"
+        >${translateText("imjin.sea.battle_title")}</span
+      >
+      <div class="grid grid-cols-2 gap-2">
+        ${side(v.sides[0], "us")} ${side(v.sides[1], "them")}
+      </div>
+      ${current === 0
+        ? nothing
+        : cd !== null
+          ? html`<span
+              data-imjin-current="known"
+              class="text-cyan-200"
+              title=${translateText("imjin.sea.current_desc")}
+              >${translateText("imjin.sea.current_turns", {
+                s: cd.seconds,
+              })}</span
+            >`
+          : ctx.navy.imjinBattleStart.get(battle) === -1
+            ? nothing
+            : html`<span
+                data-imjin-current="hidden"
+                class="text-white/60"
+                title=${translateText("imjin.sea.current_desc")}
+                >${translateText("imjin.sea.current_hidden")}</span
+              >`}
+    </div>`;
+  }
+
+  /** The line: a refusal, what the last chip does, the decoy's tap, or how to steer. */
+  private imjinLine(
+    c: { ctx: NavyCtx; card: FleetCardData },
+    battle: number,
+  ): TemplateResult {
+    void c;
+    const note = this.imjinNote;
+    const mode = this.state.draft.mode;
+    if (mode === "lure") {
+      return html`<span data-ww-hint="lure" class="block text-amber-200"
+        >${translateText("imjin.sea.hint_lure")}</span
+      >`;
+    }
+    if (note !== null) {
+      const name =
+        note.kind === "order"
+          ? translateText(`imjin.sea.${note.id}`)
+          : translateText(`imjin.sea.formation.${note.id}`);
+      const desc =
+        note.kind === "order"
+          ? translateText(`imjin.sea.desc.${note.id}`)
+          : translateText(`imjin.sea.formation_desc.${note.id}`);
+      const why =
+        note.kind === "order" && note.refused
+          ? translateText(
+              note.id === "fire_ship"
+                ? "imjin.sea.fire_ship_closed"
+                : "imjin.sea.break_off_closed",
+            )
+          : null;
+      return html`<span
+        data-imjin-note=${note.id}
+        class="block ${why !== null ? "text-red-300" : "text-white/85"}"
+        >${why !== null ? "🔒 " : ""}<b>${name}</b> ·
+        ${desc}${why !== null ? html` · ${why}` : nothing}</span
+      >`;
+    }
+    return html`<span data-ww-hint="steer" class="block text-amber-200"
+      >${translateText(
+        battle !== 0 ? "imjin.sea.hint_steer_battle" : "imjin.sea.hint_steer",
+      )}</span
+    >`;
+  }
+
+  private imjinChipRow(
+    title: "formation" | "orders",
+    chips: TemplateResult[],
+  ): TemplateResult {
+    return html`<div data-imjin-row=${title} class="flex items-center gap-1">
+      <span class="w-7 shrink-0 text-[11px] leading-tight text-white/60"
+        >${translateText(`imjin.sea.row_${title}`)}</span
+      >
+      <div
+        class="grid flex-1 gap-1"
+        style="grid-template-columns: repeat(${chips.length}, minmax(0, 1fr))"
+      >
+        ${chips}
+      </div>
+    </div>`;
+  }
+
+  private imjinChip(
+    id: string,
+    label: string,
+    icon: string,
+    desc: string,
+    act: () => void,
+    opts: { grey?: boolean; pressed?: boolean; pending?: boolean } = {},
+  ): TemplateResult {
+    return html`<button
+      type="button"
+      data-ww-fleet-btn=${id}
+      aria-disabled=${String(opts.grey ?? false)}
+      aria-pressed=${String(opts.pressed ?? false)}
+      aria-label=${label}
+      title=${`${label} · ${desc}`}
+      class="flex h-9 min-w-0 flex-col items-center justify-center rounded-md border px-0.5 leading-none ${opts.grey
+        ? "border-white/5 bg-white/5 text-white/35"
+        : opts.pending
+          ? "border-dashed border-amber-300 bg-amber-900/30"
+          : opts.pressed
+            ? "border-amber-300 bg-amber-700/50"
+            : "border-white/15 bg-white/10 hover:bg-white/20"}"
+      @click=${act}
+    >
+      <span aria-hidden="true" class="text-sm">${icon}</span>
+      <span class="max-w-full truncate text-[10px] tracking-tight"
+        >${label}</span
+      >
+    </button>`;
+  }
+
+  private formationChip(
+    fleet: number,
+    data: { formation: string } | undefined,
+    x: (typeof IMJIN_FORMATIONS)[number],
+  ): TemplateResult {
+    const now = this.game.ticks();
+    let p = this.imjinFormation;
+    if (
+      p !== null &&
+      (p.fleet !== fleet ||
+        now - p.at > FORMATION_WAIT_TICKS ||
+        data?.formation === p.to)
+    ) {
+      p = this.imjinFormation = null;
+    }
+    return this.imjinChip(
+      `imjin_formation_${x}`,
+      translateText(`imjin.sea.formation.${x}`),
+      IMJIN_FORMATION_ICONS[x],
+      translateText(`imjin.sea.formation_desc.${x}`),
+      () => {
+        this.imjinNote = { kind: "formation", id: x };
+        if (data?.formation === x && p === null) return;
+        this.imjinFormation = { fleet, to: x, at: this.game.ticks() };
+        this.send(imjinFleetOrder(fleet, "formation", { formation: x }));
+      },
+      {
+        pressed: p === null && data?.formation === x,
+        pending: p !== null && p.to === x,
+      },
+    );
+  }
+
+  private orderChip(
+    fleet: number,
+    data: { order: string; battle: number } | undefined,
+    x: ImjinOrderChip,
+  ): TemplateResult {
+    const inBattle = data !== undefined && data.battle !== 0;
+    // The fire ship has no order of its own yet; break off needs a battle.
+    const grey = x === "fire_ship" || (x === "break_off" && !inBattle);
+    const mode = this.state.draft.mode;
+    return this.imjinChip(
+      `imjin_${x}`,
+      translateText(`imjin.sea.${x}`),
+      IMJIN_ORDER_ICONS[x],
+      translateText(`imjin.sea.desc.${x}`),
+      () => {
+        this.imjinNote = { kind: "order", id: x, refused: grey };
+        if (grey) return;
+        if (x === "lure") {
+          this.setMode(mode === "lure" ? "none" : "lure");
+          return;
+        }
+        if (mode !== "none") this.setMode("none");
+        this.send(imjinFleetOrder(fleet, x));
+      },
+      {
+        grey,
+        pressed: x === "lure" ? mode === "lure" : data?.order === x,
+      },
+    );
   }
 
   private back(): TemplateResult {
@@ -1000,7 +1396,6 @@ export class WwFleetCard extends LitElement implements Controller {
           this.back(),
         ];
       case "main":
-        if (isImjinFleet(f.id)) return this.imjinButtons(c, mode);
         return d.buttons.map(({ id, block }) =>
           this.button(
             id,

@@ -5811,8 +5811,34 @@
       "yujeong": "Yujeong"
     },
     "sea": {
+      "battle_title": "Sea battle in this circle",
       "board": "Board",
       "break_off": "Break off",
+      "break_off_closed": "Only in a sea battle.",
+      "burning": "{n} burning",
+      "current_desc": "We hold both shores, so we know when the channel's current turns. A crowded fleet sailing against it fouls.",
+      "current_hidden": "Current: hold both shores to see when it turns",
+      "current_turns": "Current turns in {s} s",
+      "desc": {
+        "board": "Close in and grapple; the crews fight on deck.",
+        "break_off": "Leave the battle and fall back.",
+        "fire_ship": "Set a small boat alight and send it into the enemy.",
+        "hold": "Stop and hold this water; a still fleet in an island's lee lies hidden.",
+        "keep_range": "Stay 2-4 tiles off and fire; don't let them close.",
+        "lure": "A few ships show themselves and flee to the sea you tap, to draw the enemy in."
+      },
+      "dir": {
+        "e": "east",
+        "n": "north",
+        "ne": "northeast",
+        "nw": "northwest",
+        "s": "south",
+        "se": "southeast",
+        "sw": "southwest",
+        "w": "west"
+      },
+      "fire_ship": "Fire ship",
+      "fire_ship_closed": "Fire ships can't be ordered yet.",
       "formation": {
         "column": "Column",
         "crane": "Crane wing",
@@ -5820,8 +5846,57 @@
         "loose": "Loose",
         "wedge": "Wedge"
       },
+      "formation_desc": {
+        "column": "Quick through narrows, but only the lead ships fire, and it is easier to hit.",
+        "crane": "A U-shaped arc: most broadsides fall on the head of an enemy column.",
+        "line": "Side by side: every ship's guns face the front.",
+        "loose": "Spread out: harder to hit and fires spread less, but boarding can't mass.",
+        "wedge": "A point that drives in to board; tight, so easier to hit."
+      },
+      "hint_lure": "Tap the sea the decoy should flee to",
+      "hint_steer": "Tap the sea to sail there · drag from the fleet to set a heading",
+      "hint_steer_battle": "In battle: tap the sea to move · drag from the fleet to turn · chips below",
       "hold": "Hold",
-      "keep_range": "Keep range"
+      "hull": "Hull",
+      "hull_desc": "Hull left. Ships at 0 sink; each 1% lost costs morale.",
+      "keep_range": "Keep range",
+      "kind": {
+        "atakebune": "Atakebune",
+        "fuchuan": "Fuchuan",
+        "hyeopseon": "Hyeopseon",
+        "kobaya": "Kobaya",
+        "panokseon": "Panokseon",
+        "sekibune": "Sekibune",
+        "shachuan": "Shachuan",
+        "transport": "Transport",
+        "turtle": "Turtle ship"
+      },
+      "kind_count": "{kind} {n}",
+      "lure": "Decoy",
+      "morale": "Morale",
+      "morale_desc": "Below 30% it wavers (no boarding, weaker fire); below 15% it flees.",
+      "no_ships": "No ships",
+      "row_formation": "Form",
+      "row_orders": "Orders",
+      "side_them": "Enemy · {n} ships",
+      "side_us": "Ours · {n} ships",
+      "state": {
+        "board": "Boarding",
+        "break_off": "Breaking off",
+        "escort": "Escorting",
+        "hold": "Holding",
+        "keep_range": "Keeping range",
+        "lure": "Luring",
+        "move": "Under way"
+      },
+      "wind": "Wind {arrow} {from}erly, {strength}",
+      "wind_calm": "Wind: calm",
+      "wind_desc": "Sail-heavy hulls are faster downwind and slower upwind; oared hulls care less. Fire ships need a wind that isn't against them.",
+      "wind_strength": {
+        "0": "calm",
+        "1": "fair",
+        "2": "strong"
+      }
     }
   },
   "inventory": {
