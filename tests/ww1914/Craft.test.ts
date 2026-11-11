@@ -2,6 +2,7 @@
 // on fixture rows: an invention from proposal to the front, the year's project
 // through its chapters, the footing's big scene and terms, a shortage answered.
 import { GreatWarStateSchema } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import { gwCraftStart } from "@openfront/engine-api/ww1914/GwCraft";
 import type { GwPack } from "@openfront/engine-api/ww1914/GwPack";
 import { gwContentProblems } from "@openfront/engine-api/ww1914/SceneCheck";
 import {
@@ -38,6 +39,7 @@ import {
   craftStep,
   projectOdds,
 } from "@openfront/engine/ww1914/Craft";
+import { researchView } from "@openfront/engine/ww1914/Eras";
 import type { GreatWar } from "@openfront/engine/ww1914/GreatWar";
 import { runEffects } from "@openfront/engine/ww1914/SceneRun";
 import { loadGwPack } from "@openfront/shared/ww1914/GwPackLoader";
@@ -93,6 +95,9 @@ function craftProblems(c: GwContent, tag: string, pack: GwPack): string[] {
   }
   for (const r of projects) {
     if (pack.craft?.[r.id] === undefined) out.push(`${r.id}: no craft name`);
+    // ww179: what it works on before the pick, what it changed after.
+    if (pack.craft?.[r.id]?.aim === undefined) out.push(`${r.id}: no aim`);
+    if (pack.craft?.[r.id]?.done === undefined) out.push(`${r.id}: no done`);
     for (const ch of ["prep", "opp", "exec", "done", "fail"]) {
       written(`${r.id}_${ch}`);
     }
@@ -444,6 +449,76 @@ describe("the year's project", () => {
       id: "t_pj",
       phase: "done",
     });
+    // ww179: the lines name it and say what changed; the box says the year's is over.
+    const lines = s.log.filter((r) => r.what === "t_pj").map((r) => r.key);
+    expect(lines).toEqual(
+      expect.arrayContaining([
+        "project_started",
+        "project_done",
+        "project_changed",
+      ]),
+    );
+    expect(["ended", "soon"]).toContain(seat(runner).world.craft?.agenda);
+  });
+
+  test("a factory project keeps making shells while the country fights (ww179)", async () => {
+    const factory: GwProjectRow = {
+      ...PJ,
+      terms: [{ gauge: "shells", delta: 1, every: 1 }],
+    };
+    useFixture({ inventions: [], projects: [factory] });
+    const { runner } = await gwRunner();
+    const gw = runner.game.greatWar()!;
+    const s = gw.s.seats[0];
+    s.craft = {
+      ...gwCraftStart(),
+      projects: [
+        { id: "t_pj", phase: "done", day: 0, lead: null, push: 0, year: 1914 },
+      ],
+    };
+    const n = gw.nation("DEU")!;
+    const shellsAt = () => {
+      n.gauges.shells = 0;
+      s.lines = [];
+      craftStep(gw);
+      return s.lines.filter((l) => l.key === "project_works").length;
+    };
+    gw.s.warChapter = 5;
+    const run = () => {
+      let made = 0;
+      for (gw.s.chapter = 6; gw.s.chapter <= 9; gw.s.chapter++)
+        made += shellsAt();
+      return made;
+    };
+    // While the country stays out of the war it stands idle.
+    expect(run()).toBe(0);
+    n.side = "central";
+    n.atWar = ["FRA"];
+    expect(run()).toBeGreaterThan(0);
+  });
+});
+
+describe("research in words (ww179)", () => {
+  test("each track says what comes next and how far; Russia has no sea track", async () => {
+    const { runner } = await gwRunner();
+    const gw = runner.game.greatWar()!;
+    const deu = gw.nation("DEU")!;
+    const rus = gw.nation("RUS")!;
+    deu.tech = { artillery: 5 };
+    const tracks = researchView(gw, deu);
+    expect(tracks.map((t) => t.id)).toEqual(["artillery", "infantry", "sea"]);
+    const art = tracks[0];
+    expect(art.next).toBe("gas_heavy");
+    // All put in, but the war is not 8 months old: ready, waiting.
+    expect(art.step).toBe(3);
+    deu.tech = { artillery: 3 };
+    expect(researchView(gw, deu)[0].step).toBe(1);
+    deu.tech = { artillery: 1 };
+    expect(researchView(gw, deu)[0].step).toBe(0);
+    // Germany's sea track reaches its boats; the nets are Britain's alone.
+    expect(researchView(gw, deu)[2].next).toBe("ocean_boats");
+    expect(researchView(gw, rus)[2]).toMatchObject({ next: null, none: true });
+    expect(seat(runner).world.war.research?.tracks).toHaveLength(3);
   });
 });
 

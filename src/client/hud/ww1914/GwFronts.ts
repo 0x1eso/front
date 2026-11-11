@@ -2,6 +2,7 @@ import {
   GW_RESEARCH,
   GW_TEMPOS,
   type GwOffMethod,
+  type GwResearch,
   type GwSide,
   type GwTempo,
   type GwTheatre,
@@ -485,10 +486,37 @@ function tempoRow(c: GwCtx): TemplateResult {
   </div>`;
 }
 
+/**
+ * ww179: what the picked research track works on, and what it reaches next,
+ * before the paper is signed. Words only: no months, no odds.
+ */
+function researchAim(c: GwCtx, v: GwResearch): TemplateResult {
+  const t = c.seat.world.war.research?.tracks.find((x) => x.id === v);
+  const next =
+    t === undefined
+      ? null
+      : t.none
+        ? translateText("gw.ui.research_none")
+        : t.next === null
+          ? translateText("gw.ui.research_all")
+          : translateText("gw.ui.research_next", {
+              tech: translateText(`gw.tech.${t.next}`),
+              step: translateText(`gw.ui.research_step.${t.step}`),
+            });
+  return html`<p class=${MUTED} data-gw-research-aim=${v}>
+    ${translateText(`gw.ui.research_aim.${v}`)}${next === null
+      ? ""
+      : ` ${next}`}
+  </p>`;
+}
+
 /** The chief of staff's papers: one is signed a chapter (design §4.2). */
 function papers(c: GwCtx): TemplateResult | typeof nothing {
   const { proposals, signed } = c.seat.world;
   if (proposals.length === 0) return nothing;
+  // A track this country can reach nothing on is shut (ww179).
+  const shut = (v: GwResearch) =>
+    c.seat.world.war.research?.tracks.find((x) => x.id === v)?.none === true;
   const cur = c.seat.alloc;
   const research = c.ui.research ?? cur.research;
   return html`<section
@@ -508,7 +536,8 @@ function papers(c: GwCtx): TemplateResult | typeof nothing {
             html`<button
               class="${v === research ? BTN_ON : BTN} !px-2 !py-1"
               data-gw-pick=${`research:${v}`}
-              ?disabled=${signed}
+              title=${translateText(`gw.ui.research_aim.${v}`)}
+              ?disabled=${signed || shut(v)}
               @click=${() => {
                 c.ui.research = v;
                 c.redraw();
@@ -518,6 +547,7 @@ function papers(c: GwCtx): TemplateResult | typeof nothing {
             </button>`,
         )}
       </div>
+      ${researchAim(c, research)}
     </div>
     ${tempoRow(c)}
     <p class=${MUTED}>

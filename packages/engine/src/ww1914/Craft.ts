@@ -335,7 +335,7 @@ function projectStep(ctx: SceneCtx, step: GwProjectStep, id?: string): void {
       });
       c.picked = yearOf(gw);
       runEffects(ctx, row.start ?? []);
-      reason(gw, seat, "project_started", lead ?? undefined);
+      projectLine(gw, seat, "project_started", row.id, lead);
       schedule(gw, seat, `${row.id}_prep`, lead);
       return;
     }
@@ -351,9 +351,24 @@ function projectStep(ctx: SceneCtx, step: GwProjectStep, id?: string): void {
       if (now === null) return;
       now.phase = "dropped";
       now.day = gw.s.day;
-      reason(gw, seat, "project_dropped", now.lead ?? undefined);
+      projectLine(gw, seat, "project_dropped", now.id, now.lead);
       return;
   }
+}
+
+/** A project's why-line, naming it (ww179: {what} is the project). */
+function projectLine(
+  gw: GreatWar,
+  seat: GwSeatState,
+  key: string,
+  id: string,
+  who: string | null,
+): void {
+  seat.log.push(
+    who === null
+      ? { key, chapter: gw.s.chapter, what: id }
+      : { key, chapter: gw.s.chapter, who, what: id },
+  );
 }
 
 function setFooting(ctx: SceneCtx, level: number): void {
@@ -508,7 +523,9 @@ function projectsClose(gw: GreatWar, seat: GwSeatState): void {
   const ctx: SceneCtx = { gw, seat, cast: {} };
   runEffects(ctx, ok ? row.done : (row.failed ?? []));
   if (p.lead !== null) recordResult(gw, p.lead, ok);
-  reason(gw, seat, ok ? "project_done" : "project_failed", p.lead ?? undefined);
+  projectLine(gw, seat, ok ? "project_done" : "project_failed", p.id, p.lead);
+  // What it changed, in the pack's words (ww179): the line under the name.
+  if (ok) projectLine(gw, seat, "project_changed", p.id, null);
   schedule(gw, seat, `${p.id}_${ok ? "done" : "fail"}`, p.lead);
 }
 
@@ -562,6 +579,20 @@ function footingClose(gw: GreatWar, seat: GwSeatState, n: GwNationState): void {
   runTerms(gw, seat.tag, terms, (t) => `footing_${name}_${t.gauge}`);
 }
 
+/** ww179: what the projects done keep doing while the country fights. */
+function projectTermsClose(
+  gw: GreatWar,
+  seat: GwSeatState,
+  n: GwNationState,
+): void {
+  if (!fights(n)) return;
+  for (const p of seat.craft?.projects ?? []) {
+    if (p.phase !== "done") continue;
+    const terms = projectRow(p.id)?.terms ?? [];
+    runTerms(gw, seat.tag, terms, () => "project_works");
+  }
+}
+
 /** Chapter step, after the home front: every seat's statecraft. */
 export function craftStep(gw: GreatWar): void {
   for (const seat of gw.s.seats) {
@@ -572,6 +603,7 @@ export function craftStep(gw: GreatWar): void {
     projectsClose(gw, seat);
     if (gw.s.warChapter === null || !isLongChapter(gw)) continue;
     footingClose(gw, seat, n);
+    projectTermsClose(gw, seat, n);
     shortagesClose(gw, seat, n);
   }
 }
@@ -609,6 +641,17 @@ export function craftEdge(
 
 // ---- The view ----
 
+function agendaState(
+  gw: GreatWar,
+  seat: GwSeatState,
+): NonNullable<GwCraftView["agenda"]> {
+  const id = agendaId(seat.tag);
+  if (seat.desk.some((x) => x.scene === id)) return "desk";
+  const year = yearOf(gw);
+  if (seat.craft?.picked !== year) return "soon";
+  return seat.craft.projects.some((p) => p.year === year) ? "ended" : "passed";
+}
+
 export function craftView(gw: GreatWar, seat: GwSeatState): GwCraftView {
   const c = seat.craft;
   const ch = gw.s.chapter;
@@ -633,6 +676,9 @@ export function craftView(gw: GreatWar, seat: GwSeatState): GwCraftView {
       };
     }),
     project: run === null ? null : projects[projects.length - 1],
+    ...(run === null && projectRows(seat.tag).length > 0
+      ? { agenda: agendaState(gw, seat) }
+      : {}),
     past: projects.filter(
       (p) => !(RUNNING as readonly string[]).includes(p.phase),
     ),

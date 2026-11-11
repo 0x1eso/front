@@ -26,6 +26,7 @@ import type {
   GwShortageRow,
 } from "../../CraftRows";
 import {
+  FACTORY,
   footing,
   footingAt,
   inCharge,
@@ -194,6 +195,7 @@ export const AUH_PROJECTS: readonly GwProjectRow[] = [
     aims: ["auh_aim_own"],
     start: [gauge("money", -1), opinion("business", 1)],
     done: [gauge("shells", 1), inst_("berlin", -1)],
+    terms: FACTORY,
   },
   {
     id: "auh_pj_loan",

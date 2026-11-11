@@ -7,6 +7,7 @@ import {
   GwInventionView,
   GwProjectView,
 } from "@openfront/engine-api/ww1914/GwCraft";
+import type { GwResearchTrackView } from "@openfront/engine-api/ww1914/GwWorldView";
 import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
 import type { GwCtx } from "./GwCtx";
@@ -24,6 +25,12 @@ export function craftName(c: GwCtx, id: string): string {
 }
 const craftNote = (c: GwCtx, id: string): string | null =>
   c.pack?.craft?.[id]?.note ?? null;
+/** ww179: what a project works on, before and while it runs. */
+export const craftAim = (c: GwCtx, id: string): string | null =>
+  c.pack?.craft?.[id]?.aim ?? null;
+/** ww179: what a project changed once done. */
+export const craftDone = (c: GwCtx, id: string): string | null =>
+  c.pack?.craft?.[id]?.done ?? null;
 
 /** The band's word: shown once the country has moved off its peacetime footing. */
 export function footingChip(c: GwCtx): TemplateResult | typeof nothing {
@@ -150,10 +157,43 @@ function inventionsBox(
   </section>`;
 }
 
+const RUNNING_PHASES: readonly string[] = ["prep", "opp", "exec"];
+
+/**
+ * ww179: what a project is about and how far it has come, in words. Running:
+ * what it works on and which of its three steps it is at. Done: what it
+ * changed. Failed or dropped: that nothing came of it.
+ */
+function projectLines(c: GwCtx, p: GwProjectView): TemplateResult {
+  const aim = craftAim(c, p.id);
+  const done = craftDone(c, p.id);
+  if (RUNNING_PHASES.includes(p.phase)) {
+    return html`${aim === null
+        ? nothing
+        : html`<p class="text-sm text-white/80" data-gw-project-aim>
+            ${translateText("gw.craft.aim", { text: aim })}
+          </p>`}
+      <p class=${MUTED} data-gw-project-step=${p.phase}>
+        ${translateText(`gw.craft.progress.${p.phase}`)}
+      </p>`;
+  }
+  if (p.phase === "done") {
+    return done === null
+      ? html``
+      : html`<p class="text-sm text-emerald-100/90" data-gw-project-changed>
+          ${translateText("gw.craft.changed", { text: done })}
+        </p>`;
+  }
+  return html`<p class=${MUTED} data-gw-project-ended=${p.phase}>
+    ${translateText(`gw.craft.ended.${p.phase}`)}
+  </p>`;
+}
+
 function project(c: GwCtx, p: GwProjectView): TemplateResult {
+  const aim = craftAim(c, p.id);
   return html`<div class="space-y-0.5" data-gw-project=${p.id}>
     <div class="flex justify-between gap-2 text-sm">
-      <span class="font-bold">${craftName(c, p.id)}</span>
+      <span class="font-bold" title=${aim ?? ""}>${craftName(c, p.id)}</span>
       <span class="shrink-0 text-white/70"
         >${translateText(`gw.craft.phase.${p.phase}`)}</span
       >
@@ -165,18 +205,25 @@ function project(c: GwCtx, p: GwProjectView): TemplateResult {
             name: personName(c.pack, p.lead),
           })}
         </p>`}
+    ${RUNNING_PHASES.includes(p.phase) && craftNote(c, p.id) !== null
+      ? html`<p class=${MUTED}>${craftNote(c, p.id)}</p>`
+      : nothing}
+    ${projectLines(c, p)}
   </div>`;
 }
 
 function projectBox(c: GwCtx, v: GwCraftView): TemplateResult | typeof nothing {
-  if (v.project === null && v.past.length === 0) return nothing;
-  const note = v.project === null ? null : craftNote(c, v.project.id);
+  if (v.project === null && v.past.length === 0 && v.agenda === undefined)
+    return nothing;
   return html`<section class=${BOX} data-gw-projects>
     <h3 class=${HEAD}>${translateText("gw.craft.project_title")}</h3>
     ${v.project === null
-      ? html`<p class=${MUTED}>${translateText("gw.craft.project_none")}</p>`
-      : html`${project(c, v.project)}
-        ${note === null ? nothing : html`<p class=${MUTED}>${note}</p>`}`}
+      ? v.agenda === undefined
+        ? html`<p class=${MUTED}>${translateText("gw.craft.project_none")}</p>`
+        : html`<p class="text-sm text-white/80" data-gw-agenda=${v.agenda}>
+            ${translateText(`gw.craft.agenda.${v.agenda}`)}
+          </p>`
+      : project(c, v.project)}
     ${v.past.length === 0
       ? nothing
       : html`<div class=${MUTED}>${translateText("gw.craft.past_title")}</div>
@@ -189,4 +236,67 @@ export function craftSection(c: GwCtx): TemplateResult | typeof nothing {
   const v = c.seat.world.craft;
   if (v === undefined) return nothing;
   return html`${footingBox(c, v)} ${projectBox(c, v)} ${inventionsBox(c, v)}`;
+}
+
+function track(c: GwCtx, t: GwResearchTrackView, now: boolean): TemplateResult {
+  const name = translateText(`gw.ui.research.${t.id}`);
+  const state = t.none
+    ? translateText("gw.ui.research_none")
+    : t.next === null
+      ? translateText("gw.ui.research_all")
+      : translateText("gw.ui.research_next", {
+          tech: translateText(`gw.tech.${t.next}`),
+          step: translateText(`gw.ui.research_step.${t.step}`),
+        });
+  return html`<div
+    class="space-y-0.5"
+    data-gw-research-track=${t.id}
+    title=${translateText(`gw.ui.research_aim.${t.id}`)}
+  >
+    <div class="flex justify-between gap-2 text-sm">
+      <span class=${now ? "font-bold" : "text-white/70"}>${name}</span>
+      ${now
+        ? html`<span class=${CHIP}>${translateText("gw.ui.research_on")}</span>`
+        : nothing}
+    </div>
+    <p class=${MUTED}>${state}</p>
+  </div>`;
+}
+
+/**
+ * ww179: the country's research on the country tab: what it works on now,
+ * how far each track has come in words, what was reached and what that does.
+ */
+export function researchBox(c: GwCtx): TemplateResult | typeof nothing {
+  const w = c.seat.world.war;
+  const r = w.research;
+  if (r === undefined) return nothing;
+  return html`<section class=${BOX} data-gw-research>
+    <h3 class=${HEAD}>${translateText("gw.ui.research_title")}</h3>
+    <p class="text-sm text-white/80" data-gw-research-now=${r.track}>
+      ${translateText("gw.ui.research_now", {
+        track: translateText(`gw.ui.research.${r.track}`),
+        aim: translateText(`gw.ui.research_aim.${r.track}`),
+      })}
+    </p>
+    <p class=${MUTED}>
+      ${translateText(r.active ? "gw.ui.research_how" : "gw.ui.research_peace")}
+    </p>
+    ${r.tracks.map((t) => track(c, t, t.id === r.track))}
+    <div class=${MUTED}>${translateText("gw.ui.research_reached")}</div>
+    ${w.techs.length === 0
+      ? html`<p class=${MUTED}>
+          ${translateText("gw.ui.research_reached_none")}
+        </p>`
+      : html`${w.techs.map(
+            (t) =>
+              html`<p class="text-sm" data-gw-tech=${t}>
+                ${translateText("gw.ui.research_got", {
+                  tech: translateText(`gw.tech.${t}`),
+                  does: translateText(`gw.tech_does.${t}`),
+                })}
+              </p>`,
+          )}
+          <p class=${MUTED}>${translateText("gw.ui.research_shared")}</p>`}
+  </section>`;
 }

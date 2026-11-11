@@ -14,6 +14,12 @@ import type {
   GwWho,
 } from "@openfront/engine-api/ww1914/SceneDsl";
 import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
+import type { GwCraftTerm } from "../../CraftRows";
+
+/** ww179: a shell factory the year's project built keeps making shells in war. */
+export const FACTORY: readonly GwCraftTerm[] = [
+  { gauge: "shells", delta: 1, every: 6, offset: 3 },
+];
 
 // ---- Conditions ----
 export const invented = (id: string, ...of: GwInventionStage[]): GwCond =>

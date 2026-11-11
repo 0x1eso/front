@@ -28,7 +28,7 @@ import { tasksShown } from "./Aims";
 import { budgetView } from "./Budget";
 import { craftView } from "./Craft";
 import { dossierView } from "./Dossier";
-import { eraOf } from "./Eras";
+import { eraOf, researchView } from "./Eras";
 import { ownFronts, proposalsFor } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { houseView } from "./House";
@@ -47,7 +47,7 @@ import { foeOn, foeRead, reads, rivalsOf } from "./Spies";
 import { endStrain, strainWord } from "./Strain";
 import { GW_ACTORS, GW_COMMAND_NAMED_AFTER } from "./Tables";
 import { sideIn } from "./Wars";
-import { lastOf, ownPeople } from "./World";
+import { fights, lastOf, ownPeople } from "./World";
 
 const NEWS_SHOWN = 16;
 const VOTES_SHOWN = 6;
@@ -299,6 +299,11 @@ export function worldView(gw: GreatWar, seat: GwSeatState): GwWorldView {
       uboat: s.uboat,
       america: usa === null ? 0 : Math.min(3, Math.floor(usa.readiness / 25)),
       techs: n.techs,
+      research: {
+        track: seat.alloc.research,
+        active: fights(n),
+        tracks: researchView(gw, n),
+      },
       armistice: s.armistice?.kind ?? null,
       votes: seat.votes.slice(-VOTES_SHOWN),
     },

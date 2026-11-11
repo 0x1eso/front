@@ -100,6 +100,11 @@ export interface GwProjectRow {
   /** What it gets done. */
   readonly done: readonly GwEffect[];
   readonly failed?: readonly GwEffect[];
+  /**
+   * ww179: what it keeps doing once done, on the war's months (a factory
+   * that goes on making shells). Runs only while the country fights.
+   */
+  readonly terms?: readonly GwCraftTerm[];
 }
 
 /** Percent for each step of the lead's admin skill above or below the middle. */

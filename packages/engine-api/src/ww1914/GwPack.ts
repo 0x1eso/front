@@ -167,6 +167,13 @@ export const GwCraftPackSchema = z
     name: Text,
     /** One plain line under it; no result, no hidden value. */
     note: Text.optional(),
+    /**
+     * A project (ww179): what it works on, read before the pick ("포탄에 넣을
+     * 화약 공장을 세운다"). Never its odds or its result.
+     */
+    aim: Text.optional(),
+    /** A project (ww179): what changed once it was done, in words. */
+    done: Text.optional(),
   })
   .strict();
 export type GwCraftPack = z.infer<typeof GwCraftPackSchema>;

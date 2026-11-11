@@ -14791,7 +14791,8 @@
       "off_refusal": "군의 거부가 나라를 흔들었다.",
       "shells_sabotaged": "외국 공작원들이 탄약고를 날렸다.",
       "order_contagion": "동쪽으로 보낸 혁명이 돌아와 우리 공장과 병영에 번졌다.",
-      "order_spies_blamed": "배신자를 찾았다는 소식에 거리가 잠시 가라앉았다."
+      "order_spies_blamed": "배신자를 찾았다는 소식에 거리가 잠시 가라앉았다.",
+      "project_works": "사업으로 세운 공장에서 포탄이 더 나왔다."
     },
     "mandate": {
       "deu_bread_for_the_winter": "겨울 빵을 남기기",
@@ -15182,16 +15183,16 @@
       "regime_regency": "정체가 바뀌었다: 섭정.",
       "regime_provisional": "정체가 바뀌었다: 임시정부.",
       "regime_rep": "정체가 바뀌었다: 러시아 공화국.",
-      "tech_gas_heavy": "가스탄과 중포이(가) 군에 닿았다.",
-      "tech_barrage": "이동 탄막이 군에 닿았다.",
-      "tech_predicted_fire": "사전 측량 사격이(가) 군에 닿았다.",
-      "tech_assault_groups": "돌격대이(가) 군에 닿았다.",
-      "tech_tanks": "전차이(가) 군에 닿았다.",
-      "tech_depth_defence": "종심 방어이(가) 군에 닿았다.",
-      "tech_infiltration": "침투 전술이(가) 군에 닿았다.",
-      "tech_mine_nets": "기뢰 장벽과 방잠망이(가) 군에 닿았다.",
-      "tech_ocean_boats": "대양 잠수함이(가) 군에 닿았다.",
-      "tech_convoys": "호송 선단이(가) 군에 닿았다.",
+      "tech_gas_heavy": "가스탄과 중포가 군에 닿았다. 이제 공격할 때 적 참호를 더 세게 두드린다.",
+      "tech_barrage": "이동 탄막이 군에 닿았다. 이제 포탄 벽이 앞서가는 보병을 가려 주어 공격이 더 잘 된다.",
+      "tech_predicted_fire": "사전 측량 사격이 군에 닿았다. 이제 공격이 더 잘 되고, 기습 공격을 쓸 수 있다.",
+      "tech_assault_groups": "돌격대가 군에 닿았다. 이제 공격이 조금 더 잘 되고, 넓은 정면 공격을 쓸 수 있다.",
+      "tech_tanks": "전차가 군에 닿았다. 이제 공격이 크게 나아지고, 기습 공격을 쓸 수 있다.",
+      "tech_depth_defence": "종심 방어가 군에 닿았다. 이제 방어가 단단해지고, 한 걸음 물러나 깊이 막을 수 있다.",
+      "tech_infiltration": "침투 전술이 군에 닿았다. 이제 공격이 크게 나아지고, 기습 공격이 참호를 더 많이 건너뛴다.",
+      "tech_mine_nets": "기뢰 장벽과 방잠망이 군에 닿았다. 이제 북해 봉쇄가 더 빨리 조여진다.",
+      "tech_ocean_boats": "대양 잠수함이 군에 닿았다. 이제 잠수함이 상선을 더 많이 가라앉힌다.",
+      "tech_convoys": "호송 선단이 군에 닿았다. 이제 상선을 지켜 잃는 배가 줄어든다.",
       "budget_signed": "올해 예산이 통과됐다.",
       "budget_proxy": "재무 쪽 초안에 대리 서명이 찍혔다.",
       "budget_forced": "예산을 권위로 밀어붙였다.",
@@ -15222,10 +15223,10 @@
       "invent_ripe": "{who}의 발명이 이제 넉넉히 갖춰졌다.",
       "invent_trial_failed": "{who}의 시제품이 시험에서 실패했다.",
       "invent_trial_ok": "{who}의 시제품이 시험을 통과했다.",
-      "project_done": "올해의 사업을 이뤘다.",
-      "project_dropped": "올해의 사업을 접었다.",
-      "project_failed": "올해의 사업이 실패했다. 책임자가 답해야 한다.",
-      "project_started": "올해의 사업을 시작했다.",
+      "project_done": "{what} 사업을 이뤘다.",
+      "project_dropped": "{what} 사업을 접었다.",
+      "project_failed": "{what} 사업이 실패했다. 책임자가 답해야 한다.",
+      "project_started": "{what} 사업을 시작했다.",
       "footing_peace": "나라가 평시 경제로 돌아갔다.",
       "footing_war": "나라가 전시 경제로 넘어갔다.",
       "footing_total": "나라가 총동원에 들어갔다.",
@@ -15428,7 +15429,8 @@
       "spy_blame_cost": "간첩 사냥이 뒤탈을 남겼다. 방첩대는 엉뚱한 사람을 쫓았고, 위에서 하는 말을 믿는 사람이 줄었다.",
       "spy_dip_read": "암호 해독반이 상대국의 외교 전신을 읽기 시작했다.",
       "spy_incident": "간첩 사건이 외교 문제가 됐다. 대사가 불려 갔다.",
-      "spy_rolled_up": "동원하는 날 방첩대가 알고 있던 외국 첩보망을 한꺼번에 잡아들였다."
+      "spy_rolled_up": "동원하는 날 방첩대가 알고 있던 외국 첩보망을 한꺼번에 잡아들였다.",
+      "project_changed": "달라진 것: {what}"
     },
     "result": {
       "advance": "전진",
@@ -16298,7 +16300,30 @@
       "decrypt_word": {
         "0": "저쪽은 물러설 생각이다",
         "1": "저쪽은 물러설 생각이 없다"
-      }
+      },
+      "research_title": "연구",
+      "research_now": "지금 연구하는 분야: {track}. {aim}",
+      "research_aim": {
+        "artillery": "대포와 포격 기술을 키운다.",
+        "infantry": "보병이 참호를 넘는 법과 막는 법을 키운다.",
+        "sea": "바다에서 싸우는 법을 키운다."
+      },
+      "research_on": "연구 중",
+      "research_next": "다음에 얻을 것: {tech} ({step})",
+      "research_all": "이 분야에서 얻을 것은 다 얻었다.",
+      "research_none": "우리 나라는 이 분야에서 얻을 것이 없다.",
+      "research_step": {
+        "0": "막 시작했다",
+        "1": "절반쯤 왔다",
+        "2": "거의 다 왔다",
+        "3": "준비는 끝났다. 전쟁이 더 길어져야 쓸 수 있다"
+      },
+      "research_peace": "연구는 전쟁 중에만 쌓인다. 전쟁이 나면 전선 탭의 작전 서류에서 분야를 고른다.",
+      "research_how": "분야는 전선 탭에서 작전 서류에 서명할 때 함께 고른다.",
+      "research_reached": "얻은 것",
+      "research_reached_none": "아직 얻은 것이 없다.",
+      "research_shared": "적도 같은 것을 가지면 공격에서 얻는 덕이 줄어든다.",
+      "research_got": "{tech}: {does}"
     },
     "unknown": {
       "ai": "{country}의 원수는 {word} 인물이었다.",
@@ -17000,6 +17025,24 @@
       "terms": {
         "total": "포탄이 가장 빨리 나오고, 빵과 질서가 줄어든다.",
         "war": "포탄이 더 빨리 나오고, 빵이 줄어든다."
+      },
+      "aim": "하는 일: {text}",
+      "changed": "달라진 것: {text}",
+      "this_year": "올해의",
+      "progress": {
+        "prep": "첫 단계: 사람과 돈을 모으고 있다. 두 단계가 더 남았다.",
+        "opp": "둘째 단계: 반대를 넘고 있다. 한 단계가 더 남았다.",
+        "exec": "마지막 단계: 일을 벌이고 있다. 끝나면 결과를 보고받는다."
+      },
+      "ended": {
+        "failed": "얻은 것 없이 끝났다.",
+        "dropped": "도중에 접어 얻은 것이 없다."
+      },
+      "agenda": {
+        "desk": "책상에 올해의 사업을 고르는 서류가 올라와 있다. 거기서 하나 고른다.",
+        "passed": "올해는 큰일을 정하지 않기로 했다. 새해에 다시 고른다.",
+        "ended": "올해의 사업은 끝났다. 새해에 다음 사업을 고른다.",
+        "soon": "곧 내각이 올해의 사업 후보를 책상에 올린다."
       }
     },
     "house": {
@@ -17416,6 +17459,18 @@
         "arab": "아랍 봉기 돕기",
         "jihad": "성전 선포시키기"
       }
+    },
+    "tech_does": {
+      "gas_heavy": "공격할 때 적 참호를 더 세게 두드린다.",
+      "barrage": "포탄 벽이 앞서가는 보병을 가려 주어 공격이 더 잘 된다.",
+      "predicted_fire": "공격이 더 잘 되고, 기습 공격을 쓸 수 있다.",
+      "assault_groups": "공격이 조금 더 잘 되고, 넓은 정면 공격을 쓸 수 있다.",
+      "tanks": "공격이 크게 나아지고, 기습 공격을 쓸 수 있다.",
+      "depth_defence": "방어가 단단해지고, 한 걸음 물러나 깊이 막을 수 있다.",
+      "infiltration": "공격이 크게 나아지고, 기습 공격이 참호를 더 많이 건너뛴다.",
+      "mine_nets": "북해 봉쇄가 더 빨리 조여진다.",
+      "ocean_boats": "잠수함이 상선을 더 많이 가라앉힌다.",
+      "convoys": "상선을 지켜 잃는 배가 줄어든다."
     }
   }
 }

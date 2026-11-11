@@ -99,7 +99,12 @@ function uboatStep(gw: GreatWar): void {
   if (live && s.uboat === 1 && everyMonths(gw, 2)) sunk = 1;
   if (live && s.uboat === 2) sunk = hasTech(deu, "ocean_boats") ? 2 : 1;
   let built = everyMonths(gw, 3) ? 1 : 0;
-  if (hasTech(gbr, "convoys")) built += 2;
+  // ww179: convoys any of the three sail count, not Britain's alone.
+  const convoys = (["GBR", "FRA", "USA"] as const).some((t) => {
+    const x = gw.nation(t);
+    return x !== null && fights(x) && hasTech(x, "convoys");
+  });
+  if (convoys) built += 2;
   s.shipping = clampTo(s.shipping + sunk - built, 0, GW_SEA_MAX);
 }
 
