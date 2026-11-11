@@ -140,4 +140,40 @@ describe("acts that change the state's shape (ww171)", () => {
     expect(factionOf(seat, "fra_radicals")!.strength).toBe(was + 1);
     expect(seat.log.map((l) => l.key)).toContain("fra_pw_dissolve_elected");
   });
+
+  test("ww172: a closed house is called back by its own lawful row", async () => {
+    const gbr = await seated("GBR");
+    const g = gbr.s.seats[0];
+    const king = holderOf(gbr, g, "court")!;
+    king.trust = 3;
+    const listed = (gw: GreatWar, id: string) =>
+      powerViews(gw, gw.s.seats[0]).some((p) => p.id === id);
+    expect(listed(gbr, "gbr_pw_recall")).toBe(false);
+    g.flags.push("f_gbr_prorogued");
+    expect(listed(gbr, "gbr_pw_recall")).toBe(true);
+    expect(takePower(gbr, g, use("gbr_pw_recall"))).toBeNull();
+    expect(g.flags).not.toContain("f_gbr_prorogued");
+    expect(houseView(gbr, g)!.closed).toEqual([]);
+
+    const rus = await seated("RUS");
+    const r = rus.s.seats[0];
+    holderOf(rus, r, "chancellor")!.trust = 3;
+    expect(takePower(rus, r, use("rus_pw_abolish_duma"))).toBeNull();
+    expect(listed(rus, "rus_pw_restore_duma")).toBe(true);
+    expect(takePower(rus, r, use("rus_pw_restore_duma"))).toBeNull();
+    expect(r.flags).not.toContain("f_rus_duma_abolished");
+    expect(r.flags).toContain("f_gov_rus_session");
+    expect(houseSits(rus, r, "rus_victory")).toBe(true);
+    expect(houseView(rus, r)!.closed).toEqual([]);
+
+    // Vienna's Reichsrat already had its row back (auh_pw_open).
+    const auh = await seated("AUH");
+    const a = auh.s.seats[0];
+    holderOf(auh, a, "chancellor")!.trust = 3;
+    a.flags.push("f_auh_reichsrat_open");
+    expect(takePower(auh, a, use("auh_pw_close"))).toBeNull();
+    expect(houseView(auh, a)!.closed).toEqual(["reichsrat"]);
+    expect(takePower(auh, a, use("auh_pw_open"))).toBeNull();
+    expect(houseView(auh, a)!.closed).toEqual([]);
+  });
 });

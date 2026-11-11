@@ -883,6 +883,33 @@ export const RUS_POWERS: readonly GwPowerRow[] = [
     scene: "rus_pw_abolish_duma_r",
   },
   {
+    // ww172: the abolition undone by his own manifesto, as he could. The
+    // Fundamental Laws stand again: the State Council and the Duma are
+    // convoked by imperial decree (Art. 98), the chairman countersigning
+    // (Art. 24), and both sit at once.
+    id: "rus_pw_restore_duma",
+    tag: "RUS",
+    group: "house",
+    kind: "lawful",
+    shows: all(reigns, abolished),
+    needs: { office: "chancellor" },
+    against: ["court"],
+    authority: 10,
+    tags: ["house_opened"],
+    effects: [
+      { kind: "unflag", flag: "f_rus_duma_abolished" },
+      setFlag("f_gov_rus_session"),
+      inst("duma", 1),
+      inst("court", -1),
+      opinion("parliament", 1),
+      cool("rus_kadets", 1),
+      cool("rus_octob", 1),
+      heat("rus_rights", 1),
+      reason("rus_pw_restore_done"),
+    ],
+    scene: "rus_pw_restore_duma_r",
+  },
+  {
     // Field courts-martial: officers judging civilians, the sentence carried
     // out at once. Set up by an Art. 87 decree in August 1906, gone by April
     // 1907; brought back now for the rear, past the Duma.
@@ -1036,6 +1063,7 @@ export const RUS_POWER_SCENES: readonly GwScene[] = [
   card("rus_pw_election_law_bad", ["home"]),
   card("rus_pw_abolish_duma_r", ["home"]),
   card("rus_pw_abolish_duma_bad", ["home"]),
+  card("rus_pw_restore_duma_r", ["home"]),
   card("rus_pw_field_courts_r", ["home"]),
   card("rus_pw_field_courts_bad", ["home"]),
 ];

@@ -1010,6 +1010,29 @@ export const GBR_POWERS: readonly GwPowerRow[] = [
     },
     scene: "gbr_pw_prorogue_r",
   },
+  {
+    // ww172: a prorogued Parliament called back before its day. The King, on
+    // the Prime Minister's advice, appoints an earlier day by proclamation in
+    // Council; it meets six days on at the soonest (Meeting of Parliament Acts
+    // 1797 and 1870, legislation.gov.uk). Shown only while prorogued.
+    id: "gbr_pw_recall",
+    tag: "GBR",
+    group: "house",
+    kind: "lawful",
+    shows: flag("f_gbr_prorogued"),
+    needs: { office: "court" },
+    authority: 5,
+    tags: ["house_opened"],
+    effects: [
+      { kind: "unflag", flag: "f_gbr_prorogued" },
+      inst("commons", 1),
+      opinion("parliament", 1),
+      reason("gbr_pw_recalled"),
+    ],
+    // The amendment the prorogation dropped comes back to the order paper.
+    heats: [{ id: "gbr_table", by: 3 }],
+    scene: "gbr_pw_recall_r",
+  },
   // 가혹한 조치 (ww169 phase 2): lawful as the law then stood ----------------
   {
     // Internment without trial after a rising (Frongoch, Wales, 1916).
@@ -1342,6 +1365,7 @@ export const GBR_POWER_SCENES: readonly GwScene[] = [
   card("gbr_pw_dora_mps_bad", ["home"]),
   card("gbr_pw_prorogue_r", ["home"]),
   card("gbr_pw_prorogue_bad", ["home"]),
+  card("gbr_pw_recall_r", ["home"]),
   card("gbr_pw_frongoch_r", ["home"]),
   card("gbr_pw_frongoch_bad", ["home"]),
   card("gbr_pw_clyde_r", ["home"]),
