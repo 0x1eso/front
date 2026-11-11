@@ -97,7 +97,8 @@ describe("Joseon's content", () => {
     }
     expect(JOS_PERSONS.length + JOS_NAMED.length).toBeGreaterThanOrEqual(35);
     for (const p of JOS_PERSONS) {
-      expect(reg.personIdx.get(p.id)).toBe(p);
+      // merge 3: the registry's row adds the real dates (PersonDates).
+      expect(reg.personIdx.get(p.id)).toMatchObject(p);
       expect(p.source.length).toBeGreaterThan(20);
       both(p.nameKey);
     }

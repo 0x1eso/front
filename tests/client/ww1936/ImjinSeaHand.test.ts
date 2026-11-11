@@ -184,7 +184,7 @@ describe("the Imjin sea by hand (design §6.2)", () => {
 
     // A tap on the sea sails there at once.
     expect(m.controller.handleTap(90.2, 110.4)).toBe(true);
-    expect(m.sent.at(-1)).toEqual({
+    expect(m.sent[m.sent.length - 1]).toEqual({
       kind: "imjin_fleet",
       fleet: 1,
       order: "move",
@@ -196,7 +196,7 @@ describe("the Imjin sea by hand (design §6.2)", () => {
     await m.click("[data-ww-fleet-btn='imjin_lure']");
     expect(m.controller.draft.mode).toBe("lure");
     m.controller.handleTap(80.5, 108.5);
-    expect(m.sent.at(-1)).toMatchObject({
+    expect(m.sent[m.sent.length - 1]).toMatchObject({
       order: "lure",
       tile: 108 * 200 + 80,
     });
@@ -211,7 +211,7 @@ describe("the Imjin sea by hand (design §6.2)", () => {
     expect(m.controller.selection.aim).toMatchObject({ x: 89, y: 110.5 });
     m.bus.emit(new WwStrokeEvent("end", 89, 110.5));
     expect(m.controller.selection.aim).toBeNull();
-    const last = m.sent.at(-1) as { order: string; tile: number };
+    const last = m.sent[m.sent.length - 1] as { order: string; tile: number };
     expect(last.order).toBe("move");
     // At least 8 tiles out, east along the row.
     expect(Math.floor(last.tile / 200)).toBe(110);
@@ -233,15 +233,21 @@ describe("the Imjin sea by hand (design §6.2)", () => {
     await m.redraw();
     expect(m.q("[data-imjin-current='known']")!.textContent).toContain("s=13");
     await m.click("[data-ww-fleet-btn='imjin_fire_ship']");
-    expect(m.sent.at(-1)).toMatchObject({ order: "fire_ship", fleet: 1 });
+    expect(m.sent[m.sent.length - 1]).toMatchObject({
+      order: "fire_ship",
+      fleet: 1,
+    });
     await m.click("[data-ww-fleet-btn='imjin_escort']");
-    expect(m.sent.at(-1)).toMatchObject({ order: "escort", fleet: 1 });
+    expect(m.sent[m.sent.length - 1]).toMatchObject({
+      order: "escort",
+      fleet: 1,
+    });
     expect(m.q("[data-imjin-battle='5']")).not.toBeNull();
     expect(m.q("[data-imjin-side='us']")!.textContent).toContain("n=3");
     expect(m.q("[data-imjin-side='them']")!.textContent).toContain("n=2");
     expect(m.q("[data-ww-bar='them_morale']")!.textContent).toContain("40%");
     await m.click("[data-ww-fleet-btn='imjin_break_off']");
-    expect(m.sent.at(-1)).toMatchObject({ order: "break_off" });
+    expect(m.sent[m.sent.length - 1]).toMatchObject({ order: "break_off" });
     for (const o of m.sent)
       expect(WwOrderSchema.safeParse(o).success).toBe(true);
   });

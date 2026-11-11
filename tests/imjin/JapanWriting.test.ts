@@ -91,7 +91,8 @@ describe("Imjin: Japan's writing", () => {
       expect(hasKey(p.nameKey), p.nameKey).toBe(true);
       expect(p.source.length, p.id).toBeGreaterThan(0);
       expect(p.from ?? p.until, p.id).toBeUndefined();
-      expect(reg.personIdx.get(p.id), p.id).toBe(p);
+      // merge 3: the registry's row adds the real dates (PersonDates).
+      expect(reg.personIdx.get(p.id), p.id).toMatchObject(p);
     }
   });
 });

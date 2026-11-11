@@ -222,9 +222,13 @@ describe("the Imjin round in the 1936 loop (LandRound)", () => {
     expect(amb.attMorale).toBeGreaterThan(0);
   });
   it("the AI storms a fort and counters the order it met", () => {
-    expect(["storm", "barrage"]).toContain(
-      aiAttackOrder(rowMixOf("JPN"), "walled", 2, null, 1),
-    );
+    // At walls only the wall orders (I5a: an arquebus-heavy army may also
+    // volley up to them), never a field order.
+    for (let roll = 0; roll < 6; roll++) {
+      expect(["storm", "barrage", "volley_advance"]).toContain(
+        aiAttackOrder(rowMixOf("JPN"), "walled", 2, null, roll),
+      );
+    }
     expect(aiDefenceStance(rowMixOf("JOS"), "charge", 1)).toBe("hold");
   });
 });
