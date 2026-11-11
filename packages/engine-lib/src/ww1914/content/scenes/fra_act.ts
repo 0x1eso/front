@@ -1503,10 +1503,146 @@ const HEAD_LETTERS: GwScene[] = [
   ),
 ];
 
+// ---- ww173: the secret war, France's own (formatc items 1-3) ----
+//
+// The Deuxième Bureau's head (`intelligence`: Dupont in 1914, Ladoux fit for
+// it) brings what the service did and what it reads. The common rows and
+// result cards are acts/common.ts; France's wording of them is laid over in
+// FRA.act.json. France gets no codebook: the engine hands the Magdeburg's to
+// Britain or Russia (Spies.eventsStep), so there is no card for it here.
+
+const intel = role("intel");
+const spyCan = (
+  can: "reading" | "out" | "court" | "blame",
+  tag?: GwTag,
+): GwCond =>
+  world(tag === undefined ? { is: "spy", can } : { is: "spy", can, tag });
+const spyDo = (act: "hide" | "net" | "court" | "blame", tag?: GwTag) =>
+  doWorld(tag === undefined ? { do: "spy", act } : { do: "spy", act, tag });
+const readsDeu = spyCan("reading", "DEU");
+const readsAuh = spyCan("reading", "AUH");
+const readsAny = any(readsDeu, readsAuh);
+const ladouxHeads: GwCond = {
+  kind: "holder",
+  office: "intelligence",
+  person: "fra_ladoux",
+};
+const neutralItaly = not(world({ is: "entered", tag: "ITA" }));
+
+const SPY_SCENES: GwScene[] = [
+  // We read their wireless: hand it to the army, or act as if we never did.
+  {
+    id: "fra_spy_codes",
+    nation: NATION,
+    kind: "proposal",
+    when: all(war, readsAny),
+    cast: { intel: holder("intelligence"), cos: holder("chief_of_staff") },
+    salience: 7,
+    cooldown: 6,
+    tags: ["war", "foreign"],
+    variants: [
+      v("storm", all(readsDeu, world({ is: "era", of: ["storm"] }))),
+      v("ladoux", all(readsAny, ladouxHeads)),
+      v("deu", readsDeu),
+      v("auh", readsAuh),
+      v("base"),
+    ],
+    fallback: "use_it",
+    options: [
+      o("use_it", [trustOf(role("cos"), 1)]),
+      o("hide", [spyDo("hide"), trustOf(intel, 1), trustOf(role("cos"), -1)]),
+      o(
+        "tell_london",
+        [trust("GBR", 1), trustOf(intel, -1)],
+        world({ is: "entered", tag: "GBR", side: "entente" }),
+      ),
+    ],
+  },
+  // The codes we read went dark: they changed them.
+  {
+    id: "fra_spy_codes_lost",
+    nation: NATION,
+    kind: "report",
+    when: all(war, seen("fra_spy_codes"), not(readsAny)),
+    cast: { intel: holder("intelligence") },
+    salience: 6,
+    once: true,
+    stamp: "confirmed",
+    source: "codes",
+    tags: ["war"],
+    variants: [
+      v("used", chose("fra_spy_codes", "use_it")),
+      v("hid", chose("fra_spy_codes", "hide")),
+      v("base"),
+    ],
+  },
+  // Our own men abroad were taken and named (Spies `out`): the sender's side.
+  {
+    id: "fra_spy_exposed",
+    nation: NATION,
+    kind: "proposal",
+    when: all(war, spyCan("out")),
+    cast: { intel: holder("intelligence") },
+    salience: 6,
+    once: true,
+    tags: ["foreign", "war"],
+    variants: [v("ladoux", ladouxHeads), v("base")],
+    fallback: "deny",
+    options: [
+      o("deny", [trustOf(intel, 1), rumour(1)]),
+      o("recall", [trustOf(intel, -1), inst("chamber", 1)]),
+    ],
+  },
+  // Rome while Italy waits: a station first, then its papers.
+  {
+    id: "fra_spy_rome",
+    nation: NATION,
+    kind: "proposal",
+    when: all(
+      war,
+      neutralItaly,
+      world({ is: "war_months", own: true, min: 2 }),
+    ),
+    cast: { intel: holder("intelligence") },
+    salience: 6,
+    once: true,
+    tags: ["foreign"],
+    variants: [v("netted", spyCan("court", "ITA")), v("base")],
+    fallback: "not_ours",
+    options: [
+      o("net_rome", [gauge("money", -1), spyDo("net", "ITA")]),
+      o(
+        "court_rome",
+        [gauge("money", -1), spyDo("court", "ITA")],
+        spyCan("court", "ITA"),
+      ),
+      o("not_ours", [trustOf(intel, -1)]),
+    ],
+  },
+  // A dark season: Ladoux's file on a dancer, and the spy hunt it would start.
+  {
+    id: "fra_spy_dancer",
+    nation: NATION,
+    kind: "proposal",
+    when: all(war, spyCan("blame"), gaugeAt("morale", undefined, 2)),
+    cast: { ladoux: { person: "fra_ladoux" } },
+    salience: 7,
+    once: true,
+    tags: ["home", "war"],
+    variants: [v("chief", ladouxHeads), v("base")],
+    fallback: "let_go",
+    options: [
+      o("try_her", [spyDo("blame"), trustOf(role("ladoux"), 1)]),
+      o("let_go", [trustOf(role("ladoux"), -1)]),
+    ],
+  },
+];
+
 /** Story scenes drawn by state: aims, rivals, letters, the opening. */
 export const FRA_STORY_SCENES: readonly GwScene[] = [
   ...AIM_SCENES,
   ...OPENING_SCENES,
   ...RIVAL_SCENES,
   ...HEAD_LETTERS,
+  ...SPY_SCENES,
 ];
