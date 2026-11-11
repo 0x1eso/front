@@ -14,14 +14,17 @@ import {
 import {
   ambushHidden,
   ATTACK_ORDERS,
+  type Crossing,
   crossingOf,
   DEFENCE_STANCES,
+  inCrossing,
   isPhaseStart,
   isRoundTick,
   paddyWet,
   riverFrozen,
   routCascade,
   scoutSpots,
+  seesRhythm,
 } from "@openfront/engine-lib/imjin/LandRules";
 import {
   edgeBetween,
@@ -31,6 +34,7 @@ import {
 import { dateOfDay } from "@openfront/engine-lib/ww1936/Calendar";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import type { TacticFx } from "@openfront/engine-lib/ww1936/TacticRules";
+import { generalOf } from "../../ww1936/land/GeneralsRun";
 import type { Battle, WwLand } from "../../ww1936/land/WwLand";
 import { EDGE_KINDS, type ImjinBattleOrders } from "../WwImjin";
 import { imjinFortLevel } from "./Sieges";
@@ -72,6 +76,42 @@ function tagMix(land: WwLand, owner: number) {
   return rowMixOf(land.scenario.tagOfSmallId(owner) ?? "");
 }
 
+/**
+ * ww177 I5a: a side's commander skill (design §5: the gap's chance, the
+ * reload read at skill 3): its best general's attack (or defence) skill
+ * among the armies in the battle, 0 with none.
+ */
+function sideSkill(
+  land: WwLand,
+  ids: readonly number[],
+  attack: boolean,
+): number {
+  const t = land.divisions;
+  let best = 0;
+  let last = 0;
+  for (const id of ids) {
+    const r = t.rowOf(id);
+    if (r < 0 || t.army[r] === last) continue;
+    last = t.army[r];
+    const a = land.armies.get(last);
+    const g = a === undefined ? null : generalOf(land, a);
+    if (g !== null) best = Math.max(best, attack ? g.att : g.dfn);
+  }
+  return best;
+}
+
+/** The crossing the attack makes in this battle (null: none). */
+function crossingFor(
+  land: WwLand,
+  o: ImjinBattleOrders,
+  tick: number,
+): Crossing | null {
+  const edge = EDGE_KINDS[o.edge] ?? "none";
+  return edge === "none"
+    ? null
+    : crossingOf(edge, riverFrozen(monthOf(land, tick)), true, false);
+}
+
 /** The battle's orders record, set up on its first round (crossing, ambush). */
 function ordersFor(land: WwLand, b: Battle, tick: number): ImjinBattleOrders {
   const im = land.ww.imjinWar!;
@@ -109,7 +149,12 @@ function ordersFor(land: WwLand, b: Battle, tick: number): ImjinBattleOrders {
  * At a phase's first round: pending orders take effect (an ambushed
  * attacker's are locked for two phases), and the AI picks its side's.
  */
-function stepPhase(land: WwLand, b: Battle, o: ImjinBattleOrders): void {
+function stepPhase(
+  land: WwLand,
+  b: Battle,
+  o: ImjinBattleOrders,
+  tick: number,
+): void {
   if (!isPhaseStart(b.round)) return;
   const ww = land.ww;
   const seed = ww.politics.seed;
@@ -134,6 +179,7 @@ function stepPhase(land: WwLand, b: Battle, o: ImjinBattleOrders): void {
           fort,
           b.round === 1 ? null : DEFENCE_STANCES[o.def],
           roll,
+          { seesRhythm: seesRhythm(false, sideSkill(land, b.attackers, true)) },
         ),
       );
     }
@@ -152,11 +198,16 @@ function stepPhase(land: WwLand, b: Battle, o: ImjinBattleOrders): void {
       b.sinceTick,
       b.round * 2 + 1,
     );
+    const c = crossingFor(land, o, tick);
     o.def = DEFENCE_STANCES.indexOf(
       aiDefenceStance(
         tagMix(land, defOwner),
         b.round === 1 ? null : ATTACK_ORDERS[o.att],
         roll,
+        {
+          terrain,
+          crossing: c !== null && c.phases > 0 && inCrossing(c, b.round),
+        },
       ),
     );
   }
@@ -166,13 +217,11 @@ function stepPhase(land: WwLand, b: Battle, o: ImjinBattleOrders): void {
 /** This round's Imjin numbers, after Battles.fight's b.round++. */
 export function imjinRoundOf(land: WwLand, b: Battle, tick: number): RoundOut {
   const o = ordersFor(land, b, tick);
-  stepPhase(land, b, o);
+  stepPhase(land, b, o, tick);
   const sc = land.scenario;
   const month = monthOf(land, tick);
   const terrain = regionTerrain(sc, b.region);
-  const edge = EDGE_KINDS[o.edge] ?? "none";
-  const crossing =
-    edge === "none" ? null : crossingOf(edge, riverFrozen(month), true, false);
+  const crossing = crossingFor(land, o, tick);
   const out = imjinRound({
     seed: land.ww.politics.seed,
     region: b.region,
@@ -183,13 +232,13 @@ export function imjinRoundOf(land: WwLand, b: Battle, tick: number): RoundOut {
     att: {
       order: ATTACK_ORDERS[o.att] ?? "advance",
       mix: tagMix(land, b.attLead),
-      skill: 0,
+      skill: sideSkill(land, b.attackers, true),
       hwachaUsed: o.hwAtt === 1,
     },
     def: {
       order: DEFENCE_STANCES[o.def] ?? "hold",
       mix: tagMix(land, land.controller[b.region]),
-      skill: 0,
+      skill: sideSkill(land, b.defenders, false),
       hwachaUsed: o.hwDef === 1,
     },
     crossing,

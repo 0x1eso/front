@@ -278,8 +278,12 @@ export function planOf(
   seed: number,
   smallID: number,
   human = false,
+  /** ww177: a scenario's own rows (the Imjin War's: imjin/LandAi). */
+  rows: Readonly<
+    Partial<Record<CountryTag, Readonly<Partial<NationalPlan>>>>
+  > = AI_PLANS,
 ): Readonly<NationalPlan> {
-  const row = AI_PLANS[tag];
+  const row = rows[tag];
   if (row === undefined || human) return AI_PLAN_DEFAULT;
   const pct = planStrengthPct(seed, smallID);
   const out = { ...AI_PLAN_DEFAULT };

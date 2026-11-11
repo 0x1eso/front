@@ -19,6 +19,7 @@ import {
   type TemplateDef,
   WW_MAX_ARMY_DIVISIONS,
 } from "@openfront/engine-api/ww1936/LandTypes";
+import { IMJIN_GARRISON_PCT } from "@openfront/engine-lib/imjin/LandAi";
 import { dayOfDate } from "@openfront/engine-lib/ww1936/Calendar";
 import {
   coveragePct,
@@ -267,8 +268,12 @@ function aiGarrisons(eg: WwEndgame, id: number): void {
   const armies = garrisonArmies(eg, id);
   const sups = armies.map((a) => armySuppression(land, a));
   const have = sups.reduce((x, y) => x + y, 0);
+  const imjinPct = eg.ww.imjin
+    ? IMJIN_GARRISON_PCT[eg.ww.tagOf(id) ?? ""]
+    : undefined;
   const pct =
-    need > 0 && frontHeavy(eg, id) ? AI_GARRISON_WAR_PCT : AI_GARRISON_PCT;
+    imjinPct ??
+    (need > 0 && frontHeavy(eg, id) ? AI_GARRISON_WAR_PCT : AI_GARRISON_PCT);
   const want = Math.ceil((need * pct) / 100);
   if (have < want) {
     formGarrisons(eg, id, armies, have, want);

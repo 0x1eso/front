@@ -21,8 +21,10 @@ import {
   INVASION_STATES,
   WW_INVASION_MAX_KM,
 } from "@openfront/engine-api/ww1936/NavyTypes";
+import { IMJIN_AI_PLANS } from "@openfront/engine-lib/imjin/LandAi";
 import {
   AI_PLAN_DEFAULT,
+  AI_PLANS,
   planOf,
   resourceWorth,
 } from "@openfront/engine-lib/ww1936/AiPlans";
@@ -288,10 +290,18 @@ function planInvasion(
   const ww = navy.ww;
   const sc = navy.scenario;
   const ce = navy.econ.country(me)!;
-  const plan = planOf(ce.tag, ww.politics.seed, me);
+  const plan = planOf(
+    ce.tag,
+    ww.politics.seed,
+    me,
+    false,
+    ww.imjin ? IMJIN_AI_PLANS : AI_PLANS,
+  );
   // Our fleets' power that can hold a route (battle fleets and patrols).
   const ours = routePower(navy, me);
-  if (ours <= 0) return;
+  // ww177 I5a: an Imjin landing sails on a player's rules (easy: no
+  // supremacy needed, the crossing's losses capped), fleet or none.
+  if (ours <= 0 && !ww.imjin) return;
   const enemies = ww.enemiesOf(me).filter((e) => land.isEnemy(me, e));
   const { comp } = aiSideStretches(land, me);
   // Spec §17.4: an enemy no land border reaches; else spare divisions.
@@ -418,7 +428,7 @@ function planInvasion(
     let worst = 0;
     for (const sr of srs) worst = Math.max(worst, enemySup.get(sr) ?? 0);
     c.supPm = expectedSupPm(ours, worst);
-    if (aiInvasionPick([c], plan.landingSupPm) !== null) {
+    if (ww.imjin || aiInvasionPick([c], plan.landingSupPm) !== null) {
       pick = c;
       break;
     }
@@ -426,7 +436,10 @@ function planInvasion(
   if (pick === null) return;
   const cap = invasionCapacity(ce.stats, ce.researched);
   // 내 판단: twice the defenders and four more, within the capacity.
-  let need = Math.min(cap, 2 * pick.divisions + AI_INVASION_GATHER);
+  // ww177 I5a (Imjin design §9): Japan lands in force, all it can carry.
+  let need = ww.imjin
+    ? cap
+    : Math.min(cap, 2 * pick.divisions + AI_INVASION_GATHER);
   // C9: the convoys must carry the army (spec §17.4) before it gathers;
   // gather what they carry, none if that is under the minimum.
   const fit = convoyFit(navy, armies, comp, pick.from, freeConvoysOf(navy, me));

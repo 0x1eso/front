@@ -55,10 +55,12 @@ import {
   wwMaxSupport,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { WW_INVASION_MAX_KM } from "@openfront/engine-api/ww1936/NavyTypes";
+import { IMJIN_AI_PLANS } from "@openfront/engine-lib/imjin/LandAi";
 import { wwAiWarPlanDue } from "@openfront/engine-lib/ww1936/AiDifficulty";
 import {
   AI_LINE_SHAPES,
   AI_PLAN_DEFAULT,
+  AI_PLANS,
   type NationalPlan,
   planOf,
   planPrepared,
@@ -104,6 +106,18 @@ import {
   templateBlock,
   templateStats,
 } from "@openfront/engine-lib/ww1936/TemplateStats";
+import {
+  imjinAimVp,
+  imjinCallOff,
+  imjinCourtSeat,
+  imjinDrive,
+  imjinFeed,
+  imjinGivenUp,
+  imjinGuardVp,
+  imjinHeldLine,
+  imjinMuster,
+  imjinOnTheWay,
+} from "../../imjin/land/ImjinLandAi";
 import { enemySkyPm } from "../air/AirSuperiority";
 import {
   type AiPersonality,
@@ -1322,7 +1336,13 @@ class AiDay {
     this.tag = cl.tag;
     this.personality = aiPersonality(cl.tag);
     this.major = COUNTRIES[cl.tag].major;
-    this.warPlan = planOf(cl.tag, land.ww.politics.seed, cl.smallID, human);
+    this.warPlan = planOf(
+      cl.tag,
+      land.ww.politics.seed,
+      cl.smallID,
+      human,
+      land.ww.imjin ? IMJIN_AI_PLANS : AI_PLANS,
+    );
     this.atWar = land.ww
       .enemiesOf(this.me)
       .filter((e) => this.fights(e) && land.isEnemy(this.me, e));
@@ -1600,6 +1620,16 @@ class AiDay {
     if (AI_STEP2.gapFill) this.fillGaps();
     if (!this.human) this.relieve(garrisons);
     this.attacks();
+    // ww177 I5a (Imjin design §9): the drive on the aim, by a direct attack.
+    if (!this.human && this.land.ww.imjin && this.atWar.length > 0) {
+      imjinDrive(
+        this.land,
+        this.me,
+        this.armies(),
+        this.warPlan.reattackPm,
+        (o) => this.issue(o),
+      );
+    }
     if (!this.human) this.syncSky();
     if (this.trains) this.train(garrisons);
     if (!this.human) this.build(enemies);
@@ -1631,7 +1661,10 @@ class AiDay {
     const near = this.bfs(touching, (r) => this.ours(r), GUARD_EDGES - 1);
     // P3: the legal owner (spec §17), not the 1936 map.
     const owners = land.ww.politics.legalOwner;
-    const cap = capitalRegion(land, this.me);
+    // ww177 I5a: Joseon's guard goes with its court when it flees.
+    const cap = land.ww.imjin
+      ? imjinCourtSeat(land, this.me, capitalRegion(land, this.me))
+      : capitalRegion(land, this.me);
     const out: number[] = [];
     if (cap !== 0 && near[cap] !== FAR) out.push(cap);
     const slots = Math.floor(
@@ -1639,7 +1672,10 @@ class AiDay {
         AI_GUARD_DIVISIONS,
     );
     if (slots === 0) return out;
-    const vp = (r: number) => sc.region(r)?.vp ?? 0;
+    // ww177 I5a: an Imjin guard holds the castles and the passes too.
+    const imjin = land.ww.imjin;
+    const vp = (r: number) =>
+      (sc.region(r)?.vp ?? 0) + (imjin ? imjinGuardVp(land, r) : 0);
     // The seas an enemy at war holds a port on (a landing could come, P4).
     const zones = new Set<number>();
     for (const e of this.atWar) {
@@ -1652,6 +1688,7 @@ class AiDay {
     const coast: number[] = [];
     for (const r of land.econ.regionsOf(this.me)) {
       if (out.includes(r) || owners[r] !== this.me) continue;
+      if (imjin && imjinGivenUp(land, this.me, r)) continue;
       const port = navalPort(land.ww, r);
       const harbor = sc.harborOf(r);
       const landing =
@@ -1947,7 +1984,10 @@ class AiDay {
     const facing = new Map<number, number>();
     const fronts: Front[] = [];
     for (const enemy of enemies) {
-      const border = byEnemy.get(enemy)!;
+      // ww177 I5a: Joseon falls back to the north once its court has fled.
+      const border = land.ww.imjin
+        ? imjinHeldLine(land, this.me, byEnemy.get(enemy)!)
+        : byEnemy.get(enemy)!;
       if (border.length === 0) continue;
       const set = new Set(border);
       // Stretches by their region nearest the capital.
@@ -2912,7 +2952,10 @@ class AiDay {
         others += land.supplyBaseOf(r);
       }
     }
-    return Math.max(0, land.supplyMilli[region] - others);
+    const feed = Math.max(0, land.supplyMilli[region] - others);
+    // ww177 I5a: an Imjin AI that pushes hard plans on more than the
+    // supply feeds (and takes the hunger: the same attrition a player's).
+    return land.ww.imjin ? imjinFeed(land, this.me, feed) : feed;
   }
 
   /** ww103: the divisions line region `r` usefully takes: the width's and what it feeds, at least one. */
@@ -4175,6 +4218,9 @@ class AiDay {
   /** ww91 rule 6: the route between two ports is ours at the plan's bar (a plan's; the others just sail). */
   private routeHeld(from: number, to: number): boolean {
     if (this.warPlan === AI_PLAN_DEFAULT) return true;
+    // ww177 I5a: an Imjin army sails as a player's does; the convoy war
+    // at sea (the tile fleets) decides what it costs.
+    if (this.land.ww.imjin) return true;
     const navy = this.land.ww.navy;
     return aiRouteSupPm(navy, this.me, from, to) >= this.warPlan.landingSupPm;
   }
@@ -4192,6 +4238,13 @@ class AiDay {
   private peacetime(garrisons: ReadonlySet<number>): void {
     const land = this.land;
     const sc = land.scenario;
+    // ww177 I5a (Imjin design §8): Japan musters at the strait before it strikes.
+    if (land.ww.japan !== null) {
+      for (const a of this.armies()) {
+        if (garrisons.has(a.id) || this.travelling(a)) continue;
+        imjinMuster(land, this.me, a, (o) => this.issue(o));
+      }
+    }
     const mine = land.econ.regionsOf(this.me);
     // Threat of each neighbour that is a possible enemy, and its border size.
     const threat = new Map<number, number>();
@@ -4369,6 +4422,16 @@ class AiDay {
       if (o.kind !== "front" && o.kind !== "plan") continue;
       if (!this.atWar.includes(o.enemy)) continue;
       const org = this.orgPm(rows);
+      // ww177 I5a: an Imjin attack that has gone on too long is called off.
+      if (
+        o.kind === "plan" &&
+        o.executing &&
+        land.ww.imjin &&
+        imjinCallOff(land, this.me, rows)
+      ) {
+        this.issue({ kind: "army_execute", army: a.id, on: false });
+        continue;
+      }
       if (o.kind === "plan" && o.executing) {
         // Ruling 5: under 40% org it regroups; spec §14.4: under 0.7 it
         // holds; Task 11 (ruling 6): the attack over, a worn army regroups.
@@ -5111,7 +5174,9 @@ class AiDay {
         !this.liberationLifted(enemy, ratioPm));
     const ours = (owner: number) =>
       owner === me ||
-      (this.personality === "democracy" && land.ww.sameFaction(me, owner));
+      (this.personality === "democracy" && land.ww.sameFaction(me, owner)) ||
+      // ww177 I5a: Ming comes to free its ally's land (Imjin design §7).
+      (land.ww.imjin && land.sameSide(me, owner));
     const regions: AiTargetRegion[] = [];
     const cands = reached.filter((id) => sc.region(id) !== undefined);
     cands.sort((p, q) => p - q);
@@ -5129,14 +5194,17 @@ class AiDay {
         : 0;
       regions.push({
         region: r.id,
-        vp: r.vp,
+        // ww177 I5a: an Imjin offensive weighs the way to its aim.
+        vp: land.ww.imjin ? r.vp + imjinAimVp(land, me, r.id) : r.vp,
         dist: d,
         capital: r.id === capital,
         ...(cut > 0 ? { cut } : {}),
       });
     }
     this.reachDone(reached);
-    return regions;
+    // ww177 I5a: an Imjin drive goes on toward its aim; the pockets it
+    // passed are left behind.
+    return land.ww.imjin ? imjinOnTheWay(land, me, zone, regions) : regions;
   }
 
   /**
