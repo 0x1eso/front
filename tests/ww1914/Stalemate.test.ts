@@ -127,7 +127,11 @@ describe("collapse", () => {
     expect(gw.s.news.some((x) => x.key === "front_collapse")).toBe(true);
     const rusSeat = { tag: "RUS", flags: [] } as unknown as GwSeatState;
     const deuSeat = { tag: "DEU", flags: [] } as unknown as GwSeatState;
-    const own = { is: "collapse", theatre: ["east"], max: 0 } as const;
+    const own = {
+      is: "collapse" as const,
+      theatre: ["east" as const],
+      max: 0,
+    };
     expect(collapseHolds(gw, rusSeat, own)).toBe(true);
     expect(collapseHolds(gw, deuSeat, own)).toBe(false);
     expect(collapseHolds(gw, deuSeat, { ...own, foe: true })).toBe(true);

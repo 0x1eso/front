@@ -31,6 +31,15 @@ export const foeCollapsed = (theatres?: GwTheatre[], months = 0): GwCond =>
       : { is: "collapse", theatre: theatres, foe: true, max: months },
   );
 
+/**
+ * Scenes only the engine calls on a collapse: the plain card and each seat's
+ * own (Stalemate.collapse picks `<seat>_w_collapse` when it is written).
+ */
+export const GW_STALL_CALLED: readonly string[] = [
+  "gw_w_collapse",
+  ...["deu", "gbr", "auh", "rus", "fra"].map((x) => `${x}_w_collapse`),
+];
+
 const cmd = role("cmd");
 
 /**
