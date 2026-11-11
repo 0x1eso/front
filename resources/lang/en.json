@@ -2948,7 +2948,7 @@
         "title": "Named agents",
         "wait": {
           "date": "His time has not come yet",
-          "full": "Two of ours are at work already",
+          "full": "The service has no room for another agent; more agents abroad make room",
           "gone": "That country is out of the war",
           "no_net": "Plant a net in {country} first"
         },
@@ -2989,10 +2989,10 @@
         "air_yes": "Air photographs: our aircraft photograph the enemy's trenches and batteries, so his preparation for an offensive shows more easily.",
         "broke": "The treasury is empty: a bigger share makes no branch grow now.",
         "nets": {
-          "1": "Nets can be kept in one country only. More agents abroad make room for more.",
-          "2": "Nets can be kept in two countries. More agents abroad make room for more.",
-          "3": "Nets can be kept in three countries. More agents abroad make room for more.",
-          "4": "Nets can be kept in four countries."
+          "1": "Nets can be kept in one country only, and one named agent at work. More agents abroad make room for more.",
+          "2": "Nets can be kept in two countries, and two named agents at work. More agents abroad make room for more.",
+          "3": "Nets can be kept in three countries, and three named agents at work. More agents abroad make room for more.",
+          "4": "Nets can be kept in four countries, and four named agents at work."
         },
         "none": "The service hasn't worked yet. After the next chapter you can share its money and men here.",
         "share": {
@@ -5097,6 +5097,11 @@
         "crisis_topic": "A crisis over {topic}: {word}. {what}",
         "no_crisis": "No crisis is open between the powers.",
         "peace": "Peace: our country is in no war.",
+        "prop": "Propaganda and censorship: {what}.",
+        "prop_home": "a campaign at home is keeping up the nerve",
+        "prop_hush": "the censor is keeping bad news out of the papers, and it may all come out later",
+        "prop_leaflets": "leaflets are falling on {countries}",
+        "prop_papers": "we pay papers in {countries}",
         "temp_means": {
           "0": "Words can still settle it.",
           "1": "The notes are getting sharper.",

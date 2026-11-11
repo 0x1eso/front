@@ -71,6 +71,21 @@ describe("named agents", () => {
     expect(pool.some((p) => p.id === "lody")).toBe(false);
   });
 
+  test("agents at work count against the service's room abroad (ww180 merge)", () => {
+    war();
+    gw.s.day = daysFromCivil(1915, 11, 1);
+    intelOf(gw, "DEU").net = { GBR: 1, FRA: 1, USA: 1 };
+    intelOf(gw, "DEU").abroad = 0;
+    expect(hire(gw, "DEU", "lody")).toBe(true);
+    expect(canHire(gw, "DEU", "bolo")).toBe(false);
+    const pool = worldView(gw, st()).agents!.pool;
+    expect(pool.find((p) => p.id === "bolo")?.wait).toBe("full");
+    intelOf(gw, "DEU").abroad = 2;
+    expect(hire(gw, "DEU", "bolo")).toBe(true);
+    expect(hire(gw, "DEU", "rintelen")).toBe(true);
+    expect(canHire(gw, "DEU", "duquesne")).toBe(false);
+  });
+
   test("he adds reports to his net until taken; tried by the state, he is lost for good", () => {
     war();
     gw.s.day = daysFromCivil(1914, 9, 1);

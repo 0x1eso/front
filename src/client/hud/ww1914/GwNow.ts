@@ -1,5 +1,6 @@
-// Great War 1914 (ww179): the desk's "지금 상황" box. Three plain lines read
-// from the view alone: war or peace, the crisis in words, and what waits.
+// Great War 1914 (ww179): the desk's "지금 상황" box. Plain lines read from
+// the view alone: war or peace, our propaganda and censorship while they run
+// (ww180), the crisis in words, and what waits.
 import type { GwGauge } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type {
   GreatWarData,
@@ -43,6 +44,8 @@ export function nowLines(data: GreatWarData, seat: GwSeatView): GwNowLine[] {
       params: { side: translateText(`gw.ui.side.${w.side}`), foes: named },
     });
   }
+  const prop = propLine(seat);
+  if (prop !== null) out.push(prop);
   const chain = w.chain ?? null;
   if (data.stage === "crisis" || chain !== null) {
     const band = tempBand(data.temp);
@@ -77,6 +80,34 @@ export function nowLines(data: GreatWarData, seat: GwSeatView): GwNowLine[] {
     out.push({ key: "gw.ui.now.wait", params: { what: parts.join(", ") } });
   }
   return out;
+}
+
+/**
+ * ww180: what our propaganda and censorship are doing to the picture, in
+ * words; null when nothing runs.
+ */
+function propLine(seat: GwSeatView): GwNowLine | null {
+  const v = seat.world.prop;
+  if (v === undefined) return null;
+  const names = (tags: readonly string[]) =>
+    tags.map((t) => translateText(`gw.country.${t}`)).join(", ");
+  const parts: string[] = [];
+  if (v.home) parts.push(translateText("gw.ui.now.prop_home"));
+  if (v.hush) parts.push(translateText("gw.ui.now.prop_hush"));
+  if (v.leaflets.length > 0) {
+    parts.push(
+      translateText("gw.ui.now.prop_leaflets", {
+        countries: names(v.leaflets),
+      }),
+    );
+  }
+  if (v.papers.length > 0) {
+    parts.push(
+      translateText("gw.ui.now.prop_papers", { countries: names(v.papers) }),
+    );
+  }
+  if (parts.length === 0) return null;
+  return { key: "gw.ui.now.prop", params: { what: parts.join(", ") } };
 }
 
 /** The box at the top of the desk. */

@@ -1,4 +1,5 @@
 // ww179: the 정보부 tab gathers the service's knowledge from the seat's view.
+import type { GwPropView } from "@openfront/engine-api/ww1914/GwAgents";
 import type { GwOrder } from "@openfront/engine-api/ww1914/GwOrders";
 import type { GwPack } from "@openfront/engine-api/ww1914/GwPack";
 import type {
@@ -15,6 +16,7 @@ import { describe, expect, test } from "vitest";
 import type { GwCtx, GwUi } from "../../../src/client/hud/ww1914/GwCtx";
 import { intelTab } from "../../../src/client/hud/ww1914/GwIntel";
 import { GW_TABS, tabBadge } from "../../../src/client/hud/ww1914/GwModel";
+import { nowLines } from "../../../src/client/hud/ww1914/GwNow";
 
 const PACK = {
   version: 1,
@@ -155,6 +157,30 @@ describe("the 정보부 tab", () => {
     expect(q(root, '[data-gw-intel-air="no"]')).not.toBeNull();
     expect(q(root, '[data-gw-intel-skill="abroad"]')!.textContent).toContain(
       "gw.intel.skill.abroad.2",
+    );
+  });
+
+  test("ww180: propaganda and censorship show in 지금 상황 only while they run", () => {
+    const prop: GwPropView = {
+      home: false,
+      hush: false,
+      leaflets: [],
+      papers: [],
+      ops: [],
+    };
+    const keys = (p: Partial<GwPropView>) => {
+      const { c } = ctx(
+        { side: null, countries: [], prop: { ...prop, ...p } },
+        { desk: [] },
+      );
+      return nowLines({ ...c.data, ended: null } as GreatWarData, c.seat);
+    };
+    expect(keys({}).map((l) => l.key)).not.toContain("gw.ui.now.prop");
+    const line = keys({ hush: true, leaflets: ["RUS"] }).find(
+      (l) => l.key === "gw.ui.now.prop",
+    );
+    expect(line?.params.what).toBe(
+      "gw.ui.now.prop_hush, gw.ui.now.prop_leaflets",
     );
   });
 

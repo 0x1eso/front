@@ -27,7 +27,14 @@ import { allocOf } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { learn, sendReport } from "./Intel";
 import { markSeen, offensivesOf, seenBy } from "./Offensives";
-import { atPeace, GW_SPY_POWERS, intelOf, planOf, rivalsOf } from "./Spies";
+import {
+  atPeace,
+  GW_SPY_POWERS,
+  intelOf,
+  planOf,
+  rivalsOf,
+  serviceOf,
+} from "./Spies";
 import { atWarWith, memberEnd, naturalSide } from "./Wars";
 import {
   clampTo,
@@ -45,8 +52,13 @@ const P_WORK = idHash("gw_agent_work");
 const P_SURE = idHash("gw_agent_sure");
 const P_HIRE = idHash("gw_agent_hire");
 
-/** Named agents a service keeps at work at once. */
-export const AGENTS_AT_ONCE = 2;
+/**
+ * Named agents a service keeps at work at once: one for each country of room
+ * its agents abroad give it (Spies.serviceOf.net; 2 at the start, as before).
+ */
+export function agentRoom(gw: GreatWar, a: GwTag): number {
+  return serviceOf(gw, a).net;
+}
 /** Chapters a lost agent still counts as news for the `lost` condition. */
 const LOST_FRESH = 2;
 /** Percent a chapter an AI service hires, by character. */
@@ -94,7 +106,7 @@ function hireBlock(
   }
   if (gw.s.day < daysFromCivil(def.from[0], def.from[1], 1)) return "date";
   if ((gw.nation(a)?.intel?.net[at] ?? 0) < 1) return "no_net";
-  if (workingFor(gw, a).length >= AGENTS_AT_ONCE) return "full";
+  if (workingFor(gw, a).length >= agentRoom(gw, a)) return "full";
   return null;
 }
 
