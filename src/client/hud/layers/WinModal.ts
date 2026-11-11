@@ -47,6 +47,7 @@ import { PlaySoundEffectEvent } from "../../sound/Sounds";
 import { steamSDK } from "../../SteamSDK";
 import { SendWinnerEvent } from "../../Transport";
 import { GameView } from "../../view";
+import { type ImjinEndView, imjinEndView } from "../ww1936/ImjinEndingModel";
 import { wwWinView } from "../ww1936/WorldWarModel";
 import { wwOutOfGame } from "../ww1936/WwTakeoverCard";
 
@@ -126,6 +127,9 @@ export class WinModal extends LitElement implements Controller {
   /** World War 1936: the winning camp's MVPs. */
   private _wwMvp: string[] = [];
 
+  /** ww177 P7a: the Imjin War's end card (null in every other game). */
+  private _imjin: ImjinEndView | null = null;
+
   private rand = Math.random();
 
   // Override to prevent shadow DOM creation
@@ -169,6 +173,7 @@ export class WinModal extends LitElement implements Controller {
             </div>`
           : ""}
         <div class="min-h-0 flex-1 overflow-y-auto pr-0.5">
+          ${this._imjin === null ? "" : this.renderImjin(this._imjin)}
           <game-xp-panel
             .view=${this.xpView}
             .onScreen=${this.isVisible}
@@ -809,6 +814,28 @@ export class WinModal extends LitElement implements Controller {
         wu.reason === undefined
           ? ""
           : translateText(`domestic.win_reason.${wu.reason}`);
+      // ww177 P7a: the Imjin War's end card, each seat judged by its own aims.
+      const imjinEnd = this.game.wwNavy?.()?.imjin?.ending ?? null;
+      if (
+        wu.winner !== undefined &&
+        wu.reason === "imjin_end" &&
+        imjinEnd !== null
+      ) {
+        this.eventBus.emit(new SendWinnerEvent(wu.winner, wu.allPlayersStats));
+        const v = imjinEndView(
+          imjinEnd,
+          this.game.myPlayer()?.countryTag() ?? null,
+        );
+        this._title = v.title;
+        this._reason = v.cause;
+        this._imjin = v;
+        this.isWin = v.isWin;
+        if (v.isWin) gamePortal.happytime();
+        this.playEndOfGameSound();
+        history.replaceState(null, "", `${window.location.pathname}?replay`);
+        this.show();
+        return;
+      }
       // World War 1936 (spec §8.2): a camp's win, celebrated on its side, with MVPs.
       if (wu.winner !== undefined && this.game.worldWarScenario() !== null) {
         this.eventBus.emit(new SendWinnerEvent(wu.winner, wu.allPlayersStats));
@@ -881,6 +908,36 @@ export class WinModal extends LitElement implements Controller {
         this.show();
       }
     });
+  }
+
+  /** ww177 P7a: the Imjin end card's words (plain text, no new look). */
+  private renderImjin(v: ImjinEndView) {
+    return html`<div
+      data-imjin-end
+      class="m-0 mb-3 text-sm text-white/90 flex flex-col gap-2"
+    >
+      ${v.verdict
+        ? html`<p class="m-0 text-center text-base font-bold">${v.verdict}</p>`
+        : ""}
+      <p class="m-0">${v.summary}${v.share ? html` ${v.share}` : ""}</p>
+      <div>
+        <p class="m-0 mb-1 text-xs uppercase tracking-wide text-white/60">
+          ${translateText("ww1936.imjin.end.goals")}
+        </p>
+        <ul class="m-0 list-disc pl-6">
+          ${v.goals.map((g) => html`<li>${g}</li>`)}
+        </ul>
+      </div>
+      ${v.memoirs.map(
+        (m) =>
+          html`<div>
+            <p class="m-0 mb-1 text-xs uppercase tracking-wide text-white/60">
+              ${m.heading}
+            </p>
+            <p class="m-0 italic">${m.text}</p>
+          </div>`,
+      )}
+    </div>`;
   }
 
   private playEndOfGameSound(): void {

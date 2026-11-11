@@ -92,4 +92,53 @@ export interface ImjinData {
     ambushed: number;
   }[];
   sieges: { region: number; grainDays: number; fort: number; morale: number }[];
+  /** ww177 P7a: the war's end, once the state or the calendar gives it. */
+  ending: ImjinEndingCard | null;
+}
+
+/**
+ * ww177 P7a (design §10): the ending cards the state gives, in plain words
+ * on the client (append only).
+ */
+export const IMJIN_ENDINGS = [
+  "partition",
+  "investiture_peace",
+  "expulsion",
+  "court_in_exile",
+  "japan_in_liaodong",
+  "truce_held",
+  "second_war",
+] as const;
+export type ImjinEnding = (typeof IMJIN_ENDINGS)[number];
+
+/** Why the game ended: the calendar, or earlier by state (append only). */
+export const IMJIN_END_CAUSES = [
+  "calendar",
+  "capitulation",
+  "expelled",
+  "treaty",
+] as const;
+export type ImjinEndCause = (typeof IMJIN_END_CAUSES)[number];
+
+/** The end of an Imjin game, as the end card reads it. */
+export interface ImjinEndingCard {
+  ending: ImjinEnding;
+  cause: ImjinEndCause;
+  /** The game day and its date (the profile's calendar). */
+  day: number;
+  year: number;
+  month: number;
+  /** Each side's aims met. */
+  jos: boolean;
+  jpn: boolean;
+  min: boolean;
+  /** Per mille of Korea's regions Japan held at the end. */
+  jpnHeldPm: number;
+  /** The Joseon court's seat (CourtRules.SEAT_*). */
+  seat: number;
+  /** Ming's silver spent and its limit, thousands of taels. */
+  silver: number;
+  silverLimit: number;
+  /** Ming's regions Japan held. */
+  liaodong: number;
 }

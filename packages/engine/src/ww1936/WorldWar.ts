@@ -442,6 +442,17 @@ export class WorldWar {
     return out;
   }
 
+  /** ww177 P7a: the humans of the Imjin seats whose aims were met. */
+  imjinWinnerClientIDs(): string[] {
+    const out: string[] = [];
+    for (const tag of this.imjinWar?.endings.winnerTags() ?? []) {
+      const id = this.scenario.smallIdOf(tag);
+      const c = id === 0 ? null : this.endgame.humanClientOf(id);
+      if (c !== null) out.push(c);
+    }
+    return out;
+  }
+
   // ---- Changes (the lanes' functions call these) ----
 
   /**

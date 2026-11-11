@@ -1387,6 +1387,7 @@
     },
     "win_reason": {
       "conquest": "Victory by conquest",
+      "imjin_end": "The war ended",
       "political": "Political victory: world government",
       "science": "Science victory: space program",
       "score": "Victory on score",
@@ -14586,6 +14587,76 @@
         "small_river": "Small river: one crossing phase, attacker −30%"
       },
       "edge_line": "{name}: {kind}",
+      "end": {
+        "cause": {
+          "calendar": "The war's calendar ran out in {month}/{year}.",
+          "capitulation": "Joseon fell in {month}/{year}: its king left the land and every province was lost.",
+          "expelled": "By {month}/{year} Japan had been out of Korea for 120 days.",
+          "treaty": "A peace was signed in {month}/{year}."
+        },
+        "court_in_exile": {
+          "memoir_jos": "The court's record, {year}: few officials followed the king. Every month a letter went to the Ming court asking for an army, and every month the answer was to wait.",
+          "memoir_jpn": "From the Japanese camp, {year}: Korea's king has fled, and its towns pay their rice to Japanese officers. The road to Ming lies open, and so does the question of who will hold it.",
+          "summary": "Joseon's king has left his own land, and the court lives on outside it.",
+          "title": "A court in exile"
+        },
+        "expulsion": {
+          "memoir_jos": "The court's record, {year}: the last Japanese forts stood empty, and the king's officials went south to count the dead and the fields left. Offices went to the leaders of the righteous armies; some refused them and went home.",
+          "memoir_jpn": "From the Japanese camp, {year}: the last ships left the Korean coast. The lords who came home had spent men and rice, won no land, and remembered who had sent them.",
+          "summary": "No Japanese army is left in Korea. The war that began with a landing ended on the beaches it began on.",
+          "title": "Expulsion"
+        },
+        "goal": {
+          "jos_failed": "Joseon: did not win back its land, or lost its king's throne. Aims not met.",
+          "jos_met": "Joseon: won back its land and kept its king on the throne. Aims met.",
+          "jpn_failed": "Japan: holds no Korean land worth the name and won no recognition on its terms. Aims not met.",
+          "jpn_met": "Japan: holds Korean land, or won Ming's recognition on its terms. Aims met.",
+          "min_failed": "Ming: did not expel Japan and keep the tributary order within its silver. Silver spent: {silver} (limit {limit}, in ten thousand taels). Aims not met.",
+          "min_met": "Ming: expelled Japan and kept the tributary order. Silver spent: {silver} (limit {limit}, in ten thousand taels). Aims met."
+        },
+        "goals": "Each side's aims",
+        "investiture_peace": {
+          "memoir_jos": "The court's record, {year}: the peace was made between Ming and Japan, and Joseon's envoy only stood beside it. The court did not trust it and ordered the walls of the southern towns rebuilt.",
+          "memoir_jpn": "From the Japanese camp, {year}: the Ming envoys brought a robe and a title. Whether this was the peace the Taikō had asked for, only the go-betweens knew, and they kept quiet.",
+          "summary": "Japan took the title Ming offered, and the war ended on paper.",
+          "title": "Investiture peace"
+        },
+        "japan_in_liaodong": {
+          "memoir_jos": "The court's record, {year}: the enemy crossed our land to strike at Ming. The court argued whether Joseon was Ming's shield or Japan's road, and found no answer.",
+          "memoir_jpn": "From the Japanese camp, {year}: the army stands in Liaodong, further than any Japanese army had gone. The rice to feed it must cross the strait and then the whole of Korea.",
+          "summary": "Japanese armies crossed the Yalu and hold Ming land in Liaodong. The war is no longer Korea's alone.",
+          "title": "Japan as far as Liaodong"
+        },
+        "memoir_jos": "Joseon's record",
+        "memoir_jpn": "Japan's record",
+        "partition": {
+          "memoir_jos": "The court's record, {year}: the lost counties were not won back. The officials who fled the capital came home to half a country, and the dead of the south lay long unburied. The record ends with a warning: keep the walls and the ships, so this does not come again.",
+          "memoir_jpn": "From the Nagoya headquarters, {year}: the forts on the Korean coast stand, and the lords who hold them are paid in Korean land. Yet every year more rice must cross the strait to feed them.",
+          "summary": "The war stopped where the armies stood: what each held, it keeps.",
+          "title": "Partition"
+        },
+        "second_war": {
+          "memoir_jos": "The court's record, {year}: the envoys' words were false to both sides, and the land paid for it twice. The court wrote that this war must be remembered, so that a third does not come.",
+          "memoir_jpn": "From the Japanese camp, {year}: the second army landed where the first had. The men knew the roads now, and the Koreans knew them.",
+          "summary": "The truce broke when the truth came out, and the war began again. It was still being fought at the end.",
+          "title": "A second war"
+        },
+        "share": {
+          "few": "Japan holds a few coastal towns.",
+          "half": "Japan holds about half of Korea.",
+          "most": "Japan holds most of Korea.",
+          "none": "Japan holds no Korean land.",
+          "south": "Japan holds part of the south."
+        },
+        "truce_held": {
+          "memoir_jos": "The court's record, {year}: the truce held, though no one at court believed it would. The farmers went back to their fields, and the soldiers kept watch on the coast.",
+          "memoir_jpn": "From the Japanese camp, {year}: no order came to march again. The garrisons of the Korean forts grew vegetables under their walls and waited for ships from home.",
+          "summary": "The guns fell silent and stayed silent behind the truce lines.",
+          "title": "A truce that held"
+        },
+        "you_failed": "Your aims were not met.",
+        "you_met": "Your aims were met."
+      },
       "legend": {
         "ford": "Ford (river line)",
         "great_river": "Great river (river line)",

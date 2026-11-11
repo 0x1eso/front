@@ -10,7 +10,7 @@ import { checkDomesticWin } from "../domestic/DomesticWinCheck";
 import { Execution, Game } from "../game/Game";
 import { execSnapshotType } from "../snapshot/ExecutionSnapshot";
 import type { ExecRecord, SnapshotReader } from "../snapshot/SnapshotContext";
-import { checkWorldWarWin } from "../ww1936/Victory";
+import { checkImjinWin, checkWorldWarWin } from "../ww1936/Victory";
 
 export class WinCheckExecution implements Execution {
   private active = true;
@@ -41,6 +41,15 @@ export class WinCheckExecution implements Execution {
 
     // World War 1936 has its own end (spec §7.6).
     const ww = this.mg.worldWar();
+    // ww177 P7a: the Imjin War ends by its calendar or its state.
+    if (ww?.imjin === true) {
+      const ending = checkImjinWin(ww);
+      if (ending !== null) {
+        this.mg.setWinner(ending, this.mg.stats().stats(), "imjin_end");
+        this.active = false;
+      }
+      return;
+    }
     if (ww !== null) {
       const win = checkWorldWarWin(this.mg, ww);
       if (win !== null) {

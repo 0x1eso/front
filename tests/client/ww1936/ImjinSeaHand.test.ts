@@ -103,6 +103,7 @@ function data(battle = 0): ImjinData {
     groups: [],
     orders: [],
     sieges: [],
+    ending: null,
   };
 }
 

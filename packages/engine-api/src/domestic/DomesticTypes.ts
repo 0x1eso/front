@@ -206,5 +206,7 @@ export const WIN_REASONS = [
   // camp left with a living major.
   "ww_score",
   "ww_last_camp",
+  // ww177 P7a: the Imjin War's end by its calendar or its state.
+  "imjin_end",
 ] as const;
 export type WinReason = (typeof WIN_REASONS)[number];

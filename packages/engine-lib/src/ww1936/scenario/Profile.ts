@@ -76,12 +76,15 @@ export interface ImjinCalendar {
   readonly tempo: number;
   /** Which start the countries take (Starts.ts). */
   readonly start: "y1590" | "y1592";
+  /** ww177 P7a: the calendar's last day, ISO (null: no end by date). */
+  readonly endIso: string | null;
 }
 
 /**
  * Design §10, decision 7B. A day is 0.75 s at tempo 1, so the 1590 row's 45
  * minutes run to about 1600, the 1592 row's 30 minutes to about 1598, and
- * the long row the same years at half speed.
+ * the long row the same years at half speed. ww177 P7a: the game ends on
+ * the row's last day (endIso), by default December 1599.
  */
 export const IMJIN_CALENDARS: Readonly<Record<ImjinCalendarId, ImjinCalendar>> =
   {
@@ -91,6 +94,7 @@ export const IMJIN_CALENDARS: Readonly<Record<ImjinCalendarId, ImjinCalendar>> =
       minutes: 30,
       tempo: 1,
       start: "y1592",
+      endIso: "1598-12-31",
     },
     y1590: {
       id: "y1590",
@@ -98,6 +102,7 @@ export const IMJIN_CALENDARS: Readonly<Record<ImjinCalendarId, ImjinCalendar>> =
       minutes: 45,
       tempo: 1,
       start: "y1590",
+      endIso: "1599-12-31",
     },
     long: {
       id: "long",
@@ -105,6 +110,7 @@ export const IMJIN_CALENDARS: Readonly<Record<ImjinCalendarId, ImjinCalendar>> =
       minutes: 90,
       tempo: 2,
       start: "y1590",
+      endIso: "1599-12-31",
     },
     unlimited: {
       id: "unlimited",
@@ -112,6 +118,7 @@ export const IMJIN_CALENDARS: Readonly<Record<ImjinCalendarId, ImjinCalendar>> =
       minutes: null,
       tempo: 2,
       start: "y1590",
+      endIso: null,
     },
   };
 

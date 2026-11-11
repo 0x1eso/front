@@ -1192,11 +1192,11 @@ export class GameImpl implements Game {
     if (typeof winner === "string") {
       // World War 1936 (plan decision 11): a faction won.
       if (this._worldWar !== null) {
-        return [
-          "team",
-          winner,
-          ...this._worldWar.humanClientIDsOf(winner as FactionKey),
-        ];
+        // ww177 P7a: an Imjin ending's winners are the seats whose aims were met.
+        const ids = this._worldWar.imjin
+          ? this._worldWar.imjinWinnerClientIDs()
+          : this._worldWar.humanClientIDsOf(winner as FactionKey);
+        return ["team", winner, ...ids];
       }
       const threshold = this._config.teamLandShareWinThresholdTenths();
       return [

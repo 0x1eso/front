@@ -30,6 +30,7 @@ import { effectiveLevel } from "../ww1936/economy/Buildings";
 import { USE_SUPPLY } from "../ww1936/navy/Convoys";
 import { navalPortsOf } from "../ww1936/navy/Ports";
 import type { WorldWar } from "../ww1936/WorldWar";
+import { emptyEndState, ImjinEndings, type ImjinEndState } from "./Endings";
 import { siegeDays } from "./land/Sieges";
 import { imjinSeaAi, imjinSeaBattleAi } from "./sea/SeaAi";
 import { addConvoyGroup } from "./sea/SeaConvoys";
@@ -89,6 +90,8 @@ export interface ImjinState {
   warDay: number;
   /** The day Ming came in (-1: not yet). */
   mingDay: number;
+  /** ww177 P7a: Ming's silver, the days Japan is out, the ending. */
+  end: ImjinEndState;
 }
 
 /** What the sim and the screens count (not state: derived from events). */
@@ -120,7 +123,10 @@ export class WwImjin {
     landed: [],
     warDay: -1,
     mingDay: -1,
+    end: emptyEndState(),
   };
+  /** ww177 P7a: the war's end (design §10). */
+  readonly endings = new ImjinEndings(this);
   readonly stats: ImjinStats = {
     seaBattles: 0,
     sunk: 0,
@@ -264,6 +270,7 @@ export class WwImjin {
     this.launchGroups(day, tick);
     imjinSeaAi(this, day, tick);
     siegeDays(this, day);
+    this.endings.day(day);
     // Expired landings no longer feed.
     this.st.landed = this.st.landed.filter(
       (l) =>
@@ -564,6 +571,7 @@ export class WwImjin {
         fort: s.fort,
         morale: s.morale,
       })),
+      ending: this.st.end.ending,
     };
   }
 
@@ -674,6 +682,7 @@ export class WwImjin {
       for (const v of [l.route, l.perDay, l.day]) mix(v);
     mix(this.st.warDay);
     mix(this.st.mingDay);
+    mix(this.endings.hash());
     return h >>> 0;
   }
 
@@ -683,6 +692,8 @@ export class WwImjin {
 
   restore(s: string): void {
     this.st = JSON.parse(s) as ImjinState;
+    // A save from before P7a has no ending state.
+    this.st.end ??= emptyEndState();
     this.dirty = true;
   }
 

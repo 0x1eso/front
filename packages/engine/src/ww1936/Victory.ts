@@ -83,6 +83,16 @@ export function checkWorldWarWin(mg: Game, ww: WorldWar): WorldWarWin | null {
   return worldWarVerdict(mg, ww, mg.elapsedGameSeconds());
 }
 
+/**
+ * ww177 P7a (Imjin design §10): an Imjin game ends with its ending card
+ * (imjin/Endings.ts), not on score. The win is the card's: its id is the
+ * "team", and the humans of the seats whose aims were met are its members
+ * (GameImpl.makeWinner); two seats can share it.
+ */
+export function checkImjinWin(ww: WorldWar): string | null {
+  return ww.imjinWar?.endings.ending()?.ending ?? null;
+}
+
 function campWinner(mg: Game, camp: CampScore): Player | FactionKey {
   if (typeof camp.camp !== "number") return camp.camp;
   const p = mg.playerBySmallID(camp.camp);
