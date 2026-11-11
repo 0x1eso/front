@@ -466,3 +466,24 @@ export const GW_VOICE_NOTES_DEU: Readonly<Record<string, string>> = {
   deu_parvus:
     "살찐 사업가의 혁명 이론. 계산서처럼 봉기를 말한다. 시가를 쥐고 마르크스를 인용한다. 자기 말이 믿기지 않는 것을 즐긴다.",
 };
+
+/**
+ * ww179: names for the vacancy box of an office that had none. Appended after
+ * every other list in Content.ts, so the seed rolls of the cast before them
+ * stay as they were.
+ */
+export const DEU_POSTS: readonly GwPersonDef[] = [
+  {
+    id: "deu_gempp",
+    tag: "DEU",
+    office: null,
+    fit: ["intelligence"],
+    camps: ["military", "east", "hard"],
+    temperaments: ["cold", "cunning"],
+    rivals: [],
+    allies: ["deu_nicolai", "deu_ludendorff"],
+    fame: 1,
+    source:
+      "Friedrich Gempp, b. 6 Jul 1873, Freiburg im Breisgau; on mobilisation the intelligence officer of the Eighth Army's staff and of Ober Ost; Nicolai's deputy, his successor in 1920, first chief of the Reichswehr's Abwehr 1921-1927 (en.wikipedia Friedrich Gempp, Walter Nicolai)",
+  },
+];

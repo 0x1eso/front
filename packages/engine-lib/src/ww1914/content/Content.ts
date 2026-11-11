@@ -20,13 +20,13 @@ import { GW_LADDER_POWERS, GW_LADDER_SCENES } from "./ladder";
 import { GW_PEOPLE } from "./people";
 import { AUH_PEOPLE } from "./people_auh";
 import { GW_PEOPLE_COMMON } from "./people_common";
-import { GW_PEOPLE_DEU } from "./people_deu";
-import { FRA_PEOPLE } from "./people_fra";
-import { GBR_PEOPLE } from "./people_gbr";
+import { DEU_POSTS, GW_PEOPLE_DEU } from "./people_deu";
+import { FRA_PEOPLE, FRA_POSTS } from "./people_fra";
+import { GBR_PEOPLE, GBR_POSTS } from "./people_gbr";
 import { GW_PEOPLE_HEADS } from "./people_heads";
 import { GW_PEOPLE_MONEY } from "./people_money";
 import { GW_PEOPLE_RULER } from "./people_ruler";
-import { RUS_PEOPLE } from "./people_rus";
+import { RUS_PEOPLE, RUS_POSTS } from "./people_rus";
 import { RUS_KIN } from "./people_rus_private";
 import { SPY_PEOPLE } from "./people_spies";
 import { AUH_POWER_SCENES, AUH_POWERS, AUH_REACTORS } from "./powers/auh";
@@ -309,6 +309,11 @@ export const GW_CONTENT: GwContent = {
     ...FRA_PEOPLE,
     ...FRA_PRIVATE_PEOPLE,
     ...SPY_PEOPLE,
+    // ww179: names for the vacancy boxes that had none, last for the rolls.
+    ...DEU_POSTS,
+    ...GBR_POSTS,
+    ...RUS_POSTS,
+    ...FRA_POSTS,
   ],
   acts: [
     ...COMMON_ACTS,
