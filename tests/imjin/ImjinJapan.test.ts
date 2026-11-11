@@ -98,9 +98,12 @@ async function game(country: "JOS" | "JPN") {
 
 describe("the engine", () => {
   test("an early strike is told to Joseon a month before; never less warned", async () => {
-    const { r, g, ww, s, jpn, jos, nextDay } = await game("JOS");
+    const { r, g, ww, s, jpn, jos, nextDay, setFlag } = await game("JOS");
     step(r, WW_PREP_TICKS + 2);
     nextDay();
+    // The demand has gone out, so the Sō house's scene (I6b), whose plain
+    // demand adds readiness, cannot lift this muster past the thin wave.
+    setFlag(JP_MARK.demandsSent);
     // The AI's bar is met below a full muster: an early strike.
     s.readiness = 650;
     s.aiBar = 650;
