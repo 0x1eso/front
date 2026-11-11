@@ -51,6 +51,26 @@ import {
 const P_LADDER = idHash("gw_ladder");
 const P_PRESS = idHash("gw_ladder_press");
 
+/**
+ * A world this hot (ww179) makes an AI readier to press its note and slower
+ * to give way to one: the press, the staffs and the streets want it.
+ */
+const EDGE_AT = 8;
+const EDGE_PULL = 15;
+/**
+ * A country that climbed down once, or gave way once, will not do it again
+ * so easily (ww179): Petersburg after 1909.
+ */
+const GRUDGE_PULL = 25;
+
+/** `tag` has ended a note of its own, or one sent to it, at `step`. */
+const hasLadder = (
+  gw: GreatWar,
+  role: "from" | "to",
+  tag: GwTag,
+  step: GwLadderStep,
+) => gw.s.ladders.some((l) => l[role] === tag && l.step === step);
+
 /** A ladder still running that has `tag` in it. */
 export function openLadder(gw: GreatWar, tag: GwTag): GwLadder | null {
   return (
@@ -285,6 +305,8 @@ export function pressOn(gw: GreatWar, l: GwLadder): number {
   ];
   odds += sideWeight(gw, l.from) > sideWeight(gw, l.to) ? 15 : -15;
   if (from.atWar.length > 0) odds -= 20;
+  if (gw.s.temp >= EDGE_AT) odds += EDGE_PULL;
+  if (hasLadder(gw, "from", l.from, "backed_down")) odds += GRUDGE_PULL;
   return clampTo(odds, 5, 90);
 }
 
@@ -325,6 +347,8 @@ export function yieldOdds(gw: GreatWar, l: GwLadder): number {
     to.ai
   ];
   if (l.step === "mobilised") odds += 15;
+  if (gw.s.temp >= EDGE_AT) odds -= EDGE_PULL;
+  if (hasLadder(gw, "to", l.to, "accepted")) odds -= GRUDGE_PULL;
   return clampTo(odds, 5, 90);
 }
 

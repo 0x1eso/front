@@ -405,6 +405,9 @@ export function notedLately(gw: GreatWar, tag: GwTag): boolean {
   );
 }
 
+/** Temperature at which a great power is no longer feared (ww179). */
+const EDGE_AT = 8;
+
 /** The bar a character's case for war must clear. */
 const WAR_BAR = {
   hardline: 30,
@@ -445,7 +448,10 @@ export function warCase(gw: GreatWar, from: GwTag, to: GwTag): number {
   if (sideWeight(gw, to) > sideWeight(gw, from)) score -= 20;
   if (n.atWar.length > 0) score -= 30;
   if (n.gauges.morale <= 2) score -= 15;
-  if (GW_GREAT.includes(to)) score -= 15;
+  // A great power is feared, unless the world is at the edge before the
+  // great war (ww179): then the staffs think it is coming anyway.
+  const edge = s.warChapter === null && s.temp >= EDGE_AT;
+  if (GW_GREAT.includes(to) && !edge) score -= 15;
   return score - WAR_BAR[n.ai];
 }
 
