@@ -7,6 +7,7 @@ import { footingChip } from "./GwCraft";
 import type { GwCtx } from "./GwCtx";
 import { houseChip } from "./GwHouse";
 import { clock, gaugeFill, gaugeLevel, secondsLeft, tempBand } from "./GwModel";
+import { gaugeTitle } from "./GwNow";
 import { CHIP, fillColor, GLASS } from "./GwStyle";
 import { fullDate } from "./GwText";
 
@@ -33,7 +34,10 @@ export function band(c: GwCtx): TemplateResult {
       class="flex flex-wrap items-center gap-x-2 gap-y-1 pb-1.5 sm:contents"
       data-gw-band-chips
     >
-      <span class="text-xs text-white/60" data-gw-chapter
+      <span
+        class="text-xs text-white/60"
+        data-gw-chapter
+        title=${translateText("gw.ui.chapter_hint")}
         >${translateText("gw.panel.chapter", {
           date: translateText(
             `gw.ui.stage.${data.stage === "war" && seat.world.side === null ? "peace" : data.stage}`,
@@ -54,8 +58,11 @@ export function band(c: GwCtx): TemplateResult {
             })}</span
           >`
         : nothing}
-      ${data.stage === "crisis"
-        ? html`<span class=${CHIP} data-gw-temp
+      ${data.stage === "crisis" || (seat.world.chain ?? null) !== null
+        ? html`<span
+            class=${CHIP}
+            data-gw-temp
+            title=${translateText("gw.ui.temp_hint")}
             >${translateText(`gw.ui.temp.${tempBand(data.temp)}`)}</span
           >`
         : nothing}
@@ -64,11 +71,15 @@ export function band(c: GwCtx): TemplateResult {
           const v = gaugeLevel(g, seat.gauges[g] ?? 0);
           return html`<span
             class="flex items-center gap-1 text-xs"
-            title=${translateText(`gw.ui.gauge_name.${g}`)}
+            data-gw-band-gauge=${g}
+            title=${gaugeTitle(c, g)}
           >
             <span
               class="h-2 w-2 rounded-full ${fillColor(gaugeFill(g, v))}"
             ></span>
+            <span class="text-white/55"
+              >${translateText(`gw.ui.gauge_name.${g}`)}</span
+            >
             ${translateText(`gw.ui.gauge.${g}.${v}`)}
           </span>`;
         })}

@@ -80,6 +80,7 @@ export class GwLens extends LitElement implements Controller {
         ? "border-amber-300/80 bg-amber-900/80"
         : "border-white/25 bg-slate-900/85 hover:bg-slate-700/90"}"
       data-gw-lens-btn=${lens}
+      title=${translateText(`gw.lens.hint.${lens}`)}
       aria-pressed=${on}
       @click=${() => setLens(lens)}
     >
@@ -97,6 +98,7 @@ export class GwLens extends LitElement implements Controller {
         ? ""
         : "opacity-60"}"
       data-gw-rail-btn
+      title=${translateText("gw.lens.hint.rail")}
       aria-pressed=${on}
       @click=${() => setRail(!on)}
     >
@@ -189,6 +191,9 @@ export class GwLens extends LitElement implements Controller {
       class="${GLASS} hidden space-y-1 rounded p-2 sm:block"
       data-gw-rail-card
     >
+      <p class=${MUTED} data-gw-rail-head>
+        ${translateText("gw.lens.rail_head")}
+      </p>
       ${on.map(({ row }) => {
         const elapsed = railClock.elapsed(row.tag, data.date);
         return html`<div

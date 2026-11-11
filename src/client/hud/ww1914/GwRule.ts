@@ -317,7 +317,9 @@ function powerRow(c: GwCtx, p: GwPowerView, d: GwRuleDraft): TemplateResult {
       <b>${powerName(c.pack, p.id)}</b>
       ${p.kind === "lawful"
         ? nothing
-        : html`<span class="${CHIP} ml-1"
+        : html`<span
+            class="${CHIP} ml-1"
+            title=${translateText(`gw.power.kind_hint.${p.kind}`)}
             >${translateText(`gw.power.kind.${p.kind}`)}</span
           >`}
     </button>
@@ -377,7 +379,9 @@ function group(
     >
       <h3 class=${HEAD}>${translateText(`gw.power.group.${g}`)}</h3>
       ${g === "beyond"
-        ? html`<span class=${CHIP}
+        ? html`<span
+            class=${CHIP}
+            title=${translateText("gw.power.kind_hint.beyond")}
             >${translateText("gw.power.beyond_tag")}</span
           >`
         : nothing}

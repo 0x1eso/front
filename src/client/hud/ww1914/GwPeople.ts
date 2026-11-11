@@ -15,6 +15,7 @@ import {
   trustIndex,
   vacantOffices,
 } from "./GwModel";
+import { authorityChip } from "./GwNow";
 import { officeTitle } from "./GwOffice";
 import { BTN, BTN_ON, CHIP, HEAD, MUTED } from "./GwStyle";
 import {
@@ -201,7 +202,11 @@ export function personRow(c: GwCtx, p: GwPersonView): TemplateResult {
             : html` · ${lean}`}</span
         >
       </span>
-      <span class="flex flex-col items-end gap-0.5">
+      <span
+        class="flex flex-col items-end gap-0.5"
+        data-gw-trust-col
+        title=${translateText("gw.ui.trust_hint")}
+      >
         ${pips(p.trust)}
         <span class=${MUTED}
           >${translateText(`gw.ui.trust.${trustIndex(p.trust)}`)}</span
@@ -356,12 +361,13 @@ export function peopleTab(c: GwCtx): TemplateResult {
   const rest = seat.people.filter((p) => p.office === null);
   return html`<div class="space-y-2.5" data-gw-people>
     <div class="flex items-center gap-2">
-      <span class=${CHIP} data-gw-audiences
+      <span
+        class=${CHIP}
+        data-gw-audiences
+        title=${translateText("gw.ui.audiences_tip")}
         >${translateText("gw.ui.audiences", { n: seat.audiences })}</span
       >
-      <span class=${CHIP} data-gw-authority
-        >${translateText("gw.ui.authority", { n: seat.world.authority })}</span
-      >
+      ${authorityChip(seat.world.authority)}
       <span class=${MUTED}>${translateText("gw.ui.audiences_hint")}</span>
     </div>
     ${privateMeetings(c)} ${vacancies(c)} ${office.map((p) => personRow(c, p))}

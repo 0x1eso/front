@@ -16,11 +16,13 @@ import {
   noteGwPrologue,
   SHELF_KEY,
 } from "../../../src/client/GwRecentRuns";
+import { fifthOf, nowLines } from "../../../src/client/hud/ww1914/GwNow";
 import { GwPanel } from "../../../src/client/hud/ww1914/GwPanel";
 import {
   fillGw,
   rivalLine,
   tellText,
+  tellWord,
 } from "../../../src/client/hud/ww1914/GwText";
 import { SendGwOrderIntentEvent } from "../../../src/client/Transport";
 
@@ -817,6 +819,83 @@ describe("the screens", () => {
     const line = panel.querySelector("[data-gw-back-line]")!;
     expect(line.textContent).toContain("베트만홀베크이(가)".slice(0, 6));
     expect(line.textContent).toContain("원안을 다시");
+  });
+
+  // ww179: every screen says plainly what is going on. Tests run without a
+  // language, so translateText gives back its key: the keys are checked.
+  const nowText = (panel: GwPanel) =>
+    [...panel.querySelectorAll("[data-gw-now-line]")].map((e) =>
+      e.getAttribute("data-gw-now-line"),
+    );
+
+  test("the desk's 지금 상황: peace, the crisis in words, what waits", async () => {
+    const d = data([card()]);
+    const { panel } = await mount(d);
+    expect(nowText(panel)).toEqual([
+      "gw.ui.now.peace",
+      "gw.ui.now.crisis",
+      "gw.ui.now.wait",
+    ]);
+    const lines = nowLines(d, d.seats[0]);
+    expect(lines[1].params.word).toBe("gw.ui.now.temp_word.1");
+    expect(lines[2].params.what).toBe("gw.ui.now.wait_decide");
+  });
+
+  test("the desk's 지금 상황 at war names the foes; a later crisis its topic", async () => {
+    const d = {
+      ...data([], {
+        side: "central",
+        chain: { topic: "straits", step: 0, hold: 0 },
+        countries: [
+          { tag: "DEU", side: "central", out: false, mob: 2 },
+          { tag: "RUS", side: "entente", out: false, mob: 2 },
+          { tag: "FRA", side: "entente", out: false, mob: 2 },
+          { tag: "GBR", side: "entente", out: true, mob: 2 },
+        ],
+      }),
+      stage: "war" as const,
+      temp: 9,
+    };
+    const { panel } = await mount(d);
+    expect(nowText(panel)).toEqual([
+      "gw.ui.now.war",
+      "gw.ui.now.crisis_topic",
+      "gw.ui.now.wait_none",
+    ]);
+    const lines = nowLines(d, d.seats[0]);
+    // Foes still in the war only: Britain is out.
+    expect(lines[0].params.foes).toBe("gw.country.RUS, gw.country.FRA");
+    expect(lines[1].params).toMatchObject({
+      word: "gw.ui.now.temp_word.3",
+      topic: "gw.ui.now.topic.straits",
+    });
+    // The band keeps the crisis chip for a later crisis too.
+    expect(panel.querySelector("[data-gw-temp]")!.textContent).toBe(
+      "gw.ui.temp.3",
+    );
+  });
+
+  test("gauges, chips and numbers carry their names and a word", async () => {
+    const { panel } = await mount(data([]));
+    const shells = panel.querySelector("[data-gw-band-gauge=shells]")!;
+    expect(shells.textContent!.replace(/\s+/g, " ").trim()).toBe(
+      "gw.ui.gauge_name.shells gw.ui.gauge.shells.2",
+    );
+    expect(shells.getAttribute("title")).toBe("gw.ui.gauge_hint.shells");
+    expect(tellWord("+1")).toBe("gw.ui.tell_move.up.small");
+    expect(tellWord("+2")).toBe("gw.ui.tell_move.up.mid");
+    expect(tellWord("-3")).toBe("gw.ui.tell_move.down.big");
+    expect(tellWord("+0")).toBeNull();
+    expect(tellWord("1")).toBeNull();
+    expect(tellText("army:+1")).toBe("army +1 (gw.ui.tell_move.up.small)");
+    expect([0, 19, 20, 59, 60, 80, 100].map(fifthOf)).toEqual([
+      0, 0, 1, 2, 3, 4, 4,
+    ]);
+    panel.querySelector<HTMLButtonElement>("[data-gw-tab=people]")!.click();
+    await panel.updateComplete;
+    const chip = panel.querySelector("[data-gw-authority]")!;
+    expect(chip.textContent!.trim()).toBe("gw.ui.authority");
+    expect(chip.getAttribute("title")).toBe("gw.ui.authority_hint");
   });
 });
 

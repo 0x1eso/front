@@ -12,6 +12,8 @@ import { govBox } from "./GwGov";
 import { houseSection } from "./GwHouse";
 import { lawsSection } from "./GwLaws";
 import { gaugeFill, gaugeLevel, instBand, logByChapter } from "./GwModel";
+import { authorityChip, manpowerChip } from "./GwNow";
+import { instName } from "./GwOffice";
 import { rulerCard } from "./GwRuler";
 import { CHIP, fillColor, HEAD, MUTED } from "./GwStyle";
 import {
@@ -23,6 +25,10 @@ import {
 } from "./GwText";
 
 const BOX = "space-y-1.5 rounded border border-white/15 bg-black/35 p-2.5";
+
+/** ww179: one plain line under a section's title, saying what it shows. */
+const sub = (key: string): TemplateResult =>
+  html`<p class=${MUTED} data-gw-sub>${translateText(key)}</p>`;
 
 function bar(fill: number): TemplateResult {
   return html`<span class="block h-1.5 w-full rounded bg-white/15"
@@ -36,6 +42,7 @@ function bar(fill: number): TemplateResult {
 function gauges(c: GwCtx): TemplateResult {
   return html`<section class=${BOX}>
     <h3 class=${HEAD}>${translateText("gw.ui.gauges_title")}</h3>
+    ${sub("gw.ui.gauges_sub")}
     ${c.seat.world.gauges.map((w) => {
       const v = gaugeLevel(w.gauge, w.value);
       return html`<div class="space-y-0.5" data-gw-gauge=${w.gauge}>
@@ -64,12 +71,7 @@ function gauges(c: GwCtx): TemplateResult {
 function standing(c: GwCtx): TemplateResult {
   const w = c.seat.world;
   return html`<div class="flex flex-wrap gap-1.5" data-gw-standing>
-    <span class=${CHIP}
-      >${translateText("gw.ui.authority", { n: w.authority })}</span
-    >
-    <span class=${CHIP}
-      >${translateText("gw.ui.manpower", { n: w.manpower })}</span
-    >
+    ${authorityChip(w.authority)} ${manpowerChip(w.manpower)}
     ${w.casualties === 0
       ? nothing
       : html`<span class=${CHIP}
@@ -85,10 +87,12 @@ function list(
   title: string,
   rows: readonly string[],
   attr: string,
+  subKey: string | null = null,
 ): TemplateResult | typeof nothing {
   if (rows.length === 0) return nothing;
   return html`<section class=${BOX} data-gw-list=${attr}>
     <h3 class=${HEAD}>${translateText(title)}</h3>
+    ${subKey === null ? nothing : sub(subKey)}
     ${rows.map((r) => html`<p class="text-sm text-white/85">${r}</p>`)}
   </section>`;
 }
@@ -139,6 +143,7 @@ function reports(c: GwCtx): TemplateResult | typeof nothing {
 function powers(c: GwCtx): TemplateResult {
   return html`<section class=${BOX} data-gw-powers>
     <h3 class=${HEAD}>${translateText("gw.ui.powers_title")}</h3>
+    ${sub("gw.ui.powers_sub")}
     ${c.seat.world.countries.map(
       (n) =>
         html`<div class="flex justify-between text-sm">
@@ -159,21 +164,46 @@ function powers(c: GwCtx): TemplateResult {
 /** The war at large: its period, the sea, America, what was reached and voted. */
 function war(c: GwCtx): TemplateResult {
   const v = c.seat.world.war;
-  const row = (label: string, value: string) =>
-    html`<div class="flex justify-between text-sm">
+  const row = (label: string, value: string, hint: string) =>
+    html`<div class="flex justify-between text-sm" title=${hint}>
       <span class="text-white/70">${translateText(label)}</span>
       <span>${value}</span>
     </div>`;
   return html`<section class=${BOX} data-gw-war>
     <h3 class=${HEAD}>${translateText("gw.ui.war_title")}</h3>
+    ${sub("gw.ui.war_sub")}
     ${v.regime === ""
       ? nothing
-      : row("gw.ui.regime", translateText(`gw.regime.${v.regime}`))}
-    ${row("gw.ui.era", translateText(`gw.era.${v.era}`))}
-    ${row("gw.ui.blockade", translateText(`gw.ui.sea.${v.blockade}`))}
-    ${row("gw.ui.shipping", translateText(`gw.ui.sea.${v.shipping}`))}
-    ${row("gw.ui.uboats", translateText(`gw.ui.uboat.${v.uboat}`))}
-    ${row("gw.ui.america", translateText(`gw.ui.america_word.${v.america}`))}
+      : row(
+          "gw.ui.regime",
+          translateText(`gw.regime.${v.regime}`),
+          translateText("gw.ui.regime_hint"),
+        )}
+    ${row(
+      "gw.ui.era",
+      translateText(`gw.era.${v.era}`),
+      translateText("gw.ui.era_hint"),
+    )}
+    ${row(
+      "gw.ui.blockade",
+      translateText(`gw.ui.sea.${v.blockade}`),
+      translateText("gw.ui.blockade_hint"),
+    )}
+    ${row(
+      "gw.ui.shipping",
+      translateText(`gw.ui.sea.${v.shipping}`),
+      translateText("gw.ui.shipping_hint"),
+    )}
+    ${row(
+      "gw.ui.uboats",
+      translateText(`gw.ui.uboat.${v.uboat}`),
+      translateText("gw.ui.uboats_hint"),
+    )}
+    ${row(
+      "gw.ui.america",
+      translateText(`gw.ui.america_word.${v.america}`),
+      translateText("gw.ui.america_hint"),
+    )}
     ${v.command
       ? html`<p class=${MUTED}>${translateText("gw.ui.command_self")}</p>`
       : nothing}
@@ -209,12 +239,11 @@ export function countryTab(c: GwCtx): TemplateResult {
       ? nothing
       : html`<section class=${BOX}>
           <h3 class=${HEAD}>${translateText("gw.ui.inst_title")}</h3>
+          ${sub("gw.ui.inst_sub")}
           ${insts.map(
             (i) =>
               html`<div class="flex justify-between text-sm" data-gw-inst=${i}>
-                <span class="text-white/70"
-                  >${translateText(`gw.ui.inst_name.${i}`)}</span
-                >
+                <span class="text-white/70">${instName(seat.tag, i)}</span>
                 <span
                   >${translateText(
                     `gw.ui.inst.${instBand(seat.inst[i] ?? 0)}`,
@@ -227,6 +256,7 @@ export function countryTab(c: GwCtx): TemplateResult {
       "gw.ui.mandates_title",
       w.mandates.map((m) => translateText(`gw.mandate.${m}`)),
       "mandates",
+      "gw.ui.mandates_title_sub",
     )}
     ${reports(c)}
     ${list(
@@ -238,10 +268,12 @@ export function countryTab(c: GwCtx): TemplateResult {
       "gw.ui.threads_title",
       w.threads.map((m) => translateText(`gw.thread.${m}`)),
       "threads",
+      "gw.ui.threads_title_sub",
     )}
     ${powers(c)}
     <section class=${BOX}>
       <h3 class=${HEAD}>${translateText("gw.ui.why_title")}</h3>
+      ${sub("gw.ui.why_sub")}
       ${log.length === 0
         ? html`<p class=${MUTED}>${translateText("gw.ui.why_none")}</p>`
         : log.map(

@@ -355,7 +355,11 @@ export function talkView(
                     : html`<div class="flex flex-wrap justify-end gap-1">
                         ${turn.tell.map(
                           (x) =>
-                            html`<span class=${CHIP}>${tellText(x)}</span>`,
+                            html`<span
+                              class=${CHIP}
+                              title=${translateText("gw.ui.tell_hint")}
+                              >${tellText(x, c.seat.tag)}</span
+                            >`,
                         )}
                       </div>`}
                 </div>`}
@@ -426,7 +430,9 @@ export function talkView(
                           >
                             ${r.kind === "decide"
                               ? nothing
-                              : html`<span class="${CHIP} mr-2"
+                              : html`<span
+                                  class="${CHIP} mr-2"
+                                  title=${translateText("gw.ui.stance_hint")}
                                   >${translateText(
                                     `gw.ui.stance.${r.stance}`,
                                   )}</span

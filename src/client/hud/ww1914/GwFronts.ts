@@ -117,7 +117,15 @@ function frontBar(
       : at === "left"
         ? "text-emerald-300"
         : "text-red-300";
-  return html`<div class="space-y-0.5" data-gw-bar>
+  return html`<div
+    class="space-y-0.5"
+    data-gw-bar
+    title=${translateText(
+      kind === "neutral"
+        ? "gw.ui.front_bar_hint_neutral"
+        : "gw.ui.front_bar_hint",
+    )}
+  >
     <div class="flex justify-between gap-2 text-[11px] font-bold">
       <span class=${endTone("left")} data-gw-end="left"
         >${end(r.left, "left")}</span
@@ -196,10 +204,21 @@ function foeLine(f: GwFrontView): TemplateResult | typeof nothing {
           word: factText("strain", f.foe.word),
           stamp: translateText(`gw.ui.stamp.${f.foe.stamp}`),
         });
-  return html`<p class="text-sm text-white/80" data-gw-foe>
+  return html`<p
+    class="text-sm text-white/80"
+    data-gw-foe
+    title=${translateText(
+      f.foe === null
+        ? "gw.ui.front_foe_hint"
+        : `gw.ui.stamp_hint.${f.foe.stamp}`,
+    )}
+  >
     ${translateText("gw.ui.front_foe", { what })}
     ${f.reading === true
-      ? html`<span class=${MUTED} data-gw-reading
+      ? html`<span
+          class=${MUTED}
+          data-gw-reading
+          title=${translateText("gw.ui.front_reading_hint")}
           >${translateText("gw.ui.front_reading")}</span
         >`
       : nothing}
@@ -225,7 +244,7 @@ function frontCard(c: GwCtx, f: GwFrontView): TemplateResult {
     </div>
     ${frontBar(f.id, r, "ours", f.strain)} ${standingLine(f.id, r, "ours")}
     ${lastBattle(f, side)}
-    <div class=${MUTED}>
+    <div class=${MUTED} title=${translateText("gw.ui.trench_hint")}>
       ${translateText("gw.ui.trench_now", {
         what: translateText(
           `gw.ui.trench_word.${Math.max(0, Math.min(f.trench, TRENCH_MAX))}`,
@@ -237,6 +256,7 @@ function frontCard(c: GwCtx, f: GwFrontView): TemplateResult {
       : html`<div
           class="text-sm ${STRAIN_TONE[f.strain] ?? ""}"
           data-gw-strain=${f.strain}
+          title=${translateText("gw.ui.strain_hint")}
         >
           ${translateText("gw.ui.strain_ours", {
             what: translateText(`gw.ui.strain_word.${f.strain}`),

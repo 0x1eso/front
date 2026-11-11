@@ -51,6 +51,7 @@ export function govBox(c: GwCtx): TemplateResult | typeof nothing {
   if (rows.length === 0 && (c.seat.poll ?? null) === null) return nothing;
   return html`<section class=${BOX} data-gw-gov-box>
     <h3 class=${HEAD}>${translateText("gw.gov.title")}</h3>
+    <p class=${MUTED} data-gw-sub>${translateText("gw.gov.sub")}</p>
     ${rows.map(threat)} ${poll(c)}
   </section>`;
 }

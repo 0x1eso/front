@@ -392,12 +392,28 @@ export function decisionLine(
 }
 
 /** "army:-1" as the player reads it; a word with no translation shows itself. */
-export function tellText(tell: string): string {
+export function tellText(tell: string, tag?: string): string {
   const [key, value] = tell.split(":");
   const k = `gw.tell.${key}`;
   const t = translateText(k);
-  const name = t === k ? key.replace(/_/g, " ") : t;
-  return value === undefined ? name : `${name} ${value}`;
+  // An office reads as the seat's country names it (Germany's 재상).
+  const own =
+    tag === undefined ? null : textOrNull(`gw.office_by.${tag}.${key}`);
+  const name = own ?? (t === k ? key.replace(/_/g, " ") : t);
+  if (value === undefined) return name;
+  const word = tellWord(value);
+  return word === null ? `${name} ${value}` : `${name} ${value} (${word})`;
+}
+
+/** ww179: a signed number on a chip, said in words: "+1" is "조금 오름". */
+export function tellWord(value: string): string | null {
+  const m = /^([+-])(\d+)$/.exec(value);
+  if (m === null || m[2] === "0") return null;
+  const n = Number(m[2]);
+  const size = n <= 1 ? "small" : n === 2 ? "mid" : "big";
+  return translateText(
+    `gw.ui.tell_move.${m[1] === "+" ? "up" : "down"}.${size}`,
+  );
 }
 
 /** The ending's paragraph, its holes filled; null when the pack has none. */
