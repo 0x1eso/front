@@ -1638,6 +1638,30 @@
     "ww1936_goal_reached": "{army}: offensive line reached, now holding there",
     "ww1936_government_changed": "{country} changes government: {ideology}",
     "ww1936_home_returned": "{country} came home as your subject",
+    "ww1936_imjin_admiral_arrested": "The admiral refused the order and was arrested.",
+    "ww1936_imjin_admiral_trusted": "The admiral keeps the fleet in port; his enemies at court call it cowardice.",
+    "ww1936_imjin_command_obeyed": "The righteous army leaders take the court's orders.",
+    "ww1936_imjin_command_refused": "The righteous army leaders ignore the court's orders.",
+    "ww1936_imjin_court_held": "The ministers stay in office; the {ideology} are pushed aside, and the court grumbles.",
+    "ww1936_imjin_court_yielded": "The {ideology} take the chief councillor's seat.",
+    "ww1936_imjin_envoy_sent": "An envoy leaves for Beijing.",
+    "ww1936_imjin_flight_cross": "The court crosses the Yalu into Ming.",
+    "ww1936_imjin_flight_flee": "The court rides north and settles in {region}.",
+    "ww1936_imjin_flight_hold": "The king stays in {region}.",
+    "ww1936_imjin_flight_split": "The king settles in {region}; the crown prince holds a court of his own and raises men.",
+    "ww1936_imjin_gwon_appointed": "Gwon Yul takes the command.",
+    "ww1936_imjin_gwon_passed": "Gwon Yul is passed over.",
+    "ww1936_imjin_ming_enters": "Ming takes Joseon under its banner and goes to war with Japan.",
+    "ww1936_imjin_ming_northwest": "Ming is fighting a rising on its northwest frontier.",
+    "ww1936_imjin_ming_relief": "Ming's great relief army marches for Joseon.",
+    "ww1936_imjin_monks_left": "The monks stay in their temples.",
+    "ww1936_imjin_righteous_fallen": "{leader} has fallen in {region}.",
+    "ww1936_imjin_righteous_join": "{leader}'s righteous army joins the regular army in {region}.",
+    "ww1936_imjin_righteous_rise": "{leader} raises a righteous army in {region}.",
+    "ww1936_imjin_seat_fell": "{region} fell with the court still in it; the king escapes north in disorder.",
+    "ww1936_imjin_temple_burned": "Enemy troops burned a temple in {region}.",
+    "ww1936_imjin_yi_appointed": "Yi Sun-sin takes command of the Jeolla Left Navy.",
+    "ww1936_imjin_yi_passed": "The navy post goes by rank.",
     "ww1936_invasion_aborted": "The landing at {region} was called off",
     "ww1936_invasion_failed": "The landing at {region} by {country} failed",
     "ww1936_invasion_landed": "{country} landed at {region}",
@@ -5694,6 +5718,18 @@
       "orders_line": "{att} against {def}",
       "siege_line": "Under siege: grain for {days} days, walls {fort}"
     },
+    "court": {
+      "communist": "Southerners",
+      "democratic": "Westerners",
+      "fascist": "Northerners",
+      "neutral": "The Throne"
+    },
+    "court_head": {
+      "communist": "Southerner chief councillor",
+      "democratic": "Westerner chief councillor",
+      "fascist": "Northerner chief councillor",
+      "neutral": "The ruler"
+    },
     "date": {
       "line": "{date} · {lunar} · {reign}",
       "line_no_reign": "{date} · {lunar}",
@@ -5733,6 +5769,18 @@
         "JOS": "Mountain passes, fortresses and a navy with cannon",
         "JPN": "The best foot army in Asia, fed across one strait"
       }
+    },
+    "person": {
+      "go_gyeong_myeong": "Go Gyeong-myeong",
+      "gwak_jae_u": "Gwak Jae-u",
+      "hyujeong": "Hyujeong",
+      "jeong_mun_bu": "Jeong Mun-bu",
+      "jo_heon": "Jo Heon",
+      "kim_cheon_il": "Kim Cheon-il",
+      "kim_deok_ryeong": "Kim Deok-ryeong",
+      "yeonggyu": "Yeonggyu",
+      "yi_jeong_am": "Yi Jeong-am",
+      "yujeong": "Yujeong"
     },
     "sea": {
       "board": "Board",
@@ -8236,6 +8284,9 @@
       "gen_war_bonds": "War Bonds",
       "hun_request_arbitration": "Ask for Arbitration",
       "hun_request_transylvania": "Claim Transylvania",
+      "imjin_command_righteous": "Command the Righteous Armies",
+      "imjin_envoy_ming": "Send an Envoy to Ming",
+      "imjin_muster_righteous": "Muster the Righteous Armies",
       "ita_send_ctv": "Send the Volunteer Corps",
       "jpn_army_budget": "Army Budget Priority",
       "jpn_demand_indochina_access": "Demand Access to Indochina",
@@ -8320,6 +8371,9 @@
       "gen_war_bonds": "Selling bonds to the public raises money for the war and ties citizens to its outcome.",
       "hun_request_arbitration": "Ask Germany and Italy to arbitrate Hungary's claim to southern Slovakia.",
       "hun_request_transylvania": "Ask Berlin to settle Hungary's claim to northern Transylvania by arbitration.",
+      "imjin_command_righteous": "Send the court's orders to the leaders of the righteous armies. Whether they obey depends on the court's standing.",
+      "imjin_envoy_ming": "Send an envoy to Beijing to tell the emperor what Japan intends and to ask for help.",
+      "imjin_muster_righteous": "Bring the righteous armies into the regular army. They stop raiding behind the enemy's lines.",
       "ita_send_ctv": "Four divisions of the Corpo Truppe Volontarie sail for Spain to fight beside Franco's Nationalists.",
       "jpn_army_budget": "The army's share of the budget grows. The balance moves 10 toward the army.",
       "jpn_demand_indochina_access": "Demand that the authorities of French Indochina let Japanese troops in — first the north, then the south.",
@@ -9180,6 +9234,14 @@
       "gen_volunteers_arrive": "A friendly government has sent volunteers to fight at our side. They come with their own officers and equipment and stay under their own command, but they will fight our enemies.",
       "gen_war_weariness": "Lost provinces and ever longer casualty lists weigh on the people. More men dodge the draft, and the newspapers have grown gloomy. The government can let morale sag or spend heavily to lift it.",
       "hun_horthy_armistice": "The Red Army stands on the Great Hungarian Plain. The Regent's envoys in Moscow have agreed preliminary armistice terms, and he is ready to announce on the radio that Hungary is leaving the war. Berlin will not stand by.",
+      "imjin_appoint_gwon": "Gwon Yul, the governor of Gwangju in Jeolla, has gathered men of his own. He asks the court for a command.",
+      "imjin_appoint_yi": "Ryu Seong-ryong puts forward Yi Sun-sin, a county magistrate, to command the Jeolla Left Navy. It would raise him over several ranks, and the censors already object.",
+      "imjin_court_shift": "The ruling ministers have lost the court's trust. A rival faction now speaks for most of the officials, and its leaders petition the king for the chief councillor's seat.",
+      "imjin_double_agent": "A go-between from the enemy camp says where and when Katō Kiyomasa's ships will cross. The court wants the admiral to sail out and catch them at sea. The admiral suspects a trap.",
+      "imjin_flight_border": "The court stands on the bank of the Yalu, with Ming across the river. Some ministers say a king on foreign soil is no longer a king; others say a king taken by the enemy is worse.",
+      "imjin_flight_capital": "Japanese troops stand one county away from Hanseong. The ministers argue through the night: some beg the king to stay with his people, others to ride north while the roads are open. The crown prince waits for his father's word.",
+      "imjin_flight_north": "The enemy holds the county next to the king's refuge. The people who took him in watch his ministers pack.",
+      "imjin_monks_call": "Enemy soldiers have burned a mountain temple. The great monks send word: if the king calls, the monks will take up arms.",
       "irn_armistice": "British troops advance from Iraq and the Gulf, Soviet columns from the Caucasus, and our army cannot hold either front. The two powers demand a supply route to the Soviet Union and the expulsion of German nationals. The Shah's government can stop the fighting today.",
       "irn_new_shah": "Reza Shah has abdicated as Soviet troops approach Tehran and will leave the country. His son Mohammad Reza takes the oath before the Majlis and promises to rule as a constitutional monarch.",
       "irq_armistice": "British columns are closing on Baghdad and German air support has come too late. The leaders of the coup are fleeing to Iran. Officers loyal to the regent are ready to sign an armistice and bring back the old government.",
@@ -9734,6 +9796,40 @@
       "hun_horthy_armistice": {
         "a": "Announce the armistice",
         "b": "Fight on"
+      },
+      "imjin_appoint_gwon": {
+        "a": "Give him the command",
+        "b": "Pass him over"
+      },
+      "imjin_appoint_yi": {
+        "a": "Raise him over seniority",
+        "b": "Keep the order of rank"
+      },
+      "imjin_court_shift": {
+        "a": "Hand them the chief councillor's seat",
+        "b": "Keep the ministers in office"
+      },
+      "imjin_double_agent": {
+        "a": "Order the admiral out",
+        "b": "Leave it to the admiral"
+      },
+      "imjin_flight_border": {
+        "a": "Hold the border town",
+        "b": "Cross the Yalu"
+      },
+      "imjin_flight_capital": {
+        "a": "Ride north",
+        "b": "Stay in the capital",
+        "c": "Ride north and give the crown prince a court of his own"
+      },
+      "imjin_flight_north": {
+        "a": "Ride on to the border",
+        "b": "Hold this town",
+        "c": "Give the crown prince a court of his own"
+      },
+      "imjin_monks_call": {
+        "a": "Call the monks to arms",
+        "b": "Leave the monks to their prayers"
       },
       "irn_armistice": {
         "a": "Order the ceasefire",
@@ -10318,6 +10414,14 @@
       "gen_volunteers_arrive": "Foreign Volunteers Arrive",
       "gen_war_weariness": "War Weariness",
       "hun_horthy_armistice": "Horthy's Armistice",
+      "imjin_appoint_gwon": "Gwon Yul Asks for a Command",
+      "imjin_appoint_yi": "A Commander for the Jeolla Left Navy",
+      "imjin_court_shift": "A Rival Faction Asks for the Court",
+      "imjin_double_agent": "A Tip from the Enemy Camp",
+      "imjin_flight_border": "At the Yalu",
+      "imjin_flight_capital": "The Enemy Nears the Capital",
+      "imjin_flight_north": "The Enemy Reaches the King's Refuge",
+      "imjin_monks_call": "The Temple Burns",
       "irn_armistice": "Ceasefire in Iran",
       "irn_new_shah": "A Change of Shah",
       "irq_armistice": "Armistice in Iraq",

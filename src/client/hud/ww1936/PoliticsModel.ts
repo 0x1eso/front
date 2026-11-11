@@ -143,6 +143,7 @@ import {
   type WwGame,
   wwSeconds,
 } from "./WorldWarModel";
+import { imjinCalendarOn } from "./WwClientCalendar";
 
 /** What the politics screens read from the game (a fake in tests). */
 export type PolGame = WwGame &
@@ -258,14 +259,22 @@ export function flagUrl(tag: CountryTag): string {
   return assetUrl(`flags/${COUNTRIES[tag].flag}.svg`);
 }
 
-export function ideologyName(i: number | Ideology): string {
+export function ideologyName(i: number | Ideology | string): string {
   const id = typeof i === "number" ? IDEOLOGIES[i] : i;
+  // ww177 P4 (lane I4a): in the Imjin War the slots are the court's factions.
+  if (imjinCalendarOn()) return translateText(`imjin.court.${id}`);
   return translateText(`ww1936.ideology.${id}`);
 }
 
 /** A person by id (its nameKey), or a title card ("title:<id>"); "None" for nobody. */
 export function personName(id: string): string {
   if (id.startsWith("title:")) {
+    // ww177 P4 (lane I4a): the Imjin courts' heads by their faction.
+    if (imjinCalendarOn() && id.startsWith("title:leader_")) {
+      return translateText(
+        `imjin.court_head.${id.slice("title:leader_".length)}`,
+      );
+    }
     return translateText(`ww1936.title.${id.slice("title:".length)}`);
   }
   const p = id === "" ? undefined : CONTENT.personIdx.get(id);

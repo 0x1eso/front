@@ -64,6 +64,9 @@ export function dailyIdeology(
     const d = c.stats[DRIFT_KEYS[i]];
     if (d !== 0) addPopularity(c.pop, i, d);
   }
+  // ww177 P4 (lane I4a): the Imjin courts hold no elections and have no
+  // regime crisis; Joseon's court shift is its own scene (imjin/JoseonMing).
+  if (pol.ww.imjin) return;
   if (c.ruling === IDEO_DEM) {
     // Controller ruling R6: suspended elections come back on the first day
     // at peace; an overdue one is held at once.

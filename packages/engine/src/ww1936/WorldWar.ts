@@ -39,6 +39,7 @@ import {
 import { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import { z } from "zod";
 import type { Game, Player } from "../game/Game";
+import { ImjinJmStateSchema, ImjinJoseonMing } from "../imjin/JoseonMing";
 import { WwImjin } from "../imjin/WwImjin";
 import { WwAir, WwAirStateSchema } from "./air/WwAir";
 import { WwDepth, WwDepthStateSchema } from "./depth/WwDepth";
@@ -81,6 +82,8 @@ export const WorldWarStateSchema = z.object({
   depth: WwDepthStateSchema.optional(),
   /** ww177: the Imjin War's own state (WwImjin), as JSON; Imjin games only. */
   imjin: z.string().optional(),
+  /** ww177 P4 (lane I4a): the Joseon court and Ming's meter; Imjin only. */
+  imjinJm: ImjinJmStateSchema.optional(),
 });
 export type WorldWarState = z.infer<typeof WorldWarStateSchema>;
 
@@ -155,6 +158,8 @@ export class WorldWar {
   readonly imjinStart: ImjinStartId | null;
   /** ww177: the Imjin War's sea layer, land orders and sieges; null in 1936. */
   readonly imjinWar: WwImjin | null;
+  /** ww177 P4 (lane I4a): Joseon's court and Ming's meter; null in 1936. */
+  readonly imjinJm: ImjinJoseonMing | null;
 
   constructor(
     private readonly mg: Game,
@@ -188,6 +193,10 @@ export class WorldWar {
     this.depth = new WwDepth(mg, this);
     this.land.depthHooks = this.depth;
     this.imjinWar = this.imjin ? new WwImjin(mg, this) : null;
+    this.imjinJm =
+      this.imjinStart === null
+        ? null
+        : new ImjinJoseonMing(mg, this, this.imjinStart);
   }
 
   /**
@@ -225,6 +234,8 @@ export class WorldWar {
     // government apply from day 0), so the economy's start (manpower) and
     // the land war's (the 1936 divisions) read the country's stats.
     this.politics.start();
+    // ww177 P4: the Joseon court of the start's year, on politics' values.
+    this.imjinJm?.startGame();
     this.economy.start();
     this.land.start();
     // P4 (plan decision 2): the 1936 navies, then the air war (nothing deployed).
@@ -661,6 +672,10 @@ export class WorldWar {
     if (this.imjinWar !== null) {
       h = (Math.imul(h, 31) + this.imjinWar.hash()) | 0;
     }
+    // ww177 P4: the Imjin court after everything (1936's hash unchanged).
+    if (this.imjinJm !== null) {
+      h = (Math.imul(h, 31) + this.imjinJm.hash()) | 0;
+    }
     return h >>> 0;
   }
 
@@ -691,6 +706,7 @@ export class WorldWar {
       endgame: this.endgame.snapshot(),
       depth: this.depth.snapshot(),
       ...(this.imjinWar === null ? {} : { imjin: this.imjinWar.snapshot() }),
+      ...(this.imjinJm === null ? {} : { imjinJm: this.imjinJm.snapshot() }),
     };
   }
 
@@ -767,6 +783,12 @@ export class WorldWar {
     if (this.imjinWar !== null && s.imjin !== undefined) {
       this.imjinWar.restore(s.imjin);
       this.imjinWar.restoreDay(s.lastDay);
+    }
+    if (this.imjinJm !== null) {
+      if (s.imjinJm === undefined) {
+        throw new Error("Imjin snapshot without its court (made before P4)");
+      }
+      this.imjinJm.restoreState(s.imjinJm);
     }
   }
 
