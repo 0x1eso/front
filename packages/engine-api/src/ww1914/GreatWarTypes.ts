@@ -166,7 +166,11 @@ export type GwPersonDef = z.infer<typeof GwPersonDefSchema>;
 
 /** What someone remembers, or the seat remembers (design §5.4). */
 export const GwMemorySchema = z.object({
-  key: GwIdSchema,
+  /**
+   * A content id; a form of government also names whose it is
+   * ("regime_coalition@GBR", Regimes.turn), which the memoir reads.
+   */
+  key: z.string().regex(/^[a-z][a-z0-9_]*(@[A-Z]+)?$/),
   /** Person it concerns; null for the seat itself. */
   who: GwIdSchema.nullable(),
   chapter: z.number().int(),

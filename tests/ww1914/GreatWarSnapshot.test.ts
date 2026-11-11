@@ -40,6 +40,19 @@ describe("snapshot and hash", () => {
     expect(GreatWarSnapshot.version).toBe(5);
   });
 
+  test("a changed government's memory (whose it is) survives a save", async () => {
+    const { runner } = await gwRunner();
+    // Regimes.turn writes the form with its country, as the memoir reads it.
+    runner.game.greatWar()!.s.seats[0].memory.push({
+      key: "regime_coalition@GBR",
+      who: null,
+      chapter: 1,
+      weight: 0,
+    });
+    const copy = await restore(runner);
+    expect(hash(copy)).toBe(hash(runner));
+  });
+
   test("a restored game is the same game, mid-talk and through the end", async () => {
     const { runner } = await gwRunner();
     playChapter(runner);
