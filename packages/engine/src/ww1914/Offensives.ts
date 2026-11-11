@@ -34,7 +34,7 @@ import {
 } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { GW_HOME } from "./HomeTable";
-import { believedStrain, capturedOrders } from "./Spies";
+import { actedOnRead, believedStrain, capturedOrders } from "./Spies";
 import { addStrain, strainOf } from "./Strain";
 import { memberEnd, membersOf } from "./Wars";
 import {
@@ -75,8 +75,10 @@ const ROLL_SPAN = 61;
  * day finds it, percent, and what it adds to the roll. A surprise looks for
  * it; a defender at the end of his strength has more of them.
  */
-const GAP_PCT = 22;
-const GAP_SURPRISE = 8;
+// Tuned (ww173): about 1 in 10 trench-era west offensives without surprise
+// breaks through, about 1 in 4 with surprise.
+const GAP_PCT = 20;
+const GAP_SURPRISE = 4;
 const GAP_STRAINED = 10;
 const GAP_ROLL = 70;
 /** Percent of the preparation's weight that counts on the day. */
@@ -102,6 +104,21 @@ const ATTRITION_AT = 80;
 /** A great offensive can break a line dug this deep, faced, and no deeper. */
 const BREAK_TRENCH = 5;
 const WEIGHT_MAX = 75;
+/**
+ * The strain a round adds on top of what its losses and lost ground already
+ * feed (Stalemate.feedOf counts both): the defender's for a break, a bite or
+ * attrition, the attacker's for a repulse. Tuned (ww173) so that collapses
+ * come in a third to a half of games.
+ */
+const WEAR: Readonly<Record<GwOffResult, number>> = {
+  break: 3,
+  bite: 1,
+  attrition: 1,
+  repulsed: 3,
+};
+const WEAR_ATTACKER_ATTRITION = 1;
+/** Each pressed-on round wears the defender this much more, win or lose. */
+const WEAR_PRESSED = 1;
 const ROUNDS = 4;
 /** Chapters a country rests after an offensive before it prepares another. */
 const REST = 3;
@@ -232,15 +249,6 @@ export function markSeen(
 
 export function seenBy(gw: GreatWar, o: GwOffensiveView): readonly GwTag[] {
   return recordOf(gw, o)?.seenBy ?? [];
-}
-
-/** What `tag` did about it, if anything (for the code's suspicion, S7c). */
-export function counterOf(
-  gw: GreatWar,
-  o: GwOffensiveView,
-  tag: GwTag,
-): GwOffCounter | null {
-  return recordOf(gw, o)?.answers.find((a) => a.tag === tag)?.pick ?? null;
 }
 
 // ---- The paper ----
@@ -719,20 +727,20 @@ function round(gw: GreatWar, o: GwOffensive): void {
   let steps = 0;
   if (result === "break") {
     steps = Math.min(6, 3 + Math.floor((ratio - BREAK_AT) / 30));
-    strain(lead, 30);
+    strain(lead, WEAR.break);
     if (wwRoll(s.seed, P_PAPERS, s.chapter, s.theatres.indexOf(t)) % 5 === 0) {
       capturedOrders(gw, o.tag, o.theatre);
     }
   } else if (result === "bite") {
     steps = ratio >= BITE_AT + 25 ? 2 : 1;
-    strain(lead, 12);
+    strain(lead, WEAR.bite);
   } else if (result === "attrition") {
-    strain(lead, 10);
-    strain(o.tag, 6);
+    strain(lead, WEAR.attrition);
+    strain(o.tag, WEAR_ATTACKER_ATTRITION);
   } else {
-    strain(o.tag, 18);
+    strain(o.tag, WEAR.repulsed);
   }
-  if (o.round > 1) strain(lead, 8);
+  if (o.round > 1) strain(lead, WEAR_PRESSED);
   if (steps > 0) move(gw, t, o.end, steps);
   const [rawA, lostD] = lossesOf(gw, o.theatre, o.end, battle, false);
   const lostA =
@@ -894,6 +902,9 @@ export function counterOffensive(
   if (o === null || n === null) return;
   if (pick === "step_back" && !canStepBack(gw, n)) return;
   o.answers.push({ tag, pick, chapter });
+  // Moving on what a read code told: the attacker begins to wonder (design
+  // §6, 7A). Playing dumb is what keeps the code safe.
+  if (pick !== "dumb" && o.codeBy.includes(tag)) actedOnRead(gw, tag, o.tag);
   if (pick === "reserves") n.manpower = Math.max(0, n.manpower - 2);
   if (pick === "step_back") move(gw, theatreOf(gw, o.theatre), o.end, 1);
 }
