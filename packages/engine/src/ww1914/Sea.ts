@@ -5,7 +5,6 @@ import {
   GW_SEA_MAX,
   GwNationState,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
-import { daysFromCivil } from "@openfront/engine-lib/ww1936/Calendar";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { hasTech, warMonths } from "./Eras";
 import type { GreatWar } from "./GreatWar";
@@ -28,11 +27,6 @@ const P_UBOAT = idHash("gw_uboat_ai");
 /** America reads the sea from this many months of war. */
 const LINER_PCT = 8;
 const NOTE_PCT = 12;
-
-const dayOf = (iso: string) => {
-  const [y, m, d] = iso.split("-").map(Number);
-  return daysFromCivil(y, m, d);
-};
 
 const seaOpen = (gw: GreatWar) =>
   gw.s.theatres.find((t) => t.id === "sea")!.open;
@@ -138,7 +132,8 @@ function americaStep(gw: GreatWar, warScoreCentral: number): void {
   const s = gw.s;
   const n = gw.nation("USA");
   if (n === null || n.side !== null || ruledBySeat(gw, "USA")) return;
-  if (s.day < dayOf("1915-06-01")) return;
+  // The first winter of the war passes before anyone in Washington counts it.
+  if (warMonths(gw) < 10) return;
   const add =
     (s.uboat === 2 ? 6 : s.uboat === 1 ? 1 : 0) +
     (s.threads.includes("us_loans") ? 1 : 0) +
@@ -146,9 +141,14 @@ function americaStep(gw: GreatWar, warScoreCentral: number): void {
   n.readiness = clampTo(n.readiness + add, 0, 100);
 }
 
-/** Readiness at which America comes in; before the election, never. */
+/** Readiness at which America comes in. */
 export const AMERICA_BAR = 80;
-export const americaCan = (gw: GreatWar) => gw.s.day >= dayOf("1916-11-10");
+/**
+ * America by state, not by date (ww171): the sea war has to reach it, an
+ * unrestricted submarine war or the German note read in Washington.
+ */
+export const americaCan = (gw: GreatWar) =>
+  gw.s.uboat === 2 || gw.s.news.some((x) => x.key === "note_decoded");
 
 /** Chapter step, before the home front: the two scales move. */
 export function seaStep(gw: GreatWar, warScoreCentral: number): void {

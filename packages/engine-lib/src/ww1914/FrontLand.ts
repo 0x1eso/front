@@ -114,15 +114,7 @@ export const GW_FRONT_LAND: Readonly<
       ],
     },
     dvina: {
-      central: [
-        "riga",
-        "dvinsk",
-        "rovno",
-        "bucharest",
-        "ploesti",
-        "craiova",
-        "constanta",
-      ],
+      central: ["riga", "dvinsk", "rovno", "bucharest", "ploesti", "craiova"],
     },
     kiev: {
       central: ["kiev", "zhitomir", "minsk", "vitebsk", "kamenets", "vinnitsa"],
@@ -159,7 +151,7 @@ export const GW_FRONT_LAND: Readonly<
     gallipoli: { entente: ["gallipoli"] },
     narrows: { entente: ["canakkale"] },
     constantinople: {
-      entente: ["rodosto", "edirne", "constantinople", "izmit"],
+      entente: ["rodosto", "constantinople", "izmit"],
     },
   },
   mesopotamia: {
@@ -180,6 +172,45 @@ export const GW_FRONT_LAND: Readonly<
     southwest: { entente: ["windhoek"] },
     east_africa: { entente: ["dar_es_salaam"] },
   },
+  // ww171 phase 4: the new fronts, from places the old ones left free (Edirne
+  // from the Straits, Constanța from the east). Lines named in
+  // GW_FRONT_BARE have no place on the map to change hands.
+  alps: {
+    dauphine: { central: ["marseille"] },
+    rhone: { central: ["lyon", "le_creusot"] },
+  },
+  danube: {
+    moldavia: { central: ["iasi"] },
+    brasso: { entente: ["brasso", "nagyszeben"] },
+    kolozsvar: { entente: ["kolozsvar", "nagyvarad", "temesvar"] },
+  },
+  thrace: {
+    salonika: { central: ["salonika"] },
+    dedeagach: { central: ["dedeagach", "plovdiv"] },
+    edirne: { entente: ["edirne"] },
+  },
+  low_countries: {
+    cologne: { entente: ["cologne"] },
+    aachen: { entente: ["aachen"] },
+    amsterdam: { central: ["amsterdam"] },
+  },
+  dobruja: {
+    varna: { entente: ["varna"] },
+    constanta: { central: ["constanta"] },
+  },
+  persia: {},
+};
+
+/**
+ * Lines of the new fronts with no place on the map to change hands: the
+ * ground is there, the regions aren't (Piedmont, the Danube delta, Persia).
+ */
+export const GW_FRONT_BARE: Readonly<
+  Partial<Record<GwTheatre, readonly string[]>>
+> = {
+  alps: ["po"],
+  dobruja: ["delta"],
+  persia: ["baghdad_road", "hamadan", "tabriz"],
 };
 
 /** Every place a theatre's lines can move. */

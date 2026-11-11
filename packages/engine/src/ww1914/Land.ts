@@ -12,7 +12,8 @@ import {
 } from "@openfront/engine-lib/ww1914/FrontLand";
 import { posOf } from "./Eras";
 import type { GreatWar } from "./GreatWar";
-import { membersOf } from "./Wars";
+import { GW_FRONT_ENDS } from "./Tables";
+import { membersOf, sideIn } from "./Wars";
 
 /** Who holds a place now. */
 export function holderOf(gw: GreatWar, place: GwPlace): GwTag {
@@ -45,8 +46,10 @@ export function moveLand(
 }
 
 /**
- * Who a place falls to with `side` on it. A country gets its own land back,
- * a neutral's land stays out of it, and what is taken goes to the lead there.
+ * Who a place falls to with the front's end `side` on it. A country gets its
+ * own land back, the land of a country this front isn't the war of stays out
+ * of it, and what is taken goes to the lead there (ww171: by ends, not only
+ * coalitions).
  */
 function takerOf(
   gw: GreatWar,
@@ -57,11 +60,14 @@ function takerOf(
   const owner = GW_PLACES[place].owner;
   const now = holderOf(gw, place);
   if (side === null) return owner;
-  const ownerSide = gw.nation(owner)?.side ?? null;
+  const ownerSide = sideIn(gw, t.id, owner);
   if (ownerSide === side) return owner;
   if (ownerSide === null) return now;
-  if (gw.nation(now)?.side === side) return now;
-  return membersOf(gw, t.id, side)[0] ?? now;
+  if (sideIn(gw, t.id, now) === side) return now;
+  const listed = GW_FRONT_ENDS[t.id][side].find(
+    (tag) => sideIn(gw, t.id, tag) === side && gw.nation(tag)?.out !== true,
+  );
+  return membersOf(gw, t.id, side)[0] ?? listed ?? now;
 }
 
 /**

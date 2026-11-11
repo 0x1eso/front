@@ -97,14 +97,26 @@ function followerDone(gw: GreatWar, n: GwNationState): boolean {
 }
 
 function leadersLeft(gw: GreatWar, side: GwSide): GwTag[] {
-  return LEADERS[side].filter((t) => fights(gw.nation(t)));
+  return LEADERS[side].filter((t) => {
+    const n = gw.nation(t);
+    return n?.side === side && fights(n);
+  });
 }
 
-/** The side is done: Germany gone, or France with Russia gone or Britain alone. */
+/**
+ * The side is done: Germany gone, or France with Russia gone or Britain alone.
+ * A side its leaders never joined (ww171: Vienna and Belgrade alone, say) is
+ * done when every member of it is out.
+ */
 function sideDone(gw: GreatWar, side: GwSide): boolean {
+  const members = gw.s.nations.filter((n) => n.side === side);
+  if (members.length === 0) return false;
+  const joined = LEADERS[side].filter((t) => gw.nation(t)?.side === side);
+  if (joined.length === 0) return members.every((n) => n.out);
   if (side === "central") return leadersLeft(gw, side).length === 0;
   const fra = gw.nation("FRA")?.out === true;
   const rus = gw.nation("RUS")?.out === true;
+  if (!joined.includes("FRA")) return leadersLeft(gw, side).length === 0;
   return fra && (rus || leadersLeft(gw, side).length === 0);
 }
 

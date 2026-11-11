@@ -212,4 +212,13 @@ export const GW_SEASON: Readonly<
   caucasus: { 11: 20, 12: 35, 1: 35, 2: 35, 3: 20 },
   mesopotamia: { 6: 20, 7: 25, 8: 25 },
   palestine: { 6: 15, 7: 20, 8: 20 },
+  // ww171's fronts: the high Alps shut in winter like the Isonzo's; the
+  // Carpathian passes snow up; Thrace and the Dobruja are the Balkans' plain;
+  // the Low Countries flood; Persia's roads bake in summer and close in snow.
+  alps: { 11: 25, 12: 35, 1: 40, 2: 40, 3: 25 },
+  danube: { 11: 15, 12: 25, 1: 30, 2: 30, 3: 15 },
+  thrace: { 12: 15, 1: 20, 2: 20 },
+  low_countries: { 11: 10, 12: 15, 1: 15, 2: 15 },
+  dobruja: { 12: 15, 1: 20, 2: 15 },
+  persia: { 1: 20, 2: 20, 6: 15, 7: 20, 8: 20, 12: 15 },
 };

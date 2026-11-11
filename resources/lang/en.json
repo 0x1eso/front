@@ -2500,6 +2500,12 @@
       }
     },
     "front": {
+      "alps": {
+        "alps": "the Alpine passes",
+        "dauphine": "the Dauphiné",
+        "po": "the Po",
+        "rhone": "the Rhône"
+      },
       "balkan": {
         "belgrade": "Belgrade",
         "drina": "the Drina",
@@ -2518,6 +2524,18 @@
         "southwest": "South West Africa",
         "togo": "Togoland"
       },
+      "danube": {
+        "brasso": "Brassó",
+        "carpathians": "the Carpathians",
+        "kolozsvar": "Kolozsvár",
+        "moldavia": "Moldavia"
+      },
+      "dobruja": {
+        "constanta": "Constanța",
+        "delta": "the Danube delta",
+        "dobrich": "Dobrich",
+        "varna": "Varna"
+      },
       "east": {
         "dvina": "the Dvina",
         "east_prussia": "East Prussia",
@@ -2533,6 +2551,12 @@
         "piave": "the Piave",
         "trentino": "Trentino"
       },
+      "low_countries": {
+        "aachen": "Aachen",
+        "amsterdam": "Amsterdam",
+        "border": "the frontier",
+        "cologne": "Cologne"
+      },
       "mesopotamia": {
         "baghdad": "Baghdad",
         "basra": "Basra",
@@ -2545,6 +2569,12 @@
         "jerusalem": "Jerusalem",
         "suez": "Suez"
       },
+      "persia": {
+        "baghdad_road": "the Baghdad road",
+        "hamadan": "Hamadan",
+        "kermanshah": "Kermanshah",
+        "tabriz": "Tabriz"
+      },
       "sea": {
         "atlantic": "the Atlantic",
         "blockade": "Tight blockade",
@@ -2556,6 +2586,12 @@
         "dardanelles": "the Dardanelles",
         "gallipoli": "Gallipoli",
         "narrows": "the Narrows"
+      },
+      "thrace": {
+        "dedeagach": "Dedeagach",
+        "edirne": "Adrianople",
+        "maritsa": "the Maritsa",
+        "salonika": "Salonika"
       },
       "west": {
         "aisne": "the Aisne",
@@ -3178,6 +3214,9 @@
       "nation_collapsed": "{a} has collapsed.",
       "new_armies": "{a} sends new armies to the {theatre} front.",
       "note_decoded": "A decoded German note is printed in Washington.",
+      "pair_peace": "{a} and {b} made a peace of their own.",
+      "pair_peace_offered": "{a} offered {b} a peace of their own.",
+      "pair_peace_refused": "{a} refused {b}'s offer of peace.",
       "regent_took_over": "{a}: a regent is running the government.",
       "regime_austria_republic": "{a}: Republic of Austria.",
       "regime_coalition": "{a}: Coalition.",
@@ -3227,7 +3266,8 @@
       "unrest_2": "Riots in {a}.",
       "unrest_3": "The army of {a} is restless.",
       "unrest_4": "Revolution in {a}.",
-      "war_declared": "{a} is at war."
+      "war_declared": "{a} is at war.",
+      "war_pair": "{a} declared war on {b}."
     },
     "odds": {
       "0": "It cannot be done.",
@@ -3406,24 +3446,36 @@
       "footing_total": "The country went over to total mobilisation.",
       "footing_war": "The country went over to a war economy.",
       "fought_on": "The armistice wire was torn up.",
+      "front_alps_lost": "Alpine Front: it went against us.",
+      "front_alps_won": "Alpine Front: it went our way.",
       "front_balkan_lost": "The Balkans: it went against us.",
       "front_balkan_won": "The Balkans: it went our way.",
       "front_caucasus_lost": "The Caucasus: it went against us.",
       "front_caucasus_won": "The Caucasus: it went our way.",
       "front_colonies_lost": "The Colonies: it went against us.",
       "front_colonies_won": "The Colonies: it went our way.",
+      "front_danube_lost": "Romanian Front: it went against us.",
+      "front_danube_won": "Romanian Front: it went our way.",
+      "front_dobruja_lost": "The Dobruja: it went against us.",
+      "front_dobruja_won": "The Dobruja: it went our way.",
       "front_east_lost": "Eastern Front: it went against us.",
       "front_east_won": "Eastern Front: it went our way.",
       "front_italy_lost": "Italian Front: it went against us.",
       "front_italy_won": "Italian Front: it went our way.",
+      "front_low_countries_lost": "The Low Countries: it went against us.",
+      "front_low_countries_won": "The Low Countries: it went our way.",
       "front_mesopotamia_lost": "Mesopotamia: it went against us.",
       "front_mesopotamia_won": "Mesopotamia: it went our way.",
       "front_palestine_lost": "Palestine: it went against us.",
       "front_palestine_won": "Palestine: it went our way.",
+      "front_persia_lost": "Persia: it went against us.",
+      "front_persia_won": "Persia: it went our way.",
       "front_sea_lost": "The Sea: it went against us.",
       "front_sea_won": "The Sea: it went our way.",
       "front_straits_lost": "The Straits: it went against us.",
       "front_straits_won": "The Straits: it went our way.",
+      "front_thrace_lost": "Thrace: it went against us.",
+      "front_thrace_won": "Thrace: it went our way.",
       "front_west_lost": "Western Front: it went against us.",
       "front_west_won": "Western Front: it went our way.",
       "fx_authority_down": "Authority was spent.",
@@ -3507,8 +3559,14 @@
       "mob_late_war": "Mobilisation was put off twice: Russia and France moved first, and no plan was ever signed.",
       "mob_waited_out": "Mobilisation was put off twice, and by then the crisis had cooled. The waiting ended it.",
       "nations_stir": "The nationalities stirred at the defeat.",
+      "neutral_joined": "{country} came into the war.",
       "opposition_presses": "The opposition pressed harder.",
+      "pair_peace_made": "We made peace with {country}.",
+      "pair_war_began": "We are at war with {country}.",
       "paper_sent_back": "A paper went back to {who}.",
+      "peace_offer_refused": "{country} refused our offer of peace.",
+      "peace_offer_sent": "We offered {country} a peace of our own.",
+      "peace_offer_we_refused": "We refused {country}'s offer of peace.",
       "peace_refused": "You sent the go-between away.",
       "person_ailing": "{who} is failing.",
       "person_passed": "{who} died.",
@@ -3636,6 +3694,8 @@
       "terms_no": "{country} refused our terms.",
       "terms_yes": "{country} accepted our terms.",
       "treaty_broken": "A partner broke a secret treaty.",
+      "treaty_calls": "A treaty of ours calls us into a war. We have not answered it.",
+      "treaty_honoured": "We kept a treaty's word and went to war.",
       "treaty_i_broke": "We broke a secret treaty.",
       "treaty_lapsed": "A treaty offer lapsed unanswered.",
       "treaty_refused": "A treaty offer was refused.",
@@ -3647,7 +3707,8 @@
       "unrest_4": "It has become a revolution.",
       "visit_calmed": "The streets settled after the visit.",
       "vote_carried": "The cabinet carried it.",
-      "vote_lost": "The cabinet voted it down."
+      "vote_lost": "The cabinet voted it down.",
+      "war_note_sent": "Our declaration went to {country}. The war begins as the month closes."
     },
     "regime": {
       "austria_republic": "Republic of Austria",
@@ -4002,15 +4063,21 @@
       "yes": "accepted"
     },
     "theatre": {
+      "alps": "Alpine Front",
       "balkan": "The Balkans",
       "caucasus": "The Caucasus",
       "colonies": "The Colonies",
+      "danube": "Romanian Front",
+      "dobruja": "The Dobruja",
       "east": "Eastern Front",
       "italy": "Italian Front",
+      "low_countries": "The Low Countries",
       "mesopotamia": "Mesopotamia",
       "palestine": "Palestine",
+      "persia": "Persia",
       "sea": "The Sea",
       "straits": "The Straits",
+      "thrace": "Thrace",
       "west": "Western Front"
     },
     "thread": {
@@ -4094,6 +4161,8 @@
       "mob_waited_out": "The waiting ended the crisis.",
       "new_chief_of_staff": "A new chief of staff took over.",
       "out": "{country} left the war.",
+      "pair_peace_made": "Peace with {country}.",
+      "pair_war_began": "War with {country}.",
       "regime_austria_republic": "{country}: the government became: Republic of Austria.",
       "regime_coalition": "{country}: the government became: Coalition.",
       "regime_crown": "{country}: the government became: Crown under a responsible ministry.",

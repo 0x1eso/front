@@ -15,7 +15,6 @@ import {
 import { GwTag, isGwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import type { GwOrderBlock } from "@openfront/engine-api/ww1914/GwOrders";
 import type { GwTermsView } from "@openfront/engine-api/ww1914/GwView";
-import { daysFromCivil } from "@openfront/engine-lib/ww1936/Calendar";
 import { moveMoney } from "./Budget";
 import { claimsOn } from "./Claims";
 import { warMonths } from "./Eras";
@@ -23,10 +22,11 @@ import { warScore } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { armistice, openTalks, TALKS_MONTHS } from "./Peace";
 import { GW_ACTORS, GW_ENTRIES, GW_ENTRY_BAR } from "./Tables";
-import { enter, leaveWar } from "./Wars";
+import { enter, makePeace, outsideCoalitions, warOf } from "./Wars";
 import {
   clampTo,
   fights,
+  monthsFrom,
   moveGauge,
   news,
   other,
@@ -73,11 +73,6 @@ const STAY_OUT = 30;
 /** What mediation takes off the crisis. */
 const MEDIATE_TEMP = 2;
 
-const dayOf = (iso: string) => {
-  const [y, m, d] = iso.split("-").map(Number);
-  return daysFromCivil(y, m, d);
-};
-
 function entryOf(tag: GwTag) {
   return GW_ENTRIES.find((e) => e.tag === tag) ?? null;
 }
@@ -119,11 +114,11 @@ function askOpen(
   const friend = me.side !== null && n.side === me.side;
   switch (c) {
     case "peace":
-      return foe && fights(n);
+      // Any country the seat is at war with: a peace of the two (ww171).
+      return me.atWar.includes(n.tag) && fights(n);
     case "join": {
       const e = entryOf(n.tag);
-      if (e === null || n.side !== null || me.side === null) return false;
-      return gw.s.day >= dayOf(e.earliest);
+      return e !== null && n.side === null && me.side !== null;
     }
     case "stay_out":
       return n.side === null;
@@ -201,7 +196,8 @@ function characterCost(n: GwNationState, c: GwAskClause): number {
 
 /** How far a neutral is from coming in by itself, and against its nature. */
 function reluctance(n: GwNationState, me: GwNationState): number {
-  const gap = Math.max(0, GW_ENTRY_BAR[n.ai] - n.readiness);
+  const bar = GW_ENTRY_BAR[n.ai] + (entryOf(n.tag)?.holds ?? 0);
+  const gap = Math.max(0, bar - n.readiness);
   const natural = entryOf(n.tag)?.natural ?? null;
   const against = natural !== null && natural !== me.side;
   return Math.floor(gap / READINESS_PER_POINT) + (against ? AGAINST_NATURE : 0);
@@ -253,6 +249,23 @@ export function weariness(n: GwNationState): number {
 
 type Term = GwSeatState["terms"][number];
 
+/** Months the two have been at war: the coalitions' war, or their own. */
+function pairMonths(gw: GreatWar, me: GwNationState, n: GwNationState): number {
+  const w = warOf(gw, me.tag, n.tag);
+  if (w === null) return 0;
+  return outsideCoalitions(gw, w) ? monthsFrom(gw, w.since) : warMonths(gw);
+}
+
+/** A war of the two's own is talked out of sooner than the great one. */
+const PAIR_TALKS_MONTHS = 4;
+
+function talksMonths(gw: GreatWar, me: GwNationState, n: GwNationState) {
+  const w = warOf(gw, me.tag, n.tag);
+  return w !== null && outsideCoalitions(gw, w)
+    ? PAIR_TALKS_MONTHS
+    : TALKS_MONTHS;
+}
+
 /** Its answer: null is yes, a word is why not. */
 function valuation(
   gw: GreatWar,
@@ -263,7 +276,8 @@ function valuation(
 ): GwTermRefusal | null {
   if (!t.ask.every((c) => askOpen(gw, me, n, c))) return "bound";
   const peace = t.ask.includes("peace");
-  if (peace && warMonths(gw) < TALKS_MONTHS) return "too_soon";
+  if (peace && pairMonths(gw, me, n) < talksMonths(gw, me, n))
+    return "too_soon";
   const given = t.give.reduce((v, c) => v + GIVE_WORTH[c], 0);
   const asked = t.ask.reduce((v, c) => v + askCost(seat, me, n, c), 0);
   const will = goodwill(gw, seat, me, n);
@@ -316,9 +330,16 @@ function collect(
 ): void {
   switch (c) {
     case "peace": {
+      // A coalition's leader at war with the seat's coalition stops it all;
+      // anyone else makes the peace of the two alone (ww171).
       const lead: readonly GwTag[] = ["DEU", "FRA", "GBR"];
-      if (lead.includes(n.tag)) armistice(gw, "compromise", null);
-      else leaveWar(gw, n.tag, "sued_for_peace");
+      const coalitions =
+        me.side !== null && n.side !== null && me.side !== n.side;
+      if (coalitions && lead.includes(n.tag)) {
+        armistice(gw, "compromise", null);
+      } else {
+        makePeace(gw, me.tag, n.tag, "pair_peace");
+      }
       return;
     }
     case "join":

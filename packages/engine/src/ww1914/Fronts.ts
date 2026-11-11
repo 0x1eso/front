@@ -34,13 +34,13 @@ import { officeHolder, recordResult } from "./People";
 import {
   GW_AI_RESEARCH,
   GW_ARMY_QUALITY,
+  GW_COALITION_FRONTS,
   GW_NEW_ARMIES,
-  GW_THEATRE_SIDES,
   GW_WAR_ORDERS,
   GwWarOrder,
   theatresOf,
 } from "./Tables";
-import { membersOf, refreshTheatres } from "./Wars";
+import { memberEnd, membersOf, refreshTheatres, sideIn } from "./Wars";
 import {
   clampTo,
   defOf,
@@ -102,6 +102,12 @@ const TRENCH_EVERY: Readonly<Partial<Record<GwTheatre, number>>> = {
   caucasus: 6,
   mesopotamia: 6,
   palestine: 5,
+  alps: 3,
+  danube: 4,
+  thrace: 5,
+  low_countries: 3,
+  dobruja: 5,
+  persia: 6,
 };
 
 /** What a level of trench adds to a defence, percent. */
@@ -123,6 +129,12 @@ const TRENCH_MAX: Readonly<Partial<Record<GwTheatre, number>>> = {
   caucasus: 2,
   mesopotamia: 2,
   palestine: 2,
+  alps: 4,
+  danube: 2,
+  thrace: 2,
+  low_countries: 3,
+  dobruja: 2,
+  persia: 1,
 };
 
 /**
@@ -139,6 +151,13 @@ const GROUND: Readonly<Partial<Record<GwTheatre, Record<string, number>>>> = {
   palestine: { gaza: 25 },
   // Serbia's own hills and rivers: the Drina and the Morava held in 1914.
   balkan: { drina: 35, belgrade: 25, nis: 25, salonika: 20 },
+  // ww171: the high passes, the Carpathians, the Maritsa, the water lines.
+  alps: { alps: 45, dauphine: 20, po: 15 },
+  danube: { carpathians: 35, brasso: 15 },
+  thrace: { maritsa: 15, edirne: 25 },
+  low_countries: { border: 10, amsterdam: 35 },
+  dobruja: { dobrich: 10, constanta: 15 },
+  persia: { kermanshah: 20, hamadan: 15 },
 };
 
 /** Percent chance a theatre nobody's main effort sees a local action. */
@@ -153,6 +172,12 @@ const LOCAL_PCT: Readonly<Record<GwTheatre, number>> = {
   palestine: 50,
   sea: 6,
   colonies: 15,
+  alps: 35,
+  danube: 40,
+  thrace: 40,
+  low_countries: 30,
+  dobruja: 45,
+  persia: 40,
 };
 
 /** Percent an attack loses for each line past its frontier, where that's hard. */
@@ -165,6 +190,12 @@ const REACH_BY: Readonly<Partial<Record<GwTheatre, number>>> = {
   colonies: 16,
   italy: 15,
   balkan: 12,
+  alps: 18,
+  danube: 14,
+  thrace: 12,
+  low_countries: 12,
+  dobruja: 12,
+  persia: 22,
 };
 
 /** How much war a theatre holds next to the west: casualties, percent. */
@@ -179,6 +210,12 @@ const SCALE_OF: Readonly<Partial<Record<GwTheatre, number>>> = {
   palestine: 15,
   sea: 3,
   colonies: 3,
+  alps: 45,
+  danube: 40,
+  thrace: 30,
+  low_countries: 50,
+  dobruja: 25,
+  persia: 10,
 };
 
 export function allocOf(gw: GreatWar, tag: GwTag): GwAlloc | null {
@@ -197,12 +234,19 @@ function bandOf(gw: GreatWar, t: GwTheatre, side: GwSide): number {
   return best * 20 + rest * 8;
 }
 
-/** The effort put in this theatre, by everyone on the side. */
+/**
+ * The effort put in this theatre by everyone on its end: who fights here, and
+ * the coalition partners of its lead who send men from elsewhere.
+ */
 function effortOf(gw: GreatWar, t: GwTheatre, side: GwSide): number {
   let out = 0;
   const here = membersOf(gw, t, side);
+  const coalition = here.length === 0 ? null : gw.nation(here[0])!.side;
   for (const n of gw.s.nations) {
-    if (!fights(n) || n.side !== side) continue;
+    if (!fights(n)) continue;
+    if (!here.includes(n.tag) && (coalition === null || n.side !== coalition)) {
+      continue;
+    }
     const a = allocOf(gw, n.tag);
     if (a === null) continue;
     if (here.includes(n.tag) && a.main === t) {
@@ -295,7 +339,7 @@ function commandOf(gw: GreatWar, t: GwTheatreState, side: GwSide): number {
   const p = gw.person(t.commander);
   const def = defOf(t.commander);
   if (p === null || def === null) return 100;
-  if (gw.nation(def.tag)?.side !== side) return 100;
+  if (sideIn(gw, t.id, def.tag) !== side) return 100;
   return [90, 100, 112][p.competence[0] - 1];
 }
 
@@ -321,7 +365,7 @@ function ordersOn(
 ): { o: GwWarOrder; side: GwSide }[] {
   const out: { o: GwWarOrder; side: GwSide }[] = [];
   for (const seat of gw.s.seats) {
-    const side = gw.nation(seat.tag)?.side ?? null;
+    const side = sideIn(gw, t, seat.tag);
     if (side === null) continue;
     for (const o of GW_WAR_ORDERS) {
       if (o.theatre !== t) continue;
@@ -746,14 +790,17 @@ function planOf(p: GwProposal): Omit<GwAlloc, "research"> {
 /** Chapter step: every open theatre is judged, then the armies dig and refill. */
 export function frontsStep(gw: GreatWar): void {
   const s = gw.s;
-  // The war just opened: the first plans are signed next chapter.
-  if (s.warChapter === null || s.warChapter === s.chapter) return;
+  // The war just opened: the first plans are signed next chapter. A war of a
+  // pair's own before the general war is fought all the same (ww171).
+  if (s.warChapter === s.chapter) return;
+  if (!s.theatres.some((t) => t.open)) return;
   // The guns have stopped: the lines stand until the table moves them.
   if (s.armistice !== null) return;
   if (!isLongChapter(gw)) return;
   signDefaults(gw);
   for (const n of s.nations) n.lostNow = 0;
-  for (const t of s.theatres) if (t.open) judge(gw, t);
+  // A front opened as this chapter closed waits for its first plans.
+  for (const t of s.theatres) if (t.open && t.since !== s.chapter) judge(gw, t);
   for (const t of s.theatres) if (t.open) dig(gw, t);
   refill(gw);
   newArmies(gw);
@@ -766,10 +813,12 @@ export function warScore(gw: GreatWar, side: GwSide): number {
   let up = 0;
   for (const t of gw.s.theatres) {
     if (t.since === null) continue;
+    const upEnd = frontCoalition(gw, t);
+    if (upEnd === null) continue;
     const start = GW_FRONT_START[t.id];
     const gained = posOf(t) - start * GW_LINE_STEP;
     const weight = t.id === "west" || t.id === "east" ? 5 : 2;
-    up += (GW_FRONT_UP[t.id] === "central" ? gained : -gained) * weight;
+    up += (upEnd === "central" ? gained : -gained) * weight;
   }
   for (const n of gw.s.nations) {
     if (n.out && n.side !== null) up += n.side === "central" ? -25 : 25;
@@ -778,11 +827,41 @@ export function warScore(gw: GreatWar, side: GwSide): number {
   return side === "central" ? central : -central;
 }
 
+/**
+ * The coalition a theatre's up end stands for: on the old theatres its label;
+ * on a new front, the coalition of the lead there when the two ends are the
+ * two coalitions, else null (a pair's own war counts in neither's score).
+ */
+function frontCoalition(gw: GreatWar, t: GwTheatreState): GwSide | null {
+  if (GW_COALITION_FRONTS.includes(t.id)) return GW_FRONT_UP[t.id];
+  if (!t.open || t.attacker === null || t.defender === null) return null;
+  const a = gw.nation(t.attacker)?.side ?? null;
+  const d = gw.nation(t.defender)?.side ?? null;
+  return a !== null && d !== null && a !== d ? a : null;
+}
+
+/**
+ * A pair's standing in their own war, about -100..100, up for `tag`: the
+ * fronts between the two, the lines each has gained.
+ */
+export function pairScore(gw: GreatWar, tag: GwTag, foe: GwTag): number {
+  let up = 0;
+  for (const t of gw.s.theatres) {
+    if (t.since === null) continue;
+    const mine = sideIn(gw, t.id, tag);
+    const theirs = sideIn(gw, t.id, foe);
+    if (mine === null || theirs === null || mine === theirs) continue;
+    const gained = posOf(t) - GW_FRONT_START[t.id] * GW_LINE_STEP;
+    up += (GW_FRONT_UP[t.id] === mine ? gained : -gained) * 10;
+  }
+  return clampTo(up, -100, 100);
+}
+
 /** What the chief of staff says of the odds: 0 hopeless .. 4 sure. */
 function estimate(gw: GreatWar, seat: GwSeatState, main: GwTheatre): number {
   const t = gw.s.theatres.find((x) => x.id === main)!;
-  const side = gw.nation(seat.tag)?.side;
-  if (side === null || side === undefined) return 2;
+  const side = memberEnd(gw, main, seat.tag);
+  if (side === null) return 2;
   const cos = officeHolder(gw, seat, "chief_of_staff");
   const bias =
     cos === null
@@ -814,9 +893,9 @@ function estimate(gw: GreatWar, seat: GwSeatState, main: GwTheatre): number {
  */
 export function proposalsFor(gw: GreatWar, seat: GwSeatState): GwProposal[] {
   const n = gw.nation(seat.tag);
-  if (n === null || !fights(n) || n.side === null) return [];
+  if (n === null || !fights(n)) return [];
   const mine = gw.s.theatres.filter(
-    (t) => t.open && membersOf(gw, t.id, n.side!).includes(seat.tag),
+    (t) => t.open && memberEnd(gw, t.id, seat.tag) !== null,
   );
   if (mine.length === 0) return [];
   const cos = officeHolder(gw, seat, "chief_of_staff");
@@ -878,7 +957,7 @@ export function proposalsFor(gw: GreatWar, seat: GwSeatState): GwProposal[] {
   const age = gw.s.chapter - (gw.s.warChapter ?? gw.s.chapter);
   const believes =
     age <= OPENING_CHAPTERS ||
-    (pressOdds(gw, wants, n.side) >= floor &&
+    (pressOdds(gw, wants, memberEnd(gw, wants, seat.tag)!) >= floor &&
       gw.s.chapter - n.spent > 1 &&
       n.manpower >= MEN_LOW);
   if (!believes) add("hold_all", wants, "hold", "limited", 0, null);
@@ -901,6 +980,7 @@ export function proposalsFor(gw: GreatWar, seat: GwSeatState): GwProposal[] {
   }
   if (believes) add("hold_all", wants, "hold", "limited", 0, null);
   if (
+    n.side !== null &&
     gw.s.nations.some((x) => x.side === n.side && x.tag !== n.tag && fights(x))
   ) {
     add("help_ally", wants, "hold", "limited", 2, null);
@@ -927,11 +1007,9 @@ function tellOf(
   return out;
 }
 
-/** The theatres of `GW_THEATRE_SIDES` a seat's country fights in. */
+/** The open fronts a seat's country fights on, on either end. */
 export function ownFronts(gw: GreatWar, seat: GwSeatState): GwTheatreState[] {
-  const side = gw.nation(seat.tag)?.side ?? null;
-  if (side === null) return [];
   return gw.s.theatres.filter(
-    (t) => t.open && GW_THEATRE_SIDES[t.id][side].includes(seat.tag),
+    (t) => t.open && memberEnd(gw, t.id, seat.tag) !== null,
   );
 }

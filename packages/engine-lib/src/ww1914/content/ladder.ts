@@ -55,10 +55,15 @@ const bySender: GwVariant[] = [
 export const GW_LADDER_NOTE = "gw_ladder_note";
 export const GW_LADDER_REFUSED = "gw_ladder_refused";
 export const GW_LADDER_LAST = "gw_ladder_last";
+/** War between any pair (ww171): a seat's declaration, a peace offer. */
+export const GW_WAR_NOTE = "gw_war_note";
+export const GW_PAIR_OFFER = "gw_pair_offer";
 export const GW_LADDER_CALLED: readonly string[] = [
   GW_LADDER_NOTE,
   GW_LADDER_REFUSED,
   GW_LADDER_LAST,
+  GW_WAR_NOTE,
+  GW_PAIR_OFFER,
 ];
 
 export const GW_LADDER_SCENES: readonly GwScene[] = [
@@ -112,6 +117,65 @@ export const GW_LADDER_SCENES: readonly GwScene[] = [
       { id: "give_way", tell: [], effects: [answer(true)] },
       { id: "stand", tell: [], effects: [answer(false)] },
     ],
+  },
+  {
+    // To a seat another seat declared war on: it came as the chapter closed.
+    id: GW_WAR_NOTE,
+    nation: [...SEATS],
+    kind: "wire",
+    scheduledOnly: true,
+    cast: {},
+    salience: 9,
+    tags: ["foreign", "war"],
+    variants: [{ id: "base" }],
+  },
+  {
+    // To a seat offered a peace of the two alone: take it, or fight on.
+    id: GW_PAIR_OFFER,
+    nation: [...SEATS],
+    kind: "crisis",
+    scheduledOnly: true,
+    noBack: true,
+    cast: {},
+    salience: 9,
+    tags: ["foreign", "war"],
+    variants: [{ id: "base" }],
+    fallback: "fight_on",
+    options: [
+      {
+        id: "make_peace",
+        tell: [],
+        effects: [doWorld({ do: "pair_peace_answer", yes: true })],
+      },
+      {
+        id: "fight_on",
+        tell: [],
+        effects: [doWorld({ do: "pair_peace_answer", yes: false })],
+      },
+    ],
+  },
+  {
+    // The war and peace rows' result cards (ww171).
+    id: "gw_war_sent",
+    nation: [...SEATS],
+    kind: "wire",
+    silent: true,
+    scheduledOnly: true,
+    cast: {},
+    salience: 0,
+    tags: ["foreign", "war"],
+    variants: [{ id: "base" }],
+  },
+  {
+    id: "gw_peace_sent",
+    nation: [...SEATS],
+    kind: "wire",
+    silent: true,
+    scheduledOnly: true,
+    cast: {},
+    salience: 0,
+    tags: ["foreign", "war"],
+    variants: [{ id: "base" }],
   },
   {
     // The row's result card: the note is out.
@@ -186,5 +250,101 @@ const row = (tag: GwTag): GwPowerRow => ({
   scene: "gw_ladder_sent",
 });
 
-/** One row a seat; Germany's is `deu_pw_note` beside its phase-1 row. */
-export const GW_LADDER_POWERS: readonly GwPowerRow[] = SEATS.map(row);
+/**
+ * What a declaration needs, by each seat's law, as its July row has it: the
+ * Bundesrat's consent beside the Chancellor's signature (Reich constitution
+ * Art. 11 and 17); the cabinet in London; Budapest's consent in Vienna; the
+ * Emperor alone in Petersburg (Fundamental Laws Art. 13); both chambers in
+ * Paris (constitutional law of 16 July 1875, Art. 9).
+ */
+const WAR_NEEDS: Readonly<
+  Partial<Record<GwTag, NonNullable<GwPowerRow["needs"]>>>
+> = {
+  DEU: {
+    office: "chancellor",
+    house: { houses: ["bundesrat"], stance: { deu_south: 1 }, lean: 1 },
+  },
+  GBR: { council: "entry" },
+  AUH: { office: "foreign", consent: "auh_work" },
+  FRA: {
+    office: "foreign",
+    house: {
+      houses: ["chambre", "senat"],
+      stance: {
+        fra_radicals: 1,
+        fra_caillaux: 0,
+        fra_repsoc: 1,
+        fra_sfio: 0,
+        fra_minority: -1,
+        fra_left_rep: 1,
+        fra_fed_rep: 1,
+        fra_catholics: 1,
+        fra_tiger: 1,
+      },
+    },
+  },
+};
+
+/**
+ * War on any country the seat could fight (ww171 phase 4): once an ultimatum
+ * between the two was refused, or at once on one at war with the seat's
+ * coalition or treaty partners. Its procedure is the seat's own (WAR_NEEDS).
+ */
+const warRow = (tag: GwTag): GwPowerRow => ({
+  id: `${tag.toLowerCase()}_pw_war_on`,
+  tag,
+  group: "war",
+  kind: "lawful",
+  opens: [{ when: afterJuly, why: "ladder_july" }],
+  needs: WAR_NEEDS[tag],
+  authority: 15,
+  cooldown: 2,
+  fields: [
+    {
+      id: "on",
+      options: GW_LADDER_REACH.filter((t) => t !== tag).map((t) => ({
+        id: t.toLowerCase(),
+        when: world({ is: "war_target", tag: t }),
+        effects: [doWorld({ do: "declare_war", tag: t })],
+      })),
+    },
+  ],
+  tags: ["war_offensive"],
+  effects: [],
+  scene: "gw_war_sent",
+});
+
+/** A peace of the two alone with any country the seat is at war with. */
+const peaceRow = (tag: GwTag): GwPowerRow => ({
+  id: `${tag.toLowerCase()}_pw_peace_with`,
+  tag,
+  group: "war",
+  kind: "lawful",
+  opens: [{ when: world({ is: "war" }), why: "peace" }],
+  needs: SIGNER[tag],
+  authority: 5,
+  cooldown: 2,
+  fields: [
+    {
+      id: "with",
+      options: GW_LADDER_REACH.filter((t) => t !== tag).map((t) => ({
+        id: t.toLowerCase(),
+        when: world({ is: "peace_target", tag: t }),
+        effects: [doWorld({ do: "pair_peace", tag: t })],
+      })),
+    },
+  ],
+  tags: [],
+  effects: [],
+  scene: "gw_peace_sent",
+});
+
+/**
+ * One note row a seat (Germany's is `deu_pw_note` beside its phase-1 row),
+ * then the war and peace rows of any pair (ww171).
+ */
+export const GW_LADDER_POWERS: readonly GwPowerRow[] = [
+  ...SEATS.map(row),
+  ...SEATS.map(warRow),
+  ...SEATS.map(peaceRow),
+];

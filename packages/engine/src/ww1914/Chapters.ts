@@ -17,6 +17,7 @@ import { intelStep } from "./Intel";
 import { ladderStep } from "./Ladder";
 import { frontLandStep } from "./Land";
 import { lawStep } from "./Laws";
+import { warStep } from "./PairWar";
 import { nextConferenceChapter, skipToConference } from "./Peace";
 import { peopleStep } from "./People";
 import { firstEdition, pressStep } from "./Press";
@@ -42,6 +43,7 @@ export const GW_CHAPTER_STEPS: readonly ((gw: GreatWar) => void)[] = [
   stampMobilisation,
   crisisStep,
   ladderStep,
+  warStep,
   frontsStep,
   frontLandStep,
   (gw) => seaStep(gw, warScore(gw, "central")),
@@ -75,7 +77,7 @@ export function allReady(gw: GreatWar): boolean {
 
 /** What the ticker says when a chapter is one the cabinet will want to talk of. */
 const BIG_NEWS =
-  /^(entered_war|america_entered|britain_entered|nation_|sued_|regime_|front_break|unrest_[34])/;
+  /^(entered_war|america_entered|britain_entered|nation_|sued_|regime_|front_break|unrest_[34]|war_pair|pair_peace$)/;
 /** Chapters between two big ones, so a bad autumn isn't all talk. */
 const BIG_EVERY = 6;
 

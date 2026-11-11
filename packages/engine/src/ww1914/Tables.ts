@@ -28,16 +28,28 @@ export const GW_ACTORS: readonly GwTag[] = [
   "ROU",
   "BGR",
   "GRC",
+  // ww171: the two the new fronts set against the powers.
+  "NLD",
+  "IRN",
 ];
 
 /** Strength bands 1..5 where a country fights; the seed moves each by one. */
 export const GW_FORCE: Readonly<
   Partial<Record<GwTag, Partial<Record<GwTheatre, number>>>>
 > = {
-  DEU: { west: 5, east: 2, balkan: 1, italy: 1, sea: 3, colonies: 1 },
-  AUH: { east: 3, balkan: 2, italy: 3 },
-  RUS: { east: 4, caucasus: 3 },
-  FRA: { west: 4, balkan: 1, colonies: 1, straits: 1 },
+  DEU: {
+    west: 5,
+    east: 2,
+    balkan: 1,
+    italy: 1,
+    sea: 3,
+    colonies: 1,
+    danube: 1,
+    low_countries: 3,
+  },
+  AUH: { east: 3, balkan: 2, italy: 3, danube: 2 },
+  RUS: { east: 4, caucasus: 3, persia: 1, dobruja: 1 },
+  FRA: { west: 4, balkan: 1, colonies: 1, straits: 1, alps: 2 },
   GBR: {
     west: 2,
     sea: 5,
@@ -46,23 +58,39 @@ export const GW_FORCE: Readonly<
     mesopotamia: 1,
     palestine: 1,
     colonies: 3,
+    persia: 1,
   },
-  ITA: { italy: 3 },
-  OTT: { caucasus: 2, straits: 3, mesopotamia: 2, palestine: 2 },
+  ITA: { italy: 3, alps: 2 },
+  OTT: {
+    caucasus: 2,
+    straits: 3,
+    mesopotamia: 2,
+    palestine: 2,
+    thrace: 2,
+    dobruja: 1,
+    persia: 1,
+  },
   USA: { west: 1, sea: 2 },
   JPN: { colonies: 2 },
   SRB: { balkan: 2 },
   MNE: { balkan: 1 },
   BEL: { west: 1 },
-  ROU: { east: 2 },
-  BGR: { balkan: 3 },
-  GRC: { balkan: 1 },
+  ROU: { east: 2, danube: 2, dobruja: 1 },
+  BGR: { balkan: 3, danube: 1, dobruja: 2, thrace: 2 },
+  GRC: { balkan: 1, thrace: 1 },
+  NLD: { low_countries: 2 },
+  IRN: { persia: 1 },
 };
 
 const SIDES = (central: GwTag[], entente: GwTag[]) => ({ central, entente });
 
-/** Who fights in a theatre, the lead first. */
-export const GW_THEATRE_SIDES: Readonly<
+/**
+ * The two ends of every front, the lead first (design ww168 B5). A front opens
+ * when a country on one end is at war with one on the other, whatever their
+ * coalitions. The old theatres' ends are the coalitions' as they were; a new
+ * front's end names are only labels (GW_FRONT_UP says which end moves it up).
+ */
+export const GW_FRONT_ENDS: Readonly<
   Record<GwTheatre, Readonly<Record<GwSide, readonly GwTag[]>>>
 > = {
   west: SIDES(["DEU"], ["FRA", "GBR", "BEL", "USA"]),
@@ -76,35 +104,64 @@ export const GW_THEATRE_SIDES: Readonly<
   palestine: SIDES(["OTT"], ["GBR"]),
   sea: SIDES(["DEU"], ["GBR", "USA"]),
   colonies: SIDES(["DEU"], ["GBR", "FRA", "JPN"]),
+  alps: SIDES(["ITA"], ["FRA"]),
+  danube: SIDES(["AUH", "DEU", "BGR"], ["ROU"]),
+  thrace: SIDES(["OTT"], ["BGR", "GRC"]),
+  low_countries: SIDES(["DEU"], ["NLD"]),
+  dobruja: SIDES(["BGR", "OTT"], ["ROU", "RUS"]),
+  persia: SIDES(["OTT", "IRN"], ["RUS", "GBR"]),
 };
+
+/** The ten theatres of the coalition war: their ends are the coalitions. */
+export const GW_COALITION_FRONTS: readonly GwTheatre[] = GW_THEATRES.slice(
+  0,
+  10,
+);
 
 export function theatresOf(tag: GwTag): GwTheatre[] {
   return GW_THEATRES.filter(
     (t) =>
-      GW_THEATRE_SIDES[t].central.includes(tag) ||
-      GW_THEATRE_SIDES[t].entente.includes(tag),
+      GW_FRONT_ENDS[t].central.includes(tag) ||
+      GW_FRONT_ENDS[t].entente.includes(tag),
   );
 }
+
+/** The fronts where `a` and `b` stand on opposite ends. */
+export function frontsBetween(a: GwTag, b: GwTag): GwTheatre[] {
+  return GW_THEATRES.filter((t) => {
+    const e = GW_FRONT_ENDS[t];
+    return (
+      (e.central.includes(a) && e.entente.includes(b)) ||
+      (e.entente.includes(a) && e.central.includes(b))
+    );
+  });
+}
+
+/** Two countries that could fight: they share a front, on its two ends. */
+export const reachable = (a: GwTag, b: GwTag): boolean =>
+  a !== b && frontsBetween(a, b).length > 0;
 
 /** The AI's order of theatres to put its main effort in. */
 export const GW_AI_MAIN: Readonly<
   Partial<Record<GwTag, readonly GwTheatre[]>>
 > = {
-  DEU: ["west", "east", "balkan", "italy"],
-  AUH: ["balkan", "east", "italy"],
-  RUS: ["east", "caucasus"],
-  FRA: ["west", "straits"],
-  GBR: ["west", "straits", "mesopotamia", "palestine", "sea"],
-  ITA: ["italy"],
-  OTT: ["caucasus", "straits", "palestine", "mesopotamia"],
+  DEU: ["west", "east", "balkan", "italy", "low_countries", "danube"],
+  AUH: ["balkan", "east", "italy", "danube"],
+  RUS: ["east", "caucasus", "dobruja", "persia"],
+  FRA: ["west", "straits", "alps"],
+  GBR: ["west", "straits", "mesopotamia", "palestine", "sea", "persia"],
+  ITA: ["italy", "alps"],
+  OTT: ["caucasus", "straits", "palestine", "mesopotamia", "thrace", "persia"],
   USA: ["west"],
   JPN: ["colonies"],
   SRB: ["balkan"],
   MNE: ["balkan"],
   BEL: ["west"],
-  ROU: ["east"],
-  BGR: ["balkan"],
-  GRC: ["balkan"],
+  ROU: ["east", "danube", "dobruja"],
+  BGR: ["balkan", "thrace", "dobruja", "danube"],
+  GRC: ["balkan", "thrace"],
+  NLD: ["low_countries"],
+  IRN: ["persia"],
 };
 
 /** What each trains its research on, a year at a time, round and round. */
@@ -242,8 +299,11 @@ export const GW_ARMY_QUALITY: Readonly<Partial<Record<GwTag, number>>> = {
 
 export interface GwEntry {
   readonly tag: GwTag;
-  /** The earliest date it can come in, YYYY-MM-DD. */
-  readonly earliest: string;
+  /**
+   * Readiness it needs beyond its character's bar (ww171: no date). A war has
+   * to make it ready: its pressure, a side going forward, a price.
+   */
+  readonly holds: number;
   /** Who it joins with no price and no lean: null, the likelier winner. */
   readonly natural: GwSide | null;
   /** Readiness at the start. */
@@ -260,7 +320,7 @@ export interface GwEntry {
 export const GW_ENTRIES: readonly GwEntry[] = [
   {
     tag: "JPN",
-    earliest: "1914-08-20",
+    holds: 0,
     natural: "entente",
     start: 45,
     offers: { central: 1, entente: 3 },
@@ -269,7 +329,7 @@ export const GW_ENTRIES: readonly GwEntry[] = [
   },
   {
     tag: "OTT",
-    earliest: "1914-10-15",
+    holds: 10,
     natural: "central",
     start: 40,
     offers: { central: 4, entente: 2 },
@@ -278,7 +338,7 @@ export const GW_ENTRIES: readonly GwEntry[] = [
   },
   {
     tag: "ITA",
-    earliest: "1915-03-01",
+    holds: 30,
     natural: null,
     start: 20,
     offers: { central: 2, entente: 4 },
@@ -287,7 +347,7 @@ export const GW_ENTRIES: readonly GwEntry[] = [
   },
   {
     tag: "BGR",
-    earliest: "1915-08-01",
+    holds: 40,
     natural: "central",
     start: 20,
     offers: { central: 4, entente: 2 },
@@ -296,7 +356,7 @@ export const GW_ENTRIES: readonly GwEntry[] = [
   },
   {
     tag: "ROU",
-    earliest: "1916-05-01",
+    holds: 55,
     natural: "entente",
     start: 10,
     offers: { central: 2, entente: 4 },
@@ -305,13 +365,99 @@ export const GW_ENTRIES: readonly GwEntry[] = [
   },
   {
     tag: "GRC",
-    earliest: "1917-04-01",
+    holds: 65,
     natural: "entente",
     start: 5,
     offers: { central: 1, entente: 3 },
     watches: "balkan",
     scene: "gw_price_grc",
   },
+];
+
+/**
+ * The treaties of June 1914 (design ww168 B5), as data: who is bound to come
+ * in, for whom, against whom. `defensive`: only when the partner was the one
+ * attacked. `protector`: a lean, not a treaty (Russia and Serbia). The
+ * Belgian guarantee is Britain's cabinet's to honour (Ai.britainStep). `pct`:
+ * the chance a government nobody plays honours it, before its character and
+ * state. A seat is bound in July by its own mobilisation papers.
+ */
+export interface GwStartTreaty {
+  readonly id: string;
+  readonly kind: "alliance" | "defensive" | "protector" | "kin" | "guarantee";
+  readonly by: GwTag;
+  readonly for: GwTag;
+  /** Only against these; absent: anyone. */
+  readonly against?: readonly GwTag[];
+  readonly pct: number;
+}
+
+export const GW_START_TREATIES: readonly GwStartTreaty[] = [
+  // The Dual Alliance (1879): Russia's attack on either brings the other.
+  {
+    id: "dual_alliance",
+    kind: "alliance",
+    by: "DEU",
+    for: "AUH",
+    against: ["RUS"],
+    pct: 90,
+  },
+  {
+    id: "dual_alliance",
+    kind: "alliance",
+    by: "AUH",
+    for: "DEU",
+    against: ["RUS"],
+    pct: 85,
+  },
+  // The Franco-Russian alliance (1894): against Germany.
+  {
+    id: "franco_russian",
+    kind: "alliance",
+    by: "FRA",
+    for: "RUS",
+    against: ["DEU"],
+    pct: 90,
+  },
+  {
+    id: "franco_russian",
+    kind: "alliance",
+    by: "RUS",
+    for: "FRA",
+    against: ["DEU"],
+    pct: 85,
+  },
+  // The Triple Alliance (1882, renewed 1912): defensive, and Italy's own reading.
+  {
+    id: "triple_alliance",
+    kind: "defensive",
+    by: "ITA",
+    for: "DEU",
+    against: ["FRA"],
+    pct: 40,
+  },
+  {
+    id: "triple_alliance",
+    kind: "defensive",
+    by: "ITA",
+    for: "AUH",
+    against: ["RUS", "FRA"],
+    pct: 25,
+  },
+  // King Carol's secret pact with Vienna (1883): the crown council said no.
+  {
+    id: "romania_pact",
+    kind: "defensive",
+    by: "ROU",
+    for: "AUH",
+    against: ["RUS"],
+    pct: 20,
+  },
+  // The Treaty of London (1839): Britain guarantees Belgium.
+  { id: "london_1839", kind: "guarantee", by: "GBR", for: "BEL", pct: 0 },
+  // Russia stands behind Serbia; Montenegro goes with it.
+  { id: "serbia_protector", kind: "protector", by: "RUS", for: "SRB", pct: 75 },
+  { id: "serbian_kin", kind: "kin", by: "MNE", for: "SRB", pct: 95 },
 ];
 
 /** Readiness a neutral needs, by character (design §10). */

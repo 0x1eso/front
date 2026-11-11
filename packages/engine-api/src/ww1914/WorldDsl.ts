@@ -275,7 +275,30 @@ export type GwWorldCond =
       of?: GwLadderStep[];
     }
   /** The seat could send this country a note now (eng/ww1914/Ladder). */
-  | { is: "ladder_target"; tag: GwTag };
+  | { is: "ladder_target"; tag: GwTag }
+  // ---- War between any pair (ww171 phase 4) ----
+  /** The seat may declare war on `tag` now (reachable, a cause, not allied). */
+  | { is: "war_target"; tag: GwTag }
+  /** The seat is at war with `tag` and may offer it a peace of their own. */
+  | { is: "peace_target"; tag: GwTag }
+  /**
+   * A war between `tag` (absent: the seat's country) and `with` (absent:
+   * anyone), on now, begun this many months ago. `outside`: neither in a
+   * coalition against the other (a war of their own). `cause`: how it came.
+   */
+  | ({
+      is: "pair_war";
+      tag?: GwTag;
+      with?: GwTag;
+      outside?: boolean;
+      cause?: string[];
+    } & Range)
+  /** As `pair_war`, for a war that ended in a peace this many months ago. */
+  | ({ is: "pair_peace"; tag?: GwTag; with?: GwTag } & Range)
+  /** A front opened this many months ago and is still open. */
+  | ({ is: "front_months"; theatre: GwTheatre } & Range)
+  /** A peace offer waits for the seat's answer (from `tag`, if given). */
+  | { is: "peace_offered"; tag?: GwTag };
 
 export type GwWorldEffect =
   /** Germany's plan for the war to come. */
@@ -434,7 +457,14 @@ export type GwWorldEffect =
   /** The seat that was sent a note gives way (`yes`) or refuses. */
   | { do: "ladder_answer"; yes: boolean }
   /** The sender, refused: mobilises (`on`) or climbs down. */
-  | { do: "ladder_press"; on: boolean };
+  | { do: "ladder_press"; on: boolean }
+  // ---- War between any pair (ww171 phase 4) ----
+  /** The seat's country declares war on `tag` (to a seat: next chapter). */
+  | { do: "declare_war"; tag: GwTag }
+  /** The seat offers `tag` a peace of the two alone. */
+  | { do: "pair_peace"; tag: GwTag }
+  /** The seat answers the peace offer it was sent. */
+  | { do: "pair_peace_answer"; yes: boolean };
 
 const int = z.number().int();
 const yearMonth = z.string().regex(/^19[0-9]{2}-[01][0-9]$/);
@@ -579,6 +609,18 @@ export const GwWorldCondSchema = z.union([
     of: z.array(z.enum(GW_LADDER_STEPS)).optional(),
   }),
   is("ladder_target", { tag }),
+  is("war_target", { tag }),
+  is("peace_target", { tag }),
+  is("pair_war", {
+    tag: tag.optional(),
+    with: tag.optional(),
+    outside: z.boolean().optional(),
+    cause: z.array(GwIdSchema).optional(),
+    ...range,
+  }),
+  is("pair_peace", { tag: tag.optional(), with: tag.optional(), ...range }),
+  is("front_months", { theatre, ...range }),
+  is("peace_offered", { tag: tag.optional() }),
 ]) as unknown as z.ZodType<GwWorldCond>;
 
 export const GwWorldEffectSchema = z.union([
@@ -673,6 +715,9 @@ export const GwWorldEffectSchema = z.union([
   act("ultimatum", { tag }),
   act("ladder_answer", { yes: z.boolean() }),
   act("ladder_press", { on: z.boolean() }),
+  act("declare_war", { tag }),
+  act("pair_peace", { tag }),
+  act("pair_peace_answer", { yes: z.boolean() }),
 ]) as unknown as z.ZodType<GwWorldEffect>;
 
 // ---- Authoring helpers ----
