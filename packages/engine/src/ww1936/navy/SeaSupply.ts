@@ -167,11 +167,17 @@ function buildSideNet(navy: WwNavy, side: number, stamp: string): SideNet {
     railNet.add(c);
     q.push(c);
   }
+  // ww177 (Imjin design §4): no railway; the roads join the side's land.
+  const imjin = navy.ww.imjin;
   for (let i = 0; i < q.length; i++) {
     const u = q[i];
-    if ((rail[u] ?? 0) < 1) continue;
+    if (!imjin && (rail[u] ?? 0) < 1) continue;
     for (const e of sc.edgesOf(u)) {
-      if (!railNet.has(e.to) && ours(e.to) && (rail[e.to] ?? 0) >= 1) {
+      if (
+        !railNet.has(e.to) &&
+        ours(e.to) &&
+        (imjin || (rail[e.to] ?? 0) >= 1)
+      ) {
         railNet.add(e.to);
         q.push(e.to);
       }
@@ -316,6 +322,9 @@ export function seaHubCapacityMilli(
   if (r === null) return 0;
   const base = baseMilli(navy, region, side);
   if (base === 0) return 0;
+  // ww177 (Imjin design §6.2): supply arrives only by the groups that land.
+  const imjin = navy.ww.imjinWar;
+  if (imjin !== null) return Math.min(base, imjin.landedPerDay(r.id));
   const eff = routeEffPm(enemySupremacies(navy, side, r.srs));
   // ConvoyRules.seaHubCapacity's (and lane I's beachhead's) arithmetic.
   const byConvoys = Math.floor(

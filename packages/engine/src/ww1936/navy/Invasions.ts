@@ -642,7 +642,7 @@ export function invasionLaunchBlock(
   const side = navy.sideOf(inv.owner);
   // Easy invasions: supremacy is a risk at sea (capped losses), not a gate.
   for (const sr of inv.easy ? [] : route.srs) {
-    if (navy.supremacy(side, sr) < WW_INVASION_LAUNCH_SUP_PM) {
+    if (navy.holdPm(side, sr) < WW_INVASION_LAUNCH_SUP_PM) {
       return "naval_supremacy_low";
     }
   }
@@ -748,7 +748,7 @@ export function dailyInvasions(
       const sr = zone === 0 ? 0 : navy.scenario.zoneSr(zone);
       if (
         sr !== 0 &&
-        navy.supremacy(navy.sideOf(smallID), sr) < WW_INVASION_ABORT_SUP_PM
+        navy.holdPm(navy.sideOf(smallID), sr) < WW_INVASION_ABORT_SUP_PM
       ) {
         abortVoyage(navy, inv, v);
       }

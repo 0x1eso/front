@@ -20,6 +20,8 @@ import {
   traitBit,
   WW_SUPPLY_RANGE,
 } from "@openfront/engine-api/ww1936/LandTypes";
+import { terrainRow } from "@openfront/engine-lib/imjin/LandRules";
+import { regionTerrain } from "@openfront/engine-lib/imjin/Terrain";
 import { BAND_OCCUPY_SUPPLY_PCT } from "@openfront/engine-lib/ww1936/BandRules";
 import { RegionHeap } from "@openfront/engine-lib/ww1936/RegionHeap";
 import {
@@ -147,6 +149,11 @@ function sideRegions(
   return { ours, regions };
 }
 
+/** ww177: an Imjin walled town is a supply hub (LandRules' terrain table). */
+function imjinHub(sc: WwLand["scenario"], r: number): boolean {
+  return terrainRow(regionTerrain(sc, r)).hub;
+}
+
 /**
  * Spec §11.1: the side's live hubs in region order (a port can also be a
  * land hub). Capitals always; cities (vp ≥ 10) and built hubs only while
@@ -189,7 +196,10 @@ function hubsOf(
   const sc = land.scenario;
   const rail = land.econ.railEff;
   const hubLv = land.econ.hubEff;
-  // The rail net from the capitals (spec §11.1).
+  // The rail net from the capitals (spec §11.1). ww177 (Imjin design §4):
+  // the Imjin War has no railway; its roads join every region of the side,
+  // and its walled towns are the hubs.
+  const imjin = land.ww.imjin;
   const isCapital = new Uint8Array(ours.length);
   const railNet = new Uint8Array(ours.length);
   const q: number[] = [];
@@ -201,9 +211,13 @@ function hubsOf(
   }
   for (let i = 0; i < q.length; i++) {
     const u = q[i];
-    if (rail[u] < 1) continue;
+    if (!imjin && rail[u] < 1) continue;
     for (const e of sc.edgesOf(u)) {
-      if (railNet[e.to] === 0 && ours[e.to] === 1 && rail[e.to] >= 1) {
+      if (
+        railNet[e.to] === 0 &&
+        ours[e.to] === 1 &&
+        (imjin || rail[e.to] >= 1)
+      ) {
         railNet[e.to] = 1;
         q.push(e.to);
       }
@@ -215,7 +229,8 @@ function hubsOf(
     const kind =
       isCapital[r] === 1
         ? HUB_CAPITAL
-        : railNet[r] === 1 && reg.vp >= HUB_CITY_VP
+        : railNet[r] === 1 &&
+            (reg.vp >= HUB_CITY_VP || (imjin && imjinHub(sc, r)))
           ? HUB_CITY
           : railNet[r] === 1 && hubLv[r] >= 1
             ? HUB_BUILT

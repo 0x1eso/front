@@ -87,6 +87,8 @@ export class WorldWarExecution implements Execution {
     ww.navy.tick(ticks);
     // ww177: the air war is off in the Imjin War (Profile.ts).
     if (ww.systemOn("air")) ww.air.tick(ticks);
+    // ww177: the Imjin War's sea layer and sieges, after the navy.
+    ww.imjinWar?.tick(ticks);
     // P5 (spec §2.2 order 8): conference deadlines, takeovers, woken countries.
     ww.endgame.tick(ticks);
     // P3 order 6: human event cards past their deadline.
@@ -119,6 +121,9 @@ export class WorldWarExecution implements Execution {
     // P6 (plan decision 36): after P5's.
     const dp = ww.depth.takeData();
     if (dp !== null) mg.addUpdate({ type: GameUpdateType.WwDepth, data: dp });
+    // ww177: the Imjin War's own screens, last.
+    const im = ww.imjinWar?.takeData() ?? null;
+    if (im !== null) mg.addUpdate({ type: GameUpdateType.WwImjin, data: im });
   }
 
   isActive(): boolean {

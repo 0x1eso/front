@@ -1,5 +1,6 @@
 import {
   ImjinMapSchema,
+  ScenarioDataSchema,
   ScenarioRegionSchema,
 } from "@openfront/engine-api/ww1936/ScenarioTypes";
 import {
@@ -13,9 +14,7 @@ import fs from "fs";
 import path from "path";
 import { describe, expect, it } from "vitest";
 
-// The built Imjin map (map-generator cmd/ww1936build imjin.go). Its owners
-// (JOS, MIN, JUR) are the profile lane's tags, so the whole file is read
-// raw here and only the Imjin parts go through their schemas.
+// The built Imjin map (map-generator cmd/ww1936build imjin.go).
 const raw = JSON.parse(
   fs.readFileSync(
     path.join(__dirname, "../../resources/maps/imjin1592/scenario.json"),
@@ -48,6 +47,7 @@ const tileOf = (x: number, y: number) => y * raw.width + x;
 
 describe("Imjin terrain data", () => {
   it("passes its schemas", () => {
+    expect(ScenarioDataSchema.safeParse(raw).success).toBe(true);
     expect(() => ImjinMapSchema.parse(raw.imjin)).not.toThrow();
     for (const r of raw.regions) {
       expect(

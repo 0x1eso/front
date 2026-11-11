@@ -39,6 +39,7 @@ import {
 import { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import { z } from "zod";
 import type { Game, Player } from "../game/Game";
+import { WwImjin } from "../imjin/WwImjin";
 import { WwAir, WwAirStateSchema } from "./air/WwAir";
 import { WwDepth, WwDepthStateSchema } from "./depth/WwDepth";
 import { WwEconomy, WwEconomyStateSchema } from "./economy/WwEconomy";
@@ -78,6 +79,8 @@ export const WorldWarStateSchema = z.object({
   endgame: WwEndgameStateSchema.optional(),
   /** P6 (P6 plan decision 26): always written; a snapshot without it is refused. */
   depth: WwDepthStateSchema.optional(),
+  /** ww177: the Imjin War's own state (WwImjin), as JSON; Imjin games only. */
+  imjin: z.string().optional(),
 });
 export type WorldWarState = z.infer<typeof WorldWarStateSchema>;
 
@@ -150,6 +153,8 @@ export class WorldWar {
   readonly epoch: number;
   /** ww177: the Imjin War's start (Starts.ts), null in 1936. */
   readonly imjinStart: ImjinStartId | null;
+  /** ww177: the Imjin War's sea layer, land orders and sieges; null in 1936. */
+  readonly imjinWar: WwImjin | null;
 
   constructor(
     private readonly mg: Game,
@@ -182,6 +187,7 @@ export class WorldWar {
     // through its depth hooks.
     this.depth = new WwDepth(mg, this);
     this.land.depthHooks = this.depth;
+    this.imjinWar = this.imjin ? new WwImjin(mg, this) : null;
   }
 
   /**
@@ -227,6 +233,7 @@ export class WorldWar {
     // P6 (plan decision 2): last; recomputeStats and the economy read its
     // neutral answers until now (pre-flight §0-9).
     this.depth.start();
+    this.imjinWar?.start();
   }
 
   // ---- Queries ----
@@ -649,7 +656,12 @@ export class WorldWar {
     // P5 (spec §21.5): after P4's.
     h = (Math.imul(h, 31) + this.endgame.hash()) | 0;
     // P6 (spec §21.6): after P5's.
-    return (Math.imul(h, 31) + this.depth.hash()) >>> 0;
+    h = (Math.imul(h, 31) + this.depth.hash()) | 0;
+    // ww177: the Imjin War's own state, in Imjin games only.
+    if (this.imjinWar !== null) {
+      h = (Math.imul(h, 31) + this.imjinWar.hash()) | 0;
+    }
+    return h >>> 0;
   }
 
   snapshot(): WorldWarState {
@@ -678,6 +690,7 @@ export class WorldWar {
       air: this.air.snapshot(),
       endgame: this.endgame.snapshot(),
       depth: this.depth.snapshot(),
+      ...(this.imjinWar === null ? {} : { imjin: this.imjinWar.snapshot() }),
     };
   }
 
@@ -751,6 +764,10 @@ export class WorldWar {
     this.air.restoreState(s.air);
     // P6: last (its derived design caches read the economy's techs).
     this.depth.restoreState(s.depth);
+    if (this.imjinWar !== null && s.imjin !== undefined) {
+      this.imjinWar.restore(s.imjin);
+      this.imjinWar.restoreDay(s.lastDay);
+    }
   }
 
   private rebuildMatrix(): void {

@@ -63,6 +63,9 @@ import type { WwNavy } from "./WwNavy";
 export const AI_INVASION_MIN = 3;
 /** 내 판단: an army of 3 would be merged back by the land AI's grouping (≤ 3); gather 4 or more. */
 export const AI_INVASION_GATHER = 4;
+/** ww177: Imjin shores this much farther than the nearest count as near, km. */
+const IMJIN_NEAR_KM = 60;
+
 /** Spec §11.3: the launch needs this supremacy on every route region. */
 export const AI_LAUNCH_SUP_PM = 500;
 /** 내 판단: the walk to a port turns to rail beyond this (the land AI's AI_RAIL_MIN_KM). */
@@ -259,6 +262,9 @@ export function aiInvasions(navy: WwNavy, smallID: number, day: number): void {
   const p = navy.mg.playerBySmallID(smallID);
   // P5 plan decision 7: a human controls it now.
   if (!p.isPlayer() || navy.ww.isHumanControlled(smallID)) return;
+  // ww177 (Imjin design §10): Joseon fights for its own land; its AI
+  // lands nowhere overseas.
+  if (navy.ww.imjin && navy.ww.tagOf(smallID) === "JOS") return;
   const tick = navy.mg.ticks();
   reviewReady(navy, smallID, day, tick);
   if (!aiAtWar(navy, smallID)) return;
@@ -379,6 +385,13 @@ function planInvasion(
       supPm: 0,
       from,
     });
+  }
+  // ww177 (Imjin design §8): the war's landing goes for the nearest shore
+  // (a sea crossing is short and the convoys turn round fast).
+  if (ww.imjin && cands.length > 0) {
+    let near = Infinity;
+    for (const c of cands) near = Math.min(near, c.routeKm);
+    for (const c of cands) if (c.routeKm <= near + IMJIN_NEAR_KM) c.beat = true;
   }
   // The expected supremacy, for the best-scored first (each a sea path).
   const enemySup = enemySupBySr(navy, me);

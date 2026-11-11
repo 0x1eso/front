@@ -46,6 +46,7 @@ function testCtx(seed: number): SeaCtx {
       channel: false,
       shoal: false,
       current: 0,
+      currentDir: 0,
     }),
     zoneOf: () => 0,
     hostile: (a, b) => a !== b,

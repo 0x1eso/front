@@ -54,6 +54,10 @@ import {
 import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import { ALL_EDGES, seaPath } from "@openfront/engine-lib/ww1936/SeaGraph";
 import { GEN_HP_PCT } from "@openfront/engine-lib/ww1936/ShipStats";
+import {
+  imjinEnemyPowerBySr,
+  imjinPowerOf,
+} from "../../imjin/sea/SeaSupremacy";
 import { isDepthFleet } from "../depth/AiSeaAir";
 import { convoysOf, effectiveLevel } from "../economy/Buildings";
 import { MISSION_ENGAGE } from "./Missions";
@@ -1883,6 +1887,9 @@ export function expectedSupPm(ours: number, enemyWorst: number): number {
 
 /** The enemy's supremacy power by sea region (fleets present; docked at half). */
 export function enemySupBySr(navy: WwNavy, me: number): Map<number, number> {
+  // ww177 (Imjin design §6.3): the tile fleets' power, for the estimates.
+  const im = navy.ww.imjinWar;
+  if (im !== null) return imjinEnemyPowerBySr(im, navy, me);
   const out = new Map<number, number>();
   for (const [sr, e] of aiEnemySeaView(navy, me)) out.set(sr, e.sup);
   return out;
@@ -1913,6 +1920,8 @@ export function routeSrs(
 
 /** Our battle fleets' and patrols' supremacy power (what can hold a route). */
 export function routePower(navy: WwNavy, me: number): number {
+  const im = navy.ww.imjinWar;
+  if (im !== null) return imjinPowerOf(im, me);
   let ours = 0;
   for (const f of navy.fleetsOf(me)) {
     const role = fleetRole(fleetCounts(navy, f));

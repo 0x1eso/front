@@ -1,5 +1,5 @@
 // Imjin sea layer: what the tick needs from the game, as plain functions, so
-// the rules run the same on a test map and on the real one (SeaGame.ts builds
+// the rules run the same on a test map and on the real one (WwImjin.ctx builds
 // it from a Game).
 import { MT } from "@openfront/engine-lib/imjin/SeaRules";
 import type { SeaFlags } from "@openfront/engine-lib/imjin/Terrain";
@@ -59,6 +59,7 @@ const NO_FLAGS: SeaFlags = {
   channel: false,
   shoal: false,
   current: 0,
+  currentDir: 0,
 };
 
 export function flagsAt(ctx: SeaCtx, x: number, y: number): SeaFlags {

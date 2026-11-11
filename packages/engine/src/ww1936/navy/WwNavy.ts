@@ -56,6 +56,7 @@ import { shipStats } from "@openfront/engine-lib/ww1936/ShipStats";
 import { emptyStats } from "@openfront/engine-lib/ww1936/Stats";
 import { z } from "zod";
 import type { Game } from "../../game/Game";
+import { imjinSupremacyRegion } from "../../imjin/sea/SeaSupremacy";
 import { receiveShip, returnDeckDesigns } from "../depth/DesignCopy";
 import {
   loseDesignPlanes,
@@ -843,10 +844,15 @@ export class WwNavy {
         }
       }
     }
-    applyFleetOrders(this, ticks); // ③
-    stepFleets(this, ticks); // ④ (the preparation minute: own waters, no battles)
+    // ww177 (Imjin design §6.3): the tile fleets replace 1936's fleet
+    // moves and battles; the voyages and landings stay.
+    const imjin = this.ww.imjinWar !== null;
+    if (!imjin) {
+      applyFleetOrders(this, ticks); // ③
+      stepFleets(this, ticks); // ④ (the preparation minute: own waters, no battles)
+    }
     if (!prep) {
-      stepNavalBattles(this, ticks); // ⑤ zone order
+      if (!imjin) stepNavalBattles(this, ticks); // ⑤ zone order
       stepSeaVoyages(this, ticks); // ⑥ sea moves and landings
     }
   }
@@ -1452,6 +1458,28 @@ export class WwNavy {
   supremacy(side: number, sr: number): number {
     const i = this.scenario.srIdxOf(sr);
     return i < 0 ? 0 : (this.srState[i].sup.get(side) ?? 0);
+  }
+
+  /**
+   * The hold a side has on a sea region for a landing, ‰: its supremacy;
+   * ww177 (Imjin design §6.3): in the Imjin War a sea no enemy fleet
+   * sails is open, so it is 1000 less the enemies' supremacy there.
+   */
+  holdPm(side: number, sr: number): number {
+    if (this.ww.imjinWar === null) return this.supremacy(side, sr);
+    const i = this.scenario.srIdxOf(sr);
+    if (i < 0) return 1000;
+    let e = 0;
+    for (const [k, v] of this.srState[i].sup) {
+      if (k === side) continue;
+      const foe = this.land
+        .sideMembers(k)
+        .some((x) =>
+          this.land.sideMembers(side).some((y) => this.land.isEnemy(x, y)),
+        );
+      if (foe) e += v;
+    }
+    return Math.max(0, 1000 - e);
   }
 
   setSupremacy(sr: number, values: ReadonlyMap<number, number>): void {
@@ -2566,6 +2594,14 @@ export function dailySeaRegion(
   const idx = navy.scenario.srIdxOf(sr);
   if (idx < 0) return;
   navy.srState[idx].lastDay = day;
+  // ww177 (Imjin design §6.3): spotting, missions, the convoy war and the
+  // zone battles are off; supremacy comes from the tile fleets.
+  const imjin = navy.ww.imjinWar;
+  if (imjin !== null) {
+    imjinSupremacyRegion(imjin, navy, sr);
+    navy.markSr(idx);
+    return;
+  }
   spotRegion(navy, sr, day); // N1
   supremacyRegion(navy, sr); // N1
   convoyWar(navy, sr, day); // C

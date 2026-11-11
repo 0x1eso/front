@@ -132,6 +132,15 @@ import { capture } from "./Occupation";
 import { noteEquipLoss } from "./Sustain";
 import { Battle, SPREAD_BATTLE, SPREAD_REVERT, type WwLand } from "./WwLand";
 
+import {
+  applyImjinFx,
+  imjinCrossingAllowed,
+  imjinMoraleHit,
+  imjinRoundOf,
+  imjinRoundTick,
+  imjinRouts,
+  imjinWidth,
+} from "../../imjin/land/ImjinBattle";
 const DESTROYED_KEY = "events_display.ww1936_divisions_destroyed" as const;
 
 /**
@@ -191,6 +200,14 @@ export function joinBattle(land: WwLand, div: number, region: number): void {
   if (!land.isEnemy(owner, land.controller[region])) return;
   const at = t.region[r];
   if (at !== region && land.scenario.edgeBetween(at, region) < 0) return;
+  // ww177 (Imjin design §5): a great river needs a ford, boats or ice.
+  if (
+    land.ww.imjinWar !== null &&
+    at !== region &&
+    !imjinCrossingAllowed(land, at, region, land.mg.ticks())
+  ) {
+    return;
+  }
   // Its own region is under attack: it defends there (spec §9.1).
   if (at !== region && land.battles.has(at)) return;
   let b = land.battles.get(region);
@@ -227,10 +244,14 @@ export function joinBattle(land: WwLand, div: number, region: number): void {
 
 /** Every running battle, one round, by region (spec §9.3). */
 export function stepBattles(land: WwLand, tick: number): void {
+  const imjin = land.ww.imjinWar !== null;
   for (const region of [...land.battles.keys()].sort((a, b) => a - b)) {
     const b = land.battles.get(region);
+    // ww177 (Imjin design §5): a round every ROUND_TICKS ticks.
+    if (b !== undefined && imjin && !imjinRoundTick(b, tick)) continue;
     if (b !== undefined) fight(land, b, tick);
   }
+  if (imjin) land.ww.imjinWar!.pruneOrders();
 }
 
 function fight(land: WwLand, b: Battle, tick: number): void {
@@ -315,18 +336,23 @@ function fight(land: WwLand, b: Battle, tick: number): void {
   // 3. Width and the lines (spec §9.2).
   const dirs = new Set(b.attackers.map((id) => t.region[t.rowOf(id)])).size;
   // ww7: a fort of level 3+ halves the extra width of the extra directions.
-  const width = combatWidth(
+  const width0 = combatWidth(
     land.scenario.landOf(R),
     Math.min(4, Math.max(1, dirs)),
     effectiveLevel(land.econ, R, "fort"),
   );
+  // ww177: the Imjin round (orders, volleys, terrain, crossing, walls).
+  const ir = land.ww.imjinWar === null ? null : imjinRoundOf(land, b, tick);
+  const width = ir === null ? width0 : imjinWidth(width0, ir);
   // ww7 lane A (design §2): this round's tactics (a new pair every
   // TACTIC_PHASE_ROUNDS rounds, from last round's lines), the daily luck of
   // both sides, and the reserves' entry rolls inside lineUp. Everything is a
   // pure function of the battle's state and the game seed.
   const rc = beginRound(land, b, tick, dirs);
-  if (b.phaseRound === 0) pickPhase(rc);
-  b.phaseRound = (b.phaseRound + 1) % TACTIC_PHASE_ROUNDS;
+  if (ir === null) {
+    if (b.phaseRound === 0) pickPhase(rc);
+    b.phaseRound = (b.phaseRound + 1) % TACTIC_PHASE_ROUNDS;
+  }
   // (Recon only counts against an ambush: no profile read in any other round.)
   const fx = tacticFx(
     b.tacticAtt,
@@ -334,8 +360,13 @@ function fight(land: WwLand, b: Battle, tick: number): void {
     rc.fx,
     b.tacticDef === DT_AMBUSH && profile(rc, 0).recon,
   );
+  if (ir !== null) applyImjinFx(fx, ir);
   const att = lineUp(land, b.attackers, b.attLine, width, b.round === 1, 0);
   const def = lineUp(land, b.defenders, b.defLine, width, b.round === 1, 1);
+  if (ir !== null) {
+    imjinMoraleHit(land, att.active, ir.attMorale);
+    imjinMoraleHit(land, def.active, ir.defMorale);
+  }
   b.attLine = att.line;
   b.defLine = def.line;
   // Pre-flight C4: the attackers' colour is the widest country in line.
@@ -555,6 +586,11 @@ function fight(land: WwLand, b: Battle, tick: number): void {
       // The tick of the round (Task 11): each country's day counts the
       // rounds since its previous day (Sustain.foughtTest).
       if (t.id[r] !== 0) t.lastFight[r] = tick;
+    }
+    // ww177 (Imjin design §5): below 150‰ a unit routs, along the line.
+    if (ir !== null) {
+      imjinRouts(land, att.active);
+      imjinRouts(land, def.active);
     }
     // 5. Zero org: defenders retreat (or die), attackers drop out (spec §9.3-7).
     // ww7 (lane B): with a band left a broken defender stays put, out of the

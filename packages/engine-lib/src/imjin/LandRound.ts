@@ -1,0 +1,302 @@
+// The Imjin profile's battle round (ww175 design §5, ww177 merge 1): what
+// LandRules' row rules add up to for one side's line in one round, as the
+// percentages the 1936 battle loop takes (Battles.fight). Divisions carry no
+// unit rows yet, so a country's mix stands for every division it fields.
+// Pure integer code; every chance is a stateless wwRoll.
+import {
+  ambushFx,
+  type AttackOrder,
+  battleStep,
+  type BattleStep,
+  blockMulPct,
+  chargeResult,
+  COUNTER_OF_ORDER,
+  type Crossing,
+  type DefenceStance,
+  feintFlips,
+  gapLands,
+  inCrossing,
+  isCharge,
+  isPhaseStart,
+  orderCountered,
+  orderFx,
+  rowDealtMulPct,
+  stormMulPct,
+  terrainRow,
+  UNIT_ROWS,
+  type UnitRow,
+  volleyBeat,
+  type VolleyBeat,
+  volleyModeOf,
+} from "./LandRules";
+import type { ImjinTerrain } from "./Terrain";
+
+/** A side's rows in %, summing to 100. */
+export type RowMix = Readonly<Partial<Record<UnitRow, number>>>;
+
+/**
+ * Each country's army (design §5 "Unit rows"): Japan's spears, guns and
+ * retinues; Joseon's archers, horse and chongtong; Ming's guns and horse;
+ * the Jurchen riders.
+ */
+export const ROW_MIX_OF: Readonly<Record<string, RowMix>> = {
+  JOS: { spear: 25, archer: 40, cavalry: 20, cannon: 10, hwacha: 5 },
+  JPN: { spear: 40, arquebus: 30, samurai: 20, archer: 5, cavalry: 5 },
+  MIN: { spear: 30, arquebus: 10, archer: 10, cavalry: 30, cannon: 20 },
+  JUR: { spear: 10, archer: 30, cavalry: 60 },
+};
+export const DEFAULT_ROW_MIX: RowMix = { spear: 50, archer: 30, cavalry: 20 };
+
+export function rowMixOf(tag: string): RowMix {
+  return ROW_MIX_OF[tag] ?? DEFAULT_ROW_MIX;
+}
+
+export interface RoundSide<T> {
+  order: T;
+  mix: RowMix;
+  /** The commander's skill (0 without one). */
+  skill: number;
+  /** Its hwacha have fired this battle. */
+  hwachaUsed: boolean;
+}
+
+export interface RoundInput {
+  seed: number;
+  region: number;
+  battleStart: number;
+  /** The battle's round, from 1. */
+  round: number;
+  terrain: ImjinTerrain;
+  wet: boolean;
+  att: RoundSide<AttackOrder>;
+  def: RoundSide<DefenceStance>;
+  /** The crossing the attack makes (null: none). */
+  crossing: Crossing | null;
+  /** Fort level in play (0: none). */
+  fort: number;
+  /** The attacker walked into an ambush. */
+  ambushed: boolean;
+  /** One side has broken (pursuit). */
+  broken: boolean;
+}
+
+export interface RoundOut {
+  step: BattleStep;
+  attBeat: VolleyBeat;
+  defBeat: VolleyBeat;
+  /** Damage each side deals, % (100: as 1936 would). */
+  attDealtPct: number;
+  defDealtPct: number;
+  /** The defender's block, %. */
+  blockPct: number;
+  /** What each side takes, %. */
+  attTakenPct: number;
+  defTakenPct: number;
+  /** The width's fraction. */
+  widthNum: number;
+  widthDen: number;
+  /** Morale (‰) each side loses this round, once a phase. */
+  attMorale: number;
+  defMorale: number;
+  /** The hwacha fired this round. */
+  attHwacha: boolean;
+  defHwacha: boolean;
+}
+
+const pct = (v: number, p: number) => Math.floor((v * p) / 100);
+
+/** One side's damage %, its rows weighed by their share. */
+function sideDealt(
+  mix: RowMix,
+  defending: boolean,
+  step: BattleStep,
+  beat: VolleyBeat,
+  inp: RoundInput,
+  fx: ReturnType<typeof orderFx>,
+  enemySpearPct: number,
+  crossing: Crossing | null,
+  hwachaUsed: boolean,
+  cavalryMulPct: number,
+): number {
+  const terrain = terrainRow(inp.terrain, inp.wet);
+  let sum = 0;
+  for (const row of UNIT_ROWS) {
+    const share = mix[row] ?? 0;
+    if (share <= 0) continue;
+    let v = rowDealtMulPct({
+      row,
+      defending,
+      step,
+      terrain,
+      fx,
+      beat,
+      enemySpearPct,
+      crossing,
+      targetRouted: inp.broken,
+      hwachaUsed,
+    });
+    if (row === "cavalry") v = pct(v, cavalryMulPct);
+    sum += share * v;
+  }
+  return Math.floor(sum / 100);
+}
+
+/** The round's numbers for both sides of an Imjin battle. */
+export function imjinRound(inp: RoundInput): RoundOut {
+  const step = battleStep(inp.round, inp.broken);
+  const phaseStart = isPhaseStart(inp.round);
+  const crossing =
+    inp.crossing !== null &&
+    inp.crossing.phases > 0 &&
+    inCrossing(inp.crossing, inp.round)
+      ? inp.crossing
+      : null;
+  const fx = orderFx(inp.att.order, inp.def.order, crossing !== null);
+  const attArq = inp.att.mix.arquebus ?? 0;
+  const defArq = inp.def.mix.arquebus ?? 0;
+  const attSpear = inp.att.mix.spear ?? 0;
+  const defSpear = inp.def.mix.spear ?? 0;
+  const attMode = volleyModeOf(inp.att.order, attArq);
+  const defMode = volleyModeOf(inp.def.order, defArq);
+  const attBeat = volleyBeat(attMode, inp.round);
+  const defBeat = volleyBeat(defMode, inp.round);
+  // A charge meets the defender's volley clock once the lines close.
+  const charged =
+    isCharge(inp.att.order) &&
+    step !== "opening" &&
+    (inp.att.mix.cavalry ?? 0) > 0;
+  const gap =
+    charged &&
+    inp.att.order === "charge_gap" &&
+    defMode === "massed" &&
+    gapLands(inp.seed, inp.region, inp.battleStart, inp.round, inp.att.skill);
+  const ch = charged
+    ? chargeResult(defMode, gap, defSpear)
+    : chargeResult("none", false, 0);
+  let attDealt = sideDealt(
+    inp.att.mix,
+    false,
+    step,
+    attBeat,
+    inp,
+    fx,
+    defSpear,
+    crossing,
+    inp.att.hwachaUsed,
+    ch.dealtMulPct,
+  );
+  let defDealt = sideDealt(
+    inp.def.mix,
+    true,
+    step,
+    defBeat,
+    inp,
+    fx,
+    attSpear,
+    null,
+    inp.def.hwachaUsed,
+    100,
+  );
+  // The feigned retreat taken: the defender crosses after the bait into
+  // the waiting volley (design §5): it fights the crossing's way.
+  if (feintFlips(inp.att.order, inp.def.order)) {
+    defDealt = pct(defDealt, 70);
+    attDealt = pct(attDealt, 150);
+  }
+  // Storming the walls (design §5 "Sieges").
+  const storm = stormMulPct(inp.fort);
+  attDealt = pct(attDealt, storm.attacker);
+  defDealt = pct(defDealt, storm.defender);
+  const terrain = terrainRow(inp.terrain, inp.wet);
+  let widthNum = terrain.widthNum;
+  let widthDen = terrain.widthDen;
+  if (crossing !== null) {
+    widthNum *= crossing.widthNum;
+    widthDen *= crossing.widthDen;
+  }
+  let attTaken = fx.attTakenMulPct;
+  // The charge into a loaded volley: the horse's share takes it.
+  const cav = inp.att.mix.cavalry ?? 0;
+  if (charged && ch.takenMulPct !== 100) {
+    attTaken = pct(
+      attTaken,
+      100 + Math.floor(((ch.takenMulPct - 100) * cav) / 100),
+    );
+  }
+  let attMorale = 0;
+  let defMorale = 0;
+  if (phaseStart) {
+    defMorale += fx.defMoraleHit;
+    if (charged) {
+      attMorale += ch.chargerMorale;
+      defMorale += ch.defenderMorale;
+    }
+  }
+  if (inp.ambushed) {
+    const a = ambushFx(inp.terrain, false);
+    widthNum *= a.widthNum;
+    widthDen *= a.widthDen;
+    attTaken = pct(attTaken, a.takenMulPct);
+    if (inp.round === 1) attMorale += a.morale;
+  }
+  return {
+    step,
+    attBeat,
+    defBeat,
+    attDealtPct: attDealt,
+    defDealtPct: defDealt,
+    blockPct: blockMulPct(terrain, fx, defSpear, charged),
+    attTakenPct: attTaken,
+    defTakenPct: fx.defTakenMulPct,
+    widthNum,
+    widthDen,
+    attMorale,
+    defMorale,
+    attHwacha: step === "opening" && (inp.att.mix.hwacha ?? 0) > 0,
+    defHwacha: step === "opening" && (inp.def.mix.hwacha ?? 0) > 0,
+  };
+}
+
+/**
+ * The AI's pick for the next phase (design §9): the stance that counters
+ * the order it last met, or the order the last stance does not counter;
+ * otherwise the row mix's natural choice, with a roll to vary it.
+ */
+export function aiAttackOrder(
+  mix: RowMix,
+  terrain: ImjinTerrain,
+  fort: number,
+  lastStance: DefenceStance | null,
+  roll: number,
+): AttackOrder {
+  if (fort > 0) return roll % 3 === 0 ? "barrage" : "storm";
+  const t = terrainRow(terrain);
+  const cav = mix.cavalry ?? 0;
+  const arq = mix.arquebus ?? 0;
+  const opts: AttackOrder[] = ["advance", "flank"];
+  if (arq >= 30) opts.push("volley_advance", "volley_advance");
+  if (cav >= 20 && t.charge && t.cavalryPct >= 0) {
+    opts.push(lastStance === "massed_volley" ? "charge_gap" : "charge");
+  }
+  if ((mix.cannon ?? 0) + (mix.archer ?? 0) >= 30) opts.push("barrage");
+  const ok = opts.filter(
+    (o) => lastStance === null || !orderCountered(o, lastStance),
+  );
+  const list = ok.length > 0 ? ok : opts;
+  return list[roll % list.length];
+}
+
+export function aiDefenceStance(
+  mix: RowMix,
+  lastOrder: AttackOrder | null,
+  roll: number,
+): DefenceStance {
+  const c = lastOrder === null ? null : COUNTER_OF_ORDER[lastOrder];
+  if (c !== null && roll % 4 !== 0) return c;
+  const arq = mix.arquebus ?? 0;
+  const opts: DefenceStance[] = ["hold"];
+  if (arq >= 30) opts.push("massed_volley", "massed_volley", "rolling_volley");
+  if ((mix.archer ?? 0) >= 30) opts.push("archer_screen");
+  if ((mix.cavalry ?? 0) >= 20) opts.push("counter_charge");
+  return opts[roll % opts.length];
+}

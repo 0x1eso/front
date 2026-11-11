@@ -260,6 +260,9 @@ export function civilWar(
 ): void {
   const c = pol.country(id);
   if (c === null) return;
+  // ww177: 1936's ideological civil war has no place in the Imjin War
+  // (its court and uprisings are P4's).
+  if (pol.ww.imjin) return;
   // P5 hook (C): a real civil war when lane C splits the country (spec §15).
   if (startCivilWar(pol.ww.endgame, id, IDEOLOGIES[ideology], tick)) return;
   setGovernment(pol, id, ideology, tick);

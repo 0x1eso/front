@@ -10,14 +10,8 @@ import { wwDifficulty } from "./AiDifficulty";
 import { wwUnlimited } from "./Pace";
 import { imjinCalendarOf, isImjin } from "./scenario/Profile";
 
-/**
- * ww177: the Imjin War's map (I0b builds it as `imjin1592`). Read by name so
- * this lane builds before the map lands; until then the 1936 map stands in.
- */
-export const IMJIN_MAP: GameMapType =
-  (GameMapType as unknown as Record<string, GameMapType | undefined>)[
-    "Imjin1592"
-  ] ?? GameMapType.World1936;
+/** ww177: the Imjin War's map (I0b's `imjin1592`). */
+export const IMJIN_MAP: GameMapType = GameMapType.Imjin1592;
 
 /** Design §10: two seats; the AI plays every other country. */
 export const IMJIN_MAX_PLAYERS = 2;

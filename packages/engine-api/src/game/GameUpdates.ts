@@ -3,6 +3,7 @@ import type {
   PlayerCongressData,
 } from "../congress/CongressTypes";
 import type { DomesticData, WinReason } from "../domestic/DomesticTypes";
+import type { ImjinData } from "../imjin/ImjinTypes";
 import { AllPlayersStats, ClientID, Winner } from "../Schemas";
 import type { StrategicData } from "../strategic/StrategicTypes";
 import type { GreatWarData } from "../ww1914/GwView";
@@ -146,6 +147,8 @@ export enum GameUpdateType {
   WwDepth,
   // Great War 1914
   GreatWar,
+  // ww177: the Imjin War's sea layer, land orders and sieges
+  WwImjin,
 }
 
 export type GameUpdate =
@@ -183,7 +186,8 @@ export type GameUpdate =
   | WwAirUpdate
   | WwEndgameUpdate
   | WwDepthUpdate
-  | GreatWarUpdate;
+  | GreatWarUpdate
+  | WwImjinUpdate;
 
 export interface BonusEventUpdate {
   type: GameUpdateType.BonusEvent;
@@ -529,6 +533,12 @@ export interface WwEndgameUpdate {
 export interface WwDepthUpdate {
   type: GameUpdateType.WwDepth;
   data: WwDepthData;
+}
+
+/** ww177: the Imjin War's own view, when it changed. */
+export interface WwImjinUpdate {
+  type: GameUpdateType.WwImjin;
+  data: ImjinData;
 }
 
 /** Great War 1914: the whole view, when it changed. */
