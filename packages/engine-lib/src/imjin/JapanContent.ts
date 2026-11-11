@@ -1,8 +1,8 @@
 // ww177 I4b (Imjin design §7, §8): the scenes, decisions and spirits of
 // Japan's politics and the truce. The engine's ImjinJapan fires the scenes
 // by state (never by date) and reads the flags their options set; the
-// options' texts say what is done, never what comes of it. The texts are
-// placeholders for P6's writers (ww1936.event_* keys in resources/lang).
+// options' texts say what is done, never what comes of it. Texts:
+// ww1936.event_* keys in resources/lang (reviewed by P6's lane I6b).
 import type {
   DecisionDef,
   EventDef,

@@ -16,6 +16,15 @@ import {
   IMJIN_JAPAN_FLAGS,
   IMJIN_JAPAN_SPIRITS,
 } from "./JapanContent";
+import {
+  IMJIN_JPW_DECISION_FLAGS,
+  IMJIN_JPW_DECISIONS,
+  IMJIN_JPW_EVENTS,
+  IMJIN_JPW_FLAGS,
+  IMJIN_JPW_GROUPS,
+  IMJIN_JPW_PERSONS,
+  IMJIN_JPW_SPIRITS,
+} from "./JapanWriting";
 
 export const IMJIN_CONTENT_PARTS: ContentParts = {
   ...CONTENT_PARTS,
@@ -25,15 +34,28 @@ export const IMJIN_CONTENT_PARTS: ContentParts = {
     ...IMJIN_COURT_EVENTS,
     // ww177 I4b: Japan's politics and the truce (JapanContent.ts).
     ...IMJIN_JAPAN_EVENTS,
+    // ww177 I6b: Japan's run-up and war scenes (JapanWriting.ts).
+    ...IMJIN_JPW_EVENTS,
   ],
   decisions: [
     ...CONTENT_PARTS.decisions.filter((d) => d.for === "any"),
     ...IMJIN_COURT_DECISIONS,
     ...IMJIN_JAPAN_DECISIONS,
+    ...IMJIN_JPW_DECISIONS,
   ],
-  spirits: [...CONTENT_PARTS.spirits, ...IMJIN_JAPAN_SPIRITS],
-  flags: [...CONTENT_PARTS.flags, ...IMJIN_JAPAN_FLAGS],
-  persons: [],
+  spirits: [
+    ...CONTENT_PARTS.spirits,
+    ...IMJIN_JAPAN_SPIRITS,
+    ...IMJIN_JPW_SPIRITS,
+  ],
+  flags: [
+    ...CONTENT_PARTS.flags,
+    ...IMJIN_JAPAN_FLAGS,
+    ...IMJIN_JPW_FLAGS,
+    ...IMJIN_JPW_DECISION_FLAGS,
+  ],
+  groups: [...CONTENT_PARTS.groups, ...IMJIN_JPW_GROUPS],
+  persons: [...IMJIN_JPW_PERSONS],
   beats: [],
   countries: [],
   claims: [],
