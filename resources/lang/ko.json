@@ -14539,6 +14539,17 @@
         "0": "세게 밀어붙일 것이다",
         "1": "흥정하러 온다",
         "2": "우리 말을 들어 줄 것이다"
+      },
+      "prep": {
+        "0": "공세 준비 없음",
+        "1": "공세를 준비하는 중"
+      },
+      "strain": {
+        "0": "버틸 만함",
+        "1": "지쳐 감",
+        "2": "많이 지침",
+        "3": "한계에 가까움",
+        "4": "무너지기 직전"
       }
     },
     "front": {
@@ -14762,7 +14773,10 @@
       "off_feint": "속임수 준비에 돈이 들었다.",
       "off_shells": "긴 포격에 쓸 포탄을 쌓았다.",
       "off_papers_talk": "신문들이 다가올 승리를 이야기한다.",
-      "off_refusal": "군의 거부가 나라를 흔들었다."
+      "off_refusal": "군의 거부가 나라를 흔들었다.",
+      "shells_sabotaged": "공작원이 탄약고를 날렸다.",
+      "order_contagion": "동쪽으로 보낸 혁명이 우리 땅에도 번졌다.",
+      "order_spies_blamed": "간첩 탓으로 돌리자 나라가 잠시 진정됐다."
     },
     "mandate": {
       "deu_bread_for_the_winter": "겨울 빵을 남기기",
@@ -14953,7 +14967,15 @@
       "off_bite": "{a}의 대공세가 전선 한 토막을 빼앗았다: {theatre}.",
       "off_attrition": "{a}의 대공세가 땅을 얻지 못한 채 피만 흘린다: {theatre}.",
       "off_repulsed": "{a}의 대공세가 철조망 앞에서 멈췄다: {theatre}.",
-      "off_refusal": "{a}의 병사들이 다시 나가기를 거부한다."
+      "off_refusal": "{a}의 병사들이 다시 나가기를 거부한다.",
+      "spy_codes_changed": "{a}이(가) 암호를 바꿨다.",
+      "spy_exposed": "{a}에서 {b}의 요원들이 잡혀 드러났다.",
+      "spy_sabotage": "{a}의 탄약고가 폭발했다.",
+      "spy_lenin": "{b}이(가) 망명 혁명가들을 {a}(으)로 돌려보냈다.",
+      "spy_arms_taken": "{a}이(가) {b}이(가) 보낸 무기선을 붙잡았다.",
+      "spy_irish_rising": "{b}의 무기로 아일랜드에서 봉기가 일어났다.",
+      "spy_arab_revolt": "{b}의 지원을 받은 아랍인들이 {a}에 맞서 봉기했다.",
+      "spy_jihad": "{a}이(가) 세계의 무슬림에게 성전을 선포했다."
     },
     "odds": {
       "0": "될 일이 아닙니다.",
@@ -14981,7 +15003,8 @@
       "munitions": "군수대신",
       "sea_lord": "제1해군경",
       "agriculture": "농업대신",
-      "supreme_commander": "최고 사령관"
+      "supreme_commander": "최고 사령관",
+      "intelligence": "정보 책임자"
     },
     "panel": {
       "chapter": "{date}, {total}장 중 {n}장",
@@ -15372,7 +15395,13 @@
       "off_def_held": "우리 전선이 적의 대공세를 버텼다.",
       "off_strike_worked": "우리가 먼저 친 공격이 적의 준비를 흐트러뜨렸다.",
       "off_strike_failed": "먼저 친 공격이 격퇴됐다. 적은 준비를 이어 간다.",
-      "off_refusal": "군이 다시 공격하기를 거부했다."
+      "off_refusal": "군이 다시 공격하기를 거부했다.",
+      "spy_code_read": "암호 해독반이 적의 전신을 읽기 시작했다.",
+      "spy_code_lost": "적이 암호를 바꿨다. 더는 읽지 못한다.",
+      "spy_ours_exposed": "외국에 심은 우리 요원들이 잡혀 드러났다.",
+      "spy_caught": "방첩대가 외국 요원들을 잡았다.",
+      "spy_codebook": "적의 암호책이 우리 해독반 손에 들어왔다.",
+      "spy_blame_cost": "간첩 사냥의 값으로 정보기관이 흔들리고 의회의 신뢰가 줄었다."
     },
     "result": {
       "advance": "전진",
@@ -15438,7 +15467,9 @@
       "own_eyes": "직접 본 것",
       "whip": "원내 셈",
       "police": "정치 경찰",
-      "envoy": "특사"
+      "envoy": "특사",
+      "codes": "암호 해독",
+      "prisoners": "포로와 노획 문서"
     },
     "stamp": {
       "confirmed": "확인",
@@ -15759,7 +15790,9 @@
         "plot": "모의",
         "file": "서류",
         "ally": "속내",
-        "count": "표결 전망"
+        "count": "표결 전망",
+        "prep": "공세 준비",
+        "strain": "전선의 피로"
       },
       "fold": "접기 / 펴기",
       "folded_title": "그사이 들어온 작은 소식",
@@ -16174,7 +16207,6 @@
       "trench_now": "참호: {what}",
       "front_end_bloc": "우리 진영 쪽 · {side}",
       "strain_ours": "우리 쪽: {what}",
-      "strain_foe_unknown": "적의 사정: 알 수 없다",
       "tempo_title": "전투가 없는 동안의 전선",
       "tempo_now": "지금: {what}",
       "strain_word": {
@@ -16217,7 +16249,12 @@
         "2": "두 번째 공격",
         "3": "세 번째 공격",
         "4": "네 번째 공격"
-      }
+      },
+      "report_where": "{country} ({theatre})",
+      "front_foe": "적의 사정: {what}",
+      "front_foe_word": "{word} ({stamp})",
+      "front_foe_unknown": "알 수 없다",
+      "front_reading": "암호를 읽고 있다"
     },
     "unknown": {
       "ai": "{country}의 원수는 {word} 인물이었다.",

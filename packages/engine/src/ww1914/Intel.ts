@@ -10,6 +10,9 @@ import { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { allocOf } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
+import { offensivesOf } from "./Offensives";
+import { intelOf, spiesStep, strainWord } from "./Spies";
+import { strainOf } from "./Strain";
 import { clampTo, reason } from "./World";
 
 const P_STAMP = idHash("gw_stamp");
@@ -46,6 +49,16 @@ export function factTruth(
       return n.gauges.shells;
     case "morale":
       return n.gauges.morale;
+    // ww173: a feint is gathered for show, and is there to be seen.
+    case "prep":
+      return t !== null &&
+        offensivesOf(gw).some(
+          (o) => o.tag === tag && o.theatre === t && o.launch === null,
+        )
+        ? 1
+        : 0;
+    case "strain":
+      return t === null ? 0 : strainWord(strainOf(gw, t, tag));
     // Filed by their own systems (House, S2), never sent through here.
     case "count":
     case "plot":
@@ -72,6 +85,8 @@ function wrongClaim(
     plot: [0, 4],
     file: [0, 1],
     ally: [0, 2],
+    prep: [0, 1],
+    strain: [0, 4],
   };
   const [lo, hi] = bounds[fact];
   const moved = clampTo(truth + (up ? 1 : -1), lo, hi);
@@ -89,22 +104,12 @@ export function sendReport(
   tag: GwTag,
   theatre: GwTheatre | null,
   source: GwSource,
+  force?: GwReportForce,
 ): GwReport {
   const s = gw.s;
   const uid = s.nextReport++;
-  const band = s.sources.find((x) => x.id === source)?.band ?? 2;
   const truth = factTruth(gw, fact, tag, theatre);
-  const r = wwRoll(s.seed, P_STAMP, uid) % 100;
-  const confirmed = CONFIRMED_BY_BAND[band - 1];
-  const stamp: GwStamp =
-    r < confirmed
-      ? "confirmed"
-      : r < confirmed + ESTIMATE_BY_BAND[band - 1]
-        ? "estimate"
-        : "unconfirmed";
-  const wrong =
-    stamp === "unconfirmed" &&
-    wwRoll(s.seed, P_WRONG, uid) % 100 < WRONG_BY_BAND[band - 1];
+  const { stamp, wrong } = stampOf(gw, source, uid, force);
   const report: GwReport = {
     uid,
     fact,
@@ -120,9 +125,89 @@ export function sendReport(
       stamp === "unconfirmed"
         ? s.day + CHECK_MIN + (wwRoll(s.seed, P_CHECK, uid) % CHECK_SPAN)
         : null,
+    ...(force === "lie" ? { about: TURNED } : {}),
   };
   s.reports.push(report);
   return report;
+}
+
+/**
+ * ww173: how a report is stamped beyond the band's roll. confirmed: read in
+ * the enemy's own traffic, or his own papers. lie: a turned agent's, wrong
+ * and unconfirmed until it is checked.
+ */
+export type GwReportForce = "confirmed" | "lie";
+/** A turned agent's report: when it is checked the source's band drops. */
+const TURNED = "turned";
+
+function stampOf(
+  gw: GreatWar,
+  source: GwSource,
+  uid: number,
+  force?: GwReportForce,
+): { stamp: GwStamp; wrong: boolean } {
+  if (force === "confirmed") return { stamp: "confirmed", wrong: false };
+  if (force === "lie") return { stamp: "unconfirmed", wrong: true };
+  const s = gw.s;
+  const band = s.sources.find((x) => x.id === source)?.band ?? 2;
+  const r = wwRoll(s.seed, P_STAMP, uid) % 100;
+  const confirmed = CONFIRMED_BY_BAND[band - 1];
+  const stamp: GwStamp =
+    r < confirmed
+      ? "confirmed"
+      : r < confirmed + ESTIMATE_BY_BAND[band - 1]
+        ? "estimate"
+        : "unconfirmed";
+  const wrong =
+    stamp === "unconfirmed" &&
+    wwRoll(s.seed, P_WRONG, uid) % 100 < WRONG_BY_BAND[band - 1];
+  return { stamp, wrong };
+}
+
+/**
+ * ww173: what `viewer` comes to hold of `fact` about `tag` at `theatre`: a
+ * seat's report, or, for a country nobody plays, a line in its service's
+ * `heard`. The claim it holds; with `onlyWrong`, nothing is sent unless the
+ * roll makes it wrong (a false alarm), and null comes back.
+ */
+export function learn(
+  gw: GreatWar,
+  viewer: GwTag,
+  fact: "prep" | "strain",
+  tag: GwTag,
+  theatre: GwTheatre,
+  source: GwSource,
+  force?: GwReportForce,
+  onlyWrong = false,
+): number | null {
+  const s = gw.s;
+  const seat = s.seats.find((x) => x.tag === viewer && x.memoir === null);
+  if (seat !== undefined) {
+    const r = sendReport(gw, seat, fact, tag, theatre, source, force);
+    if (onlyWrong && r.claim === r.truth) {
+      s.reports.pop();
+      return null;
+    }
+    return r.claim;
+  }
+  const n = gw.nation(viewer);
+  if (n === null) return null;
+  const uid = s.nextReport++;
+  const truth = factTruth(gw, fact, tag, theatre);
+  const { wrong } = stampOf(gw, source, uid, force);
+  if (onlyWrong && !wrong) return null;
+  const claim = wrong ? wrongClaim(gw, fact, truth, uid) : truth;
+  heardBy(gw, viewer).push({ fact, tag, theatre, claim, chapter: s.chapter });
+  return claim;
+}
+
+/** Lines an AI service keeps: the newest win. */
+const HEARD_KEPT = 12;
+
+function heardBy(gw: GreatWar, viewer: GwTag) {
+  const i = intelOf(gw, viewer);
+  if (i.heard.length >= HEARD_KEPT) i.heard.splice(0, 1);
+  return i.heard;
 }
 
 /** A report that waits to be put right until its system says so (a file). */
@@ -137,21 +222,8 @@ export interface GwReportRoll {
 
 /** Rolls the next report's stamp by the source's band (the one rule kept). */
 export function rollReport(gw: GreatWar, source: GwSource): GwReportRoll {
-  const s = gw.s;
-  const uid = s.nextReport++;
-  const band = s.sources.find((x) => x.id === source)?.band ?? 2;
-  const r = wwRoll(s.seed, P_STAMP, uid) % 100;
-  const confirmed = CONFIRMED_BY_BAND[band - 1];
-  const stamp: GwStamp =
-    r < confirmed
-      ? "confirmed"
-      : r < confirmed + ESTIMATE_BY_BAND[band - 1]
-        ? "estimate"
-        : "unconfirmed";
-  const wrong =
-    stamp === "unconfirmed" &&
-    wwRoll(s.seed, P_WRONG, uid) % 100 < WRONG_BY_BAND[band - 1];
-  return { uid, stamp, wrong };
+  const uid = gw.s.nextReport++;
+  return { uid, ...stampOf(gw, source, uid) };
 }
 
 /**
@@ -234,6 +306,14 @@ export function inspect(
   });
 }
 
+/** The turned agent behind a lie is found out: his sender's reports run true. */
+function unturn(gw: GreatWar, r: GwReport): void {
+  const reader = gw.s.seats.find((x) => x.smallID === r.smallID)?.tag;
+  const i = gw.nation(r.tag)?.intel;
+  if (reader === undefined || i === undefined) return;
+  i.turned = i.turned.filter((t) => t !== reader);
+}
+
 /** Checks what has come due: the source's record is what the seat learns from. */
 function checkReports(gw: GreatWar): void {
   const s = gw.s;
@@ -246,6 +326,11 @@ function checkReports(gw: GreatWar): void {
       src.right++;
     } else {
       src.wrong++;
+      // ww173: a turned agent's lie came out: his source is worth less.
+      if (r.about === TURNED) {
+        src.band = Math.max(1, src.band - 1);
+        unturn(gw, r);
+      }
       const seat = s.seats.find((x) => x.smallID === r.smallID);
       if (seat !== undefined) reason(gw, seat, "report_corrected");
     }
@@ -321,11 +406,12 @@ function foeOf(
   return pick ?? null;
 }
 
-/** Chapter step: old reports are checked, new ones go out. */
+/** Chapter step: old reports are checked, new ones go out, then the secret war. */
 export function intelStep(gw: GreatWar): void {
   checkReports(gw);
   for (const seat of gw.s.seats) {
     if (gw.s.warChapter === null) sendCrisisReports(gw, seat);
     else sendWarReports(gw, seat);
   }
+  spiesStep(gw);
 }

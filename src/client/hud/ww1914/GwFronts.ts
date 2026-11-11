@@ -18,7 +18,7 @@ import { translateText } from "../../Utils";
 import type { GwCtx, GwOffPick } from "./GwCtx";
 import { frontMove, frontRead, frontTone, type FrontRead } from "./GwModel";
 import { BTN, BTN_ON, CHIP, HEAD, MUTED } from "./GwStyle";
-import { frontLine, personName } from "./GwText";
+import { factText, frontLine, personName } from "./GwText";
 
 const TRENCH_MAX = 5;
 /** Our strain's word, by its tone. */
@@ -182,6 +182,29 @@ function standingLine(
   </p>`;
 }
 
+/**
+ * ww173: "적의 사정": the newest report on the foe's strain, with its stamp,
+ * or "알 수 없다"; "암호를 읽고 있다" while the seat reads his codes.
+ */
+function foeLine(f: GwFrontView): TemplateResult | typeof nothing {
+  if (f.foe === undefined) return nothing;
+  const what =
+    f.foe === null
+      ? translateText("gw.ui.front_foe_unknown")
+      : translateText("gw.ui.front_foe_word", {
+          word: factText("strain", f.foe.word),
+          stamp: translateText(`gw.ui.stamp.${f.foe.stamp}`),
+        });
+  return html`<p class="text-sm text-white/80" data-gw-foe>
+    ${translateText("gw.ui.front_foe", { what })}
+    ${f.reading === true
+      ? html`<span class=${MUTED} data-gw-reading
+          >${translateText("gw.ui.front_reading")}</span
+        >`
+      : nothing}
+  </p>`;
+}
+
 function frontCard(c: GwCtx, f: GwFrontView): TemplateResult {
   const side = c.seat.world.side;
   const r = frontRead(f.id, f.lineIndex, f.progress, side);
@@ -211,16 +234,14 @@ function frontCard(c: GwCtx, f: GwFrontView): TemplateResult {
     ${f.strain === undefined
       ? nothing
       : html`<div
-            class="text-sm ${STRAIN_TONE[f.strain] ?? ""}"
-            data-gw-strain=${f.strain}
-          >
-            ${translateText("gw.ui.strain_ours", {
-              what: translateText(`gw.ui.strain_word.${f.strain}`),
-            })}
-          </div>
-          <div class=${MUTED} data-gw-strain-foe>
-            ${translateText("gw.ui.strain_foe_unknown")}
-          </div>`}
+          class="text-sm ${STRAIN_TONE[f.strain] ?? ""}"
+          data-gw-strain=${f.strain}
+        >
+          ${translateText("gw.ui.strain_ours", {
+            what: translateText(`gw.ui.strain_word.${f.strain}`),
+          })}
+        </div>`}
+    ${foeLine(f)}
     ${f.prep === undefined || f.prep === null ? nothing : prepLine(f.prep)}
   </section>`;
 }

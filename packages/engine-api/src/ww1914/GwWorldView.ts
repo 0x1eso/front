@@ -109,6 +109,13 @@ export interface GwFrontView {
     theirs: number;
     luck: number;
   } | null;
+  /**
+   * ww173: what the seat's newest report says of the foe's strain here (its
+   * word 0..4 and stamp); null: none, or no foe. Never the truth.
+   */
+  foe?: { tag: GwTag; word: number; stamp: GwStamp } | null;
+  /** ww173: the seat reads the foe's codes now. */
+  reading?: boolean;
 }
 
 export interface GwReportView {

@@ -42,8 +42,15 @@ import {
   signOffensivePaper,
 } from "./Offensives";
 import { officeHolder, recordResult } from "./People";
+import { believedPrep, believedStrain, foeOn, strainWord } from "./Spies";
 import { collapseAnswers, pressureStep } from "./Stalemate";
-import { easeStrain, NEW_ARMIES_EASE, strainHold, strainPush } from "./Strain";
+import {
+  easeStrain,
+  NEW_ARMIES_EASE,
+  strainHold,
+  strainOf,
+  strainPush,
+} from "./Strain";
 import {
   GW_AI_RESEARCH,
   GW_ARMY_QUALITY,
@@ -921,6 +928,29 @@ export function pairScore(gw: GreatWar, tag: GwTag, foe: GwTag): number {
   return clampTo(up, -100, 100);
 }
 
+/**
+ * ww173 (design §6): how far the chief's estimate is off. With a strain report
+ * on the foe he is off by what the report is off (a word, 10 points) and a
+ * little; without one he guesses (±20). A foe he believes is massing here
+ * makes him gloomier, true or not.
+ */
+function fogOf(gw: GreatWar, seat: GwSeatState, t: GwTheatreState): number {
+  const k = gw.s.theatres.indexOf(t);
+  const foe = foeOn(gw, t.id, seat.tag);
+  const believed =
+    foe === null ? null : believedStrain(gw, seat.tag, t.id, foe);
+  const massing =
+    foe !== null && believedPrep(gw, seat.tag, t.id, foe) ? -10 : 0;
+  if (believed === null || foe === null) {
+    return (wwRoll(gw.s.seed, P_ESTIMATE, gw.s.chapter, k) % 41) - 20 + massing;
+  }
+  const truth = strainWord(strainOf(gw, t.id, foe));
+  const off = (believed / 25 - truth) * 10;
+  return (
+    off + (wwRoll(gw.s.seed, P_ESTIMATE, gw.s.chapter, k) % 11) - 5 + massing
+  );
+}
+
 /** What the chief of staff says of the odds: 0 hopeless .. 4 sure. */
 function estimate(gw: GreatWar, seat: GwSeatState, main: GwTheatre): number {
   const t = gw.s.theatres.find((x) => x.id === main)!;
@@ -938,11 +968,7 @@ function estimate(gw: GreatWar, seat: GwSeatState, main: GwTheatre): number {
           weary: -6,
           anxious: -18,
         }[cos.temperament];
-  const fog =
-    (wwRoll(gw.s.seed, P_ESTIMATE, gw.s.chapter, gw.s.theatres.indexOf(t)) %
-      41) -
-    20;
-  const said = oddsOf(gw, t, side) + bias + fog;
+  const said = oddsOf(gw, t, side) + bias + fogOf(gw, seat, t);
   if (said >= 150) return 4;
   if (said >= 112) return 3;
   if (said >= 90) return 2;

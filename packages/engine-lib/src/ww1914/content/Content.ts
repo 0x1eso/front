@@ -11,7 +11,7 @@ import type { GwHouseContent } from "../HouseRows";
 import type { GwPowerContent } from "../PowerRows";
 import { withRuler } from "../RulerRows";
 import { AUH_ACT_SCENES, AUH_ACTS, AUH_AIMS } from "./acts/auh";
-import { COMMON_ACT_SCENES, COMMON_ACTS } from "./acts/common";
+import { COMMON_ACT_SCENES, COMMON_ACTS, SPY_SCENES } from "./acts/common";
 import { DEU_ACT_SCENES, DEU_ACTS, DEU_AIMS } from "./acts/deu";
 import { FRA_ACT_SCENES, FRA_ACTS, FRA_AIMS } from "./acts/fra";
 import { GBR_ACT_SCENES, GBR_ACTS, GBR_AIMS } from "./acts/gbr";
@@ -28,6 +28,7 @@ import { GW_PEOPLE_MONEY } from "./people_money";
 import { GW_PEOPLE_RULER } from "./people_ruler";
 import { RUS_PEOPLE } from "./people_rus";
 import { RUS_KIN } from "./people_rus_private";
+import { SPY_PEOPLE } from "./people_spies";
 import { AUH_POWER_SCENES, AUH_POWERS, AUH_REACTORS } from "./powers/auh";
 import { COMMON_POWER_SCENES, COMMON_POWERS } from "./powers/common";
 import { DEU_POWER_SCENES, DEU_POWERS, DEU_REACTORS } from "./powers/deu";
@@ -281,6 +282,8 @@ export const GW_CONTENT: GwContent = {
         ...AUH_OFFENSIVE_SCENES,
         ...RUS_OFFENSIVE_SCENES,
         ...FRA_OFFENSIVE_SCENES,
+        // ww173: the secret war's desk scenes (acts/common).
+        ...SPY_SCENES,
       ]
         .map(withDeuReplay)
         .map(withDeuPrivate)
@@ -305,6 +308,7 @@ export const GW_CONTENT: GwContent = {
     ...GW_PEOPLE_HEADS,
     ...FRA_PEOPLE,
     ...FRA_PRIVATE_PEOPLE,
+    ...SPY_PEOPLE,
   ],
   acts: [
     ...COMMON_ACTS,

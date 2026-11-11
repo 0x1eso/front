@@ -491,8 +491,16 @@ export function reportText(r: GwReportView, pack?: GwPack | null): string {
           : r.fact === "count"
             ? pack?.scenes[`gw_law_${r.about}`]?.title
             : undefined;
+  // ww173: a front's preparation or strain names the front too.
+  const where =
+    (r.fact === "prep" || r.fact === "strain") && r.theatre !== null
+      ? translateText("gw.ui.report_where", {
+          country: country(r.tag),
+          theatre: theatreName(r.theatre),
+        })
+      : undefined;
   return translateText("gw.ui.report_line", {
-    country: about ?? country(r.tag),
+    country: about ?? where ?? country(r.tag),
     fact: translateText(`gw.ui.fact.${r.fact}`),
     claim: factText(r.fact, r.claim),
   });
