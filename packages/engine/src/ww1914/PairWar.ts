@@ -399,7 +399,7 @@ function aiSeparatePeace(gw: GreatWar): void {
 }
 
 /** It sent a note within the year: one new war a year at most (design B7). */
-function notedLately(gw: GreatWar, tag: GwTag): boolean {
+export function notedLately(gw: GreatWar, tag: GwTag): boolean {
   return gw.s.ladders.some(
     (l) => l.from === tag && monthsFrom(gw, l.opened) < AI_NOTE_EVERY,
   );

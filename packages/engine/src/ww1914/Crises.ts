@@ -7,10 +7,13 @@ import {
   GwTheatre,
   GwTopic,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import type { GreatWar } from "./GreatWar";
+import { ladderTargets, sendNote } from "./Ladder";
+import { notedLately } from "./PairWar";
 import { GW_MOBILISE, GW_NOTE_FLAGS, GW_PLAN_FLAGS } from "./Tables";
-import { openWar } from "./Wars";
+import { GW_GREAT, openWar } from "./Wars";
 import {
   clampTo,
   isLongChapter,
@@ -60,6 +63,36 @@ const SPARK_AT = 9;
 /** The questions the powers would go to war over. */
 const SPARK_TOPICS: readonly GwTopic[] = ["straits", "colonial", "balkan"];
 
+/**
+ * Who sends whom the note a later spark ends in (ww176), sender first, in
+ * order of preference: the Balkan pair, the colonial rivals, the parties of
+ * the Straits.
+ */
+const NOTE_PAIRS: Readonly<
+  Partial<Record<GwTopic, readonly (readonly [GwTag, GwTag])[]>>
+> = {
+  balkan: [
+    ["AUH", "SRB"],
+    ["BGR", "SRB"],
+    ["SRB", "BGR"],
+  ],
+  colonial: [
+    ["DEU", "FRA"],
+    ["FRA", "DEU"],
+    ["DEU", "GBR"],
+    ["GBR", "DEU"],
+  ],
+  straits: [
+    ["RUS", "OTT"],
+    ["OTT", "RUS"],
+    ["GRC", "OTT"],
+    ["OTT", "GRC"],
+  ],
+};
+
+/** Calm crises in a row past the first that push the next spark a chapter on. */
+const CALM_GAP_MAX = 3;
+
 const TEMP_BY_OPENING = {
   sarajevo: 3,
   sarajevo_survived: 2,
@@ -96,10 +129,29 @@ function setSpark(gw: GreatWar, from: number): void {
   const topics = SPARK_TOPICS;
   const hottest = [...topics].sort((a, b) => s.pressure[b] - s.pressure[a]);
   const pick = wwRoll(s.seed, P_SPARK, n);
+  // The world stays restless, but calm after calm lets the gap grow (ww176).
+  let calm = 0;
+  for (let i = n - 1; i >= 0 && s.chains[i].outcome !== "war"; i--) calm++;
+  const later = Math.min(CALM_GAP_MAX, Math.max(0, calm - 1));
   s.spark = {
     topic: pick % 2 === 0 ? hottest[0] : topics[pick % 3],
-    chapter: from + (wwRoll(s.seed, P_SPARK, n, 1) % 4),
+    chapter: from + later + (wwRoll(s.seed, P_SPARK, n, 1) % 4),
   };
+}
+
+/**
+ * How hot a later spark starts, read off the state (ww176), never off how
+ * many crises came before: 2, and 1 each for the question long unsettled,
+ * a great power's army fully on foot, and a great power in the streets.
+ */
+function sparkHeat(gw: GreatWar, topic: GwTopic): number {
+  const s = gw.s;
+  const great = s.nations.filter((n) => !n.out && GW_GREAT.includes(n.tag));
+  let t = 2;
+  if (s.pressure[topic] >= SPARK_AT) t++;
+  if (great.some((n) => n.mob >= 2)) t++;
+  if (great.some((n) => n.unrest >= 2)) t++;
+  return t;
 }
 
 function light(gw: GreatWar, topic: GwTopic, short: boolean): void {
@@ -113,22 +165,31 @@ function light(gw: GreatWar, topic: GwTopic, short: boolean): void {
     hold: 0,
     short,
   };
-  // Each crisis settled leaves the next one hotter.
-  s.temp = Math.max(s.temp, short ? 3 + s.chains.length : 3);
+  // July starts at 3; a later spark as hot as the world is (ww176).
+  s.temp = Math.max(s.temp, short ? sparkHeat(gw, topic) : 3);
   news(gw, short ? `spark_${topic}` : "shot_fired");
   if (short) turn(gw, `spark_${topic}`);
 }
 
-/** Closes the open crisis. Only `war` starts one. */
-export function closeChain(gw: GreatWar, outcome: GwChainOutcome): void {
+/**
+ * Closes the open crisis. Only `war` starts one. `quiet`: it closes into a
+ * note (ww176), whose own news follows.
+ */
+export function closeChain(
+  gw: GreatWar,
+  outcome: GwChainOutcome,
+  quiet = false,
+): void {
   const s = gw.s;
   const c = s.chain;
   if (c === null) return;
   s.chains.push({ topic: c.topic, outcome, chapter: s.chapter });
   s.chain = null;
   s.crisis = null;
-  news(gw, `crisis_${outcome}`);
-  turn(gw, `crisis_${outcome}`);
+  if (!quiet) {
+    news(gw, `crisis_${outcome}`);
+    turn(gw, `crisis_${outcome}`);
+  }
   if (outcome === "war") {
     openWar(gw);
     return;
@@ -194,8 +255,9 @@ function runLink(gw: GreatWar): void {
     case "ultimatum": {
       const auh = gw.nation("AUH");
       if (auh !== null) auh.mob = Math.max(auh.mob, 1);
-      // A seat wrote the note itself: its wording heats or cools the link.
-      for (const seat of s.seats) {
+      // A seat wrote July's note itself: its wording heats or cools the link
+      // (that link only: a later spark has no Vienna note in it).
+      for (const seat of c.short ? [] : s.seats) {
         for (const f of seat.flags) heat(gw, GW_NOTE_FLAGS[f] ?? 0);
       }
       russiaStirs(gw, name);
@@ -221,11 +283,9 @@ function runLink(gw: GreatWar): void {
     }
     case "general":
       if (s.aside) return closeChain(gw, "humiliation");
+      if (c.short) return sparkNote(gw, c.topic);
       // Vienna never signed: there is no war for the others to join.
-      if (
-        !c.short &&
-        seatsOf(gw, "AUH")[0]?.flags.includes(AUH_DECLARED) === false
-      ) {
+      if (seatsOf(gw, "AUH")[0]?.flags.includes(AUH_DECLARED) === false) {
         return closeChain(gw, "compromise");
       }
       return closeChain(gw, s.temp >= GENERAL_WAR_AT ? "war" : "compromise");
@@ -233,6 +293,29 @@ function runLink(gw: GreatWar): void {
       break;
   }
   c.step++;
+}
+
+/**
+ * A later spark's top link (ww176): hot enough, it ends in a note between the
+ * topic's pair through the ladder (Ladder.sendNote), never in war itself. The
+ * other side answers (a seat on its card), and war comes only if the note is
+ * refused and the sender presses. An AI sends one note a year at most
+ * (PairWar.notedLately); a seat's country sends only if no AI pair can.
+ */
+function sparkNote(gw: GreatWar, topic: GwTopic): void {
+  const s = gw.s;
+  if (s.temp < GENERAL_WAR_AT) return closeChain(gw, "compromise");
+  const pairs = (NOTE_PAIRS[topic] ?? []).filter(
+    ([from, to]) =>
+      ladderTargets(gw, from).includes(to) &&
+      (ruledBySeat(gw, from) || !notedLately(gw, from)),
+  );
+  const pair =
+    pairs.find(([from]) => !ruledBySeat(gw, from)) ?? pairs[0] ?? null;
+  if (pair === null) return closeChain(gw, "compromise");
+  closeChain(gw, "compromise", true);
+  sendNote(gw, pair[0], pair[1]);
+  for (const seat of seatsOf(gw, pair[0])) reason(gw, seat, "ladder_sent");
 }
 
 /**
@@ -309,8 +392,9 @@ export function crisisStep(gw: GreatWar): void {
     for (const t of GW_TOPICS) s.pressure[t]++;
   }
   if (s.chain !== null) {
+    // July's mobilisation papers only: a later spark ends in a note.
     const waited =
-      s.plan === null
+      s.plan === null && !s.chain.short
         ? s.seats.find((x) => timesPutOff(x) >= PUT_OFF_LIMIT)
         : undefined;
     if (waited !== undefined) {

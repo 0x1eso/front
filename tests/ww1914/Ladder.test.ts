@@ -6,7 +6,7 @@ import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
 import { GW_LADDER_POWERS } from "@openfront/engine-lib/ww1914/content/ladder";
 import { GW_FILLER_SCENES } from "@openfront/engine-lib/ww1914/content/scenes/filler";
 import type { GameRunner } from "@openfront/engine/GameRunner";
-import { closeChain } from "@openfront/engine/ww1914/Crises";
+import { closeChain, crisisStep } from "@openfront/engine/ww1914/Crises";
 import type { GreatWar } from "@openfront/engine/ww1914/GreatWar";
 import {
   ladderAnswer,
@@ -144,6 +144,42 @@ describe("the crisis ladder", () => {
     expect(gw.s.warChapter).not.toBeNull();
     expect(gw.nation("DEU")!.side).toBe("central");
     expect(gw.nation("RUS")!.side).toBe("entente");
+  });
+
+  test("a later spark starts as hot as the world and ends in a note, not a war (ww176)", () => {
+    julyPassed();
+    // Calm after calm: no longer a hotter start each time.
+    for (let i = 0; i < 4; i++) {
+      gw.s.chains.push({
+        topic: "colonial",
+        outcome: "compromise",
+        chapter: 1,
+      });
+    }
+    gw.s.temp = 0;
+    gw.s.spark = { topic: "colonial", chapter: gw.s.chapter };
+    crisisStep(gw);
+    expect(gw.s.chain).toMatchObject({ topic: "colonial", short: true });
+    expect(gw.s.temp).toBeLessThan(6);
+    // Its top link, at its hottest: a note between the colonial rivals.
+    gw.s.chain!.step = 5;
+    gw.s.temp = 10;
+    crisisStep(gw);
+    expect(gw.s.chain).toBeNull();
+    expect(gw.s.warChapter).toBeNull();
+    // Berlin is the seat: Paris sends, and Berlin is dealt the card.
+    expect(gw.s.ladders).toMatchObject([
+      { from: "FRA", to: "DEU", step: "sent" },
+    ]);
+    expect(st().scheduled.map((q) => q.scene)).toContain("gw_ladder_note");
+    const l = gw.s.ladders[0];
+    for (let i = 0; i < 4 && l.step !== "war"; i++) {
+      gw.s.chapter += 1;
+      ladderStep(gw);
+      if (gw.s.warChapter !== null) expect(l.step).toBe("war");
+      if (i === 0) expect(l.step).toBe("rejected");
+    }
+    expect(gw.s.wars.some((w) => w.cause === "july")).toBe(false);
   });
 });
 
