@@ -1,7 +1,10 @@
 // ww172 phase 5 (design ww168 B5-B6, 7A, 9A): occupation beyond the fronts,
 // the bilateral table of a peace of two, and the endings the state gives.
 // On the real 1914 set, since the places are what move.
-import type { GwSeatState } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import {
+  GW_LINES,
+  type GwSeatState,
+} from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import {
   GW_PLACE_KEYS,
@@ -72,16 +75,19 @@ describe("the map's land", () => {
 });
 
 describe("occupation", () => {
-  test("a beaten country loses a group a chapter to the enemy next to it, its heart last", async () => {
+  test("a beaten country loses its land a chapter at a time to the enemy next to it, its heart last", async () => {
     const gw = await world("GWOCC1");
     openGeneral(gw, "DEU", "RUS", "test");
     if (warOf(gw, "AUH", "RUS") === null) declareWar(gw, "AUH", "RUS", "test");
     gw.s.chapter = longChapter(gw, 8);
     leaveWar(gw, "RUS", "nation_beaten");
     expect(gw.s.beaten).toEqual([{ tag: "RUS", chapter: gw.s.chapter }]);
-    gw.s.landMoves = [];
-    occupationStep(gw);
-    // Bukovina is Austria's: Bessarabia is next to it, and goes first.
+    // ww179: the places next to supplied land go, a few a chapter.
+    for (let i = 0; i < 8; i++) {
+      gw.s.landMoves = [];
+      occupationStep(gw);
+    }
+    // Bukovina is Austria's: Bessarabia is next to it, and goes early.
     expect(holderOf(gw, "moscow")).toBe("RUS");
     for (const p of ownedBy("RUS", "bessarabia")) {
       expect(holderOf(gw, p)).toBe("AUH");
@@ -99,13 +105,32 @@ describe("occupation", () => {
     const auh = seatOf("AUH");
     expect(landHolds(gw, auh, { is: "land_taken", from: "RUS" })).toBe(true);
     expect(landHolds(gw, auh, { is: "beaten", tag: "RUS", max: 6 })).toBe(true);
-    // ww179: no reach limit; the interior goes on, a group a chapter.
-    for (let i = 0; i < 6; i++) {
-      gw.s.chapter = longChapter(gw, gw.s.chapter + 1);
-      occupationStep(gw);
-    }
+    // ww179: no reach limit; the interior goes on as supply follows.
+    for (let i = 0; i < 30; i++) occupationStep(gw);
     expect(holderOf(gw, "moscow")).not.toBe("RUS");
     expect(holderOf(gw, "petrograd")).not.toBe("RUS");
+  });
+
+  test("supply: Germany reaches Moscow over time, Austria never East Asia (ww179)", async () => {
+    const gw = await world("GWOCC9");
+    openGeneral(gw, "DEU", "RUS", "test");
+    if (warOf(gw, "AUH", "RUS") === null) declareWar(gw, "AUH", "RUS", "test");
+    if (warOf(gw, "JPN", "AUH") === null) declareWar(gw, "JPN", "AUH", "test");
+    gw.s.chapter = longChapter(gw, 8);
+    // The east won through to Kiev: the front runs on into Russia.
+    const east = gw.s.theatres.find((t) => t.id === "east")!;
+    east.line = GW_LINES.east.length - 1;
+    east.progress = 0;
+    for (let i = 0; i < 40; i++) {
+      frontLandStep(gw);
+      occupationStep(gw);
+    }
+    expect(holderOf(gw, "moscow")).toBe("DEU");
+    const far = ["far_east", "korea", "taiwan", "japan", "siberia"];
+    const austrian = GW_PLACE_KEYS.filter(
+      (p) => far.includes(GW_PLACES[p].group) && holderOf(gw, p) === "AUH",
+    );
+    expect(austrian).toEqual([]);
   });
 
   test("the war goes on with a capital held: occupation held, and under occupation", async () => {
