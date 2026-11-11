@@ -84,22 +84,22 @@ const COOLDOWN_MONTHS = 6;
 
 /** Percent chance a quiet front sees a raid in a chapter. */
 const RAID_PCT: Readonly<Record<GwTheatre, number>> = {
-  west: 60,
-  east: 55,
-  italy: 55,
-  balkan: 45,
-  straits: 40,
-  caucasus: 40,
-  mesopotamia: 35,
-  palestine: 40,
+  west: 65,
+  east: 60,
+  italy: 60,
+  balkan: 50,
+  straits: 45,
+  caucasus: 45,
+  mesopotamia: 40,
+  palestine: 45,
   sea: 0,
   colonies: 0,
-  alps: 45,
-  danube: 45,
-  thrace: 40,
-  low_countries: 45,
-  dobruja: 40,
-  persia: 35,
+  alps: 50,
+  danube: 50,
+  thrace: 45,
+  low_countries: 50,
+  dobruja: 45,
+  persia: 40,
 };
 /** One raid in so many goes for a salient (tuned: every raid may, if it goes well). */
 const SALIENT_IN = 1;
@@ -134,7 +134,8 @@ function chapterIn(gw: GreatWar, months: number): number {
 
 /**
  * The tempo an end keeps: a seat's word if one fights there, else its lead's
- * staff by character (hardline and opportunist raid, cautious lie quiet).
+ * staff by character (hardline and opportunist raid, cautious lie quiet; a
+ * worn one lies quiet).
  */
 export function tempoOf(
   gw: GreatWar,
@@ -148,6 +149,9 @@ export function tempoOf(
   }
   const lead = members.length === 0 ? null : gw.nation(members[0]);
   if (lead === null) return null;
+  // A worn staff lies quiet, whatever its character.
+  const th = gw.s.theatres.find((x) => x.id === t)!;
+  if (endStrain(th, side) >= STRAIN_WORN) return "quiet";
   if (lead.ai === "hardline" || lead.ai === "opportunist") return "active";
   return lead.ai === "cautious" ? "quiet" : null;
 }
@@ -192,7 +196,10 @@ function raiderOf(gw: GreatWar, t: GwTheatreState): GwSide | null {
   const ends = GW_SIDES.filter((e) => membersOf(gw, t.id, e).length > 0);
   if (ends.length < 2) return null;
   const tempo = ends.map((e) => tempoOf(gw, t.id, e));
-  const willing = ends.filter((_, k) => tempo[k] !== "quiet");
+  const open = ends.filter((_, k) => tempo[k] !== "quiet");
+  // A staff raids where there is ground to bite, if it has any.
+  const room = open.filter((e) => canBite(t, e));
+  const willing = room.length > 0 ? room : open;
   const s = gw.s;
   const i = s.theatres.indexOf(t);
   // Live and let live: a tacit truce holds two chapters in three.
@@ -207,6 +214,12 @@ function raiderOf(gw: GreatWar, t: GwTheatreState): GwSide | null {
   const fresh = a <= b ? 0 : 1;
   const r = wwRoll(s.seed, P_RAIDER, s.chapter, i) % 3;
   return ends[r < 2 ? fresh : 1 - fresh];
+}
+
+/** Whether `by` has a place to bite past the line here. */
+function canBite(t: GwTheatreState, by: GwSide): boolean {
+  const next = (t.salient ?? 0) + (by === GW_FRONT_UP[t.id] ? 1 : -1);
+  return Math.abs(next) <= 2 && bitten(t, next) !== null;
 }
 
 /** Sets the salient one place on, with its news; true when a place moved. */
