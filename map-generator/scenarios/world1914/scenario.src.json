@@ -1368,8 +1368,8 @@
     },
     {
       "id": 42,
-      "name": "Arkhangel'sk 8",
-      "nameKo": "아르한겔스크 8",
+      "name": "Arkhangelsk",
+      "nameKo": "아르한겔스크",
       "owner": "SUN",
       "vp": 0,
       "cat": "pastoral",
@@ -1387,6 +1387,7 @@
       "wcell": 491,
       "rail": 2,
       "fort": 0,
+      "place": "arkhangelsk",
       "gwOwner": "RUS",
       "sr": 8,
       "harbor": 40013
@@ -2118,8 +2119,8 @@
     },
     {
       "id": 74,
-      "name": "Sakha (Yakutia) (C)",
-      "nameKo": "사하 공화국 중부",
+      "name": "Yakutsk",
+      "nameKo": "야쿠츠크",
       "owner": "SUN",
       "vp": 0,
       "cat": "rural",
@@ -2137,6 +2138,7 @@
       "wcell": 462,
       "rail": 1,
       "fort": 0,
+      "place": "yakutsk",
       "gwOwner": "RUS",
       "sr": 7
     },
@@ -2985,8 +2987,8 @@
     },
     {
       "id": 110,
-      "name": "Alaska (C)",
-      "nameKo": "알래스카 중부",
+      "name": "Fairbanks",
+      "nameKo": "페어뱅크스",
       "owner": "USA",
       "vp": 4,
       "vpTile": [333, 490],
@@ -3005,6 +3007,7 @@
       "wcell": 435,
       "rail": 1,
       "fort": 0,
+      "place": "fairbanks",
       "gwOwner": "USA",
       "sr": 15,
       "harbor": 40042
@@ -3631,8 +3634,8 @@
     },
     {
       "id": 136,
-      "name": "Irkutsk (C)",
-      "nameKo": "이르쿠츠크 중부",
+      "name": "Irkutsk",
+      "nameKo": "이르쿠츠크",
       "owner": "SUN",
       "vp": 0,
       "cat": "rural",
@@ -3650,6 +3653,7 @@
       "wcell": 425,
       "rail": 1,
       "fort": 0,
+      "place": "irkutsk",
       "gwOwner": "RUS",
       "sr": 7
     },
@@ -4145,8 +4149,8 @@
     },
     {
       "id": 158,
-      "name": "Sverdlovsk",
-      "nameKo": "스베르들롭스크",
+      "name": "Yekaterinburg",
+      "nameKo": "예카테린부르크",
       "owner": "SUN",
       "vp": 0,
       "cat": "city",
@@ -4164,6 +4168,7 @@
       "wcell": 420,
       "rail": 2,
       "fort": 0,
+      "place": "yekaterinburg",
       "gwOwner": "RUS",
       "sr": 14
     },
@@ -4194,8 +4199,8 @@
     },
     {
       "id": 160,
-      "name": "Perm'",
-      "nameKo": "페름 지방",
+      "name": "Perm",
+      "nameKo": "페름",
       "owner": "SUN",
       "vp": 0,
       "cat": "large_town",
@@ -4213,6 +4218,7 @@
       "wcell": 419,
       "rail": 2,
       "fort": 0,
+      "place": "perm",
       "gwOwner": "RUS",
       "sr": 14
     },
@@ -4487,6 +4493,7 @@
       "wcell": 422,
       "rail": 1,
       "fort": 0,
+      "place": "tomsk",
       "gwOwner": "RUS",
       "sr": 23
     },
@@ -4670,8 +4677,8 @@
     },
     {
       "id": 180,
-      "name": "Alaska (SE)",
-      "nameKo": "알래스카 남동부",
+      "name": "Juneau",
+      "nameKo": "주노",
       "owner": "USA",
       "vp": 0,
       "cat": "wasteland",
@@ -4689,6 +4696,7 @@
       "wcell": 400,
       "rail": 1,
       "fort": 0,
+      "place": "juneau",
       "gwOwner": "USA",
       "sr": 15,
       "harbor": 40045
@@ -5068,8 +5076,8 @@
     },
     {
       "id": 196,
-      "name": "British Columbia (S)",
-      "nameKo": "브리티시컬럼비아 남부",
+      "name": "Vancouver",
+      "nameKo": "밴쿠버",
       "owner": "CAN",
       "vp": 6,
       "vpTile": [630, 676],
@@ -5088,6 +5096,7 @@
       "wcell": 401,
       "rail": 1,
       "fort": 0,
+      "place": "vancouver",
       "gwOwner": "GBR",
       "sr": 21,
       "harbor": 40052
@@ -5308,6 +5317,7 @@
       "wcell": 421,
       "rail": 2,
       "fort": 0,
+      "place": "omsk",
       "gwOwner": "RUS",
       "sr": 23
     },
@@ -5663,8 +5673,8 @@
     },
     {
       "id": 221,
-      "name": "Manitoba (S)",
-      "nameKo": "매니토바 남부",
+      "name": "Winnipeg",
+      "nameKo": "위니펙",
       "owner": "CAN",
       "vp": 0,
       "cat": "rural",
@@ -5682,6 +5692,7 @@
       "wcell": 404,
       "rail": 1,
       "fort": 0,
+      "place": "winnipeg",
       "gwOwner": "GBR",
       "sr": 12,
       "harbor": 40035
@@ -6079,8 +6090,8 @@
     },
     {
       "id": 238,
-      "name": "Tatarstan",
-      "nameKo": "타타르 공화국",
+      "name": "Kazan",
+      "nameKo": "카잔",
       "owner": "SUN",
       "vp": 0,
       "cat": "city",
@@ -6098,6 +6109,7 @@
       "wcell": 419,
       "rail": 2,
       "fort": 0,
+      "place": "kazan",
       "gwOwner": "RUS",
       "sr": 30
     },
@@ -6402,8 +6414,8 @@
     },
     {
       "id": 251,
-      "name": "Khabarovsk (S)",
-      "nameKo": "하바롭스크 지방 남부",
+      "name": "Khabarovsk",
+      "nameKo": "하바롭스크",
       "owner": "SUN",
       "vp": 0,
       "cat": "town",
@@ -6421,6 +6433,7 @@
       "wcell": 427,
       "rail": 1,
       "fort": 0,
+      "place": "khabarovsk",
       "gwOwner": "RUS",
       "sr": 25,
       "harbor": 40049
@@ -7115,6 +7128,7 @@
       "wcell": 419,
       "rail": 2,
       "fort": 0,
+      "place": "orenburg",
       "gwOwner": "RUS",
       "sr": 30
     },
@@ -7224,8 +7238,8 @@
     },
     {
       "id": 290,
-      "name": "Québec (S)",
-      "nameKo": "퀘벡 남부",
+      "name": "Quebec",
+      "nameKo": "퀘벡",
       "owner": "CAN",
       "vp": 24,
       "vpTile": [1158, 731],
@@ -7244,6 +7258,7 @@
       "wcell": 370,
       "rail": 1,
       "fort": 0,
+      "place": "quebec",
       "gwOwner": "GBR",
       "sr": 24,
       "harbor": 40054
@@ -8414,8 +8429,8 @@
     },
     {
       "id": 345,
-      "name": "Ontario (SE)",
-      "nameKo": "온타리오 남동부",
+      "name": "Ottawa",
+      "nameKo": "오타와",
       "owner": "CAN",
       "vp": 6,
       "vpTile": [1117, 755],
@@ -8434,6 +8449,7 @@
       "wcell": 369,
       "rail": 2,
       "fort": 0,
+      "place": "ottawa",
       "gwOwner": "GBR",
       "sr": 33,
       "harbor": 40035
@@ -9004,8 +9020,8 @@
     },
     {
       "id": 383,
-      "name": "South Sakhalin",
-      "nameKo": "남사할린",
+      "name": "Toyohara",
+      "nameKo": "도요하라",
       "owner": "JPN",
       "vp": 0,
       "cat": "rural",
@@ -9023,6 +9039,7 @@
       "wcell": 392,
       "rail": 3,
       "fort": 0,
+      "place": "toyohara",
       "gwOwner": "JPN",
       "sr": 42,
       "harbor": 40049
@@ -9448,8 +9465,8 @@
     },
     {
       "id": 406,
-      "name": "Washington",
-      "nameKo": "워싱턴",
+      "name": "Seattle",
+      "nameKo": "시애틀",
       "owner": "USA",
       "vp": 4,
       "vpTile": [640, 700],
@@ -9468,6 +9485,7 @@
       "wcell": 365,
       "rail": 3,
       "fort": 0,
+      "place": "seattle",
       "gwOwner": "USA",
       "sr": 21,
       "harbor": 40052
@@ -9595,7 +9613,7 @@
     },
     {
       "id": 413,
-      "name": "Astrakhan'",
+      "name": "Astrakhan",
       "nameKo": "아스트라한",
       "owner": "SUN",
       "vp": 0,
@@ -9614,6 +9632,7 @@
       "wcell": 382,
       "rail": 2,
       "fort": 0,
+      "place": "astrakhan",
       "gwOwner": "RUS",
       "sr": 30
     },
@@ -9814,8 +9833,8 @@
     },
     {
       "id": 424,
-      "name": "Primor'ye",
-      "nameKo": "프리모르스키 지방",
+      "name": "Vladivostok",
+      "nameKo": "블라디보스토크",
       "owner": "SUN",
       "vp": 0,
       "cat": "town",
@@ -9833,6 +9852,7 @@
       "wcell": 391,
       "rail": 2,
       "fort": 0,
+      "place": "vladivostok",
       "gwOwner": "RUS",
       "sr": 65,
       "harbor": 40057
@@ -11932,6 +11952,7 @@
       "wcell": 370,
       "rail": 3,
       "fort": 0,
+      "place": "new_york",
       "gwOwner": "USA",
       "sr": 75,
       "harbor": 40050
@@ -13050,6 +13071,7 @@
       "wcell": 385,
       "rail": 2,
       "fort": 0,
+      "place": "tashkent",
       "gwOwner": "RUS",
       "sr": 69
     },
@@ -13228,8 +13250,8 @@
     },
     {
       "id": 579,
-      "name": "Illinois",
-      "nameKo": "일리노이",
+      "name": "Chicago",
+      "nameKo": "시카고",
       "owner": "USA",
       "vp": 11,
       "vpTile": [1026, 780],
@@ -13248,6 +13270,7 @@
       "wcell": 369,
       "rail": 4,
       "fort": 0,
+      "place": "chicago",
       "gwOwner": "USA",
       "sr": 58
     },
@@ -13499,8 +13522,8 @@
     },
     {
       "id": 592,
-      "name": "California",
-      "nameKo": "캘리포니아",
+      "name": "San Francisco",
+      "nameKo": "샌프란시스코",
       "owner": "USA",
       "vp": 19,
       "vpTile": [686, 880],
@@ -13519,6 +13542,7 @@
       "wcell": 330,
       "rail": 4,
       "fort": 0,
+      "place": "san_francisco",
       "gwOwner": "USA",
       "sr": 61,
       "harbor": 40052
@@ -14145,7 +14169,7 @@
     {
       "id": 619,
       "name": "Sassari",
-      "nameKo": "사사리도",
+      "nameKo": "사사리",
       "owner": "ITA",
       "vp": 0,
       "cat": "town",
@@ -14163,6 +14187,7 @@
       "wcell": 378,
       "rail": 2,
       "fort": 0,
+      "place": "sassari",
       "gwOwner": "ITA",
       "sr": 86,
       "harbor": 40153
@@ -14388,8 +14413,8 @@
     },
     {
       "id": 629,
-      "name": "Colorado",
-      "nameKo": "콜로라도",
+      "name": "Denver",
+      "nameKo": "덴버",
       "owner": "USA",
       "vp": 6,
       "vpTile": [833, 808],
@@ -14408,6 +14433,7 @@
       "wcell": 331,
       "rail": 3,
       "fort": 0,
+      "place": "denver",
       "gwOwner": "USA",
       "sr": 87
     },
@@ -14533,6 +14559,7 @@
       "wcell": 345,
       "rail": 0,
       "fort": 0,
+      "place": "ankara",
       "gwOwner": "OTT",
       "sr": 82
     },
@@ -14753,6 +14780,7 @@
       "wcell": 348,
       "rail": 2,
       "fort": 0,
+      "place": "samarkand",
       "gwOwner": "RUS",
       "sr": 69
     },
@@ -14777,6 +14805,7 @@
       "wcell": 345,
       "rail": 0,
       "fort": 0,
+      "place": "sivas",
       "gwOwner": "OTT",
       "sr": 82
     },
@@ -15521,8 +15550,8 @@
     },
     {
       "id": 676,
-      "name": "Izmir",
-      "nameKo": "이즈미르",
+      "name": "Smyrna",
+      "nameKo": "스미르나",
       "owner": "TUR",
       "vp": 0,
       "cat": "large_town",
@@ -15540,6 +15569,7 @@
       "wcell": 344,
       "rail": 0,
       "fort": 0,
+      "place": "smyrna",
       "gwOwner": "OTT",
       "sr": 82,
       "harbor": 40154
@@ -15596,7 +15626,7 @@
     {
       "id": 679,
       "name": "Seoul",
-      "nameKo": "서울",
+      "nameKo": "경성",
       "owner": "JPN",
       "vp": 6,
       "vpTile": [3411, 836],
@@ -15615,6 +15645,7 @@
       "wcell": 354,
       "rail": 0,
       "fort": 0,
+      "place": "seoul",
       "gwOwner": "JPN",
       "sr": 79,
       "harbor": 40060
@@ -15794,7 +15825,7 @@
     {
       "id": 687,
       "name": "Konya",
-      "nameKo": "코니아",
+      "nameKo": "코냐",
       "owner": "TUR",
       "vp": 0,
       "cat": "rural",
@@ -15812,6 +15843,7 @@
       "wcell": 345,
       "rail": 0,
       "fort": 0,
+      "place": "konya",
       "gwOwner": "OTT",
       "sr": 82
     },
@@ -16063,7 +16095,7 @@
     },
     {
       "id": 698,
-      "name": "Diyarbakir",
+      "name": "Diyarbakır",
       "nameKo": "디야르바키르",
       "owner": "TUR",
       "vp": 0,
@@ -16082,6 +16114,7 @@
       "wcell": 346,
       "rail": 0,
       "fort": 0,
+      "place": "diyarbakir",
       "gwOwner": "OTT",
       "sr": 94
     },
@@ -16228,6 +16261,7 @@
       "wcell": 345,
       "rail": 0,
       "fort": 0,
+      "place": "adana",
       "gwOwner": "OTT",
       "sr": 82,
       "harbor": 40160
@@ -16749,6 +16783,7 @@
       "wcell": 342,
       "rail": 0,
       "fort": 0,
+      "place": "tunis",
       "gwOwner": "FRA",
       "sr": 95,
       "harbor": 40062
@@ -17271,8 +17306,8 @@
     },
     {
       "id": 749,
-      "name": "Texas",
-      "nameKo": "텍사스",
+      "name": "San Antonio",
+      "nameKo": "샌안토니오",
       "owner": "USA",
       "vp": 9,
       "vpTile": [940, 933],
@@ -17291,6 +17326,7 @@
       "wcell": 332,
       "rail": 2,
       "fort": 0,
+      "place": "san_antonio",
       "gwOwner": "USA",
       "sr": 89,
       "harbor": 40072
@@ -18483,8 +18519,8 @@
     },
     {
       "id": 799,
-      "name": "Punjab",
-      "nameKo": "펀자브",
+      "name": "Lahore",
+      "nameKo": "라호르",
       "owner": "RAJ",
       "vp": 6,
       "vpTile": [2826, 911],
@@ -18503,6 +18539,7 @@
       "wcell": 349,
       "rail": 0,
       "fort": 0,
+      "place": "lahore",
       "gwOwner": "GBR",
       "sr": 102
     },
@@ -18705,8 +18742,8 @@
     },
     {
       "id": 809,
-      "name": "Tripolitania",
-      "nameKo": "트리폴리타니아",
+      "name": "Tripoli",
+      "nameKo": "트리폴리",
       "owner": "ITA",
       "vp": 4,
       "vpTile": [2146, 895],
@@ -18725,6 +18762,7 @@
       "wcell": 343,
       "rail": 0,
       "fort": 0,
+      "place": "tripoli",
       "gwOwner": "ITA",
       "sr": 105,
       "harbor": 40062
@@ -18757,8 +18795,8 @@
     },
     {
       "id": 811,
-      "name": "Louisiana",
-      "nameKo": "루이지애나",
+      "name": "New Orleans",
+      "nameKo": "뉴올리언스",
       "owner": "USA",
       "vp": 4,
       "vpTile": [999, 931],
@@ -18777,14 +18815,15 @@
       "wcell": 332,
       "rail": 3,
       "fort": 0,
+      "place": "new_orleans",
       "gwOwner": "USA",
       "sr": 89,
       "harbor": 40072
     },
     {
       "id": 812,
-      "name": "Ajdabiya",
-      "nameKo": "아즈다비야 지구",
+      "name": "Benghazi",
+      "nameKo": "벵가지",
       "owner": "ITA",
       "vp": 0,
       "cat": "rural",
@@ -18802,6 +18841,7 @@
       "wcell": 308,
       "rail": 0,
       "fort": 0,
+      "place": "benghazi",
       "gwOwner": "ITA",
       "sr": 106,
       "harbor": 40062
@@ -19942,8 +19982,8 @@
     },
     {
       "id": 863,
-      "name": "Sind",
-      "nameKo": "신드",
+      "name": "Karachi",
+      "nameKo": "카라치",
       "owner": "RAJ",
       "vp": 4,
       "vpTile": [2744, 992],
@@ -19962,6 +20002,7 @@
       "wcell": 312,
       "rail": 0,
       "fort": 0,
+      "place": "karachi",
       "gwOwner": "GBR",
       "sr": 102,
       "harbor": 40076
@@ -20313,7 +20354,7 @@
     },
     {
       "id": 878,
-      "name": "Al Madinah",
+      "name": "Medina",
       "nameKo": "메디나",
       "owner": "SAU",
       "vp": 0,
@@ -20332,6 +20373,7 @@
       "wcell": 309,
       "rail": 0,
       "fort": 0,
+      "place": "medina",
       "gwOwner": "OTT",
       "sr": 110,
       "harbor": 40077
@@ -20683,8 +20725,8 @@
     },
     {
       "id": 894,
-      "name": "West Bengal",
-      "nameKo": "서벵골",
+      "name": "Calcutta",
+      "nameKo": "캘커타",
       "owner": "RAJ",
       "vp": 11,
       "vpTile": [2981, 1019],
@@ -20703,6 +20745,7 @@
       "wcell": 314,
       "rail": 0,
       "fort": 0,
+      "place": "calcutta",
       "gwOwner": "GBR",
       "sr": 111,
       "harbor": 40068
@@ -20833,8 +20876,8 @@
     },
     {
       "id": 901,
-      "name": "Taiwan",
-      "nameKo": "대만",
+      "name": "Taipei",
+      "nameKo": "타이베이",
       "owner": "JPN",
       "vp": 6,
       "vpTile": [3350, 990],
@@ -20853,6 +20896,7 @@
       "wcell": 318,
       "rail": 0,
       "fort": 0,
+      "place": "taipei",
       "gwOwner": "JPN",
       "sr": 117,
       "harbor": 40080
@@ -21155,7 +21199,7 @@
     },
     {
       "id": 914,
-      "name": "Makkah",
+      "name": "Mecca",
       "nameKo": "메카",
       "owner": "SAU",
       "vp": 7,
@@ -21175,6 +21219,7 @@
       "wcell": 310,
       "rail": 0,
       "fort": 0,
+      "place": "mecca",
       "gwOwner": "OTT",
       "sr": 110,
       "harbor": 40077
@@ -21254,7 +21299,7 @@
     },
     {
       "id": 918,
-      "name": "Ha Noi",
+      "name": "Hanoi",
       "nameKo": "하노이",
       "owner": "FRA",
       "vp": 4,
@@ -21274,6 +21319,7 @@
       "wcell": 316,
       "rail": 0,
       "fort": 0,
+      "place": "hanoi",
       "gwOwner": "FRA",
       "sr": 120,
       "harbor": 40080
@@ -21556,8 +21602,8 @@
     },
     {
       "id": 930,
-      "name": "Hawaii",
-      "nameKo": "하와이",
+      "name": "Honolulu",
+      "nameKo": "호놀룰루",
       "owner": "USA",
       "vp": 0,
       "cat": "pastoral",
@@ -21575,6 +21621,7 @@
       "wcell": 254,
       "rail": 3,
       "fort": 0,
+      "place": "honolulu",
       "gwOwner": "USA",
       "sr": 123,
       "harbor": 40056
@@ -21650,13 +21697,14 @@
       "wcell": 273,
       "rail": 0,
       "fort": 0,
+      "place": "khartoum",
       "gwOwner": "GBR",
       "sr": 109
     },
     {
       "id": 934,
-      "name": "Maharashtra",
-      "nameKo": "마하라슈트라",
+      "name": "Bombay",
+      "nameKo": "봄베이",
       "owner": "RAJ",
       "vp": 17,
       "vpTile": [2809, 1059],
@@ -21675,6 +21723,7 @@
       "wcell": 277,
       "rail": 0,
       "fort": 0,
+      "place": "bombay",
       "gwOwner": "GBR",
       "sr": 119,
       "harbor": 40076
@@ -21927,8 +21976,8 @@
     },
     {
       "id": 945,
-      "name": "Philippines",
-      "nameKo": "필리핀",
+      "name": "Manila",
+      "nameKo": "마닐라",
       "owner": "USA",
       "vp": 6,
       "vpTile": [3344, 1110],
@@ -21947,6 +21996,7 @@
       "wcell": 282,
       "rail": 0,
       "fort": 0,
+      "place": "manila",
       "gwOwner": "USA",
       "sr": 124,
       "harbor": 40088
@@ -22603,8 +22653,8 @@
     },
     {
       "id": 975,
-      "name": "Yangon",
-      "nameKo": "양곤 구",
+      "name": "Rangoon",
+      "nameKo": "랑군",
       "owner": "RAJ",
       "vp": 4,
       "vpTile": [3068, 1086],
@@ -22623,6 +22673,7 @@
       "wcell": 279,
       "rail": 0,
       "fort": 0,
+      "place": "rangoon",
       "gwOwner": "GBR",
       "sr": 113,
       "harbor": 40085
@@ -22703,8 +22754,8 @@
     },
     {
       "id": 980,
-      "name": "Eritrea",
-      "nameKo": "에리트레아",
+      "name": "Asmara",
+      "nameKo": "아스마라",
       "owner": "ITA",
       "vp": 4,
       "vpTile": [2432, 1102],
@@ -22723,6 +22774,7 @@
       "wcell": 273,
       "rail": 0,
       "fort": 0,
+      "place": "asmara",
       "gwOwner": "ITA",
       "sr": 109,
       "harbor": 40077
@@ -22894,6 +22946,7 @@
       "wcell": 280,
       "rail": 0,
       "fort": 0,
+      "place": "saigon",
       "gwOwner": "FRA",
       "sr": 132,
       "harbor": 40080
@@ -23773,8 +23826,8 @@
     },
     {
       "id": 1026,
-      "name": "Tamil Nadu",
-      "nameKo": "타밀나두",
+      "name": "Madras",
+      "nameKo": "마드라스",
       "owner": "RAJ",
       "vp": 6,
       "vpTile": [2891, 1127],
@@ -23793,6 +23846,7 @@
       "wcell": 277,
       "rail": 0,
       "fort": 0,
+      "place": "madras",
       "gwOwner": "GBR",
       "sr": 127,
       "harbor": 40087
@@ -24076,8 +24130,8 @@
     },
     {
       "id": 1039,
-      "name": "Italian Somaliland",
-      "nameKo": "이탈리아령 소말릴란드",
+      "name": "Mogadishu",
+      "nameKo": "모가디슈",
       "owner": "ITA",
       "vp": 4,
       "vpTile": [2503, 1250],
@@ -24096,6 +24150,7 @@
       "wcell": 238,
       "rail": 0,
       "fort": 0,
+      "place": "mogadishu",
       "gwOwner": "ITA",
       "sr": 133,
       "harbor": 40091
@@ -24174,6 +24229,7 @@
       "wcell": 234,
       "rail": 0,
       "fort": 0,
+      "place": "lagos",
       "gwOwner": "GBR",
       "sr": 118,
       "harbor": 40086
@@ -24305,8 +24361,8 @@
     },
     {
       "id": 1048,
-      "name": "Gold Coast",
-      "nameKo": "골드코스트",
+      "name": "Accra",
+      "nameKo": "아크라",
       "owner": "GBR",
       "vp": 4,
       "vpTile": [1997, 1212],
@@ -24325,6 +24381,7 @@
       "wcell": 233,
       "rail": 0,
       "fort": 0,
+      "place": "accra",
       "gwOwner": "GBR",
       "sr": 118,
       "harbor": 40086
@@ -24629,8 +24686,8 @@
     },
     {
       "id": 1062,
-      "name": "Ceylon",
-      "nameKo": "실론",
+      "name": "Colombo",
+      "nameKo": "콜롬보",
       "owner": "GBR",
       "vp": 4,
       "vpTile": [2887, 1197],
@@ -24649,6 +24706,7 @@
       "wcell": 242,
       "rail": 0,
       "fort": 0,
+      "place": "colombo",
       "gwOwner": "GBR",
       "sr": 136,
       "harbor": 40087
@@ -25149,8 +25207,8 @@
     },
     {
       "id": 1087,
-      "name": "Malaya",
-      "nameKo": "말라야",
+      "name": "Kuala Lumpur",
+      "nameKo": "쿠알라룸푸르",
       "owner": "GBR",
       "vp": 4,
       "vpTile": [3129, 1239],
@@ -25169,6 +25227,7 @@
       "wcell": 244,
       "rail": 0,
       "fort": 0,
+      "place": "kuala_lumpur",
       "gwOwner": "GBR",
       "sr": 137,
       "harbor": 40085
@@ -25344,6 +25403,7 @@
       "wcell": 208,
       "rail": 0,
       "fort": 0,
+      "place": "batavia",
       "gwOwner": "NLD",
       "sr": 141,
       "harbor": 40100
@@ -25542,6 +25602,7 @@
       "wcell": 237,
       "rail": 0,
       "fort": 0,
+      "place": "nairobi",
       "gwOwner": "GBR",
       "sr": 138,
       "harbor": 40093
@@ -25622,8 +25683,8 @@
     },
     {
       "id": 1108,
-      "name": "Kalimantan Timur",
-      "nameKo": "동칼리만탄",
+      "name": "Balikpapan",
+      "nameKo": "발릭파판",
       "owner": "NLD",
       "vp": 0,
       "cat": "large_city",
@@ -25641,6 +25702,7 @@
       "wcell": 209,
       "rail": 0,
       "fort": 0,
+      "place": "balikpapan",
       "gwOwner": "NLD",
       "sr": 139,
       "harbor": 40100
@@ -26212,6 +26274,7 @@
       "wcell": 199,
       "rail": 0,
       "fort": 0,
+      "place": "leopoldville",
       "gwOwner": "BEL",
       "sr": 134,
       "harbor": 40109
@@ -26591,8 +26654,8 @@
     },
     {
       "id": 1158,
-      "name": "Katanga",
-      "nameKo": "카탕가",
+      "name": "Élisabethville",
+      "nameKo": "엘리자베스빌",
       "owner": "BEL",
       "vp": 0,
       "cat": "large_town",
@@ -26610,6 +26673,7 @@
       "wcell": 200,
       "rail": 0,
       "fort": 0,
+      "place": "elisabethville",
       "gwOwner": "BEL",
       "sr": 134,
       "harbor": 40093
@@ -27333,8 +27397,8 @@
     },
     {
       "id": 1194,
-      "name": "Northern Territory (N)",
-      "nameKo": "노던 준 북부",
+      "name": "Darwin",
+      "nameKo": "다윈",
       "owner": "AUS",
       "vp": 0,
       "cat": "pastoral",
@@ -27352,6 +27416,7 @@
       "wcell": 175,
       "rail": 1,
       "fort": 0,
+      "place": "darwin",
       "gwOwner": "GBR",
       "sr": 149,
       "harbor": 40117
@@ -27382,7 +27447,7 @@
     },
     {
       "id": 1196,
-      "name": "Analamanga",
+      "name": "Antananarivo",
       "nameKo": "안타나나리보",
       "owner": "FRA",
       "vp": 7,
@@ -27402,6 +27467,7 @@
       "wcell": 166,
       "rail": 0,
       "fort": 0,
+      "place": "antananarivo",
       "gwOwner": "FRA",
       "sr": 150,
       "harbor": 40121
@@ -28023,8 +28089,8 @@
     },
     {
       "id": 1233,
-      "name": "Queensland (C) 2",
-      "nameKo": "퀸즐랜드 중부 2",
+      "name": "Brisbane",
+      "nameKo": "브리즈번",
       "owner": "AUS",
       "vp": 0,
       "cat": "town",
@@ -28042,6 +28108,7 @@
       "wcell": 140,
       "rail": 1,
       "fort": 0,
+      "place": "brisbane",
       "gwOwner": "GBR",
       "sr": 149,
       "harbor": 40119
@@ -28123,8 +28190,8 @@
     },
     {
       "id": 1238,
-      "name": "Western Australia (W)",
-      "nameKo": "웨스턴오스트레일리아 서부",
+      "name": "Perth",
+      "nameKo": "퍼스",
       "owner": "AUS",
       "vp": 4,
       "vpTile": [3287, 1641],
@@ -28143,6 +28210,7 @@
       "wcell": 137,
       "rail": 1,
       "fort": 0,
+      "place": "perth",
       "gwOwner": "GBR",
       "sr": 149,
       "harbor": 40116
@@ -28637,8 +28705,8 @@
     },
     {
       "id": 1264,
-      "name": "Gauteng",
-      "nameKo": "하우텡",
+      "name": "Johannesburg",
+      "nameKo": "요하네스버그",
       "owner": "ZAF",
       "vp": 24,
       "vpTile": [2313, 1566],
@@ -28657,6 +28725,7 @@
       "wcell": 128,
       "rail": 1,
       "fort": 0,
+      "place": "johannesburg",
       "gwOwner": "GBR",
       "sr": 145
     },
@@ -28907,8 +28976,8 @@
     },
     {
       "id": 1275,
-      "name": "KwaZulu-Natal",
-      "nameKo": "콰줄루나탈",
+      "name": "Durban",
+      "nameKo": "더반",
       "owner": "ZAF",
       "vp": 4,
       "vpTile": [2343, 1615],
@@ -28927,14 +28996,15 @@
       "wcell": 129,
       "rail": 1,
       "fort": 0,
+      "place": "durban",
       "gwOwner": "GBR",
       "sr": 145,
       "harbor": 40128
     },
     {
       "id": 1276,
-      "name": "South Australia (SE)",
-      "nameKo": "사우스오스트레일리아 남동부",
+      "name": "Adelaide",
+      "nameKo": "애들레이드",
       "owner": "AUS",
       "vp": 0,
       "cat": "rural",
@@ -28952,6 +29022,7 @@
       "wcell": 103,
       "rail": 2,
       "fort": 0,
+      "place": "adelaide",
       "gwOwner": "GBR",
       "sr": 149,
       "harbor": 40129
@@ -29056,8 +29127,8 @@
     },
     {
       "id": 1283,
-      "name": "New South Wales",
-      "nameKo": "뉴사우스웨일스",
+      "name": "Sydney",
+      "nameKo": "시드니",
       "owner": "AUS",
       "vp": 29,
       "vpTile": [3657, 1683],
@@ -29076,6 +29147,7 @@
       "wcell": 104,
       "rail": 2,
       "fort": 0,
+      "place": "sydney",
       "gwOwner": "GBR",
       "sr": 149,
       "harbor": 40133
@@ -29253,8 +29325,8 @@
     },
     {
       "id": 1291,
-      "name": "Western Cape",
-      "nameKo": "웨스턴케이프",
+      "name": "Cape Town",
+      "nameKo": "케이프타운",
       "owner": "ZAF",
       "vp": 6,
       "vpTile": [2204, 1666],
@@ -29273,6 +29345,7 @@
       "wcell": 92,
       "rail": 1,
       "fort": 0,
+      "place": "cape_town",
       "gwOwner": "GBR",
       "sr": 145,
       "harbor": 40130
@@ -29552,8 +29625,8 @@
     },
     {
       "id": 1305,
-      "name": "Victoria",
-      "nameKo": "빅토리아",
+      "name": "Melbourne",
+      "nameKo": "멜버른",
       "owner": "AUS",
       "vp": 6,
       "vpTile": [3610, 1715],
@@ -29572,6 +29645,7 @@
       "wcell": 104,
       "rail": 2,
       "fort": 0,
+      "place": "melbourne",
       "gwOwner": "GBR",
       "sr": 149,
       "harbor": 40133
@@ -29803,7 +29877,7 @@
     {
       "id": 1317,
       "name": "Wellington",
-      "nameKo": "웰링턴 지방",
+      "nameKo": "웰링턴",
       "owner": "NZL",
       "vp": 19,
       "vpTile": [3941, 1760],
@@ -29822,6 +29896,7 @@
       "wcell": 107,
       "rail": 2,
       "fort": 0,
+      "place": "wellington",
       "gwOwner": "GBR",
       "sr": 155,
       "harbor": 40133

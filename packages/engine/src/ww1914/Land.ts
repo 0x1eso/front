@@ -13,6 +13,7 @@ import {
   frontPlaces,
   isOpenGround,
 } from "@openfront/engine-lib/ww1914/FrontLand";
+import { placeCells } from "./Cells";
 import { posOf } from "./Eras";
 import type { GreatWar } from "./GreatWar";
 import { GW_FRONT_ENDS } from "./Tables";
@@ -43,7 +44,10 @@ export function moveLand(
   const player = gw.mg.playerBySmallID(smallID);
   if (!player.isPlayer()) return;
   gw.scenario.ensureRegionTiles(gw.mg.map());
-  for (const tile of gw.scenario.regionTiles(id)) player.conquer(tile);
+  // ww179: the place's whole cell goes with it (Cells.ts).
+  for (const region of placeCells(gw).get(place) ?? [id]) {
+    for (const tile of gw.scenario.regionTiles(region)) player.conquer(tile);
+  }
   if (to === GW_PLACES[place].owner) {
     delete gw.s.held[place];
     if (gw.s.heldSince !== undefined) delete gw.s.heldSince[place];

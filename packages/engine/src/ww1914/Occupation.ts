@@ -34,6 +34,7 @@ import {
 } from "@openfront/engine-lib/ww1914/FrontLand";
 import { GW_CAPITALS } from "@openfront/engine-lib/ww1914/PlaceRules";
 import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
+import { detachedRegions, placeCells } from "./Cells";
 import { posOf } from "./Eras";
 import type { GreatWar } from "./GreatWar";
 import {
@@ -54,8 +55,12 @@ import {
   seatsOf,
 } from "./World";
 
-/** Tiles occupation may move in a chapter; the first group always goes. */
-export const GW_OCC_TILES = 2500;
+/**
+ * Places occupation may move in a chapter, with the fronts' small bites
+ * (ww179: counted in places, since a place carries its whole cell); the
+ * first group always goes.
+ */
+export const GW_OCC_PLACES = 8;
 /** Rank of a group reached only over the water: after every land route. */
 const BY_SEA = 1_000_000;
 /** The sea line a side must hold for land over the water: `channel`. */
@@ -67,7 +72,7 @@ export interface GwLandGraph {
   readonly near: ReadonlyMap<string, readonly string[]>;
   /** Group -> sea zones its places touch, sorted. */
   readonly sea: ReadonlyMap<string, readonly number[]>;
-  /** Place -> its land tiles. */
+  /** Place -> the land tiles of its cell. */
   readonly tiles: ReadonlyMap<GwPlace, number>;
   /** Group -> the open seas its cells' coasts reach (ww179), sorted. */
   readonly oceans: ReadonlyMap<string, readonly number[]>;
@@ -125,32 +130,19 @@ export function landGraph(gw: GreatWar): GwLandGraph {
     if (s === undefined) m.set(k, (s = new Set()));
     s.add(v);
   };
-  // Each place's cell (ww179): its region and the regions of its own country
-  // that are no place, nearest first, ties to the lower region id.
-  const owners = gw.world.owners;
+  // Each place's cell (ww179, Cells.ts): its region and its country's
+  // nearest regions that are no place.
   const cell = new Map<number, GwPlace>();
-  let edge = [...placeOf.keys()].sort((a, b) => a - b);
-  for (const id of edge) cell.set(id, placeOf.get(id)!);
-  while (edge.length > 0) {
-    const next: number[] = [];
-    for (const id of edge) {
-      const p = cell.get(id)!;
-      const own = owners[gw.world.places.get(p)!];
-      for (const n of idx.regionNeighbours(id)) {
-        if (cell.has(n) || placeOf.has(n) || owners[n] !== own) continue;
-        cell.set(n, p);
-        next.push(n);
-      }
-    }
-    edge = next.sort((a, b) => a - b);
-  }
+  for (const [p, ids] of placeCells(gw)) for (const id of ids) cell.set(id, p);
   const placeNear = new Map<GwPlace, Set<GwPlace>>();
   const zoneRoot = seaRoots(idx);
+  const detached = detachedRegions(gw);
   for (const [id, p] of cell) {
     const g = groupOf(p);
     for (const n of idx.regionNeighbours(id)) {
       const q = cell.get(n);
       if (q === undefined || q === p) continue;
+      if (detached.has(id) || detached.has(n)) continue;
       let s = placeNear.get(p);
       if (s === undefined) placeNear.set(p, (s = new Set()));
       s.add(q);
@@ -180,7 +172,12 @@ export function landGraph(gw: GreatWar): GwLandGraph {
   const tilesById = new Map<number, number>();
   for (const r of idx.data.regions) tilesById.set(r.id, r.tiles);
   const tiles = new Map<GwPlace, number>();
-  for (const [id, p] of placeOf) tiles.set(p, tilesById.get(id) ?? 0);
+  for (const [p, ids] of placeCells(gw)) {
+    tiles.set(
+      p,
+      ids.reduce((k, id) => k + (tilesById.get(id) ?? 0), 0),
+    );
+  }
   const sorted = <T>(m: Map<string, Set<T>>, cmp: (a: T, b: T) => number) =>
     new Map(
       [...m]
@@ -585,25 +582,22 @@ export function occupationStep(gw: GreatWar): void {
   const fronts = frontLand(gw);
   // One budget with the fronts' small moves this chapter (ww173 §5): what
   // they bit is spent already; the first group still always goes.
-  const graph = landGraph(gw);
-  let tiles = s.news
-    .filter(
-      (x) =>
-        x.chapter === s.chapter &&
-        x.place !== undefined &&
-        (x.key === "front_salient" || x.key === "front_salient_back"),
-    )
-    .reduce((k, x) => k + (graph.tiles.get(x.place!) ?? 0), 0);
+  let spent = s.news.filter(
+    (x) =>
+      x.chapter === s.chapter &&
+      x.place !== undefined &&
+      (x.key === "front_salient" || x.key === "front_salient_back"),
+  ).length;
   let groups = 0;
   for (const n of [...s.nations]) {
     const owner = n.tag;
     const taken = nextTaken(gw, owner, fronts);
     const pick = taken ?? nextFreed(gw, owner, fronts);
     if (pick === null) continue;
-    if (groups > 0 && tiles + pick.tiles > GW_OCC_TILES) continue;
+    if (groups > 0 && spent + pick.places.length > GW_OCC_PLACES) continue;
     const from = holderOf(gw, pick.places[0]);
     for (const p of pick.places) moveLand(gw, p, pick.to, null, "occupation");
-    tiles += pick.tiles;
+    spent += pick.places.length;
     groups++;
     const first = pick.places[0];
     if (taken !== null) {
