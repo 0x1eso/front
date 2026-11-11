@@ -191,8 +191,13 @@ export interface SeaShipStats {
   turnDeg: number;
   /** Hull points. */
   hull: number;
-  /** Gun damage per volley (range 4). */
+  /** Light guns: damage every volley (range 4). */
   guns: number;
+  /**
+   * ww177 P7b, the gun clock: heavy guns (the chongtong) fire on every
+   * HEAVY_CYCLE-th volley only (doctrine §7.2).
+   */
+  heavy: number;
   /** Arquebus crew damage per volley (range 2). */
   arq: number;
   /** Boarding attack; 0 = cannot board. */
@@ -237,6 +242,7 @@ function row(
     turnDeg,
     hull,
     guns,
+    heavy: 0,
     arq,
     boardAtk,
     boardDef,
@@ -255,24 +261,89 @@ function row(
 }
 
 export const SEA_SHIPS: Readonly<Record<ShipKind, SeaShipStats>> = {
-  panokseon: row(180, 12, 100, 8, 2, 4, 9, 160, 8, { bulwarkPm: 500 }),
-  turtle: row(170, 10, 120, 7, 0, 0, 0, 120, 5, {
+  // Doctrine §5, §7.2: the panokseon's cheonja and jija fire on the gun
+  // clock, its light pieces every volley; it stands off, never boards.
+  panokseon: row(180, 12, 100, 2, 2, 4, 9, 160, 8, {
+    heavy: 9,
+    bulwarkPm: 500,
+  }),
+  turtle: row(170, 10, 120, 2, 0, 0, 0, 120, 5, {
+    heavy: 6,
     allRound: true,
     boardImmune: true,
     ram: true,
   }),
   hyeopseon: row(280, 15, 25, 1, 1, 1, 2, 30, -10, { small: true }),
-  atakebune: row(120, 4, 140, 3, 8, 9, 6, 220, 10, {
+  // §3: at most four cannon on a hull that cannot take the recoil; the
+  // sekibune are arquebus ships.
+  atakebune: row(120, 4, 140, 1, 8, 9, 6, 220, 10, {
+    heavy: 3,
     sail: true,
     shoal: "no",
     anchor: true,
   }),
-  sekibune: row(220, 8, 60, 1, 4, 6, 3, 90, 3, { shoal: "slow" }),
+  sekibune: row(220, 8, 60, 0, 4, 6, 3, 90, 3, { shoal: "slow" }),
   kobaya: row(300, 15, 20, 0, 2, 3, 1, 30, -10, { small: true }),
-  fuchuan: row(140, 5, 130, 6, 3, 7, 7, 200, 10, { sail: true, shoal: "no" }),
+  // §6: the folangji are breech-loaders: a quick light battery.
+  fuchuan: row(140, 5, 130, 3, 3, 7, 7, 200, 10, {
+    heavy: 6,
+    sail: true,
+    shoal: "no",
+  }),
   shachuan: row(200, 9, 70, 3, 2, 4, 4, 100, 3),
   transport: row(150, 6, 40, 0, 0, 0, 1, 40, 5, { sail: true }),
 };
+
+/** Heavy guns fire on every HEAVY_CYCLE-th volley (doctrine §7.2). */
+export const HEAVY_CYCLE = 3;
+
+/**
+ * The heavy battery fires on this volley (1 = the battle's first): every
+ * HEAVY_CYCLE-th, offset by the ship's id so a fleet ripples.
+ */
+export function heavyFires(volley: number, shipId: number): boolean {
+  return (volley + shipId) % HEAVY_CYCLE === 0;
+}
+
+/** The guns a ship fires on a volley: its light battery, and its heavy one on the beat. */
+export function gunsOnVolley(
+  s: SeaShipStats,
+  volley: number,
+  shipId: number,
+): number {
+  return s.guns + (heavyFires(volley, shipId) ? s.heavy : 0);
+}
+
+/** A ship's guns a volley on the average, ×HEAVY_CYCLE (for weights). */
+export function gunWeight(s: SeaShipStats): number {
+  return s.guns * HEAVY_CYCLE + s.heavy;
+}
+
+/** Japan's prize guns (§3): +1 light gun on an atakebune each 5 prizes (to +2), +1 on a sekibune from 10. */
+export function prizeGuns(kind: ShipKind, prizes: number): number {
+  if (kind === "atakebune") return Math.min(2, Math.floor(prizes / 5));
+  if (kind === "sekibune") return prizes >= 10 ? 1 : 0;
+  return 0;
+}
+
+/** Speed in % a boarding ship gains when it sprints into a foe's reload (§7.2.3). */
+export const SPRINT_PCT = 30;
+/** The admiral's tactics needed to read the enemy's heavy beat. */
+export const SPRINT_TACTICS = 3;
+/** The boarding value a ship needs to sprint. */
+export const SPRINT_BOARD_ATK = 6;
+
+/**
+ * The foe ship is reloading its heavy battery: its next volley is not a
+ * heavy one (the sea's gap). A foe with no heavy guns never shows a gap.
+ */
+export function inReload(
+  foe: SeaShipStats,
+  nextVolley: number,
+  foeId: number,
+): boolean {
+  return foe.heavy > 0 && !heavyFires(nextVolley, foeId);
+}
 
 export function shipStats(kind: ShipKind): SeaShipStats {
   return SEA_SHIPS[kind];
@@ -380,19 +451,34 @@ export interface HitInput {
   /** Admiral gunnery 0-5. */
   gunnery: number;
   targetFormation: Formation;
+  /** Night: guns beyond 2 tiles take −20 (Noryang). */
+  night?: boolean;
 }
 
-/** hit% = clamp(90 − 15×tiles + size + 10×density + 5×gunnery, 5, 95), then the formation's ±20%. */
+/** The hit chance's cap (doctrine §7.2: no one scored 95 %). */
+export const HIT_CAP = 80;
+/** Night fire beyond this range loses NIGHT_HIT_PCT. */
+export const NIGHT_RANGE_MT = 2 * MT;
+export const NIGHT_HIT_PCT = 20;
+
+/**
+ * hit% = clamp(80 − 15×tiles + size + 10×density + 3×gunnery, 5, 80), −20
+ * at night beyond 2 tiles, then the formation's ±20%, capped at 80.
+ */
 export function hitPct(h: HitInput): number {
-  const base =
-    90 -
+  let base =
+    HIT_CAP -
     Math.floor((15 * h.distMt) / MT) +
     h.targetSize +
     10 * Math.min(3, h.density) +
-    5 * h.gunnery;
-  const clamped = Math.max(5, Math.min(95, base));
+    3 * h.gunnery;
+  if (h.night === true && h.distMt > NIGHT_RANGE_MT) base -= NIGHT_HIT_PCT;
+  const clamped = Math.max(5, Math.min(HIT_CAP, base));
   const f = formationHitPm(h.targetFormation);
-  return Math.max(5, Math.min(95, Math.floor((clamped * (1000 + f)) / 1000)));
+  return Math.max(
+    5,
+    Math.min(HIT_CAP, Math.floor((clamped * (1000 + f)) / 1000)),
+  );
 }
 
 /**
@@ -656,7 +742,8 @@ export const MORALE_FLEE = 150;
 export const MORALE_RALLY = 250;
 export const RALLY_QUIET_TICKS = 10 * SEA_TICKS_PER_SECOND;
 export const RALLY_NERVE = 4;
-export const MORALE_PER_HULL_PCT = 6;
+/** ww177 P7b's duel fit: 6 → 5 (doctrine §7.2.4's 40-90 s). */
+export const MORALE_PER_HULL_PCT = 5;
 export const MORALE_FIRE = 30;
 export const MORALE_TURTLE = 40;
 export const MORALE_AMBUSH = 100;
@@ -701,11 +788,12 @@ export function steadied(loss: number, flagshipHolds: boolean): number {
 
 /**
  * Flight by ship until the fleet breaks (below MORALE_FLEE): a ship other
- * than the flagship leaves alone once its hull or crew is below 70% of full,
- * 85% once its fleet wavers.
+ * than the flagship leaves alone once its hull or crew is below 50% of full,
+ * 70% once its fleet wavers (ww177 P7b's duel fit: 70/85 broke a fight
+ * off in 20-30 s, before the gun clock's rhythm showed).
  */
-export const SHIP_BREAK_PM = 700;
-export const SHIP_BREAK_WAVER_PM = 850;
+export const SHIP_BREAK_PM = 500;
+export const SHIP_BREAK_WAVER_PM = 700;
 
 export function shipBreaks(
   hullPm: number,

@@ -94,10 +94,11 @@ const NOT_DIVIDED = not(flag(IMJIN_FLAGS.divided));
 export const IMJIN_COURT_EVENTS: readonly EventDef[] = [
   scene(
     "imjin_flight_capital",
+    // ww177 P7b (doctrine §7.4): the court fled when its army broke.
     [
-      { id: "a", ai: 50 },
-      { id: "b", ai: 25 },
-      { id: "c", ai: 25 },
+      { id: "a", ai: 70 },
+      { id: "b", ai: 10 },
+      { id: "c", ai: 20 },
     ],
     "map",
   ),
@@ -112,9 +113,10 @@ export const IMJIN_COURT_EVENTS: readonly EventDef[] = [
   ),
   scene(
     "imjin_flight_border",
+    // Ming balked at a court on its soil, and Ryu opposed the crossing.
     [
-      { id: "a", ai: 70 },
-      { id: "b", ai: 30 },
+      { id: "a", ai: 85 },
+      { id: "b", ai: 15 },
     ],
     "border",
   ),

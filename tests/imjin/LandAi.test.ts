@@ -16,6 +16,7 @@ import {
   aiDefenceStance,
   rowMixOf,
 } from "@openfront/engine-lib/imjin/LandRound";
+import { COUNTER_OF_ORDER } from "@openfront/engine-lib/imjin/LandRules";
 import { AI_PLANS, planOf } from "@openfront/engine-lib/ww1936/AiPlans";
 import {
   imjinAim,
@@ -82,15 +83,15 @@ describe("the battle orders (pure)", () => {
   const min = rowMixOf("MIN");
   const jos = rowMixOf("JOS");
 
-  test("the siege picks: guns breach, the ladders not into a counter-charge", () => {
+  test("the siege picks: guns breach, Japan without guns never barrages", () => {
     const picks = ROLLS.map((r) => aiAttackOrder(min, "walled", 2, null, r));
     expect(picks).toContain("barrage");
     expect(picks).toContain("storm");
-    const after = ROLLS.map((r) =>
-      aiAttackOrder(jpn, "walled", 2, "counter_charge", r),
-    );
-    expect(after).not.toContain("storm");
-    expect(after).toContain("volley_advance");
+    // ww177 P7b (doctrine §7.3): the storm's counter is the archers' screen.
+    expect(COUNTER_OF_ORDER.storm).toBe("archer_screen");
+    const jp = ROLLS.map((r) => aiAttackOrder(jpn, "walled", 2, null, r));
+    expect(jp).not.toContain("barrage");
+    expect(jp).toContain("storm");
   });
 
   test("volleys on open ground; the gap only when the reload shows", () => {

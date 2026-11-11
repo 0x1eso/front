@@ -178,14 +178,30 @@ describe("SeaRules", () => {
     const base = { targetSize: 0, density: 0, gunnery: 0 } as const;
     const near = hitPct({ ...base, distMt: 1000, targetFormation: "line" });
     const far = hitPct({ ...base, distMt: 4000, targetFormation: "line" });
-    expect(near).toBe(75);
-    expect(far).toBe(30);
+    // ww177 P7b (doctrine §7.2): 80 − 15 a tile, capped at 80.
+    expect(near).toBe(65);
+    expect(far).toBe(20);
     expect(hitPct({ ...base, distMt: 4000, targetFormation: "column" })).toBe(
-      36,
-    );
-    expect(hitPct({ ...base, distMt: 4000, targetFormation: "loose" })).toBe(
       24,
     );
+    expect(hitPct({ ...base, distMt: 4000, targetFormation: "loose" })).toBe(
+      16,
+    );
+    expect(
+      hitPct({
+        ...base,
+        distMt: 0,
+        density: 3,
+        gunnery: 5,
+        targetFormation: "column",
+      }),
+    ).toBe(80);
+    expect(
+      hitPct({ ...base, distMt: 3000, targetFormation: "line", night: true }),
+    ).toBe(15);
+    expect(
+      hitPct({ ...base, distMt: 2000, targetFormation: "line", night: true }),
+    ).toBe(50);
     expect(hitPct({ ...base, distMt: 99_000, targetFormation: "line" })).toBe(
       5,
     );
@@ -224,9 +240,9 @@ describe("SeaRules morale (ww177 merge 2)", () => {
     expect(engagedLoss(80, 8, 8)).toBe(80);
     expect(steadied(100, true)).toBe(75);
     expect(steadied(100, false)).toBe(100);
-    expect(shipBreaks(650, 1000, 900)).toBe(true);
-    expect(shipBreaks(750, 1000, 900)).toBe(false);
-    expect(shipBreaks(750, 1000, 200)).toBe(true);
+    expect(shipBreaks(450, 1000, 900)).toBe(true);
+    expect(shipBreaks(550, 1000, 900)).toBe(false);
+    expect(shipBreaks(550, 1000, 200)).toBe(true);
   });
 });
 
@@ -239,13 +255,13 @@ describe("SeaDuel", () => {
     expect(a.ended).toBeGreaterThan(a.opened);
     expect(a).toMatchInlineSnapshot(`
       {
-        "ended": 218,
-        "fled": 8,
-        "hash": 1831487547,
-        "japan": 3,
+        "ended": 341,
+        "fled": 9,
+        "hash": 4231124537,
+        "japan": 5,
         "joseon": 8,
         "opened": 1,
-        "sunk": 8,
+        "sunk": 6,
         "taken": 0,
       }
     `);

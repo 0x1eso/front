@@ -30,6 +30,7 @@ import {
   STATIC_KEY_STATS,
   templateBlock,
 } from "@openfront/engine-lib/ww1936/TemplateStats";
+import { musterOrg } from "../../imjin/land/ImjinDoctrine";
 import {
   drawManpower,
   drawOrderOf,
@@ -740,6 +741,8 @@ function spawnTrainee(
   );
   const row = land.divisions.rowOf(id);
   land.divisions.org[row] = org(land.orgMaxOf(row));
+  // ww177 P7b: Joseon's war levies wait at the muster point (Imjin only).
+  if (land.ww.imjinWar !== null) musterOrg(land, row);
 }
 
 // ---- Army templates: a group deploys as one ----

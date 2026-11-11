@@ -33,10 +33,12 @@ import {
   FOUL_PM,
   GUN_RANGE_MT,
   gunDamageMt,
+  gunsOnVolley,
   hiddenAt,
   hitPct,
   hullLossMorale,
   icos,
+  inReload,
   isin,
   isTaken,
   MORALE_ADMIRAL_DEAD,
@@ -58,6 +60,7 @@ import {
   P_SEA_FIRE,
   P_SEA_FOUL,
   P_SEA_GUN,
+  prizeGuns,
   RALLY_NERVE,
   RALLY_QUIET_TICKS,
   shipBreaks,
@@ -65,6 +68,9 @@ import {
   SHOAL_STUCK_TICKS,
   SIGHT_OPEN_MT,
   sightMt,
+  SPRINT_BOARD_ATK,
+  SPRINT_PCT,
+  SPRINT_TACTICS,
   steadied,
   tacticalSpeed,
   turnToward,
@@ -86,6 +92,10 @@ import {
 } from "./SeaState";
 
 type Pt = { x: number; y: number };
+
+/** A shore battery's reach and the cover it gives its own ships (doctrine §3). */
+export const BATTERY_RANGE_MT = 3 * MT;
+export const BATTERY_COVER_PCT = 20;
 
 function dist(a: Pt, b: Pt): number {
   return distMt(b.x - a.x, b.y - a.y);
@@ -109,9 +119,23 @@ function hasHostile(
   );
 }
 
+/** Ticks a fleet must have lain still to be caught at anchor at night. */
+export const CAUGHT_STILL_TICKS = 50;
+/** Volleys a fleet caught at anchor fights with halved boarding defence. */
+export const CAUGHT_VOLLEYS = 4;
+
 function join(st: SeaState, ctx: SeaCtx, f: SeaFleet, b: SeaBattle): void {
   f.battle = b.id;
   f.ambush = f.lurk;
+  // ww177 P7b (doctrine §3, Chilcheollyang): a fleet lying still at night
+  // outside a fortified port of its own is caught at anchor.
+  const ft = tileAt(ctx, f.x, f.y);
+  if (
+    ctx.night &&
+    f.still >= CAUGHT_STILL_TICKS &&
+    (ft < 0 || ctx.portLevelAt(f.owner, ft) < 2)
+  )
+    f.caught = CAUGHT_VOLLEYS;
   f.quiet = 0;
   f.path = [];
   f.pathIdx = 0;
@@ -288,6 +312,7 @@ function sail(
   cur: CurrentState | null,
   pursued: boolean,
   settleHeading: number | null,
+  sprint = false,
 ): void {
   const ctx = L.ctx;
   const stats = shipStats(s.kind);
@@ -321,6 +346,7 @@ function sail(
     currentPct: curPct,
   });
   if (Math.abs(angleDiff(s.heading, want)) > 256) v >>= 1;
+  if (sprint) v = Math.floor((v * (100 + SPRINT_PCT)) / 100);
   v = Math.min(v, d);
   if (v <= 0) return;
   const tries: Pt[] = [
@@ -430,6 +456,26 @@ function tacticalFleet(
 
   const pursued = near !== null && dist(flag, near) <= GUN_RANGE_MT;
   const radius = commandRadiusMt(f.admiral.alive ? f.admiral.tactics : 0);
+  // ww177 P7b (doctrine §7.2.3): an admiral who reads the enemy's heavy
+  // beat sends his boarders in at a sprint while the nearest foe reloads.
+  const nextVolley = Math.floor((ctx.tick - b.startTick) / VOLLEY_TICKS) + 1;
+  const reads =
+    f.order === "board" &&
+    !f.fleeing &&
+    f.admiral.alive === 1 &&
+    f.admiral.tactics >= SPRINT_TACTICS;
+  const sprints = (s: SeaShip, e: SeaShip | null): boolean =>
+    reads &&
+    e !== null &&
+    shipStats(s.kind).boardAtk >= SPRINT_BOARD_ATK &&
+    inReload(shipStats(e.kind), nextVolley, e.id);
+  // §5: on keep_range the turtle ships go for the enemy flagship.
+  let enemyFlag: SeaShip | null = null;
+  if (f.order === "keep_range" && near !== null) {
+    const nf = L.fleets.get(near.fleet);
+    const fs = nf === undefined ? undefined : L.idx.get(nf.ships[0]);
+    enemyFlag = fs !== undefined && fs.hull > 0 ? fs : near;
+  }
   const channel = flagsAt(ctx, flag.x, flag.y).channel;
   const n = f.ships.length;
   for (let i = 0; i < f.ships.length; i++) {
@@ -442,6 +488,7 @@ function tacticalFleet(
     if (s.fouled) continue;
     let p: Pt;
     let settle: number | null = null;
+    let sprint = false;
     if (f.fleeing) p = flagTarget;
     else if (s.fireShip) {
       const e = nearest(s, enemies);
@@ -449,14 +496,20 @@ function tacticalFleet(
         e !== null &&
         fireShipWindOk(wind.to, wind.strength, angleOf(e.x - s.x, e.y - s.y));
       p = ok && e ? { x: e.x, y: e.y } : { x: s.x, y: s.y };
-    } else if (s === flag) p = flagTarget;
-    else if (dist(s, flag) <= radius) {
+    } else if (s === flag) {
+      p = flagTarget;
+      sprint = f.order === "board" && sprints(s, near);
+    } else if (dist(s, flag) <= radius) {
       const stats = shipStats(s.kind);
       const e =
         f.order === "board" && stats.boardAtk > 0 && f.morale >= MORALE_WAVER
           ? nearest(s, enemies, 6 * MT)
           : null;
-      if (e) p = { x: e.x, y: e.y };
+      if (e) {
+        p = { x: e.x, y: e.y };
+        sprint = sprints(s, e);
+      } else if (enemyFlag !== null && stats.ram && f.morale >= MORALE_WAVER)
+        p = { x: enemyFlag.x, y: enemyFlag.y };
       else {
         p = slotPoint(f, i, n, flag.x, flag.y, flag.heading, channel);
         settle = flag.heading;
@@ -464,7 +517,7 @@ function tacticalFleet(
     } else p = { x: s.tx, y: s.ty };
     s.tx = p.x;
     s.ty = p.y;
-    sail(L, s, f, p, cur, pursued, settle);
+    sail(L, s, f, p, cur, pursued, settle, sprint);
   }
   const lead = liveShips(L, f)[0] ?? flag;
   f.x = lead.x;
@@ -628,6 +681,7 @@ function volley(
   b: SeaBattle,
   members: readonly SeaFleet[],
   cur: CurrentState | null,
+  vIdx: number,
 ): void {
   const { st, ctx } = L;
   const all = st.ships.filter((s) => {
@@ -659,6 +713,19 @@ function volley(
     grid.near(s, range).filter((t) => ctx.hostile(s.owner, t.owner));
   const density = (t: SeaShip) =>
     grid.near(t, MT).filter((o) => o.fleet === t.fleet && o.id !== t.id).length;
+  const prizes = st.jpnPrizes ?? 0;
+  const batteries = ctx.batteries?.() ?? [];
+  // Ships under their own shore battery are harder to hit (§3, the wajō).
+  const covered = (t: SeaShip): boolean =>
+    batteries.some(
+      (w) =>
+        w.owner === t.owner &&
+        dist(t, tileCentre(ctx, w.tile)) <= BATTERY_RANGE_MT,
+    );
+  const coverHit = (t: SeaShip, hit: number): number =>
+    batteries.length > 0 && covered(t)
+      ? Math.max(5, Math.floor((hit * (100 - BATTERY_COVER_PCT)) / 100))
+      : hit;
 
   for (const s of all) {
     const f = L.fleets.get(s.fleet)!;
@@ -668,7 +735,12 @@ function volley(
     const gunnery = f.admiral.alive ? f.admiral.gunnery : 0;
     const amb = f.ambush === 1;
     const inCh = flagsAt(ctx, s.x, s.y).channel;
-    if (stats.guns > 0) {
+    const guns =
+      gunsOnVolley(stats, vIdx, s.id) +
+      (ctx.japan !== undefined && s.owner === ctx.japan
+        ? prizeGuns(s.kind, prizes)
+        : 0);
+    if (guns > 0) {
       let tgt: SeaShip | null = null;
       let bd = Infinity;
       for (const t of enemiesOf(s, GUN_RANGE_MT)) {
@@ -682,18 +754,22 @@ function volley(
       }
       if (tgt) {
         const tf = L.fleets.get(tgt.fleet)!;
-        const hit = hitPct({
-          distMt: bd,
-          targetSize: shipStats(tgt.kind).size,
-          density: density(tgt),
-          gunnery,
-          targetFormation: tf.formation,
-        });
+        const hit = coverHit(
+          tgt,
+          hitPct({
+            distMt: bd,
+            targetSize: shipStats(tgt.kind).size,
+            density: density(tgt),
+            gunnery,
+            targetFormation: tf.formation,
+            night: ctx.night,
+          }),
+        );
         add(
           hullDmg,
           tgt.id,
           gunDamageMt(
-            stats.guns,
+            guns,
             hit,
             wwRoll(ctx.seed, P_SEA_GUN, s.id, tick),
             amb,
@@ -746,7 +822,10 @@ function volley(
           },
           {
             crew: tgt.crew,
-            value: shipStats(tgt.kind).boardDef,
+            value:
+              (tf.caught ?? 0) > 0
+                ? shipStats(tgt.kind).boardDef >> 1
+                : shipStats(tgt.kind).boardDef,
             skill: tf.admiral.alive ? tf.admiral.boarding : 0,
           },
           wwRoll(ctx.seed, P_SEA_BOARD, s.id, tick),
@@ -756,6 +835,39 @@ function volley(
         if (!captorOf.has(tgt.id)) captorOf.set(tgt.id, f.id);
       }
     }
+  }
+
+  // ww177 P7b (doctrine §3): a fortified anchorage fires on hostile ships
+  // within 3 tiles: 2 × its level in light guns at the nearest.
+  for (const w of batteries) {
+    const c = tileCentre(ctx, w.tile);
+    let tgt: SeaShip | null = null;
+    let bd = Infinity;
+    for (const t of all) {
+      if (!ctx.hostile(w.owner, t.owner)) continue;
+      const d = dist(t, c);
+      if (
+        d <= BATTERY_RANGE_MT &&
+        (d < bd || (d === bd && tgt !== null && t.id < tgt.id))
+      ) {
+        bd = d;
+        tgt = t;
+      }
+    }
+    if (tgt === null) continue;
+    const hit = hitPct({
+      distMt: bd,
+      targetSize: shipStats(tgt.kind).size,
+      density: density(tgt),
+      gunnery: 0,
+      targetFormation: L.fleets.get(tgt.fleet)!.formation,
+      night: ctx.night,
+    });
+    add(
+      hullDmg,
+      tgt.id,
+      gunDamageMt(2 * w.level, hit, wwRoll(ctx.seed, P_SEA_GUN, -w.tile, tick)),
+    );
   }
 
   // Apply the volley at once.
@@ -793,6 +905,8 @@ function volley(
     add(lost, loser.id, s.hull);
     if (ctx.keepsPrizes(captor.owner)) {
       sinkGain(s.owner);
+      if (ctx.japan !== undefined && captor.owner === ctx.japan)
+        st.jpnPrizes = (st.jpnPrizes ?? 0) + 1;
       loser.ships = loser.ships.filter((id) => id !== s.id);
       s.owner = captor.owner;
       s.fleet = captor.id;
@@ -936,6 +1050,8 @@ function volley(
       (gains.get(f.id) ?? 0);
     f.morale = Math.max(0, Math.min(MORALE_MAX, m));
     f.ambush = 0;
+    const caught = (f.caught ?? 0) > 0;
+    if (caught) f.caught = (f.caught ?? 0) - 1 || undefined;
     f.quiet = hurt.has(f.id) ? 0 : f.quiet + VOLLEY_TICKS;
     if (!f.fleeing && f.morale < MORALE_FLEE) {
       f.fleeing = 1;
@@ -959,7 +1075,7 @@ function volley(
             shipBreaks(
               Math.floor((s.hull * 1000) / fullHull(s.kind)),
               Math.floor((s.crew * 1000) / Math.max(1, shipStats(s.kind).crew)),
-              f.morale,
+              caught ? Math.min(f.morale, MORALE_WAVER - 1) : f.morale,
             ),
         )
         .map((s) => s.id);
@@ -1025,7 +1141,8 @@ export function battleStep(st: SeaState, ctx: SeaCtx): void {
     const cur = b.current ? currentState(ctx.seed, b.id, age) : null;
     for (const f of members) tacticalFleet(L, b, f, cur);
     fireShipContacts(L, b);
-    if (age > 0 && age % VOLLEY_TICKS === 0) volley(L, b, members, cur);
+    if (age > 0 && age % VOLLEY_TICKS === 0)
+      volley(L, b, members, cur, age / VOLLEY_TICKS);
     removeDead(st);
     const centre = { x: b.cx, y: b.cy };
     for (const f of st.fleets)

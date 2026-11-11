@@ -14,6 +14,7 @@ import { IDEO_NEU } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { lawBlockOf } from "@openfront/engine-lib/ww1936/EconomyChecks";
 import { lawCost, LawCtx } from "@openfront/engine-lib/ww1936/PoliticsRules";
 import { conscriptionPermille } from "@openfront/engine-lib/ww1936/WwLaws";
+import { joseonLevyCapped } from "../../imjin/land/ImjinDoctrine";
 import { congressBlock } from "../depth/Congress";
 import type { CountryEconomy, WwEconomy } from "./WwEconomy";
 
@@ -62,6 +63,17 @@ export function lawBlock(
       ECONOMY_LAWS.indexOf(value as never) >=
         ECONOMY_LAWS.indexOf("partial_mobilization"));
   if (gated && congressBlock(econ.ww.depth, ce.smallID, "law")) {
+    return "law_condition";
+  }
+  // ww177 P7b (doctrine §7.1): Joseon's levies stop at "limited" until the
+  // 훈련도감 trains a standing army (Imjin only).
+  if (
+    kind === "conscription" &&
+    econ.ww.imjinWar !== null &&
+    CONSCRIPTION_LAWS.indexOf(value as never) >
+      CONSCRIPTION_LAWS.indexOf("limited") &&
+    joseonLevyCapped(econ.ww.imjinWar, ce.smallID)
+  ) {
     return "law_condition";
   }
   return null;

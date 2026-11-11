@@ -6,6 +6,8 @@
 import {
   CONVOY_INTERCEPT_MT,
   distMt,
+  gunWeight,
+  HEAVY_CYCLE,
   raidLossPm,
   shipStats,
   STRATEGIC_SPEED_MT,
@@ -77,7 +79,7 @@ export function convoyStep(st: SeaState, ctx: SeaCtx): void {
       for (const id of f.ships) {
         const s = idx.get(id);
         if (!s) continue;
-        guns += shipStats(s.kind).guns;
+        guns += Math.floor(gunWeight(shipStats(s.kind)) / HEAVY_CYCLE);
         arq += shipStats(s.kind).arq;
       }
       const pm = raidLossPm(guns, arq);

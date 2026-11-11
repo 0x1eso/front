@@ -57,6 +57,8 @@ import {
   MING_NORTHWEST_ONE_IN,
   MING_RELIEF_BP,
   MING_RELIEF_DIVISIONS,
+  MING_SECOND_RELIEF_DIVISIONS,
+  MING_SECOND_RELIEF_GFLAG,
   MING_START,
   MING_SUSPICION_FADE_BP,
   MING_SUSPICION_MAX,
@@ -101,6 +103,7 @@ import { createFaction, joinFaction } from "../ww1936/politics/Factions";
 import { setGovernment } from "../ww1936/politics/Ideology";
 import type { WorldWar } from "../ww1936/WorldWar";
 import { applyJosResult } from "./JoseonPicks";
+import { recentJosRouts } from "./land/ImjinDoctrine";
 
 const P_RISE = idHash("imjin_rise");
 const P_FALL = idHash("imjin_fall");
@@ -448,10 +451,7 @@ export class ImjinJoseonMing {
       return;
     }
     if (this.holding || (this.askedSeat & (1 << this.seat)) !== 0) return;
-    const threatened = this.ww.scenario
-      .regionNeighbours(this.seatRegion)
-      .some((n) => this.enemyOfJoseon(ctl[n]));
-    if (!threatened) return;
+    if (!this.seatThreatened()) return;
     this.askedSeat |= 1 << this.seat;
     const id =
       this.seat === SEAT_CAPITAL
@@ -460,6 +460,65 @@ export class ImjinJoseonMing {
           ? "imjin_flight_north"
           : "imjin_flight_border";
     this.ww.politics.queueEvent(id, this.jos, this.jos, 0, 0);
+  }
+
+  /**
+   * ww177 P7b (doctrine §7.4): the court moves when its last field army in
+   * front of it breaks, not when an enemy stands next door.
+   * - The capital: the enemy within 2 hops, and a Joseon army of 2+
+   *   divisions routed within 4 hops in the last 10 days, or Joseon's
+   *   divisions within 2 hops fewer than half the enemy's.
+   * - The north: the enemy next to the seat.
+   * - The border: the enemy within 2 hops.
+   */
+  private seatThreatened(): boolean {
+    const ctl = this.ww.land.controller;
+    const hops = this.hopsFrom(this.seatRegion, 4);
+    if (this.seat === SEAT_NORTH)
+      return this.ww.scenario
+        .regionNeighbours(this.seatRegion)
+        .some((n) => this.enemyOfJoseon(ctl[n]));
+    let near = false;
+    for (const [r, h] of hops)
+      if (h <= 2 && this.enemyOfJoseon(ctl[r])) near = true;
+    if (!near) return false;
+    if (this.seat !== SEAT_CAPITAL) return true;
+    const im = this.ww.imjinWar;
+    if (im !== null) {
+      for (const r of recentJosRouts(im)) {
+        const h = hops.get(r);
+        if (h !== undefined && h <= 4) return true;
+      }
+    }
+    const t = this.ww.land.divisions;
+    let mine = 0;
+    let theirs = 0;
+    for (const [r, h] of hops) {
+      if (h > 2) continue;
+      for (const row of this.ww.land.rowsIn(r)) {
+        if (t.owner[row] === this.jos) mine++;
+        else if (this.enemyOfJoseon(t.owner[row])) theirs++;
+      }
+    }
+    return mine * 2 < theirs;
+  }
+
+  /** Regions within `max` land hops of `from`, with their hops. */
+  private hopsFrom(from: number, max: number): Map<number, number> {
+    const sc = this.ww.scenario;
+    const out = new Map<number, number>([[from, 0]]);
+    let frontier = [from];
+    for (let h = 1; h <= max && frontier.length > 0; h++) {
+      const next: number[] = [];
+      for (const r of frontier)
+        for (const n of sc.regionNeighbours(r))
+          if (!out.has(n)) {
+            out.set(n, h);
+            next.push(n);
+          }
+      frontier = next;
+    }
+    return out;
   }
 
   private seatFell(): void {
@@ -504,18 +563,32 @@ export class ImjinJoseonMing {
     if (seat === SEAT_CAPITAL) return this.ww.capitalRegion(jos);
     const sc = this.ww.scenario;
     const ctl = this.ww.land.controller;
+    // ww177 P7b (doctrine §7.4): Pyongyang first if Joseon holds it.
+    if (seat === SEAT_NORTH) {
+      const py = sc.landRegions.find((r) => r.name === "Pyongyang");
+      if (py !== undefined && ctl[py.id] === jos && py.id !== this.seatRegion)
+        return py.id;
+    }
     const dist = this.enemyDistance();
+    // Only mainland Joseon reached from the old seat by Joseon's own land
+    // (never an island); ties go to the region nearer Ming.
+    const linked = this.linkedFrom(this.seatRegion);
+    const toMing = this.mingDistance();
     let best = 0;
     let bestKey = -1;
     for (const r of sc.landRegions) {
       if (ctl[r.id] !== jos || r.id === this.seatRegion) continue;
+      if (linked.size > 1 && !linked.has(r.id)) continue;
       if (
         seat === SEAT_BORDER &&
         !sc.regionNeighbours(r.id).some((n) => ctl[n] === this.min)
       ) {
         continue;
       }
-      const key = dist[r.id] * 1000 + r.vp;
+      const key =
+        dist[r.id] * 1_000_000 +
+        (999 - Math.min(999, toMing[r.id])) * 1000 +
+        Math.min(999, r.vp);
       if (key > bestKey) {
         best = r.id;
         bestKey = key;
@@ -523,6 +596,51 @@ export class ImjinJoseonMing {
     }
     if (best === 0 && seat === SEAT_BORDER) return this.pickSeat(SEAT_NORTH);
     return best;
+  }
+
+  /** Joseon's regions linked to `from` by Joseon-held land (with `from`). */
+  private linkedFrom(from: number): Set<number> {
+    const sc = this.ww.scenario;
+    const ctl = this.ww.land.controller;
+    const out = new Set<number>();
+    if (from === 0) return out;
+    out.add(from);
+    let frontier = [from];
+    while (frontier.length > 0) {
+      const next: number[] = [];
+      for (const r of frontier)
+        for (const n of sc.regionNeighbours(r))
+          if (!out.has(n) && ctl[n] === this.jos) {
+            out.add(n);
+            next.push(n);
+          }
+      frontier = next;
+    }
+    return out;
+  }
+
+  /** Land hops to the nearest Ming-held region (999: none in reach). */
+  private mingDistance(): number[] {
+    const sc = this.ww.scenario;
+    const ctl = this.ww.land.controller;
+    const dist = new Array<number>(sc.maxRegionId() + 1).fill(999);
+    let frontier: number[] = [];
+    for (const r of sc.landRegions)
+      if (ctl[r.id] === this.min) {
+        dist[r.id] = 0;
+        frontier.push(r.id);
+      }
+    for (let h = 1; frontier.length > 0 && h < 999; h++) {
+      const next: number[] = [];
+      for (const r of frontier)
+        for (const n of sc.regionNeighbours(r))
+          if (dist[n] > h) {
+            dist[n] = h;
+            next.push(n);
+          }
+      frontier = next;
+    }
+    return dist;
   }
 
   /** Hops from the nearest county Joseon's enemies hold (capped). */
@@ -839,6 +957,23 @@ export class ImjinJoseonMing {
         min,
         this.mingMuster(),
         MING_RELIEF_DIVISIONS,
+        MING_FORCE_EQUIP_PCT,
+      );
+      pol.messageAll("ww1936_imjin_ming_relief", {});
+      pol.markGlobal();
+    }
+    // ww177 P7b (doctrine §7.1): a broken truce brings a second army.
+    if (
+      atWar &&
+      this.mingStage >= 1 &&
+      pol.gflags.has(IMJIN_GFLAGS.truceBroken) &&
+      !pol.gflags.has(MING_SECOND_RELIEF_GFLAG)
+    ) {
+      pol.gflags.set(MING_SECOND_RELIEF_GFLAG, day);
+      this.spawnForce(
+        min,
+        this.mingMuster(),
+        MING_SECOND_RELIEF_DIVISIONS,
         MING_FORCE_EQUIP_PCT,
       );
       pol.messageAll("ww1936_imjin_ming_relief", {});

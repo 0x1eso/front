@@ -5,6 +5,7 @@
 import type { Formation, ShipKind } from "@openfront/engine-lib/imjin/SeaRules";
 import {
   FORMATIONS,
+  gunWeight,
   MORALE_MAX,
   shipKindIndex,
   shipStats,
@@ -96,6 +97,13 @@ export interface SeaFleet {
    * wait, which this fleet shows itself to the foe for and then runs to.
    */
   lureTo?: number;
+  /**
+   * ww177 P7b: volleys left of being caught at anchor at night (halved
+   * boarding defence, ships break at the waver bar); absent: none.
+   */
+  caught?: number;
+  /** ww177 P7b: days at sea away from a friendly port (sortie endurance). */
+  daysOut?: number;
 }
 
 export interface SeaBattle {
@@ -151,6 +159,8 @@ export interface SeaState {
   events: SeaEvent[];
   /** ww177 I5b: the day Ming's fleet put to sea (absent: not yet). */
   mingFleet?: number;
+  /** ww177 P7b: Joseon ships Japan has taken (its prize guns). */
+  jpnPrizes?: number;
 }
 
 export function emptySeaState(): SeaState {
@@ -254,7 +264,7 @@ export function fleetStrength(st: SeaState, f: SeaFleet): number {
     if (s === undefined) continue;
     const k = shipStats(s.kind);
     v += Math.floor(
-      ((k.guns * 3 + k.arq * 2 + k.boardAtk * 2 + 2) * s.hull) /
+      ((gunWeight(k) + k.arq * 2 + k.boardAtk * 2 + 2) * s.hull) /
         (k.hull * 1000),
     );
   }
@@ -332,6 +342,8 @@ export function seaHash(st: SeaState): number {
     h = fold(h, SEA_ORDERS.indexOf(f.order));
     h = fold(h, f.lurk);
     if (f.lureTo !== undefined) h = fold(h, f.lureTo + 1);
+    if (f.caught !== undefined) h = fold(h, f.caught + 7);
+    if (f.daysOut !== undefined) h = fold(h, f.daysOut + 11);
     for (const id of f.ships) h = fold(h, id);
   }
   for (const b of st.battles)
@@ -352,5 +364,6 @@ export function seaHash(st: SeaState): number {
     for (const id of g.raidedBy) h = fold(h, id);
   }
   if (st.mingFleet !== undefined) h = fold(h, st.mingFleet + 1);
+  if (st.jpnPrizes !== undefined) h = fold(h, st.jpnPrizes + 13);
   return h;
 }

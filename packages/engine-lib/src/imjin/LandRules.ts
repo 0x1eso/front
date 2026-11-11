@@ -97,9 +97,17 @@ export const CANNON_MORALE_MULPCT = 150;
 /** The hwacha's one volley a battle, ×/100 of an archer row's hit. */
 export const HWACHA_VOLLEY_MULPCT = 400;
 
-/** The hwacha fires once: in the first opening round it stands in line. */
-export function hwachaMulPct(step: BattleStep, used: boolean): number {
-  return step === "opening" && !used ? HWACHA_VOLLEY_MULPCT : 0;
+/**
+ * The hwacha fires once: in the first opening round it stands in line.
+ * ww177 P7b (doctrine §4, Haengju): `reload` (Joseon defending a fort, at a
+ * phase's first round) fires it again.
+ */
+export function hwachaMulPct(
+  step: BattleStep,
+  used: boolean,
+  reload = false,
+): number {
+  return reload || (step === "opening" && !used) ? HWACHA_VOLLEY_MULPCT : 0;
 }
 
 // ---- Terrain (§4 table) ----
@@ -438,7 +446,9 @@ export const COUNTER_OF_ORDER: Readonly<
   charge_gap: "rolling_volley",
   flank: "withdraw",
   barrage: null,
-  storm: "counter_charge",
+  // ww177 P7b (doctrine §7.3): missiles from the walls, not a sally
+  // against the ladders.
+  storm: "archer_screen",
   feigned_retreat: null,
 };
 
@@ -898,6 +908,10 @@ export interface RowHitCtx {
   targetRouted: boolean;
   /** The hwacha already fired this battle. */
   hwachaUsed: boolean;
+  /** ww177 P7b: the hwacha fires again this round (hwachaMulPct). */
+  hwachaReload?: boolean;
+  /** ww177 P7b: the samurai's clash bonus, % (absent: SAMURAI_CLASH_PCT). */
+  samuraiClashPct?: number;
 }
 
 function mulPct(v: number, pct: number): number {
@@ -922,9 +936,10 @@ export function rowDealtMulPct(c: RowHitCtx): number {
     Math.max(0, 100 + rowPct + (c.defending ? c.fx.defPct : c.fx.attPct)),
   );
   if (c.row === "arquebus") v = mulPct(v, volleyMulPct(c.beat));
-  if (c.row === "hwacha") v = mulPct(v, hwachaMulPct(c.step, c.hwachaUsed));
+  if (c.row === "hwacha")
+    v = mulPct(v, hwachaMulPct(c.step, c.hwachaUsed, c.hwachaReload === true));
   if (c.row === "samurai" && c.step === "clash")
-    v = mulPct(v, 100 + SAMURAI_CLASH_PCT);
+    v = mulPct(v, 100 + (c.samuraiClashPct ?? SAMURAI_CLASH_PCT));
   if (c.row === "cavalry" && c.step === "pursuit" && c.targetRouted) {
     v = mulPct(v, PURSUIT_CAVALRY_MULPCT);
   }
@@ -978,9 +993,12 @@ export function breachDaysFor(
   level: number,
   t: TerrainRow,
   engineers: boolean,
+  bigGuns = false,
 ): number {
   if (level <= 0 || t.breachMulPct <= 0) return 0;
-  const d = Math.floor((3 * level * 100) / t.breachMulPct);
+  let d = Math.floor((3 * level * 100) / t.breachMulPct);
+  // ww177 P7b (doctrine §6): Ming's heavy guns breach twice as fast.
+  if (bigGuns) d = Math.max(1, Math.floor(d / 2));
   return engineers ? Math.max(1, d - Math.floor(d / 3)) : d;
 }
 
@@ -994,12 +1012,13 @@ export function siegeDay(
   cannon: boolean,
   engineers: boolean,
   t: TerrainRow,
+  bigGuns = false,
 ): SiegeState {
   const n = { ...s };
   if (n.grainDays > 0) n.grainDays--;
   else n.morale = clampMorale(n.morale - STARVING_MORALE);
   if (choice === "breach" && cannon && n.fort > 0) {
-    const need = breachDaysFor(n.fort, t, engineers);
+    const need = breachDaysFor(n.fort, t, engineers, bigGuns);
     n.breachDays++;
     if (need > 0 && n.breachDays >= need) {
       n.fort--;
@@ -1009,15 +1028,34 @@ export function siegeDay(
   return n;
 }
 
-/** ×/100 on each side's damage in a storm (a fort of level 0 is no wall). */
+/**
+ * ×/100 on each side's damage in a storm (a fort of level 0 is no wall).
+ * ww177 P7b (doctrine §7.3): by the wall's level: a town wall 80/125, a
+ * level-2 wall 65/140, a fortress or a wajō (3+) 50/150. Busanjin and
+ * Dongnae fell in hours; Haengju held.
+ */
 export function stormMulPct(fort: number): {
   attacker: number;
   defender: number;
 } {
-  return fort > 0
-    ? { attacker: STORM_ATTACKER_MULPCT, defender: STORM_DEFENDER_MULPCT }
-    : { attacker: 100, defender: 100 };
+  if (fort <= 0) return { attacker: 100, defender: 100 };
+  if (fort === 1) return { attacker: 80, defender: 125 };
+  if (fort === 2) return { attacker: 65, defender: 140 };
+  return { attacker: STORM_ATTACKER_MULPCT, defender: STORM_DEFENDER_MULPCT };
 }
+
+/** Escalade (doctrine §7.3): the attacker's bonus, the strength it needs over the garrison, and the wall it can climb. */
+export const ESCALADE_PCT = 25;
+export const ESCALADE_RATIO_PCT = 300;
+export const ESCALADE_MAX_FORT = 2;
+/** Ming's guns blow the gates on a storm (doctrine §6). */
+export const GATES_BLOWN_PCT = 20;
+/** The moonlit storm: the defender's missile rows ×/100 (doctrine §2). */
+export const NIGHT_STORM_MULPCT = 70;
+/** The bigyeokjincheonroe's morale on a barrage phase (doctrine §4). */
+export const BIGYEOK_BARRAGE_MORALE = 100;
+/** The iron shields: arquebus fire on Ming ×/100 (doctrine §6). */
+export const IRON_SHIELDS_MULPCT = 85;
 
 /**
  * A relief army attacking the besiegers lets the garrison sally the same

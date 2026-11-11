@@ -245,6 +245,8 @@ export function imjinMuster(
   return issue({ kind: "army_move", army: a.id, region: port });
 }
 
+/** Japan's corps that drive at once (doctrine §2). */
+export const IMJIN_JPN_CORPS = 3;
 /** The drive's spearhead has at least this many divisions. */
 export const IMJIN_SPEAR_MIN = 4;
 
@@ -270,6 +272,7 @@ export function imjinNextStep(
   me: number,
   aim: number,
   force = 0,
+  skip: readonly number[] = [],
 ): number {
   const sc = land.scenario;
   const im = land.ww.imjinWar;
@@ -280,6 +283,7 @@ export function imjinNextStep(
   for (const r of sc.landRegions) {
     const c = land.controller[r.id];
     if (!land.isEnemy(me, c) || d[r.id] >= 1 << 30) continue;
+    if (skip.includes(r.id)) continue;
     if (
       !sc
         .regionNeighbours(r.id)
@@ -353,20 +357,34 @@ export function imjinDrive(
     advance: false,
     merge: true,
   });
-  const spear = armies
+  // ww177 P7b (doctrine §2): Japan marches its corps on separate roads,
+  // up to three spearheads at once (Konishi, Katō, Kuroda); others one.
+  const corps = land.scenario.tagOfSmallId(me) === "JPN" ? IMJIN_JPN_CORPS : 1;
+  const spears = armies
     .filter((a) => a.order.kind === "plan" && a.order.direct === true)
-    .sort((a, b) => b.divisions.length - a.divisions.length || a.id - b.id)[0];
-  if (spear !== undefined) {
-    if (attacking(spear)) return;
-    const step = imjinNextStep(land, me, aim, spear.divisions.length);
-    if (step === 0) return;
-    const on = spear.order.executing && spear.order.targets[0] === step;
+    .sort((a, b) => b.divisions.length - a.divisions.length || a.id - b.id)
+    .slice(0, corps);
+  const taken: number[] = [];
+  for (const spear of spears) {
+    if (attacking(spear)) {
+      if (spear.order.kind === "plan" && spear.order.targets.length > 0)
+        taken.push(spear.order.targets[0]);
+      continue;
+    }
+    const step = imjinNextStep(land, me, aim, spear.divisions.length, taken);
+    if (step === 0) continue;
+    taken.push(step);
+    const on =
+      spear.order.kind === "plan" &&
+      spear.order.executing &&
+      spear.order.targets[0] === step;
     if (!on && orgPmOf(land, spear) >= reattackPm) issue(order(spear, step));
-    return;
   }
+  if (spears.length >= corps) return;
   const cands = armies
     .filter(
       (a) =>
+        !spears.includes(a) &&
         a.divisions.length >= IMJIN_SPEAR_MIN &&
         (a.order.kind === "front" ||
           a.order.kind === "plan" ||
@@ -375,9 +393,14 @@ export function imjinDrive(
         orgPmOf(land, a) >= reattackPm,
     )
     .sort((a, b) => b.divisions.length - a.divisions.length || a.id - b.id);
+  let more = corps - spears.length;
   for (const a of cands) {
-    const step = imjinNextStep(land, me, aim, a.divisions.length);
-    if (step !== 0 && issue(order(a, step))) return;
+    if (more <= 0) return;
+    const step = imjinNextStep(land, me, aim, a.divisions.length, taken);
+    if (step !== 0 && issue(order(a, step))) {
+      taken.push(step);
+      more--;
+    }
   }
 }
 
