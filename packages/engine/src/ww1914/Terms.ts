@@ -338,7 +338,7 @@ function collect(
       if (coalitions && lead.includes(n.tag)) {
         armistice(gw, "compromise", null);
       } else {
-        makePeace(gw, me.tag, n.tag, "pair_peace");
+        makePeace(gw, me.tag, n.tag, me.tag);
       }
       return;
     }

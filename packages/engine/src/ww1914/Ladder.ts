@@ -382,17 +382,18 @@ export function monthsHold(
     }
     case "month":
       return c.of.includes(civilFromDays(s.day).month);
-    case "ladder":
+    case "ladder": {
+      const me = c.nation ?? seat.tag;
       return s.ladders.some(
         (l) =>
           (c.role === undefined
-            ? l.from === seat.tag || l.to === seat.tag
-            : l[c.role] === seat.tag) &&
-          (c.tag === undefined ||
-            (l.from === seat.tag ? l.to : l.from) === c.tag) &&
+            ? l.from === me || l.to === me
+            : l[c.role] === me) &&
+          (c.tag === undefined || (l.from === me ? l.to : l.from) === c.tag) &&
           (c.of === undefined
             ? GW_LADDER_OPEN.includes(l.step)
             : c.of.includes(l.step)),
       );
+    }
   }
 }

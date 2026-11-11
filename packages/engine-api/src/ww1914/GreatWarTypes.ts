@@ -1429,6 +1429,10 @@ export const GW_SLOW_MAX = 3;
 /** Empty chapters in a row before the regent takes the seat. */
 export const GW_REGENT_AFTER = 2;
 
+/** How a war of two ended (ww171 merge 4): see GwWarSchema's `how`. */
+export const GW_WAR_ENDS = ["offer", "mutual", "fell"] as const;
+export type GwWarEnd = (typeof GW_WAR_ENDS)[number];
+
 /**
  * A war between two countries (ww171 phase 4, design ww168 B5): the source of
  * truth for who fights whom; a nation's `atWar` is derived from these. `a`
@@ -1442,6 +1446,15 @@ export const GwWarSchema = z.object({
   cause: GwIdSchema,
   /** Chapter the pair made peace (or one of them left the war); null: on. */
   ended: z.number().int().nullable(),
+  /**
+   * How it ended (ww171 merge 4): a peace one of the two offered and the
+   * other took (`offer`, its sender in `offeredBy`), a peace both reached at
+   * once (`mutual`), or one of them fell out of the war (`fell`). Absent
+   * while the war is on.
+   */
+  how: z.enum(GW_WAR_ENDS).optional(),
+  /** Whose peace offer the other took. */
+  offeredBy: z.enum(GW_TAGS).optional(),
 });
 export type GwWar = z.infer<typeof GwWarSchema>;
 

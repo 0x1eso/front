@@ -23,6 +23,7 @@ import {
   GW_TECHS,
   GW_THEATRES,
   GW_THREADS,
+  GW_WAR_ENDS,
   GwAiKind,
   GwArmisticeKind,
   GwChainOutcome,
@@ -42,6 +43,7 @@ import {
   GwTech,
   GwTheatre,
   GwThread,
+  GwWarEnd,
 } from "./GreatWarTypes";
 import {
   GW_BUDGET_ITEMS,
@@ -273,6 +275,8 @@ export type GwWorldCond =
       role?: "from" | "to";
       tag?: GwTag;
       of?: GwLadderStep[];
+      /** Whose ladders: another country's (absent: the seat's country). */
+      nation?: GwTag;
     }
   /** The seat could send this country a note now (eng/ww1914/Ladder). */
   | { is: "ladder_target"; tag: GwTag }
@@ -285,6 +289,7 @@ export type GwWorldCond =
    * A war between `tag` (absent: the seat's country) and `with` (absent:
    * anyone), on now, begun this many months ago. `outside`: neither in a
    * coalition against the other (a war of their own). `cause`: how it came.
+   * `by`: the country that declared it.
    */
   | ({
       is: "pair_war";
@@ -292,11 +297,25 @@ export type GwWorldCond =
       with?: GwTag;
       outside?: boolean;
       cause?: string[];
+      by?: GwTag;
     } & Range)
-  /** As `pair_war`, for a war that ended in a peace this many months ago. */
-  | ({ is: "pair_peace"; tag?: GwTag; with?: GwTag } & Range)
-  /** A front opened this many months ago and is still open. */
-  | ({ is: "front_months"; theatre: GwTheatre } & Range)
+  /**
+   * As `pair_war`, for a war that ended this many months ago. `how`: a peace
+   * one offered (`offer`; `by`: whose offer was taken), one both reached at
+   * once (`mutual`), or one of the two fell out of the war (`fell`).
+   */
+  | ({
+      is: "pair_peace";
+      tag?: GwTag;
+      with?: GwTag;
+      how?: GwWarEnd[];
+      by?: GwTag;
+    } & Range)
+  /**
+   * A front opened this many months ago and is still open. `tag`: that
+   * country fights on it, the months counted from when it came on the line.
+   */
+  | ({ is: "front_months"; theatre: GwTheatre; tag?: GwTag } & Range)
   /** A peace offer waits for the seat's answer (from `tag`, if given). */
   | { is: "peace_offered"; tag?: GwTag };
 
@@ -607,6 +626,7 @@ export const GwWorldCondSchema = z.union([
     role: z.enum(["from", "to"]).optional(),
     tag: tag.optional(),
     of: z.array(z.enum(GW_LADDER_STEPS)).optional(),
+    nation: tag.optional(),
   }),
   is("ladder_target", { tag }),
   is("war_target", { tag }),
@@ -616,10 +636,17 @@ export const GwWorldCondSchema = z.union([
     with: tag.optional(),
     outside: z.boolean().optional(),
     cause: z.array(GwIdSchema).optional(),
+    by: tag.optional(),
     ...range,
   }),
-  is("pair_peace", { tag: tag.optional(), with: tag.optional(), ...range }),
-  is("front_months", { theatre, ...range }),
+  is("pair_peace", {
+    tag: tag.optional(),
+    with: tag.optional(),
+    how: z.array(z.enum(GW_WAR_ENDS)).min(1).optional(),
+    by: tag.optional(),
+    ...range,
+  }),
+  is("front_months", { theatre, tag: tag.optional(), ...range }),
   is("peace_offered", { tag: tag.optional() }),
 ]) as unknown as z.ZodType<GwWorldCond>;
 

@@ -42,6 +42,8 @@ import {
   declareWar,
   GW_GREAT,
   makePeace,
+  memberEnd,
+  membersOf,
   outsideCoalitions,
   pairWars,
   pullTreaties,
@@ -53,6 +55,7 @@ import {
   isLongChapter,
   monthsFrom,
   news,
+  other,
   ruledBySeat,
   seatsOf,
 } from "./World";
@@ -209,7 +212,7 @@ export function peaceAnswer(
   if (i < 0) return;
   const [note] = s.pairNotes.splice(i, 1);
   if (!atWarWith(gw, note.from, note.to)) return;
-  if (yes) makePeace(gw, note.from, note.to, "pair_peace");
+  if (yes) makePeace(gw, note.from, note.to, note.from);
   else refused(gw, note.from, note.to);
 }
 
@@ -254,7 +257,7 @@ function answerOffers(gw: GreatWar): void {
       continue;
     }
     if (x.chapter === s.chapter && takesPeace(gw, x.to, x.from)) {
-      makePeace(gw, x.from, x.to, "pair_peace");
+      makePeace(gw, x.from, x.to, x.from);
     } else {
       refused(gw, x.from, x.to);
     }
@@ -300,7 +303,7 @@ function aiPeaceStep(gw: GreatWar): void {
       continue;
     }
     if (peaceWill(gw, w.a, w.b) + peaceWill(gw, w.b, w.a) >= 80) {
-      makePeace(gw, w.a, w.b, "pair_peace");
+      makePeace(gw, w.a, w.b, null);
     }
   }
 }
@@ -438,17 +441,39 @@ export function pairHolds(
         const foe = w.a === me ? w.b : w.a;
         if (c.with !== undefined && foe !== c.with) return false;
         if (c.is === "pair_peace") {
-          return w.ended !== null && inRange(monthsFrom(gw, w.ended), c);
+          if (w.ended === null) return false;
+          // Older saves have no `how`: a peace both came to.
+          const how = w.how ?? "mutual";
+          if (c.how !== undefined && !c.how.includes(how)) return false;
+          if (c.by !== undefined && (how !== "offer" || w.offeredBy !== c.by)) {
+            return false;
+          }
+          return inRange(monthsFrom(gw, w.ended), c);
         }
         if (w.ended !== null) return false;
         if (c.outside === true && !outsideCoalitions(gw, w)) return false;
         if (c.cause !== undefined && !c.cause.includes(w.cause)) return false;
+        if (c.by !== undefined && w.a !== c.by) return false;
         return inRange(monthsFrom(gw, w.since), c);
       });
     }
     case "front_months": {
       const t = s.theatres.find((x) => x.id === c.theatre)!;
-      return t.open && t.since !== null && inRange(monthsFrom(gw, t.since), c);
+      if (!t.open || t.since === null) return false;
+      if (c.tag === undefined) return inRange(monthsFrom(gw, t.since), c);
+      // The country is on the line: count from when it came there, the
+      // front's opening or its first war with the far end, the later.
+      const end = memberEnd(gw, c.theatre, c.tag);
+      if (end === null) return false;
+      const far = membersOf(gw, c.theatre, other(end));
+      let came: number | null = null;
+      for (const w of s.wars) {
+        if (w.ended !== null) continue;
+        const foe = w.a === c.tag ? w.b : w.b === c.tag ? w.a : null;
+        if (foe === null || !far.includes(foe)) continue;
+        if (came === null || w.since < came) came = w.since;
+      }
+      return inRange(monthsFrom(gw, Math.max(t.since, came ?? t.since)), c);
     }
     case "peace_offered":
       return s.pairNotes.some(

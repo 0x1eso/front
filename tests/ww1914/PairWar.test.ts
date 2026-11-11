@@ -7,7 +7,9 @@ import {
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import { gwSceneProblems } from "@openfront/engine-api/ww1914/SceneDsl";
+import type { GwWorldCond } from "@openfront/engine-api/ww1914/WorldDsl";
 import { ScenarioDataSchema } from "@openfront/engine-api/ww1936/ScenarioTypes";
+import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
 import { GW_CONTENT } from "@openfront/engine-lib/ww1914/content/Content";
 import {
   GW_LADDER_POWERS,
@@ -21,8 +23,10 @@ import { gwWorldOf } from "@openfront/engine-lib/ww1914/World1914";
 import { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import { GW_GOV } from "@openfront/engine/ww1914/GovTable";
 import { GreatWar, GreatWarSnapshot } from "@openfront/engine/ww1914/GreatWar";
+import { monthsHold } from "@openfront/engine/ww1914/Ladder";
 import {
   GW_PAIR_WARS_MAX,
+  pairHolds,
   peaceTargets,
   seatDeclares,
   warStep,
@@ -31,11 +35,12 @@ import {
 import { GW_FRONT_ENDS, reachable } from "@openfront/engine/ww1914/Tables";
 import {
   declareWar,
+  leaveWar,
   makePeace,
   openWar,
   pairWars,
 } from "@openfront/engine/ww1914/Wars";
-import { fights } from "@openfront/engine/ww1914/World";
+import { fights, monthsFrom } from "@openfront/engine/ww1914/World";
 import { loadGwPack } from "@openfront/shared/ww1914/GwPackLoader";
 import fs from "node:fs";
 import path from "node:path";
@@ -228,6 +233,92 @@ describe("governments nobody plays", () => {
     gw.s.chapter = 24;
     warStep(gw);
     expect(live()).toEqual([]);
+  });
+});
+
+describe("the scenes' conditions (merge 4)", () => {
+  const holds = (c: GwWorldCond): boolean => {
+    const seat = gw.s.seats[0];
+    if (c.is === "ladder") return monthsHold(gw, seat, c);
+    return pairHolds(gw, seat, c as Parameters<typeof pairHolds>[2]);
+  };
+
+  test("who declared a war of two", () => {
+    expect(declareWar(gw, "BGR", "ROU", "declared")).toBe(true);
+    const war = (by: GwTag): GwWorldCond => ({
+      is: "pair_war",
+      tag: "ROU",
+      with: "BGR",
+      by,
+    });
+    expect(holds(war("BGR"))).toBe(true);
+    expect(holds(war("ROU"))).toBe(false);
+  });
+
+  test("another country's ultimatum, by its sender", () => {
+    gw.s.ladders.push({
+      from: "AUH",
+      to: "RUS",
+      step: "war",
+      opened: 0,
+      chapter: 0,
+    });
+    const note = (nation: GwTag, role: "from" | "to"): GwWorldCond => ({
+      is: "ladder",
+      nation,
+      role,
+      tag: nation === "AUH" ? "RUS" : "AUH",
+      of: ["war"],
+    });
+    expect(holds(note("AUH", "from"))).toBe(true);
+    expect(holds(note("RUS", "to"))).toBe(true);
+    expect(holds(note("RUS", "from"))).toBe(false);
+    // The seat's own ladders are untouched: Germany sent nobody a note.
+    expect(holds({ is: "ladder", of: ["war"] })).toBe(false);
+  });
+
+  test("a peace offered, a peace both reached, a fall", () => {
+    const peace = (
+      how: ("offer" | "mutual" | "fell")[],
+      by?: GwTag,
+    ): GwWorldCond => ({ is: "pair_peace", tag: "BGR", with: "ROU", how, by });
+    declareWar(gw, "BGR", "ROU", "test");
+    makePeace(gw, "ROU", "BGR", "ROU");
+    expect(holds(peace(["offer"], "ROU"))).toBe(true);
+    expect(holds(peace(["offer"], "BGR"))).toBe(false);
+    expect(holds(peace(["mutual", "fell"]))).toBe(false);
+    declareWar(gw, "BGR", "SRB", "test");
+    makePeace(gw, "BGR", "SRB", null);
+    expect(
+      holds({ is: "pair_peace", tag: "SRB", how: ["mutual"], max: 0 }),
+    ).toBe(true);
+    declareWar(gw, "GRC", "OTT", "test");
+    leaveWar(gw, "OTT", "nation_beaten");
+    expect(holds({ is: "pair_peace", tag: "GRC", how: ["fell"] })).toBe(true);
+    expect(
+      holds({ is: "pair_peace", tag: "GRC", how: ["offer", "mutual"] }),
+    ).toBe(false);
+  });
+
+  test("a front, counted from when a country came onto it", () => {
+    declareWar(gw, "BGR", "ROU", "test");
+    const on = (tag: GwTag): GwWorldCond => ({
+      is: "front_months",
+      theatre: "dobruja",
+      tag,
+      max: 0,
+    });
+    expect(holds(on("ROU"))).toBe(true);
+    expect(holds(on("RUS"))).toBe(false);
+    // Months after the front opened, Russia comes onto it: its count starts.
+    const since = gw.s.chapter;
+    gw.s.chapter = gwChapters(gw.s.calendar).length - 1;
+    expect(monthsFrom(gw, since)).toBeGreaterThan(0);
+    const t = gw.s.theatres.find((x) => x.id === "dobruja")!;
+    expect(t.since).toBe(since);
+    expect(holds(on("ROU"))).toBe(false);
+    expect(declareWar(gw, "RUS", "BGR", "test")).toBe(true);
+    expect(holds(on("RUS"))).toBe(true);
   });
 });
 

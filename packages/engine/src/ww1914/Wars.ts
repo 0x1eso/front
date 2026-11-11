@@ -283,6 +283,7 @@ export function leaveWar(gw: GreatWar, tag: GwTag, why: string): void {
   for (const w of gw.s.wars) {
     if (w.ended === null && (w.a === tag || w.b === tag)) {
       w.ended = gw.s.chapter;
+      w.how = "fell";
     }
   }
   syncAtWar(gw);
@@ -295,16 +296,24 @@ export function leaveWar(gw: GreatWar, tag: GwTag, why: string): void {
 /**
  * Two countries make a peace of their own (design B5's `makePeace`): only
  * their war ends. A coalition's member left with no war is out of it.
+ * `offeredBy`: whose offer the other took; null when both came to it at once.
  */
 export function makePeace(
   gw: GreatWar,
   a: GwTag,
   b: GwTag,
+  offeredBy: GwTag | null = null,
   why = "pair_peace",
 ): boolean {
   const w = warOf(gw, a, b);
   if (w === null) return false;
   w.ended = gw.s.chapter;
+  if (offeredBy === null) {
+    w.how = "mutual";
+  } else {
+    w.how = "offer";
+    w.offeredBy = offeredBy;
+  }
   syncAtWar(gw);
   news(gw, why, a, b);
   tellPair(gw, a, b, "pair_peace_made");
