@@ -250,12 +250,17 @@ export function talkView(
             ${cardTitle(c.pack, first)}
           </h2>`
         : nothing}
-      <header class="flex items-center gap-4">
+      <header class="flex flex-wrap items-center gap-x-4 gap-y-2">
         ${who === ""
           ? nothing
-          : past
-            ? pastPlate(c, who, name, pastOf(c.pack, first, who).as)
-            : plate(c, who, name, lean, person, trust)}
+          : html`<div
+              class="flex min-w-0 flex-1 items-center gap-4 max-sm:basis-full"
+              data-gw-plate
+            >
+              ${past
+                ? pastPlate(c, who, name, pastOf(c.pack, first, who).as)
+                : plate(c, who, name, lean, person, trust)}
+            </div>`}
         ${past
           ? nothing
           : html`<button
