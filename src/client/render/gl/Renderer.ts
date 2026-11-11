@@ -132,7 +132,7 @@ import { UnitPass } from "./passes/UnitPass";
 import { VictoryProjectPass } from "./passes/VictoryProjectPass";
 import { WarfareRingPass, type Ring } from "./passes/WarfareRingPass";
 import { WingTokenPass } from "./passes/WingTokenPass";
-import { WorldTextPass } from "./passes/WorldTextPass";
+import { WorldTextPass, type PlaceLabel } from "./passes/WorldTextPass";
 import { WwMinePass } from "./passes/WwMinePass";
 import {
   FLASH_INNER,
@@ -2037,7 +2037,10 @@ export class GPURenderer {
   }
 
   /** World War 1936 (spec §8.2): draw the lines between these region ids. */
-  setRegions(regionIds: Uint16Array): void {
+  setRegions(
+    regionIds: Uint16Array,
+    riverCodes: Uint8Array | null = null,
+  ): void {
     this.wwRegionIds = regionIds;
     this.regionBorderPass?.mines?.dispose();
     this.regionBorderPass?.dispose();
@@ -2046,11 +2049,17 @@ export class GPURenderer {
       regionIds,
       this.mapW,
       this.mapH,
+      riverCodes,
     );
     this.landFlagsStale = true;
     this.layerKindSent = -1;
     this.regionIds = regionIds;
     this.makeRegionModes();
+  }
+
+  /** The Imjin map's named places: passes, fords and channels. */
+  setPlaceLabels(labels: readonly PlaceLabel[]): void {
+    this.worldTextPass.setPlaceLabels(labels);
   }
 
   /** Great War 1914: the regions for the map modes, with no lines between them. */
