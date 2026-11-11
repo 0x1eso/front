@@ -1660,6 +1660,7 @@
     "ww1936_imjin_jp_daimyo_defiant": "{daimyo} is close to open defiance",
     "ww1936_imjin_jp_daimyo_wavers": "{daimyo}'s loyalty is wavering: his corps is slow to move",
     "ww1936_imjin_jp_ming_refuses": "Ming will not hear the Taikō's terms: the talks have failed",
+    "ww1936_imjin_jp_sailing_seen": "Joseon has seen our fleet gathering at Tsushima; it sails within the month",
     "ww1936_imjin_jp_taiko_bedridden": "The Taikō has taken to his bed",
     "ww1936_imjin_jp_taiko_failing": "The Taikō's strength is failing",
     "ww1936_imjin_jp_taiko_grave": "The Taikō is gravely ill",
@@ -9284,6 +9285,7 @@
       "imjin_jos_omens_grave": "There is no longer any doubt among the coastal commanders: a great army is gathering at Nagoya, and transport ships fill the harbours of Tsushima.",
       "imjin_jos_truce": "Ming and Japan have stopped the fighting. The Japanese hold forts on our southern coast, and the Ming generals forbid our armies to attack them while envoys travel.",
       "imjin_jos_truce_broken": "Word comes from Japan: the Taikō has sent the Ming envoys away in anger. Japan is mustering again.",
+      "imjin_jos_tsushima": "The Sō house's men hint that the Japanese fleet will sail within the month, and the Tsushima traders say the harbours are full of soldiers, though the muster in Kyushu is not yet done.",
       "imjin_jp_daimyo_grumble": "The great lords count their dead and their spent rice. In their camps men ask what the war has given them, and some letters home speak of the Taikō with less respect than before.",
       "imjin_jp_investiture": "The Ming envoys come before Hideyoshi and their letter is read aloud. It names him King of Japan. It says nothing of the terms he sent.",
       "imjin_jp_investiture_regents": "The Ming envoys arrive with a letter for the Taikō, but he is dead. The regents receive them instead.",
@@ -9899,6 +9901,10 @@
       },
       "imjin_jos_truce_broken": {
         "a": "Ready the country"
+      },
+      "imjin_jos_tsushima": {
+        "a": "Man the coast and the walls now",
+        "b": "They have cried wolf before"
       },
       "imjin_jp_daimyo_grumble": {
         "a": "Grant lands and gold",
@@ -10544,6 +10550,7 @@
       "imjin_jos_omens_grave": "Japan Gathers Its Army",
       "imjin_jos_truce": "A Truce Over Our Heads",
       "imjin_jos_truce_broken": "The Truce Is Broken",
+      "imjin_jos_tsushima": "Word from Tsushima",
       "imjin_jp_daimyo_grumble": "The Daimyo Grumble",
       "imjin_jp_investiture": "The Ming Envoys",
       "imjin_jp_investiture_regents": "The Envoys Before the Regents",

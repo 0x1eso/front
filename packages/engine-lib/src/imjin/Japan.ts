@@ -225,6 +225,21 @@ export const STRIKE_BAR = 500;
 export const THIN_WAVE = 700;
 export const FULL_WAVE = 950;
 
+/**
+ * An early strike (the owner's v1 decision 4B: "일찍 치면 약하고 조선에 경고
+ * 장면이 감"): a fleet sailing before the muster is done cannot hide. Joseon
+ * hears it from Tsushima and the Sō house this many days before the war,
+ * and its warning rises by EARLY_WARNING, so striking early never leaves
+ * Joseon less warned; the first wave is thin (waveOf).
+ */
+export const EARLY_NOTICE_DAYS = 30;
+export const EARLY_WARNING = 250;
+
+/** Whether a strike at this readiness is early (a thin wave, a told Joseon). */
+export function isEarlyStrike(readiness: number): boolean {
+  return readiness < THIN_WAVE;
+}
+
 /** Readiness a day before the war: the muster goes on by itself. */
 export function dailyReadiness(meanLoy: number, day: number): number {
   // A loyal muster is quicker: a point a day from a mean of 700, every

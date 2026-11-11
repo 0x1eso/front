@@ -82,6 +82,7 @@ export const JP_SCENE = {
   demand: "imjin_jos_demand",
   truce: "imjin_jos_truce",
   truceBroken: "imjin_jos_truce_broken",
+  tsushima: "imjin_jos_tsushima",
 } as const;
 
 /** Spirits ImjinJapan adds (with their days). */
@@ -268,6 +269,13 @@ export const IMJIN_JAPAN_EVENTS: EventDef[] = [
     "border",
     { flag: JP_FLAG.heed, ai: 60, more: [{ kind: "pp", amount: -35 }] },
     { ai: 40, more: [{ kind: "stability", pct: 2 }] },
+  ),
+  // An early strike is seen from Tsushima a month before (Japan.ts).
+  choice(
+    JP_SCENE.tsushima,
+    "border",
+    { flag: JP_FLAG.heed, ai: 70, more: [{ kind: "pp", amount: -25 }] },
+    { ai: 30, more: [{ kind: "stability", pct: 2 }] },
   ),
   choice(
     JP_SCENE.demand,

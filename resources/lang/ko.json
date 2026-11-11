@@ -1666,7 +1666,8 @@
     "ww1936_imjin_jos_half_warned": "왜군이 상륙했습니다. 나라는 반쯤밖에 대비하지 못했습니다",
     "ww1936_imjin_jos_warned": "왜군이 상륙했지만 나라는 대비를 마쳤습니다",
     "ww1936_imjin_jp_ming_refuses": "명이 태합의 조건을 받아들이지 않습니다. 담판이 깨졌습니다",
-    "ww1936_imjin_jp_withdraws": "{country}이(가) 조선에서 군대를 불러들입니다"
+    "ww1936_imjin_jp_withdraws": "{country}이(가) 조선에서 군대를 불러들입니다",
+    "ww1936_imjin_jp_sailing_seen": "조선이 대마도에 모인 우리 함대를 보았습니다. 한 달 안에 바다를 건넙니다"
   },
   "featured_stream": {
     "expand": "펼치기",
@@ -5326,7 +5327,8 @@
       "imjin_jos_omens_grave": "해안의 장수들 사이에 더는 의심이 없다. 나고야에 큰 군대가 모이고, 쓰시마의 포구는 수송선으로 가득하다.",
       "imjin_jos_demand": "쓰시마 소 가문의 사자가 히데요시의 요구를 전한다. 명으로 가는 일본군에게 길을 내어 달라는 것이다.",
       "imjin_jos_truce": "명과 일본이 싸움을 멈추었다. 일본군은 남해안의 성들을 차지하고 있는데, 명의 장수들은 사신이 오가는 동안 우리 군대가 그들을 치지 못하게 한다.",
-      "imjin_jos_truce_broken": "일본에서 소식이 왔다. 태합이 노하여 명의 사신들을 내쫓았다고 한다. 일본이 다시 군사를 모으고 있다."
+      "imjin_jos_truce_broken": "일본에서 소식이 왔다. 태합이 노하여 명의 사신들을 내쫓았다고 한다. 일본이 다시 군사를 모으고 있다.",
+      "imjin_jos_tsushima": "소 가문 사람들이 한 달 안에 왜의 배가 바다를 건널 것이라고 넌지시 알리고, 대마도 상인들은 규슈의 동원이 아직 끝나지 않았는데도 포구마다 군사가 가득하다고 전한다."
     },
     "event_opt": {
       "aus_curtin_appeal": {
@@ -6305,6 +6307,10 @@
       },
       "imjin_jos_truce_broken": {
         "a": "나라를 다시 전시 태세로 돌린다"
+      },
+      "imjin_jos_tsushima": {
+        "a": "지금 바로 해안과 성을 지킨다",
+        "b": "전에도 헛소문이었다"
       }
     },
     "event_title": {
@@ -6586,7 +6592,8 @@
       "imjin_jos_omens_grave": "일본이 군대를 모으다",
       "imjin_jos_demand": "소 가문의 요구",
       "imjin_jos_truce": "우리를 빼놓은 휴전",
-      "imjin_jos_truce_broken": "휴전이 깨지다"
+      "imjin_jos_truce_broken": "휴전이 깨지다",
+      "imjin_jos_tsushima": "대마도에서 온 소식"
     },
     "eventui": {
       "annex_warning": "경고: 이 선택을 하면 우리나라가 {country}에 합병됩니다",

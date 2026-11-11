@@ -10,7 +10,8 @@
 //   a pressure to withdraw (the AI goes home; a human plays on).
 // - The run-up (design §8): readiness rises with the muster; Japan may
 //   strike once it passes a bar. Early means a thinner first wave and a
-//   less warned Joseon (warning rises with the visible preparations).
+//   warning scene for Joseon a month before the war (EARLY_NOTICE_DAYS),
+//   which raises its warning: early never means a less warned Joseon.
 // - The truce: Konishi and Shen Weijing carry the terms; a disloyal broker
 //   softens both texts. When the investiture envoys meet Hideyoshi the truth
 //   comes out and the truce breaks; a second invasion comes by state alone.
@@ -32,6 +33,8 @@ import {
   dailyReadiness,
   dailyWarning,
   DEATH_LOYALTY,
+  EARLY_NOTICE_DAYS,
+  EARLY_WARNING,
   forgeChancePct,
   FULL_WAVE,
   GRANT_LOYALTY,
@@ -41,6 +44,7 @@ import {
   HEALTH_SPREAD,
   healthBand,
   HEED_WARNING,
+  isEarlyStrike,
   japanStats,
   LOYALTY_MAX,
   loyaltyBand,
@@ -130,6 +134,8 @@ export const ImjinJapanStateSchema = z.object({
   deathDay: zInt(),
   readiness: zInt(),
   warning: zInt(),
+  /** An early strike's day, set when Tsushima's reports go out (-1: none). */
+  strikeDay: zInt(),
   aiBar: zInt(),
   aiPatience: zInt(),
   readyDay: zInt(),
@@ -180,6 +186,7 @@ export class ImjinJapan {
       deathDay: -1,
       readiness: y1592 ? READINESS_1592 : READINESS_1590,
       warning: y1592 ? WARNING_1592 : WARNING_1590,
+      strikeDay: -1,
       aiBar: READINESS_1592,
       aiPatience: 0,
       readyDay: -1,
@@ -219,7 +226,12 @@ export class ImjinJapan {
     if (s.warDay >= 0 && s.phase !== P.broken && s.phase !== P.withdrawn) {
       return true;
     }
-    if (this.ww.politics.isHuman(a)) return s.readiness >= STRIKE_BAR;
+    if (this.ww.politics.isHuman(a)) {
+      if (s.readiness < STRIKE_BAR) return false;
+      // An early strike sails only after Joseon has had its warning.
+      if (s.strikeDay >= 0) return this.ww.day(this.mg.ticks()) >= s.strikeDay;
+      return !isEarlyStrike(s.readiness);
+    }
     if (s.phase === P.withdrawn) return false;
     return this.aiStrikeOpen(this.ww.day(this.mg.ticks()));
   }
@@ -350,7 +362,7 @@ export class ImjinJapan {
     if (this.take(this.jos, JP_FLAG.heed)) {
       s.warning = Math.min(1000, s.warning + HEED_WARNING);
     }
-    if (this.take(j, JP_FLAG.strikeNow)) this.strike(tick);
+    if (this.take(j, JP_FLAG.strikeNow)) this.strike(day, tick);
     const talksYes = this.take(j, JP_FLAG.talksYes);
     const talksNo = this.take(j, JP_FLAG.talksNo);
     if (s.phase === P.talksAsked && (talksYes || talksNo)) {
@@ -423,6 +435,11 @@ export class ImjinJapan {
         this.once(T_OMENS_GRAVE, JP_SCENE.omensGrave, this.jos);
     }
     if (s.readiness >= s.aiBar && s.readyDay < 0) s.readyDay = day;
+    // An early strike under way sails on its day (a human's or the AI's).
+    if (s.strikeDay >= 0 && s.warDay < 0 && day >= s.strikeDay) {
+      this.strike(day, tick);
+      return;
+    }
     if (ww.politics.isHuman(this.jpn)) {
       if (s.phase === P.withdrawn) return;
       if (s.phase === P.broken) {
@@ -435,19 +452,40 @@ export class ImjinJapan {
       if (s.readiness >= FULL_WAVE) {
         s.told |= T_STRIKE_READY;
         this.once(T_STRIKE_FULL, JP_SCENE.strikeFull, this.jpn);
-      } else if (s.readiness >= STRIKE_BAR) {
+      } else if (s.readiness >= STRIKE_BAR && s.strikeDay < 0) {
+        // Asked again every ASK_DAYS while the muster is short of full.
+        if (day % ASK_DAYS === 0) s.told &= ~T_STRIKE_READY;
         this.once(T_STRIKE_READY, JP_SCENE.strikeReady, this.jpn);
       }
       return;
     }
-    if (s.phase !== P.withdrawn && this.aiStrikeOpen(day)) this.strike(tick);
+    if (s.phase !== P.withdrawn && this.aiStrikeOpen(day)) {
+      this.strike(day, tick);
+    }
   }
 
-  private strike(tick: number): void {
+  /**
+   * Japan sails. A first strike before the muster is done (isEarlyStrike)
+   * is seen first: Tsushima's reports reach Joseon, its warning rises, and
+   * the war comes EARLY_NOTICE_DAYS later (stepRunUp).
+   */
+  private strike(day: number, tick: number): void {
+    const s = this.s;
     const ww = this.ww;
     const a = ww.playerOfTag("JPN");
     const b = ww.playerOfTag("JOS");
     if (a === null || b === null || ww.isAtWar(this.jpn, this.jos)) return;
+    const second = s.phase === P.broken || s.phase === P.withdrawn;
+    if (!second && s.warDay < 0) {
+      if (s.strikeDay < 0 && isEarlyStrike(s.readiness)) {
+        s.strikeDay = day + EARLY_NOTICE_DAYS;
+        s.warning = Math.min(1000, s.warning + EARLY_WARNING);
+        this.fire(JP_SCENE.tsushima, this.jos);
+        this.msg(this.jpn, "events_display.ww1936_imjin_jp_sailing_seen");
+        return;
+      }
+      if (s.strikeDay >= 0 && day < s.strikeDay) return;
+    }
     declareWar(this.mg, ww, a, b, tick);
   }
 
@@ -894,6 +932,7 @@ export class ImjinJapan {
     add(s.deathDay);
     add(s.readiness);
     add(s.warning);
+    add(s.strikeDay);
     add(s.warDay);
     add(s.phase);
     add(s.phaseDay);
