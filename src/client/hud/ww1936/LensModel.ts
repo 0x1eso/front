@@ -680,7 +680,6 @@ function terrainRows(s: ScenarioIndex | null): LegendRow[] {
     return IMJIN_TERRAINS.map((t) => ({
       rgb: IMJIN_TERRAIN_RGB[t],
       label: translateText(IMJIN_TERRAIN_KEYS[t]),
-      detail: translateText(IMJIN_WORDS_KEYS[t]),
     }));
   }
   return LAND_TERRAINS.map((t) => ({

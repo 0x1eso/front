@@ -1889,6 +1889,8 @@ export class GPURenderer {
         this.peacePass.draw(cam, tilesPerPx, timeSec);
       }
     }
+    // The Imjin map: river edges over the lens colours.
+    this.regionBorderPass?.drawRivers(cam, this.camera.zoom);
   }
 
   /** P6: made on the first sea-layer frame with mines; rewritten when the depth view moves. */

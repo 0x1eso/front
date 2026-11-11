@@ -608,14 +608,31 @@ export class RegionBorderPass {
     gl.uniform1f(this.uAlpha, alpha);
     gl.bindVertexArray(this.vao);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
-    if (this.riverProgram !== null && this.riverTex !== null) {
-      // The rivers show from further out than the region lines.
-      gl.useProgram(this.riverProgram);
-      gl.bindTexture(gl.TEXTURE_2D, this.riverTex);
-      gl.uniformMatrix3fv(this.rCamera, false, cam);
-      gl.uniform1f(this.rAlpha, Math.min(1, alpha * 2));
-      gl.drawArrays(gl.TRIANGLES, 0, 6);
-    }
+    gl.bindVertexArray(null);
+  }
+
+  /**
+   * The Imjin map's river edges, drawn over the lenses and map modes so a
+   * river reads on every lens; nothing without them.
+   */
+  drawRivers(cam: Float32Array, zoom: number): void {
+    if (this.riverProgram === null || this.riverTex === null) return;
+    const alpha = Math.min(
+      1,
+      Math.max(
+        0,
+        (zoom - REGION_MIN_ZOOM) / (REGION_FULL_ZOOM - REGION_MIN_ZOOM),
+      ) * 2,
+    );
+    if (alpha <= 0) return;
+    const gl = this.gl;
+    gl.useProgram(this.riverProgram);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, this.riverTex);
+    gl.uniformMatrix3fv(this.rCamera, false, cam);
+    gl.uniform1f(this.rAlpha, alpha);
+    gl.bindVertexArray(this.vao);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
     gl.bindVertexArray(null);
   }
 
