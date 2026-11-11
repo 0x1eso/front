@@ -15,6 +15,7 @@ import {
   GW_LADDER_STEPS,
   GW_OFF_COUNTERS,
   GW_OFF_METHODS,
+  GW_OFF_RESULTS,
   GW_OFFICES,
   GW_PLANS,
   GW_RESULTS,
@@ -38,6 +39,7 @@ import {
   GwOffCounter,
   GwOffice,
   GwOffMethod,
+  GwOffResult,
   GwPlan,
   GwResult,
   GwSecret,
@@ -381,7 +383,20 @@ export type GwWorldCond =
       theatre?: GwTheatre[];
       method?: GwOffMethod[];
       code?: boolean;
-    };
+    }
+  /**
+   * The latest great offensive of the seat's country (`side` "ours", the
+   * default) or against it ("foe"), running or ended this chapter or the
+   * last: its front, method, latest result; the range is its round (0 while
+   * prepared). For the writers' paper and result scenes (ww173 formatb).
+   */
+  | ({
+      is: "offensive";
+      side?: "ours" | "foe";
+      theatre?: GwTheatre[];
+      method?: GwOffMethod[];
+      result?: GwOffResult[];
+    } & Range);
 
 export type GwWorldEffect =
   /** Germany's plan for the war to come. */
@@ -741,6 +756,13 @@ export const GwWorldCondSchema = z.union([
     theatre: z.array(theatre).min(1).optional(),
     method: z.array(z.enum(GW_OFF_METHODS)).min(1).optional(),
     code: z.boolean().optional(),
+  }),
+  is("offensive", {
+    side: z.enum(["ours", "foe"]).optional(),
+    theatre: z.array(theatre).min(1).optional(),
+    method: z.array(z.enum(GW_OFF_METHODS)).min(1).optional(),
+    result: z.array(z.enum(GW_OFF_RESULTS)).min(1).optional(),
+    ...range,
   }),
 ]) as unknown as z.ZodType<GwWorldCond>;
 

@@ -52,7 +52,11 @@ import {
   lawWithdraw,
 } from "./Laws";
 import { landHolds } from "./Occupation";
-import { counterOffensive, foeOffensiveHolds } from "./Offensives";
+import {
+  counterOffensive,
+  foeOffensiveHolds,
+  offensiveHolds,
+} from "./Offensives";
 import {
   declareFromTab,
   pairHolds,
@@ -294,6 +298,8 @@ export function worldHolds(ctx: SceneCtx, c: GwWorldCond): boolean {
       return landHolds(gw, seat, c);
     case "foe_offensive":
       return foeOffensiveHolds(gw, seat.tag, c);
+    case "offensive":
+      return offensiveHolds(gw, seat.tag, c);
   }
 }
 

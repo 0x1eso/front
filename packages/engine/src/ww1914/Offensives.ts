@@ -10,6 +10,7 @@ import {
   GwOffCounter,
   GwOffensive,
   GwOffMethod,
+  GwOffResult,
   GwResult,
   GwSeatState,
   GwSide,
@@ -18,6 +19,7 @@ import {
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import type { GwFrontPrepView } from "@openfront/engine-api/ww1914/GwWorldView";
+import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { eraOf, hasTech } from "./Eras";
 import {
@@ -380,6 +382,7 @@ function blank(
     press: null,
     done: null,
     codeBy: [],
+    last: null,
     answers: [],
   };
 }
@@ -452,6 +455,7 @@ export function signOffensivePaper(
     if (dryRun) return null;
     prepare(gw, seat.tag, main, method, months, pick.quiet === true, feint);
     reason(gw, seat, "off_prepared");
+    callScene(gw, seat.tag, "w_off_prep");
     return null;
   }
   if (o === null || o.theatre !== main) return "not_proposed";
@@ -669,7 +673,21 @@ export function offensiveRatio(
   return { ratio, faced: Math.max(0, trenchFaced(gw, t) - cut) };
 }
 
-export type GwOffResult = "break" | "bite" | "attrition" | "repulsed";
+export type { GwOffResult };
+
+/**
+ * A seat's own scene of it, where the writers wrote one (formatb): the id is
+ * `<tag lower>_<key>`, called for next chapter, its variants read the
+ * `offensive` condition.
+ */
+function callScene(gw: GreatWar, tag: GwTag, key: string): boolean {
+  const id = `${tag.toLowerCase()}_${key}`;
+  if (!gwContent().scenes.some((x) => x.id === id)) return false;
+  for (const seat of seatsOf(gw, tag)) {
+    seat.scheduled.push({ scene: id, chapter: gw.s.chapter + 1 });
+  }
+  return seatsOf(gw, tag).length > 0;
+}
 
 export function offensiveResult(ratio: number, faced: number): GwOffResult {
   if (ratio >= BREAK_AT && faced <= BREAK_TRENCH) return "break";
@@ -692,6 +710,7 @@ function round(gw: GreatWar, o: GwOffensive): void {
   const foe = other(o.end);
   const { ratio, faced } = offensiveRatio(gw, o);
   const result = offensiveResult(ratio, faced);
+  o.last = result;
   const battle = AS_BATTLE[result];
   const lead = membersOf(gw, o.theatre, foe)[0] ?? null;
   const strain = (tag: GwTag | null, d: number) => {
@@ -741,8 +760,10 @@ function round(gw: GreatWar, o: GwOffensive): void {
   }
   news(gw, `off_${result}`, o.tag, lead, o.theatre);
   for (const seat of seatsOf(gw, o.tag)) reason(gw, seat, `off_${result}`);
+  callScene(gw, o.tag, "w_off_result");
   if (lead !== null) {
     for (const tag of membersOf(gw, o.theatre, foe)) {
+      callScene(gw, tag, "w_off_defended");
       for (const seat of seatsOf(gw, tag)) {
         reason(
           gw,
@@ -775,9 +796,10 @@ function armyRefuses(gw: GreatWar, n: GwNationState): void {
   if (n.unrest >= ARMY_RUNG) return;
   n.unrest = ARMY_RUNG;
   moveGauge(gw, n.tag, "order", -1, "off_refusal");
+  for (const seat of seatsOf(gw, n.tag)) reason(gw, seat, "off_refusal");
+  if (callScene(gw, n.tag, "w_off_mutiny")) return;
   const scene = GW_HOME[n.tag]?.rungs[ARMY_RUNG - 1] ?? "gw_unrest";
   for (const seat of seatsOf(gw, n.tag)) {
-    reason(gw, seat, "off_refusal");
     seat.scheduled.push({ scene, chapter: gw.s.chapter + 1 });
   }
 }
@@ -821,6 +843,37 @@ export function foeOffensiveHolds(
   if (c.method !== undefined && !c.method.includes(o.method)) return false;
   if (c.code !== undefined && o.codeBy.includes(tag) !== c.code) return false;
   return true;
+}
+
+/** The seat's latest offensive, ours or against us (the `offensive` cond). */
+export function offensiveHolds(
+  gw: GreatWar,
+  tag: GwTag,
+  c: {
+    side?: "ours" | "foe";
+    theatre?: GwTheatre[];
+    method?: GwOffMethod[];
+    result?: GwOffResult[];
+    min?: number;
+    max?: number;
+  },
+): boolean {
+  const foe = c.side === "foe";
+  const recent = list(gw).filter(
+    (o) =>
+      !o.feint &&
+      (o.done === null || gw.s.chapter - o.done <= 1) &&
+      (foe
+        ? o.tag !== tag && memberEnd(gw, o.theatre, tag) === other(o.end)
+        : o.tag === tag),
+  );
+  const o = recent[recent.length - 1];
+  if (o === undefined) return false;
+  if (c.theatre !== undefined && !c.theatre.includes(o.theatre)) return false;
+  if (c.method !== undefined && !c.method.includes(o.method)) return false;
+  if (c.result !== undefined && (o.last === null || !c.result.includes(o.last)))
+    return false;
+  return o.round >= (c.min ?? -Infinity) && o.round <= (c.max ?? Infinity);
 }
 
 /** Whether `n` can step back and take it in depth. */

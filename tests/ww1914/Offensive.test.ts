@@ -71,6 +71,7 @@ function record(over: Partial<GwOffensive>): GwOffensive {
     press: null,
     done: null,
     codeBy: [],
+    last: null,
     answers: [],
     ...over,
   };
@@ -180,6 +181,10 @@ describe("the paper, the launch, press on or stop", () => {
     );
     expect(fought.map((b) => b.by)).toEqual(["central"]);
     expect(gw.s.news.some((n) => n.key === "off_launched")).toBe(true);
+    const ctx = { gw, seat, cast: {} };
+    expect(
+      holds(ctx, world({ is: "offensive", method: ["long"], min: 1 })),
+    ).toBe(true);
     expect(new Set(ids(gw))).toEqual(new Set(["press_on", "stop"]));
     expect(sign("stop")).toBe(null);
     expect(offensivesOf(gw)).toEqual([]);

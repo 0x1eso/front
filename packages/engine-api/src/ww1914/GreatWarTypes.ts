@@ -1514,6 +1514,14 @@ export const GW_OFF_COUNTERS = [
   "dumb",
 ] as const;
 export type GwOffCounter = (typeof GW_OFF_COUNTERS)[number];
+/** A round's result. Text: gw.news.off_<id>, gw.reason.off_<id>. */
+export const GW_OFF_RESULTS = [
+  "break",
+  "bite",
+  "attrition",
+  "repulsed",
+] as const;
+export type GwOffResult = (typeof GW_OFF_RESULTS)[number];
 
 /**
  * A great offensive, from the paper to its last round. `round` 0 while it is
@@ -1541,6 +1549,8 @@ export const GwOffensiveSchema = z.object({
   done: z.number().int().nullable(),
   /** Those who learned of it through a read code (design §6). */
   codeBy: z.array(z.enum(GW_TAGS)),
+  /** The latest round's result; null before the first. */
+  last: z.enum(GW_OFF_RESULTS).nullable(),
   /** What each defender did about it, and from which chapter. */
   answers: z.array(
     z.object({
