@@ -39,6 +39,7 @@ import {
 import { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import { z } from "zod";
 import type { Game, Player } from "../game/Game";
+import { ImjinJmStateSchema, ImjinJoseonMing } from "../imjin/JoseonMing";
 import { WwAir, WwAirStateSchema } from "./air/WwAir";
 import { WwDepth, WwDepthStateSchema } from "./depth/WwDepth";
 import { WwEconomy, WwEconomyStateSchema } from "./economy/WwEconomy";
@@ -78,6 +79,8 @@ export const WorldWarStateSchema = z.object({
   endgame: WwEndgameStateSchema.optional(),
   /** P6 (P6 plan decision 26): always written; a snapshot without it is refused. */
   depth: WwDepthStateSchema.optional(),
+  /** ww177 P4 (lane I4a): the Joseon court and Ming's meter; Imjin only. */
+  imjinJm: ImjinJmStateSchema.optional(),
 });
 export type WorldWarState = z.infer<typeof WorldWarStateSchema>;
 
@@ -150,6 +153,8 @@ export class WorldWar {
   readonly epoch: number;
   /** ww177: the Imjin War's start (Starts.ts), null in 1936. */
   readonly imjinStart: ImjinStartId | null;
+  /** ww177 P4 (lane I4a): Joseon's court and Ming's meter; null in 1936. */
+  readonly imjinJm: ImjinJoseonMing | null;
 
   constructor(
     private readonly mg: Game,
@@ -182,6 +187,10 @@ export class WorldWar {
     // through its depth hooks.
     this.depth = new WwDepth(mg, this);
     this.land.depthHooks = this.depth;
+    this.imjinJm =
+      this.imjinStart === null
+        ? null
+        : new ImjinJoseonMing(mg, this, this.imjinStart);
   }
 
   /**
@@ -219,6 +228,8 @@ export class WorldWar {
     // government apply from day 0), so the economy's start (manpower) and
     // the land war's (the 1936 divisions) read the country's stats.
     this.politics.start();
+    // ww177 P4: the Joseon court of the start's year, on politics' values.
+    this.imjinJm?.startGame();
     this.economy.start();
     this.land.start();
     // P4 (plan decision 2): the 1936 navies, then the air war (nothing deployed).
@@ -649,7 +660,11 @@ export class WorldWar {
     // P5 (spec §21.5): after P4's.
     h = (Math.imul(h, 31) + this.endgame.hash()) | 0;
     // P6 (spec §21.6): after P5's.
-    return (Math.imul(h, 31) + this.depth.hash()) >>> 0;
+    const out = (Math.imul(h, 31) + this.depth.hash()) >>> 0;
+    // ww177 P4: the Imjin court after everything (1936's hash unchanged).
+    return this.imjinJm === null
+      ? out
+      : (Math.imul(out, 31) + this.imjinJm.hash()) >>> 0;
   }
 
   snapshot(): WorldWarState {
@@ -678,6 +693,7 @@ export class WorldWar {
       air: this.air.snapshot(),
       endgame: this.endgame.snapshot(),
       depth: this.depth.snapshot(),
+      ...(this.imjinJm === null ? {} : { imjinJm: this.imjinJm.snapshot() }),
     };
   }
 
@@ -751,6 +767,12 @@ export class WorldWar {
     this.air.restoreState(s.air);
     // P6: last (its derived design caches read the economy's techs).
     this.depth.restoreState(s.depth);
+    if (this.imjinJm !== null) {
+      if (s.imjinJm === undefined) {
+        throw new Error("Imjin snapshot without its court (made before P4)");
+      }
+      this.imjinJm.restoreState(s.imjinJm);
+    }
   }
 
   private rebuildMatrix(): void {

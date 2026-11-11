@@ -74,6 +74,8 @@ export class WorldWarExecution implements Execution {
     stepTransfers(mg, ww);
     // P3 order 2 and 3: politics' common day, then this tick's countries.
     ww.politics.tick(ticks);
+    // ww177 P4 (lane I4a): the Joseon court and Ming's meter, once a day.
+    ww.imjinJm?.tick(ticks);
     // P5 (spec §2.2 orders 2–3): the endgame's common day and its countries.
     ww.endgame.clock(ticks);
     // P6 (plan decision 3): the depth systems' common day and countries,

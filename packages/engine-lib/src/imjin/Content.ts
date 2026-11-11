@@ -9,11 +9,19 @@ import {
   ContentParts,
   ContentRegistry,
 } from "../ww1936/content/registry";
+import { IMJIN_COURT_DECISIONS, IMJIN_COURT_EVENTS } from "./CourtScenes";
 
 export const IMJIN_CONTENT_PARTS: ContentParts = {
   ...CONTENT_PARTS,
-  events: CONTENT_PARTS.events.filter((e) => e.trigger === undefined),
-  decisions: CONTENT_PARTS.decisions.filter((d) => d.for === "any"),
+  events: [
+    ...CONTENT_PARTS.events.filter((e) => e.trigger === undefined),
+    // ww177 P4 (lane I4a): the court, the flight, the righteous armies.
+    ...IMJIN_COURT_EVENTS,
+  ],
+  decisions: [
+    ...CONTENT_PARTS.decisions.filter((d) => d.for === "any"),
+    ...IMJIN_COURT_DECISIONS,
+  ],
   persons: [],
   beats: [],
   countries: [],

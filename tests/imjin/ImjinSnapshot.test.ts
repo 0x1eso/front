@@ -15,8 +15,9 @@ const CONFIG: Partial<GameConfig> = {
 const HUMANS = [{ clientID: HUMAN }];
 const hash = (r: { game: unknown }) => (r.game as { hash(): number }).hash();
 
-// Pinned at the lane I0a commit with two equal runs (imjinmini, 3,000 ticks).
-const IMJIN_DIGEST = "e75ea81f001de94e";
+// Pinned with two equal runs (imjinmini, 3,000 ticks): lane I0a
+// e75ea81f001de94e; lane I4a (the Joseon court and Ming's meter) below.
+const IMJIN_DIGEST = "2b55ba599cd788e9";
 
 async function imjinRunner() {
   return wwRunner(CONFIG, HUMANS, MAP);
