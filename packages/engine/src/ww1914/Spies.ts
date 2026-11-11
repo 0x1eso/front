@@ -118,12 +118,15 @@ const OPS_KEPT = 6;
  * Counter-intelligence, per mille a chapter for each foreign net (ww173
  * tune: the design's percent caught about twenty agents a game; one to
  * three is the aim): a base, each point of counter, less each point of net.
+ * ww180 merge: the service now grows its counter, so each point weighs less
+ * here and in OUT_COUNTER, and the operations' own found-out odds are lower,
+ * to keep the aim (20-seed measure: 2.25 a game, 17 of 20 within one to three).
  */
 const CATCH_BASE = 2;
-const CATCH_COUNTER = 6;
+const CATCH_COUNTER = 5;
 const CATCH_NET = 2;
 /** An operation's chance to be found out rises this much a point of counter. */
-const OUT_COUNTER = 3;
+const OUT_COUNTER = 2;
 /** Percent a chapter an AI service tries a new net (bold, others). */
 const AI_NET_PCT_BOLD = 6;
 const AI_NET_PCT = 4;
@@ -883,7 +886,7 @@ function opRoll(
 
 function plantNet(gw: GreatWar, a: GwTag, x: GwTag): void {
   const ia = intelOf(gw, a);
-  const { ok, out } = opRoll(gw, a, x, "net", 55, 3);
+  const { ok, out } = opRoll(gw, a, x, "net", 55, 1);
   if (ok) ia.net[x] = Math.min(3, (ia.net[x] ?? 0) + 1);
   record(gw, a, "net", x, ok, out);
   if (out) expose(gw, x, a);
@@ -892,7 +895,7 @@ function plantNet(gw: GreatWar, a: GwTag, x: GwTag): void {
 function sabotage(gw: GreatWar, a: GwTag, x: GwTag): void {
   const ia = intelOf(gw, a);
   ia.sabotaged = gw.s.day;
-  const { ok, out } = opRoll(gw, a, x, "sabotage", 30, 6);
+  const { ok, out } = opRoll(gw, a, x, "sabotage", 30, 5);
   if (ok) {
     moveGauge(gw, x, "shells", -1, "shells_sabotaged");
     news(gw, "spy_sabotage", x);
@@ -904,7 +907,7 @@ function sabotage(gw: GreatWar, a: GwTag, x: GwTag): void {
 function court(gw: GreatWar, a: GwTag, x: GwTag): void {
   const na = gw.nation(a);
   const nx = gw.nation(x);
-  const { ok, out } = opRoll(gw, a, x, "court", 35, 6);
+  const { ok, out } = opRoll(gw, a, x, "court", 35, 4);
   // In peace a camp is what it would be (ww178).
   const side = na === null ? null : naturalSide(gw, a);
   if (ok && nx !== null && side !== null) {
