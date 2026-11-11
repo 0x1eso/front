@@ -51,6 +51,7 @@ import {
   lawText,
   lawWithdraw,
 } from "./Laws";
+import { navalEffect, navalHolds } from "./NavalIntel";
 import { landHolds } from "./Occupation";
 import {
   counterOffensive,
@@ -307,6 +308,8 @@ export function worldHolds(ctx: SceneCtx, c: GwWorldCond): boolean {
     case "spy":
       if (c.peace === true && !atPeace(gw, seat.tag)) return false;
       return spyHolds(gw, seat, c.can, c.tag);
+    case "naval":
+      return navalHolds(gw, seat, c.can);
   }
 }
 
@@ -603,6 +606,9 @@ export function worldEffect(ctx: SceneCtx, e: GwWorldEffect): void {
       return;
     case "spy":
       spyEffect(ctx.gw, ctx.seat, e.act, e.tag);
+      return;
+    case "naval":
+      navalEffect(ctx.gw, ctx.seat, e.act);
       return;
   }
 }

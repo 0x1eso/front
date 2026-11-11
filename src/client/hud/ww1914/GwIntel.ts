@@ -433,9 +433,69 @@ function nets(c: GwCtx): TemplateResult {
   </section>`;
 }
 
+/** ww180: the sea section's own rows (the chain at sea, NavalIntel). */
+const SEA_ROW = "gw_a_sea_";
+
+/** ww180: our direction-finding chain at sea: what it is, its use, what it heard. */
+function sea(c: GwCtx): TemplateResult | typeof nothing {
+  const v = c.seat.world.sea;
+  if (v === undefined) return nothing;
+  const rows = (c.seat.acts ?? []).filter((a) => a.id.startsWith(SEA_ROW));
+  const heard = [...v.log].reverse();
+  return html`<section class=${BOX} data-gw-intel-sea>
+    ${head("sea")}
+    ${v.stations === 0
+      ? empty(v.atSea ? "sea.none" : "sea.not_at_sea")
+      : html`<div
+            class="flex justify-between gap-2 text-sm"
+            data-gw-intel-stations=${v.stations}
+            title=${t("sea.stations.hint")}
+          >
+            <span class="text-white/70">${t("sea.stations.name")}</span>
+            <span>${t(`sea.stations.${Math.min(3, v.stations)}`)}</span>
+          </div>
+          <div
+            class="flex justify-between gap-2 text-sm"
+            data-gw-intel-use=${v.use ?? 0}
+            title=${t(`sea.use.${v.use ?? 0}.hint`)}
+          >
+            <span class="text-white/70">${t("sea.use.name")}</span>
+            <span>${t(`sea.use.${v.use ?? 0}.word`)}</span>
+          </div>`}
+    ${v.stations === 0
+      ? nothing
+      : heard.length === 0
+        ? empty("sea.heard.none")
+        : heard.map(
+            (h) =>
+              html`<p
+                class="text-sm text-white/85"
+                data-gw-intel-heard=${h.kind}
+              >
+                ${t(`sea.heard.${h.kind}`, { country: country(h.tag) })}
+                ${t(
+                  `sea.heard.${h.used ? "used" : "kept"}.${h.kind}`,
+                )}${h.decoded
+                  ? html` <span
+                      class=${MUTED}
+                      title=${t("sea.heard.decoded_hint")}
+                      >· ${t("sea.heard.decoded")}</span
+                    >`
+                  : nothing}
+                <span class=${MUTED}
+                  >· ${ageWord(c.data.chapter, h.chapter)}</span
+                >
+              </p>`,
+          )}
+    ${rows.map((a) => actRow(c, a))}
+  </section>`;
+}
+
 /** The 뒷공작 rows, as on the schedule, and how the last ones went. */
 function ops(c: GwCtx): TemplateResult {
-  const rows = (c.seat.acts ?? []).filter((a) => a.kind === "intrigue");
+  const rows = (c.seat.acts ?? []).filter(
+    (a) => a.kind === "intrigue" && !a.id.startsWith(SEA_ROW),
+  );
   const done = [...(c.seat.world.service?.ops ?? [])].reverse();
   return html`<section class=${BOX} data-gw-intel-ops>
     <div class="flex items-center gap-2">
@@ -470,6 +530,6 @@ export function intelTab(c: GwCtx): TemplateResult {
   return html`<div class="space-y-2.5" data-gw-intel>
     <p class="text-sm text-white/75">${t("intro")}</p>
     ${chief(c)} ${fund(c)} ${fronts(c)} ${countries(c, rivals)}
-    ${codes(c, rivals)} ${nets(c)} ${ops(c)}
+    ${codes(c, rivals)} ${sea(c)} ${nets(c)} ${ops(c)}
   </div>`;
 }

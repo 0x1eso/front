@@ -552,6 +552,8 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
     source: "press",
     variants: [
       v("limit", chose("deu_s_fleet_out", "sortie_with_limit")),
+      // ww180: the British were told the fleet was out (NavalIntel).
+      v("met", world({ is: "naval", can: "met" })),
       v("gbrout", not(atGBR)),
       v("base"),
     ],

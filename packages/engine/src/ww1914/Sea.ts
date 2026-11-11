@@ -8,6 +8,7 @@ import {
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { hasTech, warMonths } from "./Eras";
 import type { GreatWar } from "./GreatWar";
+import { navalStep, uboatSaves, warnedLately } from "./NavalIntel";
 import {
   clampTo,
   everyMonths,
@@ -36,12 +37,15 @@ function blockadeStep(gw: GreatWar): void {
   const gbr = gw.nation("GBR");
   if (gbr === null || !fights(gbr) || !seaOpen(gw)) return;
   const line = s.theatres.find((t) => t.id === "sea")!.line;
-  const nets = hasTech(gbr, "mine_nets") ? 4 : 5;
+  // ww180: told in time when the enemy's fleet puts out, the cruisers keep
+  // their stations: the blockade tightens sooner and does not slip.
+  const warned = warnedLately(gw, "entente");
+  const nets = (hasTech(gbr, "mine_nets") ? 4 : 5) - (warned ? 1 : 0);
   // A fleet that holds the North Sea closes it a little at a time.
   if (line <= 1 && everyMonths(gw, nets)) {
     s.blockade = clampTo(s.blockade + 1, 0, GW_SEA_MAX);
   }
-  if (line >= 2 && everyMonths(gw, 3)) {
+  if (line >= 2 && !warned && everyMonths(gw, 3)) {
     s.blockade = clampTo(s.blockade - 1, 0, GW_SEA_MAX);
   }
   // America is a neutral too, and the list of contraband grows.
@@ -98,6 +102,8 @@ function uboatStep(gw: GreatWar): void {
   let sunk = 0;
   if (live && s.uboat === 1 && everyMonths(gw, 2)) sunk = 1;
   if (live && s.uboat === 2) sunk = hasTech(deu, "ocean_boats") ? 2 : 1;
+  // ww180: a chain that hears a U-boat and steers the ships off it.
+  if (sunk > 0) sunk -= uboatSaves(gw, "DEU");
   let built = everyMonths(gw, 3) ? 1 : 0;
   // ww179: convoys any of the three sail count, not Britain's alone.
   const convoys = (["GBR", "FRA", "USA"] as const).some((t) => {
@@ -158,6 +164,7 @@ export const americaCan = (gw: GreatWar) =>
 /** Chapter step, before the home front: the two scales move. */
 export function seaStep(gw: GreatWar, warScoreCentral: number): void {
   if (gw.s.warChapter === null || !isLongChapter(gw)) return;
+  navalStep(gw);
   blockadeStep(gw);
   aiUboats(gw);
   uboatStep(gw);

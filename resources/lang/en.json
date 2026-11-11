@@ -2992,6 +2992,49 @@
         "we_caught": "We caught {country}'s spy ring and made it public.",
         "we_rolled_up": "On mobilisation day our counter-intelligence took every foreign ring it knew of."
       },
+      "sea": {
+        "heard": {
+          "decoded": "read in their codes too",
+          "decoded_hint": "We also read this in their codes, so it is sure. Acting on a read is what makes them suspect their codes.",
+          "kept": {
+            "sortie": "We only noted it.",
+            "uboat": "We only noted it."
+          },
+          "none": "Nothing heard yet. When an enemy U-boat goes out or his fleet puts to sea, it shows here.",
+          "sortie": "Our stations heard {country}'s fleet put to sea.",
+          "uboat": "Our stations found a U-boat of {country}.",
+          "used": {
+            "sortie": "Our fleet was told and went out to meet it.",
+            "uboat": "Our ships were steered around it."
+          }
+        },
+        "none": "We have no direction-finding stations. Order them with the row below.",
+        "not_at_sea": "Our fleet isn't fighting at sea now. Stations can be ordered once it is.",
+        "stations": {
+          "1": "a few stations, one stretch of coast",
+          "2": "a chain along the coast",
+          "3": "a full chain: we hear the whole sea",
+          "hint": "Each station takes bearings on the enemy's wireless. Where the bearings cross is where the ship is. A new station goes up every few months.",
+          "name": "Stations"
+        },
+        "title": "At sea: direction-finding",
+        "use": {
+          "0": {
+            "hint": "What we hear goes in the files. Nothing at sea changes, and the enemy has no reason to suspect.",
+            "word": "listen only"
+          },
+          "1": {
+            "hint": "When the enemy fleet puts out, our fleet is told and goes out first. Seldom used, so seldom noticed.",
+            "word": "warn the fleet"
+          },
+          "2": {
+            "hint": "Our ships are also steered away from the U-boats we find. Fewer ships are lost, but the more often it happens, the likelier the enemy changes his codes.",
+            "word": "warn the fleet and steer the ships"
+          },
+          "name": "Use"
+        },
+        "why": "Coastal stations take bearings on enemy wireless to find U-boats and fleets that put out. The more we act on it, the fewer ships we lose and the better our fleet is placed, but the enemy may notice and change his codes."
+      },
       "skill": {
         "abroad": {
           "0": "almost none",
@@ -3916,6 +3959,11 @@
       "mob_late_war": "Mobilisation was put off twice: Russia and France moved first, and no plan was ever signed.",
       "mob_waited_out": "Mobilisation was put off twice, and by then the crisis had cooled. The waiting ended it.",
       "nations_stir": "The nationalities stirred at the defeat.",
+      "naval_df_ordered": "The Admiralty is putting up direction-finding stations on the coast.",
+      "naval_sortie_heard": "Our stations heard the enemy fleet put to sea. Nobody was told.",
+      "naval_sortie_warned": "Our stations heard the enemy fleet put to sea, and our fleet went out first.",
+      "naval_uboat_heard": "Our stations found an enemy U-boat. We only noted it.",
+      "naval_uboat_steered": "Our stations found an enemy U-boat, and the ships were steered around it.",
       "neutral_joined": "{country} came into the war.",
       "off_attrition": "The great offensive won no ground and cost both sides dearly.",
       "off_bite": "The great offensive took a piece of the line.",

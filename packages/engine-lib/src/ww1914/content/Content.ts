@@ -15,6 +15,7 @@ import { COMMON_ACT_SCENES, COMMON_ACTS, SPY_SCENES } from "./acts/common";
 import { DEU_ACT_SCENES, DEU_ACTS, DEU_AIMS } from "./acts/deu";
 import { FRA_ACT_SCENES, FRA_ACTS, FRA_AIMS } from "./acts/fra";
 import { GBR_ACT_SCENES, GBR_ACTS, GBR_AIMS } from "./acts/gbr";
+import { NAVAL_ACT_SCENES, NAVAL_ACTS } from "./acts/naval";
 import { RUS_ACT_SCENES, RUS_ACTS, RUS_AIMS } from "./acts/rus";
 import { GW_LADDER_POWERS, GW_LADDER_SCENES } from "./ladder";
 import { GW_PEOPLE } from "./people";
@@ -238,6 +239,7 @@ export const GW_CONTENT: GwContent = {
         ...FRA_STORY_SCENES,
         ...[
           ...COMMON_ACT_SCENES,
+          ...NAVAL_ACT_SCENES,
           ...DEU_ACT_SCENES,
           ...GBR_ACT_SCENES,
           ...AUH_ACT_SCENES,
@@ -317,6 +319,7 @@ export const GW_CONTENT: GwContent = {
   ],
   acts: [
     ...COMMON_ACTS,
+    ...NAVAL_ACTS,
     ...DEU_ACTS,
     ...GBR_ACTS,
     ...AUH_ACTS,
