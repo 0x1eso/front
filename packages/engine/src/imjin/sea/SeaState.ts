@@ -91,6 +91,11 @@ export interface SeaFleet {
   quiet: number;
   /** 1 when it lay still in lee at the end of the last tick (an ambush in waiting). */
   lurk: number;
+  /**
+   * ww177 I5b, the sea AI's lure: the tile where a friendly fleet lies in
+   * wait, which this fleet shows itself to the foe for and then runs to.
+   */
+  lureTo?: number;
 }
 
 export interface SeaBattle {
@@ -144,6 +149,8 @@ export interface SeaState {
   arrivals: SeaArrival[];
   /** Recent events for the client and the AI (the bridge clears them). */
   events: SeaEvent[];
+  /** ww177 I5b: the day Ming's fleet put to sea (absent: not yet). */
+  mingFleet?: number;
 }
 
 export function emptySeaState(): SeaState {
@@ -238,6 +245,22 @@ export function shipIndex(st: SeaState): Map<number, SeaShip> {
   return m;
 }
 
+/** A fleet's fighting weight for the AI's estimates: guns, arquebus and boarding by hull left. */
+export function fleetStrength(st: SeaState, f: SeaFleet): number {
+  const idx = shipIndex(st);
+  let v = 0;
+  for (const id of f.ships) {
+    const s = idx.get(id);
+    if (s === undefined) continue;
+    const k = shipStats(s.kind);
+    v += Math.floor(
+      ((k.guns * 3 + k.arq * 2 + k.boardAtk * 2 + 2) * s.hull) /
+        (k.hull * 1000),
+    );
+  }
+  return v;
+}
+
 export function fleetById(st: SeaState, id: number): SeaFleet | undefined {
   for (const f of st.fleets) if (f.id === id) return f;
   return undefined;
@@ -308,6 +331,7 @@ export function seaHash(st: SeaState): number {
       h = fold(h, v);
     h = fold(h, SEA_ORDERS.indexOf(f.order));
     h = fold(h, f.lurk);
+    if (f.lureTo !== undefined) h = fold(h, f.lureTo + 1);
     for (const id of f.ships) h = fold(h, id);
   }
   for (const b of st.battles)
@@ -327,5 +351,6 @@ export function seaHash(st: SeaState): number {
       h = fold(h, v);
     for (const id of g.raidedBy) h = fold(h, id);
   }
+  if (st.mingFleet !== undefined) h = fold(h, st.mingFleet + 1);
   return h;
 }
