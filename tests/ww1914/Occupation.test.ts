@@ -22,7 +22,7 @@ import {
   occupationStep,
 } from "@openfront/engine/ww1914/Occupation";
 import { pairPeace, warStep } from "@openfront/engine/ww1914/PairWar";
-import { pairTableStep } from "@openfront/engine/ww1914/Table";
+import { pairTableStep, tableView } from "@openfront/engine/ww1914/Table";
 import {
   declareWar,
   leaveWar,
@@ -175,6 +175,10 @@ describe("the bilateral table", () => {
     pairTableStep(gw);
     const t = gw.s.table!;
     expect(t.pair?.winner).toBeNull();
+    // While it sits, its screen counts one month, not the conference's three.
+    t.closed = false;
+    expect(tableView(gw, seatOf("DEU"))?.sessions).toBe(1);
+    t.closed = true;
     // Germany stands on Liège: it has nothing to ask. Belgium asks it back.
     expect(t.claims.every((c) => c.by === "BEL")).toBe(true);
     const back = t.claims.some(

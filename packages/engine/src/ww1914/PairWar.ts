@@ -65,9 +65,11 @@ import {
 const P_AI_WAR = idHash("gw_ai_war");
 const P_AI_SEPARATE = idHash("gw_ai_separate");
 /** Odds in 100, each month the state allows it, of an AI separate peace. */
-const SEPARATE_ODDS = 15;
+const SEPARATE_ODDS = 10;
 /** A separate peace takes a loser at least this weary (peaceWill). */
 const SEPARATE_WILL = 75;
+/** Separate peaces inside the coalitions' war a game holds at most. */
+const SEPARATE_MAX = 2;
 
 /** Wars outside the coalitions the world bears at once (design B7). */
 export const GW_PAIR_WARS_MAX = 3;
@@ -357,13 +359,17 @@ function aiPeaceStep(gw: GreatWar): void {
  * seat. Read off the state: the loser has its capital in the winner's
  * hands or the war's score past PAIR_WON against it, its morale is low, it
  * is weary past a coalition member's bar (peaceWill, its character in it)
- * and isn't hardline; a hardline winner wants the capital first. At most
- * one a month, none while another table waits, and a seeded roll keeps it
- * rare.
+ * and isn't hardline; a hardline winner wants the capital first. A great
+ * power signs only with its capital lost. Rare: one a month, none while
+ * another table waits, one per loser, SEPARATE_MAX a game, a seeded roll.
  */
 function aiSeparatePeace(gw: GreatWar): void {
   const s = gw.s;
   if ((s.pairTables ?? []).some((r) => r.signed === null)) return;
+  const signed = s.wars.filter(
+    (w) => w.ended !== null && w.how === "offer" && !outsideCoalitions(gw, w),
+  );
+  if (signed.length >= SEPARATE_MAX) return;
   for (const w of s.wars) {
     if (w.ended !== null || outsideCoalitions(gw, w)) continue;
     if (ruledBySeat(gw, w.a) || ruledBySeat(gw, w.b)) continue;
@@ -373,6 +379,8 @@ function aiSeparatePeace(gw: GreatWar): void {
     ] as const) {
       const n = gw.nation(loser)!;
       const held = capitalHolder(gw, loser) === winner;
+      if (!held && GW_GREAT.includes(loser)) continue;
+      if (signed.some((x) => x.offeredBy === loser)) continue;
       if (!held && pairScore(gw, loser, winner) > -PAIR_WON) continue;
       if (n.ai === "hardline" || n.gauges.morale > 2) continue;
       if (peaceWill(gw, loser, winner) < SEPARATE_WILL) continue;

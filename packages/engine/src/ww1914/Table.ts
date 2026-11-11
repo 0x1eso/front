@@ -1117,7 +1117,8 @@ export function tableView(gw: GreatWar, seat: GwSeatState): GwTableView | null {
   const idle = t.done || t.closed || t.round >= GW_TABLE_ROUNDS;
   return {
     session: t.session,
-    sessions: GW_TABLE_SESSIONS,
+    // A bilateral table sits one month.
+    sessions: t.pair === undefined ? GW_TABLE_SESSIONS : 1,
     closed: t.closed,
     done: t.done,
     role: roleOf(gw, seat),
