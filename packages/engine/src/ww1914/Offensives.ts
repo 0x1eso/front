@@ -63,6 +63,7 @@ const P_OFFENSIVE = idHash("gw_offensive");
 const P_GAP = idHash("gw_offensive_gap");
 const P_PAPERS = idHash("gw_offensive_papers");
 const P_STRIKE = idHash("gw_offensive_strike");
+const P_AI_PREP = idHash("gw_offensive_ai");
 
 /** The launch roll, percent: wider than a chapter's 85..115. */
 const ROLL_LOW = 70;
@@ -122,9 +123,14 @@ const AI_REST = {
   principled: 5,
   cautious: 7,
 } as const;
-/** Odds an AI staff wants to prepare on; a bold one less. */
+/**
+ * Odds an AI staff wants to prepare on, counting what three months of
+ * preparation and its method would add on the day; a bold one less.
+ */
 const AI_ODDS = 90;
-const AI_ODDS_BOLD = 70;
+const AI_ODDS_BOLD = 75;
+/** Percent chance a rested staff that could prepare does so this chapter. */
+const AI_PREP_PCT = 60;
 /** Foe's strain an AI staff believes it can break. */
 const AI_STRAIN = 40;
 
@@ -860,6 +866,8 @@ function aiCounter(gw: GreatWar, o: GwOffensive, n: GwNationState): void {
 // ---- AI staffs (they replace the old CAMPAIGN_REST) ----
 
 const BOLD_AI: readonly GwNationState["ai"][] = ["hardline", "opportunist"];
+/** Armies that hold what is left of their country: no great offensives. */
+const NO_GREAT: readonly GwTag[] = ["BEL", "MNE"];
 
 /**
  * An AI staff's effort while it prepares or fights a great offensive, or as
@@ -897,7 +905,9 @@ export function aiOffensive(
     o.press = s.chapter + 1;
     return plan(o.theatre, true);
   }
-  if (!offensiveFront(gw, n.tag, main)) return null;
+  if (NO_GREAT.includes(n.tag) || !offensiveFront(gw, n.tag, main)) {
+    return null;
+  }
   if (s.chapter - n.spent < AI_REST[n.ai]) return null;
   if (n.gauges.shells < 2 || n.gauges.morale < 2 || n.manpower < 12) {
     return null;
@@ -906,12 +916,16 @@ export function aiOffensive(
   const foe = membersOf(gw, main, other(end))[0];
   const believed =
     foe === undefined ? null : believedStrain(gw, n.tag, main, foe);
-  const floor = BOLD_AI.includes(n.ai) ? AI_ODDS_BOLD : AI_ODDS;
-  if ((believed ?? 0) < AI_STRAIN && pressOdds(gw, main, end) < floor) {
-    return null;
-  }
   const methods = methodsFor(gw, n.tag, main).filter((m) => m.open);
   const method = methods[methods.length - 1].method;
+  const floor = BOLD_AI.includes(n.ai) ? AI_ODDS_BOLD : AI_ODDS;
+  const onTheDay =
+    pressOdds(gw, main, end) +
+    Math.floor((WEIGHT_MAX * WEIGHT_WORTH) / 100) +
+    METHOD[method];
+  if ((believed ?? 0) < AI_STRAIN && onTheDay < floor) return null;
+  const roll = wwRoll(s.seed, P_AI_PREP, s.chapter, s.nations.indexOf(n)) % 100;
+  if (roll >= AI_PREP_PCT) return null;
   const months = n.ai === "hardline" ? 1 : n.ai === "cautious" ? 3 : 1;
   const feints = feintFronts(gw, n.tag, main);
   const feint =
