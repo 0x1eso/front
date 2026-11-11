@@ -376,7 +376,8 @@ export type GwWorldCond =
   /**
    * ww173: a front end broke from strain (Stalemate.ts): the seat's own end,
    * or with `foe` the end facing it; on one of `theatre` (absent: any).
-   * Months count from the collapse.
+   * Months count from the chapter after the collapse (the first that can show
+   * it), so `max: 0` holds there on every calendar.
    */
   | ({ is: "collapse"; theatre?: GwTheatre[]; foe?: boolean } & Range)
   // ---- The great offensive (ww173 phase B) ----

@@ -566,7 +566,9 @@ export function collapseHolds(
     const end = sideIn(gw, x.theatre, seat.tag) ?? gw.nation(seat.tag)?.side;
     if (end === null || end === undefined) return false;
     if ((c.foe === true ? other(end) : end) !== x.side) return false;
-    const m = monthsFrom(gw, x.chapter);
+    // From the chapter after the break, the first that can show it: a card
+    // or wire laid for then reads "0 months" on any calendar.
+    const m = Math.max(0, monthsFrom(gw, x.chapter + 1));
     return m >= (c.min ?? 0) && m <= (c.max ?? Infinity);
   });
 }

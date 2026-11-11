@@ -136,6 +136,12 @@ describe("collapse", () => {
     expect(collapseHolds(gw, rusSeat, own)).toBe(true);
     expect(collapseHolds(gw, deuSeat, own)).toBe(false);
     expect(collapseHolds(gw, deuSeat, { ...own, foe: true })).toBe(true);
+    // The card comes next chapter, months later on a long calendar: still now.
+    gw.s.chapter++;
+    expect(collapseHolds(gw, rusSeat, own)).toBe(true);
+    gw.s.chapter += 4;
+    expect(collapseHolds(gw, rusSeat, own)).toBe(false);
+    gw.s.chapter -= 5;
   });
 
   test("small moves bite one place at a time, within the budget", async () => {
