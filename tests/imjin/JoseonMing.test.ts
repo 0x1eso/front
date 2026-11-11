@@ -12,6 +12,8 @@ import {
   flightResult,
   LEADER_JOINED,
   LEADER_RAIDING,
+  MING_RELIEF_DIVISIONS,
+  MING_VANGUARD_DIVISIONS,
   mingDailyDelta,
   RIGHTEOUS_LEADERS,
   riseChancePct,
@@ -199,12 +201,15 @@ describe("Imjin: Joseon and Ming", () => {
     expect(ww.isAtWar(min, jpn)).toBe(true);
     expect(ww.sameFaction(min, jos)).toBe(true);
     expect(ww.politics.gflags.has(IMJIN_GFLAGS.mingIn)).toBe(true);
-    expect(divisionsOf(ww, min)).toBe(before + 2);
+    // ww177 P7b (doctrine §7.1): Zu Chengxun's 1 vanguard, then Li Rusong's 8.
+    expect(divisionsOf(ww, min)).toBe(before + MING_VANGUARD_DIVISIONS);
     jm.meter = 9990;
     jm.day(11, g.ticks());
     expect(jm.mingStage).toBe(2);
     expect(ww.politics.gflags.has(IMJIN_GFLAGS.mingRelief)).toBe(true);
-    expect(divisionsOf(ww, min)).toBe(before + 8);
+    expect(divisionsOf(ww, min)).toBe(
+      before + MING_VANGUARD_DIVISIONS + MING_RELIEF_DIVISIONS,
+    );
     // An envoy raises the meter and eases Ming's suspicion.
     jm.meter = 3000;
     jm.suspicion = 1000;
