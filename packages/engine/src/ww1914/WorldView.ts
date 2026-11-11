@@ -29,6 +29,7 @@ import { craftView } from "./Craft";
 import { dossierView } from "./Dossier";
 import { eraOf } from "./Eras";
 import { ownFronts, proposalsFor } from "./Fronts";
+import { prepView } from "./Offensives";
 import type { GreatWar } from "./GreatWar";
 import { houseView } from "./House";
 import { lawsAhead, lawViews } from "./Laws";
@@ -107,6 +108,8 @@ function frontView(
     up: GW_FRONT_UP[t.id],
     trench: t.trench,
     commander: namedCommander(gw, seat, t),
+    // Only our own great offensive: another's never reaches this view.
+    prep: prepView(gw, seat.tag, t.id),
     last:
       b === undefined
         ? null

@@ -8,6 +8,7 @@ import {
   GW_CIPHERS,
   GW_CLAUSE_KINDS,
   GW_GIVE_CLAUSES,
+  GW_OFF_METHODS,
   GW_OFFICES,
   GW_POSTURES,
   GW_RESEARCH,
@@ -79,6 +80,13 @@ export const GwOrderSchema = z.discriminatedUnion("kind", [
     scale: z.enum(GW_SCALES),
     allyShare: zb.uint({ max: 3 }),
     research: z.enum(GW_RESEARCH),
+    /** ww173: the paper by its id, for the great offensive's papers. */
+    paper: Id.optional(),
+    /** The great offensive's method, months (1 or 3), feint front, quiet. */
+    method: z.enum(GW_OFF_METHODS).optional(),
+    months: zb.uint({ max: 3 }).optional(),
+    feint: z.enum(GW_THEATRES).optional(),
+    quiet: z.boolean().optional(),
   }),
   /**
    * The year's budget goes to whoever must pass it. `force`: past them, with

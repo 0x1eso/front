@@ -12,6 +12,7 @@ import type {
   GwMemoir,
   GwNews,
   GwOffice,
+  GwOffMethod,
   GwPlan,
   GwResult,
   GwSecret,
@@ -46,6 +47,29 @@ export interface GwProposal {
   tell: readonly string[];
   /** Painted land still to take on this paper's front. */
   claimed?: readonly GwPlace[];
+  /**
+   * ww173: the great offensive's paper. Each method with whether it is open
+   * (text gw.plan_why.<why> if not), and the other fronts a feint can be on.
+   */
+  offensive?: {
+    methods: readonly {
+      method: GwOffMethod;
+      open: boolean;
+      why: string | null;
+    }[];
+    feints: readonly GwTheatre[];
+  };
+}
+
+/** ww173: our own great offensive on a front, in words; never another's. */
+export interface GwFrontPrepView {
+  method: GwOffMethod;
+  /** 0 while it is prepared, 1..4 its rounds. */
+  round: number;
+  /** The month of preparation it is in, from 1. */
+  month: number;
+  /** Prepared enough: it goes in as this chapter closes. */
+  ready: boolean;
 }
 
 export interface GwGaugeView {
@@ -69,6 +93,8 @@ export interface GwFrontView {
   up: GwSide;
   trench: number;
   commander: string | null;
+  /** ww173: our own great offensive here, if any. */
+  prep?: GwFrontPrepView | null;
   last: {
     result: GwResult;
     by: GwSide | null;
