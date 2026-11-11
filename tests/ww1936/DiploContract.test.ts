@@ -432,11 +432,12 @@ describe("diplomacy L0: the digests that never move", () => {
     }
   });
 
-  // Re-pinned with ww179's named project lines, factory terms and sea
-  // research: the Great War's own rules moved it, not the diplomacy.
+  // Re-pinned with the ww179 merge (secret war in peace, heat, project
+  // effects, occupation of every place): the Great War's own rules moved it,
+  // not the diplomacy.
   test("the Great War pin is unchanged", () => {
     expect(read("ww1914/GreatWarSnapshot.test.ts")).toContain(
-      'const GW_DIGEST = "1f1a8fbd9436a245";',
+      'const GW_DIGEST = "0c7f8b497fe5f9f8";',
     );
   });
 });
