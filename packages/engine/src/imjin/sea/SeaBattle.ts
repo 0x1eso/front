@@ -24,6 +24,7 @@ import {
   CurrentState,
   degToAngle,
   distMt,
+  engagedLoss,
   extinguishPm,
   FIRE_SHIP_HIT_PM,
   fireShipWindOk,
@@ -59,10 +60,12 @@ import {
   P_SEA_GUN,
   RALLY_NERVE,
   RALLY_QUIET_TICKS,
+  shipBreaks,
   shipStats,
   SHOAL_STUCK_TICKS,
   SIGHT_OPEN_MT,
   sightMt,
+  steadied,
   tacticalSpeed,
   turnToward,
   VOLLEY_TICKS,
@@ -72,7 +75,7 @@ import {
 } from "@openfront/engine-lib/imjin/SeaRules";
 import { wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { flagsAt, SeaCtx, tileAt, tileCentre } from "./SeaCtx";
-import { slotPoint } from "./SeaFleets";
+import { slotPoint, splitFleet } from "./SeaFleets";
 import {
   fullHull,
   SeaBattle,
@@ -783,7 +786,12 @@ function volley(
     if (s.hull > 0) continue;
     const f = L.fleets.get(s.fleet);
     if (f && f.ships.includes(s.id)) {
-      if (f.ships[0] === s.id) flagSunk.add(f.id);
+      // The admiral goes down with his flagship: the shock falls once, not
+      // again on each ship that takes slot 0 after it (ww177 merge 2).
+      if (f.ships[0] === s.id && f.admiral.alive) {
+        flagSunk.add(f.id);
+        f.admiral.alive = 0;
+      }
       sinkGain(s.owner);
       st.events.push({ tick, kind: "sunk", a: s.id, b: f.id });
     }
@@ -805,21 +813,32 @@ function volley(
     }
   }
 
-  // Morale.
+  // Morale (ww177 merge 2: losses by the share engaged, the flagship's
+  // steadying, flight by ship until the fleet breaks).
   for (const f of members) {
     const mine = all.filter((s) => s.fleet === f.id && s.hull > 0);
     const foes = all.filter((s) => s.hull > 0 && ctx.hostile(f.owner, s.owner));
-    let loss = hullLossMorale(lost.get(f.id) ?? 0, fullOf.get(f.id) ?? 0);
-    loss += MORALE_FIRE * (fires.get(f.id) ?? 0);
-    loss += MORALE_TURTLE * (rams.get(f.id) ?? 0);
+    let fight = hullLossMorale(lost.get(f.id) ?? 0, fullOf.get(f.id) ?? 0);
+    fight += MORALE_FIRE * (fires.get(f.id) ?? 0);
+    fight += MORALE_TURTLE * (rams.get(f.id) ?? 0);
+    if (foes.length > mine.length) fight += MORALE_OUTNUMBERED;
+    const engaged = mine.filter((s) =>
+      grid
+        .near(s, GUN_RANGE_MT)
+        .some((t) => t.hull > 0 && ctx.hostile(f.owner, t.owner)),
+    ).length;
+    let loss = engagedLoss(fight, engaged, mine.length);
     if (ambushed.has(f.id)) loss += MORALE_AMBUSH;
-    if (foes.length > mine.length) loss += MORALE_OUTNUMBERED;
     if (flagSunk.has(f.id)) loss += MORALE_FLAGSHIP_SUNK;
     if (admiralDead.has(f.id)) loss += MORALE_ADMIRAL_DEAD;
     const nerve = f.admiral.alive ? f.admiral.nerve : 0;
     const anchor = mine.some((s) => shipStats(s.kind).anchor);
+    const holds =
+      f.admiral.alive === 1 && mine.some((s) => s.id === f.ships[0]);
     const m =
-      f.morale - moraleLoss(loss, nerve, anchor) + (gains.get(f.id) ?? 0);
+      f.morale -
+      steadied(moraleLoss(loss, nerve, anchor), holds) +
+      (gains.get(f.id) ?? 0);
     f.morale = Math.max(0, Math.min(MORALE_MAX, m));
     f.ambush = 0;
     f.quiet = hurt.has(f.id) ? 0 : f.quiet + VOLLEY_TICKS;
@@ -836,6 +855,27 @@ function volley(
       f.fleeing = 0;
       f.morale = Math.max(f.morale, MORALE_RALLY);
       st.events.push({ tick, kind: "rally", a: f.id, b: 0 });
+    } else if (!f.fleeing) {
+      // Before the fleet breaks, its battered ships leave one by one.
+      const going = mine
+        .filter(
+          (s) =>
+            s.id !== f.ships[0] &&
+            shipBreaks(
+              Math.floor((s.hull * 1000) / fullHull(s.kind)),
+              Math.floor((s.crew * 1000) / Math.max(1, shipStats(s.kind).crew)),
+              f.morale,
+            ),
+        )
+        .map((s) => s.id);
+      const nf = going.length > 0 ? splitFleet(st, f.id, going) : undefined;
+      if (nf) {
+        nf.fleeing = 1;
+        nf.admiral.alive = 0;
+        nf.fleeTile = ctx.nearestPort(nf.owner, nf.x, nf.y);
+        nf.quiet = 0;
+        st.events.push({ tick, kind: "flee", a: nf.id, b: f.id });
+      }
     }
   }
 }

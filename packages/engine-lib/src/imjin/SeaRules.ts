@@ -637,6 +637,46 @@ export function moraleLoss(
   return v;
 }
 
+/**
+ * ww177 merge 2 (design §6.2: a sea battle lasts 30-120 s): a volley's
+ * fighting losses (hull, fire, ram, outnumbered) fall on the fleet by the
+ * share of its ships engaged, within gun range of a foe (at least one).
+ * Shocks (ambush, flagship sunk, admiral dead) fall whole.
+ */
+export function engagedLoss(
+  loss: number,
+  engaged: number,
+  ships: number,
+): number {
+  if (ships <= 0) return loss;
+  const e = Math.max(1, Math.min(ships, engaged));
+  return Math.floor((loss * e) / ships);
+}
+
+/** The flagship's steadying: while it floats with its admiral, losses ×3/4. */
+export const FLAGSHIP_STEADY_PCT = 75;
+
+export function steadied(loss: number, flagshipHolds: boolean): number {
+  return flagshipHolds ? Math.floor((loss * FLAGSHIP_STEADY_PCT) / 100) : loss;
+}
+
+/**
+ * Flight by ship until the fleet breaks (below MORALE_FLEE): a ship other
+ * than the flagship leaves alone once its hull or crew is below 70% of full,
+ * 85% once its fleet wavers.
+ */
+export const SHIP_BREAK_PM = 700;
+export const SHIP_BREAK_WAVER_PM = 850;
+
+export function shipBreaks(
+  hullPm: number,
+  crewPm: number,
+  fleetMorale: number,
+): boolean {
+  const bar = fleetMorale < MORALE_WAVER ? SHIP_BREAK_WAVER_PM : SHIP_BREAK_PM;
+  return hullPm < bar || crewPm < bar;
+}
+
 /** Morale lost for a volley's hull losses: 6 a 1% of the fleet's full hull. */
 export function hullLossMorale(lostMt: number, fullMt: number): number {
   if (fullMt <= 0) return 0;

@@ -4,11 +4,14 @@ import {
   angleOf,
   bears,
   currentState,
+  engagedLoss,
   formationSlot,
   hitPct,
   icos,
   isin,
+  shipBreaks,
   shipStats,
+  steadied,
   windAt,
 } from "@openfront/engine-lib/imjin/SeaRules";
 import type { SeaCtx } from "@openfront/engine/imjin/sea/SeaCtx";
@@ -214,6 +217,19 @@ describe("SeaRules", () => {
   });
 });
 
+describe("SeaRules morale (ww177 merge 2)", () => {
+  it("losses by the share engaged, the flagship steadies, ships break alone", () => {
+    expect(engagedLoss(80, 2, 8)).toBe(20);
+    expect(engagedLoss(80, 0, 8)).toBe(10);
+    expect(engagedLoss(80, 8, 8)).toBe(80);
+    expect(steadied(100, true)).toBe(75);
+    expect(steadied(100, false)).toBe(100);
+    expect(shipBreaks(650, 1000, 900)).toBe(true);
+    expect(shipBreaks(750, 1000, 900)).toBe(false);
+    expect(shipBreaks(750, 1000, 200)).toBe(true);
+  });
+});
+
 describe("SeaDuel", () => {
   it("two fleets fight to the same end on the same seed", () => {
     const a = duel(1592);
@@ -223,13 +239,13 @@ describe("SeaDuel", () => {
     expect(a.ended).toBeGreaterThan(a.opened);
     expect(a).toMatchInlineSnapshot(`
       {
-        "ended": 246,
-        "fled": 1,
-        "hash": 2608373883,
-        "japan": 5,
+        "ended": 218,
+        "fled": 8,
+        "hash": 1831487547,
+        "japan": 3,
         "joseon": 8,
         "opened": 1,
-        "sunk": 6,
+        "sunk": 8,
         "taken": 0,
       }
     `);

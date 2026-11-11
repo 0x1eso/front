@@ -9,6 +9,7 @@ import {
   formationSlot,
   MORALE_MAX,
   MORALE_RALLY,
+  MT,
   repairPmPerDay,
   rotate,
   SEA_TICKS_PER_SECOND,
@@ -196,6 +197,7 @@ export function strategicStep(
       if (f.fleeing) {
         f.fleeing = 0;
         f.morale = Math.max(f.morale, MORALE_RALLY);
+        rejoin(st, f, idx);
       }
     }
   }
@@ -236,6 +238,31 @@ export function strategicStep(
     s.tx = s.x;
     s.ty = s.y;
   }
+}
+
+/**
+ * ww177 m2: ships that fled one by one (no admiral aboard) join a friendly
+ * fleet lying within 3 tiles of the port they reach.
+ */
+function rejoin(st: SeaState, f: SeaFleet, idx: Map<number, SeaShip>): void {
+  if (f.admiral.alive) return;
+  const g = st.fleets.find(
+    (o) =>
+      o !== f &&
+      o.owner === f.owner &&
+      o.battle === 0 &&
+      !o.fleeing &&
+      o.ships.length > 0 &&
+      distMt(o.x - f.x, o.y - f.y) <= 3 * MT,
+  );
+  if (!g) return;
+  for (const id of f.ships) {
+    const s = idx.get(id);
+    if (s) s.fleet = g.id;
+  }
+  g.ships.push(...f.ships);
+  f.ships = [];
+  st.fleets = st.fleets.filter((o) => o !== f);
 }
 
 /** An escort sails with the first group of its route. */
