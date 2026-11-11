@@ -1,0 +1,295 @@
+{
+  "note": "The sea flag byte (scenario.json imjin.seaFlags): coastal is every water tile within 3 tiles of land; channel and current are the carved channels (the narrowest water between the island town and other land near the point, cut to 3 tiles across; dir is the axis heading); lee is water within 2 tiles of a small island (under 2,000 tiles) plus the lee polygons; shoal is water inside a shoal polygon within 8 tiles of land. Polygons are [lon, lat] rings.",
+  "channels": [
+    {
+      "key": "Myeongnyang",
+      "nameKo": "명량",
+      "current": 1,
+      "island": "Jindo",
+      "lon": 126.31,
+      "lat": 34.565
+    },
+    {
+      "key": "Noryang",
+      "nameKo": "노량",
+      "current": 2,
+      "island": "Namhae",
+      "lon": 127.87,
+      "lat": 34.94
+    },
+    {
+      "key": "Gyeonnaeryang",
+      "nameKo": "견내량",
+      "current": 3,
+      "island": "Geoje",
+      "lon": 128.47,
+      "lat": 34.89
+    }
+  ],
+  "shoals": [
+    {
+      "note": "Gyeonggi Bay tidal flats",
+      "polygon": [
+        [
+          126.1,
+          36.9
+        ],
+        [
+          126.95,
+          36.9
+        ],
+        [
+          126.95,
+          37.85
+        ],
+        [
+          126.1,
+          37.85
+        ]
+      ]
+    },
+    {
+      "note": "Chungcheong and Jeolla west coast",
+      "polygon": [
+        [
+          126.1,
+          35.0
+        ],
+        [
+          126.85,
+          35.0
+        ],
+        [
+          126.85,
+          36.9
+        ],
+        [
+          126.1,
+          36.9
+        ]
+      ]
+    },
+    {
+      "note": "Southwest islands",
+      "polygon": [
+        [
+          125.8,
+          34.25
+        ],
+        [
+          126.65,
+          34.25
+        ],
+        [
+          126.65,
+          35.0
+        ],
+        [
+          125.8,
+          35.0
+        ]
+      ]
+    },
+    {
+      "note": "Hwanghae south coast",
+      "polygon": [
+        [
+          125.7,
+          37.65
+        ],
+        [
+          126.5,
+          37.65
+        ],
+        [
+          126.5,
+          38.05
+        ],
+        [
+          125.7,
+          38.05
+        ]
+      ]
+    },
+    {
+      "note": "Korea Bay north shore",
+      "polygon": [
+        [
+          124.2,
+          39.45
+        ],
+        [
+          125.5,
+          39.45
+        ],
+        [
+          125.5,
+          40.0
+        ],
+        [
+          124.2,
+          40.0
+        ]
+      ]
+    },
+    {
+      "note": "Yangtze mouth",
+      "polygon": [
+        [
+          121.2,
+          30.9
+        ],
+        [
+          122.3,
+          30.9
+        ],
+        [
+          122.3,
+          31.9
+        ],
+        [
+          121.2,
+          31.9
+        ]
+      ]
+    },
+    {
+      "note": "Jiangsu coast",
+      "polygon": [
+        [
+          119.4,
+          32.0
+        ],
+        [
+          121.2,
+          32.0
+        ],
+        [
+          121.2,
+          34.6
+        ],
+        [
+          119.4,
+          34.6
+        ]
+      ]
+    }
+  ],
+  "lee": [
+    {
+      "note": "Hansan bay",
+      "polygon": [
+        [
+          128.38,
+          34.72
+        ],
+        [
+          128.56,
+          34.72
+        ],
+        [
+          128.56,
+          34.88
+        ],
+        [
+          128.38,
+          34.88
+        ]
+      ]
+    },
+    {
+      "note": "Yeosu islands",
+      "polygon": [
+        [
+          127.6,
+          34.55
+        ],
+        [
+          127.9,
+          34.55
+        ],
+        [
+          127.9,
+          34.75
+        ],
+        [
+          127.6,
+          34.75
+        ]
+      ]
+    },
+    {
+      "note": "Wando and Jindo sounds",
+      "polygon": [
+        [
+          126.4,
+          34.2
+        ],
+        [
+          126.95,
+          34.2
+        ],
+        [
+          126.95,
+          34.45
+        ],
+        [
+          126.4,
+          34.45
+        ]
+      ]
+    },
+    {
+      "note": "Tsushima Aso bay",
+      "polygon": [
+        [
+          129.2,
+          34.25
+        ],
+        [
+          129.42,
+          34.25
+        ],
+        [
+          129.42,
+          34.45
+        ],
+        [
+          129.2,
+          34.45
+        ]
+      ]
+    },
+    {
+      "note": "Goto sounds",
+      "polygon": [
+        [
+          128.6,
+          32.5
+        ],
+        [
+          129.2,
+          32.5
+        ],
+        [
+          129.2,
+          33.2
+        ],
+        [
+          128.6,
+          33.2
+        ]
+      ]
+    }
+  ],
+  "islands": [
+    {
+      "key": "Hansan",
+      "nameKo": "한산도",
+      "owner": "JOS",
+      "lon": 128.49,
+      "lat": 34.775,
+      "stamp": 25
+    }
+  ]
+}

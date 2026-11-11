@@ -1,0 +1,13 @@
+{
+  "note": "Rivers Natural Earth 10m lacks on this map, as rough lines, and which rivers are big (decision 8: a big river is crossed only at a ford, by river boats or engineers). Every river line is a wall for the region seeds, so region borders follow the rivers.",
+  "big": ["Imjin", "Han", "Namhan", "Nakdong", "Daedong", "Yalu", "Liao", "Yangtze", "Huang"],
+  "lines": [
+    { "name": "Imjin", "line": [[127.55, 38.95], [127.3, 38.6], [127.12, 38.3], [126.98, 38.08], [126.85, 37.95], [126.72, 37.84], [126.66, 37.77]] },
+    { "name": "Daedong", "line": [[126.85, 39.85], [126.45, 39.45], [126.1, 39.2], [125.82, 39.06], [125.68, 38.97], [125.45, 38.83], [125.25, 38.72]] },
+    { "name": "Geum", "line": [[127.45, 35.85], [127.62, 36.15], [127.56, 36.42], [127.3, 36.5], [127.12, 36.47], [126.92, 36.27], [126.76, 36.06], [126.63, 36.0]] },
+    { "name": "Chongchon", "line": [[126.65, 40.25], [126.2, 39.95], [125.86, 39.7], [125.66, 39.6], [125.45, 39.55]] },
+    { "name": "Seomjin", "line": [[127.3, 35.65], [127.36, 35.4], [127.46, 35.2], [127.65, 35.09], [127.76, 34.97]] },
+    { "name": "Yeongsan", "line": [[126.9, 35.3], [126.8, 35.1], [126.69, 34.99], [126.5, 34.82], [126.4, 34.78]] },
+    { "name": "Bukhan", "line": [[127.8, 38.3], [127.73, 37.92], [127.5, 37.75], [127.32, 37.55]] }
+  ]
+}

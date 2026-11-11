@@ -304,6 +304,27 @@ type srcRegion struct {
 	Hydro     int      `json:"hydro,omitempty"`
 	Landmarks []string `json:"landmarks,omitempty"`
 	Dam       *outDam  `json:"dam,omitempty"`
+	// The Imjin map (cmd/ww1936build imjin.go): the region's class.
+	ImjinTerrain string `json:"imjinTerrain,omitempty"`
+}
+
+// imjinBlock is the Imjin map's imjin block (cmd/ww1936build imjin.go
+// ImjinSrc; engine-api ScenarioTypes ImjinMapSchema), copied as it is once
+// its sea flags are checked against the final tiles.
+type imjinBlock struct {
+	Fords    [][2]int     `json:"fords"`
+	SeaFlags []int        `json:"seaFlags"`
+	Currents []imjinLabel `json:"currents"`
+	Labels   []imjinLabel `json:"labels"`
+}
+
+type imjinLabel struct {
+	Kind   string `json:"kind"`
+	Dir    int    `json:"dir,omitempty"`
+	Name   string `json:"name"`
+	NameKo string `json:"nameKo"`
+	X      int    `json:"x"`
+	Y      int    `json:"y"`
 }
 
 // outDam is a region's dam (P6 spec §16.4): its id (engine-api DAMS) and the
@@ -405,6 +426,10 @@ type scenarioSrc struct {
 	Strategic     []strategicRegion `json:"strategic,omitempty"`
 	Rows          *rowTable         `json:"rows,omitempty"`
 	Majors        []string          `json:"majors,omitempty"`
+	// The Imjin map only.
+	KmPerTile float64     `json:"kmPerTile,omitempty"`
+	WrapX     *bool       `json:"wrapX,omitempty"`
+	Imjin     *imjinBlock `json:"imjin,omitempty"`
 }
 
 // scenario.json (engine-api ScenarioDataSchema).
@@ -419,6 +444,8 @@ type outRegion struct {
 	Terrain string `json:"terrain"`
 	Place   string `json:"place,omitempty"`
 	GwOwner string `json:"gwOwner,omitempty"`
+	// The Imjin map: the region's class (engine-lib imjin/Terrain.ts).
+	ImjinTerrain string `json:"imjinTerrain,omitempty"`
 	Economy
 	outLand
 	*outV4
@@ -496,6 +523,10 @@ type scenarioOut struct {
 	HistoricalOob bool              `json:"historicalOob,omitempty"`
 	Strategic     []strategicRegion `json:"strategic,omitempty"`
 	Rows          *rowTable         `json:"rows,omitempty"`
+	// The Imjin map only: km a tile, no wrap at the edges, the imjin block.
+	KmPerTile float64     `json:"kmPerTile,omitempty"`
+	WrapX     *bool       `json:"wrapX,omitempty"`
+	Imjin     *imjinBlock `json:"imjin,omitempty"`
 }
 
 // portMinVP: a coastal region with this many points or more has a port
@@ -605,7 +636,13 @@ func buildScenario(src scenarioSrc, ids []uint16, packed []byte, w, h int) (scen
 		}
 	}
 	centers := regionCenters(ids, w, h)
-	out := scenarioOut{Version: scenarioVersion, Width: w, Height: h, Countries: src.Countries}
+	out := scenarioOut{Version: scenarioVersion, Width: w, Height: h, Countries: src.Countries, KmPerTile: src.KmPerTile, WrapX: src.WrapX}
+	if src.Imjin != nil {
+		if err := checkSeaFlags(src.Imjin.SeaFlags, ids); err != nil {
+			return out, nil, err
+		}
+		out.Imjin = src.Imjin
+	}
 	var notes []string
 	known := map[int]bool{}
 	regionCount := map[string]int{}
@@ -657,7 +694,7 @@ func buildScenario(src scenarioSrc, ids []uint16, packed []byte, w, h int) (scen
 				class = k
 			}
 		}
-		o := outRegion{ID: r.ID, Name: r.Name, NameKo: r.NameKo, Owner: r.Owner, VP: r.VP, VPTile: vpTile, Tiles: tiles[r.ID], Terrain: terrainClasses[class], Place: r.Place, GwOwner: r.GwOwner, Economy: r.Economy}
+		o := outRegion{ID: r.ID, Name: r.Name, NameKo: r.NameKo, Owner: r.Owner, VP: r.VP, VPTile: vpTile, Tiles: tiles[r.ID], Terrain: terrainClasses[class], Place: r.Place, GwOwner: r.GwOwner, ImjinTerrain: r.ImjinTerrain, Economy: r.Economy}
 		o.Coastal = coastal[r.ID]
 		o.outLand = outLand{Land: r.Land, Center: vpTile, LatC: r.LatC, WCell: r.WCell, Rail: r.Rail, Fort: r.Fort, Island: r.Island}
 		if o.Land == "" {
@@ -1036,7 +1073,7 @@ func buildV4(src scenarioSrc, out *scenarioOut, ids []uint16, w, h int) error {
 		if s.CoastalFort != nil {
 			v.CoastalFort = *s.CoastalFort
 		}
-		if noStrikeRegions[r.ID] {
+		if noStrikeRegions[r.ID] && src.Imjin == nil {
 			if v.NavalBase > 0 && s.NavalBase != nil || v.AirBase > 0 && s.AirBase != nil || v.CoastalFort > 0 {
 				return fmt.Errorf("region %d %q is a no-strike region (Korea, Taiwan): no hand base or coastal fort", r.ID, r.Name)
 			}
@@ -1306,4 +1343,31 @@ func writeScenarioFiles(name, mapDir string, packed []byte, w, h int) ([]string,
 		return nil, nil, err
 	}
 	return []string{scenarioPath}, notes, nil
+}
+
+// checkSeaFlags checks the Imjin map's sea flag runs: they cover every tile,
+// and a flag sits only on a sea-zone tile of the final map.
+func checkSeaFlags(runs []int, ids []uint16) error {
+	if len(runs)%2 != 0 {
+		return fmt.Errorf("imjin seaFlags: an odd number of values")
+	}
+	at := 0
+	for k := 0; k < len(runs); k += 2 {
+		count, flag := runs[k], runs[k+1]
+		if count < 1 || flag < 0 || flag > 255 || at+count > len(ids) {
+			return fmt.Errorf("imjin seaFlags: run %d (%d × %d) is out of bounds", k/2, count, flag)
+		}
+		if flag != 0 {
+			for i := at; i < at+count; i++ {
+				if ids[i] <= seaZoneBase {
+					return fmt.Errorf("imjin seaFlags: tile %d has flag %d but is not sea on the final map: run cmd/ww1936build", i, flag)
+				}
+			}
+		}
+		at += count
+	}
+	if at != len(ids) {
+		return fmt.Errorf("imjin seaFlags cover %d tiles, the map has %d", at, len(ids))
+	}
+	return nil
 }

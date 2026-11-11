@@ -5926,6 +5926,7 @@
     "hongkong": "Hong Kong",
     "hornofafrica": "Horn Of Africa",
     "iceland": "Iceland",
+    "imjin1592": "Imjin 1592",
     "indiansubcontinent": "Indian Subcontinent",
     "irishsea": "Irish Sea",
     "italia": "Italia",
@@ -13825,6 +13826,36 @@
       "democratic": "Democracy",
       "fascist": "Fascism",
       "neutral": "Non-aligned"
+    },
+    "imjin": {
+      "edge": {
+        "ford": "Ford: one crossing phase, attacker −20%",
+        "great_river": "Great river: two crossing phases, attacker −50%, width 1/2; crossed only at a ford, by boats or engineers",
+        "small_river": "Small river: one crossing phase, attacker −30%"
+      },
+      "edge_line": "{name}: {kind}",
+      "terrain": {
+        "forest": "Forest",
+        "fortress": "Mountain fortress",
+        "hills": "Hills",
+        "marsh": "Marsh and tidal flats",
+        "mountain": "Mountains",
+        "paddy": "Paddy fields",
+        "pass": "Pass",
+        "plain": "Open plain",
+        "walled": "Walled town"
+      },
+      "words": {
+        "forest": "cavalry −50%, arquebus −40%, cannon −50%, defence +25%, width 1/2, ambush ×1.5",
+        "fortress": "no cavalry, archers +40%, one more fort band, width 1/3, its own grain",
+        "hills": "cavalry −30%, archers +25%, defence +30%, width 2/3",
+        "marsh": "slow, cavalry −75% and no charge, cannon −50%, defence +25%, width 1/2",
+        "mountain": "cavalry −75% and no charge, cannon −60%, archers +30%, defence +50%, width 1/3",
+        "paddy": "wet in the growing months: slow, cavalry −60% and no charge, defence +25%, width 2/3",
+        "pass": "no cavalry charge, archers +40%, cannon −60%, defence +100%, width 1/4, ambush ×2",
+        "plain": "cavalry +50% and charges, arquebus and cannon +20%, nowhere to hide",
+        "walled": "no charge on the walls, arquebus +20%, archers +25%, cannon breach, width 1/2"
+      }
     },
     "intel": {
       "arrest_risk": "Arrest risk {pct}% a day",

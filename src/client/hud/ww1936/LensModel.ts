@@ -14,6 +14,14 @@ import {
   type Weather,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { IDEOLOGIES } from "@openfront/engine-api/ww1936/PoliticsTypes";
+import {
+  IMJIN_TERRAINS,
+  edgeBetween,
+  hasImjinTerrain,
+  regionTerrain,
+  type ImjinEdge,
+  type ImjinTerrain,
+} from "@openfront/engine-lib/imjin/Terrain";
 import { regionSlots } from "@openfront/engine-lib/ww1936/EconomyRules";
 import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import { weatherAt } from "@openfront/engine-lib/ww1936/Weather";
@@ -23,6 +31,7 @@ import {
   type OccupationCell,
   type OccupationSource,
 } from "../../render/gl/passes/OccupationPass";
+import type { PlaceLabel } from "../../render/gl/passes/WorldTextPass";
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view";
 import { slotPctOfCountry } from "./EconomyModel";
@@ -48,7 +57,7 @@ import {
   type RegionLens,
   type SeaAirSelection,
 } from "./SeaAirSelection";
-import { countryName, factionName, today } from "./WorldWarModel";
+import { countryName, factionName, isKoreanUi, today } from "./WorldWarModel";
 import { wwEpoch } from "./WwClientCalendar";
 
 export type Rgb = readonly [number, number, number];
@@ -104,6 +113,38 @@ const TERRAIN_KEYS: Readonly<Record<LandTerrain, string>> = {
   urban: "ww1936.terrain.urban",
 };
 
+// The Imjin map's region classes (ww175 design §4): the name and the
+// short words of what each does to a battle.
+const IMJIN_TERRAIN_KEYS: Readonly<Record<ImjinTerrain, string>> = {
+  plain: "ww1936.imjin.terrain.plain",
+  paddy: "ww1936.imjin.terrain.paddy",
+  hills: "ww1936.imjin.terrain.hills",
+  forest: "ww1936.imjin.terrain.forest",
+  mountain: "ww1936.imjin.terrain.mountain",
+  pass: "ww1936.imjin.terrain.pass",
+  marsh: "ww1936.imjin.terrain.marsh",
+  walled: "ww1936.imjin.terrain.walled",
+  fortress: "ww1936.imjin.terrain.fortress",
+};
+
+const IMJIN_WORDS_KEYS: Readonly<Record<ImjinTerrain, string>> = {
+  plain: "ww1936.imjin.words.plain",
+  paddy: "ww1936.imjin.words.paddy",
+  hills: "ww1936.imjin.words.hills",
+  forest: "ww1936.imjin.words.forest",
+  mountain: "ww1936.imjin.words.mountain",
+  pass: "ww1936.imjin.words.pass",
+  marsh: "ww1936.imjin.words.marsh",
+  walled: "ww1936.imjin.words.walled",
+  fortress: "ww1936.imjin.words.fortress",
+};
+
+const IMJIN_EDGE_KEYS: Readonly<Record<Exclude<ImjinEdge, "none">, string>> = {
+  small_river: "ww1936.imjin.edge.small_river",
+  great_river: "ww1936.imjin.edge.great_river",
+  ford: "ww1936.imjin.edge.ford",
+};
+
 const WEATHER_KEYS: Readonly<Record<Weather, string>> = {
   clear: "ww1936.weather.clear",
   rain: "ww1936.weather.rain",
@@ -135,6 +176,19 @@ export const TERRAIN_RGB: Readonly<Record<LandTerrain, Rgb>> = {
   jungle: [20, 150, 112],
   desert: [240, 172, 64],
   urban: [236, 96, 134],
+};
+
+/** The Imjin map's region classes on the terrain lens. */
+export const IMJIN_TERRAIN_RGB: Readonly<Record<ImjinTerrain, Rgb>> = {
+  plain: [226, 220, 110],
+  paddy: [96, 204, 188],
+  hills: [190, 128, 66],
+  forest: [52, 150, 64],
+  mountain: [214, 218, 226],
+  pass: [255, 72, 72],
+  marsh: [90, 150, 236],
+  walled: [236, 96, 134],
+  fortress: [168, 92, 214],
 };
 
 export const WEATHER_RGB: Readonly<Record<Weather, Rgb>> = {
@@ -362,7 +416,9 @@ export function lensCells(game: GameView, sel: LensSettings): OccupationCell[] {
       case "terrain":
         out.push({
           region: id,
-          rgb: TERRAIN_RGB[c.s.landOf(id)],
+          rgb: hasImjinTerrain(c.s)
+            ? IMJIN_TERRAIN_RGB[regionTerrain(c.s, id)]
+            : TERRAIN_RGB[c.s.landOf(id)],
           level: 40,
           flags: 0,
         });
@@ -626,11 +682,64 @@ export interface LensLegend {
   gauge?: [number, number];
 }
 
-function terrainRows(): LegendRow[] {
+function terrainRows(s: ScenarioIndex | null): LegendRow[] {
+  if (s !== null && hasImjinTerrain(s)) {
+    return IMJIN_TERRAINS.map((t) => ({
+      rgb: IMJIN_TERRAIN_RGB[t],
+      label: translateText(IMJIN_TERRAIN_KEYS[t]),
+    }));
+  }
   return LAND_TERRAINS.map((t) => ({
     rgb: TERRAIN_RGB[t],
     label: translateText(TERRAIN_KEYS[t]),
   }));
+}
+
+/**
+ * The Imjin map's hover words for a region: its class and what it does, then
+ * each river edge it has, by neighbour ("임진: 여울: 한 번 건너며 −20%").
+ */
+export function imjinTerrainLines(s: ScenarioIndex, region: number): string[] {
+  const t = regionTerrain(s, region);
+  const lines = [
+    `${translateText(IMJIN_TERRAIN_KEYS[t])}: ${translateText(IMJIN_WORDS_KEYS[t])}`,
+  ];
+  for (const e of s.edgesOf(region)) {
+    const kind = edgeBetween(s, region, e.to);
+    if (kind === "none") continue;
+    lines.push(
+      translateText("ww1936.imjin.edge_line", {
+        name: regionName(s, e.to),
+        kind: translateText(IMJIN_EDGE_KEYS[kind]),
+      }),
+    );
+  }
+  return lines;
+}
+
+/**
+ * The Imjin map's named places for WorldTextPass (ww175 design §4): passes
+ * in the pass colour, fords and channels in the water's, in the UI's
+ * language.
+ */
+export function imjinPlaceLabels(
+  s: ScenarioIndex,
+  korean = isKoreanUi(),
+): PlaceLabel[] {
+  const imjin = s.data.imjin;
+  if (imjin === undefined) return [];
+  return imjin.labels.map((l) => {
+    const rgb: Rgb =
+      l.kind === "pass" ? IMJIN_TERRAIN_RGB.pass : [150, 210, 250];
+    return {
+      x: l.x,
+      y: l.y,
+      text: korean ? l.nameKo : l.name,
+      colorR: rgb[0] / 255,
+      colorG: rgb[1] / 255,
+      colorB: rgb[2] / 255,
+    };
+  });
 }
 
 function weatherRows(): LegendRow[] {
@@ -657,7 +766,7 @@ export function lensLegend(
   const c = ctxOf(game);
   switch (lens) {
     case "terrain":
-      return { ...base, rows: terrainRows() };
+      return { ...base, rows: terrainRows(c?.s ?? null) };
     case "weather":
       return { ...base, rows: weatherRows() };
     case "vp": {
@@ -872,6 +981,10 @@ export function lensReadout(
   const exact = shownExact(c, region);
   switch (lens) {
     case "terrain": {
+      if (hasImjinTerrain(c.s)) {
+        lines.push(...imjinTerrainLines(c.s, region));
+        break;
+      }
       const t = c.s.landOf(region);
       lines.push(translateText(TERRAIN_KEYS[t]));
       break;

@@ -18,6 +18,8 @@ import { TransformHandler } from "../TransformHandler";
 import { UIState } from "../UIState";
 // The homepage loads it on demand, but the in-game instance (#game-settings)
 // is set up below, so it has to be defined by the time a game renders.
+import { hasImjinTerrain } from "@openfront/engine-lib/imjin/Terrain";
+import { riverEdgeCodes } from "../render/gl/passes/RegionBorderPass";
 import { PlaySoundEffectEvent } from "../sound/Sounds";
 import "../UserSettingModal";
 import type { UserSettingModal } from "../UserSettingModal";
@@ -65,7 +67,7 @@ import { fogModelOf } from "./ww1936/FogModel";
 import { landSidesOf, landWarInputsOf, setLandSides } from "./ww1936/LandModel";
 import { setLandSeaAir } from "./ww1936/LandSeaAir";
 import { landSelectionOf } from "./ww1936/LandSelection";
-import { lensMapSource } from "./ww1936/LensModel";
+import { imjinPlaceLabels, lensMapSource } from "./ww1936/LensModel";
 import { linePeaceMapSource } from "./ww1936/LinePeaceModel";
 import { seaAirFacts } from "./ww1936/NavyModel";
 import { wingUiOf } from "./ww1936/WingUi";
@@ -647,7 +649,21 @@ export function createRenderer(
   // P6 (U4): the bomb, rocket and raid flow takes a map tap before the navy and air.
   let nukeFlow: WwNukeFlow | null = null;
   if (wwScenario !== null) {
-    view.setRegions(wwScenario.regionIds);
+    // The Imjin map: river edges in the water's colour, and its passes,
+    // fords and channels named on the map.
+    const imjin = hasImjinTerrain(wwScenario);
+    view.setRegions(
+      wwScenario.regionIds,
+      imjin
+        ? riverEdgeCodes(
+            wwScenario.regionIds,
+            wwScenario.data.width,
+            wwScenario.data.height,
+            wwScenario,
+          )
+        : null,
+    );
+    if (imjin) view.setPlaceLabels(imjinPlaceLabels(wwScenario));
     // P2: the land war's tokens, battle markers and plan arrows (Task 7).
     // P6 (spec §20.7): the fog model registers itself for the token passes
     // before they first draw, so an enemy token never shows unfiltered.

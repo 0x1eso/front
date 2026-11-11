@@ -58,7 +58,21 @@ func main() {
 	owners1914 := flag.String("owners1914", "../resources/maps/world1936/owners1914.json", "with -overlay: the 1914 owners of the regions that stay")
 	outPlaces := flag.String("out-places", "../packages/engine-api/src/ww1914/GwPlaces.gen.ts", "with -overlay: the places as TypeScript")
 	debugPNG := flag.String("debug-png", "", "also draw owners and region edges to this PNG")
+	lonMin := flag.Float64("lon-min", -180, "west edge of the map, degrees (the default is the whole globe)")
+	lonMax := flag.Float64("lon-max", 180, "east edge of the map, degrees")
+	latMin := flag.Float64("lat-min", -60, "south edge of the map, degrees")
+	latMax := flag.Float64("lat-max", 84, "north edge of the map, degrees")
 	flag.Parse()
+	// The Imjin War map (scenarios/imjin1592, imjin.go) has its own tables.
+	if _, err := os.Stat(filepath.Join(*src, imjinTownsFile)); err == nil {
+		if err := runImjin(ImjinArgs{
+			Cache: *cache, Src: *src, OutImage: *outImage, OutDir: *outDir,
+			P: NewWindowProjection(*width, *lonMin, *lonMax, *latMin, *latMax),
+		}); err != nil {
+			log.Fatal(err)
+		}
+		return
+	}
 
 	start := time.Now()
 	step := func(what string) { log.Printf("%-28s %6.1fs", what, time.Since(start).Seconds()) }
@@ -113,7 +127,7 @@ func main() {
 	must(decodeStrict(filepath.Join(*src, "landmarks1936.json"), &landmarkTbl))
 	table, err := loadIDTable(*idTable)
 	must(err)
-	p := NewProjection(*width, -60, 84)
+	p := NewWindowProjection(*width, *lonMin, *lonMax, *latMin, *latMax)
 	w, n := p.Width, p.Width*p.Height
 	log.Printf("map %dx%d", p.Width, p.Height)
 	prm := Params{MinCore: *minCore, MinLow: *minLow, MaxRegion: *maxRegion, MinSea: *minSea, MaxSea: *maxSea, IslandReach: *islandReach}

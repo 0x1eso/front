@@ -1,0 +1,23 @@
+{
+  "note": "The 18 sea zones (supply and the AI only; fleets move on tiles): a Voronoi seed each over the water, ids 40001.. in this order. Each is its own sea strategic region (1001..).",
+  "rows": [
+    { "name": "Korea Strait", "nameKo": "대한해협", "lon": 129.3, "lat": 34.85 },
+    { "name": "Genkai Sea", "nameKo": "겐카이나다", "lon": 129.95, "lat": 34.0 },
+    { "name": "South Sea East", "nameKo": "남해 동부", "lon": 128.5, "lat": 34.65 },
+    { "name": "South Sea West", "nameKo": "남해 서부", "lon": 127.2, "lat": 34.3 },
+    { "name": "Jeju Strait", "nameKo": "제주해협", "lon": 126.6, "lat": 33.9 },
+    { "name": "Yellow Sea South", "nameKo": "서해 남부", "lon": 125.6, "lat": 35.3 },
+    { "name": "Gyeonggi Bay", "nameKo": "경기만", "lon": 125.9, "lat": 37.0 },
+    { "name": "Korea Bay", "nameKo": "서한만", "lon": 124.6, "lat": 39.0 },
+    { "name": "Yellow Sea", "nameKo": "황해", "lon": 123.0, "lat": 35.8 },
+    { "name": "Bohai Strait", "nameKo": "발해해협", "lon": 121.0, "lat": 38.3 },
+    { "name": "Bohai", "nameKo": "발해", "lon": 120.6, "lat": 39.9 },
+    { "name": "East China Sea", "nameKo": "동중국해", "lon": 124.5, "lat": 32.0 },
+    { "name": "West Kyushu", "nameKo": "규슈 서해", "lon": 129.0, "lat": 32.2 },
+    { "name": "East Sea South", "nameKo": "동해 남부", "lon": 130.0, "lat": 37.3 },
+    { "name": "East Sea North", "nameKo": "동해 북부", "lon": 131.0, "lat": 40.8 },
+    { "name": "San'in Sea", "nameKo": "산인 앞바다", "lon": 132.6, "lat": 36.2 },
+    { "name": "Seto Inland Sea", "nameKo": "세토 내해", "lon": 133.2, "lat": 34.25 },
+    { "name": "Pacific", "nameKo": "태평양", "lon": 133.5, "lat": 32.3 }
+  ]
+}

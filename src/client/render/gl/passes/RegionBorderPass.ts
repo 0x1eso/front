@@ -24,6 +24,7 @@
 
 import type { ArmySummary } from "@openfront/engine-api/ww1936/LandTypes";
 import { SEA_ZONE_BASE } from "@openfront/engine-api/ww1936/WorldWarTypes";
+import { edgeBetween } from "@openfront/engine-lib/imjin/Terrain";
 import { borderRegionsOf } from "@openfront/engine-lib/ww1936/FrontRules";
 import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import type { WwLandSelection } from "../../../hud/ww1936/LandSelection";
@@ -35,6 +36,7 @@ import fragSrc from "../shaders/region-border/region-border.frag.glsl?raw";
 import vertSrc from "../shaders/region-border/region-border.vert.glsl?raw";
 import flagsFragSrc from "../shaders/region-border/region-flags.frag.glsl?raw";
 import layerFragSrc from "../shaders/region-border/region-layer.frag.glsl?raw";
+import riverFragSrc from "../shaders/region-border/region-river.frag.glsl?raw";
 import {
   createMapQuad,
   createProgram,
@@ -129,6 +131,57 @@ export function regionEdgeMask(
 ): Uint8Array {
   const out = new Uint8Array(w * h);
   for (let t = 0; t < w * h; t++) if (isEdge(ids, w, h, t)) out[t] = 1;
+  return out;
+}
+
+/** The Imjin map's river codes per edge tile (riverEdgeCodes). */
+export const RIVER_SMALL = 1;
+export const RIVER_GREAT = 2;
+export const RIVER_FORD = 3;
+
+/**
+ * The Imjin map (ww175 design §4): per tile, the river kind of the land
+ * region edge regionEdgeMask marks there (the edge to the right or below):
+ * RIVER_SMALL, RIVER_GREAT or RIVER_FORD; 0 for an edge without a river
+ * and everywhere else.
+ */
+export function riverEdgeCodes(
+  ids: Uint16Array,
+  w: number,
+  h: number,
+  sc: ScenarioIndex,
+): Uint8Array {
+  const out = new Uint8Array(w * h);
+  const memo = new Map<number, number>();
+  const code = (a: number, b: number): number => {
+    const key = Math.min(a, b) * 65536 + Math.max(a, b);
+    let v = memo.get(key);
+    if (v === undefined) {
+      const k = edgeBetween(sc, a, b);
+      v =
+        k === "great_river"
+          ? RIVER_GREAT
+          : k === "ford"
+            ? RIVER_FORD
+            : k === "small_river"
+              ? RIVER_SMALL
+              : 0;
+      memo.set(key, v);
+    }
+    return v;
+  };
+  for (let t = 0; t < w * h; t++) {
+    const id = ids[t];
+    if (id === 0 || id >= SEA_ZONE_BASE) continue;
+    let best = 0;
+    const right = (t % w) + 1 < w ? ids[t + 1] : id;
+    const down = t + w < w * h ? ids[t + w] : id;
+    for (const o of [right, down]) {
+      if (o !== id && o !== 0 && o < SEA_ZONE_BASE)
+        best = Math.max(best, code(id, o));
+    }
+    out[t] = best;
+  }
   return out;
 }
 
@@ -454,6 +507,11 @@ export class RegionBorderPass {
   private uCamera: WebGLUniformLocation;
   private uEdges: WebGLUniformLocation;
   private uAlpha: WebGLUniformLocation;
+  // The Imjin map's rivers (riverEdgeCodes): made only when given.
+  private riverTex: WebGLTexture | null = null;
+  private riverProgram: WebGLProgram | null = null;
+  private rCamera: WebGLUniformLocation | null = null;
+  private rAlpha: WebGLUniformLocation | null = null;
 
   // P2 region flags: made on the first flags that are not all zero.
   private flagTex: WebGLTexture | null = null;
@@ -482,6 +540,7 @@ export class RegionBorderPass {
     regionIds: Uint16Array,
     private mapW: number,
     private mapH: number,
+    riverCodes: Uint8Array | null = null,
   ) {
     this.program = createProgram(
       gl,
@@ -505,6 +564,30 @@ export class RegionBorderPass {
       filter: gl.NEAREST,
     });
     this.vao = createMapQuad(gl, mapW, mapH);
+    if (riverCodes !== null) {
+      const defs = { MAP_W: mapW, MAP_H: mapH };
+      const p = createProgram(
+        gl,
+        shaderSrc(vertSrc, defs),
+        shaderSrc(riverFragSrc, defs),
+        "RegionBorderPass.rivers",
+      );
+      this.rCamera = gl.getUniformLocation(p, "uCamera");
+      this.rAlpha = gl.getUniformLocation(p, "uAlpha");
+      gl.useProgram(p);
+      gl.uniform1i(gl.getUniformLocation(p, "uRivers"), 0);
+      this.riverProgram = p;
+      gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+      this.riverTex = createTexture2D(gl, {
+        width: mapW,
+        height: mapH,
+        internalFormat: gl.R8UI,
+        format: gl.RED_INTEGER,
+        type: gl.UNSIGNED_BYTE,
+        data: riverCodes,
+        filter: gl.NEAREST,
+      });
+    }
   }
 
   draw(cam: Float32Array, zoom: number): void {
@@ -523,6 +606,31 @@ export class RegionBorderPass {
     gl.uniform1i(this.uEdges, 0);
     gl.uniformMatrix3fv(this.uCamera, false, cam);
     gl.uniform1f(this.uAlpha, alpha);
+    gl.bindVertexArray(this.vao);
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    gl.bindVertexArray(null);
+  }
+
+  /**
+   * The Imjin map's river edges, drawn over the lenses and map modes so a
+   * river reads on every lens; nothing without them.
+   */
+  drawRivers(cam: Float32Array, zoom: number): void {
+    if (this.riverProgram === null || this.riverTex === null) return;
+    const alpha = Math.min(
+      1,
+      Math.max(
+        0,
+        (zoom - REGION_MIN_ZOOM) / (REGION_FULL_ZOOM - REGION_MIN_ZOOM),
+      ) * 2,
+    );
+    if (alpha <= 0) return;
+    const gl = this.gl;
+    gl.useProgram(this.riverProgram);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, this.riverTex);
+    gl.uniformMatrix3fv(this.rCamera, false, cam);
+    gl.uniform1f(this.rAlpha, alpha);
     gl.bindVertexArray(this.vao);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
     gl.bindVertexArray(null);
@@ -641,6 +749,10 @@ export class RegionBorderPass {
     gl.deleteVertexArray(this.vao);
     if (this.flagProgram !== null) gl.deleteProgram(this.flagProgram);
     if (this.flagTex !== null) gl.deleteTexture(this.flagTex);
+    if (this.riverProgram !== null) gl.deleteProgram(this.riverProgram);
+    if (this.riverTex !== null) gl.deleteTexture(this.riverTex);
+    this.riverProgram = null;
+    this.riverTex = null;
     this.flagProgram = null;
     this.flagTex = null;
     if (this.layerProgram !== null) gl.deleteProgram(this.layerProgram);

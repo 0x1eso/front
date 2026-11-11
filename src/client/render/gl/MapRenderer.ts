@@ -45,7 +45,7 @@ import type { PeaceMapSource } from "./passes/PeaceMapPass";
 import type { SpawnCenter } from "./passes/SpawnOverlayPass";
 import type { CountdownFx, PreparingFx } from "./passes/StrategicFxPass";
 import type { Ring } from "./passes/WarfareRingPass";
-import type { AttackTroopLabel } from "./passes/WorldTextPass";
+import type { AttackTroopLabel, PlaceLabel } from "./passes/WorldTextPass";
 import { GPURenderer } from "./Renderer";
 import type { RenderSettings } from "./RenderSettings";
 
@@ -60,6 +60,8 @@ export class MapRenderer {
   private storedLayerImages: Map<string, ImageBitmap> = new Map();
   /** World War 1936 region ids, re-applied after a context restore. */
   private storedRegions: Uint16Array | null = null;
+  private storedRivers: Uint8Array | null = null;
+  private storedPlaceLabels: readonly PlaceLabel[] = [];
   private storedRegionIds: Uint16Array | null = null;
   /** World War 1936 P2 land war inputs, re-applied after a context restore. */
   private storedWwLand: Parameters<GPURenderer["setWwLand"]> | null = null;
@@ -184,7 +186,10 @@ export class MapRenderer {
       }
     }
     if (this.storedRegions !== null) {
-      this.renderer?.setRegions(this.storedRegions);
+      this.renderer?.setRegions(this.storedRegions, this.storedRivers);
+    }
+    if (this.storedPlaceLabels.length > 0) {
+      this.renderer?.setPlaceLabels(this.storedPlaceLabels);
     }
     if (this.storedRegionIds !== null) {
       this.renderer?.setRegionIds(this.storedRegionIds);
@@ -448,9 +453,19 @@ export class MapRenderer {
   // ---- Map layers ----
 
   /** World War 1936 (spec §8.2): the lines between regions and sea zones. */
-  setRegions(regionIds: Uint16Array): void {
+  setRegions(
+    regionIds: Uint16Array,
+    riverCodes: Uint8Array | null = null,
+  ): void {
     this.storedRegions = regionIds;
-    this.renderer?.setRegions(regionIds);
+    this.storedRivers = riverCodes;
+    this.renderer?.setRegions(regionIds, riverCodes);
+  }
+
+  /** The Imjin map's named places (WorldTextPass.setPlaceLabels). */
+  setPlaceLabels(labels: readonly PlaceLabel[]): void {
+    this.storedPlaceLabels = labels;
+    this.renderer?.setPlaceLabels(labels);
   }
 
   /** Great War 1914: regions for the map modes and lenses; the map's look stays as it is. */

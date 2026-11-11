@@ -14,6 +14,22 @@ const XY = z.tuple([
 
 export const REGION_TERRAINS = ["plains", "highland", "mountain"] as const;
 
+/**
+ * The Imjin map's region classes (ww175 design §4; engine-lib
+ * imjin/Terrain.ts reads them).
+ */
+export const IMJIN_TERRAINS = [
+  "plain",
+  "paddy",
+  "hills",
+  "forest",
+  "mountain",
+  "pass",
+  "marsh",
+  "walled",
+  "fortress",
+] as const;
+
 /** A building count a region starts with (spec §3.1). */
 const Count = z.number().int().min(0).max(12);
 const Amount = z.number().int().min(0);
@@ -110,6 +126,8 @@ export const ScenarioRegionSchema = z.object({
   dam: z
     .object({ id: z.enum(DAMS), downstream: z.array(RegionId).max(3) })
     .optional(),
+  /** The Imjin map: the region's class (ww175 design §4). */
+  imjinTerrain: z.enum(IMJIN_TERRAINS).optional(),
 });
 
 export const ScenarioSeaZoneSchema = z.object({
@@ -165,6 +183,32 @@ const SeaEdgeSchema = z.tuple([
   z.number().int().min(1),
   z.number().int().min(0).max(3),
 ]);
+/** A named place of the Imjin map: a pass, a ford or a channel. */
+const ImjinLabelSchema = z.object({
+  kind: z.enum(["pass", "ford", "channel"]),
+  /** A channel's current heading, 0..63 (0 north, 16 east): its axis. */
+  dir: z.number().int().min(0).max(63).optional(),
+  name: z.string().min(1),
+  nameKo: z.string().min(1),
+  x: z.number().int().nonnegative(),
+  y: z.number().int().nonnegative(),
+});
+
+/**
+ * The Imjin map's terrain data (ww175 design §3-4, map-generator
+ * cmd/ww1936build imjin.go): the fords, every tile's sea flag byte as
+ * run-length pairs [count, byte, …] in tile order (bit 0 coastal, 1 lee,
+ * 2 channel, 3 shoal, high nibble the current id), the currents by id
+ * (id = index + 1) and the named places.
+ */
+export const ImjinMapSchema = z.object({
+  fords: z.array(z.tuple([RegionId, RegionId])),
+  seaFlags: z.array(z.number().int().min(0)),
+  currents: z.array(ImjinLabelSchema),
+  labels: z.array(ImjinLabelSchema),
+});
+export type ImjinMapData = z.infer<typeof ImjinMapSchema>;
+
 const StraitSchema = z.object({
   id: z.string().min(1),
   kind: z.enum(["strait", "canal"]),
@@ -203,6 +247,10 @@ export const ScenarioDataSchema = z.object({
   strategic: z.array(StrategicSchema).optional(),
   /** P4 (v4, plan decision 9): the row table of kmBetween. */
   rows: RowsSchema.optional(),
+  /** false: the map is a window of the globe (the Imjin map), so east-west distances do not wrap at its edges. */
+  wrapX: z.boolean().optional(),
+  /** The Imjin map's terrain data. */
+  imjin: ImjinMapSchema.optional(),
 });
 
 export type ScenarioData = z.infer<typeof ScenarioDataSchema>;

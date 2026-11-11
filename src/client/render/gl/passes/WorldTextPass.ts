@@ -5,6 +5,8 @@
  *  - Conquest popups: "+ 500" gold text at conquered player locations (fade only)
  *  - Bonus popups:    "+ 45K" income text at port tiles (rises upward + fades)
  *  - Ghost cost label: persistent build-cost number under the ghost cursor
+ *  - Place labels: the Imjin map's passes, fords and channels (any script:
+ *    Hangul goes through DynamicGlyphs, as the name pass does)
  */
 
 import type { Config } from "@openfront/engine-lib/configuration/Config";
@@ -15,6 +17,15 @@ import { createProgram } from "../utils/GlUtils";
 import type { GlyphTables } from "./name-pass/AtlasData";
 import { buildGlyphTables, parseAtlasData } from "./name-pass/AtlasData";
 import { buildGlyphMetricsTex } from "./name-pass/DataTextures";
+import {
+  canvasRasterizer,
+  DYN_CELL,
+  DYN_HEIGHT,
+  DynamicGlyphs,
+  NAME_CHAR_RANGE,
+  type GlyphMetrics,
+  type PendingCell,
+} from "./name-pass/DynamicGlyphs";
 import { layoutString } from "./name-pass/TextLayout";
 import { CHAR_RANGE, MAX_CHARS } from "./name-pass/Types";
 
@@ -47,6 +58,10 @@ const GHOST_COST_OUTLINE_WIDTH = 1.4;
  */
 const ATTACK_LABEL_SCREEN_SCALE = 17.0;
 const ATTACK_LABEL_OUTLINE_WIDTH = 1.2;
+/** Place labels: screen-relative em scale, outline, and the zoom (device px a tile) they show from. */
+const PLACE_LABEL_SCREEN_SCALE = 13.0;
+const PLACE_LABEL_OUTLINE_WIDTH = 1.4;
+const PLACE_LABEL_MIN_ZOOM = 1.5;
 
 // ---------------------------------------------------------------------------
 // Active popup tracking
@@ -64,6 +79,16 @@ interface ActivePopup {
   colorB: number;
   scale: number;
   outlineWidth: number;
+}
+
+/** A named place drawn on the map (the Imjin map's passes, fords, channels). */
+export interface PlaceLabel {
+  x: number;
+  y: number;
+  text: string;
+  colorR: number;
+  colorG: number;
+  colorB: number;
 }
 
 /**
@@ -114,8 +139,14 @@ export class WorldTextPass {
   private glyph: GlyphTables;
   private kernTable: Int8Array;
 
+  // Letters the baked atlas lacks (Hangul): spare cells below it.
+  private dynGlyphs: DynamicGlyphs;
+  private pendingCells: PendingCell[] = [];
+  private readonly mapGlyph = (unit: number): number =>
+    this.dynGlyphs.idFor(unit);
+
   // Reusable buffers for layoutString
-  private charCodes = new Uint8Array(MAX_CHARS);
+  private charCodes = new Uint16Array(MAX_CHARS);
   private cursors = new Float32Array(MAX_CHARS);
 
   private distanceRange: number;
@@ -142,6 +173,8 @@ export class WorldTextPass {
   private attackTroopLabels: AttackTroopLabel[] = [];
   /** Strategic weapons: time-left labels under preparing silos (same look as attack labels). */
   private strategicLabels: readonly AttackTroopLabel[] = [];
+  /** Place labels (setPlaceLabels): fixed, shown when zoomed in. */
+  private placeLabels: readonly PlaceLabel[] = [];
 
   // Settings reference
   private settings: RenderSettings;
@@ -165,11 +198,21 @@ export class WorldTextPass {
 
     // Parse atlas data (shared with NamePass/StructureLevelPass)
     const atlas = parseAtlasData();
-    this.glyph = buildGlyphTables(atlas.chars);
+    this.glyph = buildGlyphTables(atlas.chars, NAME_CHAR_RANGE);
     this.kernTable = new Int8Array(CHAR_RANGE * CHAR_RANGE);
     this.distanceRange = atlas.distanceRange;
     this.fontSize = atlas.fontSize;
-    this.atlasScaleH = atlas.scaleH;
+    // The texture holds the baked atlas and the dynamic cells below it.
+    const textAtlas = { ...atlas, scaleH: atlas.scaleH + DYN_HEIGHT };
+    this.atlasScaleH = textAtlas.scaleH;
+    this.dynGlyphs = new DynamicGlyphs(
+      this.glyph,
+      atlas.scaleW,
+      atlas.scaleH,
+      textAtlas.scaleH,
+      (m) => this.writeGlyphMetrics(m),
+      canvasRasterizer(),
+    );
     this.base = atlas.base;
 
     // Compile shaders
@@ -201,7 +244,7 @@ export class WorldTextPass {
     this.uDistRange = gl.getUniformLocation(this.program, "uDistRange")!;
 
     // Glyph metrics data texture
-    this.glyphMetricsTex = buildGlyphMetricsTex(gl, atlas);
+    this.glyphMetricsTex = buildGlyphMetricsTex(gl, textAtlas, NAME_CHAR_RANGE);
 
     // Start async MSDF atlas load
     this.loadAtlas();
@@ -262,11 +305,70 @@ export class WorldTextPass {
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+      // The baked image on top, spare cells for DynamicGlyphs below it.
+      gl.texImage2D(
+        gl.TEXTURE_2D,
+        0,
+        gl.RGBA,
+        img.width,
+        img.height + DYN_HEIGHT,
+        0,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        null,
+      );
+      gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, img);
       this.atlasTex = tex;
       this.atlasReady = true;
     };
     img.src = atlasUrl;
+  }
+
+  /** A new dynamic glyph's two metrics texels (see buildGlyphMetricsTex). */
+  private writeGlyphMetrics(m: GlyphMetrics): void {
+    const gl = this.gl;
+    gl.bindTexture(gl.TEXTURE_2D, this.glyphMetricsTex);
+    const put = (row: number, v: number[]): void =>
+      gl.texSubImage2D(
+        gl.TEXTURE_2D,
+        0,
+        m.id,
+        row,
+        1,
+        1,
+        gl.RGBA,
+        gl.FLOAT,
+        new Float32Array(v),
+      );
+    put(0, [m.advance, m.xOffset, m.yOffset, m.width]);
+    put(1, [m.height, m.u0, m.v0, m.u1]);
+  }
+
+  /** Uploads the dynamic glyph cells made so far, once the atlas is in. */
+  private uploadPendingCells(): void {
+    this.pendingCells.push(...this.dynGlyphs.takePending());
+    if (this.pendingCells.length === 0 || !this.atlasReady) return;
+    const gl = this.gl;
+    gl.bindTexture(gl.TEXTURE_2D, this.atlasTex);
+    for (const c of this.pendingCells) {
+      gl.texSubImage2D(
+        gl.TEXTURE_2D,
+        0,
+        c.x,
+        c.y,
+        DYN_CELL,
+        DYN_CELL,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        c.pixels,
+      );
+    }
+    this.pendingCells = [];
+  }
+
+  /** The Imjin map's named places (passes, fords, channels); empty clears them. */
+  setPlaceLabels(labels: readonly PlaceLabel[]): void {
+    this.placeLabels = labels;
   }
 
   setMapWidth(w: number): void {
@@ -391,7 +493,8 @@ export class WorldTextPass {
       this.active.length === 0 &&
       this.ghostCostLabel === null &&
       this.attackTroopLabels.length === 0 &&
-      this.strategicLabels.length === 0
+      this.strategicLabels.length === 0 &&
+      this.placeLabels.length === 0
     ) {
       this.instanceCount = 0;
       return;
@@ -432,6 +535,7 @@ export class WorldTextPass {
         this.kernTable,
         this.charCodes,
         this.cursors,
+        this.mapGlyph,
       );
       const len = Math.min(popup.text.length, MAX_CHARS);
 
@@ -471,6 +575,7 @@ export class WorldTextPass {
           this.kernTable,
           this.charCodes,
           this.cursors,
+          this.mapGlyph,
         );
         const len = Math.min(label.text.length, MAX_CHARS);
         for (let i = 0; i < len; i++) {
@@ -488,6 +593,39 @@ export class WorldTextPass {
           this.instanceData[off + 7] = label.colorB;
           this.instanceData[off + 8] = attackScale;
           this.instanceData[off + 9] = ATTACK_LABEL_OUTLINE_WIDTH;
+          count++;
+        }
+      }
+    }
+
+    // Place labels — fixed, a constant on-screen size, only when zoomed in.
+    if (zoom >= PLACE_LABEL_MIN_ZOOM * dpr) {
+      const placeScale =
+        (PLACE_LABEL_SCREEN_SCALE * dpr) / Math.max(zoom, 0.0001);
+      for (const label of this.placeLabels) {
+        layoutString(
+          label.text,
+          this.glyph,
+          this.kernTable,
+          this.charCodes,
+          this.cursors,
+          this.mapGlyph,
+        );
+        const len = Math.min(label.text.length, MAX_CHARS);
+        for (let i = 0; i < len; i++) {
+          if (this.charCodes[i] === 0) continue;
+          if (count >= this.maxInstances) this.growBuffer();
+          const off = count * FLOATS_PER_INSTANCE;
+          this.instanceData[off + 0] = label.x;
+          this.instanceData[off + 1] = label.y;
+          this.instanceData[off + 2] = this.cursors[i];
+          this.instanceData[off + 3] = this.charCodes[i];
+          this.instanceData[off + 4] = 1;
+          this.instanceData[off + 5] = label.colorR;
+          this.instanceData[off + 6] = label.colorG;
+          this.instanceData[off + 7] = label.colorB;
+          this.instanceData[off + 8] = placeScale;
+          this.instanceData[off + 9] = PLACE_LABEL_OUTLINE_WIDTH;
           count++;
         }
       }
@@ -512,6 +650,7 @@ export class WorldTextPass {
           this.kernTable,
           this.charCodes,
           this.cursors,
+          this.mapGlyph,
         );
         const len = Math.min(label.topText.length, MAX_CHARS);
         for (let i = 0; i < len; i++) {
@@ -540,6 +679,7 @@ export class WorldTextPass {
           this.kernTable,
           this.charCodes,
           this.cursors,
+          this.mapGlyph,
         );
         const len = Math.min(label.text.length, MAX_CHARS);
         for (let i = 0; i < len; i++) {
@@ -587,6 +727,7 @@ export class WorldTextPass {
     if (!this.atlasReady || this.instanceCount === 0) return;
     if (zoom < this.settings.bonusPopup.cullZoom) return;
 
+    this.uploadPendingCells();
     const gl = this.gl;
     gl.useProgram(this.program);
     gl.uniformMatrix3fv(this.uCamera, false, cameraMatrix);

@@ -1,0 +1,14 @@
+{
+  "note": "Region classes the hand sets over the rule (towns1590.json walled / fortress / pass, then by mean height and land cover): paddy plains, tidal flats and marshes.",
+  "rows": [
+    { "note": "Honam plain rice fields", "class": "paddy", "regions": ["Gimje", "Naju", "Gwangju"] },
+    { "note": "Jaeryeong and Yeonbaek plains", "class": "paddy", "regions": ["Hwangju", "Yeonan"] },
+    { "note": "Naepo plain", "class": "paddy", "regions": ["Hongju"] },
+    { "note": "Nakdong delta flats", "class": "marsh", "regions": ["Gimhae"] },
+    { "note": "Liao marshes between Guangning and Liaoyang", "class": "marsh", "regions": ["Guangning"] },
+    { "note": "Huai lowland marshes", "class": "marsh", "regions": ["Huaian"] },
+    { "note": "Jiangnan rice country", "class": "paddy", "regions": ["Suzhou", "Songjiang", "Yangzhou"] },
+    { "note": "Hakata and Tsukushi plain", "class": "paddy", "regions": ["Saga"] },
+    { "note": "Mountain fortresses", "class": "fortress", "regions": ["Haengju", "Suwon"] }
+  ]
+}

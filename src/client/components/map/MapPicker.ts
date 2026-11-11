@@ -19,7 +19,8 @@ type MapTab = "featured" | "all" | "favorites";
 
 // World 1936 is chosen by its mode toggle, never from the picker (spec §8.1).
 const pickable: MapInfo[] = maps.filter(
-  (m) => m.type !== GameMapType.World1936,
+  (m) =>
+    m.type !== GameMapType.World1936 && m.type !== GameMapType.Imjin1592,
 );
 
 // Featured grid order: ranked maps first (1 = first), unranked alphabetical.

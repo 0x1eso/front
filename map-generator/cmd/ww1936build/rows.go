@@ -23,6 +23,10 @@ func buildRows(p Projection) Rows {
 	for y := 0; y < p.Height; y++ {
 		_, lat := p.LonLat(0, y)
 		r.LatC[y] = hundredths(lat)
+		if p.Window {
+			r.KmxMilli[y] = int(math.Round(equatorKm * p.LonSpan / 360 * math.Cos(lat*math.Pi/180) / float64(p.Width) * 1000))
+			continue
+		}
 		r.KmxMilli[y] = int(math.Round(equatorKm * math.Cos(lat*math.Pi/180) / float64(p.Width) * 1000))
 	}
 	return r

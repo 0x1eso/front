@@ -1,0 +1,14 @@
+{
+  "note": "Fords on the rivers: the river edge whose border lies nearest the point (within 20 tiles) becomes a ford (one crossing phase, -20%).",
+  "rows": [
+    { "key": "Imjinnaru", "nameKo": "임진나루", "lon": 126.8, "lat": 37.9 },
+    { "key": "Yeoju ford", "nameKo": "여주 여울", "lon": 127.6, "lat": 37.3 },
+    { "key": "Noryangjin", "nameKo": "노량진", "lon": 126.95, "lat": 37.52 },
+    { "key": "Seonsan ford", "nameKo": "선산 여울", "lon": 128.33, "lat": 36.23 },
+    { "key": "Samnangjin", "nameKo": "삼랑진", "lon": 128.83, "lat": 35.39 },
+    { "key": "Wangseongtan", "nameKo": "왕성탄", "lon": 125.82, "lat": 39.07 },
+    { "key": "Yalu ford", "nameKo": "압록강 여울", "lon": 124.5, "lat": 40.15 },
+    { "key": "Anju ford", "nameKo": "안주 여울", "lon": 125.65, "lat": 39.6 },
+    { "key": "Gongju ford", "nameKo": "공주 나루", "lon": 127.12, "lat": 36.47 }
+  ]
+}
