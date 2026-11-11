@@ -33,6 +33,7 @@ import { ownFronts, proposalsFor } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { houseView } from "./House";
 import { lawsAhead, lawViews } from "./Laws";
+import { seaView } from "./NavalIntel";
 import { prepView } from "./Offensives";
 import {
   candidatesFor,
@@ -326,6 +327,7 @@ export function worldView(gw: GreatWar, seat: GwSeatState): GwWorldView {
     chainEnds: s.chains.map((c) => ({ topic: c.topic, outcome: c.outcome })),
     reports: reportView(gw, seat),
     service: intelView(gw, seat),
+    sea: seaView(gw, seat),
     sources: s.sources.map((x) => ({
       id: x.id,
       right: x.right,

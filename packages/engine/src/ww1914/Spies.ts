@@ -1325,3 +1325,20 @@ export function spyEffect(
       return;
   }
 }
+
+/**
+ * STUB (ww180 SB, until SA's `w180-service` merges; SA owns it): the service's
+ * levels as others read them. The merge takes SA's body.
+ */
+export function serviceOf(
+  gw: GreatWar,
+  tag: GwTag,
+): { crypt: number; counter: number; secure: number; net: number } {
+  const i = intelOf(gw, tag);
+  return {
+    crypt: i.crypt,
+    counter: i.counter,
+    secure: i.secure,
+    net: AI_NETS,
+  };
+}

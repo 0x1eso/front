@@ -169,6 +169,27 @@ export interface GwIntelView {
   }[];
 }
 
+/**
+ * ww180: the seat's own chain of direction-finding stations at sea, for the
+ * 정보부 tab's sea section. Only what we built and heard, never the enemy's.
+ */
+export interface GwSeaView {
+  /** The country fights at sea now: a chain can be ordered. */
+  atSea: boolean;
+  /** Stations up, 0..3; 0 while none was ordered. */
+  stations: number;
+  /** 0 listens only, 1 warns the fleet, 2 also steers ships; null with none. */
+  use: number | null;
+  /** What it heard, newest last; `decoded`: read in their codes as well. */
+  log: readonly {
+    kind: "uboat" | "sortie";
+    tag: GwTag;
+    chapter: number;
+    used: boolean;
+    decoded: boolean;
+  }[];
+}
+
 export interface GwSourceView {
   id: GwSource;
   right: number;
@@ -267,6 +288,8 @@ export interface GwWorldView {
   sources: readonly GwSourceView[];
   /** ww179: the 정보부 tab's own service; absent in old views. */
   service?: GwIntelView;
+  /** ww180: the chain at sea; absent for a country with no fleet on that front. */
+  sea?: GwSeaView;
   mandates: readonly string[];
   secrets: readonly GwSecret[];
   threads: readonly GwThread[];

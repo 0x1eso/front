@@ -1377,6 +1377,8 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     tags: ["war"],
     variants: [
       v("sea_lost", world({ is: "front", theatre: "sea", from: "channel" })),
+      // ww180: the coast's direction-finding stations heard the fleet put out.
+      v("warned", world({ is: "naval", can: "warned" })),
       v("room40", memory("k_hall_room40")),
       v("base"),
     ],

@@ -30,6 +30,7 @@ import {
   warMonths,
 } from "./Eras";
 import type { GreatWar } from "./GreatWar";
+import { sortieWarning } from "./NavalIntel";
 import {
   counterReserves,
   feintFronts,
@@ -722,7 +723,11 @@ function judge(gw: GreatWar, t: GwTheatreState): void {
         : other(ups));
   const i = gw.s.theatres.indexOf(t);
   const roll = ROLL_LOW + (wwRoll(s.seed, P_BATTLE, s.chapter, i) % ROLL_SPAN);
-  const ratio = Math.floor((oddsOf(gw, t, by, local === null) * roll) / 100);
+  // ww180: a fleet that puts out may find the enemy told and waiting.
+  const warned = sortieWarning(gw, t, by);
+  const ratio = Math.floor(
+    ((oddsOf(gw, t, by, local === null) - warned) * roll) / 100,
+  );
   const faced = trenchFaced(gw, t);
   const result = resultOf(ratio, faced);
   move(gw, t, by, gainOf(result, faced));

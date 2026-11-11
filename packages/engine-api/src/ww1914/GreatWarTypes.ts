@@ -571,6 +571,30 @@ export const GwIntelSchema = z.object({
 });
 export type GwIntel = z.infer<typeof GwIntelSchema>;
 
+/**
+ * ww180: a sea power's radio direction-finding chain (engine/ww1914/NavalIntel).
+ * Absent until it is ordered. Hidden: no view carries another country's.
+ */
+export const GwNavalSchema = z.object({
+  /** Chapter the chain was ordered: a station goes up every few months. */
+  since: z.number().int(),
+  /** 0 listens only, 1 warns the fleet, 2 also steers ships off the U-boats. */
+  use: z.number().int(),
+  /** What it heard, newest last, a few kept. */
+  heard: z.array(
+    z.object({
+      kind: z.enum(["uboat", "sortie"]),
+      tag: z.enum(GW_TAGS),
+      chapter: z.number().int(),
+      /** Acted on, by the use in force. */
+      used: z.boolean(),
+      /** Read in the enemy's codes as well as by bearing. */
+      decoded: z.boolean(),
+    }),
+  ),
+});
+export type GwNaval = z.infer<typeof GwNavalSchema>;
+
 export const GwNationStateSchema = z.object({
   tag: z.enum(GW_TAGS),
   gauges: z.record(z.enum(GW_GAUGES), z.number().int()),
@@ -633,6 +657,8 @@ export const GwNationStateSchema = z.object({
   laws: z.array(GwLawStateSchema),
   /** ww173: its secret service (Spies.ts); absent until first used. */
   intel: GwIntelSchema.optional(),
+  /** ww180: its direction-finding chain at sea (NavalIntel.ts); absent until ordered. */
+  naval: GwNavalSchema.optional(),
 });
 export type GwNationState = z.infer<typeof GwNationStateSchema>;
 
