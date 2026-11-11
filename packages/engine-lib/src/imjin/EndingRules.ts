@@ -6,7 +6,8 @@
 //   silver spent under a limit.
 // The game ends at the calendar's end, or earlier by state: Joseon's
 // capitulation (the king gone and every province lost), Japan out of Korea
-// for 120 days after it started the war, or a signed treaty. Pure integer
+// for 180 days after it started the war (not counting a truce), or a
+// signed treaty. Pure integer
 // rules: the engine (imjin/Endings.ts) reads the state into ImjinEndFacts.
 import type {
   ImjinEndCause,
@@ -14,11 +15,22 @@ import type {
 } from "@openfront/engine-api/imjin/ImjinTypes";
 import { SEAT_ABROAD } from "./CourtRules";
 
-/** Japan out of Korea this many days after starting the war ends the game. */
-export const IMJIN_EXPELLED_DAYS = 120;
-/** Japan holds Korean land: at least this per mille of Korea's regions. */
+/**
+ * Japan out of Korea this many days after starting the war ends the game.
+ * ww177 final: 120 → 180 on P7b's 5 games (Japan was out by 1593 in 3 of
+ * 5, and the war ended before its talks could).
+ */
+export const IMJIN_EXPELLED_DAYS = 180;
+/** Japan holds Korean land: at least this per mille of Korea's land. */
 export const JAPAN_HOLD_PM = 200;
-/** Joseon has its land back: Japan holds at most this per mille of Korea. */
+/**
+ * ww177 final: Japan's investiture counts as its aim only with real land
+ * kept, at least this per mille of Korea's land (a coast of castles, not
+ * an islet; it was any land at all). Under LAND_BACK_PM, so Joseon can
+ * share that win.
+ */
+export const JAPAN_TREATY_HOLD_PM = 20;
+/** Joseon has its land back: Japan holds at most this per mille of Korea's land. */
 export const LAND_BACK_PM = 50;
 /** Ming's silver in the field: thousands of taels a day at war… */
 export const MING_SILVER_WAR_DAY = 2;
@@ -33,7 +45,11 @@ export interface ImjinEndFacts {
   readonly warBegan: boolean;
   /** Japan and Joseon are at war now. */
   readonly atWar: boolean;
-  /** Per mille of Korea's regions (Joseon's at the start) Japan controls. */
+  /**
+   * Per mille of Korea's land (Joseon's regions at the start, weighed by
+   * their tiles) Japan controls. ww177 final: by land, not by region count,
+   * where a pass or an islet weighed as much as a province.
+   */
   readonly jpnHeldPm: number;
   /** Korean regions Joseon itself controls. */
   readonly josHeld: number;
@@ -47,6 +63,8 @@ export interface ImjinEndFacts {
   readonly truce: boolean;
   /** A truce broke once (the truth came out). */
   readonly truceBroken: boolean;
+  /** Japan musters for a second war since the truce broke (not yet sailed). */
+  readonly rearming?: boolean;
   /** Ming's regions (at the start) that Japan controls. */
   readonly liaodong: number;
   /** Ming's silver spent, thousands of taels. */
@@ -59,6 +77,18 @@ export function mingSilverDay(atWar: boolean, divisionsAbroad: number): number {
     (atWar ? MING_SILVER_WAR_DAY : 0) +
     MING_SILVER_DIVISION_DAY * Math.max(0, divisionsAbroad)
   );
+}
+
+/**
+ * The days Japan has been out of Korea, counted on from yesterday's: they
+ * run while it holds none of Korea, stand still while a truce stands (the
+ * talks decide that end), and start again from naught when it holds land
+ * again or musters for a second war after the truce broke (that war gets
+ * its own days).
+ */
+export function outDaysNext(f: ImjinEndFacts, prev: number): number {
+  if (!f.warBegan || f.jpnHeldPm > 0 || f.rearming === true) return 0;
+  return f.truce ? prev : prev + 1;
 }
 
 /** Joseon is beaten: its king is gone and it holds no province. */
@@ -116,7 +146,9 @@ export function imjinGoals(f: ImjinEndFacts): ImjinGoals {
   return {
     jos: landBack && kingHome,
     // Recognition on its terms: the title taken with Korean land kept.
-    jpn: f.jpnHeldPm >= JAPAN_HOLD_PM || (f.peace && f.jpnHeldPm > 0),
+    jpn:
+      f.jpnHeldPm >= JAPAN_HOLD_PM ||
+      (f.peace && f.jpnHeldPm >= JAPAN_TREATY_HOLD_PM),
     // The tributary order: Joseon stands as Ming's tributary and Ming's own
     // land is whole (an invested Japan is one more tributary).
     min:

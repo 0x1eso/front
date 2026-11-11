@@ -15,8 +15,10 @@ import {
   imjinEnding,
   imjinGoals,
   JAPAN_HOLD_PM,
+  JAPAN_TREATY_HOLD_PM,
   MING_SILVER_LIMIT,
   mingSilverDay,
+  outDaysNext,
   type ImjinEndFacts,
 } from "@openfront/engine-lib/imjin/EndingRules";
 import { dayOfDateIn } from "@openfront/engine-lib/ww1936/Calendar";
@@ -59,6 +61,16 @@ describe("the Imjin endings' rules", () => {
     // Before the war nothing but the calendar ends it.
     const peace = { ...out, warBegan: false, josHeld: 0, seat: SEAT_ABROAD };
     expect(imjinEndCause(peace, 500, 1, 3000)).toBeNull();
+  });
+
+  test("Japan's days out of Korea stand still under a truce and start again for a second war", () => {
+    // ww177 final.
+    const out = { ...AT_WAR, jpnHeldPm: 0 };
+    expect(outDaysNext(out, 10)).toBe(11);
+    expect(outDaysNext({ ...out, truce: true }, 10)).toBe(10);
+    expect(outDaysNext({ ...out, rearming: true }, 10)).toBe(0);
+    expect(outDaysNext(AT_WAR, 10)).toBe(0);
+    expect(outDaysNext({ ...out, warBegan: false }, 10)).toBe(0);
   });
 
   test("the card comes from the state", () => {
@@ -105,6 +117,9 @@ describe("the Imjin endings' rules", () => {
       silver: MING_SILVER_LIMIT + 1,
     };
     expect(imjinGoals(out)).toEqual({ jos: false, jpn: false, min: false });
+    // ww177 final: the investiture needs real land kept, not an islet.
+    const islet = { ...peace, jpnHeldPm: JAPAN_TREATY_HOLD_PM - 1 };
+    expect(imjinGoals(islet).jpn).toBe(false);
     expect(mingSilverDay(true, 3)).toBe(5);
     expect(mingSilverDay(false, 0)).toBe(0);
   });
@@ -117,7 +132,7 @@ const CONFIG: Partial<GameConfig> = {
 };
 
 describe("the Imjin War's end in a game", () => {
-  test("Japan out of Korea for 120 days: expulsion, and the seats whose aims were met win", async () => {
+  test("Japan out of Korea for 180 days: expulsion, and the seats whose aims were met win", async () => {
     // Both seats human: nobody lands, nobody moves.
     const { runner: r, updates } = await wwRunnerCapture(
       CONFIG,

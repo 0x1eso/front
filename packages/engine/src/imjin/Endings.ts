@@ -11,6 +11,7 @@ import {
   imjinGoals,
   MING_SILVER_LIMIT,
   mingSilverDay,
+  outDaysNext,
 } from "@openfront/engine-lib/imjin/EndingRules";
 import {
   IMJIN_GFLAG,
@@ -84,10 +85,14 @@ export class ImjinEndings {
     const jpn = this.im.idOf("JPN");
     const ctl = ww.land.controller;
     const { korea, ming } = this.startRegions();
-    let jpnHeld = 0;
+    const sc = ww.scenario;
+    let jpnLand = 0;
+    let land = 0;
     let josHeld = 0;
     for (const r of korea) {
-      if (ctl[r] === jpn) jpnHeld++;
+      const tiles = sc.region(r)?.tiles ?? 0;
+      land += tiles;
+      if (ctl[r] === jpn) jpnLand += tiles;
       else if (ctl[r] === jos) josHeld++;
     }
     let liaodong = 0;
@@ -98,7 +103,9 @@ export class ImjinEndings {
       warBegan: (js?.warDay ?? -1) >= 0,
       atWar: ww.isAtWar(jpn, jos),
       jpnHeldPm:
-        korea.length === 0 ? 0 : Math.floor((jpnHeld * 1000) / korea.length),
+        land === 0
+          ? 0
+          : Math.max(jpnLand > 0 ? 1 : 0, Math.floor((jpnLand * 1000) / land)),
       josHeld,
       seat: ww.imjinJm?.seat ?? 0,
       josCapitulated: ww.isCapitulated(jos),
@@ -108,6 +115,7 @@ export class ImjinEndings {
         (js.phase === TRUCE_PHASE.truce ||
           js.phase === TRUCE_PHASE.envoysAsked),
       truceBroken: gflags.has(IMJIN_GFLAG.truceBroken),
+      rearming: js !== undefined && js.phase === TRUCE_PHASE.broken,
       liaodong,
       silver: this.st.silver,
     };
@@ -139,7 +147,7 @@ export class ImjinEndings {
       st.silver += mingSilverDay(ww.isAtWar(min, jpn), this.mingAbroad());
     }
     const f = { ...this.facts(), silver: st.silver };
-    st.outDays = f.warBegan && f.jpnHeldPm === 0 ? st.outDays + 1 : 0;
+    st.outDays = outDaysNext(f, st.outDays);
     const cause = imjinEndCause(f, st.outDays, day, this.endDay());
     if (cause === null) return;
     const goals = imjinGoals(f);
