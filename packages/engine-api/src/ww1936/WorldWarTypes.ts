@@ -45,6 +45,8 @@ export const DECLARE_WAR_BLOCKS = [
   "congress",
   // White peace: the two signed one less than WW_TRUCE_DAYS ago.
   "truce_active",
+  // ww177 I4b: the Imjin War: Japan's muster is not ready to strike Joseon.
+  "not_ready",
 ] as const;
 export type DeclareWarBlock = (typeof DECLARE_WAR_BLOCKS)[number];
 

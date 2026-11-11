@@ -9,11 +9,26 @@ import {
   ContentParts,
   ContentRegistry,
 } from "../ww1936/content/registry";
+import {
+  IMJIN_JAPAN_DECISIONS,
+  IMJIN_JAPAN_EVENTS,
+  IMJIN_JAPAN_FLAGS,
+  IMJIN_JAPAN_SPIRITS,
+} from "./JapanContent";
 
 export const IMJIN_CONTENT_PARTS: ContentParts = {
   ...CONTENT_PARTS,
-  events: CONTENT_PARTS.events.filter((e) => e.trigger === undefined),
-  decisions: CONTENT_PARTS.decisions.filter((d) => d.for === "any"),
+  events: [
+    ...CONTENT_PARTS.events.filter((e) => e.trigger === undefined),
+    // ww177 I4b: Japan's politics and the truce (JapanContent.ts).
+    ...IMJIN_JAPAN_EVENTS,
+  ],
+  decisions: [
+    ...CONTENT_PARTS.decisions.filter((d) => d.for === "any"),
+    ...IMJIN_JAPAN_DECISIONS,
+  ],
+  spirits: [...CONTENT_PARTS.spirits, ...IMJIN_JAPAN_SPIRITS],
+  flags: [...CONTENT_PARTS.flags, ...IMJIN_JAPAN_FLAGS],
   persons: [],
   beats: [],
   countries: [],

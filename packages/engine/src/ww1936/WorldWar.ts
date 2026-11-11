@@ -39,6 +39,7 @@ import {
 import { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import { z } from "zod";
 import type { Game, Player } from "../game/Game";
+import { ImjinJapan, ImjinJapanStateSchema } from "../imjin/japan/ImjinJapan";
 import { WwAir, WwAirStateSchema } from "./air/WwAir";
 import { WwDepth, WwDepthStateSchema } from "./depth/WwDepth";
 import { WwEconomy, WwEconomyStateSchema } from "./economy/WwEconomy";
@@ -78,6 +79,8 @@ export const WorldWarStateSchema = z.object({
   endgame: WwEndgameStateSchema.optional(),
   /** P6 (P6 plan decision 26): always written; a snapshot without it is refused. */
   depth: WwDepthStateSchema.optional(),
+  /** ww177 I4b: Japan's politics and the truce; the Imjin War only. */
+  imjinJapan: ImjinJapanStateSchema.optional(),
 });
 export type WorldWarState = z.infer<typeof WorldWarStateSchema>;
 
@@ -150,6 +153,8 @@ export class WorldWar {
   readonly epoch: number;
   /** ww177: the Imjin War's start (Starts.ts), null in 1936. */
   readonly imjinStart: ImjinStartId | null;
+  /** ww177 I4b: Japan's daimyo, Hideyoshi and the truce; null in 1936. */
+  readonly japan: ImjinJapan | null;
 
   constructor(
     private readonly mg: Game,
@@ -167,6 +172,8 @@ export class WorldWar {
       ? imjinCalendarOf(mg.config().gameConfig()).start
       : null;
     this.size = scenario.countries.length + 1;
+    // ww177 I4b: first, so every phase may ask it (it reads them only daily).
+    this.japan = this.imjin ? new ImjinJapan(mg, this) : null;
     this.warMatrix = new Uint8Array(this.size * this.size);
     this._gauge = new Array<number>(this.size).fill(0);
     this._auto = new Array<number>(this.size).fill(0);
@@ -649,7 +656,10 @@ export class WorldWar {
     // P5 (spec §21.5): after P4's.
     h = (Math.imul(h, 31) + this.endgame.hash()) | 0;
     // P6 (spec §21.6): after P5's.
-    return (Math.imul(h, 31) + this.depth.hash()) >>> 0;
+    h = (Math.imul(h, 31) + this.depth.hash()) | 0;
+    // ww177 I4b: the Imjin War's Japan (nothing in 1936).
+    if (this.japan !== null) h = (Math.imul(h, 31) + this.japan.hash()) | 0;
+    return h >>> 0;
   }
 
   snapshot(): WorldWarState {
@@ -678,6 +688,7 @@ export class WorldWar {
       air: this.air.snapshot(),
       endgame: this.endgame.snapshot(),
       depth: this.depth.snapshot(),
+      ...(this.japan === null ? {} : { imjinJapan: this.japan.snapshot() }),
     };
   }
 
@@ -751,6 +762,10 @@ export class WorldWar {
     this.air.restoreState(s.air);
     // P6: last (its derived design caches read the economy's techs).
     this.depth.restoreState(s.depth);
+    // ww177 I4b: a snapshot of the Imjin War holds Japan's state.
+    if (this.japan !== null && s.imjinJapan !== undefined) {
+      this.japan.restoreState(s.imjinJapan);
+    }
   }
 
   private rebuildMatrix(): void {

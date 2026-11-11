@@ -1601,6 +1601,7 @@
     "ww1936_declare_blocked_guarantor": "War not declared: You guarantee them",
     "ww1936_declare_blocked_isolation": "War not declared: Isolationism forbids it",
     "ww1936_declare_blocked_nap": "War not declared: Non-aggression pact: break it first",
+    "ww1936_declare_blocked_not_ready": "War not declared: the muster is not ready to cross yet",
     "ww1936_declare_blocked_prep": "War not declared: Not during the preparation minute",
     "ww1936_declare_blocked_self": "War not declared: You cannot declare on yourself",
     "ww1936_declare_blocked_subject_restricted": "War not declared: A subject only fights its overlord's enemies",
@@ -1638,6 +1639,21 @@
     "ww1936_goal_reached": "{army}: offensive line reached, now holding there",
     "ww1936_government_changed": "{country} changes government: {ideology}",
     "ww1936_home_returned": "{country} came home as your subject",
+    "ww1936_imjin_jos_half_warned": "The Japanese have landed; the country was only half ready",
+    "ww1936_imjin_jos_taiko_dead": "Rumour from Japan: Hideyoshi is dead",
+    "ww1936_imjin_jos_taiko_rumour": "Rumour from Japan: Hideyoshi is ill",
+    "ww1936_imjin_jos_unwarned": "The Japanese have landed, and the country was not ready",
+    "ww1936_imjin_jos_warned": "The Japanese have landed, and the country was ready for them",
+    "ww1936_imjin_jp_daimyo_defiant": "{daimyo} is close to open defiance",
+    "ww1936_imjin_jp_daimyo_wavers": "{daimyo}'s loyalty is wavering: his corps is slow to move",
+    "ww1936_imjin_jp_ming_refuses": "Ming will not hear the Taikō's terms: the talks have failed",
+    "ww1936_imjin_jp_taiko_bedridden": "The Taikō has taken to his bed",
+    "ww1936_imjin_jp_taiko_failing": "The Taikō's strength is failing",
+    "ww1936_imjin_jp_taiko_grave": "The Taikō is gravely ill",
+    "ww1936_imjin_jp_wave_full": "The whole army has crossed to Joseon",
+    "ww1936_imjin_jp_wave_ordinary": "The first wave has crossed to Joseon",
+    "ww1936_imjin_jp_wave_thin": "The first wave has crossed before the muster was complete",
+    "ww1936_imjin_jp_withdraws": "{country} is bringing its armies home from Joseon",
     "ww1936_invasion_aborted": "The landing at {region} was called off",
     "ww1936_invasion_failed": "The landing at {region} by {country} failed",
     "ww1936_invasion_landed": "{country} landed at {region}",
@@ -5075,6 +5091,17 @@
     "waiting": "Waiting for players..."
   },
   "imjin": {
+    "daimyo": {
+      "fukushima": "Fukushima Masanori",
+      "hidekatsu": "Toyotomi Hidekatsu",
+      "kato": "Katō Kiyomasa",
+      "kobayakawa": "Kobayakawa Takakage",
+      "konishi": "Konishi Yukinaga",
+      "kuroda": "Kuroda Nagamasa",
+      "mori": "Mōri Terumoto",
+      "shimazu": "Shimazu Yoshihiro",
+      "ukita": "Ukita Hideie"
+    },
     "date": {
       "line": "{date} · {lunar} · {reign}",
       "line_no_reign": "{date} · {lunar}",
@@ -7603,6 +7630,11 @@
       "gen_war_bonds": "War Bonds",
       "hun_request_arbitration": "Ask for Arbitration",
       "hun_request_transylvania": "Claim Transylvania",
+      "imjin_jp_build_sekibune": "Build Transports",
+      "imjin_jp_demands_so": "Send Demands Through the Sō House",
+      "imjin_jp_grant_fiefs": "Grant Fiefs and Gold",
+      "imjin_jp_muster_daimyo": "Muster the Daimyo",
+      "imjin_jp_nagoya_castle": "Build Nagoya Castle",
       "ita_send_ctv": "Send the Volunteer Corps",
       "jpn_army_budget": "Army Budget Priority",
       "jpn_demand_indochina_access": "Demand Access to Indochina",
@@ -7687,6 +7719,11 @@
       "gen_war_bonds": "Selling bonds to the public raises money for the war and ties citizens to its outcome.",
       "hun_request_arbitration": "Ask Germany and Italy to arbitrate Hungary's claim to southern Slovakia.",
       "hun_request_transylvania": "Ask Berlin to settle Hungary's claim to northern Transylvania by arbitration.",
+      "imjin_jp_build_sekibune": "Have the coastal domains build sekibune and transports for the crossing.",
+      "imjin_jp_demands_so": "Have the Sō house of Tsushima carry the Taikō's demands to the Joseon court.",
+      "imjin_jp_grant_fiefs": "Reward the great lords to keep them loyal.",
+      "imjin_jp_muster_daimyo": "Order every great lord to raise his quota of men for the crossing.",
+      "imjin_jp_nagoya_castle": "Raise a great castle on the Hizen coast as the base of the war.",
       "ita_send_ctv": "Four divisions of the Corpo Truppe Volontarie sail for Spain to fight beside Franco's Nationalists.",
       "jpn_army_budget": "The army's share of the budget grows. The balance moves 10 toward the army.",
       "jpn_demand_indochina_access": "Demand that the authorities of French Indochina let Japanese troops in — first the north, then the south.",
@@ -7723,6 +7760,7 @@
         "guarantor": "You guarantee them",
         "isolation": "Isolationism forbids it",
         "nap": "Non-aggression pact: break it first",
+        "not_ready": "The muster is not ready to cross yet",
         "prep": "Not during the preparation minute",
         "self": "You cannot declare on yourself",
         "subject_restricted": "A subject only fights its overlord's enemies",
@@ -8547,6 +8585,22 @@
       "gen_volunteers_arrive": "A friendly government has sent volunteers to fight at our side. They come with their own officers and equipment and stay under their own command, but they will fight our enemies.",
       "gen_war_weariness": "Lost provinces and ever longer casualty lists weigh on the people. More men dodge the draft, and the newspapers have grown gloomy. The government can let morale sag or spend heavily to lift it.",
       "hun_horthy_armistice": "The Red Army stands on the Great Hungarian Plain. The Regent's envoys in Moscow have agreed preliminary armistice terms, and he is ready to announce on the radio that Hungary is leaving the war. Berlin will not stand by.",
+      "imjin_jos_demand": "Envoys of the Sō house of Tsushima bring Hideyoshi's demand: Joseon is to let his army pass on its way to Ming.",
+      "imjin_jos_omens": "Fishermen and the Tsushima traders speak of ships being built across the strait and of soldiers gathering in Kyushu.",
+      "imjin_jos_omens_grave": "There is no longer any doubt among the coastal commanders: a great army is gathering at Nagoya, and transport ships fill the harbours of Tsushima.",
+      "imjin_jos_truce": "Ming and Japan have stopped the fighting. The Japanese hold forts on our southern coast, and the Ming generals forbid our armies to attack them while envoys travel.",
+      "imjin_jos_truce_broken": "Word comes from Japan: the Taikō has sent the Ming envoys away in anger. Japan is mustering again.",
+      "imjin_jp_daimyo_grumble": "The great lords count their dead and their spent rice. In their camps men ask what the war has given them, and some letters home speak of the Taikō with less respect than before.",
+      "imjin_jp_investiture": "The Ming envoys come before Hideyoshi and their letter is read aloud. It names him King of Japan. It says nothing of the terms he sent.",
+      "imjin_jp_investiture_regents": "The Ming envoys arrive with a letter for the Taikō, but he is dead. The regents receive them instead.",
+      "imjin_jp_ming_reply": "Konishi brings back the Ming reply: Beijing will send envoys to the Taikō. Until they come, the armies are to hold the coast and stop the fighting.",
+      "imjin_jp_regents_press": "The regents say the war in Korea eats the realm's rice and men, and that no one can hold the daimyo together while their armies are abroad.",
+      "imjin_jp_strike_again": "The truce is over. The daimyo have mustered again, and the forts on Joseon's southern coast still hold Japanese garrisons.",
+      "imjin_jp_strike_full": "Every corps has come in. Ships, rice and powder stand ready at Nagoya and on Tsushima, and the daimyo wait for the word.",
+      "imjin_jp_strike_ready": "Boats crowd the harbours of Kyushu and the first corps are camped about Nagoya. The muster is not complete, but the daimyo say the army can cross now.",
+      "imjin_jp_taiko_ailing": "Hideyoshi keeps to his rooms for days at a time. His physicians speak quietly, and his heir is still a child.",
+      "imjin_jp_taiko_dies": "Toyotomi Hideyoshi is dead. Five great lords will rule for his heir, and the armies in Korea do not yet know.",
+      "imjin_jp_talks": "A Ming go-between, Shen Weijing, has come to Konishi Yukinaga's camp. He says the war can end by talks, if each side sends its terms.",
       "irn_armistice": "British troops advance from Iraq and the Gulf, Soviet columns from the Caucasus, and our army cannot hold either front. The two powers demand a supply route to the Soviet Union and the expulsion of German nationals. The Shah's government can stop the fighting today.",
       "irn_new_shah": "Reza Shah has abdicated as Soviet troops approach Tehran and will leave the country. His son Mohammad Reza takes the oath before the Majlis and promises to rule as a constitutional monarch.",
       "irq_armistice": "British columns are closing on Baghdad and German air support has come too late. The leaders of the coup are fleeing to Iran. Officers loyal to the regent are ready to sign an armistice and bring back the old government.",
@@ -9101,6 +9155,70 @@
       "hun_horthy_armistice": {
         "a": "Announce the armistice",
         "b": "Fight on"
+      },
+      "imjin_jos_demand": {
+        "a": "Refuse outright",
+        "b": "Answer vaguely"
+      },
+      "imjin_jos_omens": {
+        "a": "Strengthen the coast and the walls",
+        "b": "Do not alarm the court"
+      },
+      "imjin_jos_omens_grave": {
+        "a": "Prepare for war",
+        "b": "It is only a show of strength"
+      },
+      "imjin_jos_truce": {
+        "a": "Bear it",
+        "b": "Protest to the Ming generals"
+      },
+      "imjin_jos_truce_broken": {
+        "a": "Ready the country"
+      },
+      "imjin_jp_daimyo_grumble": {
+        "a": "Grant lands and gold",
+        "b": "Make an example of the worst",
+        "c": "Let them grumble"
+      },
+      "imjin_jp_investiture": {
+        "a": "Send the envoys away and muster again",
+        "b": "Take the title and keep the peace"
+      },
+      "imjin_jp_investiture_regents": {
+        "a": "Accept the letter and keep the peace",
+        "b": "Send the envoys away"
+      },
+      "imjin_jp_ming_reply": {
+        "a": "Agree to the truce",
+        "b": "Fight on"
+      },
+      "imjin_jp_regents_press": {
+        "a": "Bring the armies home",
+        "b": "Refuse"
+      },
+      "imjin_jp_strike_again": {
+        "a": "Send the armies across again",
+        "b": "Wait"
+      },
+      "imjin_jp_strike_full": {
+        "a": "Give the word",
+        "b": "Not yet"
+      },
+      "imjin_jp_strike_ready": {
+        "a": "Cross to Busan now",
+        "b": "Wait for the full muster"
+      },
+      "imjin_jp_taiko_ailing": {
+        "a": "Name the regents now",
+        "b": "Hide his illness"
+      },
+      "imjin_jp_taiko_dies": {
+        "a": "Keep it secret and bring the armies home",
+        "b": "The regents rule and the war goes on"
+      },
+      "imjin_jp_talks": {
+        "a": "Let Konishi talk with Shen Weijing",
+        "b": "No talks"
       },
       "irn_armistice": {
         "a": "Order the ceasefire",
@@ -9685,6 +9803,22 @@
       "gen_volunteers_arrive": "Foreign Volunteers Arrive",
       "gen_war_weariness": "War Weariness",
       "hun_horthy_armistice": "Horthy's Armistice",
+      "imjin_jos_demand": "The Sō House Brings a Demand",
+      "imjin_jos_omens": "Reports from the South Coast",
+      "imjin_jos_omens_grave": "Japan Gathers Its Army",
+      "imjin_jos_truce": "A Truce Over Our Heads",
+      "imjin_jos_truce_broken": "The Truce Is Broken",
+      "imjin_jp_daimyo_grumble": "The Daimyo Grumble",
+      "imjin_jp_investiture": "The Ming Envoys",
+      "imjin_jp_investiture_regents": "The Envoys Before the Regents",
+      "imjin_jp_ming_reply": "Ming's Answer",
+      "imjin_jp_regents_press": "The Regents Want the Armies Home",
+      "imjin_jp_strike_again": "A Second Crossing",
+      "imjin_jp_strike_full": "The Whole Army Waits at Nagoya",
+      "imjin_jp_strike_ready": "The Muster Can Sail",
+      "imjin_jp_taiko_ailing": "The Taikō Is Ill",
+      "imjin_jp_taiko_dies": "The Taikō Is Dead",
+      "imjin_jp_talks": "Talk of Peace",
       "irn_armistice": "Ceasefire in Iran",
       "irn_new_shah": "A Change of Shah",
       "irq_armistice": "Armistice in Iraq",
@@ -15956,6 +16090,11 @@
       "gen_strike_losses": "Strike Losses",
       "gen_war_bonds_spirit": "War Bonds",
       "grc_mountain_defense": "Mountain Defence",
+      "imjin_jos_caught_unready": "Caught Unready",
+      "imjin_jos_half_ready": "Half Ready",
+      "imjin_jp_full_wave": "The Whole Army Crosses",
+      "imjin_jp_regency_spirit": "The Regency",
+      "imjin_jp_thin_wave": "A Thin First Wave",
       "ita_abyssinia": "Abyssinian Campaign",
       "ita_armed_neutrality_spirit": "Armed Neutrality",
       "ita_autarky_spirit": "Autarky",
@@ -16305,6 +16444,11 @@
       "gen_strike_losses": "Factories that stood idle have not yet returned to full speed.",
       "gen_war_bonds_spirit": "Citizens who bought bonds see the war as their own, though they also want more consumer goods.",
       "grc_mountain_defense": "Troops who know the ridges hold their ground longer.",
+      "imjin_jos_caught_unready": "The garrisons were not called up and the walls were not repaired.",
+      "imjin_jos_half_ready": "Some walls were repaired and some garrisons called up, but not enough.",
+      "imjin_jp_full_wave": "Every corps crossed together, fully supplied.",
+      "imjin_jp_regency_spirit": "Five great lords rule for the Taikō's heir, and none trusts the others.",
+      "imjin_jp_thin_wave": "The army crossed before the muster was complete.",
       "ita_abyssinia": "The war in East Africa, begun in October 1935, rallies the nation but swallows its goods.",
       "ita_armed_neutrality_spirit": "Italy stays out of the war but keeps its army on the frontiers.",
       "ita_autarky_spirit": "Home mines and substitutes are preferred to imports, whatever they cost.",

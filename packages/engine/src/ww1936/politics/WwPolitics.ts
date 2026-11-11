@@ -948,6 +948,9 @@ export class WwPolitics {
     // mechanisms, landmarks (neutral before depth.start, pre-flight §0-9).
     const depth = this.ww.depth as WwDepth | undefined;
     if (depth !== undefined) add(7, depth.statsPart(c.smallID));
+    // ww177 I4b: the Imjin War's Japan, its daimyo and the regency.
+    const jp = this.ww.japan?.statsPart(c.smallID) ?? null;
+    if (jp !== null) add(7, jp);
   }
 
   private addTrait(

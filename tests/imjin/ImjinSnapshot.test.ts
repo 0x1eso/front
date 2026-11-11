@@ -15,8 +15,8 @@ const CONFIG: Partial<GameConfig> = {
 const HUMANS = [{ clientID: HUMAN }];
 const hash = (r: { game: unknown }) => (r.game as { hash(): number }).hash();
 
-// Pinned at the lane I0a commit with two equal runs (imjinmini, 3,000 ticks).
-const IMJIN_DIGEST = "e75ea81f001de94e";
+// Pinned at lane I4b (Japan's politics) with two equal runs (imjinmini, 3,000 ticks).
+const IMJIN_DIGEST = "4cbc781891c06217";
 
 async function imjinRunner() {
   return wwRunner(CONFIG, HUMANS, MAP);
