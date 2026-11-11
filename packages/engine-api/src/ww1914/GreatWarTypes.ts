@@ -447,6 +447,21 @@ export const GwLandMoveSchema = z.object({
 });
 export type GwLandMove = z.infer<typeof GwLandMoveSchema>;
 
+/** A front kept busy with raids, or left in a tacit truce (ww173 §5). */
+export const GW_TEMPOS = ["active", "quiet"] as const;
+export type GwTempo = (typeof GW_TEMPOS)[number];
+
+/** A front end that broke from strain (ww173 §3). */
+export const GwCollapseSchema = z.object({
+  theatre: z.enum(GW_THEATRES),
+  /** The end that broke. */
+  side: z.enum(GW_SIDES),
+  /** Its lead when it broke. */
+  tag: z.enum(GW_TAGS),
+  chapter: z.number().int(),
+});
+export type GwCollapse = z.infer<typeof GwCollapseSchema>;
+
 export const GwTheatreStateSchema = z.object({
   id: z.enum(GW_THEATRES),
   /** Index into GW_LINES[id]. */
@@ -463,6 +478,15 @@ export const GwTheatreStateSchema = z.object({
   commander: GwIdSchema.nullable(),
   /** Chapter it opened; null while closed. */
   since: z.number().int().nullable(),
+  // ww173 phase A (design ww173 §3, §5). Absent until first used.
+  /** Hidden: each end's strain, 0..100, in GW_SIDES order. */
+  strain: z.tuple([z.number().int(), z.number().int()]).optional(),
+  /** The chapter from which a collapse may come again here. */
+  cooldown: z.number().int().optional(),
+  /** Places bitten past the line by small moves, -2..2: + for the up end. */
+  salient: z.number().int().optional(),
+  /** The chapter the salient last changed: its loser may take it back next. */
+  salientAt: z.number().int().optional(),
 });
 export type GwTheatreState = z.infer<typeof GwTheatreStateSchema>;
 
@@ -1108,6 +1132,8 @@ export const GwSeatStateSchema = z.object({
   house: GwHouseStateSchema.optional(),
   /** The ruler's powers used and sounded out (GwPowers.ts); absent until any. */
   powers: GwPowerStateSchema.optional(),
+  /** ww173: the chief's standing word on the fronts; absent: his own way. */
+  tempo: z.enum(GW_TEMPOS).optional(),
 });
 export type GwSeatState = z.infer<typeof GwSeatStateSchema>;
 
@@ -1609,5 +1635,7 @@ export const GreatWarStateSchema = z.object({
   pairTables: z.array(GwPairTableSchema).optional(),
   /** Places a table settled: only a new war between holder and taker moves them. */
   settled: z.array(GwPlaceSchema).optional(),
+  /** ww173: fronts that broke from strain, in order (absent until one does). */
+  collapses: z.array(GwCollapseSchema).optional(),
 });
 export type GreatWarState = z.infer<typeof GreatWarStateSchema>;

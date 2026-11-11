@@ -65,6 +65,7 @@ import { plotEffect, plotHolds } from "./Plots";
 import { changeRegime, regimeRow } from "./Regimes";
 import { SceneCtx, whoIn } from "./SceneRun";
 import { setUboats } from "./Sea";
+import { collapseHolds } from "./Stalemate";
 import { enter, leaveWar } from "./Wars";
 import { clampTo, lastOf, moveGauge, news, reason } from "./World";
 
@@ -291,6 +292,8 @@ export function worldHolds(ctx: SceneCtx, c: GwWorldCond): boolean {
     case "beaten":
     case "pair_table":
       return landHolds(gw, seat, c);
+    case "collapse":
+      return collapseHolds(gw, seat, c);
   }
 }
 

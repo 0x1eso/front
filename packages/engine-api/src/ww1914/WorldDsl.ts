@@ -365,7 +365,13 @@ export type GwWorldCond =
       with?: GwTag;
       open?: boolean;
       result?: ("won" | "lost" | "even")[];
-    } & Range);
+    } & Range)
+  /**
+   * ww173: a front end broke from strain (Stalemate.ts): the seat's own end,
+   * or with `foe` the end facing it; on one of `theatre` (absent: any).
+   * Months count from the collapse.
+   */
+  | ({ is: "collapse"; theatre?: GwTheatre[]; foe?: boolean } & Range);
 
 export type GwWorldEffect =
   /** Germany's plan for the war to come. */
@@ -716,6 +722,11 @@ export const GwWorldCondSchema = z.union([
     with: tag.optional(),
     open: z.boolean().optional(),
     result: z.array(z.enum(["won", "lost", "even"])).optional(),
+    ...range,
+  }),
+  is("collapse", {
+    theatre: z.array(theatre).optional(),
+    foe: z.boolean().optional(),
     ...range,
   }),
 ]) as unknown as z.ZodType<GwWorldCond>;

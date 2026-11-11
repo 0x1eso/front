@@ -388,7 +388,17 @@ export function occupationStep(gw: GreatWar): void {
   const s = gw.s;
   if (s.armistice !== null || !isLongChapter(gw) || !hasLandGraph(gw)) return;
   const fronts = frontLand(gw);
-  let tiles = 0;
+  // One budget with the fronts' small moves this chapter (ww173 §5): what
+  // they bit is spent already; the first group still always goes.
+  const graph = landGraph(gw);
+  let tiles = s.news
+    .filter(
+      (x) =>
+        x.chapter === s.chapter &&
+        x.place !== undefined &&
+        (x.key === "front_salient" || x.key === "front_salient_back"),
+    )
+    .reduce((k, x) => k + (graph.tiles.get(x.place!) ?? 0), 0);
   let groups = 0;
   for (const n of [...s.nations]) {
     const owner = n.tag;

@@ -24,6 +24,7 @@ import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { warMonths } from "./Eras";
 import type { GreatWar } from "./GreatWar";
 import { armyCommander } from "./People";
+import { partnerOut } from "./Strain";
 import {
   GW_BEHIND,
   GW_COALITION_FRONTS,
@@ -279,6 +280,7 @@ function callMobilisation(gw: GreatWar, tag: GwTag): void {
 export function leaveWar(gw: GreatWar, tag: GwTag, why: string): void {
   const n = gw.nation(tag);
   if (n === null || n.out) return;
+  partnerOut(gw, tag);
   n.out = true;
   // Knocked out, not a peace of two: its land is open to occupation (ww172).
   gw.s.beaten ??= [];

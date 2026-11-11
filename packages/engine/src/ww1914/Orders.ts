@@ -236,6 +236,11 @@ export function applyGwOrder(
       return takePower(gw, seat, o);
     case "ask":
       return askFirst(gw, seat, o.card, o.topic);
+    case "front_tempo":
+      // A standing word, not a paper: it holds until changed (ww173 §5).
+      if (o.tempo === null) delete seat.tempo;
+      else seat.tempo = o.tempo;
+      return null;
   }
 }
 

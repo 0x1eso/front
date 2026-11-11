@@ -14,6 +14,7 @@ import { GW_AUTHORITY } from "./AuthorityTable";
 import { GW_GOV } from "./GovTable";
 import type { GreatWar } from "./GreatWar";
 import { onAppointed } from "./People";
+import { regimeHope } from "./Strain";
 import { defOf, news, reason, seatsOf, turn } from "./World";
 
 export interface GwRegimeRow {
@@ -180,6 +181,7 @@ export function changeRegime(gw: GreatWar, tag: GwTag, to: string): void {
   }
   news(gw, `regime_${to}`, tag);
   turn(gw, `regime_${to}@${tag}`);
+  regimeHope(gw, tag);
   for (const seat of seatsOf(gw, tag)) {
     reason(gw, seat, `regime_${to}`);
     seat.desk = seat.desk.filter((c) => !oldOrder(tag, to, c.scene));

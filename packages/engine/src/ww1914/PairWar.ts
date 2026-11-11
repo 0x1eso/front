@@ -36,6 +36,7 @@ import {
 } from "./Ladder";
 import { holderOf } from "./Land";
 import { capitalHolder } from "./Occupation";
+import { STRAIN_WORN, worstStrain } from "./Strain";
 import { queuePairTable } from "./Table";
 import { GW_AI_MAIN } from "./Tables";
 import { treatyAllies } from "./Treaties";
@@ -273,6 +274,10 @@ export function peaceWill(gw: GreatWar, tag: GwTag, foe: GwTag): number {
   else if (n.gauges.morale <= 2) will += 10;
   if (n.manpower < 25) will += 15;
   if (n.unrest >= 2) will += 15;
+  // A worn front talks sooner (ww173).
+  const worn = worstStrain(gw, tag);
+  if (worn >= 80) will += 25;
+  else if (worn >= STRAIN_WORN) will += 15;
   will -= Math.floor(pairScore(gw, tag, foe) / 2);
   will += { cautious: 15, opportunist: 10, principled: 0, hardline: -15 }[n.ai];
   return will;

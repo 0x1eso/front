@@ -41,6 +41,7 @@ import {
 import { generalsFor } from "./Post";
 import { pressView } from "./Press";
 import { holderOf, holds } from "./SceneRun";
+import { endStrain, strainWord } from "./Strain";
 import { GW_ACTORS, GW_COMMAND_NAMED_AFTER } from "./Tables";
 import { sideIn } from "./Wars";
 import { lastOf, ownPeople } from "./World";
@@ -97,6 +98,7 @@ function frontView(
   const side =
     sideIn(gw, t.id, seat.tag) ?? gw.nation(seat.tag)?.side ?? GW_SIDES[0];
   const mine = GW_SIDES.indexOf(side);
+  const own = sideIn(gw, t.id, seat.tag);
   const b = lastOf(gw.s.battles.filter((x) => x.theatre === t.id));
   return {
     id: t.id,
@@ -107,6 +109,8 @@ function frontView(
     up: GW_FRONT_UP[t.id],
     trench: t.trench,
     commander: namedCommander(gw, seat, t),
+    // Our own end only: the enemy's strain is never the seat's to read.
+    ...(own === null ? {} : { strain: strainWord(endStrain(t, own)) }),
     last:
       b === undefined
         ? null
@@ -239,6 +243,7 @@ export function worldView(gw: GreatWar, seat: GwSeatState): GwWorldView {
     plan: s.plan,
     signed: seat.signed === s.chapter,
     proposals: proposalsFor(gw, seat),
+    tempo: seat.tempo ?? null,
     fronts: ownFronts(gw, seat).map((t) => frontView(gw, seat, t)),
     generals: generalsFor(gw, seat),
     chain:

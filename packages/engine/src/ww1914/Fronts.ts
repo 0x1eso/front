@@ -31,6 +31,8 @@ import {
 } from "./Eras";
 import type { GreatWar } from "./GreatWar";
 import { officeHolder, recordResult } from "./People";
+import { collapseAnswers, pressureStep } from "./Stalemate";
+import { easeStrain, NEW_ARMIES_EASE, strainHold, strainPush } from "./Strain";
 import {
   GW_AI_RESEARCH,
   GW_ARMY_QUALITY,
@@ -89,8 +91,8 @@ const BOLD_FLOOR = 75;
 /** Chapters of the opening, when plans run on what was drawn up in peace. */
 const OPENING_CHAPTERS = 3;
 /** The narrow roll: it sways a result, never reverses a plain one. */
-const ROLL_SPAN = 31;
-const ROLL_LOW = 85;
+export const ROLL_SPAN = 31;
+export const ROLL_LOW = 85;
 
 /** A chapter's chance to dig in further, by theatre. */
 const TRENCH_EVERY: Readonly<Partial<Record<GwTheatre, number>>> = {
@@ -199,7 +201,7 @@ const REACH_BY: Readonly<Partial<Record<GwTheatre, number>>> = {
 };
 
 /** How much war a theatre holds next to the west: casualties, percent. */
-const SCALE_OF: Readonly<Partial<Record<GwTheatre, number>>> = {
+export const SCALE_OF: Readonly<Partial<Record<GwTheatre, number>>> = {
   west: 100,
   east: 90,
   italy: 60,
@@ -224,7 +226,7 @@ export function allocOf(gw: GreatWar, tag: GwTag): GwAlloc | null {
   return gw.nation(tag)?.alloc ?? null;
 }
 
-function bandOf(gw: GreatWar, t: GwTheatre, side: GwSide): number {
+export function bandOf(gw: GreatWar, t: GwTheatre, side: GwSide): number {
   const bands = membersOf(gw, t, side).map(
     (tag) => gw.nation(tag)!.strength[t] ?? 1,
   );
@@ -330,7 +332,7 @@ function groundOf(gw: GreatWar, t: GwTheatreState, foe: GwSide): number {
   return (GROUND[t.id]?.[line] ?? 0) + (built?.pct ?? 0);
 }
 
-function seasonOf(gw: GreatWar, t: GwTheatre): number {
+export function seasonOf(gw: GreatWar, t: GwTheatre): number {
   return GW_SEASON[t]?.[civilFromDays(gw.s.day).month] ?? 0;
 }
 
@@ -392,12 +394,15 @@ function orderBias(gw: GreatWar, t: GwTheatre, by: GwSide): number {
 /**
  * Attack against defence, percent, before the roll. `planned`: what the effort
  * signed this chapter adds; without it, what the theatre would do if pressed.
+ * `raid` (ww173): a trench raid's odds, across no-man's land into the first
+ * line only: no depth of trench, no ground, no era and no home soil count.
  */
-function oddsOf(
+export function oddsOf(
   gw: GreatWar,
   t: GwTheatreState,
   by: GwSide,
   planned = true,
+  raid = false,
 ): number {
   const foe = other(by);
   const effort = planned ? effortOf(gw, t.id, by) : 25;
@@ -405,21 +410,26 @@ function oddsOf(
   const d = leadOf(gw, t.id, foe);
   const edge = a === null || d === null ? 0 : techEdge(a, d);
   const shield = d === null ? 0 : techShield(d);
+  // A strained army attacks worse, and holds worse still (ww173 §3).
   const att =
-    ((bandOf(gw, t.id, by) + effort) *
+    ((((bandOf(gw, t.id, by) + effort) *
       fireOf(gw, t.id, by) *
       commandOf(gw, t, by)) /
-    10000;
+      10000) *
+      strainPush(t, by)) /
+    100;
+  const trench = raid ? 0 : t.trench;
   const def =
-    ((bandOf(gw, t.id, foe) + 12 + reservesOf(gw, t.id, foe)) *
+    ((((bandOf(gw, t.id, foe) + 12 + reservesOf(gw, t.id, foe)) *
       (100 +
-        t.trench * (TRENCH_WORTH_BY[t.id] ?? TRENCH_WORTH) +
-        groundOf(gw, t, foe) +
-        eraOf(gw).defence +
+        trench * (TRENCH_WORTH_BY[t.id] ?? TRENCH_WORTH) +
+        (raid ? 0 : groundOf(gw, t, foe) + eraOf(gw).defence) +
         shield) *
       (50 + holdingFire(gw, t.id, foe) / 2) *
       commandOf(gw, t, foe)) /
-    1000000;
+      1000000) *
+      strainHold(t, foe)) /
+    100;
   const home = t.line <= GW_FRONT_START[t.id] && by !== GW_FRONT_UP[t.id];
   const bias =
     openingBias(gw, t.id, by) +
@@ -429,7 +439,7 @@ function oddsOf(
     craftEdge(gw, d, t.id, "defence") -
     seasonOf(gw, t.id) -
     reachOf(t, by) * (REACH_BY[t.id] ?? REACH_COST) -
-    (home && t.id !== "sea" ? (HOME_SOIL_BY[t.id] ?? HOME_SOIL) : 0);
+    (home && t.id !== "sea" && !raid ? (HOME_SOIL_BY[t.id] ?? HOME_SOIL) : 0);
   return Math.floor((att * 100) / Math.max(1, def)) + bias;
 }
 
@@ -452,7 +462,11 @@ function atEnd(t: GwTheatreState, by: GwSide): boolean {
     : posOf(t) <= 0;
 }
 
-function attacks(gw: GreatWar, t: GwTheatreState, side: GwSide): boolean {
+export function attacks(
+  gw: GreatWar,
+  t: GwTheatreState,
+  side: GwSide,
+): boolean {
   if (atEnd(t, side)) return false;
   return membersOf(gw, t.id, side).some((tag) => {
     const a = allocOf(gw, tag);
@@ -479,7 +493,12 @@ function gainOf(result: GwResult, trench: number): number {
   return [3, 2, 2, 1, 1, 1][trench];
 }
 
-function move(gw: GreatWar, t: GwTheatreState, by: GwSide, gain: number): void {
+export function move(
+  gw: GreatWar,
+  t: GwTheatreState,
+  by: GwSide,
+  gain: number,
+): void {
   const dir = by === GW_FRONT_UP[t.id] ? 1 : -1;
   const top = GW_LINES[t.id].length - 1;
   const pos = clampTo(posOf(t) + dir * gain, 0, top * GW_LINE_STEP);
@@ -515,7 +534,12 @@ function lossesOf(
 }
 
 /** A side's losses fall on who is there, by what each has there. */
-function bleed(gw: GreatWar, t: GwTheatre, side: GwSide, lost: number): void {
+export function bleed(
+  gw: GreatWar,
+  t: GwTheatre,
+  side: GwSide,
+  lost: number,
+): void {
   const members = membersOf(gw, t, side);
   const bands = members.map((tag) => gw.nation(tag)!.strength[t] ?? 1);
   const all = bands.reduce((a, b) => a + b, 0);
@@ -738,6 +762,8 @@ function newArmies(gw: GreatWar): void {
       5,
     );
     news(gw, "new_armies", row.tag, null, row.theatre);
+    const end = sideIn(gw, row.theatre, row.tag);
+    if (end !== null) easeStrain(gw, row.theatre, end, -NEW_ARMIES_EASE);
   }
 }
 
@@ -798,9 +824,14 @@ export function frontsStep(gw: GreatWar): void {
   if (s.armistice !== null) return;
   if (!isLongChapter(gw)) return;
   signDefaults(gw);
+  collapseAnswers(gw);
   for (const n of s.nations) n.lostNow = 0;
   // A front opened as this chapter closed waits for its first plans.
-  for (const t of s.theatres) if (t.open && t.since !== s.chapter) judge(gw, t);
+  const judged = s.theatres.filter((t) => t.open && t.since !== s.chapter);
+  const before = judged.map((t) => posOf(t));
+  for (const t of judged) judge(gw, t);
+  // Strain, small moves and collapse, once every front is judged (ww173).
+  pressureStep(gw, judged, before);
   for (const t of s.theatres) if (t.open) dig(gw, t);
   refill(gw);
   newArmies(gw);
