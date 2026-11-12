@@ -563,7 +563,10 @@ describe("hands-off wars", () => {
     const years = new Set<string>();
     const wests = new Set<string>();
     let america = 0;
-    for (let i = 0; i < 10; i++) {
+    // ww196 merge: 14 games, so the rarer ends (a conference, the polls) are
+    // among them; ten all ran to the Central collapse after the departments'
+    // rework, though the end months still spread over three years.
+    for (let i = 0; i < 14; i++) {
       const s = await warShape(`GWSH${i}`, "GBR");
       ends.add(s.armistice ?? "none");
       if (s.entered.USA !== undefined) america++;

@@ -265,10 +265,13 @@ export function clearDesk(
   roll: (below: number) => number,
   rec: GwRunRecord,
 ): void {
-  for (let guard = 0; guard < 500 && seat.desk.length > 0; guard++) {
+  for (let guard = 0; guard < 500; guard++) {
     // A decision can end the game; what is left on the desk stays unread.
     if (gw.s.ended !== null) return;
-    const card = seat.desk[0];
+    // ww196: department papers never block the chapter (deptsAll answers
+    // them); the rest of the desk is cleared around them.
+    const card = seat.desk.find((c) => c.paper === undefined);
+    if (card === undefined) return;
     const scene = sceneOf(card.scene)!;
     const ctx = ctxOf(gw, seat, card);
     if (card.node !== null) {
@@ -470,8 +473,9 @@ export async function playRun(
       summonAll(gw, seat, profile, roll, rec);
       clearDesk(gw, seat, profile, roll, rec);
       if (gw.s.ended !== null) break;
-      if (seat.desk.length > 0) {
-        throw new Error(`${gameID}: desk stuck on ${seat.desk[0].scene}`);
+      const stuck = seat.desk.find((c) => c.paper === undefined);
+      if (stuck !== undefined) {
+        throw new Error(`${gameID}: desk stuck on ${stuck.scene}`);
       }
       signPaper(gw, seat, roll, rec);
       seat.ready = true;

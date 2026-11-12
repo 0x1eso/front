@@ -50,7 +50,9 @@ const seatView = (r: GameRunner, tag: string) => {
 function clearDesk(r: GameRunner, who: string, tag: string): string[] {
   const seen: string[] = [];
   for (let guard = 0; guard < 50; guard++) {
-    const card = seatView(r, tag).desk[0];
+    // ww196: department papers never block the chapter; the plain way
+    // leaves them on the desk.
+    const card = seatView(r, tag).desk.find((c) => c.paper === undefined);
     if (card === undefined) break;
     seen.push(card.scene);
     if (card.node !== null) {

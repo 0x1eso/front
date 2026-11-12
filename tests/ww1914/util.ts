@@ -49,7 +49,10 @@ export function order(r: GameRunner, o: GwOrder): void {
 export function playChapter(r: GameRunner): void {
   const gw = r.game.greatWar()!;
   for (let guard = 0; guard < 50; guard++) {
-    const card = gwDeskView(gw, gw.s.seats[0])[0];
+    // ww196: department papers never block the chapter; clear around them.
+    const card = gwDeskView(gw, gw.s.seats[0]).find(
+      (c) => c.paper === undefined,
+    );
     if (card === undefined) break;
     if (card.node !== null) {
       const reply = card.replies.find((x) => x.open)!;

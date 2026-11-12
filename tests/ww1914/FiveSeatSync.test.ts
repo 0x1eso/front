@@ -51,7 +51,8 @@ function next(
   done: Set<string>,
 ): GwOrder | null {
   const pick = <T>(a: readonly T[]): T => a[roll(a.length)];
-  const card = v.desk[0];
+  // ww196: department papers never block the chapter; clear around them.
+  const card = v.desk.find((c) => c.paper === undefined);
   if (card !== undefined) {
     if (card.node !== null) {
       const open = card.replies.filter((x) => x.open);
@@ -197,6 +198,9 @@ describe("five seats at once", () => {
     }
     expect(joined).toBe(true);
     const end = `${gwOf(clients[0]).s.ended} at ${gwOf(clients[0]).s.chapter}`;
-    expect(digests.length, end).toBeGreaterThanOrEqual(30);
+    // ww196 merge: a peace may end it first; it must still run well past the
+    // rejoin. Otherwise 30 chapters in step.
+    const ended = gwOf(clients[0]).s.ended !== null;
+    expect(digests.length, end).toBeGreaterThanOrEqual(ended ? 20 : 30);
   }, 600000);
 });
