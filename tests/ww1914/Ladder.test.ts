@@ -6,7 +6,11 @@ import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
 import { GW_LADDER_POWERS } from "@openfront/engine-lib/ww1914/content/ladder";
 import { GW_FILLER_SCENES } from "@openfront/engine-lib/ww1914/content/scenes/filler";
 import type { GameRunner } from "@openfront/engine/GameRunner";
-import { closeChain, crisisStep } from "@openfront/engine/ww1914/Crises";
+import {
+  closeChain,
+  crisisStep,
+  GW_SPARK_NEAR,
+} from "@openfront/engine/ww1914/Crises";
 import type { GreatWar } from "@openfront/engine/ww1914/GreatWar";
 import {
   ladderAnswer,
@@ -190,8 +194,14 @@ describe("the crisis ladder", () => {
       });
     }
     gw.s.temp = 0;
-    // ww190: a later spark lights on the question under most pressure.
-    gw.s.pressure = { ...gw.s.pressure, balkan: 0, straits: 0, colonial: 1 };
+    // ww190: a later spark lights on the question under most pressure (a
+    // near tie, within GW_SPARK_NEAR, is the seed's).
+    gw.s.pressure = {
+      ...gw.s.pressure,
+      balkan: 0,
+      straits: 0,
+      colonial: GW_SPARK_NEAR + 1,
+    };
     gw.s.spark = { topic: "colonial", chapter: gw.s.chapter };
     crisisStep(gw);
     expect(gw.s.chain).toMatchObject({ topic: "colonial", short: true });

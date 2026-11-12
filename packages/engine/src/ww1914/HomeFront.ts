@@ -66,7 +66,8 @@ const TENTH = 10;
 /** Laws that put women into the works or every man into service. */
 const SERVICE_LAWS: readonly string[] = ["gbr_conscription", "deu_aux"];
 /** The flu: war months before it can come, the date it can come at peace. */
-const FLU_WAR_MONTHS = 36;
+// ww190 tune: was 36; a war begun in 1915 met no flu before its game ended.
+const FLU_WAR_MONTHS = 24;
 const FLU_PEACE_FROM = [1918, 3] as const;
 const FLU_WAVE_MONTHS = 3;
 const FLU_WAVES = 3;
@@ -368,7 +369,8 @@ function fluStep(gw: GreatWar): void {
   const f = s.flu;
   if (f === undefined) {
     if (!fluCan(gw)) return;
-    const odds = crowded(gw) ? 3 : 6;
+    // ww190 tune: was one in three and one in six.
+    const odds = crowded(gw) ? 2 : 4;
     if (wwRoll(s.seed, P_FLU, s.chapter, 0) % odds === 0) fluStrikes(gw, 1);
     return;
   }

@@ -126,7 +126,8 @@ describe("the home front", () => {
     const rows = gwChapters(gw.s.calendar);
     gw.s.warChapter = nextMonth(gw, 8);
     gw.s.chapter = gw.s.warChapter;
-    for (let i = 0; i < 30; i++) {
+    // ww190 tune: it can come from the 24th month of war (was the 36th).
+    for (let i = 0; i < 22; i++) {
       gw.s.chapter = nextMonth(gw, gw.s.chapter);
       homeFrontStep(gw);
     }

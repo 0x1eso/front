@@ -52,18 +52,25 @@ const opt = (scene: string, id: string, effects: GwEffect[]): GwOption => ({
 });
 
 /** A wire about others' quarrels, read and put down. */
-function incident(id: string, nation: GwTag[], topic: Topic): GwScene {
+function incident(
+  id: string,
+  nation: GwTag[],
+  topic: Topic,
+  // ww190 tune: they ripen in turn as pressure climbs (about a point a month
+  // in peace), not all in the first autumn; was 4 for every one.
+  at = 4,
+): GwScene {
   return {
     id,
     nation,
     kind: "wire",
-    when: all(peace(2), pressure(topic, 4)),
+    when: all(peace(2), pressure(topic, at)),
     cast: {},
     salience: 3,
     tags: ["foreign", "tension_up"],
     cooldown: 6,
     max: 2,
-    variants: [{ id: "hot", when: pressure(topic, 7) }, { id: "base" }],
+    variants: [{ id: "hot", when: pressure(topic, at + 3) }, { id: "base" }],
   };
 }
 
@@ -79,10 +86,10 @@ const brokenOf = (kind: GwAccordKind): GwVariant => ({
 export const GW_YEARS_SCENES: readonly GwScene[] = [
   // ---- §1 incidents among the others ----
   incident("gw_y_albania", [...SEATS], "balkan"),
-  incident("gw_y_dreadnoughts", [...SEATS], "straits"),
-  incident("gw_y_liman", except("DEU"), "straits"),
-  incident("gw_y_portugal", except("DEU", "GBR"), "colonial"),
-  incident("gw_y_baghdad", except("DEU", "GBR"), "colonial"),
+  incident("gw_y_dreadnoughts", [...SEATS], "straits", 8),
+  incident("gw_y_liman", except("DEU"), "straits", 12),
+  incident("gw_y_portugal", except("DEU", "GBR"), "colonial", 16),
+  incident("gw_y_baghdad", except("DEU", "GBR"), "colonial", 20),
   {
     id: "gw_y_arms_abroad",
     nation: [...SEATS],
@@ -163,7 +170,8 @@ export const GW_YEARS_SCENES: readonly GwScene[] = [
     nation: [...SEATS],
     kind: "wire",
     when: all(
-      world({ is: "chain", short: true, min: 1, max: 2 }),
+      // ww190 tune: a later spark opens at step 3 (GW_SHORT_START).
+      world({ is: "chain", short: true, min: 3, max: 4 }),
       not(world({ is: "war" })),
     ),
     cast: {},
@@ -182,7 +190,10 @@ export const GW_YEARS_SCENES: readonly GwScene[] = [
     id: "gw_y_long_peace",
     nation: [...SEATS],
     kind: "report",
-    when: peace(30),
+    // ww190 tune: peace_months counts from the last crisis, so 30 never came.
+    // The home question climbs about a point a month in peace: the state, not
+    // a date, says the peace has lasted.
+    when: all(peace(2), { kind: "pressure", topic: "home", min: 21 }),
     cast: {},
     salience: 4,
     tags: ["home", "tension_down"],

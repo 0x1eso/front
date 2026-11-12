@@ -14,7 +14,8 @@ test("a Germany nobody plays doesn't ask in the first thirty months", async () =
     expect(s.out.DEU === undefined || s.out.DEU >= "1917-01").toBe(true);
     if (s.endMonth < "1917-01" && s.armistice === null) {
       expect(s.out.RUS).toBe(s.endMonth);
-      expect(s.outWhy.RUS).toBe("nation_collapsed");
+      // Russia goes by itself: collapsed, or (ww190 tune) beaten in the field.
+      expect(["nation_collapsed", "nation_beaten"]).toContain(s.outWhy.RUS);
     } else if (s.endMonth < "1917-01") {
       // Or Russia wins it at the straits (aw-RUS-10 takes Constantinople
       // in 1916, since before ww187): the seat's own win, not Germany asking.

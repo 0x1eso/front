@@ -377,7 +377,9 @@ function wornAsk(gw: GreatWar): void {
 /** Late in a hard war, a quiet offer comes: the way out is always shown. */
 function peaceFeelers(gw: GreatWar): void {
   const s = gw.s;
-  if (!everyMonths(gw, 6, 3)) return;
+  // ww190 tune: every ten months from the sixth (was six from the third), so
+  // a long war brings it five times, not eight.
+  if (!everyMonths(gw, 10, 6)) return;
   for (const seat of s.seats) {
     const n = gw.nation(seat.tag);
     if (n === null || !fights(n)) continue;

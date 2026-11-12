@@ -335,7 +335,8 @@ function health(gw: GreatWar, seat: GwSeatState, p: GwPersonState): void {
   }
   if (p.health !== 1 || p.office === null || s.warChapter === null) return;
   const i = s.people.indexOf(p);
-  const strain = p.office === "chief_of_staff" ? 12 : 4;
+  // ww190 tune: was 12 and 4; a long war laid the illness card six or seven times.
+  const strain = p.office === "chief_of_staff" ? 8 : 3;
   if (wwRoll(s.seed, P_HEALTH_FAIL, s.chapter, i) % 100 < strain) {
     p.ailing = s.chapter;
     seat.subjects.gw_ailing = p.id;

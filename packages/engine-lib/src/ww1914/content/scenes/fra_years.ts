@@ -219,7 +219,8 @@ const TALKS: GwScene[] = [
     "fra_y_accord_seek",
     all(
       peace(3),
-      pressure("colonial", 4),
+      // ww190 tune: was 4; the accord is sought once the question has ripened.
+      pressure("colonial", 12),
       not(world({ is: "accord", kind: "colonial", tag: "DEU" })),
       not(world({ is: "accord_offered" })),
     ),
@@ -325,8 +326,9 @@ const INCIDENTS: GwScene[] = [
   ),
   paper(
     "fra_y_inc_border",
-    all(peace(), pressure("alsace", 5)),
-    [v("high", pressure("alsace", 7)), v("base")],
+    // ww190 tune: incidents ripen in turn as pressure climbs.
+    all(peace(), pressure("alsace", 10)),
+    [v("high", pressure("alsace", 13)), v("base")],
     [
       ["ten_km", [press("alsace", -1), opinion("army", -1)]],
       ["note", [temp(1), opinion("press", 1)]],
@@ -336,8 +338,9 @@ const INCIDENTS: GwScene[] = [
   ),
   paper(
     "fra_y_inc_morocco",
-    all(peace(), pressure("colonial", 4)),
-    [v("high", pressure("colonial", 7)), v("base")],
+    // ww190 tune: incidents ripen in turn as pressure climbs.
+    all(peace(), pressure("colonial", 15)),
+    [v("high", pressure("colonial", 18)), v("base")],
     [
       ["settle", [press("colonial", -1), gauge("money", -1)]],
       ["court", [press("colonial", -1), temp(1)]],
@@ -347,10 +350,11 @@ const INCIDENTS: GwScene[] = [
   ),
   paper(
     "fra_y_inc_straits",
-    all(peace(), any(pressure("straits", 4), pressure("balkan", 4))),
+    // ww190 tune: incidents ripen in turn as pressure climbs.
+    all(peace(), any(pressure("straits", 19), pressure("balkan", 19))),
     [
-      v("straits", pressure("straits", 7)),
-      v("balkan", pressure("balkan", 4)),
+      v("straits", pressure("straits", 22)),
+      v("balkan", pressure("balkan", 19)),
       v("base"),
     ],
     [
@@ -378,7 +382,11 @@ const HOME: GwScene[] = [
   ),
   paper(
     "fra_y_home_long_peace",
-    peace(18),
+    // ww190 tune: peace_months counts from the last crisis, so 18 of them never
+    // came. The home question climbs about a point a month in peace: at 12
+    // the summer is a year behind (the state, not a
+    // date), two quiet months on.
+    all(peace(2), { kind: "pressure", topic: "home", min: 12 }),
     [v("armed", arming(null, 2)), v("base")],
     [
       ["exhibition", [gauge("morale", 1), gauge("money", -1)]],

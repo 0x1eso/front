@@ -5612,6 +5612,7 @@
       "source_record": "{source}: {right} right, {wrong} wrong",
       "sources_title": "Their record so far",
       "stage": {
+        "aftermath": "After the peace",
         "closing": "Closing",
         "conference": "The peace conference",
         "crisis": "Crisis",
