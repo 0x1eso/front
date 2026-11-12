@@ -361,7 +361,12 @@ const ITALY: GwScene[] = [
       v("ally_in", all(entered("ITA", "entente"), entente)),
       v("turned", all(entered("ITA", "entente"), central)),
       v("base"),
-    ],
+    ].map((x) =>
+      // ww187: the new front on the Isonzo: the line still there.
+      ["bought", "ally_in", "turned"].includes(x.id)
+        ? { ...x, assumes: { line: { italy: ["trentino", "isonzo"] } } }
+        : x,
+    ),
   ),
   report(
     "gw_o_ita_stays",
@@ -715,8 +720,20 @@ const ROMANIA: GwScene[] = [
         ),
       ),
       v("central", central),
+      // ww187: the fall read by the side that took it, by the side that lost
+      // it, and a plain end for a peace that left the capital Romanian.
+      v("fell", w({ is: "held", place: "bucharest", by: "foe" })),
       v("base"),
-    ],
+    ].map((x) =>
+      // "부쿠레슈티는 떨어졌다": the capital in enemy hands.
+      x.id === "broken"
+        ? { ...x, assumes: { held: { bucharest: "foe" } } }
+        : x.id === "central"
+          ? { ...x, assumes: { held: { bucharest: "us" } } }
+          : x.id === "fell"
+            ? { ...x, assumes: { held: { bucharest: "foe" } } }
+            : x,
+    ),
   ),
 ];
 

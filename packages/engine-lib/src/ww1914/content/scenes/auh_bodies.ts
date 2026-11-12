@@ -53,7 +53,12 @@ function apply(s: GwScene, b: GwBodies): GwScene {
   const like = (id: string) => s.variants.find((v) => v.id === id)?.when;
   const added = (b.variants ?? []).map(({ like: l, ...v }): GwVariant => {
     const when = l === undefined ? v.when : like(l);
-    return when === undefined ? { id: v.id } : { id: v.id, when };
+    // ww187: an added body keeps what its text assumes.
+    return {
+      id: v.id,
+      ...(when === undefined ? {} : { when }),
+      ...(v.assumes === undefined ? {} : { assumes: v.assumes }),
+    };
   });
   const nodes = Object.entries(b.nodes ?? {}).map(
     ([id, n]) => [id, node(s, n.replies)] as const,
@@ -2965,7 +2970,14 @@ const BODIES: Readonly<Record<string, GwBodies>> = {
   },
   // With the heir alive the old emperor's death crowns him, not Karl.
   gw_succession_auh: {
-    variants: [{ id: "ff", when: { kind: "flag", flag: "w_auh_ff_throne" } }],
+    // ww187: the heir who survived Sarajevo takes the throne.
+    variants: [
+      {
+        id: "ff",
+        when: { kind: "flag", flag: "w_auh_ff_throne" },
+        assumes: { active: ["auh_ff"] },
+      },
+    ],
   },
   auh_w_ledger_1914: { gate: noTruce },
   auh_w_ledger_1917: { gate: noTruce },

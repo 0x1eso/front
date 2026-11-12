@@ -74,7 +74,7 @@ const manpower = (delta: number): GwEffect => ({
 });
 
 type ReportOpts = Pick<GwScene, "nation" | "when" | "salience" | "tags"> &
-  Partial<Pick<GwScene, "stamp" | "source" | "cooldown">> & {
+  Partial<Pick<GwScene, "stamp" | "source" | "cooldown" | "assumes">> & {
     variants: GwVariant[];
     repeats?: boolean;
   };
@@ -102,6 +102,8 @@ const foeGained = (theatre: string) =>
 const NEWS: readonly GwScene[] = [
   report("gw_n_gallipoli", {
     nation: except("GBR"),
+    // ww187: the landing holds the beaches, not the Narrows.
+    assumes: { line: { straits: ["dardanelles", "gallipoli"] } },
     when: all(
       w({ is: "open", theatre: "straits" }),
       world({ is: "war_months", min: 8, max: 17 }),
@@ -112,6 +114,8 @@ const NEWS: readonly GwScene[] = [
   }),
   report("gw_n_kut", {
     nation: except("GBR"),
+    // ww187: "바그다드까지 가려던 군대": Baghdad still Ottoman.
+    assumes: { held: { baghdad: "owner" } },
     when: all(
       w({ is: "front", theatre: "mesopotamia", from: "kut", to: "kut" }),
       world({ is: "war_months", min: 14, max: 22 }),
@@ -150,6 +154,8 @@ const NEWS: readonly GwScene[] = [
   report("gw_n_verdun", {
     // France's own seat has its Verdun (lane ww166 W4).
     nation: except("DEU", "FRA"),
+    // ww187: the siege of a fortress still French.
+    assumes: { held: { verdun: "owner" } },
     when: all(
       w({ is: "battle", theatre: "west", of: BATTLE_ANY, by: "central" }),
       w({ is: "front", theatre: "west", from: "hindenburg", to: "aisne" }),
@@ -161,6 +167,8 @@ const NEWS: readonly GwScene[] = [
   }),
   report("gw_n_somme", {
     nation: except("GBR"),
+    // ww187: the British attack on the Somme: the west line near it.
+    assumes: { line: { west: ["hindenburg", "aisne"] } },
     when: all(
       w({ is: "battle", theatre: "west", of: BATTLE_ANY, by: "entente" }),
       w({ is: "entered", tag: "GBR" }),
@@ -244,6 +252,8 @@ const NEWS: readonly GwScene[] = [
   }),
   report("gw_n_caporetto", {
     nation: except("AUH"),
+    // ww187: the rout stopped on the Piave: the line there, not past it.
+    assumes: { line: { italy: ["piave", "piave"] } },
     when: all(
       w({ is: "front", theatre: "italy", from: "piave", to: "adige" }),
       world({ is: "war_months", min: 17, max: 51 }),
@@ -265,7 +275,11 @@ const NEWS: readonly GwScene[] = [
     ),
     salience: 5,
     tags: ["war"],
-    variants: CENTRAL_OR_BASE,
+    // ww187: "예루살렘이 떨어졌다", read by the side that lost it.
+    variants: [
+      { id: "central", when: CENTRAL, assumes: { held: { jerusalem: "foe" } } },
+      { id: "base" },
+    ],
   }),
   report("gw_n_unity", {
     nation: [...GW_TAGS],

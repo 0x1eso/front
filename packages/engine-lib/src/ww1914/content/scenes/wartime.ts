@@ -10,6 +10,7 @@ import {
   GwEffect,
   GwScene,
   inst_,
+  not,
 } from "@openfront/engine-api/ww1914/SceneDsl";
 import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
 
@@ -197,12 +198,24 @@ const GBR_HOME: GwScene[] = [
     ),
     opt("firm", ["morale:-1"], [gauge("morale", -1), why("held_firm")]),
   ]),
-  top(
-    "gw_home_gbr_4",
-    "GBR",
-    ["liberal", "coalition", "war_cabinet"],
-    ["authority:-10"],
-  ),
+  {
+    ...top(
+      "gw_home_gbr_4",
+      "GBR",
+      ["liberal", "coalition", "war_cabinet"],
+      ["authority:-10"],
+    ),
+    // ww187: the government falls in a vote while the Commons sits; with it
+    // prorogued or dissolved, it falls in the cabinet room.
+    variants: [
+      {
+        id: "shut",
+        when: not(world({ is: "sits", id: "commons" })),
+        assumes: { shut: ["commons"] },
+      },
+      { id: "base" },
+    ],
+  },
 ];
 
 const AUH_HOME: GwScene[] = [
@@ -562,6 +575,18 @@ const BODIES: GwScene[] = [
         [gauge("morale", -1), inst("court", 1), inst("ministers", 1)],
       ),
     ],
+    {
+      // ww187: called as the east line reaches Warsaw; the city's fall is
+      // told only once it is the enemy's.
+      variants: [
+        {
+          id: "fell",
+          when: world({ is: "held", place: "warsaw", by: "foe" }),
+          assumes: { held: { warsaw: "foe" } },
+        },
+        { id: "base" },
+      ],
+    },
   ),
   called(
     "gw_rus_court",
