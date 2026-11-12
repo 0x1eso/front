@@ -444,12 +444,17 @@ describe("pack shares", () => {
       "ww1914/ko/common.table.json",
       "ww1914/ko/common.house.json",
       // The common shares added since: the 통치 tab's powers (ww169), the
-      // ladder and its filler rows, the sea (ww180) and the capitals (ww188).
+      // ladder and its filler rows, the sea (ww180) and the capitals (ww188); the
+      // peace years, the ruled land, the home front and the aftermath (ww190).
       "ww1914/ko/common.powers.json",
       "ww1914/ko/common.ladder.json",
       "ww1914/ko/common.filler.json",
       "ww1914/ko/common.sea.json",
       "ww1914/ko/common.capital.json",
+      "ww1914/ko/common.years.json",
+      "ww1914/ko/common.rule.json",
+      "ww1914/ko/common.homefront.json",
+      "ww1914/ko/common.after.json",
       "ww1914/ko/DEU.cast.json",
       "ww1914/ko/GBR.people.json",
       "ww1914/ko/AUH.people.json",

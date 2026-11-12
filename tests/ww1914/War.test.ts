@@ -433,10 +433,20 @@ describe("how it stops", () => {
   });
 
   test("a separate peace closes the seat as a peace, not a defeat", async () => {
-    const { gw, runner, seat } = await war("RUS", "GWY15");
-    runEffect(ctx(gw), doWorld({ do: "separate_peace" }));
-    pass(gw, runner, 1);
-    expect(seat.memoir?.ending).toBe("rus_separate_peace");
+    // ww190: with `rus_sep_on` in the pack the seat may play on (SepPeace.test);
+    // without it, it closes at once.
+    useGwContent({
+      scenes: GW_CONTENT.scenes.filter((x) => x.id !== "rus_sep_on"),
+      people: CAST,
+    });
+    try {
+      const { gw, runner, seat } = await war("RUS", "GWY15");
+      runEffect(ctx(gw), doWorld({ do: "separate_peace" }));
+      pass(gw, runner, 1);
+      expect(seat.memoir?.ending).toBe("rus_separate_peace");
+    } finally {
+      useGwContent({ scenes: GW_CONTENT.scenes, people: CAST });
+    }
   });
 
   test("the general ending becomes the country's own", async () => {

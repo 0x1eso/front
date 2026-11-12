@@ -3,9 +3,8 @@
 // writer lane. The texts don't name the head of state: the empire may have
 // become a republic by then. Text in resources/ww1914/ko/DEU.after.json.
 //
-// `deu_aft_ratify` and `deu_sep_on` are S1's scheduled cards (ww190
-// interfaces). They are drawn here too, once, by their own state, so they
-// pass the content check before the merge lists them as called.
+// `deu_aft_ratify` and `deu_sep_on` are laid by Aftermath.ts (ww190
+// interfaces) and never drawn.
 import type {
   GwCond,
   GwScene,
@@ -62,20 +61,26 @@ const AFTERMATH: GwScene[] = [
       p("blame", trusts("foreign", -2), opinion("army", 1)),
     ],
   }),
-  card({
-    id: "deu_aft_ratify",
-    stage: AFTER,
-    when: all(not(w({ is: "ratified" })), not(w({ is: "ratified", no: true }))),
-    cast: { chancellor, foreign },
-    salience: 9,
-    tags: TAGS,
-    once: true,
-    variants: bySide,
-    options: (p) => [
-      p("yes", act({ do: "ratify", yes: true })),
-      p("no", act({ do: "ratify", yes: false }), opinion("army", 1)),
-    ],
-  }),
+  {
+    ...card({
+      id: "deu_aft_ratify",
+      stage: AFTER,
+      when: all(
+        not(w({ is: "ratified" })),
+        not(w({ is: "ratified", no: true })),
+      ),
+      cast: { chancellor, foreign },
+      salience: 9,
+      tags: TAGS,
+      once: true,
+      variants: bySide,
+      options: (p) => [
+        p("yes", act({ do: "ratify", yes: true })),
+        p("no", act({ do: "ratify", yes: false }), opinion("army", 1)),
+      ],
+    }),
+    scheduledOnly: true,
+  },
   card({
     id: "deu_aft_demob",
     stage: AFTER,
@@ -148,18 +153,21 @@ const leftAlone: GwCond = all(
 );
 
 const SEPARATE: GwScene[] = [
-  card({
-    id: "deu_sep_on",
-    when: leftAlone,
-    cast: { chancellor, foreign },
-    salience: 9,
-    tags: ["foreign", "home"],
-    once: true,
-    options: (p) => [
-      p("go_on", act({ do: "play_on", on: true })),
-      p("close", act({ do: "play_on", on: false })),
-    ],
-  }),
+  {
+    ...card({
+      id: "deu_sep_on",
+      when: leftAlone,
+      cast: { chancellor, foreign },
+      salience: 9,
+      tags: ["foreign", "home"],
+      once: true,
+      options: (p) => [
+        p("go_on", act({ do: "play_on", on: true })),
+        p("close", act({ do: "play_on", on: false })),
+      ],
+    }),
+    scheduledOnly: true,
+  },
   card({
     id: "deu_sep_home",
     when: w({ is: "left_war", min: 1 }),

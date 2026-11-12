@@ -1,7 +1,7 @@
 // Great War 1914 (ww190 §10-11): Austria-Hungary after the conference, and
 // after a peace of its own. Data only; the text is in
-// resources/ww1914/ko/AUH.after.json. S1 schedules auh_aft_ratify and
-// auh_sep_on; both are also drawn, once, so they stand before that lands.
+// resources/ww1914/ko/AUH.after.json. Aftermath.ts lays auh_aft_ratify
+// and auh_sep_on; neither is drawn.
 import type { GwCond, GwScene } from "@openfront/engine-api/ww1914/SceneDsl";
 import { all, not } from "@openfront/engine-api/ww1914/SceneDsl";
 import { doWorld } from "@openfront/engine-api/ww1914/WorldDsl";
@@ -40,20 +40,30 @@ export const AUH_AFTER_SCENES: readonly GwScene[] = [
     tags: ["foreign"],
     once: true,
   }),
-  card({
-    id: "auh_aft_ratify",
-    when: all(not(w({ is: "ratified" })), not(w({ is: "ratified", no: true }))),
-    stage: ["aftermath"],
-    cast: { fm: FM, hun: HUN },
-    vs: [["lost", side("lost")], ["won", side("won")], ["base"]],
-    picks: [
-      pick("sign", doWorld({ do: "ratify", yes: true })),
-      pick("refuse", doWorld({ do: "ratify", yes: false }), opinion("army", 1)),
-    ],
-    salience: 9,
-    tags: ["foreign"],
-    once: true,
-  }),
+  {
+    ...card({
+      id: "auh_aft_ratify",
+      when: all(
+        not(w({ is: "ratified" })),
+        not(w({ is: "ratified", no: true })),
+      ),
+      stage: ["aftermath"],
+      cast: { fm: FM, hun: HUN },
+      vs: [["lost", side("lost")], ["won", side("won")], ["base"]],
+      picks: [
+        pick("sign", doWorld({ do: "ratify", yes: true })),
+        pick(
+          "refuse",
+          doWorld({ do: "ratify", yes: false }),
+          opinion("army", 1),
+        ),
+      ],
+      salience: 9,
+      tags: ["foreign"],
+      once: true,
+    }),
+    scheduledOnly: true,
+  },
   card({
     id: "auh_aft_demob",
     when: w({ is: "demob", max: 0 }),
@@ -93,25 +103,28 @@ export const AUH_AFTER_SCENES: readonly GwScene[] = [
     once: true,
   }),
   // ---- After a peace of its own (ww190 §11) ----
-  card({
-    id: "auh_sep_on",
-    when: all(
-      w({ is: "out", tag: "AUH" }),
-      not(w({ is: "beaten", tag: "AUH" })),
-      not(w({ is: "left_war" })),
-      not(w({ is: "armistice" })),
-      w({ is: "unrest", max: 2 }),
-    ),
-    cast: { fm: FM },
-    vs: [["base"]],
-    picks: [
-      pick("on", doWorld({ do: "play_on", on: true })),
-      pick("close", doWorld({ do: "play_on", on: false })),
-    ],
-    salience: 9,
-    tags: ["foreign"],
-    once: true,
-  }),
+  {
+    ...card({
+      id: "auh_sep_on",
+      when: all(
+        w({ is: "out", tag: "AUH" }),
+        not(w({ is: "beaten", tag: "AUH" })),
+        not(w({ is: "left_war" })),
+        not(w({ is: "armistice" })),
+        w({ is: "unrest", max: 2 }),
+      ),
+      cast: { fm: FM },
+      vs: [["base"]],
+      picks: [
+        pick("on", doWorld({ do: "play_on", on: true })),
+        pick("close", doWorld({ do: "play_on", on: false })),
+      ],
+      salience: 9,
+      tags: ["foreign"],
+      once: true,
+    }),
+    scheduledOnly: true,
+  },
   card({
     id: "auh_sep_home",
     when: w({ is: "left_war", min: 1 }),

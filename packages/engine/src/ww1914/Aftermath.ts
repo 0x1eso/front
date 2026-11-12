@@ -21,6 +21,7 @@ import { beatenAt } from "./Occupation";
 import { sceneOf } from "./SceneRun";
 import {
   clampTo,
+  GW_AFTER_CHAPTERS,
   moveGauge,
   news,
   reason,
@@ -28,6 +29,8 @@ import {
   seatsOf,
   stageOf,
 } from "./World";
+
+export { GW_AFTER_CHAPTERS };
 
 export type GwAfterCond = Extract<
   GwWorldCond,
@@ -38,8 +41,6 @@ export type GwAfterEffect = Extract<
   { do: "ratify" | "demob" | "play_on" }
 >;
 
-/** Chapters of the aftermath, after the table's sessions. */
-export const GW_AFTER_CHAPTERS = 3;
 /** Seat flag: its country made its own peace and the seat plays on. */
 export const GW_SEP_ON = "gw_sep_on";
 /** Manpower back each aftermath month for a country demobilising by classes. */

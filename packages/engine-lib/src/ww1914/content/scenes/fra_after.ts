@@ -61,23 +61,26 @@ const AFTER: GwScene[] = [
     ],
     { ...AFT, cast: { pm, fm }, salience: 7 },
   ),
-  paper(
-    "fra_aft_ratify",
-    called,
-    [v("won", side("won")), v("lost", side("lost")), v("base")],
-    [
-      ["sign", [ratify(true)]],
-      ["refuse", [ratify(false), opinion("army", 1)]],
-    ],
-    {
-      ...AFT,
-      stage: undefined,
-      cast: { pm },
-      salience: 9,
-      tags: ["foreign", "tension_down"],
-      fallback: "sign",
-    },
-  ),
+  {
+    ...paper(
+      "fra_aft_ratify",
+      called,
+      [v("won", side("won")), v("lost", side("lost")), v("base")],
+      [
+        ["sign", [ratify(true)]],
+        ["refuse", [ratify(false), opinion("army", 1)]],
+      ],
+      {
+        ...AFT,
+        stage: undefined,
+        cast: { pm },
+        salience: 9,
+        tags: ["foreign", "tension_down"],
+        fallback: "sign",
+      },
+    ),
+    scheduledOnly: true,
+  },
   paper(
     "fra_aft_demob",
     all(after(0), demob(0, 0)),
@@ -118,22 +121,25 @@ const AFTER: GwScene[] = [
 ];
 
 const SEPARATE: GwScene[] = [
-  paper(
-    "fra_sep_on",
-    called,
-    [v("base")],
-    [
-      ["play_on", [playOn(true)]],
-      ["memoir", [playOn(false)]],
-    ],
-    {
-      once: true,
-      salience: 9,
-      cast: { pm },
-      tags: ["home", "tension_down"],
-      fallback: "memoir",
-    },
-  ),
+  {
+    ...paper(
+      "fra_sep_on",
+      called,
+      [v("base")],
+      [
+        ["play_on", [playOn(true)]],
+        ["memoir", [playOn(false)]],
+      ],
+      {
+        once: true,
+        salience: 9,
+        cast: { pm },
+        tags: ["home", "tension_down"],
+        fallback: "memoir",
+      },
+    ),
+    scheduledOnly: true,
+  },
   paper(
     "fra_sep_home",
     leftWar(1),

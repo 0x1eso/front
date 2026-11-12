@@ -7039,6 +7039,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
         { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
+    assumes: { active: ["rus_kolchak"] },
     cast: { p: { person: "rus_kolchak" } },
     salience: 6,
     tags: ["people"],

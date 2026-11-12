@@ -18,7 +18,7 @@ import {
  * delegation, ratification, demobilisation, the men home, the year after) and
  * after a separate peace (§11, `rus_sep_*`: the card itself, the men home and
  * the old ally's anger). The ratification and the separate-peace card are
- * also dealt by state, so they stand without S1's scheduling. Text:
+ * laid by Aftermath.ts, never drawn. Text:
  * resources/ww1914/ko/RUS.after.json.
  */
 
@@ -53,25 +53,28 @@ const AFTER: GwScene[] = [
       o("home_first", [gauge("order", 1), opinion("army", -1)]),
     ],
   }),
-  rusScene("rus_aft_ratify", {
-    kind: "proposal",
-    stage: ["aftermath"],
-    when: all(
-      after(0),
-      not(w({ is: "ratified", tag: "RUS" })),
-      not(w({ is: "ratified", tag: "RUS", no: true })),
-    ),
-    cast: { ...PM, ...FOREIGN },
-    salience: 8,
-    tags: ["foreign", "home"],
-    once: true,
-    variants: [v("lost", side(["lost"])), v("base")],
-    options: [
-      o("yes", [dw({ do: "ratify", yes: true })]),
-      o("no", [dw({ do: "ratify", yes: false }), opinion("press", 1)]),
-    ],
-    fallback: "yes",
-  }),
+  {
+    ...rusScene("rus_aft_ratify", {
+      kind: "proposal",
+      stage: ["aftermath"],
+      when: all(
+        after(0),
+        not(w({ is: "ratified", tag: "RUS" })),
+        not(w({ is: "ratified", tag: "RUS", no: true })),
+      ),
+      cast: { ...PM, ...FOREIGN },
+      salience: 8,
+      tags: ["foreign", "home"],
+      once: true,
+      variants: [v("lost", side(["lost"])), v("base")],
+      options: [
+        o("yes", [dw({ do: "ratify", yes: true })]),
+        o("no", [dw({ do: "ratify", yes: false }), opinion("press", 1)]),
+      ],
+      fallback: "yes",
+    }),
+    scheduledOnly: true,
+  },
   rusScene("rus_aft_demob", {
     kind: "proposal",
     stage: ["aftermath"],
@@ -120,24 +123,27 @@ const AFTER: GwScene[] = [
 ];
 
 const SEPARATE: GwScene[] = [
-  rusScene("rus_sep_on", {
-    kind: "proposal",
-    when: all(
-      w({ is: "out", tag: "RUS" }),
-      not(w({ is: "beaten", tag: "RUS" })),
-      not(w({ is: "left_war" })),
-    ),
-    cast: { ...PM },
-    salience: 9,
-    tags: ["home", "foreign"],
-    once: true,
-    variants: [v("base")],
-    options: [
-      o("on", [dw({ do: "play_on", on: true })]),
-      o("close", [dw({ do: "play_on", on: false })]),
-    ],
-    fallback: "close",
-  }),
+  {
+    ...rusScene("rus_sep_on", {
+      kind: "proposal",
+      when: all(
+        w({ is: "out", tag: "RUS" }),
+        not(w({ is: "beaten", tag: "RUS" })),
+        not(w({ is: "left_war" })),
+      ),
+      cast: { ...PM },
+      salience: 9,
+      tags: ["home", "foreign"],
+      once: true,
+      variants: [v("base")],
+      options: [
+        o("on", [dw({ do: "play_on", on: true })]),
+        o("close", [dw({ do: "play_on", on: false })]),
+      ],
+      fallback: "close",
+    }),
+    scheduledOnly: true,
+  },
   rusScene("rus_sep_home", {
     kind: "proposal",
     when: w({ is: "left_war", min: 1 }),

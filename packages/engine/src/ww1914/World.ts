@@ -16,7 +16,6 @@ import { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import type { GwPlace } from "@openfront/engine-api/ww1914/GwPlaces";
 import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
-import { GW_AFTER_CHAPTERS } from "./Aftermath";
 import { moveMoney } from "./Budget";
 import type { GreatWar } from "./GreatWar";
 import { GW_SEAT_PERSON } from "./Tables";
@@ -65,6 +64,13 @@ export function monthsFrom(gw: GreatWar, from: number): number {
 export function lastOf<T>(list: readonly T[]): T | undefined {
   return list[list.length - 1];
 }
+
+/**
+ * Chapters of the aftermath, after the table's sessions (ww190). Kept here, not
+ * in Aftermath.ts, so World doesn't import Aftermath: that edge reordered the
+ * module graph (Spies.test's Offensives mock stopped reaching Spies).
+ */
+export const GW_AFTER_CHAPTERS = 3;
 
 /** The stage the game is at: the table's, unless the peace is being made. */
 export function stageOf(gw: GreatWar): GwStage {

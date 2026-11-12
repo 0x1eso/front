@@ -10,8 +10,12 @@ import { NodeGameMapLoader } from "../perf/fullgame/NodeGameMapLoader";
 import { GW_SIM_PROFILES, playRun } from "./sim/GwSim";
 
 const SEATS: GwTag[] = ["DEU", "GBR", "AUH", "RUS", "FRA"];
-/** Not every game has a war that lasts: look through this many for one. */
-const TRIES = 10;
+/**
+ * Not every game has a war that lasts: look through this many for one. ww190:
+ * the peace years and the early compromise peaces make it rarer (budget-RUS-12
+ * is Russia's first).
+ */
+const TRIES = 20;
 
 describe("a whole game on the real map", () => {
   let map: MapFiles;

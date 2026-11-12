@@ -38,13 +38,24 @@ function withCard(): void {
   const base = gwContent();
   const any = base.scenes.find((x) => x.kind === "wire")!;
   const card: GwScene = { ...any, id: SEP_ON, scheduledOnly: true };
-  useGwContent({ ...base, scenes: [...base.scenes, card] });
+  const rest = base.scenes.filter((x) => x.id !== SEP_ON);
+  useGwContent({ ...base, scenes: [...rest, card] });
+}
+
+/** The pack without the card (ww190's writers wrote one for every seat). */
+function withoutCard(): void {
+  const base = gwContent();
+  useGwContent({
+    ...base,
+    scenes: base.scenes.filter((x) => x.id !== SEP_ON),
+  });
 }
 
 afterEach(() => useGwContent(null));
 
 describe("after a separate peace", () => {
   test("with no card in the pack the seat closes as before", async () => {
+    withoutCard();
     const gw = await ownPeace();
     endingStep(gw);
     expect(gw.s.seats[0].memoir).not.toBeNull();

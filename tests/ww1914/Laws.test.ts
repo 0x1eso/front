@@ -537,6 +537,7 @@ describe("a whole game on the real map", () => {
       for (let i = 0; i < 40; i++) {
         const passed = new Set<string>();
         let brought = 0;
+        let war = false;
         await playRun(
           map,
           `laws-${tag}-${i}`,
@@ -547,6 +548,7 @@ describe("a whole game on the real map", () => {
           (gw) => {
             const seat = gw.s.seats[0];
             const n = gw.nation(tag)!;
+            war = war || n.atWar.length > 0;
             for (const x of n.laws) {
               if (x.stage === "force" && x.how !== "scene") passed.add(x.id);
             }
@@ -582,11 +584,12 @@ describe("a whole game on the real map", () => {
             }
           },
         );
-        if (brought < 3) continue;
+        // ww190: a game the war never came to (the peace years) is no test of it.
+        if (brought < 3 || !war) continue;
         expect(passed.size).toBeGreaterThanOrEqual(1);
         return;
       }
-      throw new Error(`${tag}: no game brought three bills`);
+      throw new Error(`${tag}: no war game brought three bills`);
     },
     240000,
   );

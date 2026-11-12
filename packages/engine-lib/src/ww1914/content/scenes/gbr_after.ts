@@ -11,7 +11,7 @@ import { GBR, gauge, inst, opinion, pick, press, trust } from "./gbr_years";
 /**
  * GBR's scenes: after the conference (ww190 §10), and after a separate peace
  * (§11). `gbr_aft_ratify` and `gbr_sep_on` are the cards Aftermath.ts lays;
- * each is also gated so it can come only at its own moment, once. Data only;
+ * neither is drawn. Data only;
  * the text is in resources/ww1914/ko/GBR.after.json.
  */
 
@@ -66,6 +66,7 @@ export const GBR_AFTER_SCENES: readonly GwScene[] = [
   },
   {
     id: "gbr_aft_ratify",
+    scheduledOnly: true,
     nation: GBR,
     kind: "proposal",
     stage: AFTER,
@@ -176,6 +177,7 @@ export const GBR_AFTER_SCENES: readonly GwScene[] = [
   // ---- After a separate peace ----
   {
     id: "gbr_sep_on",
+    scheduledOnly: true,
     nation: GBR,
     kind: "proposal",
     when: all(

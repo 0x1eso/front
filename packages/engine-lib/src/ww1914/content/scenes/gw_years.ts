@@ -112,6 +112,7 @@ export const GW_YEARS_SCENES: readonly GwScene[] = [
   // ---- §1 accords: the offer (S1 lays it), and one broken ----
   {
     id: "gw_y_accord_offer",
+    scheduledOnly: true,
     nation: [...SEATS],
     kind: "proposal",
     when: world({ is: "accord_offered" }),

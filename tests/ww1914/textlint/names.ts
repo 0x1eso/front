@@ -39,6 +39,9 @@ export const LINT_PLACES: readonly GwPlace[] = [
   "kut",
   "erzurum",
   "salonika",
+  // ww190 merge: the Black Sea war (W-RUS).
+  "trabzon",
+  "sevastopol",
 ];
 
 /** Front lines by their Korean words: needs `line` on that theatre. */
@@ -91,6 +94,8 @@ export const LINT_PEOPLE: Readonly<Record<string, string>> = {
   rus_rasputin: "라스푸틴",
   fra_jaures: "조레스",
   auh_sturgkh: "슈튀르크",
+  // ww190 merge (W-RUS).
+  rus_kolchak: "콜차크",
 };
 
 /**

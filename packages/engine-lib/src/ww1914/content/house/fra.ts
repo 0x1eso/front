@@ -118,6 +118,8 @@ const W5 = {
 const PROPORTIONAL = "fra_law_proportional";
 const ARMY_COMMISSION = "fra_law_army_commission";
 const AMNESTY = "fra_law_amnesty";
+/** ww190 §1: the peace years' navy bill (content/laws/fra.ts). */
+const NAVY = "fra_law_navy";
 
 const row = (r: Omit<GwLawRow, "tag">): GwLawRow => ({ ...r, tag: "FRA" });
 
@@ -363,6 +365,21 @@ const ALL_BILLS: readonly GwBillRow[] = [
     texts: {
       bread_cards: { fra_radicals: 0, fra_tiger: 0 },
       chamber_reviews: { fra_fed_rep: 0, fra_minority: 1, fra_caillaux: 1 },
+    },
+  },
+  {
+    // ww190: the 1912 programme pushed on. The right and the centre build;
+    // the socialists and Caillaux's men count the schools a dreadnought costs.
+    law: NAVY,
+    stance: sides(0, -1, 1, -1, -1, 1, 1, 1, 1),
+    texts: {
+      with_levy: {
+        fra_radicals: 1,
+        fra_caillaux: 0,
+        fra_fed_rep: -1,
+        fra_catholics: -1,
+      },
+      slower: { fra_radicals: 1, fra_caillaux: 0, fra_tiger: -1 },
     },
   },
   {

@@ -44,6 +44,7 @@ import { gwRulerScenes } from "@openfront/engine-lib/ww1914/RulerRows";
 import { gwOwnerOf, gwWorldOf } from "@openfront/engine-lib/ww1914/World1914";
 import { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import { GW_GOV } from "@openfront/engine/ww1914/GovTable";
+import { GW_ACCORD_OFFER_SCENE } from "@openfront/engine/ww1914/PeaceYears";
 import {
   GW_PEOPLE_PACKS,
   loadGwPack,
@@ -63,6 +64,14 @@ const scenesOf = (tag: string) =>
   GW_CONTENT.scenes.filter(
     (s) => s.nation === undefined || (s.nation as string[]).includes(tag),
   );
+
+const GW_AFTER_CALLED = [
+  ...GW_TAGS.flatMap((t) => [
+    `${t.toLowerCase()}_aft_ratify`,
+    `${t.toLowerCase()}_sep_on`,
+  ]),
+  GW_ACCORD_OFFER_SCENE,
+];
 
 describe("content", () => {
   test("every scene and person passes its schema and the cross checks", () => {
@@ -124,7 +133,13 @@ describe("content", () => {
       ...SPY_SCENES.map((x) => x.id),
       // ww173: called by Offensives.callScene when a seat writes them.
       ...GW_OFFENSIVE_CALLED,
+      // ww190: laid by Aftermath.ts (ratification, playing on) and PeaceYears.ts.
+      ...GW_AFTER_CALLED,
     ];
+    // ww190: the engine lays these; the deal never draws them.
+    for (const s of scenes.filter((x) => GW_AFTER_CALLED.includes(x.id))) {
+      expect(s.scheduledOnly, s.id).toBe(true);
+    }
     // The engine lays the offensive scenes; the deal never draws them.
     for (const s of scenes.filter((x) => GW_OFFENSIVE_CALLED.includes(x.id))) {
       expect(s.scheduledOnly, s.id).toBe(true);
