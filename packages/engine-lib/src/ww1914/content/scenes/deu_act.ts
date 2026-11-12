@@ -248,7 +248,12 @@ export const DEU_ACT_SCENES: readonly GwScene[] = [
     tags: ["home"],
     variants: [
       { id: "war", when: war },
-      { id: "unrest", when: world({ is: "thread", id: "alsace_unrest" }) },
+      // ww187: the Zabern no-confidence vote of 1913, remembered.
+      {
+        id: "unrest",
+        when: world({ is: "thread", id: "alsace_unrest" }),
+        assumes: { past: true },
+      },
       { id: "base" },
     ],
     options: [
@@ -386,6 +391,8 @@ export const DEU_ACT_SCENES: readonly GwScene[] = [
     variants: [
       {
         id: "old_rome",
+        // ww187: the old Emperor writes in his own hand.
+        assumes: { active: ["auh_franz_joseph"] },
         when: all(
           { kind: "person_active", person: "auh_franz_joseph" },
           picked("subject", "rome"),
@@ -980,7 +987,12 @@ export const DEU_STORY_SCENES: readonly GwScene[] = [
         ],
       },
       n2: {
-        says: [said("survived", survived), said("failed", failed), said()],
+        // ww187: the wire tells the day's news of the Archduke, as it is.
+        says: [
+          { ...said("survived", survived), assumes: { past: true } },
+          { ...said("failed", failed), assumes: { past: true } },
+          { ...said(), assumes: { past: true } },
+        ],
         replies: [ask("what", "n3")],
       },
       n3: {
@@ -1832,7 +1844,12 @@ export const DEU_STORY_SCENES: readonly GwScene[] = [
     {
       when: all({ kind: "chapter", min: 1, max: 3 }, not(war)),
       variants: [
-        { id: "hard", when: character(other, "hardline") },
+        // ww187: Sarajevo's news, a month old.
+        {
+          id: "hard",
+          when: character(other, "hardline"),
+          assumes: { past: true },
+        },
         { id: "wary", when: character(other, "cautious") },
         { id: "sly", when: character(other, "opportunist") },
         { id: "base" },

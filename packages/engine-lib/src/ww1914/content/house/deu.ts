@@ -1847,7 +1847,13 @@ export const DEU_ASKS: readonly GwAskRow[] = [
     tag: "DEU",
     from: "AUH",
     kind: "front",
-    when: all(war, warAge(20), world({ is: "open", theatre: "italy" })),
+    // ww187: "the Isonzo held, again and again": the line still on it.
+    when: all(
+      war,
+      warAge(20),
+      world({ is: "open", theatre: "italy" }),
+      world({ is: "front", theatre: "italy", from: "isonzo", to: "isonzo" }),
+    ),
     scene: "deu_ask_italy",
     keep: main("italy"),
     chapters: 2,
@@ -2193,7 +2199,10 @@ export const DEU_PLOT_SCENES: readonly GwScene[] = [
   // Allies' asks.
   askLetter("deu_ask_east", "AUH", []),
   askLetter("deu_ask_loan", "AUH", [money(-1)]),
-  askLetter("deu_ask_italy", "AUH", []),
+  {
+    ...askLetter("deu_ask_italy", "AUH", []),
+    assumes: { line: { italy: ["isonzo", "isonzo"] } },
+  },
   askLetter("deu_ask_gold", "OTT", [money(-1)]),
   {
     id: "deu_conf_pless",

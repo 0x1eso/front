@@ -1240,7 +1240,11 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
     variants: [
       v("lenin", flag("f_lenin_passed")),
       v("kuhl", holds("foreign", "deu_kuhlmann")),
-      v("far", eastAt("dvina")),
+      // ww187: "across the Dvina": the east line there or past.
+      {
+        ...v("far", eastAt("dvina")),
+        assumes: { line: { east: ["dvina", "kiev"] } },
+      },
       v("base"),
     ],
     fallback: "staff_terms",
@@ -1293,7 +1297,11 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
     salience: 8,
     tags: ["foreign", "tension_up"],
     variants: [
-      v("staff", flag("f_brest_staff")),
+      // ww187: "from the Dvina to Petrograd": the east line on the Dvina.
+      {
+        ...v("staff", flag("f_brest_staff")),
+        assumes: { line: { east: ["riga", "dvina"] } },
+      },
       v("nothing", flag("f_brest_nothing")),
       v("base"),
     ],

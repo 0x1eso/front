@@ -40,6 +40,8 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     variants: [
       {
         id: "east",
+        // ww187: the last map sheet runs to Warsaw: the city still Russian.
+        assumes: { held: { warsaw: "foe" } },
         when: {
           kind: "flag",
           flag: "f_east_first",
@@ -291,6 +293,8 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
       },
       {
         id: "sea",
+        // ww187: the breakthrough at Ypres ahead: the town not ours.
+        assumes: { held: { ypres: "foe" } },
         when: {
           kind: "all",
           of: [
@@ -412,6 +416,16 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
         when: {
           kind: "flag",
           flag: "f_east_first",
+        },
+      },
+      // ww187: the trench line "from Belfort to the sea" once it is dug;
+      // before that the base reads a front still moving.
+      {
+        id: "dug",
+        when: {
+          kind: "trench",
+          theatre: "west",
+          min: 1,
         },
       },
       {
@@ -671,6 +685,11 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
       },
       {
         id: "east",
+        // ww187: the line froze before Warsaw.
+        assumes: {
+          held: { warsaw: "foe" },
+          line: { east: ["east_prussia", "vistula"] },
+        },
         when: {
           kind: "all",
           of: [
@@ -852,6 +871,8 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
   {
     id: "deu_w_marne_order",
     nation: ["DEU"],
+    // ww187: the retreat order on the Marne: the army there, Paris not taken.
+    assumes: { line: { west: ["marne", "paris"] }, held: { paris: "foe" } },
     kind: "crisis",
     when: {
       kind: "all",
@@ -1315,6 +1336,8 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     variants: [
       {
         id: "stopped",
+        // ww187: "the army stopped on the Marne": true now.
+        assumes: { now: ["w_marne_stopped"], past: true },
         when: {
           kind: "flag",
           flag: "w_marne_stopped",
@@ -1539,6 +1562,8 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     variants: [
       {
         id: "hold",
+        // ww187: the days held before the Marne, the seat's own order.
+        assumes: { past: true },
         when: {
           kind: "flag",
           flag: "f_marne_hold",
@@ -1753,6 +1778,8 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
       },
       {
         id: "line",
+        // ww187: the bridges of the Vistula in our hands.
+        assumes: { line: { east: ["vistula", "kiev"] } },
         when: {
           kind: "world",
           of: {
@@ -1909,6 +1936,8 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
   {
     id: "deu_w_prittwitz",
     nation: ["DEU"],
+    // ww187: "behind the Vistula": the Russians in East Prussia.
+    assumes: { line: { east: ["oder", "east_prussia"] } },
     kind: "proposal",
     when: {
       kind: "all",
@@ -2065,6 +2094,8 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
   {
     id: "deu_w_east_broken",
     nation: ["DEU"],
+    // ww187: the east broken: the Russians in East Prussia.
+    assumes: { line: { east: ["oder", "east_prussia"] } },
     kind: "proposal",
     when: {
       kind: "all",
@@ -3483,6 +3514,11 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
   {
     id: "deu_w_east_first",
     nation: ["DEU"],
+    // ww187: the first push for the Vistula and Warsaw: both ahead.
+    assumes: {
+      line: { east: ["oder", "vistula"] },
+      held: { warsaw: "foe" },
+    },
     kind: "proposal",
     when: {
       kind: "all",
@@ -8138,6 +8174,8 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
   {
     id: "deu_t_falk_ypres",
     nation: ["DEU"],
+    // ww187: the young corps before Ypres: the town not ours.
+    assumes: { held: { ypres: "foe" } },
     kind: "talk",
     when: {
       kind: "all",

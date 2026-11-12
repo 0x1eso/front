@@ -6,10 +6,12 @@ import {
   type GwTheatre,
   gwLastLine,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import type { GwAssumes } from "@openfront/engine-api/ww1914/GwAssumes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import {
   all,
   any,
+  assuming,
   byName,
   chose,
   flag,
@@ -330,6 +332,14 @@ const visit = (
   salience,
 });
 
+/** ww187: what the talks' words take for granted (the text lint). */
+const TALK_ASSUMES: Readonly<Record<string, GwAssumes>> = {
+  // The spring blow "behind the Somme": the west line near it.
+  deu_t2_lud_spring: { line: { west: ["hindenburg", "aisne"] } },
+  // Moltke's memoir of the Marne: the stop at the Marne a fact of this game.
+  deu_v2_moltke_last: { now: ["w_marne_stopped"], past: true },
+};
+
 export const DEU_FRONT_SCENES: readonly GwScene[] = [
   // ---- The month's paper ----
   scene({
@@ -355,11 +365,27 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
         ...v("back", all(front("west", "rhine", "liege"), war, war)),
         assumes: { line: { west: ["rhine", "liege"] } },
       },
+      // ww187: the west line past the Marne, Paris still French: the paper
+      // reaches the forts.
+      {
+        ...v("deep", all(front("west", "marne", "paris"), war, war)),
+        assumes: { line: { west: ["marne", "paris"] }, held: { paris: "foe" } },
+      },
       // Our own great offensive in the west is on: the storm divisions.
       {
         ...v("storm", all(OUR_WEST_OFFENSIVE, scoreUp(-24), war)),
         assumes: { fights: ["USA"] },
       },
+      // ww187: the same storm with America still out of the war.
+      v(
+        "storm_alone",
+        all(
+          OUR_WEST_OFFENSIVE,
+          scoreUp(-24),
+          war,
+          not(world({ is: "entered", tag: "USA" })),
+        ),
+      ),
       v("pair", pair3),
       v("depth", all(TRENCH(2), war)),
       v("material", all(TRENCH(1, 1), war)),
@@ -633,6 +659,8 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
   scene({
     id: "deu_f_warsaw_falls",
     kind: "report",
+    // ww187: the entry into Warsaw: the city ours, the line past the Vistula.
+    assumes: { held: { warsaw: "us" }, line: { east: ["warsaw", "kiev"] } },
     when: all(
       war,
       front("east", "warsaw"),
@@ -663,9 +691,13 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
     salience: 7,
     tags: ["war"],
     variants: [
-      v(
-        "straits_low",
-        all({ kind: "seen", scene: "deu_f_straits_shells" }, war),
+      // ww187: the Gallipoli batteries: the straits still held there.
+      assuming(
+        v(
+          "straits_low",
+          all({ kind: "seen", scene: "deu_f_straits_shells" }, war),
+        ),
+        { line: { straits: ["dardanelles", "gallipoli"] } },
       ),
       v("thin", all(low("shells", 1), war)),
       v("base"),
@@ -709,6 +741,8 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
   scene({
     id: "deu_f_straits_shells",
     kind: "proposal",
+    // ww187: the Dardanelles forts still fire: the straits not broken.
+    assumes: { line: { straits: ["dardanelles", "narrows"] } },
     when: all(
       world({ is: "open", theatre: "straits" }),
       flag("f_ottoman_signed"),
@@ -766,6 +800,10 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
         "alsace",
         all(atWar("FRA"), { kind: "gauge", gauge: "morale", min: 3 }),
       ),
+      // ww187: the east line past the Vistula; else the year reads plainer.
+      assuming(v("crossed", front("east", "warsaw", "kiev")), {
+        line: { east: ["warsaw", "kiev"] },
+      }),
       v("base"),
     ],
     fallback: "push_east",
@@ -805,6 +843,8 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
   scene({
     id: "deu_f_verdun_plan",
     kind: "crisis",
+    // ww187: the attack on Verdun: the fortress still French.
+    assumes: { held: { verdun: "foe" } },
     when: all(
       war,
       west1,
@@ -1157,6 +1197,8 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
   scene({
     id: "deu_f_unified_command",
     kind: "proposal",
+    // ww187: the old Emperor's army is the stake: he still reigns.
+    assumes: { active: ["auh_franz_joseph"] },
     when: all(
       war,
       atWar("RUS"),
@@ -1212,7 +1254,11 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
     cast: { cos: holder("chief_of_staff") },
     salience: 7,
     tags: ["war", "tension_down"],
-    variants: [v("pair", pair3), v("base")],
+    // ww187: the new line's name: the west line still at the Somme or past.
+    variants: [
+      assuming(v("pair", pair3), { line: { west: ["somme", "paris"] } }),
+      v("base"),
+    ],
     fallback: "withdraw",
     options: [
       o(
@@ -1260,7 +1306,14 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
   scene({
     id: "deu_f_italy_corps",
     kind: "proposal",
-    when: all(italyIn, auhIn, world({ is: "war_months", min: 35, max: 41 })),
+    // ww187: Emperor Karl asks: the Isonzo still holds, Trieste Austrian.
+    assumes: { line: { italy: ["isonzo", "isonzo"] }, held: { trieste: "us" } },
+    when: all(
+      italyIn,
+      auhIn,
+      world({ is: "war_months", min: 35, max: 41 }),
+      world({ is: "regime", tag: "AUH", of: ["karl"] }),
+    ),
     cast: {
       cos: holder("chief_of_staff"),
       envoy: holder("ambassador_vienna"),
@@ -1270,7 +1323,8 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
     variants: [
       v("rus_out", all(rusout, war)),
       v("vienna_low", all({ kind: "trust", tag: "AUH", max: 0 }, war)),
-      v("base"),
+      // ww187: the old Emperor's hand is remembered, not his reign.
+      assuming(v("base"), { past: true }),
     ],
     fallback: "send_corps",
     options: [
@@ -1313,7 +1367,10 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
     cooldown: 6,
     variants: [
       v("spring", all(date("1918-01", "1918-06"), war)),
-      v("cambrai", all(date("1917-11", "1917-12"), war)),
+      // ww187: the Hindenburg line's wire: the west line there.
+      assuming(v("cambrai", all(date("1917-11", "1917-12"), war)), {
+        line: { west: ["hindenburg", "somme"] },
+      }),
       v("schools", all(date("1917-01", "1917-10"), war)),
       v("base"),
     ],
@@ -1603,7 +1660,10 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
     salience: 9,
     tags: ["war", "tension_up"],
     variants: [
-      v("spring_lost", all(flag("f_spring_michael"), war, war)),
+      // ww187: "파리까지는 안 갔다": Paris not ours.
+      assuming(v("spring_lost", all(flag("f_spring_michael"), war, war)), {
+        held: { paris: "foe" },
+      }),
       v("dug_in", all(flag("f_spring_dug_in"), war, war)),
       v("thin", all(low("morale", 1), war)),
       v("base"),
@@ -2888,4 +2948,7 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
       named: plain(bye("end", "warm")),
     },
   ),
-];
+].map((s) => {
+  const a = TALK_ASSUMES[s.id];
+  return a === undefined ? s : assuming(s, a);
+});

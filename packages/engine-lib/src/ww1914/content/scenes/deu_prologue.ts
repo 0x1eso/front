@@ -265,7 +265,8 @@ export const DEU_PROLOGUE_SCENES: readonly GwScene[] = [
       n5: {
         who: "general",
         fallback: "cannot",
-        says: [said()],
+        // ww187: the Emperor's visit last summer, remembered in 1890.
+        says: [{ ...said(), assumes: { past: true } }],
         replies: [decide("cannot", "n6")],
       },
       n6: {
@@ -593,10 +594,17 @@ export const DEU_PROLOGUE_SCENES: readonly GwScene[] = [
       n2: {
         who: "chan",
         fallback: "hear",
+        // ww187: the Zabern no-confidence vote of 1913, remembered.
         says: [
-          said("clerk", flag("pro_deu_beth_clerk")),
-          said("plain", flag("pro_deu_beth_plain")),
-          said(),
+          {
+            ...said("clerk", flag("pro_deu_beth_clerk")),
+            assumes: { past: true },
+          },
+          {
+            ...said("plain", flag("pro_deu_beth_plain")),
+            assumes: { past: true },
+          },
+          { ...said(), assumes: { past: true } },
         ],
         replies: [
           decide("hear", "n3", [trustOf(bethmann, 1)]),

@@ -128,6 +128,8 @@ const SCENES: readonly GwScene[] = [
   }),
   decision("deu_w_peace_congress", {
     // The International meets at the end of August (a calendar scene).
+    // ww187: Jaures among the delegates: he is alive.
+    assumes: { active: ["fra_jaures"] },
     when: all(peaceMonths(0, 0), calm, inMonths(7, 8)),
     cast: { interior: holder("interior"), chancellor: holder("chancellor") },
     salience: 7,
@@ -588,7 +590,12 @@ function peaceTalk(t: PeaceTalk): GwScene {
 
 export const DEU_PEACE_SCENES: readonly GwScene[] = [
   ...SCENES,
-  ...TALKS.map(peaceTalk),
+  // ww187: Haase asks what Jaures will say at the congress: he is alive.
+  ...TALKS.map(peaceTalk).map((s) =>
+    s.id === "deu_t_haase_peace"
+      ? { ...s, assumes: { active: ["fra_jaures"] } }
+      : s,
+  ),
 ];
 
 /** Told in the months of a war begun in summer: a late war can't reach them. */

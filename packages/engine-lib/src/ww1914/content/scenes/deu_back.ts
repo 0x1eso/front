@@ -305,7 +305,32 @@ function backTalk(b: BackTalk): GwScene {
   };
 }
 
-export const DEU_BACK_SCENES: readonly GwScene[] = BACK_TALKS.map(backTalk);
+/**
+ * ww187: what a promise talk's words take for granted. Moltke's army bill
+ * goes to the Reichstag in the autumn: it sits. His broken word on his name
+ * cites "the Marne's blame": the stop at the Marne a fact of this game.
+ */
+function withAssumes(s: GwScene): GwScene {
+  if (s.id === "deu_b_moltke_bill") {
+    return { ...s, assumes: { sits: ["reichstag"] } };
+  }
+  if (s.id === "deu_b_moltke_name") {
+    const open = s.nodes!.open;
+    const says = open.says.map((x) =>
+      x.id === "broken"
+        ? {
+            ...x,
+            assumes: { now: ["w_marne_stopped" as const], past: true as const },
+          }
+        : x,
+    );
+    return { ...s, nodes: { ...s.nodes, open: { ...open, says } } };
+  }
+  return s;
+}
+
+export const DEU_BACK_SCENES: readonly GwScene[] =
+  BACK_TALKS.map(backTalk).map(withAssumes);
 
 const termsOf = (e: GwEffect): GwEffect => {
   if (e.kind === "maybe") return { ...e, then: e.then.map(termsOf) };

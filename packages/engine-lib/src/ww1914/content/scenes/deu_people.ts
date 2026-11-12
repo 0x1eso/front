@@ -188,8 +188,14 @@ export const DEU_PEOPLE_SCENES: readonly GwScene[] = [
     stamp: "confirmed",
     source: "press",
     variants: [
-      { id: "vorwaerts", when: { kind: "pressure", topic: "alsace", min: 3 } },
-      { id: "base" },
+      // ww187: the paper asks the sitting Reichstag; the base only recalls
+      // the December vote.
+      {
+        id: "vorwaerts",
+        when: { kind: "pressure", topic: "alsace", min: 3 },
+        assumes: { sits: ["reichstag"] },
+      },
+      { id: "base", assumes: { past: true } },
     ],
   },
   {
@@ -4496,6 +4502,8 @@ export const DEU_PEOPLE_SCENES: readonly GwScene[] = [
   {
     id: "deu_t_heir_west",
     nation: ["DEU"],
+    // ww187: the Aisne heights behind the army: the west line at the Aisne or past.
+    assumes: { line: { west: ["aisne", "paris"] } },
     kind: "talk",
     when: all(
       { kind: "world", of: { is: "war_months", own: true, max: 1 } },
@@ -5039,6 +5047,8 @@ export const DEU_PEOPLE_SCENES: readonly GwScene[] = [
   {
     id: "deu_t_haase_rally",
     nation: ["DEU"],
+    // ww187: "조레스도 옵니다": Jaures alive.
+    assumes: { active: ["fra_jaures"] },
     kind: "talk",
     when: all(
       { kind: "world", of: { is: "chain", short: false, min: 3, max: 4 } },
@@ -5174,6 +5184,12 @@ export const DEU_PEOPLE_SCENES: readonly GwScene[] = [
         says: [
           { id: "anxious", when: moody(who, "anxious") },
           { id: "stubborn", when: moody(who, "stubborn") },
+          // ww187: Jaures's death told only once it has happened.
+          {
+            id: "jaures",
+            when: not({ kind: "person_active", person: "fra_jaures" }),
+            assumes: { past: true },
+          },
           { id: "base" },
         ],
         replies: [
@@ -5730,6 +5746,8 @@ export const DEU_PEOPLE_SCENES: readonly GwScene[] = [
   {
     id: "deu_v_hoyos",
     nation: ["DEU"],
+    // ww187: Franz Joseph's letter, his will asked after.
+    assumes: { active: ["auh_franz_joseph"] },
     kind: "talk",
     when: all(
       { kind: "world", of: { is: "chain", short: false, min: 1, max: 1 } },
@@ -7002,6 +7020,8 @@ export const DEU_PEOPLE_SCENES: readonly GwScene[] = [
   {
     id: "deu_v_conrad_winter",
     nation: ["DEU"],
+    // ww187: the old Emperor's face is the stake: he reigns.
+    assumes: { active: ["auh_franz_joseph"] },
     kind: "talk",
     when: all(
       { kind: "world", of: { is: "war_months", own: true, min: 2, max: 4 } },
@@ -7903,6 +7923,11 @@ export const DEU_PEOPLE_SCENES: readonly GwScene[] = [
   {
     id: "deu_v_falk_marne",
     nation: ["DEU"],
+    // ww187: after the Marne stop, the line expected on the Aisne.
+    assumes: {
+      now: ["w_marne_stopped"],
+      line: { west: ["somme", "marne"] },
+    },
     kind: "talk",
     when: all(
       own(0, 2),

@@ -9,6 +9,8 @@ export const DEU_CRISIS_SCENES: readonly GwScene[] = [
   {
     id: "deu_c_kiel_wire",
     nation: ["DEU"],
+    // ww187: the wire tells the day's news of Sarajevo, as it is.
+    assumes: { past: true },
     kind: "wire",
     stage: ["crisis"],
     when: {
@@ -34,6 +36,8 @@ export const DEU_CRISIS_SCENES: readonly GwScene[] = [
   {
     id: "deu_c_first_words",
     nation: ["DEU"],
+    // ww187: a visit to Franz Joseph: he reigns.
+    assumes: { active: ["auh_franz_joseph"] },
     kind: "proposal",
     stage: ["crisis"],
     when: {
@@ -96,6 +100,8 @@ export const DEU_CRISIS_SCENES: readonly GwScene[] = [
   {
     id: "deu_c_blank_cheque",
     nation: ["DEU"],
+    // ww187: Franz Joseph's own letter: he reigns.
+    assumes: { active: ["auh_franz_joseph"] },
     kind: "crisis",
     stage: ["crisis"],
     when: {
@@ -367,6 +373,8 @@ export const DEU_CRISIS_SCENES: readonly GwScene[] = [
   {
     id: "deu_c_serbian_reply",
     nation: ["DEU"],
+    // ww187: Franz Joseph signs: he reigns.
+    assumes: { active: ["auh_franz_joseph"] },
     kind: "crisis",
     when: {
       kind: "all",
@@ -6449,6 +6457,8 @@ export const DEU_CRISIS_SCENES: readonly GwScene[] = [
   {
     id: "deu_c_delayed_visit",
     nation: ["DEU"],
+    // ww187: the visit put off: the Archduke alive.
+    assumes: { active: ["auh_ff"] },
     kind: "wire",
     stage: ["crisis"],
     when: {
@@ -7023,6 +7033,8 @@ export const DEU_CRISIS_SCENES: readonly GwScene[] = [
   {
     id: "deu_c_italy",
     nation: ["DEU"],
+    // ww187: Franz Joseph may refuse: he reigns.
+    assumes: { active: ["auh_franz_joseph"] },
     kind: "proposal",
     when: {
       kind: "all",

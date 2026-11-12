@@ -8,6 +8,7 @@ import type {
   GwInstitution,
   GwSide,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import type { GwAssumes } from "@openfront/engine-api/ww1914/GwAssumes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import type { GwBloc } from "@openfront/engine-api/ww1914/GwPress";
 import {
@@ -388,7 +389,11 @@ const FRONTS: GwScene[] = [
     v("base"),
   ]),
   wire("deu_wv_front_italy", frontOpened("italy"), { cos }, 6, [
-    v("ours", atWar("ITA")),
+    // ww187: the Trentino and the Isonzo name the new front.
+    {
+      ...v("ours", atWar("ITA")),
+      assumes: { line: { italy: ["trentino", "isonzo"] } },
+    },
     v("base"),
   ]),
   paper(
@@ -544,9 +549,20 @@ const PEACES: GwScene[] = [
   ]),
 ];
 
+/**
+ * ww187: what the wires' words take for granted: the east front opens with
+ * the Vistula ahead; the road to Liège runs to a Belgian fortress.
+ */
+const ASSUMES: Readonly<Record<string, GwAssumes>> = {
+  deu_wv_front_east: { line: { east: ["oder", "vistula"] } },
+  deu_wv_war_bel: { held: { liege: "owner" } },
+};
+
 export const DEU_WAR_EVENTS: readonly GwScene[] = [
   ...WAR_BEGINS,
   ...FRONTS,
   ...JOINS,
   ...PEACES,
-];
+].map((s) =>
+  ASSUMES[s.id] === undefined ? s : { ...s, assumes: ASSUMES[s.id] },
+);

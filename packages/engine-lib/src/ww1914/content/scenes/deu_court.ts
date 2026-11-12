@@ -283,7 +283,7 @@ const noteSent: GwEffect[] = [
   setFlag("f_note_1"),
 ];
 
-export const DEU_COURT_SCENES: readonly GwScene[] = [
+const COURT_SCENES: GwScene[] = [
   // ---- The three scales, the new names ----
   scene("deu_k_new_year", "report", {
     // The first new year's reception after July (a calendar scene).
@@ -378,7 +378,11 @@ export const DEU_COURT_SCENES: readonly GwScene[] = [
     tags: ["home"],
     variants: [
       v("word_given", flag("f_franchise_word")),
-      v("cold", instMax("reichstag", -1)),
+      // ww187: the corridor after the loan vote: the Reichstag sits.
+      {
+        ...v("cold", instMax("reichstag", -1)),
+        assumes: { sits: ["reichstag"] },
+      },
       v("base"),
     ],
     fallback: "not_now",
@@ -693,6 +697,8 @@ export const DEU_COURT_SCENES: readonly GwScene[] = [
     ],
   }),
   scene("deu_k_interparty", "proposal", {
+    // ww187: the majority leaders meet in the Reichstag: it sits.
+    assumes: { sits: ["reichstag"] },
     when: all(
       war,
       world({ is: "war_months", own: true, min: 35, max: 41 }),
@@ -2537,3 +2543,10 @@ export const DEU_COURT_SCENES: readonly GwScene[] = [
     terms: last([]),
   }),
 ];
+
+export const DEU_COURT_SCENES: readonly GwScene[] = COURT_SCENES.map((s) =>
+  // ww187: Erzberger reads to tomorrow's committee: the Reichstag sits.
+  s.id === "deu_t2_erz_resolution"
+    ? { ...s, assumes: { sits: ["reichstag" as const] } }
+    : s,
+);

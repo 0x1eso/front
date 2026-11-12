@@ -122,6 +122,14 @@ export const DEU_STALL_EVENTS: readonly GwScene[] = [
   foeWire(
     "deu_w_foe_south",
     foeCollapsed(["italy", "alps", "balkan", "danube", "dobruja"], 0),
-    [{ id: "italy", when: foeCollapsed(["italy", "alps"], 0) }, { id: "base" }],
+    [
+      // ww187: the Italians across the Isonzo: the line still on it.
+      {
+        id: "italy",
+        when: foeCollapsed(["italy", "alps"], 0),
+        assumes: { line: { italy: ["trentino", "isonzo"] } },
+      },
+      { id: "base" },
+    ],
   ),
 ];

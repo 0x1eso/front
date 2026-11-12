@@ -1069,6 +1069,8 @@ const SCENES: readonly GwScene[] = [
   scene({
     id: "deu_h_liebknecht_may",
     kind: "proposal",
+    // ww187: a member arrested in session, the house preparing its vote.
+    assumes: { sits: ["reichstag"] },
     when: all(
       war,
       any(low("order", 3), memory("k_haase_met")),

@@ -1922,6 +1922,8 @@ export const DEU_PRIVATE_SCENES: readonly GwScene[] = [
   {
     id: "deu_pv_mol_after",
     nation: ["DEU"],
+    // ww187: "마른의 일": the stop at the Marne a fact of this game, recalled.
+    assumes: { now: ["w_marne_stopped"], past: true },
     kind: "talk",
     when: {
       kind: "all",

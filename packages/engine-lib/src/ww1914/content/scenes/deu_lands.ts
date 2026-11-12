@@ -9,6 +9,7 @@ import type {
   GwInstitution,
   GwSide,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import type { GwAssumes } from "@openfront/engine-api/ww1914/GwAssumes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import type { GwBloc } from "@openfront/engine-api/ww1914/GwPress";
 import {
@@ -452,9 +453,36 @@ const TABLES: GwScene[] = [
   ]),
 ];
 
+/**
+ * ww187: what the land papers' words take for granted: a capital "in our
+ * hands" is ours now; the land "from the Vistula to the Baltic" lies behind
+ * an east line past Warsaw.
+ */
+const ASSUMES: Readonly<
+  Record<string, { scene?: GwAssumes; variants?: Record<string, GwAssumes> }>
+> = {
+  deu_ld_occ_bel_capital: { scene: { held: { brussels: "us" } } },
+  deu_ld_occ_fra_capital: { scene: { held: { paris: "us" } } },
+  deu_ld_occ_fra: { variants: { capital: { held: { paris: "us" } } } },
+  deu_ld_occ_rus: { variants: { out: { line: { east: ["warsaw", "kiev"] } } } },
+};
+
+const withAssumes = (s: GwScene): GwScene => {
+  const a = ASSUMES[s.id];
+  if (a === undefined) return s;
+  const variants = s.variants.map((v) =>
+    a.variants?.[v.id] === undefined ? v : { ...v, assumes: a.variants[v.id] },
+  );
+  return {
+    ...s,
+    ...(a.scene === undefined ? {} : { assumes: a.scene }),
+    variants,
+  };
+};
+
 export const DEU_LAND_EVENTS: readonly GwScene[] = [
   ...OURS,
   ...THEIRS,
   ...FALLEN,
   ...TABLES,
-];
+].map(withAssumes);
