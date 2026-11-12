@@ -8,6 +8,7 @@ import type {
   GwTemperament,
   GwTheatre,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import type { GwAssumes } from "@openfront/engine-api/ww1914/GwAssumes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import {
   all,
@@ -105,6 +106,13 @@ const westBack: GwCond = world({
   theatre: "west",
   of: ["break", "advance"],
   by: "foe",
+});
+/** ww187: the line on the Aisne or near it (the Chemin des Dames German). */
+const WEST_AISNE: GwCond = world({
+  is: "front",
+  theatre: "west",
+  from: "somme",
+  to: "marne",
 });
 const westFwd: GwCond = world({
   is: "battle",
@@ -406,6 +414,31 @@ const reveal = (
 
 /** ww187: Paris in the enemy's hands. */
 const PARIS_TAKEN: GwCond = world({ is: "held", place: "paris", by: "foe" });
+/** ww187: the ledger's state: Paris ours, the west line, the Americans. */
+const PARIS_OURS: GwCond = world({ is: "held", place: "paris", by: "us" });
+const WEST_DEEP: GwCond = world({
+  is: "front",
+  theatre: "west",
+  from: "marne",
+  to: "paris",
+});
+const WEST_PUSHED: GwCond = world({
+  is: "front",
+  theatre: "west",
+  from: "rhine",
+  to: "hindenburg",
+});
+const USA_IN: GwCond = all(
+  world({ is: "entered", tag: "USA", side: "entente" }),
+  not(world({ is: "out", tag: "USA" })),
+);
+/** ww187: Joffre's record as the Chamber reads it: the Marne, Verdun held, the Somme. */
+const JOFFRE_RECORD: GwCond = all(
+  seen("fra_big_marne"),
+  seen("fra_big_verdun"),
+  not(flag("f_verdun_left")),
+  seen("fra_w_somme"),
+);
 
 const DESK: GwScene[] = [
   // The campaign's accounts, every three chapters: the same form on purpose.
@@ -425,8 +458,19 @@ const DESK: GwScene[] = [
         ...v("paris_lost", all(PARIS_TAKEN, war, war)),
         assumes: { held: { paris: "foe" } },
       },
+      {
+        ...v("deep", all(WEST_DEEP, PARIS_OURS, war)),
+        assumes: { line: { west: ["marne", "paris"] }, held: { paris: "us" } },
+      },
       v("won", all(world({ is: "score", min: 40 }), war)),
       v("free", joffreFree),
+      // The Americans' timetable only once they are in.
+      { ...v("tiger_usa", all(tiger, USA_IN)), assumes: { fights: ["USA"] } },
+      { ...v("usa", USA_IN), assumes: { fights: ["USA"] } },
+      {
+        ...v("pushed", all(WEST_PUSHED, war)),
+        assumes: { line: { west: ["rhine", "hindenburg"] } },
+      },
       v("tiger", tiger),
       v("thin", gaugeAt("shells", 1)),
       // "ten occupied departments": the line inside France.
@@ -501,6 +545,8 @@ const DESK: GwScene[] = [
 
   scene({
     id: "fra_w_deputies_front",
+    // ww187: what its text takes for granted.
+    assumes: { sits: ["chambre"] },
     kind: "dispute",
     stage: Y14_ON,
     when: all(
@@ -542,6 +588,8 @@ const DESK: GwScene[] = [
 
   scene({
     id: "fra_w_dardanelles",
+    // ww187: what its text takes for granted.
+    assumes: { line: { straits: ["dardanelles", "narrows"] } },
     kind: "proposal",
     stage: Y14_ON,
     when: all(
@@ -664,6 +712,8 @@ const DESK: GwScene[] = [
 
   scene({
     id: "fra_w_sarrail_case",
+    // ww187: what its text takes for granted.
+    assumes: { sits: ["chambre"] },
     kind: "audience",
     stage: Y14_ON,
     when: all(war, world({ is: "war_months", own: true, min: 11, max: 17 }), {
@@ -714,6 +764,8 @@ const DESK: GwScene[] = [
 
   scene({
     id: "fra_w_noria",
+    // ww187: what its text takes for granted.
+    assumes: { held: { verdun: "us" } },
     kind: "proposal",
     stage: Y14_ON,
     when: all(
@@ -740,6 +792,8 @@ const DESK: GwScene[] = [
 
   scene({
     id: "fra_w_somme",
+    // ww187: what its text takes for granted.
+    assumes: { line: { west: ["somme", "aisne"] } },
     kind: "crisis",
     stage: Y14_ON,
     when: all(
@@ -869,6 +923,11 @@ const DESK: GwScene[] = [
       v("refusals", refusalsKnown),
       v("calais", flag("f_calais")),
       v("plan", memory("k_niv_plan")),
+      // ww187: the Chemin des Dames above the Aisne, only with the line there.
+      {
+        ...v("aisne", WEST_AISNE),
+        assumes: { line: { west: ["somme", "marne"] } },
+      },
       v("base"),
     ],
     fallback: "let_him_go",
@@ -964,6 +1023,8 @@ const DESK: GwScene[] = [
 
   scene({
     id: "fra_w_caporetto",
+    // ww187: what its text takes for granted.
+    assumes: { line: { italy: ["piave", "adige"] } },
     kind: "crisis",
     stage: Y14_ON,
     when: all(
@@ -1067,6 +1128,8 @@ const DESK: GwScene[] = [
 
   scene({
     id: "fra_w_second_marne",
+    // ww187: what its text takes for granted.
+    assumes: { line: { west: ["marne", "marne"] }, held: { paris: "us" } },
     kind: "crisis",
     stage: Y14_ON,
     when: all(
@@ -1117,7 +1180,14 @@ const DESK: GwScene[] = [
         world({ is: "era", of: ["storm"] }),
       ),
     ),
-    [v("foch", flag("f_foch_over_all")), v("base")],
+    [
+      {
+        ...v("foch", flag("f_foch_over_all")),
+        // "the Germans fall back to the Hindenburg line"
+        assumes: { line: { west: ["hindenburg", "aisne"] } },
+      },
+      v("base"),
+    ],
     "confirmed",
     { salience: 7 },
   ),
@@ -1213,7 +1283,18 @@ const BIG: GwScene[] = [
     { cos: holder("chief_of_staff"), pm: holder("chancellor") },
     "pm",
     {
-      n1: alone([v("free", joffreFree), v("base")], [decide("read", "n2")]),
+      n1: alone(
+        [
+          v("free", joffreFree),
+          // ww187: the charge sheet names the Marne, Verdun and the Somme.
+          {
+            ...v("record", all(not(joffreFree), JOFFRE_RECORD)),
+            assumes: { past: true },
+          },
+          v("base"),
+        ],
+        [decide("read", "n2")],
+      ),
       n2: at(
         "pm",
         [v("secret", flag("f_secret_committee")), v("base")],
@@ -1221,7 +1302,14 @@ const BIG: GwScene[] = [
       ),
       n3: at(
         "cos",
-        [v("lunch", memory("k_jof_mind")), v("base")],
+        [
+          v("lunch", memory("k_jof_mind")),
+          {
+            ...v("record", all(not(memory("k_jof_mind")), JOFFRE_RECORD)),
+            assumes: { past: true },
+          },
+          v("base"),
+        ],
         [
           decide("marshal_out", null, [
             setFlag("f_joffre_fallen"),
@@ -1706,9 +1794,34 @@ const VISITS: GwScene[] = [
   ),
 ];
 
+/** ww187: what a scene's text takes for granted (the builders take no tags). */
+const ASSUMES: Readonly<Record<string, { assumes: GwAssumes; when?: GwCond }>> =
+  {
+    fra_big_verdun: { assumes: { held: { verdun: "us" } } },
+    fra_big_verdun_quiet: { assumes: { held: { verdun: "us" } } },
+    fra_t_petain_verdun: { assumes: { held: { verdun: "us" } } },
+    // The Chamber's questions on Joffre: it sits.
+    fra_big_joffre: { assumes: { sits: ["chambre"] } },
+    fra_t_joffre_deputies: { assumes: { sits: ["chambre"] } },
+    // The Chemin des Dames still German, the Aisne line there.
+    fra_w_chemin_record: { assumes: { line: { west: ["somme", "marne"] } } },
+    // "Who gets the Marne?": the Germans stopped short of Paris and back.
+    fra_t_gallieni_taxis: {
+      assumes: { line: { west: ["hindenburg", "aisne"] } },
+    },
+    // "You lost many on the Somme": only after the Somme.
+    fra_t_foch_rest: { assumes: { past: true }, when: seen("fra_w_somme") },
+  };
+
 export const FRA_WAR_SCENES: readonly GwScene[] = [
   ...DESK,
   ...BIG,
   ...TALKS,
   ...VISITS,
-];
+].map((s) => {
+  const a = ASSUMES[s.id];
+  if (a === undefined) return s;
+  if (a.when === undefined) return { ...s, assumes: a.assumes };
+  const when = s.when === undefined ? a.when : all(s.when, a.when);
+  return { ...s, assumes: a.assumes, when };
+});

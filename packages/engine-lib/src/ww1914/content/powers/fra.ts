@@ -1144,7 +1144,15 @@ const card = (
 
 /** Result cards and other scenes the rows call. */
 export const FRA_POWER_SCENES: readonly GwScene[] = [
-  card("fra_pw_declare_r", ["war"], [v("london", neutral("GBR")), v("base")]),
+  card(
+    "fra_pw_declare_r",
+    ["war"],
+    [
+      // ww187: the Chamber's vote read out: it sits.
+      { ...v("london", neutral("GBR")), assumes: { sits: ["chambre"] } },
+      v("base"),
+    ],
+  ),
   // Read after the order: the level France now stands at.
   card(
     "fra_pw_mobilise_r",
@@ -1188,7 +1196,11 @@ export const FRA_POWER_SCENES: readonly GwScene[] = [
   card("fra_pw_commander_b_bad", ["war"], [v("base")], {
     cos: { office: "chief_of_staff" },
   }),
-  card("fra_pw_dissolve_b_r", ["home"], [v("war", war), v("base")]),
+  // ww187: the Chamber just dissolved.
+  {
+    ...card("fra_pw_dissolve_b_r", ["home"], [v("war", war), v("base")]),
+    assumes: { shut: ["chambre"] },
+  },
   card("fra_pw_dissolve_b_bad", ["home"], [v("base")]),
   card("fra_pw_special_courts_r", ["war"], [v("base")]),
   card("fra_pw_special_courts_bad", ["war"], [v("base")]),

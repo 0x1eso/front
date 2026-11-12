@@ -5,6 +5,7 @@ import {
   type GwTemperament,
   gwLastLine,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import type { GwAssumes } from "@openfront/engine-api/ww1914/GwAssumes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import {
   all,
@@ -175,6 +176,17 @@ const lateWar: GwCond = {
 };
 /** The Germans are in northern France. */
 const north = westFrom("hindenburg");
+/** ww187: the Germans in France and back from the Marne. */
+const AFTER_MARNE: GwCond = {
+  kind: "world",
+  of: { is: "front", theatre: "west", from: "hindenburg", to: "aisne" },
+};
+/** ww187: "the line stopped above the Aisne": the Marne stopped now, the line there. */
+const ON_AISNE: GwVariant = {
+  id: "held",
+  when: { kind: "world", of: { is: "flag_now", flag: "w_marne_stopped" } },
+  assumes: { line: { west: ["aisne", "aisne"] } },
+};
 
 const v = (id: string, when: GwCond): GwVariant => ({ id, when });
 const base: GwVariant = { id: "base" };
@@ -528,7 +540,19 @@ const BIG_MARNE: GwScene = {
   cast: { cos: { office: "chief_of_staff" }, war: { office: "war" } },
   who: "cos",
   start: "n1",
-  variants: [v("bdx", bdx), base],
+  // ww187: "the Germans fell back from the Marne" only with the line behind it.
+  variants: [
+    {
+      ...v("bdx_marne", all(bdx, AFTER_MARNE)),
+      assumes: { line: { west: ["hindenburg", "aisne"] } },
+    },
+    {
+      ...v("marne", AFTER_MARNE),
+      assumes: { line: { west: ["hindenburg", "aisne"] } },
+    },
+    v("bdx", bdx),
+    base,
+  ],
   nodes: {
     n1: {
       says: [v("stubborn", moody(cos, "stubborn")), base],
@@ -579,7 +603,7 @@ const BIG_MARNE: GwScene = {
   },
 };
 
-export const FRA_CRISIS_SCENES: readonly GwScene[] = [
+const CRISIS_SCENES: readonly GwScene[] = [
   // ---- The first desk: the races, the cabinet, the trial ----
   scene(
     "fra_c_roster",
@@ -901,10 +925,14 @@ export const FRA_CRISIS_SCENES: readonly GwScene[] = [
     ["home", "tension_up"],
     {},
     all(chapters(5, 5), hot),
+    // ww187: the night's record; the death bodies only when he fell.
     [
-      v("lives", jl),
-      v("guarded", chose("fra_c_jaures_guard", "guard_him")),
-      base,
+      { ...v("lives", jl), assumes: { active: ["fra_jaures"] } },
+      {
+        ...v("guarded", all(chose("fra_c_jaures_guard", "guard_him"), not(jl))),
+        assumes: { past: true },
+      },
+      { ...base, assumes: { past: true } },
     ],
     { essential: true, stage: LATE, place: "paris" },
   ),
@@ -1038,12 +1066,20 @@ export const FRA_CRISIS_SCENES: readonly GwScene[] = [
     { pm: { office: "chancellor" } },
     any(all(inWar, ownMonths(undefined, 1)), all(crisis, link(4), tempMin(8))),
     [
-      v("late_lives", all(lateWar, active("fra_jaures"))),
-      v("late", all(lateWar, not(active("fra_jaures")))),
-      v("lives", jl),
-      v("east", east1),
-      v("war", inWar),
-      base,
+      // ww187: alive, or the funeral this morning, never the funeral of a
+      // man who lives.
+      {
+        ...v("late_lives", all(lateWar, active("fra_jaures"))),
+        assumes: { active: ["fra_jaures"] },
+      },
+      {
+        ...v("late", all(lateWar, not(active("fra_jaures")))),
+        assumes: { past: true },
+      },
+      { ...v("lives", jl), assumes: { active: ["fra_jaures"] } },
+      { ...v("east", all(east1, not(jl))), assumes: { past: true } },
+      { ...v("war", all(inWar, not(jl))), assumes: { past: true } },
+      { ...base, assumes: { past: true } },
     ],
     {
       stage: LATE,
@@ -1145,7 +1181,11 @@ export const FRA_CRISIS_SCENES: readonly GwScene[] = [
       ),
       holds("war", "fra_messimy"),
     ),
-    [v("lives", jl), v("union", us), base],
+    [
+      { ...v("lives", jl), assumes: { active: ["fra_jaures"] } },
+      v("union", us),
+      base,
+    ],
     {
       stage: LATE,
       fallback: "union_cabinet",
@@ -1300,7 +1340,7 @@ export const FRA_CRISIS_SCENES: readonly GwScene[] = [
     ["home"],
     { pm: { office: "chancellor" } },
     all(bdx, inWarFor(4)),
-    [v("held", flag("w_marne_stopped")), base],
+    [ON_AISNE, base],
     {
       stage: LATE,
       place: "bordeaux",
@@ -1352,7 +1392,7 @@ export const FRA_CRISIS_SCENES: readonly GwScene[] = [
       { kind: "world", of: { is: "in_war", min: 2, max: 6 } },
       { kind: "world", of: { is: "war_months", own: true, max: 17 } },
     ),
-    [v("held", flag("w_marne_stopped")), base],
+    [ON_AISNE, base],
     { stamp: "confirmed", source: "staff", stage: LATE },
   ),
   scene(
@@ -1793,3 +1833,26 @@ export const FRA_CRISIS_SCENES: readonly GwScene[] = [
     { stage: LATE },
   ),
 ];
+
+/** ww187: what a scene's text takes for granted (the builders take no tags). */
+const JAURES: GwAssumes = { active: ["fra_jaures"] };
+const ASSUMES: Readonly<Record<string, GwAssumes>> = {
+  fra_c_jaures_guard: JAURES,
+  fra_t_jaures_after: JAURES,
+  fra_t_jaures_party: JAURES,
+  fra_t_jaures_peace: JAURES,
+  fra_t_jaures_russia: JAURES,
+  fra_t_jaures_threat: JAURES,
+  fra_t_jaures_three: JAURES,
+  // "The party's majority follows Jaurès."
+  fra_v_sembat_book: JAURES,
+  // "Put it to the Chamber's vote": it sits.
+  fra_c_three_years: { sits: ["chambre"] },
+  fra_t_caillaux_tax: { sits: ["senat"] },
+  // "If Paris holds."
+  fra_t_messimy_regret: { held: { paris: "us" } },
+};
+
+export const FRA_CRISIS_SCENES: readonly GwScene[] = CRISIS_SCENES.map((s) =>
+  ASSUMES[s.id] === undefined ? s : { ...s, assumes: ASSUMES[s.id] },
+);

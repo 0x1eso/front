@@ -199,10 +199,14 @@ export const FRA_OFFENSIVE_SCENES: readonly GwScene[] = [
     "report",
     7,
     [
-      v(
-        "storm_broke",
-        all(foe({ theatre: WEST, result: ["break"] }), era("storm")),
-      ),
+      {
+        ...v(
+          "storm_broke",
+          all(foe({ theatre: WEST, result: ["break"] }), era("storm")),
+        ),
+        // "the refugees on the roads to Paris again"
+        assumes: { held: { paris: "us" } },
+      },
       v(
         "long_held",
         all(

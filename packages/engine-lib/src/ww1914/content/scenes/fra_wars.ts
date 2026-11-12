@@ -8,6 +8,7 @@ import type {
   GwInstitution,
   GwSide,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import type { GwAssumes } from "@openfront/engine-api/ww1914/GwAssumes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import type { GwBloc } from "@openfront/engine-api/ww1914/GwPress";
 import {
@@ -557,9 +558,23 @@ const PEACES: GwScene[] = [
   ]),
 ];
 
+/** ww187: what a scene's text takes for granted (the builders take no tags). */
+const ASSUMES_FRA_WAR_EVENTS: Readonly<Record<string, GwAssumes>> = {
+  // A front just opened: the line where it starts.
+  fra_wv_front_italy: { line: { italy: ["trentino", "piave"] } },
+  fra_wv_front_straits: {
+    line: { straits: ["dardanelles", "gallipoli"] },
+    held: { constantinople: "foe" },
+  },
+};
+
 export const FRA_WAR_EVENTS: readonly GwScene[] = [
   ...WAR_BEGINS,
   ...FRONTS,
   ...JOINS,
   ...PEACES,
-];
+].map((s) =>
+  ASSUMES_FRA_WAR_EVENTS[s.id] === undefined
+    ? s
+    : { ...s, assumes: ASSUMES_FRA_WAR_EVENTS[s.id] },
+);

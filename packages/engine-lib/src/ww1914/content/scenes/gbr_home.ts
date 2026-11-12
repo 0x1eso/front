@@ -3072,10 +3072,10 @@ const ASSUMES: Readonly<Record<string, { assumes: GwAssumes; when?: GwCond }>> =
       assumes: { active: ["gbr_kitchener"] },
       when: KIT_AT_WAR,
     },
-    // The shells press against Kitchener: he went to the War Office.
+    // The shells press against Kitchener: he holds the War Office.
     gbr_v_northcliffe_call: {
       assumes: { active: ["gbr_kitchener"] },
-      when: flag("f_kitchener_in"),
+      when: KIT_AT_WAR,
     },
   };
 

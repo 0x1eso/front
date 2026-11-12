@@ -17,6 +17,7 @@
 // The bills on W5's laws (content/laws/fra.ts) are kept here and come into
 // play only once those laws exist (`known`): the rows never name a law that
 // isn't there.
+import type { GwAssumes } from "@openfront/engine-api/ww1914/GwAssumes";
 import type {
   GwCond,
   GwEffect,
@@ -1032,6 +1033,12 @@ const P = (
 ): GwScene => ({ ...S(id, f, opts, variants), once: true, salience: 8 });
 
 /** Step scenes and split scenes. */
+/** ww187: what a scene's text takes for granted (the builders take no tags). */
+const ASSUMES_FRA_HOUSE_SCENES: Readonly<Record<string, GwAssumes>> = {
+  // "forty of ours in the Senate stay away from the next vote"
+  fra_hs_lr_3: { sits: ["senat"] },
+};
+
 export const FRA_HOUSE_SCENES: readonly GwScene[] = [
   S("fra_hs_rad_2", "fra_radicals", [
     ["group_meeting", [cool("fra_radicals", 2), heat("fra_fed_rep", 1)]],
@@ -1193,7 +1200,11 @@ export const FRA_HOUSE_SCENES: readonly GwScene[] = [
     ["back_majority", [cool("fra_sfio", 1), heat("fra_minority", 1)]],
     ["let_be", []],
   ]),
-];
+].map((s) =>
+  ASSUMES_FRA_HOUSE_SCENES[s.id] === undefined
+    ? s
+    : { ...s, assumes: ASSUMES_FRA_HOUSE_SCENES[s.id] },
+);
 
 // ---- S2: plots, the dossier, allies ----
 

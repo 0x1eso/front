@@ -6,6 +6,7 @@ import type {
   GwStage,
   GwTemperament,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import type { GwAssumes } from "@openfront/engine-api/ww1914/GwAssumes";
 import {
   all,
   any,
@@ -434,7 +435,19 @@ const TIGER: GwScene = {
   },
   who: "chamber",
   start: "n1",
-  variants: [v("terms", memory("k_cle_terms")), v("base")],
+  // ww187: the Chamber dissolved, the cabinet stands alone till the poll.
+  variants: [
+    {
+      id: "shut",
+      when: not(world({ is: "sits", id: "chambre" })),
+      assumes: { shut: ["chambre"] },
+    },
+    {
+      ...v("terms", memory("k_cle_terms")),
+      assumes: { sits: ["chambre"] },
+    },
+    v("base"),
+  ],
   nodes: {
     n1: {
       says: [v("again", memory("k_gov_fra_consulted")), v("base")],
@@ -529,6 +542,12 @@ const TOP: GwScene = {
     ]),
     o("resign", [doWorld({ do: "close_seat" })]),
   ],
+};
+
+/** ww187: what a scene's text takes for granted (the builders take no tags). */
+const ASSUMES_FRA_HOME_SCENES: Readonly<Record<string, GwAssumes>> = {
+  // "the right's papers on Jaurès": he lives.
+  fra_t_malvy_police: { active: ["fra_jaures"] },
 };
 
 export const FRA_HOME_SCENES: readonly GwScene[] = [
@@ -647,6 +666,8 @@ export const FRA_HOME_SCENES: readonly GwScene[] = [
   }),
   scene({
     id: "fra_h_viviani_tired",
+    // ww187: what its text takes for granted.
+    assumes: { sits: ["chambre"] },
     kind: "proposal",
     stage: WAR,
     when: all(
@@ -1735,4 +1756,8 @@ export const FRA_HOME_SCENES: readonly GwScene[] = [
       yields: "cunning",
     }),
   ),
-];
+].map((s) =>
+  ASSUMES_FRA_HOME_SCENES[s.id] === undefined
+    ? s
+    : { ...s, assumes: ASSUMES_FRA_HOME_SCENES[s.id] },
+);

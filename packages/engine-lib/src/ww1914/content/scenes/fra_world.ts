@@ -8,6 +8,7 @@ import type {
   GwTemperament,
   GwTheatre,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import type { GwAssumes } from "@openfront/engine-api/ww1914/GwAssumes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import {
   all,
@@ -485,7 +486,11 @@ const SCENES: GwScene[] = [
     8,
     ["foreign"],
     [
-      v("open", open("straits")),
+      {
+        ...v("open", open("straits")),
+        // "the battleships pounding the forts off the Dardanelles"
+        assumes: { line: { straits: ["dardanelles", "narrows"] } },
+      },
       v("cold", { kind: "trust", tag: "RUS", max: 0 }),
       v("base"),
     ],
@@ -1718,4 +1723,15 @@ const TALKS: GwScene[] = [
   ),
 ];
 
-export const FRA_WORLD_SCENES: readonly GwScene[] = [...SCENES, ...TALKS];
+/** ww187: what a scene's text takes for granted (the builders take no tags). */
+const ASSUMES_FRA_WORLD_SCENES: Readonly<Record<string, GwAssumes>> = {
+  fra_t_cambon_bef: { active: ["gbr_kitchener"] },
+  fra_t_paleologue_rasputin: { active: ["rus_rasputin"] },
+};
+
+export const FRA_WORLD_SCENES: readonly GwScene[] = [...SCENES, ...TALKS].map(
+  (s) =>
+    ASSUMES_FRA_WORLD_SCENES[s.id] === undefined
+      ? s
+      : { ...s, assumes: ASSUMES_FRA_WORLD_SCENES[s.id] },
+);
