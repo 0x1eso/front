@@ -28,7 +28,11 @@ describe("common scenes, the 외교 share", () => {
   test("the pack has every line, and no scene addresses the seat", () => {
     expect(gwPackProblems(GW_DIP_SCENES, pack)).toEqual([]);
     const text = JSON.stringify(pack.scenes);
-    expect(text).not.toMatch(/폐하|총리/);
+    // ww196 merge: a form of address, not a foreign premier named ("루마니아
+    // 총리"); the address forms as TextLint reads them.
+    expect(text).not.toMatch(
+      /(?<![가-힣'‘])(?<!(?:황제|황후|황태자|국왕|여왕|왕|차르|카이저|술탄|교황|대공|}) ?)폐하|총리님|당신/,
+    );
   });
 
   test("the plan's promises find their keeper here", () => {

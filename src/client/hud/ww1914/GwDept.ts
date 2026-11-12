@@ -64,9 +64,12 @@ export function taskName(
   row: string | null,
   topic: string | null,
   type?: GwTaskType | null,
+  /** A picker with a topic still to choose: the blank shows as "…". */
+  blank = false,
 ): string {
   // No topic picked yet: a blank to fill, as the schedule's pickers leave one.
-  const word = topic === null ? "…" : topicWord(c, topic);
+  // A task with no topic at all (the war plans in peace) just drops it.
+  const word = topic === null ? (blank ? "…" : "") : topicWord(c, topic);
   const name =
     (row === null ? undefined : c.pack?.depts?.tasks?.[row]?.name) ??
     (type === undefined || type === null
@@ -77,7 +80,9 @@ export function taskName(
       : topic === null
         ? translateText("gw.ui.dept.task_plain")
         : translateText("gw.ui.dept.task_any", { topic: "{topic}" }));
-  return name.split("{topic}").join(word);
+  return topic === null && !blank
+    ? name.replace(/\{topic\}\s*/g, "").trim()
+    : name.split("{topic}").join(word);
 }
 
 /** A task's note, the row's own or its type's. */
@@ -257,7 +262,7 @@ function offerRow(c: GwCtx, d: GwDeptView, o: GwTaskOfferView): TemplateResult {
         c.redraw();
       }}
     >
-      ${taskName(c, o.row, topic, o.type)}
+      ${taskName(c, o.row, topic, o.type, o.topics.length > 0)}
     </button>
     ${picked === null
       ? nothing

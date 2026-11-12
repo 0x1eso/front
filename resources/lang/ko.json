@@ -16379,7 +16379,13 @@
       "dept_shelved": "{who}이(가) 올린 서류를 묵혀 두었다.",
       "dept_leak": "{who}의 부서에서 말이 새어 나갔다.",
       "gift_rivals": "{who}의 경쟁자들이 그 은전을 못마땅해한다.",
-      "petition_unheard": "{who}은(는) 접견을 기다리다 그냥 돌아갔다."
+      "petition_unheard": "{who}은(는) 접견을 기다리다 그냥 돌아갔다.",
+      "dept_staffed": "{who}은(는) 자기 일에 다른 사람을 붙인 것을 언짢아했다.",
+      "honour_given": "{who}이(가) 서훈을 받았다. 그의 경쟁자들이 이를 눈여겨보았다.",
+      "honour_passed": "{who}은(는) 서훈 명단에서 빠진 것을 잊지 않는다.",
+      "honours_acted": "서훈식 없이 명단이 {who}의 이름으로 대신 처리되었다.",
+      "honours_held": "서훈식을 직접 열었다. 사람들이 그 모습을 보았다.",
+      "petition_refused": "{who}이(가) 올린 서훈 상신이 거절되었다."
     },
     "result": {
       "advance": "전진",

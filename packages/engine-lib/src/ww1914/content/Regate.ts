@@ -19,6 +19,12 @@ export const GW_CALENDAR_SCENES: readonly string[] = [
   "rus_c_closing",
   // The American presidential election of November 1916: a fixed day.
   "gw_o_usa_election",
+  // Marie is Queen of Romania from King Carol's death (10 Oct 1914): her
+  // letters to her kin in Berlin and Petrograd come after it.
+  "deu_dept_kin_rou",
+  "rus_dept_kin_rou",
+  "deu_a_marie",
+  "rus_a_l_marie",
 ];
 
 /**

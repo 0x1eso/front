@@ -144,7 +144,8 @@ export function chapterMoments(
     const sc = sceneOf(c.scene);
     if (sc === null) continue;
     const who = speakerOf(c.scene, c.cast);
-    if (sc.kind === "audience" || sc.kind === "talk") {
+    // An audience is with someone; with nobody named it is a decision.
+    if ((sc.kind === "audience" || sc.kind === "talk") && who !== null) {
       out.push(moment("audience", W_AUDIENCE, { who, scene: c.scene }));
     } else if (!GW_READ_ONLY_KINDS.includes(sc.kind)) {
       const w = sc.big === true ? W_BIG : Math.ceil(sc.salience / 2);
@@ -250,7 +251,16 @@ export function writeDiary(
     lines.push(entry(m, row));
   }
   if (lines.length === 0) {
-    const filler = moment("filler", 0);
+    // The day's line is about the last paper he signed, if any.
+    const last = seat.choices
+      .filter(
+        (c) =>
+          c.chapter === gw.s.chapter &&
+          !c.proxy &&
+          !c.scene.startsWith("gw_paper_"),
+      )
+      .slice(-1)[0];
+    const filler = moment("filler", 0, { scene: last?.scene });
     const row = pickRow(gw, seat, rowsFor(gw, seat, filler), filler, []);
     if (row !== null) lines.push(entry(filler, row));
   }

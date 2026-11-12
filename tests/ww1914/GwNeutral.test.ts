@@ -38,6 +38,10 @@ describe("common scenes, the neutrals' share", () => {
 
   test("the text names no office of a seat and no form of address", () => {
     const text = JSON.stringify(pack.scenes);
-    expect(text).not.toMatch(/폐하|총리|당신/);
+    // ww196 merge: a form of address, not a foreign premier named ("루마니아
+    // 총리"); the address forms as TextLint reads them.
+    expect(text).not.toMatch(
+      /(?<![가-힣'‘])(?<!(?:황제|황후|황태자|국왕|여왕|왕|차르|카이저|술탄|교황|대공|}) ?)폐하|총리님|당신/,
+    );
   });
 });

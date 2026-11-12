@@ -74,6 +74,12 @@ export function diaryText(c: GwCtx, d: GwDiaryView): string | null {
   const text = c.pack?.persona?.diary?.[d.row];
   if (text === undefined) return null;
   const scene = d.scene === null ? "" : (c.pack?.scenes[d.scene]?.title ?? "");
+  // A line that would name nobody, no paper or no front is left out.
+  const empty =
+    (text.includes("{who}") && d.who === null) ||
+    ((text.includes("{scene}") || text.includes("{topic}")) && scene === "") ||
+    (text.includes("{front}") && d.theatre === null);
+  if (empty) return null;
   return applyJosa(
     text
       .split("{who}")
