@@ -3,6 +3,7 @@
 // siege). Text in resources/ww1914/ko/FRA.laws.json. Lane W5 (ww166-format.md).
 // No `tell` anywhere: what a bill did comes after, as reason lines.
 import { all, memory, not } from "@openfront/engine-api/ww1914/SceneDsl";
+import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
 import type { GwLawRow } from "../../LawRows";
 import {
   draft,
@@ -327,4 +328,40 @@ export const FRA_LAWS: readonly GwLawRow[] = [
       tempers: ["stubborn"],
     }),
   }),
+  // ww190 §1: the peace years' bill beside the three-year law, the navy
+  // programme of 1912 pushed on. Opens only while the war hasn't come.
+  row({
+    id: "fra_law_navy",
+    opens: all(not(war), world({ is: "peace_months", min: 3 })),
+    lean: 0,
+    decree: false,
+    cast: { navy: held("navy"), fin: held("finance") },
+    draft: [
+      draft("full_programme", 0, [], [navyArms(5), gauge("money", -1)]),
+      draft("with_levy", -1, [], [navyArms(5), inst("senate", -1)]),
+      draft("slower", 1, [], [navyArms(3)]),
+    ],
+    passed: [],
+    passedTell: [],
+    term: [
+      { gauge: "money", delta: -1, every: 12, text: ["full_programme"] },
+      { gauge: "money", delta: 1, every: 12, text: ["with_levy"] },
+    ],
+    flag: "f_fra_law_navy",
+    repeal: { authority: 10, tell: [], effects: [navyArms(-5)] },
+    talk: lawTalk("fra_law_navy", {
+      who: person("fra_delcasse"),
+      ask: "frank",
+      push: "cold",
+      tell: [],
+      price: [inst("army", -1)],
+      wins: 2,
+      tempers: ["arrogant"],
+    }),
+  }),
 ];
+
+/** The arms effect on the running plan's navy share (ww190 PeaceYears). */
+function navyArms(delta: number) {
+  return doWorld({ do: "arms", line: "navy", delta });
+}
