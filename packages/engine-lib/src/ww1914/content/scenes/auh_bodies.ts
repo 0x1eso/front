@@ -51,9 +51,15 @@ function node(s: GwScene, replies: readonly GwBodyReply[]): GwNode {
 
 function apply(s: GwScene, b: GwBodies): GwScene {
   const like = (id: string) => s.variants.find((v) => v.id === id)?.when;
+  const likeAssumes = (id: string) =>
+    s.variants.find((v) => v.id === id)?.assumes;
   const added = (b.variants ?? []).map(({ like: l, ...v }): GwVariant => {
     const when = l === undefined ? v.when : like(l);
-    return when === undefined ? { id: v.id } : { id: v.id, when };
+    // ww187: a body keeps its own tags, or takes its sibling's with `like`.
+    const assumes = v.assumes ?? (l === undefined ? undefined : likeAssumes(l));
+    const out: GwVariant =
+      when === undefined ? { id: v.id } : { id: v.id, when };
+    return assumes === undefined ? out : { ...out, assumes };
   });
   const nodes = Object.entries(b.nodes ?? {}).map(
     ([id, n]) => [id, node(s, n.replies)] as const,
@@ -2528,6 +2534,8 @@ const BODIES: Readonly<Record<string, GwBodies>> = {
       },
       {
         id: "base3",
+        // ww187: the day's wire from Sarajevo, as the opening has it.
+        assumes: { past: true },
       },
     ],
     voices: {
@@ -2985,8 +2993,10 @@ const BODIES: Readonly<Record<string, GwBodies>> = {
   auh_w_ledger_1916: {
     gate: noTruce,
     variants: [
+      // ww187: the second Isonzo paper, with the first's state.
       {
-        id: "base2",
+        id: "isonzo2",
+        like: "isonzo",
       },
     ],
   },

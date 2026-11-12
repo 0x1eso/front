@@ -761,6 +761,8 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
   {
     id: "rus_r_friend_dead",
     nation: ["RUS"],
+    // ww187: the murder told as it is found: Rasputin is named dead.
+    assumes: { past: true },
     kind: "crisis",
     stage: ["war"],
     when: {
@@ -1269,6 +1271,8 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
   {
     id: "rus_r_trust",
     nation: ["RUS"],
+    // ww187: Rodzianko and "a cabinet the Duma trusts": the Duma is there.
+    assumes: { sits: ["duma"] },
     kind: "crisis",
     stage: ["war"],
     when: {
@@ -4747,6 +4751,8 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
   {
     id: "rus_t_rodz_friend",
     nation: ["RUS"],
+    // ww187: the file on a living Rasputin.
+    assumes: { active: ["rus_rasputin"] },
     kind: "talk",
     when: {
       kind: "all",
@@ -6852,6 +6858,8 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
                 role: "p",
               },
             },
+            // ww187: "who reaches Gallipoli first": the race not yet run.
+            assumes: { line: { straits: ["dardanelles", "narrows"] } },
           },
           {
             id: "base",

@@ -1149,31 +1149,45 @@ const SOPHIE: readonly GwScene[] = [
     grave: node([bye("go_well2")]),
     need: node([bye("go_well3")]),
   }),
-  talk("ff_table", "auh_ff", all(FJ, ffAlive), {
-    open: node([
-      r("both", "warm", "deal", "both", { effects: [rem("ff_dined")] }),
-      r("rule", "cold", "leave", null, { effects: [rem("ff_barred")] }),
-      r("why_angry", "frank", "ask", "angry"),
-    ]),
-    angry: node([
-      r("both2", "warm", "deal", "both", { effects: [rem("ff_dined")] }),
-      r("rule2", "cold", "leave", null, { effects: [rem("ff_barred")] }),
-    ]),
-    both: node([bye("eight")]),
-  }),
-  talk("ff_roses", "auh_ff", all(FJ, ffAlive, seen("auh_p_ff_table")), {
-    open: node(
-      [
-        r("children", "warm", "ask", "kids"),
-        r("after_me", "frank", "ask", "after"),
-        bye("thanks"),
-      ],
-      v("dined", m("ff_dined")),
-      v("barred", m("ff_barred")),
-    ),
-    kids: node([r("after_me2", "frank", "ask", "after"), bye("thanks2")]),
-    after: node([bye("hold_tongue")]),
-  }),
+  talk(
+    "ff_table",
+    "auh_ff",
+    all(FJ, ffAlive),
+    {
+      open: node([
+        r("both", "warm", "deal", "both", { effects: [rem("ff_dined")] }),
+        r("rule", "cold", "leave", null, { effects: [rem("ff_barred")] }),
+        r("why_angry", "frank", "ask", "angry"),
+      ]),
+      angry: node([
+        r("both2", "warm", "deal", "both", { effects: [rem("ff_dined")] }),
+        r("rule2", "cold", "leave", null, { effects: [rem("ff_barred")] }),
+      ]),
+      both: node([bye("eight")]),
+    },
+    // ww187: the heir comes in person: he is about.
+    { assumes: { active: ["auh_ff"] } },
+  ),
+  talk(
+    "ff_roses",
+    "auh_ff",
+    all(FJ, ffAlive, seen("auh_p_ff_table")),
+    {
+      open: node(
+        [
+          r("children", "warm", "ask", "kids"),
+          r("after_me", "frank", "ask", "after"),
+          bye("thanks"),
+        ],
+        v("dined", m("ff_dined")),
+        v("barred", m("ff_barred")),
+      ),
+      kids: node([r("after_me2", "frank", "ask", "after"), bye("thanks2")]),
+      after: node([bye("hold_tongue")]),
+    },
+    // ww187: the heir comes in person: he is about.
+    { assumes: { active: ["auh_ff"] } },
+  ),
   visit("ff_step", "auh_montenuovo", all(FFT, fresh(6)), 6, {
     open: node(
       [

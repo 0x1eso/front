@@ -813,7 +813,11 @@ const INTRIGUE_SCENES: GwScene[] = [
     [
       v("berlin_deep", all(picked("whose", "berlin"), berlinAt({ min: 2 }))),
       v("berlin", picked("whose", "berlin")),
-      v("rome_war", italyIn),
+      // ww187: "guns moving on the Isonzo": the line is there.
+      {
+        ...v("rome_war", italyIn),
+        assumes: { line: { italy: ["isonzo", "isonzo"] } },
+      },
       base,
     ],
     { tags: ["foreign"], source: "agents", stamp: "unconfirmed" },

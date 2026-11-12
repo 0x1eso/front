@@ -159,9 +159,10 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     variants: [
       { id: "failed", when: { kind: "opening", of: ["sarajevo_failed"] } },
       { id: "survived", when: { kind: "opening", of: ["sarajevo_survived"] } },
-      { id: "fog" },
-      { id: "tennis" },
-      { id: "base" },
+      // ww187: the day's wire, as the opening has it: `past`.
+      { id: "fog", assumes: { past: true } },
+      { id: "tennis", assumes: { past: true } },
+      { id: "base", assumes: { past: true } },
     ],
   },
   {
@@ -242,6 +243,8 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
   {
     id: "rus_c_pokrovskoe",
     nation: ["RUS"],
+    // ww187: Rasputin is the one stabbed: about.
+    assumes: { active: ["rus_rasputin"] },
     kind: "proposal",
     stage: ["crisis"],
     when: { kind: "chapter", min: 2, max: 3 },
@@ -1330,7 +1333,12 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     source: "staff",
     variants: [
       { id: "tannenberg", when: { kind: "flag", flag: "w_tannenberg" } },
-      { id: "east_luck", when: { kind: "flag", flag: "w_bad_luck_east" } },
+      // ww187: the Germans fall back to the Vistula: the line is in East Prussia.
+      {
+        id: "east_luck",
+        when: { kind: "flag", flag: "w_bad_luck_east" },
+        assumes: { line: { east: ["oder", "east_prussia"] } },
+      },
       { id: "galicia", when: { kind: "flag", flag: "f_galicia_first" } },
       { id: "base" },
     ],
@@ -1802,6 +1810,8 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
   {
     id: "rus_t_sazonov_limit",
     nation: ["RUS"],
+    // ww187: "as far as Belgrade": Belgrade still Serbian.
+    assumes: { held: { belgrade: "owner" } },
     kind: "talk",
     when: {
       kind: "all",
@@ -2525,6 +2535,11 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
           {
             id: "anxious",
             when: { kind: "temperament", who: { role: "p" }, of: ["anxious"] },
+            // ww187: British ships at the Dardanelles, the narrows not passed.
+            assumes: {
+              line: { straits: ["dardanelles", "narrows"] },
+              fights: ["GBR"],
+            },
           },
           { id: "base" },
         ],
@@ -4496,6 +4511,8 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
   {
     id: "rus_t_nik_retreat",
     nation: ["RUS"],
+    // ww187: the hand over the Vistula: the line has left it.
+    assumes: { line: { east: ["vistula", "kiev"] } },
     kind: "talk",
     when: {
       kind: "all",
@@ -5359,6 +5376,8 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
   {
     id: "rus_t_gor_bloc",
     nation: ["RUS"],
+    // ww187: the Duma he would close: it sits.
+    assumes: { sits: ["duma"] },
     kind: "talk",
     when: {
       kind: "all",

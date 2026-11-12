@@ -279,7 +279,8 @@ const SCENES: readonly GwScene[] = [
       v("delayed", opening("sarajevo_delayed")),
       v("failed", opening("sarajevo_failed")),
       v("survived", opening("sarajevo_survived")),
-      base,
+      // ww187: the day's wire from Sarajevo, as the opening has it.
+      { ...base, assumes: { past: true } },
     ],
   ),
   scene(
@@ -290,7 +291,12 @@ const SCENES: readonly GwScene[] = [
     { fm: { office: "foreign" } },
     chapters(0, 1),
     [v("quiet", not(crisis)), v("heir", ffAlive), base],
-    { stamp: "confirmed", source: "staff" },
+    // ww187: the summer roster names Stürgkh as chancellor.
+    {
+      stamp: "confirmed",
+      source: "staff",
+      assumes: { active: ["auh_sturgkh"] },
+    },
   ),
   scene(
     "auh_c_who_signs",
@@ -819,6 +825,8 @@ const SCENES: readonly GwScene[] = [
       base,
     ],
     {
+      // ww187: the note goes to a Serbian Belgrade.
+      assumes: { held: { belgrade: "owner" } },
       fallback: "hard",
       options: [
         opt("hard", ["temp:+1"], [temp(1), setFlag("f_auh_note_hard")]),
@@ -1010,6 +1018,8 @@ const SCENES: readonly GwScene[] = [
       base,
     ],
     {
+      // ww187: "only as far as Belgrade": Belgrade still Serbian.
+      assumes: { held: { belgrade: "owner" } },
       fallback: "break_off",
       options: [
         opt(
@@ -1212,6 +1222,8 @@ const SCENES: readonly GwScene[] = [
       base,
     ],
     {
+      // ww187: the wire goes to a Serbian Belgrade; Stürgkh's decrees.
+      assumes: { held: { belgrade: "owner" }, active: ["auh_sturgkh"] },
       fallback: "sign",
       options: [
         opt(
@@ -1261,6 +1273,8 @@ const SCENES: readonly GwScene[] = [
     all(declared, not(atWar("RUS")), { kind: "chapter", max: 5 }),
     [v("halt", flag("f_auh_halt_belgrade")), base],
     {
+      // ww187: "stop after taking Belgrade": Belgrade still Serbian.
+      assumes: { held: { belgrade: "owner" } },
       fallback: "ignore",
       options: [
         opt("ignore", ["temp:+1", "deu:-1"], [temp(1), trust("DEU", -1)]),
@@ -1362,6 +1376,8 @@ const SCENES: readonly GwScene[] = [
     ),
     [v("delegations", flag("f_auh_sign_austria")), base],
     {
+      // ww187: Stürgkh speaks in the options: he is about.
+      assumes: { active: ["auh_sturgkh"] },
       fallback: "all_at_once",
       options: [
         opt(
@@ -1598,61 +1614,65 @@ const BERCHTOLD: readonly GwScene[] = [
     },
     C,
   ),
-  talk(
-    "auh_t_ber_trentino",
-    "auh_berchtold",
-    all(
-      { kind: "world", of: { is: "war_months", own: true, max: 11 } },
-      inWar,
-      not({ kind: "world", of: { is: "entered", tag: "ITA" } }),
-      inOffice(p),
-    ),
-    {
-      open: node(
-        moods(p, "weary", "cunning"),
-        r("ask", "frank", "ask", [], [], "price", {
-          gain: [K("k_ber_trentino")],
-          miss: "who_stops",
-        }),
-        r("press", "cold", "push", [], [], "price", {
-          gain: [K("k_ber_trentino")],
-          miss: "who_stops",
-        }),
-        r(
-          "deal",
-          "warm",
-          "deal",
-          ["hun_pm:-1", "hungary:-1"],
-          [K("k_ber_trentino"), pt({ office: "hun_pm" }, -1), hungary(-1)],
-          "price",
-        ),
-        r(
-          "release",
-          "warm",
-          "deal",
-          ["leaves"],
-          [keepPromise(p, "ber_release"), act({ do: "leave", who: p })],
-          "going",
-          {
-            when: {
-              kind: "promise",
-              who: p,
-              key: "ber_release",
-              kept: false,
-              broken: false,
+  {
+    ...talk(
+      "auh_t_ber_trentino",
+      "auh_berchtold",
+      all(
+        { kind: "world", of: { is: "war_months", own: true, max: 11 } },
+        inWar,
+        not({ kind: "world", of: { is: "entered", tag: "ITA" } }),
+        inOffice(p),
+      ),
+      {
+        open: node(
+          moods(p, "weary", "cunning"),
+          r("ask", "frank", "ask", [], [], "price", {
+            gain: [K("k_ber_trentino")],
+            miss: "who_stops",
+          }),
+          r("press", "cold", "push", [], [], "price", {
+            gain: [K("k_ber_trentino")],
+            miss: "who_stops",
+          }),
+          r(
+            "deal",
+            "warm",
+            "deal",
+            ["hun_pm:-1", "hungary:-1"],
+            [K("k_ber_trentino"), pt({ office: "hun_pm" }, -1), hungary(-1)],
+            "price",
+          ),
+          r(
+            "release",
+            "warm",
+            "deal",
+            ["leaves"],
+            [keepPromise(p, "ber_release"), act({ do: "leave", who: p })],
+            "going",
+            {
+              when: {
+                kind: "promise",
+                who: p,
+                key: "ber_release",
+                kept: false,
+                broken: false,
+              },
             },
-          },
+          ),
+          close("leave", "cold"),
         ),
-        close("leave", "cold"),
-      ),
-      price: plain(
-        r("tisza", "frank", "ask", [], [], "who_stops"),
-        r("end", "warm", "leave", ["trust:+1"], [pt(p, 1)], null),
-      ),
-      who_stops: plain(close("end", "frank"), close("end2", "cold")),
-      going: plain(close("end", "warm")),
-    },
-  ),
+        price: plain(
+          r("tisza", "frank", "ask", [], [], "who_stops"),
+          r("end", "warm", "leave", ["trust:+1"], [pt(p, 1)], null),
+        ),
+        who_stops: plain(close("end", "frank"), close("end2", "cold")),
+        going: plain(close("end", "warm")),
+      },
+    ),
+    // ww187: "they will ask as far as Trieste": Trieste still ours.
+    assumes: { held: { trieste: "owner" } },
+  },
   talk(
     "auh_t_ber_after",
     "auh_berchtold",
@@ -2285,252 +2305,282 @@ const BILINSKI: readonly GwScene[] = [
 ];
 
 const STURGKH: readonly GwScene[] = [
-  talk(
-    "auh_t_stu_closed",
-    "auh_sturgkh",
-    { kind: "chapter", max: 5 },
-    {
-      open: node(
-        moods(p, "cold"),
-        r("ask", "frank", "ask", [], [], "why_shut", {
-          gain: [K("k_stu_closed")],
-          miss: "for_now",
-        }),
-        r("cold", "cold", "ask", [], [], "why_shut", {
-          gain: [K("k_stu_closed")],
-          miss: "for_now",
-        }),
-        r(
-          "deal",
-          "warm",
-          "deal",
-          ["chancellor:+1", "nations:-1"],
-          [K("k_stu_closed"), pt(p, 1), nations(-1)],
-          "why_shut",
-        ),
-        close("leave", "cold"),
-      ),
-      why_shut: plain(
-        r("delegations", "frank", "ask", [], [], "delegations"),
-        r("end", "cold", "leave", [], [], null),
-      ),
-      delegations: plain(close("end", "frank"), close("end2", "cold")),
-      for_now: plain(
-        r("again", "threat", "push", ["trust:-1"], [pt(p, -1)], "why_shut", {
-          gain: [K("k_stu_closed")],
-          miss: null,
-        }),
-        r("end", "cold", "leave", [], [reason("auh_t_stu_closed_r1")], null),
-      ),
-    },
-  ),
-  talk(
-    "auh_t_stu_decree",
-    "auh_sturgkh",
-    all(any(crisis, inWar), { kind: "chapter", max: 5 }),
-    {
-      open: node(
-        moods(p, "stubborn"),
-        r("ask", "cold", "ask", [], [], "paragraph", {
-          gain: [K("k_stu_decree")],
-          miss: "article",
-        }),
-        r("frank", "frank", "ask", [], [], "paragraph", {
-          gain: [K("k_stu_decree")],
-          miss: "article",
-        }),
-        r(
-          "deal",
-          "warm",
-          "deal",
-          ["war:-1"],
-          [K("k_stu_decree"), pt({ office: "war" }, -1)],
-          "paragraph",
-        ),
-        close("leave", "cold"),
-      ),
-      paragraph: plain(
-        r("army", "frank", "ask", [], [], "army"),
-        r("end", "cold", "leave", [], [], null),
-      ),
-      army: plain(close("end", "frank"), close("end2", "cold")),
-      article: plain(
-        r("end", "cold", "leave", [], [reason("auh_t_stu_decree_r1")], null),
-      ),
-    },
-    C,
-  ),
-  talk(
-    "auh_t_stu_bohemia",
-    "auh_sturgkh",
-    all(
-      { kind: "world", of: { is: "war_months", own: true, max: 11 } },
-      inWar,
-      inOffice(p),
-    ),
-    {
-      open: node(
-        moods(p, "cold", "stubborn"),
-        r("ask", "frank", "ask", [], [], "prague", {
-          gain: [K("k_stu_bohemia")],
-          miss: "ministry",
-        }),
-        r("cold", "cold", "ask", [], [], "prague", {
-          gain: [K("k_stu_bohemia")],
-          miss: "ministry",
-        }),
-        r(
-          "deal",
-          "warm",
-          "deal",
-          ["cos:-1"],
-          [K("k_stu_bohemia"), pt({ office: "chief_of_staff" }, -1)],
-          "prague",
-        ),
-        close("leave", "cold"),
-      ),
-      prague: plain(
-        r("thun", "frank", "ask", [], [], "governor"),
-        r("end", "cold", "leave", [], [], null),
-      ),
-      governor: plain(close("end", "frank"), close("end2", "cold")),
-      ministry: plain(
-        r("end", "cold", "leave", [], [reason("auh_t_stu_bohemia_r1")], null),
-      ),
-    },
-  ),
-  talk(
-    "auh_t_stu_grain",
-    "auh_sturgkh",
-    all(
-      { kind: "world", of: { is: "war_months", own: true, min: 5, max: 17 } },
-      inWar,
-      inOffice(p),
+  {
+    ...talk(
+      "auh_t_stu_closed",
+      "auh_sturgkh",
+      { kind: "chapter", max: 5 },
       {
-        kind: "gauge",
-        gauge: "bread",
-        max: 2,
+        open: node(
+          moods(p, "cold"),
+          r("ask", "frank", "ask", [], [], "why_shut", {
+            gain: [K("k_stu_closed")],
+            miss: "for_now",
+          }),
+          r("cold", "cold", "ask", [], [], "why_shut", {
+            gain: [K("k_stu_closed")],
+            miss: "for_now",
+          }),
+          r(
+            "deal",
+            "warm",
+            "deal",
+            ["chancellor:+1", "nations:-1"],
+            [K("k_stu_closed"), pt(p, 1), nations(-1)],
+            "why_shut",
+          ),
+          close("leave", "cold"),
+        ),
+        why_shut: plain(
+          r("delegations", "frank", "ask", [], [], "delegations"),
+          r("end", "cold", "leave", [], [], null),
+        ),
+        delegations: plain(close("end", "frank"), close("end2", "cold")),
+        for_now: plain(
+          r("again", "threat", "push", ["trust:-1"], [pt(p, -1)], "why_shut", {
+            gain: [K("k_stu_closed")],
+            miss: null,
+          }),
+          r("end", "cold", "leave", [], [reason("auh_t_stu_closed_r1")], null),
+        ),
       },
     ),
-    {
-      open: node(
-        moods(p, "cold"),
-        r("ask", "frank", "ask", [], [], "bread", {
-          gain: [K("k_stu_grain")],
-          miss: "tables",
-        }),
-        r("press", "cold", "push", [], [], "bread", {
-          gain: [K("k_stu_grain")],
-          miss: "tables",
-        }),
-        r(
-          "deal",
-          "warm",
-          "deal",
-          ["hun_pm:-1", "hungary:-1"],
-          [K("k_stu_grain"), pt({ office: "hun_pm" }, -1), hungary(-1)],
-          "bread",
-        ),
-        close("leave", "cold"),
-      ),
-      bread: plain(
-        r("border", "frank", "ask", [], [], "border"),
-        r("end", "cold", "leave", [], [], null),
-      ),
-      border: plain(close("end", "frank"), close("end2", "cold")),
-      tables: plain(
-        r("end", "cold", "leave", [], [reason("auh_t_stu_grain_r1")], null),
-      ),
-    },
-  ),
-  talk(
-    "auh_t_stu_open",
-    "auh_sturgkh",
-    all(
-      { kind: "world", of: { is: "war_months", own: true, min: 11, max: 29 } },
-      inOffice(p),
-    ),
-    {
-      open: node(
-        moods(p, "stubborn", "cold"),
-        r("ask", "frank", "ask", [], [], "when", {
-          gain: [K("k_stu_open")],
-          miss: "same",
-        }),
-        r("threat", "threat", "push", ["trust:-1"], [pt(p, -1)], "when", {
-          gain: [K("k_stu_open")],
-          miss: "same",
-        }),
-        r(
-          "deal",
-          "cold",
-          "deal",
-          ["chancellor:-1"],
-          [
-            K("k_stu_open"),
-            pt(p, -1),
-            promise(p, "stu_open", 12, {
-              keep: chose("auh_h_reichsrat_call", "open_it"),
-            }),
-          ],
-          "when",
-        ),
-        close("leave", "cold"),
-      ),
-      when: plain(
-        r("speech", "frank", "ask", [], [], "speech"),
-        r("end", "cold", "leave", [], [], null),
-      ),
-      speech: plain(close("end", "frank"), close("end2", "cold")),
-      same: plain(
-        r("end", "cold", "leave", [], [reason("auh_t_stu_open_r1")], null),
-      ),
-    },
-  ),
-  talk(
-    "auh_t_stu_letters",
-    "auh_sturgkh",
-    all(
-      { kind: "world", of: { is: "war_months", own: true, min: 17, max: 29 } },
-      inOffice(p),
+    // ww187: Stürgkh comes in person: he is about.
+    assumes: { active: ["auh_sturgkh"] },
+  },
+  {
+    ...talk(
+      "auh_t_stu_decree",
+      "auh_sturgkh",
+      all(any(crisis, inWar), { kind: "chapter", max: 5 }),
       {
-        kind: "world",
-        of: { is: "unrest", min: 0 },
+        open: node(
+          moods(p, "stubborn"),
+          r("ask", "cold", "ask", [], [], "paragraph", {
+            gain: [K("k_stu_decree")],
+            miss: "article",
+          }),
+          r("frank", "frank", "ask", [], [], "paragraph", {
+            gain: [K("k_stu_decree")],
+            miss: "article",
+          }),
+          r(
+            "deal",
+            "warm",
+            "deal",
+            ["war:-1"],
+            [K("k_stu_decree"), pt({ office: "war" }, -1)],
+            "paragraph",
+          ),
+          close("leave", "cold"),
+        ),
+        paragraph: plain(
+          r("army", "frank", "ask", [], [], "army"),
+          r("end", "cold", "leave", [], [], null),
+        ),
+        army: plain(close("end", "frank"), close("end2", "cold")),
+        article: plain(
+          r("end", "cold", "leave", [], [reason("auh_t_stu_decree_r1")], null),
+        ),
+      },
+      C,
+    ),
+    // ww187: Stürgkh comes in person: he is about.
+    assumes: { active: ["auh_sturgkh"] },
+  },
+  {
+    ...talk(
+      "auh_t_stu_bohemia",
+      "auh_sturgkh",
+      all(
+        { kind: "world", of: { is: "war_months", own: true, max: 11 } },
+        inWar,
+        inOffice(p),
+      ),
+      {
+        open: node(
+          moods(p, "cold", "stubborn"),
+          r("ask", "frank", "ask", [], [], "prague", {
+            gain: [K("k_stu_bohemia")],
+            miss: "ministry",
+          }),
+          r("cold", "cold", "ask", [], [], "prague", {
+            gain: [K("k_stu_bohemia")],
+            miss: "ministry",
+          }),
+          r(
+            "deal",
+            "warm",
+            "deal",
+            ["cos:-1"],
+            [K("k_stu_bohemia"), pt({ office: "chief_of_staff" }, -1)],
+            "prague",
+          ),
+          close("leave", "cold"),
+        ),
+        prague: plain(
+          r("thun", "frank", "ask", [], [], "governor"),
+          r("end", "cold", "leave", [], [], null),
+        ),
+        governor: plain(close("end", "frank"), close("end2", "cold")),
+        ministry: plain(
+          r("end", "cold", "leave", [], [reason("auh_t_stu_bohemia_r1")], null),
+        ),
       },
     ),
-    {
-      open: node(
-        moods(p, "cold", "stubborn"),
-        r("ask", "warm", "ask", [], [], "drawer", {
-          gain: [K("k_stu_letters")],
-          miss: "routine",
-        }),
-        r("frank", "frank", "ask", [], [], "drawer", {
-          gain: [K("k_stu_letters")],
-          miss: "routine",
-        }),
-        r(
-          "deal",
-          "warm",
-          "deal",
-          ["trust:+1"],
-          [K("k_stu_letters"), pt(p, 1)],
-          "guard",
+    // ww187: Stürgkh comes in person: he is about.
+    assumes: { active: ["auh_sturgkh"] },
+  },
+  {
+    ...talk(
+      "auh_t_stu_grain",
+      "auh_sturgkh",
+      all(
+        { kind: "world", of: { is: "war_months", own: true, min: 5, max: 17 } },
+        inWar,
+        inOffice(p),
+        {
+          kind: "gauge",
+          gauge: "bread",
+          max: 2,
+        },
+      ),
+      {
+        open: node(
+          moods(p, "cold"),
+          r("ask", "frank", "ask", [], [], "bread", {
+            gain: [K("k_stu_grain")],
+            miss: "tables",
+          }),
+          r("press", "cold", "push", [], [], "bread", {
+            gain: [K("k_stu_grain")],
+            miss: "tables",
+          }),
+          r(
+            "deal",
+            "warm",
+            "deal",
+            ["hun_pm:-1", "hungary:-1"],
+            [K("k_stu_grain"), pt({ office: "hun_pm" }, -1), hungary(-1)],
+            "bread",
+          ),
+          close("leave", "cold"),
         ),
-        close("leave", "cold"),
+        bread: plain(
+          r("border", "frank", "ask", [], [], "border"),
+          r("end", "cold", "leave", [], [], null),
+        ),
+        border: plain(close("end", "frank"), close("end2", "cold")),
+        tables: plain(
+          r("end", "cold", "leave", [], [reason("auh_t_stu_grain_r1")], null),
+        ),
+      },
+    ),
+    // ww187: Stürgkh comes in person: he is about.
+    assumes: { active: ["auh_sturgkh"] },
+  },
+  {
+    ...talk(
+      "auh_t_stu_open",
+      "auh_sturgkh",
+      all(
+        {
+          kind: "world",
+          of: { is: "war_months", own: true, min: 11, max: 29 },
+        },
+        inOffice(p),
       ),
-      drawer: plain(
-        r("who", "frank", "ask", [], [], "who"),
-        r("guard", "warm", "ask", [], [], "guard"),
-        close("end", "cold"),
+      {
+        open: node(
+          moods(p, "stubborn", "cold"),
+          r("ask", "frank", "ask", [], [], "when", {
+            gain: [K("k_stu_open")],
+            miss: "same",
+          }),
+          r("threat", "threat", "push", ["trust:-1"], [pt(p, -1)], "when", {
+            gain: [K("k_stu_open")],
+            miss: "same",
+          }),
+          r(
+            "deal",
+            "cold",
+            "deal",
+            ["chancellor:-1"],
+            [
+              K("k_stu_open"),
+              pt(p, -1),
+              promise(p, "stu_open", 12, {
+                keep: chose("auh_h_reichsrat_call", "open_it"),
+              }),
+            ],
+            "when",
+          ),
+          close("leave", "cold"),
+        ),
+        when: plain(
+          r("speech", "frank", "ask", [], [], "speech"),
+          r("end", "cold", "leave", [], [], null),
+        ),
+        speech: plain(close("end", "frank"), close("end2", "cold")),
+        same: plain(
+          r("end", "cold", "leave", [], [reason("auh_t_stu_open_r1")], null),
+        ),
+      },
+    ),
+    // ww187: Stürgkh comes in person: he is about.
+    assumes: { active: ["auh_sturgkh"] },
+  },
+  {
+    ...talk(
+      "auh_t_stu_letters",
+      "auh_sturgkh",
+      all(
+        {
+          kind: "world",
+          of: { is: "war_months", own: true, min: 17, max: 29 },
+        },
+        inOffice(p),
+        {
+          kind: "world",
+          of: { is: "unrest", min: 0 },
+        },
       ),
-      who: plain(close("end", "frank"), close("end2", "cold")),
-      guard: plain(close("end", "warm")),
-      routine: plain(
-        r("end", "cold", "leave", [], [reason("auh_t_stu_letters_r1")], null),
-      ),
-    },
-  ),
+      {
+        open: node(
+          moods(p, "cold", "stubborn"),
+          r("ask", "warm", "ask", [], [], "drawer", {
+            gain: [K("k_stu_letters")],
+            miss: "routine",
+          }),
+          r("frank", "frank", "ask", [], [], "drawer", {
+            gain: [K("k_stu_letters")],
+            miss: "routine",
+          }),
+          r(
+            "deal",
+            "warm",
+            "deal",
+            ["trust:+1"],
+            [K("k_stu_letters"), pt(p, 1)],
+            "guard",
+          ),
+          close("leave", "cold"),
+        ),
+        drawer: plain(
+          r("who", "frank", "ask", [], [], "who"),
+          r("guard", "warm", "ask", [], [], "guard"),
+          close("end", "cold"),
+        ),
+        who: plain(close("end", "frank"), close("end2", "cold")),
+        guard: plain(close("end", "warm")),
+        routine: plain(
+          r("end", "cold", "leave", [], [reason("auh_t_stu_letters_r1")], null),
+        ),
+      },
+    ),
+    // ww187: Stürgkh comes in person: he is about.
+    assumes: { active: ["auh_sturgkh"] },
+  },
 ];
 
 const VISITS: readonly GwScene[] = [

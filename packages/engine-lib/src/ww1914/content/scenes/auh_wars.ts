@@ -243,38 +243,46 @@ const WAR_BEGINS: readonly GwScene[] = [
       ),
     ],
   ),
-  wire(
-    "auh_wv_war_ita",
-    8,
-    all(warWith("ITA", 1), not(ownWarWith("ITA", 1))),
-    { fm: FM },
-    [
-      ["entered", cause("ITA", "entered", "treaty")],
-      ["ladder", cause("ITA", "ladder")],
-      ["base"],
-    ],
-  ),
-  proposal(
-    "auh_wv_war_own_ita",
-    8,
-    ownWarWith("ITA", 1),
-    { fm: FM, cos: COS },
-    [["base"]],
-    [
-      opt(
-        "ask_berlin",
-        inst("berlin", 1),
-        trust("DEU", 1),
-        reason("auhwv_ita_berlin"),
-      ),
-      opt(
-        "alone",
-        opinion("army", 1),
-        gauge("shells", -1),
-        reason("auhwv_ita_alone"),
-      ),
-    ],
-  ),
+  {
+    ...wire(
+      "auh_wv_war_ita",
+      8,
+      all(warWith("ITA", 1), not(ownWarWith("ITA", 1))),
+      { fm: FM },
+      [
+        ["entered", cause("ITA", "entered", "treaty")],
+        ["ladder", cause("ITA", "ladder")],
+        ["base"],
+      ],
+    ),
+    // ww187: the Isonzo a front now: the line where the war begins.
+    assumes: { line: { italy: ["isonzo", "isonzo"] } },
+  },
+  {
+    ...proposal(
+      "auh_wv_war_own_ita",
+      8,
+      ownWarWith("ITA", 1),
+      { fm: FM, cos: COS },
+      [["base"]],
+      [
+        opt(
+          "ask_berlin",
+          inst("berlin", 1),
+          trust("DEU", 1),
+          reason("auhwv_ita_berlin"),
+        ),
+        opt(
+          "alone",
+          opinion("army", 1),
+          gauge("shells", -1),
+          reason("auhwv_ita_alone"),
+        ),
+      ],
+    ),
+    // ww187: the Tyrol and the Isonzo held: the line where the war begins.
+    assumes: { line: { italy: ["isonzo", "isonzo"] } },
+  },
   wire("auh_wv_war_grc", 7, warWith("GRC", 1), { fm: FM }, [
     ["outside", outside("GRC")],
     ["base"],
@@ -371,22 +379,26 @@ const FRONT_OPENS: readonly GwScene[] = [
     { cos: COS },
     [["salonika", any(atWar("GRC"), atWar("FRA"), atWar("GBR"))], ["base"]],
   ),
-  proposal(
-    "auh_wv_front_italy",
-    7,
-    ourFront("italy", "ITA"),
-    { cos: COS },
-    [["own", outside("ITA")], ["base"]],
-    [
-      opt("isonzo", gauge("money", -1), reason("auhwv_italy_isonzo")),
-      opt(
-        "tyrol",
-        opinion("army", 1),
-        gauge("shells", -1),
-        reason("auhwv_italy_tyrol"),
-      ),
-    ],
-  ),
+  {
+    ...proposal(
+      "auh_wv_front_italy",
+      7,
+      ourFront("italy", "ITA"),
+      { cos: COS },
+      [["own", outside("ITA")], ["base"]],
+      [
+        opt("isonzo", gauge("money", -1), reason("auhwv_italy_isonzo")),
+        opt(
+          "tyrol",
+          opinion("army", 1),
+          gauge("shells", -1),
+          reason("auhwv_italy_tyrol"),
+        ),
+      ],
+    ),
+    // ww187: the Isonzo front opens: the line where it begins.
+    assumes: { line: { italy: ["isonzo", "isonzo"] } },
+  },
   wire("auh_wv_front_danube", 7, ourFront("danube", "ROU"), { cos: COS }, [
     ["bgr", withUs("BGR")],
     ["base"],

@@ -84,6 +84,8 @@ function memoryScene(
     once: true,
     salience: 9,
     prologue,
+    // ww187: the prologue is history told as history.
+    assumes: { past: true },
     tags: [],
     cast: Object.fromEntries(
       Object.entries(cast).map(([role, person]) => [role, past(person)]),
@@ -106,6 +108,8 @@ const silent = (id: string): GwScene =>
     cast: {},
     salience: 0,
     tags: [],
+    // ww187: the prologue's after-notes are history too.
+    assumes: { past: true },
     variants: [{ id: "base" }],
   }) as GwScene;
 

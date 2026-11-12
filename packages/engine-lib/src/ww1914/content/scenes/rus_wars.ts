@@ -8,6 +8,7 @@ import type {
   GwTheatre,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
+import type { GwPlace } from "@openfront/engine-api/ww1914/GwPlaces";
 import type {
   GwCastRule,
   GwCond,
@@ -95,6 +96,11 @@ const opinion = (
 
 const v = (id: string, when?: GwCond): GwVariant =>
   when === undefined ? { id } : { id, when };
+/** ww187: a body that marches on `place`: the enemy holds it now. */
+const held = (x: GwVariant, place: GwPlace): GwVariant => ({
+  ...x,
+  assumes: { ...x.assumes, held: { [place]: "foe" } },
+});
 const opt = (id: string, effects: GwEffect[], when?: GwCond): GwOption =>
   when === undefined
     ? { id, tell: [], effects }
@@ -182,7 +188,8 @@ const WAR_BEGINS: GwScene[] = [
   ),
   wire("rus_wv_war_auh", 8, warWith("AUH"), FOREIGN, [
     v("alone", ownWarWith("AUH")),
-    v("we_sent", weSent("AUH")),
+    // ww187: "a day by rail to Lemberg": Lemberg still Austrian.
+    held(v("we_sent", weSent("AUH")), "lemberg"),
     v("they_sent", theySent("AUH")),
     v("treaty", cause("AUH", "treaty")),
     v("july", cause("AUH", "july")),
@@ -232,26 +239,30 @@ const WAR_BEGINS: GwScene[] = [
       opt("drawer", [reason("rus_wv_straits_drawer")]),
     ],
   ),
-  proposal(
-    "rus_wv_own_ott",
-    7,
-    ownWarWith("OTT"),
-    COS,
-    [v("we_sent", weSent("OTT")), v("they_sent", theySent("OTT")), v("base")],
-    [
-      opt("erzurum", [
-        inst_("stavka", 1),
-        gauge("shells", -1),
-        reason("rus_wv_own_ott_erzurum"),
-      ]),
-      opt("armenians", [
-        opinion("press", 1),
-        inst_("ministers", -1),
-        reason("rus_wv_own_ott_armenians"),
-      ]),
-      opt("border", [inst_("ministers", 1), reason("rus_wv_own_ott_border")]),
-    ],
-  ),
+  {
+    ...proposal(
+      "rus_wv_own_ott",
+      7,
+      ownWarWith("OTT"),
+      COS,
+      [v("we_sent", weSent("OTT")), v("they_sent", theySent("OTT")), v("base")],
+      [
+        opt("erzurum", [
+          inst_("stavka", 1),
+          gauge("shells", -1),
+          reason("rus_wv_own_ott_erzurum"),
+        ]),
+        opt("armenians", [
+          opinion("press", 1),
+          inst_("ministers", -1),
+          reason("rus_wv_own_ott_armenians"),
+        ]),
+        opt("border", [inst_("ministers", 1), reason("rus_wv_own_ott_border")]),
+      ],
+    ),
+    // ww187: the lines "as far as Erzurum": Erzurum still Turkish.
+    assumes: { held: { erzurum: "foe" } },
+  },
   wire(
     "rus_wv_war_bgr",
     7,
@@ -346,7 +357,7 @@ const WAR_BEGINS: GwScene[] = [
 
 const FRONTS: GwScene[] = [
   wire("rus_wv_front_east", 7, frontOpened("east"), COS, [
-    v("auh_only", all(atWar("AUH"), not(atWar("DEU")))),
+    held(v("auh_only", all(atWar("AUH"), not(atWar("DEU")))), "lemberg"),
     v("deu_only", all(atWar("DEU"), not(atWar("AUH")))),
     v("base"),
   ]),
@@ -355,7 +366,7 @@ const FRONTS: GwScene[] = [
     7,
     frontOpened("caucasus"),
     COS,
-    [v("east_too", open("east")), v("base")],
+    [held(v("east_too", open("east")), "erzurum"), v("base")],
     [
       opt("strike", [
         inst_("stavka", 1),
@@ -395,7 +406,7 @@ const FRONTS: GwScene[] = [
     6,
     frontOpened("thrace"),
     FOREIGN,
-    [v("ours", atWar("OTT")), v("base")],
+    [held(v("ours", atWar("OTT")), "constantinople"), v("base")],
     [
       opt("warn", [
         trust("BGR", -1),
@@ -406,10 +417,14 @@ const FRONTS: GwScene[] = [
       opt("wait", [reason("rus_wv_thrace_wait")]),
     ],
   ),
-  wire("rus_wv_front_straits", 7, frontOpened("straits"), FOREIGN, [
-    v("ours", atWar("OTT")),
-    v("base"),
-  ]),
+  // ww187: "a front at the Dardanelles": the line where a new front starts.
+  {
+    ...wire("rus_wv_front_straits", 7, frontOpened("straits"), FOREIGN, [
+      v("ours", atWar("OTT")),
+      v("base"),
+    ]),
+    assumes: { line: { straits: ["dardanelles", "gallipoli"] } },
+  },
   wire("rus_wv_front_balkan", 6, frontOpened("balkan"), FOREIGN, [
     v("bulgars", warBetween("BGR", "SRB")),
     v("base"),

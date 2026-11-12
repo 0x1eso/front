@@ -275,6 +275,8 @@ export const RUS_PROLOGUE_SCENES: readonly GwScene[] = [
     ...big,
     id: "rus_pro_kiev",
     prologue: 5,
+    // ww187: 1911, told as history.
+    assumes: { past: true },
     cast: {
       pm: past("rus_p_stolypin"),
       war: past("rus_sukhomlinov"),

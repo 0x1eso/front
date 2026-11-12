@@ -1164,19 +1164,25 @@ export const RUS_HOUSE_SCENES: readonly GwScene[] = [
     opt("summon", [cool("rus_progress", 1), why("rus_f_progress_summon")]),
     opt("let_be", [heat("rus_progress", 1), why("rus_f_progress_let")]),
   ]),
-  audience("rus_f_progress_3", leader("rus_progress"), [
-    opt("workers", [
-      cool("rus_progress", 2),
-      heat("rus_rights", 1),
-      why("rus_f_progress_workers"),
-    ]),
-    opt("bank", [
-      gauge("money", -1),
-      cool("rus_progress", 1),
-      why("rus_f_progress_bank"),
-    ]),
-    opt("let_go", [why("rus_f_progress_go")]),
-  ]),
+  audience(
+    "rus_f_progress_3",
+    leader("rus_progress"),
+    [
+      opt("workers", [
+        cool("rus_progress", 2),
+        heat("rus_rights", 1),
+        why("rus_f_progress_workers"),
+      ]),
+      opt("bank", [
+        gauge("money", -1),
+        cool("rus_progress", 1),
+        why("rus_f_progress_bank"),
+      ]),
+      opt("let_go", [why("rus_f_progress_go")]),
+    ],
+    // ww187: the walk-out from the Duma's votes: the Duma is there.
+    { assumes: { sits: ["duma"] } },
+  ),
   // The Progressive Bloc: its programme comes to the desk after the join.
   audience(
     "rus_f_bloc",
@@ -1293,6 +1299,8 @@ export const RUS_HOUSE_SCENES: readonly GwScene[] = [
       kind: "proposal",
       tags: ["home"],
       once: true,
+      // ww187: deputies of a Duma that is there, in recess.
+      assumes: { sits: ["duma"] },
       variants: [
         { id: "under", when: faction("rus_bolsh", { of: ["under"] }) },
         { id: "base" },
@@ -1319,33 +1327,45 @@ export const RUS_HOUSE_SCENES: readonly GwScene[] = [
     { kind: "proposal", tags: ["home"] },
   ),
   // The United Nobility, in the State Council.
-  audience("rus_f_nobles_2", leader("rus_nobles"), [
-    opt("receive", [
-      cool("rus_nobles", 2),
-      heat("rus_kadets", 1),
-      why("rus_f_nobles_receive"),
-    ]),
-    opt("no_land", [
-      cool("rus_nobles", 1),
-      heat("rus_trud", 1),
-      why("rus_f_nobles_land"),
-    ]),
-    opt("send_back", [heat("rus_nobles", 1), why("rus_f_nobles_back")]),
-  ]),
-  audience("rus_f_nobles_3", leader("rus_nobles"), [
-    opt("hear", [
-      cool("rus_nobles", 1),
-      heat("rus_circle", 1),
-      why("rus_f_nobles_hear"),
-    ]),
-    opt("council", [
-      cool("rus_nobles", 2),
-      inst("court", 1),
-      heat("rus_bloc", 1),
-      why("rus_f_nobles_council"),
-    ]),
-    opt("wait", [why("rus_f_nobles_wait")]),
-  ]),
+  audience(
+    "rus_f_nobles_2",
+    leader("rus_nobles"),
+    [
+      opt("receive", [
+        cool("rus_nobles", 2),
+        heat("rus_kadets", 1),
+        why("rus_f_nobles_receive"),
+      ]),
+      opt("no_land", [
+        cool("rus_nobles", 1),
+        heat("rus_trud", 1),
+        why("rus_f_nobles_land"),
+      ]),
+      opt("send_back", [heat("rus_nobles", 1), why("rus_f_nobles_back")]),
+    ],
+    // ww187: "the Council's business is the vote": the Council is there.
+    { assumes: { sits: ["council"] } },
+  ),
+  audience(
+    "rus_f_nobles_3",
+    leader("rus_nobles"),
+    [
+      opt("hear", [
+        cool("rus_nobles", 1),
+        heat("rus_circle", 1),
+        why("rus_f_nobles_hear"),
+      ]),
+      opt("council", [
+        cool("rus_nobles", 2),
+        inst("court", 1),
+        heat("rus_bloc", 1),
+        why("rus_f_nobles_council"),
+      ]),
+      opt("wait", [why("rus_f_nobles_wait")]),
+    ],
+    // ww187: they stay away from the Council's votes: the Council is there.
+    { assumes: { sits: ["council"] } },
+  ),
   // The Stavka.
   audience(
     "rus_f_stavka_2",

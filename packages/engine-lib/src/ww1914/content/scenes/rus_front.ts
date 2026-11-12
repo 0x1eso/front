@@ -73,6 +73,51 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
         },
         assumes: { line: { east: ["warsaw", "kiev"] } },
       },
+      // ww187: Petrograd in the enemy's hands: the paper of a lost capital.
+      // Three leaves, so it outranks the retreat.
+      {
+        id: "capital",
+        when: {
+          kind: "all",
+          of: [
+            {
+              kind: "world",
+              of: { is: "held", place: "petrograd", by: "foe" },
+            },
+            { kind: "world", of: { is: "war" } },
+            ownMonths(1),
+          ],
+        },
+        assumes: { held: { petrograd: "foe" } },
+      },
+      // ww187: the line past the old border, on the Oder.
+      {
+        id: "advance",
+        when: {
+          kind: "all",
+          of: [
+            {
+              kind: "world",
+              of: { is: "front", theatre: "east", from: "oder", to: "oder" },
+            },
+            { kind: "world", of: { is: "war" } },
+            ownMonths(1),
+          ],
+        },
+        assumes: { line: { east: ["oder", "oder"] } },
+      },
+      // ww187: Lemberg ours in the war's first year.
+      {
+        id: "lemberg",
+        when: {
+          kind: "all",
+          of: [
+            { kind: "world", of: { is: "held", place: "lemberg", by: "us" } },
+            ownMonths(1, 12),
+          ],
+        },
+        assumes: { held: { lemberg: "us" } },
+      },
       {
         id: "storm",
         when: { kind: "world", of: { is: "era", of: ["storm"] } },
@@ -517,6 +562,8 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
   {
     id: "rus_w_warsaw",
     nation: ["RUS"],
+    // ww187: the Vistula bridges mined: the line at Warsaw or past it.
+    assumes: { line: { east: ["warsaw", "kiev"] } },
     kind: "crisis",
     stage: ["crisis", "y1914", "war"],
     when: {
@@ -1638,6 +1685,8 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
   {
     id: "rus_w_caucasus_snow",
     nation: ["RUS"],
+    // ww187: "we strike Erzurum": still the enemy's.
+    assumes: { held: { erzurum: "foe" } },
     kind: "proposal",
     stage: ["crisis", "y1914", "war"],
     when: {
@@ -1737,6 +1786,8 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
             to: "dardanelles",
           },
         },
+        // ww187: "Gallipoli is empty": the line back at the Dardanelles.
+        assumes: { line: { straits: ["dardanelles", "dardanelles"] } },
       },
       { id: "base" },
     ],
@@ -1953,6 +2004,8 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
   {
     id: "rus_w_riga",
     nation: ["RUS"],
+    // ww187: the Dvina reports: the line is at Riga or past it.
+    assumes: { line: { east: ["riga", "kiev"] } },
     kind: "report",
     stage: ["crisis", "y1914", "war"],
     when: {
@@ -4605,6 +4658,8 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
   {
     id: "rus_t_poli_duma",
     nation: ["RUS"],
+    // ww187: Polivanov and the Duma that votes his budget: it is there.
+    assumes: { sits: ["duma"] },
     kind: "talk",
     when: {
       kind: "all",

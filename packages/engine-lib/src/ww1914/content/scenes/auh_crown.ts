@@ -549,7 +549,11 @@ const CROWN_THRONE: readonly GwScene[] = [
     tags: ["home", "tension_down"],
     variants: [
       v("visited", k("k_kra_prison")),
-      v("house_open", { kind: "seen", scene: "auh_k_reichsrat_opens" }),
+      // ww187: the Czech deputies' first question: the Reichsrat sits.
+      {
+        ...v("house_open", { kind: "seen", scene: "auh_k_reichsrat_opens" }),
+        assumes: { sits: ["reichsrat"] },
+      },
       v("base"),
     ],
     fallback: "wait",
@@ -906,7 +910,11 @@ const CROWN_LETTER: readonly GwScene[] = [
     salience: 9,
     tags: ["people", "tension_up"],
     variants: [
-      v("speech", flag("f_auh_speech_given")),
+      // ww187: Clemenceau answers from a French Paris.
+      {
+        ...v("speech", flag("f_auh_speech_given")),
+        assumes: { held: { paris: "owner" } },
+      },
       v("told", flag("f_auh_told_fm")),
       v("stopped", flag("f_auh_speech_stopped")),
       v("base"),

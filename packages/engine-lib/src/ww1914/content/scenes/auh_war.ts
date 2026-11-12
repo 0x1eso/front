@@ -14,6 +14,37 @@ import { period } from "./period";
 
 const during = period;
 
+// ---- ww187: the war ledgers read the state, not the year alone ----
+
+/** The Italian line stands in this band (both ends), Italy at war with us. */
+const italyAt = (
+  id: string,
+  from: "trentino" | "isonzo" | "piave",
+  to: "trentino" | "isonzo" | "piave",
+) => ({
+  id,
+  when: {
+    kind: "world",
+    of: { is: "front", theatre: "italy", from, to },
+  } as GwCond,
+  assumes: {
+    war: ["ITA"] as const,
+    line: { italy: [from, to] as const },
+  },
+});
+/** Vienna in the enemy's hands: the ledger of a lost capital. Two leaves. */
+const viennaLost = {
+  id: "vienna",
+  when: {
+    kind: "all",
+    of: [
+      { kind: "world", of: { is: "held", place: "vienna", by: "foe" } },
+      { kind: "world", of: { is: "war" } },
+    ],
+  } as GwCond,
+  assumes: { held: { vienna: "foe" } as const },
+};
+
 /** The Russians pushed us last. */
 const eastPushed: GwCond = {
   kind: "world",
@@ -174,6 +205,8 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     tags: ["war"],
     cooldown: 3,
     variants: [
+      viennaLost,
+      // ww187: the Isonzo column: Italy at war with us, the line there.
       {
         id: "three",
         when: {
@@ -183,6 +216,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
             tag: "ITA",
           },
         },
+        assumes: { war: ["ITA"], line: { italy: ["isonzo", "isonzo"] } },
       },
       {
         id: "guests",
@@ -279,6 +313,9 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     tags: ["war"],
     cooldown: 3,
     variants: [
+      viennaLost,
+      italyAt("isonzo_lost", "trentino", "trentino"),
+      italyAt("piave", "piave", "piave"),
       {
         id: "after_east",
         when: {
@@ -304,6 +341,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
           },
         },
       },
+      italyAt("isonzo", "isonzo", "isonzo"),
       {
         id: "base",
       },
@@ -377,6 +415,9 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     tags: ["war"],
     cooldown: 3,
     variants: [
+      viennaLost,
+      italyAt("isonzo_lost", "trentino", "trentino"),
+      italyAt("piave", "piave", "piave"),
       {
         id: "east_gone",
         when: {
@@ -408,6 +449,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
           },
         },
       },
+      italyAt("isonzo", "isonzo", "isonzo"),
       {
         id: "base",
       },
@@ -478,6 +520,14 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     tags: ["war"],
     cooldown: 3,
     variants: [
+      viennaLost,
+      italyAt("isonzo_lost", "trentino", "trentino"),
+      // ww187: the Americans in the war: no German divisions to spare us.
+      {
+        id: "usa",
+        when: { kind: "world", of: { is: "entered", tag: "USA" } },
+        assumes: { fights: ["USA"] },
+      },
       {
         id: "boots",
         when: {
@@ -506,6 +556,8 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
           },
         },
       },
+      italyAt("isonzo", "isonzo", "isonzo"),
+      italyAt("piave", "piave", "piave"),
       {
         id: "base",
       },
@@ -602,6 +654,8 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
   {
     id: "auh_w_galicia_plan",
     nation: ["AUH"],
+    // ww187: "from Cracow to Lemberg": Lemberg still ours.
+    assumes: { held: { lemberg: "owner" } },
     kind: "proposal",
     when: {
       kind: "all",
@@ -786,6 +840,8 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
           scene: "auh_w_galicia_plan",
           pick: "attack",
         },
+        // ww187: "Lemberg has fallen": the Russians hold it.
+        assumes: { held: { lemberg: "foe" } },
       },
       {
         id: "base",
@@ -1050,6 +1106,8 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
   {
     id: "auh_w_belgrade_fest",
     nation: ["AUH"],
+    // ww187: entering Belgrade: ours now.
+    assumes: { held: { belgrade: "us" } },
     kind: "report",
     when: {
       kind: "all",
@@ -1534,6 +1592,8 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
   {
     id: "auh_w_italy_war",
     nation: ["AUH"],
+    // ww187: Rome at war with us, the line where the war begins.
+    assumes: { war: ["ITA"], line: { italy: ["isonzo", "isonzo"] } },
     kind: "crisis",
     when: {
       kind: "all",
@@ -1909,6 +1969,8 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
   {
     id: "auh_w_tyrol_strike",
     nation: ["AUH"],
+    // ww187: "the back of the Italians on the Isonzo": the line is there.
+    assumes: { line: { italy: ["isonzo", "isonzo"] } },
     kind: "dispute",
     when: {
       kind: "all",
@@ -2864,6 +2926,8 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
   {
     id: "auh_w_caporetto",
     nation: ["AUH"],
+    // ww187: the eleventh battle of the Isonzo: the line is there.
+    assumes: { line: { italy: ["isonzo", "isonzo"] } },
     kind: "crisis",
     when: {
       kind: "all",
@@ -3038,6 +3102,8 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
   {
     id: "auh_w_piave",
     nation: ["AUH"],
+    // ww187: the Piave gauge: the line is on the Piave.
+    assumes: { line: { italy: ["piave", "piave"] } },
     kind: "crisis",
     when: {
       kind: "all",
@@ -4474,6 +4540,8 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
   {
     id: "auh_t_con_tyrol",
     nation: ["AUH"],
+    // ww187: "the Italians on the Isonzo in the sack": the line is there.
+    assumes: { line: { italy: ["isonzo", "isonzo"] } },
     kind: "talk",
     when: {
       kind: "all",
@@ -6908,6 +6976,8 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
   {
     id: "auh_t_bor_isonzo",
     nation: ["AUH"],
+    // ww187: Boroević of the Isonzo: the line is there.
+    assumes: { line: { italy: ["isonzo", "isonzo"] } },
     kind: "talk",
     when: {
       kind: "all",
@@ -7169,6 +7239,8 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
   {
     id: "auh_t_bor_socks",
     nation: ["AUH"],
+    // ww187: come down from the Isonzo: the line is there.
+    assumes: { line: { italy: ["isonzo", "isonzo"] } },
     kind: "talk",
     when: {
       kind: "all",
@@ -7445,6 +7517,8 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
   {
     id: "auh_t_bor_piave",
     nation: ["AUH"],
+    // ww187: the Piave gauge: the line is on the Piave.
+    assumes: { line: { italy: ["piave", "piave"] } },
     kind: "talk",
     when: {
       kind: "all",
