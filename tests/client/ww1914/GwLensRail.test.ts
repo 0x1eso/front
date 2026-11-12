@@ -20,6 +20,7 @@ import {
   rumouredRung,
   setLens,
   setMapBusy,
+  setMapCovered,
 } from "../../../src/client/hud/ww1914/GwLensModel";
 import {
   GW_RAILS,
@@ -249,6 +250,20 @@ describe("mobilisation by rail", () => {
     expect(gwMapState.lens).toBeNull();
     setMapBusy(false);
     expect(gwMapState.busy).toBe(false);
+  });
+
+  test("a talk over the screen hides the lens buttons but keeps the pick (ww194)", () => {
+    setLens("bread");
+    const v = gwMapState.version;
+    setMapCovered(true);
+    expect(gwMapState.covered).toBe(true);
+    expect(gwMapState.lens).toBe("bread");
+    expect(gwMapState.version).toBe(v + 1);
+    setMapCovered(true);
+    expect(gwMapState.version).toBe(v + 1);
+    setMapCovered(false);
+    expect(gwMapState.covered).toBe(false);
+    setLens("bread");
   });
 
   test("a resumed game reads the engine's dates, not the first it sees", () => {

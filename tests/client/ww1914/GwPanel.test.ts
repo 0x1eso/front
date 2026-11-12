@@ -1036,6 +1036,10 @@ describe("departments at work (ww193)", () => {
     ]);
     // The briefing opens in the talk's column, waiting for his papers.
     expect(panel.querySelector("[data-gw-briefing=deu_jagow]")).not.toBeNull();
+    // ww194: the drawer steps away as for a talk (on a phone it showed through).
+    expect(
+      panel.querySelector("[data-gw-drawer]")!.classList.contains("invisible"),
+    ).toBe(true);
   });
 
   test("work is given from the department row: a topic first, then one order", async () => {
