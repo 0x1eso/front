@@ -11,6 +11,7 @@ import type {
   GwInstitution,
   GwSide,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import type { GwAssumes } from "@openfront/engine-api/ww1914/GwAssumes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import type { GwBloc } from "@openfront/engine-api/ww1914/GwPress";
 import {
@@ -507,9 +508,17 @@ const PEACES: GwScene[] = [
   ),
 ];
 
+/** ww187: what a scene's text takes for granted (the builders take no tags). */
+const ASSUMES: Readonly<Record<string, GwAssumes>> = {
+  // The Straits front has just opened: no landing yet.
+  gbr_wv_front_straits: { line: { straits: ["dardanelles", "gallipoli"] } },
+};
+
 export const GBR_WAR_EVENTS: readonly GwScene[] = [
   ...WAR_BEGINS,
   ...FRONTS,
   ...JOINS,
   ...PEACES,
-];
+].map((s) =>
+  ASSUMES[s.id] === undefined ? s : { ...s, assumes: ASSUMES[s.id] },
+);

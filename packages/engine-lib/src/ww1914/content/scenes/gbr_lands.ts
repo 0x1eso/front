@@ -12,6 +12,7 @@ import type {
   GwGauge,
   GwInstitution,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import type { GwAssumes } from "@openfront/engine-api/ww1914/GwAssumes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import type { GwBloc } from "@openfront/engine-api/ww1914/GwPress";
 import {
@@ -191,7 +192,15 @@ const OURS: GwScene[] = [
     "ours_capital",
     tookCapital("OTT"),
     { fm: FM, adm: ADM },
-    [v("out", knockedOut("OTT", 3)), v("russia", withUs("RUS")), v("base")],
+    [
+      v("out", knockedOut("OTT", 3)),
+      // "the fleet past the Dardanelles": it came by the Straits.
+      {
+        ...v("russia", withUs("RUS")),
+        assumes: { line: { straits: ["narrows", "constantinople"] } },
+      },
+      v("base"),
+    ],
     8,
   ),
   proposal(
@@ -362,7 +371,13 @@ const OUT: GwScene[] = [
     "out_fra",
     all(knockedOut("FRA", 1), withUs("FRA")),
     { fm: FM, mil: MIL },
-    [v("paris", capitalFell("DEU", "FRA", 6)), v("base")],
+    [
+      {
+        ...v("paris", capitalFell("DEU", "FRA", 6)),
+        assumes: { held: { paris: "foe" } },
+      },
+      v("base"),
+    ],
     [
       o("of_home", [opinion("army", -1), gauge("morale", 1)]),
       o("of_flanders", [opinion("army", 1), gauge("shells", -1)]),
@@ -470,9 +485,21 @@ const TABLE: GwScene[] = [
   ]),
 ];
 
+/** ww187: what a scene's text takes for granted (the builders take no tags). */
+const ASSUMES: Readonly<Record<string, GwAssumes>> = {
+  gbr_ld_ours_baghdad: { held: { baghdad: "us" } },
+  gbr_ld_ours_jerusalem: { held: { jerusalem: "us" } },
+  gbr_ld_ours_capital: { held: { constantinople: "us" } },
+  // The news of a fall, the month it fell (its `when`): Britain may be neutral.
+  gbr_ld_fell_paris: { past: true },
+  gbr_ld_fell_brussels: { past: true },
+};
+
 export const GBR_LAND_EVENTS: readonly GwScene[] = [
   ...OURS,
   ...THEIRS,
   ...OUT,
   ...TABLE,
-];
+].map((s) =>
+  ASSUMES[s.id] === undefined ? s : { ...s, assumes: ASSUMES[s.id] },
+);

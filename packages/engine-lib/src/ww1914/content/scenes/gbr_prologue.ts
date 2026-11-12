@@ -90,7 +90,7 @@ const BALFOUR = byName("gbr_balfour");
 const HANKEY = byName("gbr_hankey");
 const GREY = byName("gbr_grey");
 
-export const GBR_PROLOGUE_SCENES: readonly GwScene[] = [
+const PROLOGUE_SCENES: readonly GwScene[] = [
   memory(
     "gbr_pro_ledger",
     1,
@@ -470,6 +470,16 @@ export const GBR_PROLOGUE_SCENES: readonly GwScene[] = [
     false,
   ),
 ];
+
+/** ww187: the prologue's memories are history told as history. */
+const REMEMBERED: ReadonlySet<string> = new Set([
+  "gbr_pro_comet",
+  "gbr_pro_friday",
+]);
+
+export const GBR_PROLOGUE_SCENES: readonly GwScene[] = PROLOGUE_SCENES.map(
+  (s) => (REMEMBERED.has(s.id) ? { ...s, assumes: { past: true } } : s),
+);
 
 const chair: GwCond = not(flag("f_pm_lg"));
 /** A prologue flag, while Asquith is the one in the chair. */
