@@ -53,7 +53,10 @@ describe("Austria's own moves and story", () => {
   test("the schedule has what the brief asks", () => {
     expect(count("visit")).toBe(14);
     expect(count("letter")).toBe(6);
-    expect(count("order")).toBe(8);
+    // ww193: the inquiry became the foreign office's task (content/depts).
+    expect(count("order")).toBe(7);
+    expect(count("ceremony")).toBe(4);
+    expect(AUH_ACTS.filter((a) => a.trip === true)).toHaveLength(3);
     expect(count("speech")).toBe(6);
     expect(count("intrigue")).toBe(6);
     expect(AUH_AIMS).toHaveLength(6);

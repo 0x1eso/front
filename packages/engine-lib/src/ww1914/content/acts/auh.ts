@@ -18,6 +18,7 @@ import {
   trustOf,
 } from "@openfront/engine-api/ww1914/SceneDsl";
 import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
+import { AUH_HONOURS_KEY } from "../depts/auh";
 import {
   able,
   atWar,
@@ -110,11 +111,13 @@ const VISITS: GwAct[] = [
     effects: [reveal("auh_czech_regiments_sound"), seen("auh_a_seen_prague")],
   }),
   act("auh_a_hq", "visit", "auh_a_hq_v", 0, {
+    trip: true,
     when: inWar,
     cooldown: 6,
     effects: [inspect("force", "AUH", "east")],
   }),
   act("auh_a_przemysl", "visit", "auh_a_przemysl_v", 0, {
+    trip: true,
     when: all(atWar("RUS"), world({ is: "war_months", own: true, max: 8 })),
     once: true,
     effects: [inspect("force", "RUS", "east")],
@@ -128,6 +131,7 @@ const VISITS: GwAct[] = [
     effects: [inspect("morale", "AUH")],
   }),
   act("auh_a_isonzo", "visit", "auh_a_isonzo_v", 0, {
+    trip: true,
     when: italyIn,
     cooldown: 8,
     effects: [inspect("force", "ITA", "italy")],
@@ -248,15 +252,8 @@ const ORDERS: GwAct[] = [
     fields: [list("subject", "north", "south")],
     effects: [reveal("auh_rail_muddle")],
   }),
-  act("auh_a_o_inquiry", "order", "auh_a_o_inquiry_r", 1, {
-    when: {
-      kind: "opening",
-      of: ["sarajevo", "sarajevo_survived", "sarajevo_failed"],
-    },
-    once: true,
-    fields: [list("subject", "officers", "ministers")],
-    effects: [reveal("srb_officers_plot")],
-  }),
+  // ww193: the inquiry is a commission now: the foreign office's task row
+  // auh_task_inquiry (content/depts/auh.ts) brings auh_a_o_inquiry_r.
   act("auh_a_o_redl", "order", "auh_a_o_redl_r", 1, {
     once: true,
     effects: [reveal("auh_redl_plans")],
@@ -458,12 +455,49 @@ const INTRIGUES: GwAct[] = [
   }),
 ];
 
+const ceremonyMade = (key: string): GwEffect => ({
+  kind: "ruler",
+  side: "reputation",
+  delta: 1,
+  key,
+});
+
+/** ww193 의식: the schedule's ceremonies; their scenes are in content/depts. */
+const CEREMONIES: GwAct[] = [
+  // The Maria Theresa Order to the names the military chancellery listed.
+  act("auh_a_c_investiture", "ceremony", "auh_d_c_investiture", 0, {
+    when: { kind: "memory", key: AUH_HONOURS_KEY, within: 8 },
+    cooldown: 8,
+    effects: [opinion("army", 1), ceremonyMade("auh_d_invested")],
+  }),
+  // The old emperor's funeral, soon after the new reign begins.
+  act("auh_a_c_funeral", "ceremony", "auh_d_c_funeral", 0, {
+    when: any(
+      { kind: "chose", scene: "auh_k_succession", within: 3 },
+      { kind: "chose", scene: "auh_k_ff_throne", within: 3 },
+    ),
+    once: true,
+    effects: [opinion("court", 1), ceremonyMade("auh_d_mourned")],
+  }),
+  act("auh_a_c_review", "ceremony", "auh_d_c_review", 0, {
+    when: inWar,
+    cooldown: 8,
+    effects: [opinion("army", 1), trustOf(role("war"), 1)],
+  }),
+  act("auh_a_c_service", "ceremony", "auh_d_c_service", 0, {
+    when: world({ is: "war_months", min: 2 }),
+    cooldown: 10,
+    effects: [opinion("court", 1), ceremonyMade("auh_d_prayed")],
+  }),
+];
+
 export const AUH_ACTS: readonly GwAct[] = [
   ...VISITS,
   ...LETTERS,
   ...ORDERS,
   ...SPEECHES,
   ...INTRIGUES,
+  ...CEREMONIES,
 ];
 
 const noWarLeft = any(peace, world({ is: "armistice" }));
