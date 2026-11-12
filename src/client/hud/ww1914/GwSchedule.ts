@@ -11,6 +11,7 @@ import type {
 import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
 import type { GwCtx } from "./GwCtx";
+import { canSpend, timeChip } from "./GwDept";
 import { rich } from "./GwDict";
 import { BTN, BTN_ON, CHIP, HEAD, MUTED } from "./GwStyle";
 import { claimsBox } from "./GwTable";
@@ -19,7 +20,16 @@ import { personName } from "./GwText";
 const BOX = "space-y-1.5 rounded border border-white/15 bg-black/35 p-2.5";
 const SMALL = "!px-2 !py-1";
 /** The schedule's sections, in order. */
-const KINDS = ["visit", "letter", "order", "speech", "intrigue"] as const;
+const KINDS = [
+  "visit",
+  "letter",
+  "order",
+  "speech",
+  "intrigue",
+  "ceremony",
+] as const;
+/** ww193: entries a section shows before the rest are folded. */
+const SHOWN = 3;
 
 export function actName(pack: GwPack | null, id: string): string {
   return pack?.acts?.[id]?.name ?? id;
@@ -120,7 +130,13 @@ export function actRow(
   preset: Record<string, string[]> = {},
 ): TemplateResult {
   const open = c.ui.actOpen === a.id;
-  const left = c.seat.actsLeft ?? 0;
+  // ww193: the one pool pays when there is one; a trip takes two of it.
+  const left =
+    c.seat.time === undefined
+      ? (c.seat.actsLeft ?? 0)
+      : canSpend(c, a.trip === true ? "trip" : "act")
+        ? 1
+        : 0;
   const note = c.pack?.acts?.[a.id]?.note;
   const picks = open ? actPicks(a, c.ui.actPicks) : null;
   return html`<div data-gw-act=${a.id} class="space-y-1.5">
@@ -135,6 +151,11 @@ export function actRow(
       }}
     >
       ${actName(c.pack, a.id)}
+      ${a.trip === true
+        ? html`<span class="${MUTED} ml-1" data-gw-act-trip
+            >${translateText("gw.ui.dept.trip")}</span
+          >`
+        : nothing}
     </button>
     ${open
       ? html`<div class="space-y-1.5 pl-1">
@@ -168,9 +189,11 @@ function schedule(c: GwCtx): TemplateResult {
   return html`<section class=${BOX} data-gw-schedule>
     <div class="flex items-center gap-2">
       <h3 class=${HEAD}>${translateText("gw.act.title")}</h3>
-      <span class="${CHIP} ml-auto" data-gw-acts-left
-        >${translateText("gw.act.left", { n: c.seat.actsLeft ?? 0 })}</span
-      >
+      ${c.seat.time === undefined
+        ? html`<span class="${CHIP} ml-auto" data-gw-acts-left
+            >${translateText("gw.act.left", { n: c.seat.actsLeft ?? 0 })}</span
+          >`
+        : html`<span class="ml-auto">${timeChip(c)}</span>`}
     </div>
     <p class=${MUTED} data-gw-sub>${translateText("gw.act.sub")}</p>
     ${acts.length === 0
@@ -178,9 +201,28 @@ function schedule(c: GwCtx): TemplateResult {
       : KINDS.map((k) => {
           const rows = acts.filter((a) => a.kind === k);
           if (rows.length === 0) return nothing;
+          // ww193: the first few show; the rest wait behind one button. An
+          // entry open stays in view.
+          const unfolded = (c.ui.actFold ?? []).includes(k);
+          const shown = unfolded
+            ? rows
+            : rows.filter((a, i) => i < SHOWN || a.id === c.ui.actOpen);
+          const more = rows.length - shown.length;
           return html`<div class="space-y-1" data-gw-act-kind=${k}>
             <div class=${MUTED}>${translateText(`gw.act.kind.${k}`)}</div>
-            ${rows.map((a) => actRow(c, a))}
+            ${shown.map((a) => actRow(c, a))}
+            ${more === 0
+              ? nothing
+              : html`<button
+                  class="${MUTED} px-1 hover:text-white"
+                  data-gw-act-more=${k}
+                  @click=${() => {
+                    c.ui.actFold = [...(c.ui.actFold ?? []), k];
+                    c.redraw();
+                  }}
+                >
+                  ${translateText("gw.ui.dept.act_more", { n: more })}
+                </button>`}
           </div>`;
         })}
   </section>`;

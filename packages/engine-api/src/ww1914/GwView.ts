@@ -134,6 +134,8 @@ export interface GwActView {
   fields: readonly GwActFieldView[];
   /** Shown after the pick. */
   tell: readonly string[];
+  /** ww193: a trip (GwAct `trip`): two of the time, the room shut. */
+  trip?: boolean;
 }
 
 /** The national aim as the seat sees it (pack `aims.<id>`). */
