@@ -36,6 +36,7 @@ import {
   seasonOf,
 } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
+import { collapsePrisoners } from "./HomeFront";
 import { lineStep, reachedLine } from "./Land";
 import { capturedOrders, wonRaid } from "./Spies";
 import { endIdx, endStrain, setEndStrain, STRAIN_WORN } from "./Strain";
@@ -436,6 +437,8 @@ export function collapse(gw: GreatWar, t: GwTheatreState, side: GwSide): void {
   }
   // The prisoners, in thousands.
   bleed(gw, t.id, side, 2 * (SCALE_OF[t.id] ?? 20));
+  // ww190: they are the other end's to hold (HomeFront.ts).
+  collapsePrisoners(gw, t.id, side, 2 * (SCALE_OF[t.id] ?? 20));
   moveGauge(gw, lead, "morale", -1, "front_collapsed");
   moveGauge(gw, lead, "order", -1, "front_collapsed");
   const n = gw.nation(lead)!;

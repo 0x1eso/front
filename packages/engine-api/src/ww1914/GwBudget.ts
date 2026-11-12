@@ -165,4 +165,9 @@ export interface GwBudgetView {
   authority: number;
   /** The finance holder, or null if the office stands empty. */
   holder: string | null;
+  /**
+   * ww190: the house doesn't sit: `until` the election's date (dissolved),
+   * or null when it was sent home or abolished. Absent or null: it sits.
+   */
+  shut?: { until: string | null } | null;
 }

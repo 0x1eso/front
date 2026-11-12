@@ -15,7 +15,7 @@ import { factionName } from "./GwHouse";
 import type { GwTab } from "./GwModel";
 import { officeTitle } from "./GwOffice";
 import { BTN, BTN_ON, CHIP, HEAD, MUTED } from "./GwStyle";
-import { personName } from "./GwText";
+import { fullDate, personName } from "./GwText";
 
 const BOX = "space-y-1.5 rounded border border-white/15 bg-black/35 p-2.5";
 const SMALL = "!px-2 !py-1";
@@ -357,6 +357,19 @@ function linkRow(c: GwCtx, g: GwPowerGroup, tab: GwTab): TemplateResult {
   </button>`;
 }
 
+/** ww190: the house doesn't sit: till the election's date, or sent home. */
+function shutChip(c: GwCtx): TemplateResult | typeof nothing {
+  const shut = c.seat.world.budget.shut ?? null;
+  if (shut === null) return nothing;
+  return html`<span class=${CHIP} data-gw-house-shut
+    >${shut.until === null
+      ? translateText("gw.power.house_closed")
+      : translateText("gw.power.house_shut", {
+          date: fullDate(shut.until),
+        })}</span
+  >`;
+}
+
 function group(
   c: GwCtx,
   g: GwPowerGroup,
@@ -385,6 +398,7 @@ function group(
             >${translateText("gw.power.beyond_tag")}</span
           >`
         : nothing}
+      ${g === "house" ? shutChip(c) : nothing}
       <span class="${MUTED} ml-auto">${open ? "−" : "+"}</span>
     </button>
     ${open

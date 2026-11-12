@@ -6,6 +6,7 @@ import { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
 import { civilFromDays } from "@openfront/engine-lib/ww1936/Calendar";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
+import { playingOn } from "./Aftermath";
 import { authorityStep } from "./Authority";
 import { warMonths } from "./Eras";
 import { allocOf } from "./Fronts";
@@ -24,6 +25,7 @@ import {
   news,
   reason,
   seatsOf,
+  stageOf,
 } from "./World";
 
 const P_HARVEST = idHash("gw_harvest");
@@ -33,6 +35,26 @@ const P_CONCEDE = idHash("gw_concede");
 const LADDER = [0, 2, 4, 6, 8];
 /** Months before the same rung's paper can come again. */
 const HOME_PAPER_MONTHS = 6;
+
+const known = (id: string) => gwContent().scenes.some((x) => x.id === id);
+
+/**
+ * ww190: the ladder runs on after the guns stop for a country that lost, or
+ * whose order is near the bottom (the revolutions of the aftermath), and for
+ * a seat that left by its own peace and plays on.
+ */
+function ladderAfter(gw: GreatWar, n: GwNationState): boolean {
+  if (seatsOf(gw, n.tag).some((x) => playingOn(x))) return true;
+  if (stageOf(gw) !== "aftermath") return false;
+  // Lost: knocked out, owing reparations, or on the side that asked first.
+  const asked = gw.s.armistice?.by ?? null;
+  const lost =
+    n.out ||
+    (gw.s.beaten ?? []).some((b) => b.tag === n.tag) ||
+    (gw.s.table?.bill[n.tag] ?? 0) > 0 ||
+    (asked !== null && n.side !== null && gw.nation(asked)?.side === n.side);
+  return lost || n.gauges.order <= 1;
+}
 
 /** Countries the war never reaches at home. */
 const FAR_FROM_IT: readonly GwTag[] = ["JPN", "USA"];
@@ -169,8 +191,13 @@ function ladder(gw: GreatWar, n: GwNationState): void {
   const row = GW_HOME[n.tag];
   const own = row?.top?.[n.regime];
   const written = gwContent().scenes.some((x) => x.id === own);
+  const rungScene = row?.rungs[rung - 1];
   const scene =
-    rung === 4 && written ? own! : (row?.rungs[rung - 1] ?? "gw_unrest");
+    rung === 4 && written
+      ? own!
+      : rungScene !== undefined && known(rungScene)
+        ? rungScene
+        : "gw_unrest";
   for (const seat of seatsOf(gw, n.tag)) {
     reason(gw, seat, `unrest_${rung}`);
     // Order that comes and goes: the same paper doesn't come every other month.
@@ -192,8 +219,11 @@ export function homeStep(gw: GreatWar): void {
   const atWar = gw.s.warChapter !== null || gw.s.wars.length > 0;
   for (const n of gw.s.nations) {
     authorityStep(gw, n);
-    if (!fights(n) || !atWar || !isLongChapter(gw)) continue;
-    if (FAR_FROM_IT.includes(n.tag)) continue;
+    if (!isLongChapter(gw) || FAR_FROM_IT.includes(n.tag)) continue;
+    if (!fights(n) || !atWar) {
+      if (ladderAfter(gw, n)) ladder(gw, n);
+      continue;
+    }
     shells(gw, n);
     bread(gw, n);
     strains(gw, n);
