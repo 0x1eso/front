@@ -69,7 +69,8 @@
     "house_warmed": "{who}의 무리가 법안을 기초한 대신과 한편이라 찬성으로 돌았다.",
     "house_refused": "의회를 통과한 법안에 서명하지 않았다. 의회의 무게가 줄었다.",
     "house_refused_by": "{who}의 무리가 서명 거부에 반발했다.",
-    "house_no_sitting": "의회가 닫혀 있어 표결이 열리지 않았다. 법안은 그대로 기다린다."
+    "house_no_sitting": "의회가 닫혀 있어 표결이 열리지 않았다. 법안은 그대로 기다린다.",
+    "house_elected": "선거가 끝났다. 새 의회가 다시 문을 열었다."
   },
   "heads": {
     "house_split": {

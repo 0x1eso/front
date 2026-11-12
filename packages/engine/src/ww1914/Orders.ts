@@ -47,10 +47,10 @@ import { prologueRefuses } from "./Prologue";
 import {
   castOf,
   ctxOf,
-  holds,
   needsDecision,
   optionOpen,
   removeCard,
+  sceneHolds,
   sceneOf,
   setOffice,
   takeOption,
@@ -308,7 +308,7 @@ export function summonable(
   if (spentTalk(gw, seat, scene)) return false;
   const cast = castOf(gw, seat, scene);
   if (cast === null || cast[scene.who] !== person) return false;
-  return scene.when === undefined || holds({ gw, seat, cast }, scene.when);
+  return sceneHolds({ gw, seat, cast }, scene);
 }
 
 export class GwOrderExecution implements Execution {

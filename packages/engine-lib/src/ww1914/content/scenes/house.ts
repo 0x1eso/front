@@ -394,8 +394,9 @@ export function houseBill(law: string): GwBillRow | null {
 }
 
 /**
- * Every chamber the bill meets can be closed (Vienna's bills: the Reichsrat
- * sits only once called back), so a day may come with no chamber to vote.
+ * A chamber the bill meets can be closed (Vienna's Reichsrat until called
+ * back, a dissolved Reichstag or Chamber, ww187), so a day may come when the
+ * vote can't be held: the bill waits for it.
  */
 export function houseMayNotSit(row: GwLawRow): boolean {
   const bill = houseBill(row.id);
@@ -406,7 +407,8 @@ export function houseMayNotSit(row: GwLawRow): boolean {
       ? c.optional !== true
       : bill.houses.includes(c.id),
   );
-  return meets.length > 0 && meets.every((c) => c.sits !== undefined);
+  // ww187: one chamber that can be shut (a dissolution) is enough to wait on.
+  return meets.some((c) => c.sits !== undefined);
 }
 
 export const NOT_HOUSE_BROUGHT = (law: string) =>

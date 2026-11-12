@@ -100,6 +100,8 @@ const maybe = (when: GwCond, then: GwEffect[]): GwEffect => ({
  * winning war returns the right, a losing one the left, peace the Radicals.
  */
 const ELECTION: readonly GwEffect[] = [
+  // ww187: the Chamber is shut till its election (houses.ts DISSOLVED).
+  doWorld({ do: "dissolve" }),
   maybe(world({ is: "score", min: 20 }), [
     grow("fra_fed_rep", 1),
     grow("fra_left_rep", 1),

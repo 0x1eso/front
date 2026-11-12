@@ -15,8 +15,10 @@ import {
   GwPromise,
   GwSeatState,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import type { GwAssumes } from "@openfront/engine-api/ww1914/GwAssumes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import {
+  assumedCond,
   GW_READ_ONLY_KINDS,
   GwCastRule,
   GwCond,
@@ -917,6 +919,27 @@ export function runEffects(ctx: SceneCtx, list: readonly GwEffect[]): void {
   for (const e of list) runEffect(ctx, e);
 }
 
+/**
+ * ww187: what the text of a scene or a variant takes for granted holds now
+ * (engine-api/ww1914/GwAssumes); true with no tags. Never counts toward
+ * `specificity`: a tag keeps a text out, it doesn't make one win.
+ */
+export function assumesHold(
+  ctx: SceneCtx,
+  x: { assumes?: GwAssumes } | undefined,
+): boolean {
+  const c = assumedCond(x?.assumes);
+  return c === null || holds(ctx, c);
+}
+
+/** A scene can come now: its `when` and its tags hold. */
+export function sceneHolds(ctx: SceneCtx, scene: GwScene): boolean {
+  return (
+    (scene.when === undefined || holds(ctx, scene.when)) &&
+    assumesHold(ctx, scene)
+  );
+}
+
 /** More than any body's condition counts for. */
 const BROKEN_OUTRANKS = 99;
 
@@ -945,7 +968,7 @@ export function pickVariant(
   stale: (id: string) => number = () => 0,
 ): string {
   const open = variants.filter(
-    (v) => v.when === undefined || holds(ctx, v.when),
+    (v) => (v.when === undefined || holds(ctx, v.when)) && assumesHold(ctx, v),
   );
   if (open.length === 0) return variants[variants.length - 1].id;
   const best = Math.max(...open.map((v) => specificity(v.when)));

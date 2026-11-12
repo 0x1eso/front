@@ -1333,6 +1333,8 @@ export const GwSeatStateSchema = z.object({
   powers: GwPowerStateSchema.optional(),
   /** ww173: the chief's standing word on the fronts; absent: his own way. */
   tempo: z.enum(GW_TEMPOS).optional(),
+  /** ww187: the day the house was dissolved, until its election; absent: it sits. */
+  dissolved: z.number().int().optional(),
 });
 export type GwSeatState = z.infer<typeof GwSeatStateSchema>;
 

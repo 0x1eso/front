@@ -35,6 +35,7 @@ import {
   houseRefused,
   houseRound,
   houseSignCard,
+  houseSits,
   houseTally,
   persuadeChapters,
 } from "./House";
@@ -471,6 +472,9 @@ function waiting(seat: GwSeatState, scene: string): boolean {
 function callDay(gw: GreatWar, seat: GwSeatState, id: string): void {
   const scene = `gw_lv_${id}`;
   if (sceneOf(scene) === null || waiting(seat, scene)) return;
+  // ww187: a chamber it needs is shut (dissolved till its election): the day
+  // waits, unless the way round can carry the bill now.
+  if (!houseSits(gw, seat, id) && !lawCanDecree(gw, seat, id)) return;
   seat.scheduled.push({ scene, chapter: gw.s.chapter + 1 });
 }
 

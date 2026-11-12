@@ -7,6 +7,7 @@ import {
   GwSeatState,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
+import { sitsNow } from "./Assumes";
 import {
   GW_AUTHORITY,
   GW_ISSUE_TABLE,
@@ -64,8 +65,18 @@ function runCall(
     r.first === true && s.warChapter !== null && s.chapter - s.warChapter === 1;
   const due =
     r.every === undefined ? true : everyMonths(gw, r.every, r.offset ?? 0);
-  if (!first && !due) return;
+  const wait = `wait_${r.scene}`;
   for (const seat of seatsOf(gw, n.tag)) {
+    // ww187: a vote due while its chamber is shut waits for it to sit.
+    const waited = seat.flags.includes(wait);
+    if (!first && !due && !waited) continue;
+    if (r.sits !== undefined) {
+      if (!sitsNow({ gw, seat, cast: {} }, r.sits)) {
+        if (!waited) seat.flags.push(wait);
+        continue;
+      }
+      if (waited) seat.flags = seat.flags.filter((f) => f !== wait);
+    }
     if (r.once === true && seat.seen[r.scene] !== undefined) continue;
     if (waiting(seat, r.scene) || lawReplaces(gw, seat, r.scene)) continue;
     if (r.when !== undefined && !holds({ gw, seat, cast: {} }, r.when))

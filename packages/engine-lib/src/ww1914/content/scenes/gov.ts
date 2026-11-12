@@ -309,7 +309,12 @@ const GBR_SCENES: GwScene[] = [
       opt(
         "dissolve",
         ["gov_election"],
-        [setFlag("f_gov_writ"), heat("gbr_election", 1), beat("gbr_table")],
+        [
+          setFlag("f_gov_writ"),
+          doWorld({ do: "dissolve" }),
+          heat("gbr_election", 1),
+          beat("gbr_table"),
+        ],
         all(
           not(flag("f_gov_writ")),
           not(flag("f_gov_new_parliament")),
@@ -469,7 +474,11 @@ const GBR_SCENES: GwScene[] = [
           ),
         ),
       ),
-      opt("go", ["gov_election"], [setFlag("f_gov_writ")]),
+      opt(
+        "go",
+        ["gov_election"],
+        [setFlag("f_gov_writ"), doWorld({ do: "dissolve" })],
+      ),
     ],
   ),
   talk("gov_gbr_pact", "GBR", orTrusted(named("gbr_henderson")), [v("base")], {

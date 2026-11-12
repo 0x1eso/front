@@ -335,6 +335,8 @@ export const GBR_POWERS: readonly GwPowerRow[] = [
     effects: [
       setFlag("f_gov_writ"),
       { kind: "unflag", flag: "f_gbr_prorogued" },
+      // ww187: the Commons is shut till the poll (houses.ts DISSOLVED).
+      doWorld({ do: "dissolve" }),
     ],
     heats: [{ id: "gbr_election", by: 1 }],
     scene: "gbr_pw_dissolve_r",

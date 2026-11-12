@@ -4,6 +4,7 @@ import type {
   GwPollView,
 } from "@openfront/engine-api/ww1914/GwView";
 import { world } from "@openfront/engine-api/ww1914/WorldDsl";
+import { sitsNow } from "./Assumes";
 import { GW_ELECTIONS, GW_GOV, GwGovRow } from "./GovTable";
 import type { GreatWar } from "./GreatWar";
 import { plotReset, plotRow, plotsStep } from "./Plots";
@@ -99,6 +100,7 @@ export function govLive(ctx: SceneCtx, row: GwGovRow): boolean {
   if (row.tag !== seat.tag) return false;
   if (row.unless !== undefined && seat.flags.includes(row.unless)) return false;
   if (!row.regimes.includes(gw.nation(seat.tag)?.regime ?? "")) return false;
+  if (row.sits !== undefined && !sitsNow(ctx, row.sits)) return false;
   return holds(ctx, world({ is: "date", from: row.from }));
 }
 

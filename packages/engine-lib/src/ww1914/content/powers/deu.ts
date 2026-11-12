@@ -36,7 +36,7 @@ import type {
 } from "@openfront/engine-api/ww1914/SceneDsl";
 import { any, flag, not } from "@openfront/engine-api/ww1914/SceneDsl";
 import type { GwWorldEffect } from "@openfront/engine-api/ww1914/WorldDsl";
-import { world } from "@openfront/engine-api/ww1914/WorldDsl";
+import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
 import type { GwPowerRow, GwReactorRow } from "../../PowerRows";
 
 // ---- Words used only here ----
@@ -131,6 +131,8 @@ const chancellorLetter: GwEffect = act({
 });
 /** The election after a dissolution, by the state the country is in. */
 const ELECTION: readonly GwEffect[] = [
+  // ww187: the Reichstag is shut till its election (houses.ts DISSOLVED).
+  doWorld({ do: "dissolve" }),
   maybe(
     world({ is: "score", min: 20 }),
     grow("deu_cons", 1),

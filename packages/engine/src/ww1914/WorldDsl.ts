@@ -16,6 +16,7 @@ import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { noteFx } from "./ActNote";
 import { agentHolds, hire } from "./Agents";
 import { askEffect, askHolds } from "./Asks";
+import { dissolve, dissolvedNow, heldBy, sitsNow } from "./Assumes";
 import { holdVote, voteCount } from "./Authority";
 import {
   budgetFact,
@@ -77,6 +78,7 @@ import { atPeace, spyEffect, spyHolds } from "./Spies";
 import { collapseHolds } from "./Stalemate";
 import { enter, leaveWar } from "./Wars";
 import { clampTo, lastOf, moveGauge, news, reason } from "./World";
+import { flagNow } from "./WorldFlags";
 
 const inRange = (v: number, c: { min?: number; max?: number }) =>
   v >= (c.min ?? -Infinity) && v <= (c.max ?? Infinity);
@@ -316,6 +318,14 @@ export function worldHolds(ctx: SceneCtx, c: GwWorldCond): boolean {
       return agentHolds(gw, seat, c.can, c.id);
     case "prop":
       return propHolds(gw, seat, c.can, c.tag, c.act);
+    case "held":
+      return heldBy(gw, seat, c.place, c.by);
+    case "sits":
+      return sitsNow(ctx, c.id);
+    case "dissolved":
+      return dissolvedNow(gw, seat);
+    case "flag_now":
+      return flagNow(gw, seat, c.flag);
   }
 }
 
@@ -621,6 +631,9 @@ export function worldEffect(ctx: SceneCtx, e: GwWorldEffect): void {
       return;
     case "prop":
       propEffect(ctx.gw, ctx.seat.tag, e.act, e.tag);
+      return;
+    case "dissolve":
+      dissolve(ctx.gw, ctx.seat);
       return;
   }
 }

@@ -6,10 +6,12 @@ import {
   GwTheatre,
   GwWorldFlag,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import { GW_PLACES } from "@openfront/engine-api/ww1914/GwPlaces";
 import { civilFromDays } from "@openfront/engine-lib/ww1936/Calendar";
 import { GW_LINKS, LOCAL_WAR_AT } from "./Crises";
 import { warMonths } from "./Eras";
 import type { GreatWar } from "./GreatWar";
+import { holderOf } from "./Land";
 import { lastOf } from "./World";
 
 /** Chapters of a war in which a battle still counts as its opening. */
@@ -110,4 +112,46 @@ function raise(seat: GwSeatState, flags: readonly GwWorldFlag[]): void {
 export function worldFlagsStep(gw: GreatWar): void {
   const flags = flagsNow(gw);
   for (const seat of gw.s.seats) raise(seat, flags);
+}
+
+/**
+ * Flags that told of one moment: true now once raised. The rest read the
+ * state they were raised from (flagsNow), so "is it so now" can fall back.
+ */
+const EVENTS: readonly GwWorldFlag[] = [
+  "w_summer_war",
+  "w_ultimatum_out",
+  "w_tannenberg",
+  "w_bad_luck_east",
+  "w_liner_sunk",
+  "w_auh_karl",
+  "w_auh_ff_throne",
+  "w_auh_sturgkh_shot",
+  "w_treaty_kept",
+  "w_treaty_broken",
+  "w_treaty_leaked",
+  "w_treaty_i_broke",
+];
+
+/**
+ * ww187: a world flag true now, not only once. The Marne stop holds while
+ * Paris is French and the west line short of it; the others hold while what
+ * raised them holds.
+ */
+export function flagNow(
+  gw: GreatWar,
+  seat: GwSeatState,
+  f: GwWorldFlag,
+): boolean {
+  if (!seat.flags.includes(f)) return false;
+  if (EVENTS.includes(f)) return true;
+  if (f === "w_marne_stopped") {
+    const west = gw.s.theatres.find((t) => t.id === "west")!;
+    const paris = GW_LINES.west.indexOf("paris");
+    return (
+      holderOf(gw, "paris") === GW_PLACES.paris.owner &&
+      (west.since === null || west.line < paris)
+    );
+  }
+  return flagsNow(gw).includes(f);
 }

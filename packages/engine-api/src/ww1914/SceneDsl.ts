@@ -51,6 +51,12 @@ import {
   GwTheatre,
   GwTopic,
 } from "./GreatWarTypes";
+import {
+  GwAssumes,
+  gwAssumesCond,
+  gwAssumesProblems,
+  GwAssumesSchema,
+} from "./GwAssumes";
 import { GW_TAGS, GwTag } from "./GwCountries";
 import { GwPlaceSchema } from "./GwPlaces";
 import { GW_BLOCS, GwBloc } from "./GwPress";
@@ -560,7 +566,12 @@ export const GwCastRuleSchema = z.union([
 export type GwCastRule = z.infer<typeof GwCastRuleSchema>;
 
 export const GwVariantSchema = z
-  .object({ id: GwIdSchema, when: GwCondSchema.optional() })
+  .object({
+    id: GwIdSchema,
+    when: GwCondSchema.optional(),
+    /** What this body's text takes for granted (GwAssumes): false, the next is used. */
+    assumes: GwAssumesSchema.optional(),
+  })
   .strict();
 export type GwVariant = z.infer<typeof GwVariantSchema>;
 
@@ -655,6 +666,8 @@ export const GwSceneSchema = z
     /** Stages it can come in; absent means any. */
     stage: z.array(z.enum(GW_STAGES)).optional(),
     when: GwCondSchema.optional(),
+    /** What every body of it takes for granted (GwAssumes): false, it isn't dealt. */
+    assumes: GwAssumesSchema.optional(),
     cast: z.record(GwIdSchema, GwCastRuleSchema),
     salience: int.min(0).max(9),
     tags: z.array(z.enum(GW_SCENE_TAGS)),
@@ -719,6 +732,14 @@ export function gwSceneProblems(s: GwScene): string[] {
   const out: string[] = [];
   const last = s.variants[s.variants.length - 1];
   if (last.when !== undefined) out.push(`${s.id}: last variant has a when`);
+  if (last.assumes !== undefined && last.assumes.past !== true) {
+    out.push(`${s.id}: last variant has assumes`);
+  }
+  for (const a of [s.assumes, ...s.variants.map((v) => v.assumes)]) {
+    if (a !== undefined) {
+      out.push(...gwAssumesProblems(a).map((p) => `${s.id}: ${p}`));
+    }
+  }
   for (const [r, list] of Object.entries(s.voices ?? {})) {
     if (s.cast[r] === undefined) out.push(`${s.id}: voices of no role ${r}`);
     if (list[list.length - 1].when !== undefined) {
@@ -945,6 +966,14 @@ function talkGraphProblems(
 // ---- Authoring helpers: scene files read like the design's examples ----
 
 export const all = (...of: GwCond[]): GwCond => ({ kind: "all", of });
+/** The tags as a condition (GwAssumes); null when they assume nothing. */
+export const assumedCond = (a: GwAssumes | undefined): GwCond | null =>
+  gwAssumesCond(a) as GwCond | null;
+/** A variant, or a scene, with what its text takes for granted. */
+export const assuming = <T extends { assumes?: GwAssumes }>(
+  x: T,
+  assumes: GwAssumes,
+): T => ({ ...x, assumes: { ...x.assumes, ...assumes } });
 export const any = (...of: GwCond[]): GwCond => ({ kind: "any", of });
 export const not = (of: GwCond): GwCond => ({ kind: "not", of });
 export const flag = (f: string): GwCond => ({ kind: "flag", flag: f });

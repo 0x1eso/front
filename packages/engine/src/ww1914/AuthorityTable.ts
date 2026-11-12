@@ -11,6 +11,7 @@ import {
   GwSecret,
   GwTheatre,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import type { GwChamber } from "@openfront/engine-api/ww1914/GwHouse";
 import { all, flag, GwCond, not } from "@openfront/engine-api/ww1914/SceneDsl";
 import { world } from "@openfront/engine-api/ww1914/WorldDsl";
 import { GW_LAW_BODIES, GwLawBody } from "@openfront/engine-lib/ww1914/LawRows";
@@ -79,6 +80,11 @@ export type GwInstRule =
       offset?: number;
       first?: boolean;
       once?: boolean;
+      /**
+       * ww187: a vote in this chamber. Due while it doesn't sit, the paper
+       * waits (a seat flag `wait_<scene>`) and comes once it sits again.
+       */
+      sits?: GwChamber;
     };
 
 /** A paper a body won't let through: `kind` of paper, by its weight. */
@@ -155,7 +161,13 @@ const germanRules: GwInstRule[] = [
     letterAt: -3,
     key: "countersign_refused",
   },
-  { rule: "call", scene: "gw_credits", every: 6, first: true },
+  {
+    rule: "call",
+    scene: "gw_credits",
+    every: 6,
+    first: true,
+    sits: "reichstag",
+  },
   {
     rule: "call",
     scene: "gw_uboat_first",

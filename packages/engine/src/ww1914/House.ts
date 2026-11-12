@@ -199,6 +199,9 @@ function sits(ctx: SceneCtx, c: GwChamberRow): boolean {
   return c.sits === undefined || holds(ctx, c.sits);
 }
 
+/** ww187: the chamber sits now (its row's `sits`). */
+export const chamberSits = sits;
+
 // ---- Factions ----
 
 function factionStart(gw: GreatWar, row: GwFactionRow): GwFactionState {
@@ -508,6 +511,8 @@ interface ChamberCount {
   /** Fails whatever the count: a consent faction against, a closed chamber. */
   blocked: boolean;
   kind: GwChamberRow["kind"];
+  /** ww187: it doesn't sit and the way round doesn't carry the bill past it. */
+  shut?: true;
 }
 
 function countIn(
@@ -522,7 +527,7 @@ function countIn(
 ): ChamberCount {
   const ctx = ctxOf(gw, seat);
   if (!sits(ctx, c)) {
-    return { id: c.id, count: CLOSED, blocked: true, kind: c.kind };
+    return { id: c.id, count: CLOSED, blocked: true, kind: c.kind, shut: true };
   }
   let count =
     (c.inst === undefined ? 0 : (n.inst[c.inst] ?? 0)) +
@@ -754,7 +759,7 @@ function whipReport(gw: GreatWar, seat: GwSeatState, st: GwLawState): void {
   const table = 0;
   const counts = houseCounts(gw, seat, st.id, table);
   // No chamber sits to vote on it: the whip has nothing to count.
-  if (counts.length === 0) {
+  if (counts.length === 0 || counts.some((c) => c.shut === true)) {
     st.whip = -1;
     return;
   }
@@ -811,7 +816,8 @@ export function houseSits(
   law: string,
 ): boolean {
   if (billRow(seat, law) === null) return true;
-  return houseCounts(gw, seat, law, 0).length > 0;
+  const counts = houseCounts(gw, seat, law, 0);
+  return counts.length > 0 && !counts.some((c) => c.shut === true);
 }
 
 /** The day: the count is the count. Null: not a house bill. */
@@ -825,8 +831,8 @@ export function housePut(
   if (bill === null) return null;
   const counts = houseCounts(gw, seat, st.id, table);
   // No chamber sits to vote on it: no vote, no card, no word judged. It waits;
-  // the way round is the only door.
-  if (counts.length === 0) {
+  // the way round is the only door. ww187: so with one it needs shut.
+  if (counts.length === 0 || counts.some((c) => c.shut === true)) {
     reason(gw, seat, "house_no_sitting");
     return { pass: false, stops: "no_sitting", sign: false };
   }

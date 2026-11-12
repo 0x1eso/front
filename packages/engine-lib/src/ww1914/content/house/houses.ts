@@ -7,10 +7,22 @@ import { either, office, person } from "../laws/kit";
 // comes into play only once its country's file has factions (GW_HOUSES in
 // scenes/house.ts). The faction ids named here are the format's canonical ids.
 
+/**
+ * ww187: the house was dissolved and its election hasn't come (about two
+ * months, engine/ww1914/Assumes GW_ELECTION_DAYS): the elected chamber is shut.
+ */
+export const DISSOLVED = world({ is: "dissolved" });
+
 export const DEU_HOUSE: GwHouseRow = {
   tag: "DEU",
   chambers: [
-    { id: "reichstag", inst: "reichstag", kind: "vote", starts: true },
+    {
+      id: "reichstag",
+      inst: "reichstag",
+      kind: "vote",
+      starts: true,
+      sits: not(DISSOLVED),
+    },
     // The states' door: only bills that name it (Reich food, the states' rights).
     { id: "bundesrat", kind: "vote", optional: true },
   ],
@@ -50,7 +62,7 @@ export const GBR_HOUSE: GwHouseRow = {
       inst: "commons",
       kind: "vote",
       starts: true,
-      sits: not(GBR_PROROGUED),
+      sits: not(any(GBR_PROROGUED, DISSOLVED)),
     },
     { id: "lords", kind: "lords", sits: not(GBR_PROROGUED) },
   ],
@@ -175,7 +187,13 @@ export const RUS_HOUSE: GwHouseRow = {
 export const FRA_HOUSE: GwHouseRow = {
   tag: "FRA",
   chambers: [
-    { id: "chambre", inst: "chamber", kind: "vote", starts: true },
+    {
+      id: "chambre",
+      inst: "chamber",
+      kind: "vote",
+      starts: true,
+      sits: not(DISSOLVED),
+    },
     { id: "senat", inst: "senate", kind: "vote" },
   ],
   // The Interior counts the majority for the premier.

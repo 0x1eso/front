@@ -2,6 +2,7 @@ import type { GwSeatState } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
 import { aiStep } from "./Ai";
 import { alliesStep } from "./Asks";
+import { electionStep } from "./Assumes";
 import { budgetStep } from "./Budget";
 import { craftStep } from "./Craft";
 import { crisisStep, stampMobilisation } from "./Crises";
@@ -50,6 +51,7 @@ export const GW_CHAPTER_STEPS: readonly ((gw: GreatWar) => void)[] = [
   occupationStep,
   (gw) => seaStep(gw, warScore(gw, "central")),
   budgetStep,
+  electionStep,
   lawStep,
   houseStep,
   dossierStep,

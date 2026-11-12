@@ -27,6 +27,7 @@ import {
   GW_THEATRES,
   GW_THREADS,
   GW_WAR_ENDS,
+  GW_WORLD_FLAGS,
   GwAiKind,
   GwArmisticeKind,
   GwChainOutcome,
@@ -50,6 +51,7 @@ import {
   GwTheatre,
   GwThread,
   GwWarEnd,
+  GwWorldFlag,
 } from "./GreatWarTypes";
 import {
   GW_AGENT_CANS,
@@ -59,6 +61,7 @@ import {
   GwPropAct,
   GwPropCan,
 } from "./GwAgents";
+import { GW_HOLDERS, GwHolder } from "./GwAssumes";
 import {
   GW_BUDGET_ITEMS,
   GW_BUDGET_LINES,
@@ -82,11 +85,13 @@ import {
 } from "./GwCraft";
 import {
   GW_ASK_STAGES,
+  GW_CHAMBERS,
   GW_FACTION_STATUS,
   GW_LAW_ORIGINS,
   GW_VOTE_BANDS,
   GW_WHIP_WORDS,
   GwAskStage,
+  GwChamber,
   GwFactionStatus,
   GwLawOrigin,
   GwVoteBand,
@@ -435,7 +440,19 @@ export type GwWorldCond =
    * ww180: propaganda (GwAgents.GW_PROP_CANS): an act with `tag` where it
    * takes one; ok/out of the newest campaign of `act`.
    */
-  | { is: "prop"; can: GwPropCan; tag?: GwTag; act?: GwPropAct };
+  | { is: "prop"; can: GwPropCan; tag?: GwTag; act?: GwPropAct }
+  // ---- Scenes that match the state (ww187) ----
+  /**
+   * Who holds a place now, from the seat's chair (GwAssumes.GW_HOLDERS): its
+   * own country or an ally, a country at war with it, the place's owner.
+   */
+  | { is: "held"; place: GwPlace; by: GwHolder }
+  /** A chamber of the seat's house sits now: not dissolved, prorogued or gone. */
+  | { is: "sits"; id: GwChamber }
+  /** The seat's house was dissolved and its election hasn't come yet. */
+  | { is: "dissolved" }
+  /** A world flag true now, not only once (engine/ww1914/WorldFlags.flagNow). */
+  | { is: "flag_now"; flag: GwWorldFlag };
 
 export type GwWorldEffect =
   /** Germany's plan for the war to come. */
@@ -612,7 +629,9 @@ export type GwWorldEffect =
   /** ww180: hire a named agent (engine/ww1914/Agents); none named: the best open. */
   | { do: "agent"; id?: string }
   /** ww180: a propaganda campaign (engine/ww1914/Propaganda). */
-  | { do: "prop"; act: GwPropAct; tag?: GwTag };
+  | { do: "prop"; act: GwPropAct; tag?: GwTag }
+  /** ww187: the seat's house is dissolved: closed until its election (GW_ELECTION_DAYS). */
+  | { do: "dissolve" };
 
 const int = z.number().int();
 const yearMonth = z.string().regex(/^19[0-9]{2}-[01][0-9]$/);
@@ -828,6 +847,10 @@ export const GwWorldCondSchema = z.union([
     tag: tag.optional(),
     act: z.enum(GW_PROP_ACTS).optional(),
   }),
+  is("held", { place: GwPlaceSchema, by: z.enum(GW_HOLDERS) }),
+  is("sits", { id: z.enum(GW_CHAMBERS) }),
+  is("dissolved", {}),
+  is("flag_now", { flag: z.enum(GW_WORLD_FLAGS) }),
 ]) as unknown as z.ZodType<GwWorldCond>;
 
 export const GwWorldEffectSchema = z.union([
@@ -930,6 +953,7 @@ export const GwWorldEffectSchema = z.union([
   act("naval", { act: z.enum(GW_NAVAL_ACTS) }),
   act("agent", { id: GwIdSchema.optional() }),
   act("prop", { act: z.enum(GW_PROP_ACTS), tag: tag.optional() }),
+  act("dissolve", {}),
 ]) as unknown as z.ZodType<GwWorldEffect>;
 
 // ---- Authoring helpers ----

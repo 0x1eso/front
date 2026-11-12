@@ -5,6 +5,7 @@
 // seat does there moves the heat, beats the threat or loses the game. A threat
 // never changes who the seat is: a `fatal` row's last scene can end the game.
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
+import type { GwChamber } from "@openfront/engine-api/ww1914/GwHouse";
 import { flag, GwCond, not } from "@openfront/engine-api/ww1914/SceneDsl";
 import { world } from "@openfront/engine-api/ww1914/WorldDsl";
 
@@ -28,6 +29,11 @@ export interface GwGovRow {
   readonly from: string;
   /** A seat flag that puts the threat out of the game. */
   readonly unless?: string;
+  /**
+   * ww187: a threat made in this chamber rests while it doesn't sit (dissolved
+   * till its election, prorogued, abolished): no heat, no cooling, no scene.
+   */
+  readonly sits?: GwChamber;
   readonly feeds: readonly GwGovFeed[];
   /**
    * Scenes in order, each with the heat it comes at; months, whatever the
@@ -94,6 +100,7 @@ export const GW_GOV: readonly GwGovRow[] = [
   {
     id: "gbr_table",
     tag: "GBR",
+    sits: "commons",
     regimes: ["liberal", "coalition", "war_cabinet", "national"],
     from: "1914-10",
     unless: "f_pm_lg",
@@ -162,6 +169,7 @@ export const GW_GOV: readonly GwGovRow[] = [
   {
     id: "deu_chancellor",
     tag: "DEU",
+    sits: "reichstag",
     regimes: ["empire"],
     from: "1914-10",
     feeds: [
@@ -194,6 +202,7 @@ export const GW_GOV: readonly GwGovRow[] = [
   {
     id: "deu_parliament",
     tag: "DEU",
+    sits: "reichstag",
     regimes: ["empire"],
     from: "1915-09",
     feeds: [
@@ -252,6 +261,7 @@ export const GW_GOV: readonly GwGovRow[] = [
   {
     id: "rus_duma",
     tag: "RUS",
+    sits: "duma",
     regimes: ["tsar"],
     from: "1914-12",
     // An abolished Duma can't bring a ministry down (rus_pw_abolish_duma).
@@ -290,6 +300,7 @@ export const GW_GOV: readonly GwGovRow[] = [
   {
     id: "fra_chamber",
     tag: "FRA",
+    sits: "chambre",
     regimes: FRA_REGIMES,
     from: "1914-12",
     feeds: [

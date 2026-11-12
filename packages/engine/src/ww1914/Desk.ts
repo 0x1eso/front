@@ -23,7 +23,15 @@ import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { spentTalk } from "./AskFirst";
 import type { GreatWar } from "./GreatWar";
 import { lawReplaces } from "./Laws";
-import { castOf, holds, pickVariant, SceneCtx, specificity } from "./SceneRun";
+import {
+  assumesHold,
+  castOf,
+  holds,
+  pickVariant,
+  SceneCtx,
+  sceneHolds,
+  specificity,
+} from "./SceneRun";
 import { inOpening, newcomers, noteLetterIn } from "./Story";
 import { settlePromises } from "./Talk";
 import { stageOf } from "./World";
@@ -254,7 +262,8 @@ function scoreOf(
     const fresh = scene.variants.some(
       (x) =>
         !recent.bodies.has(bodyId(scene.id, x.id)) &&
-        (x.when === undefined || holds(ctx, x.when)),
+        (x.when === undefined || holds(ctx, x.when)) &&
+        assumesHold(ctx, x),
     );
     v -= fresh ? w.recentFreshBody : w.recent;
   }
@@ -271,9 +280,7 @@ export function deskCandidates(
     if (!drawable(gw, seat, scene)) continue;
     const cast = castOf(gw, seat, scene);
     if (cast === null) continue;
-    if (scene.when !== undefined && !holds({ gw, seat, cast }, scene.when)) {
-      continue;
-    }
+    if (!sceneHolds({ gw, seat, cast }, scene)) continue;
     out.push({ scene, score: scoreOf(gw, seat, scene, cast) });
   }
   return out;
@@ -405,7 +412,7 @@ function quietCard(gw: GreatWar, seat: GwSeatState): GwCard | null {
     if (!inStage(gw, x)) return false;
     const cast = castOf(gw, seat, x);
     if (cast === null) return false;
-    return x.when === undefined || holds({ gw, seat, cast }, x.when);
+    return sceneHolds({ gw, seat, cast }, x);
   });
   if (fit.length === 0) return null;
   const scene = fit[wwRoll(gw.s.seed, P_TIE, gw.s.chapter) % fit.length];
@@ -450,7 +457,11 @@ function takeDue(gw: GreatWar, seat: GwSeatState): Due[] {
     const twice = out.some(
       (x) => x.scene === scene && x.who === who && x.act === act,
     );
-    if (scene !== undefined && !twice && !overWithTheWar(gw, scene)) {
+    // ww187: a paper whose text the state now gives the lie to doesn't come.
+    const fits =
+      scene === undefined ||
+      assumesHold({ gw, seat, cast: {}, act, back: q.back ?? null }, scene);
+    if (scene !== undefined && !twice && !overWithTheWar(gw, scene) && fits) {
       out.push({ scene, who, act, back: q.back ?? null });
     }
     return false;
