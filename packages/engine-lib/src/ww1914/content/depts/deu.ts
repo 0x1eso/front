@@ -1,20 +1,26 @@
-// ww193: DEU's departments. Lane W-DEU owns this file and
-// resources/ww1914/ko/DEU.depts.json: task rows pointing at existing papers,
-// leans, wants, levers, and any new scene the design asks for (the twelve).
+// ww196: DEU's departments. Lane W-DEU owns this file and
+// resources/ww1914/ko/DEU.depts.json: the seat's answer rows over the common
+// task types and its own types (aims, poland, franchise), their `then` links
+// to existing papers, the honours rows and orders, leans and wants.
 //
-// The new papers (design §5): the Household's honours list (#1) and the privy
-// purse's requests (#10), the foreign office's drafts for letters to kin on
-// neutral thrones (#2), the Prussian house's dissolution plan with the OHL's
-// counter-paper (#3), and the cards the schedule's new entries play
-// (ceremonies, the purse, the kin letters: content/acts/deu.ts).
+// Papers kept from ww193 (design ww195 §3): the privy purse's requests (#10),
+// the foreign office's drafts for letters to kin on neutral thrones (#2), the
+// Prussian house's dissolution plan with the OHL's counter-paper (#3), and the
+// cards the schedule's entries play (content/acts/deu.ts). The honours list
+// (#1) is gone: honours come at their occasions (HONOURS below, Honours.ts).
 import type {
+  GwAnswerRow,
+  GwCourseRow,
   GwDeptContent,
+  GwFindingRow,
+  GwHonourOrder,
+  GwHonourRow,
+  GwLean,
   GwTaskRow,
 } from "@openfront/engine-api/ww1914/GwDepts";
 import {
   all,
   any,
-  chose,
   GwCond,
   GwEffect,
   GwOption,
@@ -22,15 +28,17 @@ import {
   GwVariant,
   holder,
   memory,
+  not,
   remember,
   role,
 } from "@openfront/engine-api/ww1914/SceneDsl";
 import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
 
 const NATION: GwScene["nation"] = ["DEU"];
+const DEU: ["DEU"] = ["DEU"];
 const war: GwCond = world({ is: "war" });
 const months = (min: number): GwCond => world({ is: "war_months", min });
-const neutral = (tag: "GRC" | "ROU" | "ITA"): GwCond =>
+const neutral = (tag: "GRC" | "ROU" | "ITA" | "BGR" | "OTT" | "USA"): GwCond =>
   world({ is: "neutral", tag });
 const atWar = (tag: "RUS" | "FRA" | "GBR"): GwCond => ({ kind: "at_war", tag });
 const opinion = (
@@ -62,6 +70,14 @@ const picked = (field: string, ...of: string[]): GwCond => ({
   kind: "picked",
   field,
   of,
+});
+
+/** Warsaw and beyond are ours on the eastern front. */
+const warsawOurs: GwCond = world({
+  is: "front",
+  theatre: "east",
+  from: "warsaw",
+  to: "kiev",
 });
 
 /** The Prussian bill came back from the house with the plural vote in it. */
@@ -188,60 +204,6 @@ function kinDraft(id: string, tag: "GRC" | "ROU", key: string): GwScene {
 }
 
 export const DEU_DEPT_SCENES: readonly GwScene[] = [
-  // #1 The honours list: the Household brings it after a victory or at the
-  // new year, or when asked. The investiture is a ceremony on the schedule.
-  {
-    id: "deu_dept_honours",
-    nation: NATION,
-    kind: "proposal",
-    when: all(
-      war,
-      months(3),
-      any(world({ is: "month", of: [1] }), world({ is: "score", min: 10 })),
-    ),
-    cast: { court: holder("court") },
-    author: "court",
-    salience: 5,
-    tags: ["home"],
-    cooldown: 6,
-    max: 4,
-    variants: [
-      v("victory", world({ is: "score", min: 10 })),
-      v("new_year", world({ is: "month", of: [1] })),
-      v("base"),
-    ],
-    fallback: "short_list",
-    options: [
-      o(
-        "the_front",
-        ["opinion:+1", "opinion:-1"],
-        [
-          opinion("army", 1),
-          opinion("parliament", -1),
-          remember("k_deu_hon_front"),
-        ],
-      ),
-      o(
-        "the_offices",
-        ["opinion:+1"],
-        [opinion("court", 1), remember("k_deu_hon_offices")],
-      ),
-      o(
-        "the_works",
-        ["opinion:+1", "opinion:-1"],
-        [
-          opinion("business", 1),
-          opinion("army", -1),
-          remember("k_deu_hon_works"),
-        ],
-      ),
-      o(
-        "short_list",
-        ["reputation:+1"],
-        [ruler("reputation", 1, "deu_dept_hon_short")],
-      ),
-    ],
-  },
   // #10 The privy purse: the Household brings the requests on it.
   {
     id: "deu_dept_purse",
@@ -359,8 +321,8 @@ export const DEU_DEPT_SCENES: readonly GwScene[] = [
     { court: holder("court") },
     ["home"],
     [
-      v("front", chose("deu_dept_honours", "the_front")),
-      v("works", chose("deu_dept_honours", "the_works")),
+      v("front", world({ is: "score", min: 10 })),
+      v("works", all(months(18), { kind: "gauge", gauge: "shells", min: 2 })),
       v("base"),
     ],
   ),
@@ -389,430 +351,839 @@ export const DEU_DEPT_SCENES: readonly GwScene[] = [
   kinReply("deu_a_constantine_r", "grc_constantine", "GRC", "grc", 30),
   kinReply("deu_a_marie_r", "rou_marie", "ROU", "rou", 40),
 ];
+// ---- ww196: own task types (design ww195 §3) ----
+// The common types (envoy, front, money, bread, unrest, fleet, arms, men,
+// intel) are offered without rows, to the offices of GW_TASK_OFFICES.DEU.
 
-// ---- Task rows: each points at papers that exist ----
+const OWN_TASKS: GwTaskRow[] = [
+  {
+    id: "deu_task_aims",
+    nation: DEU,
+    office: "chancellor",
+    type: "aims",
+    chapters: 2,
+    when: all(war, months(1)),
+    cooldown: 4,
+  },
+  {
+    id: "deu_task_poland",
+    nation: DEU,
+    office: "chancellor",
+    type: "poland",
+    chapters: 2,
+    when: all(war, warsawOurs),
+    cooldown: 4,
+  },
+  {
+    id: "deu_task_franchise",
+    nation: DEU,
+    office: "interior",
+    type: "franchise",
+    chapters: 2,
+    when: all(war, months(6)),
+    cooldown: 4,
+  },
+];
 
-const task = (
+// ---- ww196: the answers (GwAnswerRow), seat rows before the common ones ----
+
+const fd = (
   id: string,
-  office: GwTaskRow["office"],
-  kind: GwTaskRow["kind"],
-  chapters: number,
-  products: string[],
-  more: Partial<GwTaskRow> = {},
-): GwTaskRow => ({
-  id: `deu_task_${id}`,
-  nation: ["DEU"],
-  office,
-  kind,
-  chapters,
-  products,
+  weight: 1 | 2 | 3,
+  more: Partial<GwFindingRow> = {},
+): GwFindingRow => ({ id, weight, ...more });
+const co = (
+  id: string,
+  lean: GwLean[],
+  effects: GwEffect[],
+  more: Partial<GwCourseRow> = {},
+): GwCourseRow => ({ id, lean, effects, ...more });
+const ans = (
+  id: string,
+  type: GwAnswerRow["type"],
+  findings: GwFindingRow[],
+  courses: GwCourseRow[],
+  more: Partial<GwAnswerRow> = {},
+): GwAnswerRow => ({
+  id: `deu_ans_${id}`,
+  nation: DEU,
+  type,
+  findings,
+  courses,
   ...more,
 });
+const ready = (tag: "ITA" | "ROU" | "BGR" | "OTT" | "USA", delta: number) =>
+  doWorld({ do: "readiness", tag, delta });
+const entered = (tag: "ITA" | "ROU" | "BGR" | "OTT" | "USA"): GwCond =>
+  world({ is: "entered", tag });
+const until = (to: string): GwCond => world({ is: "date", to });
+const since = (from: string): GwCond => world({ is: "date", from });
+const mem = (key: string): GwEffect => remember(key);
 
-const TASKS: GwTaskRow[] = [
-  // 외무부 (Auswärtiges Amt)
-  task("italy", "foreign", "terms", 2, ["gw_o_ita_asks", "gw_o_ita_trentino"], {
-    topic: "ITA",
-    when: war,
-  }),
-  task(
-    "romania",
-    "foreign",
-    "terms",
-    2,
-    ["gw_o_rou_transylvania", "gw_o_rou_grain", "gw_o_rou_moment"],
-    { topic: "ROU", when: war },
-  ),
-  task("bulgaria", "foreign", "terms", 2, ["gw_o_bgr_macedonia"], {
-    topic: "BGR",
-    when: war,
-  }),
-  task(
-    "ottoman",
-    "foreign",
-    "terms",
-    2,
-    ["gw_o_ott_ships", "gw_o_ott_price", "gw_d_india_road"],
-    { topic: "OTT" },
-  ),
-  task(
-    "russia_peace",
-    "foreign",
-    "terms",
-    3,
-    ["deu_s_separate_russia", "deu_w_separate_peace", "gw_d_sounding"],
-    { topic: "RUS", when: atWar("RUS") },
-  ),
-  task(
-    "america",
-    "foreign",
-    "plan",
-    2,
+const ANSWERS: GwAnswerRow[] = [
+  // ---- envoy: 외무부 ----
+  ans(
+    "ita",
+    "envoy",
     [
-      "deu_s_wilson_mediation",
-      "gw_d_aims_asked",
-      "gw_d_fourteen",
-      "gw_o_usa_arms",
+      fd("trentino", 3),
+      fd("vienna_deaf", 3),
+      fd("bulow", 2, { when: all(since("1914-12"), until("1915-05")) }),
+      fd("stays_out", 1, { wrong: true, truth: not(entered("ITA")) }),
     ],
-    { topic: "USA", when: war },
-  ),
-  task(
-    "britain",
-    "foreign",
-    "plan",
-    2,
-    ["deu_w_gbr_neutral", "deu_s_belgium_price", "deu_y_talks_offer"],
-    { topic: "GBR" },
-  ),
-  task(
-    "vienna",
-    "foreign",
-    "plan",
-    1,
     [
-      "deu_y_ally_renew",
-      "deu_y_ally_crack",
-      "deu_w_peace_vienna",
-      "gw_d_ally_summit",
-      "gw_d_ally_money",
+      co("press_vienna", ["gentle", "calm"], [ready("ITA", -3)], {
+        then: ["gw_o_ita_trentino"],
+        needs: [{ kind: "consent", tag: "AUH" }],
+      }),
+      co("pay_rome", ["bold"], [ready("ITA", -2), gauge("money", -1)], {
+        then: ["gw_o_ita_asks"],
+        needs: [{ kind: "money", word: "much" }],
+      }),
+      co("let_go", ["firm", "cheap"], [opinion("army", 1)]),
+      co("wait", ["wait"], [], { wait: true }),
     ],
-    { topic: "AUH" },
+    { topic: ["ITA"], when: all(war, neutral("ITA")), question: "reach" },
   ),
-  task(
+  ans(
+    "rou",
+    "envoy",
+    [
+      fd("king", 3, { slots: { ruler: ["*"] } }),
+      fd("transylvania", 3),
+      fd("grain_oil", 2),
+      fd("waits_winner", 2, { slots: { readiness: ["far", "near"] } }),
+      fd("with_us", 1, {
+        wrong: true,
+        truth: not(world({ is: "entered", tag: "ROU", side: "entente" })),
+      }),
+    ],
+    [
+      co("buy_grain", ["cheap", "calm"], [gauge("bread", 1)], {
+        then: ["gw_o_rou_grain"],
+        needs: [{ kind: "money", word: "some" }],
+      }),
+      co("press_vienna", ["gentle"], [ready("ROU", -3)], {
+        then: ["gw_o_rou_transylvania"],
+        needs: [{ kind: "consent", tag: "AUH" }],
+      }),
+      co("warn", ["firm", "bold"], [ready("ROU", 2)], {
+        then: ["gw_o_rou_moment"],
+      }),
+      co("wait", ["wait"], [], { wait: true }),
+    ],
+    { topic: ["ROU"], when: all(war, neutral("ROU")), question: "reach" },
+  ),
+  ans(
+    "bgr",
+    "envoy",
+    [
+      fd("macedonia", 3),
+      fd("ferdinand", 2, { slots: { ruler: ["*"] } }),
+      fd("loan", 2),
+      fd("bidding", 2, { slots: { bidders: ["bidding"] } }),
+    ],
+    [
+      co("promise_macedonia", ["bold"], [ready("BGR", 3)], {
+        then: ["gw_o_bgr_macedonia"],
+      }),
+      co("loan", ["cheap", "calm"], [ready("BGR", 2), gauge("money", -1)], {
+        needs: [{ kind: "money", word: "some" }],
+      }),
+      co("wait", ["wait", "gentle"], [], { wait: true }),
+    ],
+    { topic: ["BGR"], when: all(war, neutral("BGR")), question: "reach" },
+  ),
+  ans(
+    "ott",
+    "envoy",
+    [
+      fd("enver", 3),
+      fd("ships", 3, { when: neutral("OTT") }),
+      fd("wangenheim", 2, { when: until("1915-10") }),
+      fd("gold", 2),
+      fd("india", 2, { when: entered("OTT") }),
+    ],
+    [
+      co("give_ships", ["bold"], [ready("OTT", 4)], {
+        when: neutral("OTT"),
+        then: ["gw_o_ott_ships"],
+      }),
+      co("gold", ["calm", "gentle"], [ready("OTT", 2), gauge("money", -1)], {
+        then: ["gw_o_ott_price"],
+        needs: [{ kind: "money", word: "much" }],
+      }),
+      co("india_road", ["bold", "firm"], [mem("k_deu_india_road")], {
+        when: entered("OTT"),
+        then: ["gw_d_india_road"],
+      }),
+      co("officers", ["cheap", "calm"], [opinion("army", 1)], {
+        needs: [{ kind: "person", office: "chief_of_staff" }],
+      }),
+    ],
+    { topic: ["OTT"], when: war, question: "person" },
+  ),
+  ans(
+    "usa",
+    "envoy",
+    [
+      fd("munitions", 3),
+      fd("bernstorff", 2, { when: until("1917-02") }),
+      fd("wilson", 2),
+      fd("notes", 2, { when: { kind: "seen", scene: "deu_w_sub_note" } }),
+      fd("never_comes", 1, { wrong: true, truth: not(entered("USA")) }),
+    ],
+    [
+      co("mediation", ["gentle", "calm"], [ready("USA", -2)], {
+        then: ["deu_s_wilson_mediation"],
+      }),
+      co("protest_arms", ["firm"], [ready("USA", 1)], {
+        then: ["gw_o_usa_arms"],
+      }),
+      co("polite_no", ["cheap", "wait"], []),
+    ],
+    { topic: ["USA"], when: all(war, neutral("USA")), question: "reach" },
+  ),
+  ans(
+    "gbr",
+    "envoy",
+    [
+      fd("lichnowsky", 3, {
+        slots: { envoy: ["*"] },
+        when: not(war),
+      }),
+      fd("grey", 3, { when: not(war) }),
+      fd("belgium", 3, { when: atWar("GBR") }),
+      fd("blockade", 2, { when: atWar("GBR") }),
+      fd("stays_out", 1, { wrong: true, truth: not(atWar("GBR")) }),
+    ],
+    [
+      co("neutral_word", ["gentle", "calm"], [mem("k_deu_gbr_sounded")], {
+        when: not(war),
+        then: ["deu_w_gbr_neutral"],
+      }),
+      co("belgium_price", ["gentle"], [opinion("army", -1)], {
+        when: atWar("GBR"),
+        then: ["deu_s_belgium_price"],
+      }),
+      co("fleet_word", ["bold"], [opinion("court", 1)], {
+        when: not(war),
+        then: ["deu_y_talks_offer"],
+      }),
+      co("no_word", ["firm", "cheap"], [opinion("press", 1)]),
+    ],
+    { topic: ["GBR"], question: "reach" },
+  ),
+  ans(
+    "rus",
+    "envoy",
+    [
+      fd("andersen", 3),
+      fd("court_party", 2),
+      fd("revolution", 2, { when: months(18) }),
+      fd("nicky_yields", 1, {
+        wrong: true,
+        truth: world({ is: "out", tag: "RUS" }),
+      }),
+    ],
+    [
+      co("copenhagen", ["gentle", "calm"], [mem("k_deu_rus_sounded")], {
+        then: ["deu_s_separate_russia"],
+      }),
+      co("terms", ["bold"], [mem("k_deu_rus_terms")], {
+        then: ["deu_w_separate_peace"],
+        needs: [{ kind: "consent", tag: "AUH" }],
+      }),
+      co("press_on", ["firm"], [opinion("army", 1)]),
+    ],
+    { topic: ["RUS"], when: atWar("RUS"), question: "person" },
+  ),
+  ans(
+    "auh",
+    "envoy",
+    [
+      fd("conrad", 3),
+      fd("tschirschky", 2, { when: until("1916-11") }),
+      fd("nations", 2),
+      fd("money", 2),
+      fd("separate", 1, { when: months(24) }),
+    ],
+    [
+      co("summit", ["calm", "gentle"], [mem("k_deu_vienna_summit")], {
+        when: war,
+        then: ["gw_d_ally_summit"],
+      }),
+      co("money", ["gentle"], [gauge("money", -1)], {
+        when: war,
+        then: ["gw_d_ally_money"],
+        needs: [{ kind: "money", word: "much" }],
+      }),
+      co("command", ["firm", "bold"], [opinion("army", 1)], {
+        when: atWar("RUS"),
+        then: ["deu_f_unified_command"],
+      }),
+      co("renew", ["calm"], [], {
+        when: not(war),
+        then: ["deu_y_ally_renew"],
+      }),
+    ],
+    { topic: ["AUH"], question: "person" },
+  ),
+  ans(
     "neutrals",
-    "foreign",
-    "study",
-    2,
+    "envoy",
+    [fd("iron", 3), fd("food", 2), fd("blockade_list", 2)],
     [
-      "gw_o_swe_iron",
-      "gw_o_nld_food",
-      "gw_o_che_coal",
-      "gw_o_nor_tonnage",
-      "gw_o_dnk_belt",
-      "gw_d_neutral_press",
+      co(
+        "quiet_deal",
+        ["calm", "gentle"],
+        [gauge("money", -1), gauge("bread", 1)],
+        {
+          then: ["gw_o_swe_iron", "gw_o_nld_food"],
+        },
+      ),
+      co("press", ["firm"], [opinion("press", 1)], {
+        then: ["gw_o_dnk_belt"],
+      }),
     ],
-    { topic: "neutral_trade", when: war },
-  ),
-  task("kin_grc", "foreign", "plan", 1, ["deu_dept_kin_grc"], {
-    topic: "GRC",
-    when: all(war, neutral("GRC")),
-    once: true,
-  }),
-  task("kin_rou", "foreign", "plan", 1, ["deu_dept_kin_rou"], {
-    topic: "ROU",
-    when: all(war, neutral("ROU"), queenMarie),
-    once: true,
-  }),
-
-  // 재상부 (Reichskanzlei)
-  task(
-    "war_aims",
-    "chancellor",
-    "plan",
-    2,
-    ["deu_w_war_aims", "deu_k_war_aims_gag", "gw_d_aims_asked"],
-    { topic: "war_aims", when: war },
-  ),
-  task(
-    "poland",
-    "chancellor",
-    "plan",
-    2,
-    [
-      "deu_s_poland_kingdom",
-      "deu_ld_occ_rus_long",
-      "gw_d_poland_word",
-      "deu_oc_client",
-    ],
-    { topic: "poland", when: war },
-  ),
-  task(
-    "belgium",
-    "chancellor",
-    "plan",
-    2,
-    ["deu_ld_occ_bel_long", "deu_ld_occ_bel", "deu_s_belgium_price"],
-    { topic: "BEL", when: war },
-  ),
-  task(
-    "parties",
-    "chancellor",
-    "report",
-    1,
-    [
-      "deu_k_interparty",
-      "deu_h_fatherland_party",
-      "deu_k_princes",
-      "pr_deu_parliament",
-    ],
-    { topic: "parties" },
-  ),
-  task("landtag", "chancellor", "plan", 1, ["deu_dept_landtag"], {
-    topic: "franchise",
-    when: gutted,
-    once: true,
-  }),
-
-  // 내무부 (Reichsamt des Innern)
-  task(
-    "food",
-    "interior",
-    "study",
-    2,
-    [
-      "deu_w_bread_cards",
-      "deu_h_price_caps",
-      "deu_h_food_office",
-      "deu_h_pig_cull",
-      "deu_h_hunger_truth",
-      "deu_hf_hunger",
-    ],
-    { topic: "food", when: war },
-  ),
-  task(
-    "strikes",
-    "interior",
-    "report",
-    1,
-    [
-      "deu_h_liebknecht_may",
-      "deu_p_rally_ban",
-      "deu_y_home_strike",
-      "pr_deu_rumour",
-    ],
-    { topic: "strikes" },
-  ),
-  task(
-    "franchise_bill",
-    "interior",
-    "bill",
-    2,
-    [
-      "gw_law_deu_three_class",
-      "deu_k_three_class",
-      "deu_w_peace_franchise",
-      "deu_m_home_lords",
-    ],
-    { topic: "franchise" },
-  ),
-  task("landtag_i", "interior", "plan", 1, ["deu_dept_landtag"], {
-    topic: "franchise",
-    when: gutted,
-    once: true,
-  }),
-  task("censor", "interior", "bill", 1, ["gw_law_deu_censor", "deu_h_censor"], {
-    topic: "censor",
-    when: war,
-  }),
-  task(
-    "coal",
-    "interior",
-    "study",
-    1,
-    ["deu_h_coal_winter", "gw_x_coal_winter"],
-    { topic: "coal", when: war },
-  ),
-  task(
-    "refugees",
-    "interior",
-    "report",
-    1,
-    ["deu_hf_refugees", "deu_hf_flu", "gw_x_refugees"],
-    { topic: "refugees", when: war },
+    {
+      topic: ["SWE", "NLD", "DNK", "NOR", "CHE"],
+      when: all(war, atWar("GBR")),
+      question: "money",
+    },
   ),
 
-  // 전쟁부 (Kriegsministerium)
-  task(
-    "shells",
-    "war",
-    "study",
-    1,
-    ["deu_w_shell_crisis", "deu_w_raw_materials", "deu_f_new_arms"],
-    { topic: "shells", when: war },
-  ),
-  task(
-    "manpower",
-    "war",
-    "study",
-    2,
-    [
-      "deu_f_last_classes",
-      "deu_h_women_work",
-      "deu_hf_women",
-      "deu_lb_reclaim",
-    ],
-    { topic: "manpower", when: war },
-  ),
-  // The retired inquiry's last subject: its report is the wounded's figures.
-  task(
-    "wounded",
-    "war",
-    "study",
-    1,
-    ["deu_h_wounded_home", "deu_hf_wounded", "deu_a_inquiry_r"],
-    { topic: "wounded", when: war },
-  ),
-  task(
-    "army_bill",
-    "war",
-    "bill",
-    2,
-    [
-      "gw_law_deu_army_bill",
-      "deu_w_peace_arms",
-      "deu_y_arms_bill",
-      "deu_h_war_office",
-    ],
-    { topic: "army_bill" },
-  ),
-  task(
-    "prisoners",
-    "war",
-    "report",
-    1,
-    ["deu_hf_pow_camps", "deu_hf_pow_ours", "gw_d_prisoner_swap"],
-    { topic: "prisoners", when: war },
-  ),
-
-  // 참모본부 (Großer Generalstab, then the OHL)
-  task(
-    "east",
-    "chief_of_staff",
-    "plan",
-    2,
-    [
-      "deu_w_east_first",
-      "deu_f_gorlice",
-      "deu_f_brusilov_help",
-      "deu_f_east_garrison",
-    ],
-    { topic: "east", when: atWar("RUS") },
-  ),
-  task(
+  // ---- front: 참모본부 ----
+  ans(
     "west",
-    "chief_of_staff",
-    "plan",
-    2,
+    "front",
     [
-      "deu_f_somme_doctrine",
-      "deu_f_withdraw_line",
-      "deu_f_offensive_month",
-      "deu_f_east1_year",
+      fd("line", 3, { slots: { line: ["*"] } }),
+      fd("enemy", 3, { slots: { enemy: ["*"] } }),
+      fd("shells_low", 2, { slots: { shells: ["low"] } }),
+      fd("shells_ok", 2, { slots: { shells: ["middling", "high"] } }),
+      fd("two_fronts", 2),
+      fd("they_crack", 1, {
+        wrong: true,
+        truth: world({
+          is: "battle",
+          theatre: "west",
+          of: ["break", "advance"],
+          by: "seat",
+        }),
+      }),
     ],
-    { topic: "west", when: atWar("FRA") },
+    [
+      co("attack", ["bold"], [gauge("morale", 1)], {
+        front: "attack",
+        then: ["deu_f_offensive_month"],
+        thenAfter: 3,
+        needs: [{ kind: "divisions", word: "many" }],
+      }),
+      co("depth", ["calm", "cheap"], [], {
+        front: "hold",
+        then: ["deu_f_somme_doctrine"],
+      }),
+      co("withdraw", ["firm", "cheap"], [opinion("army", -1)], {
+        front: "shorten",
+        then: ["deu_f_withdraw_line"],
+      }),
+      co("east_first", ["gentle"], [], {
+        front: "shift",
+        when: atWar("RUS"),
+        then: ["deu_f_east1_year"],
+      }),
+    ],
+    { topic: ["west"], when: war, question: "person" },
   ),
-  task(
+  ans(
+    "east",
+    "front",
+    [
+      fd("line", 3, { slots: { line: ["*"] } }),
+      fd("commander", 2, { slots: { commander: ["*"] } }),
+      fd("rails", 2),
+      fd("ally_weak", 2),
+      fd("russia_spent", 1, {
+        wrong: true,
+        truth: world({ is: "out", tag: "RUS" }),
+      }),
+    ],
+    [
+      co("push", ["bold"], [gauge("morale", 1)], {
+        front: "attack",
+        then: ["deu_w_east_first", "deu_f_gorlice"],
+        needs: [{ kind: "divisions", word: "many" }],
+      }),
+      co("help_vienna", ["gentle", "calm"], [], {
+        front: "hold",
+        then: ["deu_f_brusilov_help"],
+        needs: [{ kind: "consent", tag: "AUH" }],
+      }),
+      co("strip_east", ["cheap", "firm"], [], {
+        front: "shift",
+        when: world({ is: "out", tag: "RUS" }),
+        then: ["deu_f_east_garrison"],
+      }),
+    ],
+    { topic: ["east"], when: atWar("RUS"), question: "person" },
+  ),
+  ans(
     "balkan",
-    "chief_of_staff",
-    "plan",
-    2,
-    ["deu_f_serbia_road", "deu_f_straits_shells"],
-    { topic: "balkan", when: war },
-  ),
-  task(
-    "allied_command",
-    "chief_of_staff",
-    "terms",
-    2,
-    ["deu_f_unified_command", "deu_f_italy_corps", "deu_y_ally_staff"],
-    { topic: "AUH" },
-  ),
-  task(
-    "occupied",
-    "chief_of_staff",
-    "report",
-    1,
+    "front",
     [
-      "deu_oc_resist",
-      "deu_oc_labour",
-      "deu_oc_fra",
-      "deu_oc_rus",
-      "deu_oc_rou",
+      fd("serbia", 3),
+      fd("road", 3),
+      fd("bulgaria", 2, { when: entered("BGR") }),
     ],
-    { topic: "occupied", when: war },
+    [
+      co("german_lead", ["bold", "firm"], [opinion("army", 1)], {
+        front: "attack",
+        when: entered("BGR"),
+        then: ["deu_f_serbia_road"],
+      }),
+      co("shells_by_rail", ["calm"], [gauge("shells", -1)], {
+        when: world({ is: "open", theatre: "straits" }),
+        then: ["deu_f_straits_shells"],
+      }),
+      co("vienna_alone", ["cheap", "wait"], [], { front: "hold" }),
+    ],
+    { topic: ["balkan"], when: war, question: "person" },
+  ),
+  ans(
+    "italy",
+    "front",
+    [fd("isonzo", 3), fd("ally_asks", 2), fd("alps", 2)],
+    [
+      co("send_corps", ["bold"], [opinion("army", 1)], {
+        front: "attack",
+        then: ["deu_f_italy_corps"],
+        needs: [{ kind: "divisions", word: "few" }],
+      }),
+      co("no_men", ["cheap", "firm"], [], { front: "hold" }),
+    ],
+    {
+      topic: ["italy"],
+      when: world({ is: "entered", tag: "ITA", side: "entente" }),
+      question: "person",
+    },
   ),
 
-  // 해군부 (Reichsmarineamt)
-  task(
+  // ---- money: 재무부 ----
+  ans(
+    "money",
+    "money",
+    [
+      fd("treasury_low", 3, { slots: { treasury: ["low"] } }),
+      fd("treasury_ok", 3, { slots: { treasury: ["middling", "high"] } }),
+      fd("no_reich_tax", 3),
+      fd("loan_bureaus", 2, { when: war }),
+      fd("enemy_pays", 1, { wrong: true }),
+    ],
+    [
+      co(
+        "loan",
+        ["calm", "gentle"],
+        [gauge("money", 1), opinion("business", 1)],
+        {
+          when: war,
+          then: ["deu_w_first_loan", "deu_h_loan_drive"],
+        },
+      ),
+      co(
+        "profits_tax",
+        ["firm"],
+        [opinion("business", -1), opinion("workers", 1)],
+        {
+          when: war,
+          then: ["deu_h_war_profits"],
+        },
+      ),
+      co("print", ["cheap", "bold"], [gauge("money", 1)], {
+        when: war,
+        then: ["gw_x_prices"],
+        thenAfter: 3,
+      }),
+      co("budget", ["calm"], [], {
+        when: not(war),
+        then: ["deu_y_arms_price"],
+      }),
+    ],
+    { question: "money" },
+  ),
+
+  // ---- bread: 내무부 ----
+  ans(
+    "bread",
+    "bread",
+    [
+      fd("bread_low", 3, { slots: { bread: ["low"] } }),
+      fd("bread_ok", 3, { slots: { bread: ["middling", "high"] } }),
+      fd("blockade", 3, { when: atWar("GBR") }),
+      fd("pigs", 2, { when: months(6) }),
+      fd("states", 2),
+      fd("prices", 2, { slots: { prices: ["middling", "high"] } }),
+      fd("harvest_saves", 1, {
+        wrong: true,
+        truth: { kind: "gauge", gauge: "bread", min: 2 },
+      }),
+    ],
+    [
+      co("cards", ["firm", "calm"], [gauge("order", 1)], {
+        then: ["deu_w_bread_cards"],
+        needs: [{ kind: "bill", law: "deu_bread_cards" }],
+      }),
+      co("price_caps", ["cheap"], [opinion("workers", 1)], {
+        then: ["deu_h_price_caps"],
+      }),
+      co("food_office", ["bold"], [opinion("parliament", 1)], {
+        when: months(18),
+        then: ["deu_h_food_office"],
+        needs: [{ kind: "bill", law: "deu_food_office" }],
+      }),
+      co("pigs", ["firm", "bold"], [gauge("bread", 1)], {
+        when: atWar("GBR"),
+        then: ["deu_h_pig_cull"],
+      }),
+    ],
+    { when: war, question: "money" },
+  ),
+
+  // ---- unrest: 내무부 ----
+  ans(
+    "unrest",
+    "unrest",
+    [
+      fd("agitators", 3, { slots: { agitators: ["*"] } }),
+      fd("strikes", 3, { slots: { strikes: ["middling", "high"] } }),
+      fd("quiet", 2, { slots: { strikes: ["low"] } }),
+      fd("burgfrieden", 2, { when: war }),
+      fd("foreign_money", 1, { wrong: true }),
+    ],
+    [
+      co("arrest", ["firm"], [gauge("order", 1), opinion("workers", -1)], {
+        then: ["deu_h_liebknecht_may"],
+      }),
+      co("ban_rallies", ["calm", "cheap"], [gauge("order", 1)], {
+        then: ["deu_p_rally_ban"],
+      }),
+      co(
+        "hear_unions",
+        ["gentle"],
+        [opinion("workers", 1), opinion("army", -1)],
+      ),
+    ],
+    { question: "person" },
+  ),
+
+  // ---- fleet: 해군부 ----
+  ans(
     "fleet",
-    "navy",
-    "plan",
-    2,
-    ["deu_w_fleet_out", "deu_s_fleet_out", "deu_s_neutral_flags"],
-    { topic: "sea", when: atWar("GBR") },
-  ),
-  task("uboats", "navy", "plan", 2, ["deu_w_sub_note", "deu_s_neutral_flags"], {
-    topic: "uboats",
-    when: atWar("GBR"),
-  }),
-  task(
-    "fleet_law",
-    "navy",
-    "bill",
-    2,
-    ["deu_w_peace_novelle", "deu_y_inc_naval", "deu_y_talks_keep"],
-    { topic: "fleet_law" },
-  ),
-
-  // 재무부 (Reichsschatzamt)
-  task(
-    "war_loan",
-    "finance",
-    "bill",
-    1,
-    ["deu_w_first_loan", "deu_w_second_credit", "deu_h_loan_drive"],
-    { topic: "war_loan", when: war },
-  ),
-  task(
-    "war_tax",
-    "finance",
-    "bill",
-    2,
-    ["deu_h_war_profits", "gw_x_prices", "deu_y_arms_price"],
-    { topic: "war_tax" },
-  ),
-  task(
-    "allies_money",
-    "finance",
-    "terms",
-    2,
-    ["gw_d_ally_money", "deu_oc_requisition", "gw_o_usa_loans"],
-    { topic: "allies_money", when: war },
+    "fleet",
+    [
+      fd("ratio_low", 3, { slots: { fleet: ["low", "middling"] } }),
+      fd("ratio_ok", 3, { slots: { fleet: ["high"] } }),
+      fd("blockade", 3, {
+        when: atWar("GBR"),
+        slots: { blockade: ["middling", "high"] },
+      }),
+      fd("uboats", 2, { when: atWar("GBR") }),
+      fd("coal", 1),
+      fd("grand_fleet_out", 1, { wrong: true }),
+    ],
+    [
+      co("sortie", ["bold"], [gauge("morale", 1)], {
+        when: atWar("GBR"),
+        then: ["deu_w_fleet_out"],
+      }),
+      co("in_being", ["calm", "wait"], []),
+      co("uboat_zone", ["firm", "bold"], [opinion("army", 1)], {
+        when: atWar("GBR"),
+        then: ["deu_w_sub_note"],
+      }),
+      co("novelle", ["bold"], [gauge("money", -1)], {
+        when: not(war),
+        then: ["deu_w_peace_novelle"],
+      }),
+    ],
+    { question: "money" },
   ),
 
-  // 궁내부 (the naval cabinet's chief stands for the Household)
-  task("honours", "court", "plan", 1, ["deu_dept_honours", "deu_p_orders"], {
-    topic: "honours",
-    when: war,
-  }),
-  task("purse", "court", "plan", 1, ["deu_dept_purse"], {
-    topic: "purse",
-    when: war,
-  }),
-  task(
-    "court_mood",
-    "court",
-    "report",
-    1,
-    ["deu_k_new_faces", "deu_p_year_end", "deu_k_silent_rule"],
-    { topic: "court" },
+  // ---- arms: 육군부 ----
+  ans(
+    "arms",
+    "arms",
+    [
+      fd("shells_low", 3, { slots: { shells: ["low"] } }),
+      fd("shells_ok", 3, { slots: { shells: ["middling", "high"] } }),
+      fd("nitrate", 3, { when: atWar("GBR") }),
+      fd("raw", 2),
+      fd("skilled", 2, { when: months(12) }),
+    ],
+    [
+      co("raw_office", ["calm", "bold"], [gauge("shells", 1)], {
+        then: ["deu_w_raw_materials"],
+      }),
+      co("nitrate_plants", ["bold"], [gauge("money", -1)], {
+        then: ["deu_w_shell_crisis"],
+        needs: [{ kind: "money", word: "much" }],
+      }),
+      co("industry", ["cheap", "gentle"], [opinion("business", 1)], {
+        then: ["deu_f_new_arms"],
+      }),
+      co("skilled_back", ["firm"], [gauge("shells", 1)], {
+        when: months(12),
+        then: ["deu_lb_reclaim"],
+      }),
+    ],
+    { when: war, question: "money" },
   ),
 
-  // 정보부 (Abteilung IIIb)
-  task(
-    "enemy",
-    "intelligence",
-    "report",
-    2,
-    ["deu_spy_read", "deu_spy_code_lost", "gw_spy_peace_read"],
-    { pick: "country", from: ["FRA", "RUS", "GBR", "ITA", "ROU", "USA"] },
+  // ---- men: 육군부 ----
+  ans(
+    "men",
+    "men",
+    [
+      fd("losses", 3),
+      fd("next_class", 3),
+      fd("exempt", 2),
+      fd("women", 2, { when: months(12) }),
+    ],
+    [
+      co(
+        "call_class",
+        ["firm", "bold"],
+        [doWorld({ do: "manpower", delta: 1 })],
+        {
+          then: ["deu_f_last_classes"],
+        },
+      ),
+      co("women", ["gentle", "cheap"], [opinion("workers", 1)], {
+        when: months(12),
+        then: ["deu_h_women_work"],
+      }),
+      co("aux_law", ["bold"], [opinion("parliament", -1)], {
+        when: months(24),
+        needs: [{ kind: "bill", law: "deu_aux" }],
+      }),
+    ],
+    { when: war, question: "person" },
+  ),
+
+  // ---- intel: IIIb ----
+  ans(
+    "intel",
+    "intel",
+    [
+      fd("press", 2),
+      fd("rails", 2, { slots: { stance: ["enemy"] } }),
+      fd("mood", 2),
+      fd("double", 1, { wrong: true }),
+    ],
+    [
+      co("more_men", ["bold"], [gauge("money", -1)], {
+        then: ["deu_spy_read"],
+      }),
+      co("false_trail", ["firm"], [mem("k_deu_false_trail")]),
+      co("as_is", ["cheap", "calm"], []),
+    ],
+    { when: war, question: "money" },
+  ),
+
+  // ---- own: 재상부, 내무부 ----
+  ans(
+    "aims",
+    "aims",
+    [
+      fd("september", 3),
+      fd("annexationists", 3),
+      fd("reichstag", 2, { when: months(24) }),
+      fd("belgium", 2),
+      fd("easy_peace", 1, { wrong: true }),
+    ],
+    [
+      co("hold_secret", ["calm", "wait"], [], {
+        then: ["deu_w_war_aims"],
+      }),
+      co(
+        "big_aims",
+        ["bold", "firm"],
+        [opinion("army", 1), opinion("workers", -1)],
+        {
+          then: ["deu_k_war_aims_gag"],
+        },
+      ),
+      co(
+        "small_aims",
+        ["gentle"],
+        [opinion("parliament", 1), opinion("army", -1)],
+        {
+          then: ["gw_d_aims_asked"],
+        },
+      ),
+    ],
+    { question: "reach" },
+  ),
+  ans(
+    "poland",
+    "poland",
+    [fd("legion", 3), fd("vienna_wants", 3), fd("recruits", 2), fd("strip", 2)],
+    [
+      co("with_vienna", ["gentle", "calm"], [], {
+        then: ["deu_s_poland_kingdom"],
+        needs: [{ kind: "consent", tag: "AUH" }],
+      }),
+      co("strip", ["firm", "bold"], [opinion("army", 1)], {
+        then: ["deu_ld_occ_rus_long"],
+      }),
+      co("council", ["cheap"], [], {
+        then: ["deu_oc_client"],
+      }),
+    ],
+    { question: "person" },
+  ),
+  ans(
+    "franchise",
+    "franchise",
+    [
+      fd("three_class", 3),
+      fd("lords", 3),
+      fd("trenches", 2),
+      fd("russia", 2, {
+        when: not(world({ is: "regime", tag: "RUS", of: ["tsar"] })),
+      }),
+    ],
+    [
+      co("word_after", ["calm", "wait"], [opinion("workers", 1)], {
+        then: ["deu_k_three_class"],
+      }),
+      co(
+        "bill_now",
+        ["bold", "gentle"],
+        [opinion("workers", 1), opinion("court", -1)],
+        {
+          needs: [{ kind: "bill", law: "deu_three_class" }],
+        },
+      ),
+      co(
+        "not_now",
+        ["firm", "cheap"],
+        [opinion("court", 1), opinion("workers", -1)],
+      ),
+    ],
+    { question: "reach" },
   ),
 ];
 
-const DEU: ["DEU"] = ["DEU"];
+// ---- ww196: honours (design ww195 §4; facts ww196-facts.md DEU) ----
+
+const ORDERS: GwHonourOrder[] = [
+  {
+    id: "deu_or_black_eagle",
+    nation: DEU,
+    rank: 1,
+    pools: ["generals", "heads"],
+  },
+  { id: "deu_or_merite", nation: DEU, rank: 1, pools: ["generals"] },
+  {
+    id: "deu_or_iron_cross_1",
+    nation: DEU,
+    rank: 2,
+    pools: ["generals", "soldier"],
+    from: "1914-08-05",
+  },
+  {
+    id: "deu_or_red_eagle",
+    nation: DEU,
+    rank: 2,
+    pools: ["heads", "officials", "industry"],
+  },
+  {
+    id: "deu_or_iron_cross_2",
+    nation: DEU,
+    rank: 3,
+    pools: ["soldier", "officials", "industry"],
+    from: "1914-08-05",
+  },
+  {
+    id: "deu_or_crown",
+    nation: DEU,
+    rank: 3,
+    pools: ["officials", "industry"],
+  },
+  {
+    id: "deu_or_war_aid",
+    nation: DEU,
+    rank: 3,
+    pools: ["industry", "officials"],
+    from: "1916-12-05",
+  },
+];
+
+const HONOURS: GwHonourRow[] = [
+  // The January list: the Kaiser's birthday, 27 Jan (the Ordensfest of 18 Jan
+  // in wartime is unchecked: the list goes out on the birthday, no feast).
+  {
+    id: "deu_oc_january",
+    nation: DEU,
+    occasion: "date",
+    day: "01-27",
+    pools: ["generals", "heads", "officials", "industry"],
+    orders: [
+      "deu_or_black_eagle",
+      "deu_or_red_eagle",
+      "deu_or_crown",
+      "deu_or_iron_cross_1",
+      "deu_or_war_aid",
+    ],
+    from: ["court", "chancellor", "chief_of_staff"],
+  },
+  // Pour le Mérite and the Iron Cross any time, on the OHL's or the military
+  // cabinet's proposal: after a won front, at sea after a battle.
+  {
+    id: "deu_oc_victory",
+    nation: DEU,
+    occasion: "victory",
+    when: war,
+    pools: ["generals", "soldier"],
+    orders: ["deu_or_merite", "deu_or_iron_cross_1", "deu_or_iron_cross_2"],
+    from: ["chief_of_staff", "war"],
+  },
+  {
+    id: "deu_oc_sea",
+    nation: DEU,
+    occasion: "victory",
+    theatre: ["sea"],
+    when: war,
+    pools: ["generals", "soldier"],
+    orders: ["deu_or_merite", "deu_or_iron_cross_1"],
+    from: ["navy"],
+  },
+  {
+    id: "deu_oc_deed",
+    nation: DEU,
+    occasion: "deed",
+    when: war,
+    pools: ["soldier"],
+    orders: ["deu_or_iron_cross_1", "deu_or_iron_cross_2"],
+    from: ["chief_of_staff"],
+  },
+  {
+    id: "deu_oc_petition",
+    nation: DEU,
+    occasion: "petition",
+    when: war,
+    pools: ["generals", "heads", "industry"],
+    orders: ["deu_or_merite", "deu_or_iron_cross_1", "deu_or_war_aid"],
+    from: ["chief_of_staff", "war", "navy"],
+  },
+];
 
 export const DEU_DEPTS: GwDeptContent = {
-  tasks: TASKS,
+  tasks: OWN_TASKS,
+  answers: ANSWERS,
+  honours: HONOURS,
+  orders: ORDERS,
   // The department's line: its head's camp first, else the office's own.
   leans: [
     { nation: DEU, office: "foreign", camp: "hard", lean: "firm" },
@@ -899,7 +1270,7 @@ export const DEU_DEPTS: GwDeptContent = {
       nation: DEU,
       office: "court",
       lean: "calm",
-      picks: { deu_dept_honours: "short_list", deu_dept_purse: "widows" },
+      picks: { deu_dept_purse: "widows" },
     },
     {
       nation: DEU,
@@ -1011,52 +1382,6 @@ export const DEU_DEPTS: GwDeptContent = {
       nation: DEU,
       person: "deu_erzberger",
       when: all(war, months(18)),
-    },
-  ],
-  // Gifts in an audience (#1, #10): one a person a chapter.
-  levers: [
-    {
-      id: "deu_lv_merite",
-      nation: DEU,
-      lever: "honour",
-      people: "own",
-      when: war,
-      effects: [opinion("army", 1)],
-    },
-    {
-      id: "deu_lv_eagle",
-      nation: DEU,
-      lever: "honour",
-      people: "cabinet",
-      effects: [opinion("court", 1)],
-    },
-    {
-      id: "deu_lv_nobility",
-      nation: DEU,
-      lever: "honour",
-      people: "own",
-      effects: [opinion("business", 1), opinion("workers", -1)],
-    },
-    {
-      id: "deu_lv_suite",
-      nation: DEU,
-      lever: "post",
-      people: "own",
-      effects: [opinion("army", 1), opinion("parliament", -1)],
-    },
-    {
-      id: "deu_lv_purse",
-      nation: DEU,
-      lever: "purse",
-      people: "own",
-      effects: [ruler("conscience", 1, "deu_dept_purse_given")],
-    },
-    {
-      id: "deu_lv_grace",
-      nation: DEU,
-      lever: "pardon",
-      people: "own",
-      effects: [opinion("press", 1), opinion("army", -1)],
     },
   ],
 };
