@@ -6,6 +6,7 @@ import { z } from "zod";
 import { GwBudgetStateSchema } from "./GwBudget";
 import { GW_TAGS, GwTag as GwTagName } from "./GwCountries";
 import { GwCraftStateSchema } from "./GwCraft";
+import { GwEconStateSchema } from "./GwEcon";
 import {
   GW_ANSWER_REDOS,
   GW_ANSWER_SLOTS,
@@ -792,6 +793,8 @@ export const GwNationStateSchema = z.object({
   client: GwClientStateSchema.optional(),
   /** ww199: a vassal of a victor (Fate.ts); absent for any other. */
   vassal: GwVassalStateSchema.optional(),
+  /** ww201: the production step's trends (Economy.ts); absent until it runs. */
+  econ: GwEconStateSchema.optional(),
 });
 export type GwNationState = z.infer<typeof GwNationStateSchema>;
 

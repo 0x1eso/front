@@ -88,6 +88,16 @@ export interface GwGaugeView {
   word: number;
   /** Why it moved in the last chapter; text gw.line.<key>. */
   lines: readonly { key: string; delta: number }[];
+  /**
+   * ww201: where the production step is taking it, -2..2 (GwEcon
+   * `gwTrendOf`); word `gwTrendWord(trend, value, max)`, text
+   * gw.ui.trend.<word>. Always 0 for morale and order.
+   */
+  trend: number;
+  /** ww201: the largest cause in the trend's direction; gw.line.<why>. */
+  why: string | null;
+  /** ww201: what the step moved at the chapter's turn (the 지금 line). */
+  step: { delta: number; key: string } | null;
 }
 
 export interface GwFrontView {

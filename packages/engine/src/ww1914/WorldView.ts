@@ -9,6 +9,11 @@ import {
   GwSeatState,
   GwTheatreState,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import {
+  GW_ECON_GAUGES,
+  type GwEconState,
+  gwTrendOf,
+} from "@openfront/engine-api/ww1914/GwEcon";
 import type {
   GwCountryView,
   GwFrontView,
@@ -76,7 +81,28 @@ function gaugeView(gw: GreatWar, seat: GwSeatState): GwGaugeView[] {
     lines: seat.lines
       .filter((l) => l.gauge === gauge && l.chapter >= last)
       .map((l) => ({ key: l.key, delta: l.delta })),
+    ...econView(n.econ, gauge, last),
   }));
+}
+
+/** ww201: the production step's trend, cause and last move of a gauge. */
+function econView(
+  e: GwEconState | undefined,
+  gauge: GwGauge,
+  last: number,
+): Pick<GwGaugeView, "trend" | "why" | "step"> {
+  const g = GW_ECON_GAUGES.find((x) => x === gauge);
+  if (e === undefined || g === undefined) {
+    return { trend: 0, why: null, step: null };
+  }
+  const trend = gwTrendOf(e.rate[g] ?? 0);
+  const moves = e.moved.filter((m) => m.gauge === g && m.chapter >= last);
+  const delta = moves.reduce((a, m) => a + m.delta, 0);
+  return {
+    trend,
+    why: trend === 0 || e.why[g] === "" ? null : (e.why[g] ?? null),
+    step: delta === 0 ? null : { delta, key: lastOf(moves)!.key },
+  };
 }
 
 /**
