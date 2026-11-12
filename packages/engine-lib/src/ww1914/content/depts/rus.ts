@@ -77,7 +77,7 @@ const trustOf = (person: string, delta: number): GwEffect => ({
   delta,
 });
 const trust = (
-  tag: "ROU" | "BGR" | "GRC" | "ITA" | "OTT" | "GBR" | "FRA" | "SRB",
+  tag: "ROU" | "BGR" | "GRC" | "ITA" | "OTT" | "GBR" | "FRA" | "SRB" | "USA",
   delta: number,
 ): GwEffect => ({ kind: "trust", tag, delta });
 const rumour = (delta: number): GwEffect => ({ kind: "rumour", delta });
@@ -172,6 +172,106 @@ const ans = (
 
 const neutral = (tag: "ROU" | "BGR" | "GRC" | "ITA" | "OTT"): GwCond =>
   world({ is: "neutral", tag });
+
+// ---- ww199: a beaten country's fate (the `settle` task, 외무부) ----
+//
+// The foreign office drafts the fate of each country Russia beats. The
+// department's own course is the diplomats' (gentle: what London and Paris
+// already granted); the last, `firm` course is left for the general staff's
+// head to bring as the Stavka's counter-course ("참모본부 안"). Plans:
+// GW_SETTLE_PLANS (Fate.settlePlan); Russia's aims are GW_TABLE_AIMS.RUS.
+
+const plan = (
+  id: string,
+  lean: GwLean[],
+  settle: NonNullable<GwCourseRow["settle"]>,
+  effects: GwEffect[],
+): GwCourseRow => ({ id, lean, effects, settle });
+const ours = (place: "constantinople" | "erzurum" | "lemberg"): GwCond =>
+  world({ is: "held", place, by: "us" });
+const settle = (
+  topic: string[],
+  findings: GwFindingRow[],
+  courses: GwCourseRow[],
+): GwAnswerRow =>
+  ans(`settle_${topic[0].toLowerCase()}`, "settle", findings, courses, {
+    topic,
+    office: "foreign",
+  });
+
+const SETTLE_ANSWERS: GwAnswerRow[] = [
+  // The Ottomans: Tsargrad and the straits, Turkish Armenia, Mecca.
+  settle(
+    ["OTT"],
+    [
+      f("straits", 3),
+      f("hagia", 2, { when: ours("constantinople") }),
+      f("armenia", 2, { when: ours("erzurum") }),
+      f("hejaz", 1),
+      f("greeks", 1),
+      f("welcome", 2, { wrong: true }),
+    ],
+    [
+      plan("tsargrad", ["gentle", "calm"], "narrow", [ear("court", 1)]),
+      plan("wide", ["calm", "wait"], "wide", [trust("GBR", 1)]),
+      plan("hold", ["wait", "cheap"], "hold", []),
+      plan("vassal", ["bold"], "vassal", [ear("ministers", 1)]),
+      plan("strip", ["firm"], "strip", [ear("stavka", 1)]),
+    ],
+  ),
+  // Austria-Hungary: Red Rus, the Czechs, the Serbs' share.
+  settle(
+    ["AUH"],
+    [
+      f("red_rus", 3),
+      f("poles", 2),
+      f("czechs", 2),
+      f("serbs", 1),
+      f("uniates", 1, { when: ours("lemberg") }),
+    ],
+    [
+      plan("red_rus", ["gentle", "calm"], "narrow", [ear("court", 1)]),
+      plan("czech_state", ["calm", "bold"], "wide", [trust("FRA", 1)]),
+      plan("hold", ["wait", "cheap"], "hold", []),
+      plan("vassal", ["bold"], "vassal", [ear("ministers", 1)]),
+      plan("strip", ["firm"], "strip", [ear("stavka", 1)]),
+    ],
+  ),
+  // Germany: Willy's empire. Russia's aims hold none of it.
+  settle(
+    ["DEU"],
+    [f("prussia", 3), f("france_rhine", 2), f("poles", 2), f("cousin", 1)],
+    [
+      plan("give_back", ["gentle", "calm"], "narrow", [trust("USA", 1)]),
+      plan("rhine_state", ["calm"], "wide", [trust("FRA", 1)]),
+      plan("hold", ["wait", "cheap"], "hold", []),
+      plan("vassal", ["bold"], "vassal", [ear("court", 1)]),
+      plan("strip", ["firm"], "strip", [ear("stavka", 1)]),
+    ],
+  ),
+  // Bulgaria: the brothers of 1878, Ferdinand who turned.
+  settle(
+    ["BGR"],
+    [f("brothers", 3), f("ferdinand", 2), f("neighbours", 2), f("road", 1)],
+    [
+      plan("brothers", ["gentle", "calm"], "narrow", [opinion("press", 1)]),
+      plan("protect", ["bold", "cheap"], "vassal", [ear("court", 1)]),
+      plan("hold", ["wait"], "hold", []),
+      plan("strip", ["firm"], "strip", [ear("stavka", 1)]),
+    ],
+  ),
+  // Any other country Russia beats: Romania, Sweden, Greece, Italy.
+  settle(
+    ["ROU", "SWE", "GRC", "ITA"],
+    [f("neighbours", 2), f("allies", 2), f("far", 1)],
+    [
+      plan("give_back", ["gentle", "calm"], "narrow", [trust("GBR", 1)]),
+      plan("hold", ["wait", "cheap"], "hold", []),
+      plan("protect", ["bold"], "vassal", [ear("court", 1)]),
+      plan("strip", ["firm"], "strip", [ear("stavka", 1)]),
+    ],
+  ),
+];
 
 const ANSWERS: GwAnswerRow[] = [
   // 외무부 (Sazonov) on Romania: the price, the queen, the grain.
@@ -762,6 +862,7 @@ const ANSWERS: GwAnswerRow[] = [
     ],
     { office: "interior", when: war },
   ),
+  ...SETTLE_ANSWERS,
 ];
 
 // ---- Honours at their occasions (design §4) ----
@@ -890,6 +991,11 @@ const LEANS: GwDeptLean[] = [
       rus_wv_war_ott_straits: "say_it",
       gw_d_carve_ottoman: "sign",
       rus_c_poland_word: "let_it_stand",
+      rus_ans_settle_ott: "tsargrad",
+      rus_ans_settle_auh: "red_rus",
+      rus_ans_settle_deu: "give_back",
+      rus_ans_settle_bgr: "brothers",
+      rus_ans_settle_rou: "give_back",
     },
   }),
   lean("chancellor", "wait", {
