@@ -29,6 +29,7 @@ import type {
   GwTaskRow,
   GwTaskType,
 } from "@openfront/engine-api/ww1914/GwDepts";
+import type { GwPlaceGroup } from "@openfront/engine-api/ww1914/GwPlaces";
 import type {
   GwCond,
   GwEffect,
@@ -416,6 +417,17 @@ const russiaBroke = world({
 });
 const chamberSour: GwCond = { kind: "inst", inst: "chamber", max: -1 };
 const chamberOk: GwCond = { kind: "inst", inst: "chamber", min: 0 };
+// ww199: what France holds of a beaten country.
+const takenFrom = (from: GwTag, group: GwPlaceGroup[]): GwCond =>
+  world({ is: "land_taken", from, group });
+const capitalTaken = (from: GwTag): GwCond =>
+  world({ is: "land_taken", from, capital: true });
+const britishLevant = world({
+  is: "land_taken",
+  tag: "GBR",
+  from: "OTT",
+  group: ["syria", "palestine"],
+});
 
 const ANSWERS: GwAnswerRow[] = [
   // ---- The Quai: a country (envoy) ----
@@ -867,6 +879,111 @@ const ANSWERS: GwAnswerRow[] = [
       ),
       course("speak", ["bold"], [inst("chamber", 1), rumour(-1)]),
       course("short", ["firm", "wait"], [inst("chamber", -1)]),
+    ],
+  ),
+
+  // ---- The Quai: a beaten country's fate (ww199 `settle`) ----
+  //
+  // The engine gives the Quai a `settle` task when a table with France as a
+  // winner opens; the topic is the beaten country. Each course paints a plan
+  // (Fate.settlePlan); the seat can repaint any place before the table. The
+  // order matters: the first three plain courses are the Quai's, so the
+  // general staff's `strip` ("라인을 국경으로") stays for GQG's counter-course
+  // (its lean is firm), as Foch's Rhine notes stood against the Quai's line.
+  // `narrow` annexes France's war aims (GW_TABLE_AIMS: Alsace-Lorraine, the
+  // Saar, the Rhine's left bank, the Levant, the colonies), not Alsace alone.
+  answer(
+    "settle_deu",
+    "settle",
+    { office: "foreign", topic: ["DEU"], question: "person" },
+    [
+      find("alsace", 3, { when: takenFrom("DEU", ["alsace_lorraine"]) }),
+      find("rhine", 3, { when: takenFrom("DEU", ["rhineland"]) }),
+      find("saar", 2, { when: takenFrom("DEU", ["rhineland"]) }),
+      find("british", 2),
+      find("america", 2, { when: not(neutral("USA")) }),
+      find("separatists", 1, { when: takenFrom("DEU", ["rhineland"]) }),
+      wrong("rhinelanders"),
+    ],
+    [
+      course("rhine_state", ["bold"], [trust("GBR", -1), opinion("army", 1)], {
+        settle: "wide",
+        needs: [{ kind: "consent", tag: "GBR" }],
+      }),
+      course("aims_only", ["gentle", "calm", "cheap"], [opinion("press", 1)], {
+        settle: "narrow",
+      }),
+      course("hold_bridges", ["wait"], [], { settle: "hold" }),
+      course(
+        "rhine_frontier",
+        ["firm"],
+        [opinion("army", 1), trust("GBR", -1), trust("USA", -1)],
+        { settle: "strip", needs: [{ kind: "consent", tag: "GBR" }] },
+      ),
+      course("protect", ["bold"], [trust("GBR", -1), trust("USA", -1)], {
+        settle: "vassal",
+        when: capitalTaken("DEU"),
+      }),
+    ],
+  ),
+  answer(
+    "settle_ott",
+    "settle",
+    { office: "foreign", topic: ["OTT"] },
+    [
+      find("levant", 3, { when: takenFrom("OTT", ["syria"]) }),
+      find("british", 3, { when: britishLevant }),
+      find("arabs", 2),
+      find("lebanon", 2),
+      find("straits", 1, { when: takenFrom("OTT", ["straits"]) }),
+      wrong("welcome"),
+    ],
+    [
+      course("levant", ["firm", "bold"], [trust("GBR", -1)], {
+        settle: "narrow",
+      }),
+      course("arab_state", ["gentle"], [trust("GBR", 1)], { settle: "wide" }),
+      course("hold_ott", ["wait", "calm", "cheap"], [], { settle: "hold" }),
+      course("cilicia", ["firm"], [opinion("army", 1), trust("GBR", -1)], {
+        settle: "strip",
+      }),
+    ],
+  ),
+  answer(
+    "settle_auh",
+    "settle",
+    { office: "foreign", topic: ["AUH"] },
+    [
+      find("czechs", 3),
+      find("italy", 2, { when: not(neutral("ITA")) }),
+      find("vienna", 2),
+      find("danube", 1),
+      wrong("habsburg"),
+    ],
+    [
+      course("free_peoples", ["bold", "gentle"], [opinion("press", 1)], {
+        settle: "wide",
+      }),
+      course("give_back_auh", ["calm", "cheap"], [], { settle: "narrow" }),
+      course("hold_auh", ["wait"], [], { settle: "hold" }),
+      course("protect_auh", ["firm"], [trust("ITA", -1)], {
+        settle: "vassal",
+        when: capitalTaken("AUH"),
+      }),
+    ],
+  ),
+  answer(
+    "settle_bgr",
+    "settle",
+    { office: "foreign", topic: ["BGR"] },
+    [find("neighbours", 3), find("tsar", 2), wrong("grateful")],
+    [
+      course("give_back_bgr", ["gentle", "calm", "cheap"], [trust("GRC", -1)], {
+        settle: "narrow",
+      }),
+      course("hold_bgr", ["wait", "firm"], [trust("BGR", -1)], {
+        settle: "hold",
+      }),
     ],
   ),
 ];
