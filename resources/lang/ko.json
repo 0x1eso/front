@@ -16953,6 +16953,7 @@
       "source_record": "{source}: 맞음 {right}, 틀림 {wrong}",
       "sources_title": "지금까지의 적중",
       "stage": {
+        "aftermath": "강화 이후",
         "closing": "결산",
         "crisis": "위기",
         "peace": "평시",
