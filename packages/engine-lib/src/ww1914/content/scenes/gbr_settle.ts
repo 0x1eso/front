@@ -41,16 +41,15 @@ const winter: GwCond = world({ is: "month", of: [11, 12, 1, 2] });
 
 export const GBR_SETTLE_SCENES: readonly GwScene[] = [
   // ---- The treaty card: the Prime Minister signs for the Crown ----
+  // Laid by the engine when our table opens (Table.signPaper), never drawn.
   {
     id: "gbr_settle_sign",
     nation: GBR,
     kind: "proposal",
-    when: world({ is: "settle_open" }),
+    scheduledOnly: true,
     cast: { fm, soldier },
     salience: 9,
     tags: ["foreign"],
-    cooldown: 2,
-    max: 6,
     noBack: true,
     variants: [
       { id: "ott", when: world({ is: "settle_open", of: "OTT" }) },

@@ -788,7 +788,19 @@ export type GwWorldEffect =
   /** The seat's ruler signs the treaty now sitting. */
   | { do: "treaty_sign"; how: GwSignHow }
   /** Paints a plan on the beaten country `of` (else the table's beaten). */
-  | { do: "settle_plan"; plan: GwSettlePlan; of?: GwTag };
+  | { do: "settle_plan"; plan: GwSettlePlan; of?: GwTag }
+  /**
+   * ww199 merge: the loyalty (`by`, a delta) and, for a vassal, the
+   * resistance (`resist`, a delta) of the seat's realms: the state `client`,
+   * the vassal of `of` (whole or a slot), or with neither every one it holds.
+   */
+  | {
+      do: "loyalty";
+      by: number;
+      resist?: number;
+      client?: GwClient;
+      of?: GwTag;
+    };
 
 const int = z.number().int();
 const yearMonth = z.string().regex(/^19[0-9]{2}-[01][0-9]$/);
@@ -1210,6 +1222,12 @@ export const GwWorldEffectSchema = z.union([
   act("treaty_sign", { how: z.enum(GW_SIGN_HOWS) }),
   act("settle_plan", {
     plan: z.enum(GW_SETTLE_PLANS),
+    of: tag.optional(),
+  }),
+  act("loyalty", {
+    by: int,
+    resist: int.optional(),
+    client: z.enum(GW_CLIENTS).optional(),
     of: tag.optional(),
   }),
 ]) as unknown as z.ZodType<GwWorldEffect>;

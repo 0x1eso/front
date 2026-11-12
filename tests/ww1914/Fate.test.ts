@@ -1,5 +1,6 @@
 // ww199: a beaten country's fate (design ww198 + the owner's vassal). On the
 // real 1914 set, since the places are what move.
+import type { GwSeatState } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import {
   GW_MAP_TAGS,
   gwCountry,
@@ -8,14 +9,19 @@ import {
 import { gwRealmName } from "@openfront/engine-api/ww1914/GwFate";
 import type { GwPlace } from "@openfront/engine-api/ww1914/GwPlaces";
 import type { GwTableClaim } from "@openfront/engine-api/ww1914/GwTable";
-import { GW_FATE_TERM_DAYS } from "@openfront/engine-lib/ww1914/FateRows";
+import {
+  GW_FATE_TERM_DAYS,
+  gwSignPaperIds,
+} from "@openfront/engine-lib/ww1914/FateRows";
 import { createGameRunner } from "@openfront/engine/GameRunner";
 import { capitulate } from "@openfront/engine/ww1914/Capitulation";
 import {
   applyClaim,
   applyVassals,
+  fateDo,
   fateStep,
   foundOnRule,
+  laySettlePaper,
   realmViews,
 } from "@openfront/engine/ww1914/Fate";
 import type { GreatWar } from "@openfront/engine/ww1914/GreatWar";
@@ -203,5 +209,35 @@ describe("a beaten country's fate (ww199)", () => {
     expect(declareWar(gw, "DEU", "NLD", "test")).toBe(true);
     fateStep(gw);
     expect(atWarWith(gw, "VFR", "NLD")).toBe(true);
+  });
+
+  test("the overlord's papers move a vassal's loyalty, and a settle paper is laid once", async () => {
+    const gw = await world("GWFATE6");
+    moveLand(gw, "lille", "DEU", null, "occupation");
+    applyVassals(gw, [
+      claim({ place: "lille", by: "DEU", against: "FRA", fate: "vassal" }),
+    ]);
+    const v = gw.nation("VFR")!.vassal!;
+    const [loyalty, resist] = [v.loyalty, v.resist];
+    const seat = {
+      tag: "DEU",
+      scheduled: [],
+      desk: [],
+    } as unknown as GwSeatState;
+    fateDo(gw, seat, { do: "loyalty", of: "FRA", by: -1, resist: 1 });
+    expect(v.loyalty).toBe(loyalty - 1);
+    expect(v.resist).toBe(Math.min(3, resist + 1));
+    // Another country's papers don't reach it.
+    const fra = {
+      tag: "FRA",
+      scheduled: [],
+      desk: [],
+    } as unknown as GwSeatState;
+    fateDo(gw, fra, { do: "loyalty", by: 2 });
+    expect(v.loyalty).toBe(loyalty - 1);
+    // The treaty card: the seat's own, once however often the table asks.
+    expect(laySettlePaper(gw, seat, gwSignPaperIds("DEU"))).toBe(true);
+    expect(laySettlePaper(gw, seat, gwSignPaperIds("DEU"))).toBe(true);
+    expect(seat.scheduled.map((q) => q.scene)).toEqual(["deu_settle_sign"]);
   });
 });

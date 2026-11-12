@@ -46,13 +46,20 @@ const VASSAL_LANDS: readonly GwTag[] = ["SRB", "MNE", "ROU", "ALB", "ITA"];
 const vassalOf = (of: GwTag, r: { max?: number } = {}): GwCond =>
   w({ is: "vassal", of, ...r });
 /** Each vassal land's trust in us moves (the land itself and its slot). */
-const eachVassal = (delta: number): GwEffect[] =>
+const eachVassal = (delta: number, resist?: number): GwEffect[] =>
   VASSAL_LANDS.map((t) => {
     const slot = GW_VASSAL_SLOTS[t];
     return maybe(
       vassalOf(t),
       trust(t, delta),
       ...(slot === undefined ? [] : [trust(slot, delta)]),
+      // ww199 merge: the vassal's own loyalty and resistance move too.
+      doWorld({
+        do: "loyalty",
+        of: t,
+        by: delta,
+        ...(resist === undefined ? {} : { resist }),
+      }),
     );
   });
 
@@ -139,7 +146,7 @@ const AFTER: readonly GwScene[] = [
         "garrison",
         doWorld({ do: "manpower", delta: -1 }),
         opinion("army", 1),
-        ...eachVassal(-1),
+        ...eachVassal(-1, -1),
       ),
       pick("loosen", gauge("money", -1), opinion("army", -1), ...eachVassal(1)),
     ],

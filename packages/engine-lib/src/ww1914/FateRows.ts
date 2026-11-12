@@ -3,12 +3,16 @@
 // military government, and how each character of AI winner deals out fates.
 // Rules in engine/ww1914/Fate; types in engine-api/ww1914/GwFate.
 import type { GwSide } from "@openfront/engine-api/ww1914/GreatWarTypes";
-import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
-import type {
-  GwClient,
-  GwClientForm,
-  GwFate,
-  GwFateTerm,
+import {
+  GW_SEAT_TAGS,
+  type GwTag,
+} from "@openfront/engine-api/ww1914/GwCountries";
+import {
+  GW_CLIENTS,
+  type GwClient,
+  type GwClientForm,
+  type GwFate,
+  type GwFateTerm,
 } from "@openfront/engine-api/ww1914/GwFate";
 import type { GwPlace } from "@openfront/engine-api/ww1914/GwPlaces";
 
@@ -228,6 +232,34 @@ export function gwCrownKey(pick: string): string {
   const key = `gw.crown.${pick}`;
   return key;
 }
+
+/**
+ * ww199 merge: the settle papers the engine lays, and only it (Table's
+ * treaty card when a seat's table opens, Fate's crown paper after a seat
+ * founds a state). Each id list is the order the engine tries: the seat's
+ * own paper before the common one. All are `scheduledOnly`.
+ */
+export function gwSignPaperIds(seat: GwTag): readonly string[] {
+  return [`${seat.toLowerCase()}_settle_sign`, "gw_settle_sign"];
+}
+export function gwCrownPaperIds(
+  seat: GwTag,
+  client: GwClient,
+): readonly string[] {
+  return [
+    `${seat.toLowerCase()}_settle_crown_${client}`,
+    `gw_settle_crown_${client}`,
+  ];
+}
+/** Every settle paper id the engine may lay (written or not). */
+export const GW_SETTLE_PAPERS: readonly string[] = [
+  ...new Set(
+    GW_SEAT_TAGS.flatMap((seat) => [
+      ...gwSignPaperIds(seat),
+      ...GW_CLIENTS.flatMap((c) => gwCrownPaperIds(seat, c)),
+    ]),
+  ),
+];
 
 /** Days a military government lasts by its term: 2 years and 5 (design §2.2). */
 export const GW_FATE_TERM_DAYS: Readonly<Record<GwFateTerm, number>> = {

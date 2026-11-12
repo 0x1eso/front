@@ -5,7 +5,6 @@ import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import type { GwClient } from "@openfront/engine-api/ww1914/GwFate";
 import {
   all,
-  flag,
   type GwCond,
   type GwEffect,
   type GwScene,
@@ -37,12 +36,6 @@ import {
  * treaties (constitutional law of 16 July 1875, art. 8), so he signs.
  */
 
-/**
- * Laid only by the engine (Table.signPaper, Fate's crown), never drawn: the
- * flag never holds, and a laid paper is not asked its `when`. Not
- * `scheduledOnly`, since no called list names the settle papers yet.
- */
-const called = flag("gw_world_called_only");
 const settleOpen = (of: GwTag): GwCond => world({ is: "settle_open", of });
 const sign = (how: "sign" | "press" | "reserve"): GwEffect =>
   doWorld({ do: "treaty_sign", how });
@@ -59,8 +52,8 @@ const SIGN: GwScene = {
   id: "fra_settle_sign",
   nation: ["FRA"],
   kind: "proposal",
-  when: called,
-  max: 9,
+  // Laid only by the engine (Table.signPaper), never drawn.
+  scheduledOnly: true,
   cast: { pm, fm },
   salience: 9,
   tags: ["foreign", "tension_down"],
@@ -90,8 +83,8 @@ const crownPaper = (
   id: `fra_settle_crown_${client}`,
   nation: ["FRA"],
   kind: "proposal",
-  when: called,
-  once: true,
+  // Laid only by the engine (Fate's crown), never drawn.
+  scheduledOnly: true,
   cast: { fm, pm },
   salience: 8,
   tags: ["foreign"],

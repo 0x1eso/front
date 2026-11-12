@@ -1,5 +1,5 @@
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
-import type { GwSignHow } from "@openfront/engine-api/ww1914/GwFate";
+import type { GwClient, GwSignHow } from "@openfront/engine-api/ww1914/GwFate";
 import type { GwCond, GwScene } from "@openfront/engine-api/ww1914/SceneDsl";
 import { all, any, assuming } from "@openfront/engine-api/ww1914/SceneDsl";
 import type {
@@ -30,6 +30,14 @@ import {
  */
 
 const sign = (how: GwSignHow) => dw({ do: "treaty_sign", how });
+/** ww199 merge: our state's or our vassals' loyalty (and resistance). */
+const loyal = (by: number, client?: GwClient, resist?: number) =>
+  dw({
+    do: "loyalty",
+    by,
+    ...(client === undefined ? {} : { client }),
+    ...(resist === undefined ? {} : { resist }),
+  });
 const crown = (pick: string) => dw({ do: "crown", client: "bohemia", pick });
 const open = (of: GwTag): GwCond => w({ is: "settle_open", of });
 const fate = (c: Omit<Extract<GwWorldCond, { is: "fate" }>, "is">): GwCond =>
@@ -112,9 +120,9 @@ const AFTER: GwScene[] = [
     once: true,
     variants: [v("base")],
     options: [
-      o("let_go", [men(-1), trust("CZE", 1)]),
+      o("let_go", [men(-1), trust("CZE", 1), loyal(1, "bohemia")]),
       o("volunteers", [trust("CZE", 1), opinion("army", -1)]),
-      o("keep", [gauge("bread", 1), trust("CZE", -1)]),
+      o("keep", [gauge("bread", 1), trust("CZE", -1), loyal(-1, "bohemia")]),
     ],
   }),
   // Tsargrad is ours: the cross on Hagia Sophia.
@@ -169,9 +177,9 @@ const AFTER: GwScene[] = [
       v("base"),
     ],
     options: [
-      o("press", [gauge("money", 1), opinion("army", 1)]),
-      o("garrison", [men(-1), inst("stavka", 1)]),
-      o("ease", [gauge("money", -1), opinion("press", 1)]),
+      o("press", [gauge("money", 1), opinion("army", 1), loyal(-1)]),
+      o("garrison", [men(-1), inst("stavka", 1), loyal(0, undefined, -1)]),
+      o("ease", [gauge("money", -1), opinion("press", 1), loyal(1)]),
     ],
   }),
   // Russia was cut: the press asks for the lost provinces back.

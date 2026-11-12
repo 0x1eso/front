@@ -32,7 +32,6 @@ import { SPY_SCENES } from "@openfront/engine-lib/ww1914/content/acts/common";
 import { GW_CAPITAL_CALLED } from "@openfront/engine-lib/ww1914/content/capital";
 import { GW_CONTENT } from "@openfront/engine-lib/ww1914/content/Content";
 import { GW_LADDER_CALLED } from "@openfront/engine-lib/ww1914/content/ladder";
-import { GW_SETTLE_CALLED } from "@openfront/engine-lib/ww1914/content/scenes/settle";
 import {
   GW_OFFENSIVE_CALLED,
   GW_STALL_CALLED,
@@ -40,6 +39,7 @@ import {
 import { TABLE_SCENES } from "@openfront/engine-lib/ww1914/content/scenes/table";
 import { craftCalledScenes } from "@openfront/engine-lib/ww1914/CraftRows";
 import { gwEndingsOf } from "@openfront/engine-lib/ww1914/EndingRows";
+import { GW_SETTLE_PAPERS } from "@openfront/engine-lib/ww1914/FateRows";
 import { houseCalledScenes } from "@openfront/engine-lib/ww1914/HouseRows";
 import {
   gwPowerPackProblems,
@@ -135,8 +135,9 @@ describe("content", () => {
       // ww188: laid, set and read by Capitulation.ts.
       ...GW_CAPITAL_CALLED,
       ...GW_STALL_CALLED,
-      // ww199: laid by Fate.ts (the treaty card, the crown papers).
-      ...GW_SETTLE_CALLED,
+      // ww199: laid by the engine (the treaty card, the crown papers), the
+      // seat's own before the common one; one list, FateRows'.
+      ...GW_SETTLE_PAPERS.filter((id) => scenes.some((x) => x.id === id)),
       // ww173: laid by Spies.agentsTaken.
       ...SPY_SCENES.map((x) => x.id),
       // ww173: called by Offensives.callScene when a seat writes them.
@@ -145,15 +146,17 @@ describe("content", () => {
       ...GW_AFTER_CALLED,
       // ww193 merge: brought by the departments (products, counter-papers).
       ...gwDeptCalled(GW_CONTENT.depts ?? {}),
-      // ww199 (W-DEU, until S1 lists them): laid by Fate.ts by id, the
-      // treaty card and the crown papers, a seat's before the common one.
-      ...scenes
-        .map((x) => x.id)
-        .filter((id) => /^[a-z]{2,3}_settle_(?:sign|crown_[a-z_]+)$/.test(id)),
     ];
     // ww190: the engine lays these; the deal never draws them.
     for (const s of scenes.filter((x) => GW_AFTER_CALLED.includes(x.id))) {
       expect(s.scheduledOnly, s.id).toBe(true);
+    }
+    // ww199: the settle papers come once, laid by the engine, never drawn.
+    for (const s of scenes.filter((x) => GW_SETTLE_PAPERS.includes(x.id))) {
+      expect(s.scheduledOnly, s.id).toBe(true);
+    }
+    for (const s of scenes.filter((x) => /_settle_(sign|crown_)/.test(x.id))) {
+      expect(GW_SETTLE_PAPERS, s.id).toContain(s.id);
     }
     // The engine lays the offensive scenes; the deal never draws them.
     for (const s of scenes.filter((x) => GW_OFFENSIVE_CALLED.includes(x.id))) {

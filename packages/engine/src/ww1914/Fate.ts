@@ -62,6 +62,7 @@ import {
   GW_RIVAL_CLAIMS,
   GW_VASSAL_TRIBUTE_MONTHS,
   gwClientRow,
+  gwCrownPaperIds,
 } from "@openfront/engine-lib/ww1914/FateRows";
 import { GW_CAPITALS } from "@openfront/engine-lib/ww1914/PlaceRules";
 import {
@@ -94,7 +95,7 @@ export type GwFateCond = Extract<
 >;
 export type GwFateEffect = Extract<
   GwWorldEffect,
-  { do: "crown" | "treaty_sign" | "settle_plan" }
+  { do: "crown" | "treaty_sign" | "settle_plan" | "loyalty" }
 >;
 
 const inRange = (v: number, c: { min?: number; max?: number }) =>
@@ -457,7 +458,34 @@ export function fateDo(gw: GreatWar, seat: GwSeatState, e: GwFateEffect): void {
       if (of !== undefined) settlePlan(gw, seat, of, e.plan);
       return;
     }
+    case "loyalty":
+      loyaltyDo(gw, seat, e);
+      return;
   }
+}
+
+/** The `loyalty` effect: the seat's states and vassals, warmer or colder. */
+function loyaltyDo(
+  gw: GreatWar,
+  seat: GwSeatState,
+  e: Extract<GwFateEffect, { do: "loyalty" }>,
+): void {
+  const mine = (by: GwTag, also?: GwTag) =>
+    by === seat.tag || also === seat.tag;
+  for (const n of gw.s.nations) {
+    const k = n.client;
+    if (k !== undefined && mine(k.by, k.with) && e.of === undefined) {
+      if (e.client !== undefined && k.id !== e.client) continue;
+      k.loyalty = clampTo(k.loyalty + e.by, 0, GW_LOYALTY_MAX);
+    }
+    const v = n.vassal;
+    if (v !== undefined && mine(v.by) && e.client === undefined) {
+      if (e.of !== undefined && v.of !== e.of && n.tag !== e.of) continue;
+      v.loyalty = clampTo(v.loyalty + e.by, 0, GW_LOYALTY_MAX);
+      if (e.resist !== undefined) v.resist = clampTo(v.resist + e.resist, 0, 3);
+    }
+  }
+  gw.touch();
 }
 
 // ---- Views ----
@@ -731,6 +759,26 @@ export function foundOnRule(gw: GreatWar, client: GwClient, by: GwTag): void {
   crownFor(gw, n);
 }
 
+/**
+ * ww199 merge: lays the first written paper of `ids` for next chapter, once:
+ * not again while it waits, sits on the desk or in a department's tray.
+ * False when none is written.
+ */
+export function laySettlePaper(
+  gw: GreatWar,
+  seat: GwSeatState,
+  ids: readonly string[],
+): boolean {
+  const scene = ids.find((id) => gwContent().scenes.some((x) => x.id === id));
+  if (scene === undefined) return false;
+  const there =
+    seat.scheduled.some((q) => q.scene === scene) ||
+    seat.desk.some((c) => c.scene === scene) ||
+    (seat.depts?.tray ?? []).some((c) => c.scene === scene);
+  if (!there) seat.scheduled.push({ scene, chapter: gw.s.chapter + 1 });
+  return true;
+}
+
 /** The crown of a state just founded: the seat's paper, else the AI's pick. */
 function crownFor(gw: GreatWar, n: GwNationState): void {
   const k = n.client;
@@ -738,17 +786,7 @@ function crownFor(gw: GreatWar, n: GwNationState): void {
   const row = gwClientRow(k.id);
   const seat = seatsOf(gw, k.by)[0];
   if (seat !== undefined && ruledBySeat(gw, k.by)) {
-    const ids = [
-      `${seat.tag.toLowerCase()}_settle_crown_${k.id}`,
-      `gw_settle_crown_${k.id}`,
-    ];
-    const scene = ids.find((id) => gwContent().scenes.some((x) => x.id === id));
-    if (scene !== undefined) {
-      if (!seat.scheduled.some((q) => q.scene === scene)) {
-        seat.scheduled.push({ scene, chapter: gw.s.chapter + 1 });
-      }
-      return;
-    }
+    if (laySettlePaper(gw, seat, gwCrownPaperIds(seat.tag, k.id))) return;
     // No paper written: the regency council holds the throne meanwhile.
     setCrown(gw, n.tag, GW_REGENCY);
     return;

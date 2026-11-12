@@ -116,12 +116,6 @@ const CROWNS: readonly GwScene[] = GW_CLIENT_ROWS.map((r) =>
   crown(r.id),
 ).filter((s): s is GwScene => s !== null);
 
-/** The scenes the engine lays (Fate.ts): no deal draws them. */
-export const GW_SETTLE_CALLED: readonly string[] = [
-  SIGN.id,
-  ...CROWNS.map((s) => s.id),
-];
-
 // ---- the years after ----
 
 /** Countries whose land a seat may rule after a table. */

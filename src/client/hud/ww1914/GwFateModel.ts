@@ -17,7 +17,7 @@ import { GW_PLACES, GwPlace } from "@openfront/engine-api/ww1914/GwPlaces";
 import type { GwSeatView } from "@openfront/engine-api/ww1914/GwView";
 import {
   GW_CLIENT_ROWS,
-  GW_REGENCY,
+  gwCrownKey,
 } from "@openfront/engine-lib/ww1914/FateRows";
 import { translateText } from "../../Utils";
 
@@ -76,13 +76,10 @@ export function crownName(pick: string | null | undefined): string {
   if (pick === null || pick === undefined) {
     return translateText("gw.fate.crown_empty");
   }
-  for (const key of [`gw.crown.${pick}`, `gw.fate.crown.${pick}`]) {
-    const own = translateText(key);
-    if (own !== key) return own;
-  }
-  return translateText(
-    pick === GW_REGENCY ? "gw.fate.regency" : "gw.fate.crown_set",
-  );
+  // ww199 merge: one place for crown names, `gw.crown.<id>` (regency too).
+  const key = gwCrownKey(pick);
+  const own = translateText(key);
+  return own !== key ? own : translateText("gw.fate.crown_set");
 }
 
 // ---- What a place can become ----

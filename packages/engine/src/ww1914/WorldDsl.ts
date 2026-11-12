@@ -707,6 +707,7 @@ export function worldEffect(ctx: SceneCtx, e: GwWorldEffect): void {
     case "crown":
     case "treaty_sign":
     case "settle_plan":
+    case "loyalty":
       fateDo(gw, seat, e);
       return;
   }

@@ -29,8 +29,10 @@ import {
   GwTableView,
   GwTableWord,
 } from "@openfront/engine-api/ww1914/GwTable";
-import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
-import { GW_FATE_TERM_DAYS } from "@openfront/engine-lib/ww1914/FateRows";
+import {
+  GW_FATE_TERM_DAYS,
+  gwSignPaperIds,
+} from "@openfront/engine-lib/ww1914/FateRows";
 import { GW_CAPITALS } from "@openfront/engine-lib/ww1914/PlaceRules";
 import {
   GW_TABLE_AIMS,
@@ -49,6 +51,7 @@ import {
   applyClaim,
   applyVassals,
   crownsAfter,
+  laySettlePaper,
   markOf,
   recordOf,
   signWays,
@@ -1002,8 +1005,9 @@ function pressedOn(gw: GreatWar, t: GwTableState): boolean {
     if (x !== who && sideOf(gw, x) === sideOf(gw, who)) trustDown(gw, x, who);
   }
   for (const seat of seatsOf(gw, who)) {
+    // The card came once at this table; the second signing is the table's
+    // own sign box (or signs as the month closes).
     reason(gw, seat, "fate_sign_press");
-    signPaper(gw, seat);
   }
   gw.touch();
   return true;
@@ -1278,12 +1282,7 @@ function tableOpened(gw: GreatWar): void {
 
 /** The treaty card for the seat's ruler: its own, else the common one. */
 function signPaper(gw: GreatWar, seat: GwSeatState): void {
-  const ids = [`${seat.tag.toLowerCase()}_settle_sign`, "gw_settle_sign"];
-  const scene = ids.find((id) => gwContent().scenes.some((x) => x.id === id));
-  if (scene === undefined) return;
-  if (seat.scheduled.some((q) => q.scene === scene)) return;
-  if (seat.desk.some((c) => c.scene === scene)) return;
-  seat.scheduled.push({ scene, chapter: gw.s.chapter + 1 });
+  laySettlePaper(gw, seat, gwSignPaperIds(seat.tag));
 }
 
 /** ww199: the conference sits down: the victors' drafts and treaty cards. */
