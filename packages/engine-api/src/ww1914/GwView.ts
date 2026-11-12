@@ -28,10 +28,13 @@ import type {
   GwCardDeptView,
   GwDeptView,
   GwLeverView,
+  GwPaperView,
   GwRoomRowView,
   GwTimeView,
+  GwTodoView,
 } from "./GwDepts";
 import type { GwOrderBlock } from "./GwOrders";
+import type { GwDeskHeadView, GwDiaryView } from "./GwPersona";
 import type { GwPlace } from "./GwPlaces";
 import type { GwPowerView } from "./GwPowers";
 import type { GwPrologueView } from "./GwPrologue";
@@ -47,6 +50,11 @@ export interface GwOptionView {
   tell: readonly string[];
   /** The screen to open once it is taken. */
   screen?: "fronts" | "budget";
+  /**
+   * ww196 (P): against the person's grain (`persona.grain.<id>`): it costs a
+   * nerve; locked at nerve 0-1, with that line as the why.
+   */
+  grain?: string;
 }
 
 export interface GwReplyView extends GwOptionView {
@@ -114,6 +122,12 @@ export interface GwCardView {
   decrypt?: { tag: GwTag; word: number; stamp: GwStamp };
   /** ww193: a department brings it: who, his option, the rival's. */
   dept?: GwCardDeptView;
+  /** ww196: a department's answer, question, stall or news; an honours paper. */
+  paper?: GwPaperView;
+  /** ww196 (P): who hands it in (`persona.bearers.<id>`). */
+  bearer?: string;
+  /** ww196 (P): a private paper, grouped atop the desk as 사사로운 것. */
+  private?: boolean;
 }
 
 /** A field of a schedule entry: pick `count` from what it holds. */
@@ -218,6 +232,10 @@ export interface GwPersonView {
   fit: readonly GwOffice[];
   /** Person ids they are at odds with (public content). */
   rivals: readonly string[];
+  /** ww196: 할 일 markers on the person row (a head's, a petitioner's). */
+  todo?: readonly GwTodoView[];
+  /** ww196 (P): how often his reports proved wrong, 0 never .. 2 often. */
+  misled?: number;
 }
 
 export interface GwTheatreView {
@@ -314,7 +332,13 @@ export interface GwSeatView {
   depts?: readonly GwDeptView[];
   room?: readonly GwRoomRowView[];
   time?: GwTimeView;
+  /** ww196: never sent (gifts are gone). */
   levers?: readonly GwLeverView[];
+  /** ww196: the 사람 tab badge: 할 일 markers not `idle`, all departments. */
+  todo?: number;
+  /** ww196 (P): the desk heading and the diary, newest last. */
+  head?: GwDeskHeadView;
+  diary?: readonly GwDiaryView[];
   /** Null where the country has no list: its three tasks stand. */
   aims?: GwAimsView | null;
   /** The land painted as the war's aim. */

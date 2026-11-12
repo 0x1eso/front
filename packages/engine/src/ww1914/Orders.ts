@@ -29,7 +29,9 @@ import { budgetOrder } from "./Budget";
 import { setClaims } from "./Claims";
 import { fieldOrder, raiseFooting } from "./Craft";
 import {
+  answerPaper,
   briefDept,
+  callHead,
   deptChosen,
   deptRead,
   deptSentBack,
@@ -38,6 +40,8 @@ import {
   isPetitioner,
   passOn,
   petitionerSeen,
+  pushTask,
+  replyQuestion,
   roomShut,
   shelvePaper,
   turnAway,
@@ -45,6 +49,7 @@ import {
 import { inStage, makeCard, placeCard, repeatable, sceneWear } from "./Desk";
 import { proposalsFor } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
+import { answerPetition, holdHonours } from "./Honours";
 import { lawOrder } from "./Laws";
 import { GW_OFFENSIVE_PAPERS, signOffensivePaper } from "./Offensives";
 import {
@@ -304,6 +309,18 @@ export function applyGwOrder(
       return giveGift(gw, seat, o.row, o.person);
     case "turn_away":
       return turnAway(gw, seat, o.person);
+    case "task_push":
+      return pushTask(gw, seat, o.office, o.how, o.person);
+    case "answer":
+      return answerPaper(gw, seat, o.card, o.course, o.redo);
+    case "dept_reply":
+      return replyQuestion(gw, seat, o.card, o.pick);
+    case "call":
+      return callHead(gw, seat, o.card);
+    case "honours":
+      return holdHonours(gw, seat, o.card, o.give);
+    case "petition_answer":
+      return answerPetition(gw, seat, o.card, o.answer);
   }
 }
 

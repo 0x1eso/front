@@ -9,7 +9,11 @@
 // with no row of its seat leans by GW_DEPT_LEAN_DEFAULT (TaskRows.ts).
 import { GW_TAGS } from "@openfront/engine-api/ww1914/GwCountries";
 import type { GwDeptContent } from "@openfront/engine-api/ww1914/GwDepts";
-import { GW_TASK_KINDS } from "@openfront/engine-api/ww1914/GwDepts";
+import {
+  GW_PAPER_FORMS,
+  GW_TASK_KINDS,
+  GwPaperForm,
+} from "@openfront/engine-api/ww1914/GwDepts";
 import {
   GwEffect,
   GwScene,
@@ -72,8 +76,28 @@ function fallback(kind: (typeof GW_TASK_KINDS)[number]): GwScene {
   };
 }
 
-export const COMMON_DEPT_SCENES: readonly GwScene[] =
-  GW_TASK_KINDS.map(fallback);
+/**
+ * ww196: the stub scene each desk paper form rides on (`card.paper`): the
+ * engine fills it (Departments, Honours); its own text is only a fallback
+ * title. Read-only, never dealt.
+ */
+function paperStub(form: GwPaperForm): GwScene {
+  return {
+    id: `gw_paper_${form}`,
+    nation: [...GW_TAGS],
+    kind: "report",
+    cast: {},
+    salience: 1,
+    tags: ["home"],
+    scheduledOnly: true,
+    variants: [{ id: "base" }],
+  };
+}
+
+export const COMMON_DEPT_SCENES: readonly GwScene[] = [
+  ...GW_TASK_KINDS.map(fallback),
+  ...GW_PAPER_FORMS.map(paperStub),
+];
 
 export const COMMON_DEPTS: GwDeptContent = {
   // Design §4.8: whose head comes with a counter-paper. Several rows may name

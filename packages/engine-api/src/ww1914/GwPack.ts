@@ -9,6 +9,7 @@
 import { z } from "zod";
 import { GwIdSchema } from "./GreatWarTypes";
 import { GwDeptPackSchema, mergeGwDeptPacks } from "./GwDepts";
+import { GwPersonaPackSchema, mergeGwPersonaPacks } from "./GwPersona";
 import { gwSceneEffects } from "./SceneCheck";
 import type { GwScene } from "./SceneDsl";
 
@@ -332,6 +333,8 @@ export const GwPackSchema = z
     powers: z.record(GwIdSchema, GwPowerPackSchema).optional(),
     /** ww193: the departments' names, tasks, wants, levers and voices. */
     depts: GwDeptPackSchema.optional(),
+    /** ww196: the person: places, bearers, address, grain, diary. */
+    persona: GwPersonaPackSchema.optional(),
   })
   .strict();
 export type GwPack = z.infer<typeof GwPackSchema>;
@@ -379,6 +382,7 @@ export function mergeGwPacks(packs: readonly GwPack[]): GwPack {
     Object.assign(out.heads!, p.heads);
     Object.assign(out.powers!, p.powers);
     out.depts = mergeGwDeptPacks(out.depts, p.depts);
+    out.persona = mergeGwPersonaPacks(out.persona, p.persona);
     if (p.press !== undefined) out.press = p.press;
     if (p.table !== undefined) out.table = { ...out.table, ...p.table };
   }
@@ -464,6 +468,13 @@ export function gwPackOverlaps(packs: readonly GwPack[]): string[] {
       ...Object.keys(p.depts?.tasks ?? {}).map((x) => `task ${x}`),
       ...Object.keys(p.depts?.wants ?? {}).map((x) => `want ${x}`),
       ...Object.keys(p.depts?.levers ?? {}).map((x) => `lever ${x}`),
+      ...Object.keys(p.depts?.answers ?? {}).map((x) => `answer ${x}`),
+      ...Object.keys(p.depts?.honours ?? {}).map((x) => `honour ${x}`),
+      ...Object.keys(p.depts?.occasions ?? {}).map((x) => `occasion ${x}`),
+      ...Object.keys(p.persona?.places ?? {}).map((x) => `place ${x}`),
+      ...Object.keys(p.persona?.bearers ?? {}).map((x) => `bearer ${x}`),
+      ...Object.keys(p.persona?.grain ?? {}).map((x) => `grain ${x}`),
+      ...Object.keys(p.persona?.diary ?? {}).map((x) => `diary ${x}`),
     ];
     for (const id of ids) {
       if (seen.has(id)) out.add(id);

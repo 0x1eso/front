@@ -22,12 +22,14 @@ import {
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { GW_TAGS } from "@openfront/engine-api/ww1914/GwCountries";
 import type {
+  GwAnswerRedo,
   GwCardDeptView,
   GwDeptView,
   GwLeverRow,
   GwLeverView,
   GwRoomRowView,
   GwTaskOfferView,
+  GwTaskPush,
   GwTaskRow,
   GwTimeView,
 } from "@openfront/engine-api/ww1914/GwDepts";
@@ -739,11 +741,12 @@ function rowOpen(
   if (t.pick !== undefined && topicsOf(gw, seat, t).length === 0) return false;
   // ww193 merge: only while one of its own papers could come (a row that
   // names none, as C's fallback-only rows, is always open).
-  if (t.products.length === 0) return true;
+  const products = t.products ?? [];
+  if (products.length === 0) return true;
   const topics = topicsOf(gw, seat, t);
   const any = topics.length === 0 ? [t.topic ?? null] : topics;
   return any.some((topic) =>
-    t.products
+    products
       .filter((id) => productFitsTopic(id, topic, topics))
       .some((id) => productNow(gw, seat, id, head, topic)),
   );
@@ -758,10 +761,11 @@ export function taskOffers(
   const head = deptHead(gw, seat, office);
   if (head === null || busy(deptState(seat), office)) return [];
   return taskRowsFor(gwContent().depts, seat.tag, office)
-    .filter((t) => rowOpen(gw, seat, t, head))
+    .filter((t) => t.type !== undefined && rowOpen(gw, seat, t, head))
     .map((t) => ({
       row: t.id,
-      kind: t.kind,
+      type: t.type!,
+      kind: t.kind ?? "plan",
       topics: topicsOf(gw, seat, t),
       topic: t.topic ?? null,
     }));
@@ -1099,7 +1103,18 @@ export function deptViews(
       task:
         t === null
           ? null
-          : { row: t.row, topic: t.topic, soon: t.due <= gw.s.chapter + 1 },
+          : {
+              row: t.row,
+              type: t.type ?? null,
+              topic: t.topic,
+              stage: t.stage ?? "inquiry",
+              soon: t.due <= gw.s.chapter + 1,
+              stall: t.stall ?? null,
+              staff: t.staff ?? null,
+              hurried: t.hurried === true,
+              pushes: [],
+            },
+      todo: [],
       ready: tray.filter((c) => dept(c).row !== null).length,
       initiatives: tray.filter((c) => dept(c).row === null).length,
       want: wantOf(gw, seat, head, (w) => w.office === office),
@@ -1190,4 +1205,47 @@ export function leverViews(gw: GreatWar, seat: GwSeatState): GwLeverView[] {
     const people = met.filter((id) => leverFits(gw, seat, r, id));
     return people.length === 0 ? [] : [{ row: r.id, lever: r.lever, people }];
   });
+}
+
+// ---- ww196 orders (format stubs; S0 fills them) ----
+
+/** The `task_push` order: 서두르게 한다, 사람을 붙인다, 거둔다, 기다린다. */
+export function pushTask(
+  _gw: GreatWar,
+  _seat: GwSeatState,
+  _office: GwOffice,
+  _how: GwTaskPush,
+  _person: string | null,
+): GwOrderBlock | null {
+  return "no_push";
+}
+
+/** The `answer` order: a course, or 더 알아봐라 / 다른 안을 가져와라. */
+export function answerPaper(
+  _gw: GreatWar,
+  _seat: GwSeatState,
+  _uid: number,
+  _course: string | null,
+  _redo: GwAnswerRedo | null,
+): GwOrderBlock | null {
+  return "no_card";
+}
+
+/** The `dept_reply` order: the question back answered. */
+export function replyQuestion(
+  _gw: GreatWar,
+  _seat: GwSeatState,
+  _uid: number,
+  _pick: string,
+): GwOrderBlock | null {
+  return "no_card";
+}
+
+/** The `call` order: 불러서 묻는다. */
+export function callHead(
+  _gw: GreatWar,
+  _seat: GwSeatState,
+  _uid: number,
+): GwOrderBlock | null {
+  return "no_card";
 }

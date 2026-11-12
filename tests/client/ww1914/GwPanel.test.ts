@@ -918,6 +918,7 @@ describe("departments at work (ww193)", () => {
     offers: [
       {
         row: "t_task_rom",
+        type: "envoy" as const,
         kind: "plan" as const,
         topics: ["ROU", "ITA"],
         topic: null,
@@ -925,6 +926,7 @@ describe("departments at work (ww193)", () => {
     ],
     price: 1,
     past: [],
+    todo: [],
   };
   const STAFF = {
     ...FOREIGN,
@@ -934,7 +936,17 @@ describe("departments at work (ww193)", () => {
     ready: 0,
     want: null,
     offers: [],
-    task: { row: "t_task_rom", topic: "ROU", soon: true },
+    task: {
+      row: "t_task_rom",
+      type: "envoy" as const,
+      topic: "ROU",
+      stage: "draft" as const,
+      soon: true,
+      stall: null,
+      staff: null,
+      hurried: false,
+      pushes: [],
+    },
   };
   const DEPT = {
     office: "foreign" as const,

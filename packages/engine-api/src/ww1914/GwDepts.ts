@@ -1,11 +1,13 @@
-// Great War 1914 (ww193): departments at work. Each office of a seat is a
-// department (부서) headed by whoever holds it. The ruler commissions work
-// (`GwTaskRow`); the department brings back the first of the row's existing
-// papers that holds, else a common report `gw_dept_<kind>`. Office-authored
-// papers the desk draws go to the head's in-tray as the department's own
-// initiatives. The head presents all he brings in one briefing (접견실).
-// Engine: engine/ww1914/Departments.ts. Rules: engine-lib/ww1914/TaskRows.ts.
-// Text: pack `depts` (GwDeptPackSchema). Rows: content/depts/<seat>.ts.
+// Great War 1914 (ww193, ww196): departments at work. Each office of a seat is
+// a department (부서) headed by whoever holds it. ww196: the ruler gives it a
+// task of a type (`GW_TASK_TYPES`); it works through the stages 착수 → 조사 →
+// 초안 → 보고 and brings back its own answer (답신), built from the answer rows
+// (`GwAnswerRow`) that hold and filled from state (engine-lib AnswerSlots).
+// Everything it produces comes to the desk; nothing is briefed, nothing waits
+// in a tray. Honours come at their occasions (`GwHonourRow`, Honours.ts).
+// Engine: engine/ww1914/Departments.ts, Honours.ts. Rules: engine-lib
+// ww1914/TaskRows.ts, AnswerSlots.ts. Text: pack `depts` (GwDeptPackSchema).
+// Rows: content/depts/<seat>.ts.
 import { z } from "zod";
 import {
   GW_CAMPS,
@@ -18,6 +20,28 @@ import {
   GwVerdict,
 } from "./GreatWarTypes";
 import { GW_TAGS } from "./GwCountries";
+import {
+  GW_ANSWER_SLOTS,
+  GW_DEPT_STAGES,
+  GW_HONOUR_OCCASIONS,
+  GW_HONOUR_POOLS,
+  GW_NEED_KINDS,
+  GW_PAPER_FORMS,
+  GW_QUESTIONS,
+  GW_SLOT_KINDS,
+  GW_STALL_REASONS,
+  GW_TASK_TYPES,
+  GwAnswerRedo,
+  GwAnswerSlot,
+  GwConfidence,
+  GwDeptStage,
+  GwHonourPool,
+  GwPetitionAnswer,
+  GwQuestion,
+  GwStallReason,
+  GwTaskPush,
+  GwTaskType,
+} from "./GwDeptWords";
 import {
   GW_SCENE_TAGS,
   GwCondSchema,
@@ -70,13 +94,185 @@ export type GwDeptMoment = (typeof GW_DEPT_MOMENTS)[number];
 
 const Topic = z.string().regex(/^[A-Za-z][A-Za-z0-9_]*$/);
 
-/** A commission a department can be given (GW_TASKS; design §4.2). */
+// ---- ww196: answers (the words are in GwDeptWords.ts) ----
+
+export * from "./GwDeptWords";
+
+export const GwSlotValueSchema = z.object({
+  kind: z.enum(GW_SLOT_KINDS),
+  /** A tag, person id, theatre, place id or word id; several joined by ",". */
+  value: z.string().min(1),
+});
+export type GwSlotValue = z.infer<typeof GwSlotValueSchema>;
+export type GwSlots = Partial<Record<GwAnswerSlot, GwSlotValue>>;
+
+/**
+ * A row part that holds only while slots have these values (any listed);
+ * "*" asks only that the slot is filled. Text naming a slot needs the slot.
+ */
+const SlotTest = z.partialRecord(
+  z.enum(GW_ANSWER_SLOTS),
+  z.array(z.string().min(1)).min(1),
+);
+
+/**
+ * A finding (알아낸 것). Weight 1..3: band 2 drops weight 1; band 1 keeps the
+ * top 2 and, 30% of the time, the row's `wrong` finding instead of one.
+ * `truth`: the state that shows it later; false 2-4 chapters on, an "알고
+ * 보니" line comes (P; text `depts.answers.<row>.hindsight.<id>`).
+ * Text `depts.answers.<row>.findings.<id>`, with `{slot}`s.
+ */
+export const GwFindingRowSchema = z
+  .object({
+    id: GwIdSchema,
+    weight: z.number().int().min(1).max(3),
+    when: GwCondSchema.optional(),
+    slots: SlotTest.optional(),
+    /** The finding a weak head brings instead of a true one. */
+    wrong: z.boolean().optional(),
+    truth: GwCondSchema.optional(),
+  })
+  .strict();
+export type GwFindingRow = z.infer<typeof GwFindingRowSchema>;
+
+export const GwNeedSchema = z
+  .object({
+    kind: z.enum(GW_NEED_KINDS),
+    word: GwIdSchema.optional(),
+    office: z.enum(GW_OFFICES).optional(),
+    tag: z.enum(GW_TAGS).optional(),
+    law: GwIdSchema.optional(),
+  })
+  .strict();
+export type GwNeed = z.infer<typeof GwNeedSchema>;
+
+/** How a `front` course fills the war paper's proposal (marked as his). */
+export const GW_FRONT_COURSES = ["attack", "hold", "shorten", "shift"] as const;
+
+/**
+ * A course (안). `lean`: how it reads to a head's lean; his department's own
+ * course is the best by his lean (a lean row's `picks` may name it). `wait`:
+ * the 기다린다 course an anxious head adds. `effects` run when it is taken;
+ * `then`: existing papers scheduled later as consequences (never the answer).
+ * Text `depts.answers.<row>.courses.<id>` = { name, for, against }.
+ */
+export const GwCourseRowSchema = z
+  .object({
+    id: GwIdSchema,
+    lean: z.array(z.enum(GW_LEANS)).min(1),
+    when: GwCondSchema.optional(),
+    slots: SlotTest.optional(),
+    wait: z.boolean().optional(),
+    effects: z.array(GwEffectSchema),
+    then: z.array(GwIdSchema).optional(),
+    /** Chapters before the first `then` paper; absent 2. */
+    thenAfter: z.number().int().min(1).max(4).optional(),
+    needs: z.array(GwNeedSchema).optional(),
+    front: z.enum(GW_FRONT_COURSES).optional(),
+  })
+  .strict();
+export type GwCourseRow = z.infer<typeof GwCourseRowSchema>;
+
+/**
+ * The answer generator (ww196 §2.1): what a task of `type` can find and
+ * propose. Every row that holds for the seat, the type and the topic adds its
+ * findings and courses; a seat's row comes before the common one, and a
+ * course id given twice keeps the first. `topic`: only these tags, theatres
+ * or subjects. `question`: the one asked back at 조사. Stage lines (부서
+ * 소식) are text: `depts.answers.<row>.stages.<stage>`.
+ */
+export const GwAnswerRowSchema = z
+  .object({
+    id: GwIdSchema,
+    nation: z.array(z.enum(GW_TAGS)).min(1),
+    type: z.enum(GW_TASK_TYPES),
+    office: z.enum(GW_OFFICES).optional(),
+    topic: z.array(Topic).min(1).optional(),
+    when: GwCondSchema.optional(),
+    stage: z.array(z.enum(GW_STAGES)).optional(),
+    question: z.enum(GW_QUESTIONS).optional(),
+    findings: z.array(GwFindingRowSchema),
+    courses: z.array(GwCourseRowSchema),
+  })
+  .strict();
+export type GwAnswerRow = z.infer<typeof GwAnswerRowSchema>;
+
+// ---- ww196: honours at their occasions (§4) ----
+
+/**
+ * An order or decoration (Pour le Mérite, VC, Légion …). `rank` 1..3 orders
+ * the list; `pools` who may get it; `from`/`until` ISO dates it exists in.
+ * Text `depts.honours.<id>` = { name, note? }.
+ */
+export const GwHonourOrderSchema = z
+  .object({
+    id: GwIdSchema,
+    nation: z.array(z.enum(GW_TAGS)).min(1),
+    rank: z.number().int().min(1).max(3),
+    pools: z.array(z.enum(GW_HONOUR_POOLS)).min(1),
+    from: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/)
+      .optional(),
+    until: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/)
+      .optional(),
+  })
+  .strict();
+export type GwHonourOrder = z.infer<typeof GwHonourOrderSchema>;
+
+/**
+ * When a seat's honours list comes (서훈 명단). `date`: on `day` ("01-01",
+ * "01-27"), the chapter that holds it; `victory`: the chapter after a front
+ * won (`theatre` limits it); `deed`: after a front's battle, now and then;
+ * `petition`: a department's petition between lists (서훈 상신), after a
+ * victory in its field. `orders` it may give; `from` the proposing offices.
+ * Text `depts.occasions.<id>` = { name, note? }.
+ */
+export const GwHonourRowSchema = z
+  .object({
+    id: GwIdSchema,
+    nation: z.array(z.enum(GW_TAGS)).min(1),
+    occasion: z.enum(GW_HONOUR_OCCASIONS),
+    day: z
+      .string()
+      .regex(/^\d{2}-\d{2}$/)
+      .optional(),
+    theatre: z.array(z.enum(GW_THEATRES)).min(1).optional(),
+    when: GwCondSchema.optional(),
+    pools: z.array(z.enum(GW_HONOUR_POOLS)).min(1),
+    orders: z.array(GwIdSchema).min(1),
+    from: z.array(z.enum(GW_OFFICES)).min(1),
+    /** ISO dates the occasion is kept in. */
+    since: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/)
+      .optional(),
+    until: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/)
+      .optional(),
+  })
+  .strict();
+export type GwHonourRow = z.infer<typeof GwHonourRowSchema>;
+
+/**
+ * A task a department can be given. ww196: `type` names what it is about and
+ * so which answer rows build its answer; a row with no `type` is a ww193 row
+ * and is never offered (writers drop them). The nine common types are offered
+ * without rows, to the offices of `GW_TASK_OFFICES` (TaskRows); a seat row of
+ * a common type overrides that office's offer (its `when`, `from`, pace).
+ */
 export const GwTaskRowSchema = z
   .object({
     id: GwIdSchema,
     nation: z.array(z.enum(GW_TAGS)).min(1),
     office: z.enum(GW_OFFICES),
-    kind: z.enum(GW_TASK_KINDS),
+    /** ww196: the task type; text `depts.types.<type>` unless the row's own. */
+    type: z.enum(GW_TASK_TYPES).optional(),
+    /** ww193; ignored since ww196. */
+    kind: z.enum(GW_TASK_KINDS).optional(),
     stage: z.array(z.enum(GW_STAGES)).optional(),
     /** State opens it: not met, it isn't offered. */
     when: GwCondSchema.optional(),
@@ -90,12 +286,8 @@ export const GwTaskRowSchema = z
     from: z.array(Topic).min(1).optional(),
     /** Base chapters of work, 1..3, before the head's own pace. */
     chapters: z.number().int().min(1).max(3),
-    /**
-     * Existing scene ids, in order: the first that holds now and is unseen (or
-     * can come again) is what he brings. Any kind but a talk; `scheduledOnly`
-     * papers are fine, the department is what brings them.
-     */
-    products: z.array(GwIdSchema),
+    /** ww193; ignored since ww196 (§5: tasks bring their own answer). */
+    products: z.array(GwIdSchema).optional(),
     /** A scene of its own when none holds; absent: `gw_dept_<kind>`. */
     fallback: GwIdSchema.optional(),
     /** Given at most once a game. */
@@ -193,11 +385,40 @@ export interface GwDeptContent {
   readonly leans?: readonly GwDeptLean[];
   readonly rivals?: readonly GwDeptRival[];
   readonly wants?: readonly GwDeptWant[];
+  /** ww196: gifts are gone from the audience; kept so old rows parse. */
   readonly levers?: readonly GwLeverRow[];
+  /** ww196: the answer generators. */
+  readonly answers?: readonly GwAnswerRow[];
+  /** ww196: honours, their orders and their occasions. */
+  readonly honours?: readonly GwHonourRow[];
+  readonly orders?: readonly GwHonourOrder[];
 }
 
 const Text = z.string().min(1);
 const ById = z.record(GwIdSchema, Text);
+const Named = z.object({ name: Text, note: Text.optional() }).strict();
+
+/**
+ * ww196: an answer row's words. `title` heads the card ({topic}); findings,
+ * courses and the stage lines (부서 소식, "외무부: 부쿠레슈티 공사관 전보
+ * 입수") hold `{slot}`s, `{who}` and `{topic}`. `hindsight`: the "알고 보니"
+ * line of a finding that proves wrong (P).
+ */
+export const GwAnswerTextSchema = z
+  .object({
+    title: Text.optional(),
+    findings: ById.optional(),
+    courses: z
+      .record(
+        GwIdSchema,
+        z.object({ name: Text, for: Text, against: Text }).strict(),
+      )
+      .optional(),
+    stages: z.partialRecord(z.enum(GW_DEPT_STAGES), Text).optional(),
+    hindsight: ById.optional(),
+  })
+  .strict();
+export type GwAnswerText = z.infer<typeof GwAnswerTextSchema>;
 
 /** Pack `depts`: the words of the departments. Shares merge field by field. */
 export const GwDeptPackSchema = z
@@ -222,6 +443,20 @@ export const GwDeptPackSchema = z
      * moment is used. May hold {who} (the head) and {topic}.
      */
     voices: z.record(z.string().regex(/^[a-z][a-z0-9_]*$/), ById).optional(),
+    /** ww196: task type -> how the row offers it ({topic}); a row's own wins. */
+    types: z.partialRecord(z.enum(GW_TASK_TYPES), Named).optional(),
+    /** ww196: answer row id -> its words. */
+    answers: z.record(GwIdSchema, GwAnswerTextSchema).optional(),
+    /** ww196: question -> its line ({topic}); pick id -> its words. */
+    questions: z.partialRecord(z.enum(GW_QUESTIONS), Text).optional(),
+    picks: ById.optional(),
+    /** ww196: stall reason -> the line ({who}, {topic}). */
+    stalls: z.partialRecord(z.enum(GW_STALL_REASONS), Text).optional(),
+    /** ww196: a slot's word id -> the word ("중립", "바닥남"). */
+    words: ById.optional(),
+    /** ww196: honour order id and occasion id -> name and note. */
+    honours: z.record(GwIdSchema, Named).optional(),
+    occasions: z.record(GwIdSchema, Named).optional(),
   })
   .strict();
 export type GwDeptPack = z.infer<typeof GwDeptPackSchema>;
@@ -244,14 +479,26 @@ export function mergeGwDeptPacks(
     wants: { ...a.wants, ...b.wants },
     levers: { ...a.levers, ...b.levers },
     voices,
+    types: { ...a.types, ...b.types },
+    answers: { ...a.answers, ...b.answers },
+    questions: { ...a.questions, ...b.questions },
+    picks: { ...a.picks, ...b.picks },
+    stalls: { ...a.stalls, ...b.stalls },
+    words: { ...a.words, ...b.words },
+    honours: { ...a.honours, ...b.honours },
+    occasions: { ...a.occasions, ...b.occasions },
   };
 }
 
 // ---- What the screens get ----
 
-/** A task the department row offers now. */
+/** A task the department row offers now. Giving it is free (ww196). */
 export interface GwTaskOfferView {
+  /** The seat row, or `<type>` for a common type offered without one. */
   row: string;
+  /** ww196: the type; text `depts.tasks.<row>` if any, else `depts.types`. */
+  type: GwTaskType;
+  /** ww193; "plan" since ww196. */
   kind: GwTaskKind;
   /** The topic list to pick from; empty: the row's own `topic` (or none). */
   topics: readonly string[];
@@ -265,38 +512,191 @@ export interface GwDeptView {
   head: string | null;
   /** Pack voice keys to try, in order: person, office, temperament. */
   voice: readonly string[];
-  /** Working on: the row, its topic, and whether it is ready next chapter. */
-  task: { row: string | null; topic: string | null; soon: boolean } | null;
-  /** Papers waiting in the tray: commissioned, and its own. */
+  /**
+   * Working on: the row, its type and topic, the stage, whether the answer
+   * comes next chapter; ww196: a stall's reason, the person put beside him,
+   * whether it was hurried, and what the row offers (서두르게 한다 …).
+   */
+  task: {
+    row: string | null;
+    type: GwTaskType | null;
+    topic: string | null;
+    stage: GwDeptStage;
+    soon: boolean;
+    stall: GwStallReason | null;
+    staff: string | null;
+    hurried: boolean;
+    pushes: readonly GwTaskPush[];
+  } | null;
+  /** ww193; 0 since ww196 (no tray). */
   ready: number;
   initiatives: number;
   /** The want shown (or its cover); null none. */
   want: string | null;
   /** What can be commissioned now (empty while busy). */
   offers: readonly GwTaskOfferView[];
-  /** Time a written order costs now: 0 after a briefing this chapter. */
+  /** ww193; 0 since ww196: giving a task is free. */
   price: number;
+  /** ww196: the 할 일 markers, in words (§2.8). */
+  todo: readonly GwTodoView[];
   past: readonly {
     row: string | null;
     topic: string | null;
     scene: string;
     verdict: GwVerdict;
     date: string;
+    /** ww196: the answer's type and the course taken. */
+    type?: GwTaskType;
+    course?: string | null;
   }[];
 }
 
-/** Who waits in the audience room (접견실). */
+/**
+ * ww196: a 할 일 marker (amber chip on the 부서 row, the person row and the 사람
+ * tab badge): 물을 것이 있음 · 일이 멈춤: <이유> · 답신 올라옴 · 뵙기를 청함 ·
+ * 부를 수 있음; `idle` (한가함 · 일을 맡길 수 있음) is muted and not counted.
+ * `card`: the desk paper it is about. Text gw.ui.dept_todo_<kind>.
+ */
+export const GW_TODOS = [
+  "question",
+  "stall",
+  "answer",
+  "asks",
+  "callable",
+  "idle",
+] as const;
+export type GwTodo = (typeof GW_TODOS)[number];
+export interface GwTodoView {
+  kind: GwTodo;
+  reason?: GwStallReason;
+  card?: number;
+}
+
+/**
+ * Who waits in the audience room (접견실), ww196 (§2.7): petitioners with
+ * wants; heads who can be called about their paper (불러서 묻는다, `call` the
+ * card uid); people who press (a proud head overruled twice, a rival whose
+ * course lost); on a trip the front's commander, free.
+ */
 export interface GwRoomRowView {
   person: string;
   office: GwOffice | null;
-  /** Papers he brings; 0 for a petitioner. */
+  /** ww193; 0 since ww196. */
   brings: number;
   /** A petitioner: seeing him is the summon of `topic`. */
   petition: boolean;
   topic?: string;
-  /** A person's want, if one holds. */
+  /** A person's want, if one holds (ww196: up to 3, in words). */
   want?: string | null;
+  wants?: readonly string[];
+  /** ww196: 불러서 묻는다 about this desk paper (order `call`). */
+  call?: number;
+  /** ww196: he presses to be seen. */
+  press?: boolean;
+  /** ww196: costs nothing (the front's commander on a trip). */
+  free?: boolean;
 }
+
+/** A finding on an answer card. */
+export interface GwFindingView {
+  /** Answer row and finding id: text `depts.answers.<row>.findings.<id>`. */
+  row: string;
+  id: string;
+  conf: GwConfidence;
+  /** Shown only after the head was called (what he left out). */
+  late?: boolean;
+}
+
+/** A course on an answer card. No effects shown: no result before the pick. */
+export interface GwCourseView {
+  row: string;
+  id: string;
+  /** Whose course: the department's own, or the rival's ("참모본부 안"). */
+  by: GwOffice;
+  own: boolean;
+  /** Whether the case for / against is written (a cunning head leaves out). */
+  for: boolean;
+  against: boolean;
+  needs: readonly GwNeed[];
+}
+
+/** A desk paper of the departments or the honours (`GwCardView.paper`). */
+export type GwPaperView =
+  | {
+      form: "answer";
+      office: GwOffice;
+      by: string;
+      type: GwTaskType;
+      topic: string | null;
+      /** Answer rows used: the title is the first's (`depts.answers`). */
+      rows: readonly string[];
+      slots: GwSlots;
+      findings: readonly GwFindingView[];
+      courses: readonly GwCourseView[];
+      /** Called this paper's head in (불러서 묻는다) already. */
+      called: boolean;
+      /** Chapters it has waited; at 2 the department takes its course. */
+      waited: number;
+      redo: readonly GwAnswerRedo[];
+    }
+  | {
+      form: "question";
+      office: GwOffice;
+      by: string;
+      type: GwTaskType;
+      topic: string | null;
+      q: GwQuestion;
+      /** Pick ids (`depts.picks`) or person ids for `person`. */
+      picks: readonly string[];
+      /** The head's own pick if unanswered (shown as "그에게 맡기면"). */
+      lean: string | null;
+    }
+  | {
+      form: "stall";
+      office: GwOffice;
+      by: string;
+      type: GwTaskType;
+      topic: string | null;
+      reason: GwStallReason;
+      pushes: readonly GwTaskPush[];
+    }
+  | {
+      form: "news";
+      lines: readonly {
+        office: GwOffice;
+        by: string;
+        type: GwTaskType;
+        topic: string | null;
+        stage: GwDeptStage;
+        /** The answer row whose stage line is used; null the common one. */
+        row: string | null;
+        slots: GwSlots;
+      }[];
+    }
+  | {
+      form: "honours";
+      /** The occasion row (`depts.occasions.<id>`). */
+      row: string;
+      /** Last chapter the 서훈식 can be held; after it, 대행. */
+      until: number;
+      /** The proposers' list: who, from which pool, the honour proposed. */
+      entries: readonly {
+        person: string | null;
+        pool: GwHonourPool;
+        honour: string;
+        from: GwOffice;
+      }[];
+      /** Orders that can be given at the ceremony. */
+      orders: readonly string[];
+    }
+  | {
+      form: "petition";
+      office: GwOffice;
+      by: string;
+      person: string;
+      honour: string;
+      answers: readonly GwPetitionAnswer[];
+    };
 
 /** A department's mark on a desk card. */
 export interface GwCardDeptView {
@@ -316,7 +716,7 @@ export interface GwCardDeptView {
   waited: number;
 }
 
-/** A gift the ruler can give now. */
+/** A gift the ruler can give now. ww196: never sent (gifts are gone). */
 export interface GwLeverView {
   row: string;
   lever: GwLever;
@@ -334,6 +734,13 @@ export interface GwTimeView {
 }
 
 // ---- Content checks ----
+
+/** A ww193 row's papers, still called until the writers drop the row. */
+function oldPapers(t: GwTaskRow): string[] {
+  const fb =
+    t.fallback ?? (t.kind === undefined ? undefined : `gw_dept_${t.kind}`);
+  return [...(t.products ?? []), ...(fb === undefined ? [] : [fb])];
+}
 
 /** What the schema can't say; a content test requires an empty list. */
 export function gwDeptProblems(
@@ -365,7 +772,7 @@ export function gwDeptProblems(
         }
       }
     }
-    for (const id of [...t.products, t.fallback ?? `gw_dept_${t.kind}`]) {
+    for (const id of oldPapers(t)) {
       const s = scenes.get(id);
       if (s === undefined) out.push(`task ${t.id}: no scene ${id}`);
       else if (s.kind === "talk") out.push(`task ${t.id}: ${id} is a talk`);
@@ -414,10 +821,8 @@ export function gwDeptProblems(
  */
 export function gwDeptCalled(c: GwDeptContent): string[] {
   return [
-    ...(c.tasks ?? []).flatMap((t) => [
-      ...t.products,
-      t.fallback ?? `gw_dept_${t.kind}`,
-    ]),
+    ...(c.tasks ?? []).flatMap(oldPapers),
+    ...GW_PAPER_FORMS.map((f) => `gw_paper_${f}`),
     ...(c.rivals ?? []).flatMap((r) =>
       r.counter === undefined ? [] : [r.counter],
     ),

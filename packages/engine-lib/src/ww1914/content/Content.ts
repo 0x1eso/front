@@ -1,6 +1,8 @@
 import type { GwPersonDef } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwAct, GwAim } from "@openfront/engine-api/ww1914/GwActs";
 import type { GwDeptContent } from "@openfront/engine-api/ww1914/GwDepts";
+import type { GwPersonaContent } from "@openfront/engine-api/ww1914/GwPersona";
+import { joinPersona } from "@openfront/engine-api/ww1914/GwPersona";
 import type { GwEcho, GwScene } from "@openfront/engine-api/ww1914/SceneDsl";
 import type {
   GwFootingRow,
@@ -45,6 +47,11 @@ import { GW_PEOPLE_RULER } from "./people_ruler";
 import { RUS_PEOPLE, RUS_POSTS } from "./people_rus";
 import { RUS_KIN } from "./people_rus_private";
 import { SPY_PEOPLE } from "./people_spies";
+import { AUH_PERSONA } from "./persona/auh";
+import { DEU_PERSONA } from "./persona/deu";
+import { FRA_PERSONA } from "./persona/fra";
+import { GBR_PERSONA } from "./persona/gbr";
+import { RUS_PERSONA } from "./persona/rus";
 import { AUH_POWER_SCENES, AUH_POWERS, AUH_REACTORS } from "./powers/auh";
 import { COMMON_POWER_SCENES, COMMON_POWERS } from "./powers/common";
 import { DEU_POWER_SCENES, DEU_POWERS, DEU_REACTORS } from "./powers/deu";
@@ -201,6 +208,8 @@ export interface GwContent extends GwHouseContent, GwPowerContent {
   readonly shortages?: readonly GwShortageRow[];
   /** ww193: the departments' rows (content/depts); fixtures may have none. */
   readonly depts?: GwDeptContent;
+  /** ww196: the ruler as a person (content/persona); fixtures may have none. */
+  readonly persona?: GwPersonaContent;
 }
 
 /** Where the main story remembers the prologues. */
@@ -428,6 +437,13 @@ export const GW_CONTENT: GwContent = {
     FRA_DEPTS,
     RUS_DEPTS,
     AUH_DEPTS,
+  ]),
+  persona: joinPersona([
+    DEU_PERSONA,
+    GBR_PERSONA,
+    FRA_PERSONA,
+    RUS_PERSONA,
+    AUH_PERSONA,
   ]),
   ...GW_HOUSE_CONTENT,
   powers: [

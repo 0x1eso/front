@@ -14,7 +14,10 @@ import type {
   GwDeptContent,
   GwDeptLean,
   GwLean,
+  GwStallReason,
+  GwTaskPick,
   GwTaskRow,
+  GwTaskType,
 } from "@openfront/engine-api/ww1914/GwDepts";
 import type { GwEffect, GwOption } from "@openfront/engine-api/ww1914/SceneDsl";
 
@@ -54,6 +57,100 @@ export const GW_LEAK_PCT = 30;
 export const GW_OMIT_PCT = 50;
 /** Pride from which an overruled head loses trust. */
 export const GW_PROUD = 3;
+
+// ---- ww196: task types, stages, stalls, answers (design ww195 §2-3) ----
+
+/**
+ * Who takes a common task type, by seat: the first office in the list with a
+ * head (GBR arms: Munitions, else the War Office). A seat row of the type
+ * overrides it for its office. Absent: the seat has none of that type.
+ */
+export const GW_TASK_OFFICES: Readonly<
+  Partial<Record<GwTag, Partial<Record<GwTaskType, readonly GwOffice[]>>>>
+> = {
+  DEU: {
+    envoy: ["foreign"],
+    front: ["chief_of_staff"],
+    money: ["finance"],
+    bread: ["interior"],
+    unrest: ["interior"],
+    fleet: ["navy"],
+    arms: ["war"],
+    men: ["war"],
+    intel: ["intelligence"],
+  },
+  GBR: {
+    envoy: ["foreign"],
+    front: ["chief_of_staff", "war"],
+    money: ["finance"],
+    bread: ["interior"],
+    unrest: ["interior"],
+    fleet: ["navy"],
+    arms: ["munitions", "war"],
+    men: ["war"],
+    intel: ["intelligence"],
+  },
+  FRA: {
+    envoy: ["foreign"],
+    front: ["supreme_commander", "chief_of_staff"],
+    money: ["finance"],
+    bread: ["agriculture", "interior"],
+    unrest: ["interior"],
+    fleet: ["navy"],
+    arms: ["munitions", "war"],
+    men: ["war"],
+    intel: ["intelligence"],
+  },
+  RUS: {
+    envoy: ["foreign"],
+    front: ["supreme_commander", "chief_of_staff"],
+    money: ["finance"],
+    bread: ["agriculture", "interior"],
+    unrest: ["interior"],
+    fleet: ["navy"],
+    arms: ["war"],
+    men: ["war"],
+    intel: ["intelligence"],
+  },
+  AUH: {
+    envoy: ["foreign"],
+    front: ["chief_of_staff"],
+    money: ["finance"],
+    bread: ["chancellor"],
+    unrest: ["chancellor"],
+    fleet: ["navy"],
+    arms: ["war"],
+    men: ["war"],
+    intel: ["intelligence"],
+  },
+};
+
+/** What the player picks when giving a type: a country, a front, or none. */
+export const GW_TASK_PICK: Readonly<Partial<Record<GwTaskType, GwTaskPick>>> = {
+  envoy: "country",
+  intel: "country",
+  front: "front",
+};
+
+/** Base chapters of a common type's work, before the head's own pace. */
+export const GW_TASK_BASE = 2;
+/** Chapters an answer waits on the desk before the department acts (대행). */
+export const GW_ANSWER_WAIT = 2;
+/** Chapters before the first `then` paper of a course taken. */
+export const GW_THEN_AFTER = 2;
+/** Percent a task stalls a chapter, by reason, when the reason holds. */
+export const GW_STALL_PCT: Readonly<Record<GwStallReason, number>> = {
+  disloyal: 40,
+  rival: 15,
+  money: 50,
+  moot: 100,
+};
+/** Percent a stall left waiting (기다린다) clears by itself a chapter. */
+export const GW_STALL_CLEAR_PCT = 40;
+/** Money a hurry or 돈을 더 쓴다 costs (the money gauge). */
+export const GW_HURRY_MONEY = 1;
+/** Overruled this many times, a proud head presses to be seen. */
+export const GW_PRESS_OVERRULED = 2;
 
 /** The field a department's head is judged in. */
 export const GW_DEPT_FIELD: Readonly<Record<GwOffice, GwField>> = {
@@ -334,5 +431,8 @@ export function joinDepts(parts: readonly GwDeptContent[]): GwDeptContent {
     rivals: parts.flatMap((p) => p.rivals ?? []),
     wants: parts.flatMap((p) => p.wants ?? []),
     levers: parts.flatMap((p) => p.levers ?? []),
+    answers: parts.flatMap((p) => p.answers ?? []),
+    honours: parts.flatMap((p) => p.honours ?? []),
+    orders: parts.flatMap((p) => p.orders ?? []),
   };
 }

@@ -19,6 +19,11 @@ import {
   GW_TREATY_CLAUSES_MAX,
 } from "./GreatWarTypes";
 import { GW_TAGS } from "./GwCountries";
+import {
+  GW_ANSWER_REDOS,
+  GW_PETITION_ANSWERS,
+  GW_TASK_PUSHES,
+} from "./GwDeptWords";
 import { GW_SERVICE_BRANCHES, GW_SERVICE_SHARE_MAX } from "./GwSpies";
 import { GW_TABLE_TRADES, GW_TABLE_WORDS } from "./GwTable";
 
@@ -256,6 +261,46 @@ export const GwOrderSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("gift"), row: Id, person: Id }),
   /** ww193: 돌려보낸다: a head or petitioner leaves the room unheard. */
   z.object({ kind: z.literal("turn_away"), person: Id }),
+  /**
+   * ww196: work under way: 서두르게 한다 (`hurry`; a stall paper's 돈을 더
+   * 쓴다 is `money`), 사람을 붙인다 (`staff`, `person`), 거둔다, 기다린다.
+   * ww196 §5: `brief` and `gift` above are refused now (no tray, no gifts).
+   */
+  z.object({
+    kind: z.literal("task_push"),
+    office: z.enum(GW_OFFICES),
+    how: z.enum(GW_TASK_PUSHES),
+    person: Id.nullable(),
+  }),
+  /**
+   * ww196: the verdict on an answer (답신): a `course`, or a `redo` (더
+   * 알아봐라 / 다른 안을 가져와라). One of the two.
+   */
+  z.object({
+    kind: z.literal("answer"),
+    card: Card,
+    course: Id.nullable(),
+    redo: z.enum(GW_ANSWER_REDOS).nullable(),
+  }),
+  /** ww196: the answer to a department's question back (a pick or a person). */
+  z.object({ kind: z.literal("dept_reply"), card: Card, pick: Id }),
+  /** ww196: 불러서 묻는다: the head of this desk paper comes in (1 of time). */
+  z.object({ kind: z.literal("call"), card: Card }),
+  /**
+   * ww196: the 서훈식 (1 of time): who of the list gets which order; `at` is
+   * the entry's place on the list. Those left out get nothing.
+   */
+  z.object({
+    kind: z.literal("honours"),
+    card: Card,
+    give: z.array(z.object({ at: zb.uint({ max: 15 }), honour: Id })).max(16),
+  }),
+  /** ww196: a 서훈 상신 answered: 받아들인다 / 다음 명단으로 / 거절. */
+  z.object({
+    kind: z.literal("petition_answer"),
+    card: Card,
+    answer: z.enum(GW_PETITION_ANSWERS),
+  }),
 ]);
 export type GwOrder = z.infer<typeof GwOrderSchema>;
 
@@ -326,5 +371,10 @@ export const GW_ORDER_BLOCKS = [
   "no_gift",
   "gift_given",
   "nothing_ready",
+  // ww196
+  "no_push",
+  "called",
+  "no_honour",
+  "gone", // ww196: briefings and gifts are gone
 ] as const;
 export type GwOrderBlock = (typeof GW_ORDER_BLOCKS)[number];

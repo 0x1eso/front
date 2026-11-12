@@ -6,6 +6,17 @@ import { z } from "zod";
 import { GwBudgetStateSchema } from "./GwBudget";
 import { GW_TAGS, GwTag as GwTagName } from "./GwCountries";
 import { GwCraftStateSchema } from "./GwCraft";
+import {
+  GW_ANSWER_REDOS,
+  GW_ANSWER_SLOTS,
+  GW_CONFIDENCE,
+  GW_DEPT_STAGES,
+  GW_HONOUR_POOLS,
+  GW_QUESTIONS,
+  GW_SLOT_KINDS,
+  GW_STALL_REASONS,
+  GW_TASK_TYPES,
+} from "./GwDeptWords";
 import { GwHouseStateSchema } from "./GwHouse";
 import { GwLawStateSchema } from "./GwLaw";
 import { GwPlaceSchema } from "./GwPlaces";
@@ -934,6 +945,9 @@ export const GW_VERDICTS = [
   "pass_on", // 다른 부서에 맡긴다
   "shelve", // 묵혀 둔다
   "acted", // unheard two chapters: the department took its own option (대행)
+  // ww196
+  "redo", // 더 알아봐라 / 다른 안을 가져와라: the task runs again
+  "withdraw", // 거둔다: the task was called off
 ] as const;
 export type GwVerdict = (typeof GW_VERDICTS)[number];
 
@@ -999,8 +1013,117 @@ export const GwCardSchema = z.object({
   ask: z.object({ from: z.number().int(), at: z.number().int() }).optional(),
   /** ww193: a department's paper (GwDepts.ts): who brings it, his option. */
   dept: GwCardDeptSchema.optional(),
+  /** ww196: a department's answer, question, stall, news; an honours list. */
+  paper: z.lazy(() => GwPaperSchema).optional(),
 });
 export type GwCard = z.infer<typeof GwCardSchema>;
+
+// ---- ww196: the desk papers of the departments and the honours ----
+
+const Slots = z.partialRecord(
+  z.enum(GW_ANSWER_SLOTS),
+  z.object({ kind: z.enum(GW_SLOT_KINDS), value: z.string().min(1) }),
+);
+
+/** Who brought a paper and about what. */
+const PaperFrom = {
+  office: z.enum(GW_OFFICES),
+  by: GwIdSchema,
+  type: z.enum(GW_TASK_TYPES),
+  topic: z.string().nullable(),
+};
+
+/**
+ * A department's or an honours paper (`card.paper`); the card's scene is the
+ * stub `gw_paper_<form>`. Such papers never block ready: they wait on the
+ * desk from chapter to chapter until their own end (Departments, Honours).
+ */
+export const GwPaperSchema = z.discriminatedUnion("form", [
+  z.object({
+    form: z.literal("answer"),
+    ...PaperFrom,
+    rows: z.array(GwIdSchema),
+    slots: Slots,
+    /** In order; `left` ones he kept out (shown once he is called). */
+    findings: z.array(
+      z.object({
+        row: GwIdSchema,
+        id: GwIdSchema,
+        conf: z.enum(GW_CONFIDENCE),
+        wrong: z.boolean(),
+        left: z.boolean(),
+        /** Brought only when the head was called in. */
+        late: z.boolean(),
+      }),
+    ),
+    courses: z.array(
+      z.object({
+        row: GwIdSchema,
+        id: GwIdSchema,
+        by: z.enum(GW_OFFICES),
+        /** The rival head's id for his course; the head's for the rest. */
+        who: GwIdSchema,
+        for: z.boolean(),
+        against: z.boolean(),
+      }),
+    ),
+    /** The department's own course id. */
+    own: GwIdSchema.nullable(),
+    band: z.number().int(),
+    called: z.boolean(),
+    /** The chapter it came to the desk. */
+    ready: z.number().int(),
+    /** The task row it answers (null: a common type with no row). */
+    row: GwIdSchema.nullable(),
+  }),
+  z.object({
+    form: z.literal("question"),
+    ...PaperFrom,
+    q: z.enum(GW_QUESTIONS),
+    picks: z.array(GwIdSchema),
+    lean: GwIdSchema.nullable(),
+  }),
+  z.object({
+    form: z.literal("stall"),
+    ...PaperFrom,
+    reason: z.enum(GW_STALL_REASONS),
+  }),
+  z.object({
+    form: z.literal("news"),
+    lines: z.array(
+      z.object({
+        ...PaperFrom,
+        stage: z.enum(GW_DEPT_STAGES),
+        row: GwIdSchema.nullable(),
+        slots: Slots,
+      }),
+    ),
+  }),
+  z.object({
+    form: z.literal("honours"),
+    row: GwIdSchema,
+    until: z.number().int(),
+    entries: z.array(
+      z.object({
+        person: GwIdSchema.nullable(),
+        pool: z.enum(GW_HONOUR_POOLS),
+        honour: GwIdSchema,
+        from: z.enum(GW_OFFICES),
+      }),
+    ),
+    orders: z.array(GwIdSchema),
+  }),
+  z.object({
+    form: z.literal("petition"),
+    office: z.enum(GW_OFFICES),
+    by: GwIdSchema,
+    person: GwIdSchema,
+    honour: GwIdSchema,
+    /** The honours row of the petition (the orders it may give). */
+    row: GwIdSchema,
+  }),
+]);
+export type GwPaper = z.infer<typeof GwPaperSchema>;
 
 /** Work a department is doing: one at a time. */
 export const GwDeptTaskSchema = z.object({
@@ -1016,6 +1139,23 @@ export const GwDeptTaskSchema = z.object({
   by: GwIdSchema,
   /** A paper sent back (다시 써 오시오): how it comes again. */
   back: GwBackSchema.nullable().optional(),
+  // ww196; absent on a ww193 save's task (it resumes at 조사).
+  type: z.enum(GW_TASK_TYPES).optional(),
+  stage: z.enum(GW_DEPT_STAGES).optional(),
+  /** Why it stands still; null: it moves. */
+  stall: z.enum(GW_STALL_REASONS).nullable().optional(),
+  /** The person put beside the head (사람을 붙인다). */
+  staff: GwIdSchema.nullable().optional(),
+  /** 서두르게 한다: one step less sure. */
+  hurried: z.boolean().optional(),
+  /** The question asked back: its pick, null until answered or picked. */
+  question: z
+    .object({ q: z.enum(GW_QUESTIONS), pick: GwIdSchema.nullable() })
+    .nullable()
+    .optional(),
+  /** A redo: what was asked (더 알아봐라 / 다른 안), and the courses to leave. */
+  redo: z.enum(GW_ANSWER_REDOS).nullable().optional(),
+  skip: z.array(GwIdSchema).optional(),
 });
 export type GwDeptTask = z.infer<typeof GwDeptTaskSchema>;
 
@@ -1033,6 +1173,16 @@ export const GwDeptStateSchema = z.object({
   carry: z.number().int(),
   /** The chapter the ruler is on a trip; -1 at home. */
   away: z.number().int(),
+  /**
+   * ww196: honours lists come and held (Honours.ts): occasion row id and the
+   * chapter. A petition answered `next` waits for the next list.
+   */
+  honours: z
+    .array(z.object({ row: GwIdSchema, chapter: z.number().int() }))
+    .optional(),
+  nextList: z
+    .array(z.object({ person: GwIdSchema, honour: GwIdSchema }))
+    .optional(),
   /** Work done, newest last: what came of it. */
   past: z.array(
     z.object({
@@ -1042,6 +1192,9 @@ export const GwDeptStateSchema = z.object({
       scene: GwIdSchema,
       chapter: z.number().int(),
       verdict: z.enum(GW_VERDICTS),
+      /** ww196: the answer's type and the course taken. */
+      type: z.enum(GW_TASK_TYPES).optional(),
+      course: GwIdSchema.nullable().optional(),
     }),
   ),
 });
@@ -1475,8 +1628,43 @@ export const GwSeatStateSchema = z.object({
   dissolved: z.number().int().optional(),
   /** ww190: the chapter its own peace was made, while it plays on (Aftermath.ts). */
   leftAt: z.number().int().optional(),
+  /** ww196: the person's diary and "알고 보니" lines (GwPersona.ts); absent until any. */
+  persona: z.lazy(() => GwPersonaStateSchema).optional(),
 });
 export type GwSeatState = z.infer<typeof GwSeatStateSchema>;
+
+// ---- ww196: the ruler's diary (GwPersona.ts has the rows and views) ----
+
+/** A diary line written at a chapter's end; shown atop the next desk. */
+export const GwDiaryEntrySchema = z.object({
+  chapter: z.number().int(),
+  row: GwIdSchema,
+  /** Slot values: person id, scene id, theatre; null none. */
+  who: GwIdSchema.nullable(),
+  scene: GwIdSchema.nullable(),
+  theatre: z.enum(GW_THEATRES).nullable(),
+});
+export type GwDiaryEntry = z.infer<typeof GwDiaryEntrySchema>;
+
+export const GwPersonaStateSchema = z.object({
+  diary: z.array(GwDiaryEntrySchema),
+  /** Findings that proved wrong and were told ("알고 보니"): row, id, who. */
+  hindsight: z.array(
+    z.object({
+      chapter: z.number().int(),
+      row: GwIdSchema,
+      id: GwIdSchema,
+      by: GwIdSchema,
+    }),
+  ),
+  /** Grain options taken: grain row id -> times (for `second`). */
+  grain: z.record(GwIdSchema, z.number().int()),
+});
+export type GwPersonaState = z.infer<typeof GwPersonaStateSchema>;
+
+export function gwPersonaStart(): GwPersonaState {
+  return { diary: [], hindsight: [], grain: {} };
+}
 
 /** World secrets (design §4.4): each is there or not in a game. */
 export const GW_SECRETS = [
