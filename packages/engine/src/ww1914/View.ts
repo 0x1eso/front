@@ -45,8 +45,11 @@ import {
   cardDeptView,
   deptViews,
   leverViews,
+  paperView,
+  personTodo,
   roomView,
   timeView,
+  todoCount,
 } from "./Departments";
 import { govView, pollView } from "./Government";
 import type { GreatWar } from "./GreatWar";
@@ -139,6 +142,7 @@ function cardView(
     ...asksOf(gw, seat, c),
     ...decryptOf(gw, seat, c.scene),
     ...(c.dept === undefined ? {} : { dept: cardDeptView(gw, c) }),
+    ...(c.paper === undefined ? {} : { paper: paperView(gw, seat, c) }),
   };
 }
 
@@ -226,7 +230,8 @@ function seatView(gw: GreatWar, seat: GwSeatState): GwSeatView {
     depts: deptViews(gw, seat, (ch) => dateOf(gw, ch)),
     room: roomView(gw, seat),
     time: timeView(gw, seat),
-    levers: leverViews(gw, seat),
+    levers: leverViews(),
+    todo: todoCount(gw, seat),
     aims: aimsView(gw, seat),
     claims: claimsView(gw, seat),
     table: tableView(gw, seat),
@@ -241,6 +246,7 @@ function seatView(gw: GreatWar, seat: GwSeatState): GwSeatView {
       const hidden = GW_HIDE_UNMET.includes(seat.tag) || d.unlisted === true;
       if (hidden && !metYet(seat, p, heard)) return [];
       if (opening && newcomers(gw, seat, [p.id]).length > 0) return [];
+      const todo = personTodo(gw, seat, p.id);
       return [
         {
           id: p.id,
@@ -250,6 +256,7 @@ function seatView(gw: GreatWar, seat: GwSeatState): GwSeatView {
           privateTopics,
           fit: d.fit,
           rivals: d.rivals,
+          ...(todo.length === 0 ? {} : { todo }),
         },
       ];
     }),

@@ -25,7 +25,7 @@ import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { createGameRunner, GameRunner } from "@openfront/engine/GameRunner";
 import { advanceChapter } from "@openfront/engine/ww1914/Chapters";
-import { roomView, taskOffers } from "@openfront/engine/ww1914/Departments";
+import { deptViews, roomView } from "@openfront/engine/ww1914/Departments";
 import { DeskTrace, watchDesk } from "@openfront/engine/ww1914/Desk";
 import { proposalsFor } from "@openfront/engine/ww1914/Fronts";
 import type { GreatWar } from "@openfront/engine/ww1914/GreatWar";
@@ -294,10 +294,11 @@ export function clearDesk(
 }
 
 /**
- * ww193: the departments heard as a player hears them: each head with papers
- * in comes in (the room's rows), a written task follows now and then (free
- * right after his briefing), and the petitioners as the habit has it. Talks
- * and papers this lays are left on the desk for clearDesk.
+ * ww196: the departments worked as a player works them: an idle one is given
+ * a task now and then (free), questions are answered, answers get a course
+ * (the department's own, mostly), a stall is hurried or waited out, an
+ * honours list is held and a petition taken; the petitioners as the habit
+ * has it. Talks this lays are left on the desk for clearDesk.
  */
 export function deptsAll(
   gw: GreatWar,
@@ -305,24 +306,81 @@ export function deptsAll(
   profile: GwSimProfile,
   roll: (below: number) => number,
 ): void {
+  for (const card of [...seat.desk]) {
+    const p = card.paper;
+    if (p === undefined) continue;
+    switch (p.form) {
+      case "question":
+        applyGwOrder(gw, seat, {
+          kind: "dept_reply",
+          card: card.uid,
+          pick: p.picks[roll(p.picks.length)],
+        });
+        break;
+      case "answer": {
+        if (p.courses.length === 0) break;
+        const own = p.courses.find((c) => c.id === p.own) ?? p.courses[0];
+        const pick = roll(100) < 70 ? own : p.courses[roll(p.courses.length)];
+        applyGwOrder(gw, seat, {
+          kind: "answer",
+          card: card.uid,
+          course: pick.id,
+          redo: null,
+        });
+        break;
+      }
+      case "stall":
+        if (p.reason === "moot") {
+          applyGwOrder(gw, seat, { kind: "read", card: card.uid });
+          break;
+        }
+        applyGwOrder(gw, seat, {
+          kind: "task_push",
+          office: p.office,
+          how: roll(2) === 0 ? "money" : "wait",
+          person: null,
+        });
+        break;
+      case "honours":
+        applyGwOrder(gw, seat, {
+          kind: "honours",
+          card: card.uid,
+          give: p.entries.map((e, at) => ({ at, honour: e.honour })),
+        });
+        break;
+      case "petition":
+        applyGwOrder(gw, seat, {
+          kind: "petition_answer",
+          card: card.uid,
+          answer: "accept",
+        });
+        break;
+      case "news":
+        applyGwOrder(gw, seat, { kind: "read", card: card.uid });
+        break;
+    }
+  }
+  for (const d of deptViews(gw, seat, () => "")) {
+    if (d.task !== null || d.offers.length === 0) continue;
+    if (roll(100) >= profile.summons) continue;
+    const o = d.offers[roll(d.offers.length)];
+    const topic = o.topics.length > 0 ? o.topics[roll(o.topics.length)] : null;
+    applyGwOrder(gw, seat, {
+      kind: "task",
+      office: d.office,
+      row: o.row,
+      topic,
+    });
+  }
   for (const r of roomView(gw, seat)) {
     if (timeLeft(seat) === 0) return;
-    if (r.petition) {
-      if (r.topic === undefined || roll(100) >= profile.summons) continue;
-      applyGwOrder(gw, seat, {
-        kind: "summon",
-        person: r.person,
-        topic: r.topic,
-      });
-      continue;
-    }
-    const office = r.office!;
-    if (applyGwOrder(gw, seat, { kind: "brief", office }) !== null) continue;
-    const offers = taskOffers(gw, seat, office);
-    if (offers.length === 0 || roll(100) >= profile.summons) continue;
-    const o = offers[roll(offers.length)];
-    const topic = o.topics.length > 0 ? o.topics[roll(o.topics.length)] : null;
-    applyGwOrder(gw, seat, { kind: "task", office, row: o.row, topic });
+    if (!r.petition || r.topic === undefined) continue;
+    if (roll(100) >= profile.summons) continue;
+    applyGwOrder(gw, seat, {
+      kind: "summon",
+      person: r.person,
+      topic: r.topic,
+    });
   }
 }
 

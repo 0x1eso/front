@@ -38,6 +38,7 @@ import {
   giveGift,
   giveTask,
   isPetitioner,
+  paperReadable,
   passOn,
   petitionerSeen,
   pushTask,
@@ -113,6 +114,7 @@ export function applyGwOrder(
       const scene = card === undefined ? null : sceneOf(card.scene);
       if (scene === null) return "no_card";
       if (!GW_READ_ONLY_KINDS.includes(scene.kind)) return "wrong_kind";
+      if (card !== undefined && !paperReadable(card)) return "wrong_kind";
       removeCard(seat, o.card);
       if (card !== undefined) deptRead(gw, seat, card);
       return null;
@@ -300,13 +302,13 @@ export function applyGwOrder(
     case "task":
       return giveTask(gw, seat, o.office, o.row, o.topic);
     case "brief":
-      return briefDept(gw, seat, o.office);
+      return briefDept();
     case "pass_on":
       return passOn(gw, seat, o.card, o.office);
     case "shelve":
       return shelvePaper(gw, seat, o.card);
     case "gift":
-      return giveGift(gw, seat, o.row, o.person);
+      return giveGift();
     case "turn_away":
       return turnAway(gw, seat, o.person);
     case "task_push":

@@ -9,7 +9,7 @@ import { budgetStep } from "./Budget";
 import { capitulationStep } from "./Capitulation";
 import { craftStep } from "./Craft";
 import { crisisStep, stampMobilisation } from "./Crises";
-import { carriedTime, closeDepts, openDepts } from "./Departments";
+import { carriedTime, closeDepts, markDesk, openDepts } from "./Departments";
 import { dealDesk } from "./Desk";
 import { dossierStep } from "./Dossier";
 import { closeGame, endingStep, finalEnding } from "./Endings";
@@ -18,6 +18,7 @@ import { govStep } from "./Government";
 import type { GreatWar } from "./GreatWar";
 import { homeStep } from "./Home";
 import { homeFrontStep } from "./HomeFront";
+import { closeHonours, openHonours } from "./Honours";
 import { houseStep } from "./House";
 import { intelStep } from "./Intel";
 import { ladderStep } from "./Ladder";
@@ -141,7 +142,9 @@ export function openChapter(gw: GreatWar, ticks: number): void {
     seat.acts = ch.acts + GW_TIME_EXTRA + carriedTime(seat);
     firstEdition(gw, seat);
     openDepts(gw, seat);
+    openHonours(gw, seat);
     dealDesk(gw, seat);
+    markDesk(gw, seat);
   }
   openSession(gw, ticks);
   gw.touch();
@@ -156,6 +159,7 @@ export function advanceChapter(
   const s = gw.s;
   // Nobody decided for a seat that isn't there: that is the proxy's stamp too.
   for (const seat of s.seats) {
+    closeHonours(gw, seat);
     closeDepts(gw, seat);
     closeUndecided(gw, seat, late || !waitedFor(seat));
   }

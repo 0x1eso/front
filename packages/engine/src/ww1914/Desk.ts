@@ -21,7 +21,6 @@ import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
 import { GW_OPENING_DESK } from "@openfront/engine-lib/ww1914/StoryRows";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { spentTalk } from "./AskFirst";
-import { routeInitiatives } from "./Departments";
 import type { GreatWar } from "./GreatWar";
 import { lawReplaces } from "./Laws";
 import {
@@ -654,18 +653,11 @@ function castIds(gw: GreatWar, seat: GwSeatState, scene: GwScene): string[] {
 export function dealDesk(gw: GreatWar, seat: GwSeatState): void {
   settlePromises(gw, seat);
   const called = takeDue(gw, seat);
-  // ww193: the departments' own papers go to their heads' trays.
-  const routed = routeInitiatives(
-    gw,
-    seat,
-    deskCandidates(gw, seat).filter(
-      (c) => !called.some((q) => q.scene === c.scene),
-    ),
+  // ww196: the departments' own papers stay on the desk (markDesk).
+  const due = called;
+  const all = deskCandidates(gw, seat).filter(
+    (c) => !called.some((q) => q.scene === c.scene),
   );
-  // ww193 merge: a counter-paper a rival brought with them is in a tray now.
-  const held = new Set((seat.depts?.tray ?? []).map((c) => c.scene));
-  const due = called.filter((q) => q.act !== null || !held.has(q.scene.id));
-  const all = routed.filter((c) => !held.has(c.scene.id));
   const big = bigDue(due, all);
   if (big !== null && dealBig(gw, seat, big, due, all)) return;
   const dueCards: GwCard[] = [];

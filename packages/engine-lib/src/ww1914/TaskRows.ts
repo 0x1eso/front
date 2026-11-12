@@ -21,30 +21,29 @@ import type {
 } from "@openfront/engine-api/ww1914/GwDepts";
 import type { GwEffect, GwOption } from "@openfront/engine-api/ww1914/SceneDsl";
 
-/** What each kind of business costs from the one time pool (남은 일정). */
+/**
+ * What each kind of business costs from the one time pool (남은 일정). ww196:
+ * giving a task is free and nothing is briefed; `brief` and `task` stay only
+ * for the ww193 client until U1 drops them.
+ */
 export const GW_TIME_PRICES = {
-  /** Seeing a head: everything he brings. */
   brief: 1,
-  /** A task by written order; free after his briefing this chapter. */
-  task: 1,
+  task: 0,
   act: 1,
   ceremony: 1,
   trip: 2,
   /** A petitioner, as a summons. */
   petition: 1,
+  /** ww196: 불러서 묻는다, a head called about his paper. */
+  call: 1,
+  /** ww196: the 서훈식. */
+  honours: 1,
 } as const;
 
 /** Time added to every chapter's pool on top of the summons and the slots. */
 export const GW_TIME_EXTRA = 0;
 /** Unspent time that carries to the next chapter, at most. */
 export const GW_TIME_CARRY = 1;
-/** Chapters a ready paper waits unheard before the department acts (대행). */
-export const GW_TRAY_WAIT = 2;
-/** Initiatives a head brings a chapter: idle, and busy on a task. */
-export const GW_INITIATIVES_IDLE = 3;
-export const GW_INITIATIVES_BUSY = 1;
-/** Papers a tray holds at most; past this the desk keeps them. */
-export const GW_TRAY_MAX = 3;
 /** Petitioners in the room a chapter, at most. */
 export const GW_PETITIONERS_MAX = 3;
 /** Chapters before a task row is offered again; a row may set its own. */
@@ -269,23 +268,6 @@ export function taskRow(c: GwDeptContent | undefined, id: string) {
   return (c?.tasks ?? []).find((t) => t.id === id) ?? null;
 }
 
-/**
- * ww193 merge: a picked topic (a country, a front) narrows a row's products.
- * A paper whose id names another of the row's topics, as a whole `_` part
- * ("deu_dept_kin_grc" for GRC), is not this topic's; papers that name none
- * stay. So one row can list every country's papers.
- */
-export function productFitsTopic(
-  id: string,
-  topic: string | null,
-  topics: readonly string[],
-): boolean {
-  if (topic === null || topics.length < 2) return true;
-  const parts = id.toLowerCase().split("_");
-  if (parts.includes(topic.toLowerCase())) return true;
-  return !topics.some((t) => parts.includes(t.toLowerCase()));
-}
-
 /** Rows for this seat and office, in content order. */
 export function taskRowsFor(
   c: GwDeptContent | undefined,
@@ -435,4 +417,41 @@ export function joinDepts(parts: readonly GwDeptContent[]): GwDeptContent {
     honours: parts.flatMap((p) => p.honours ?? []),
     orders: parts.flatMap((p) => p.orders ?? []),
   };
+}
+
+// ---- ww196: courses and leans ----
+
+/** The lean that pulls hardest against each: a slanting head's dislike. */
+export const GW_LEAN_OPPOSITE: Readonly<Record<GwLean, GwLean>> = {
+  firm: "gentle",
+  gentle: "firm",
+  cheap: "bold",
+  calm: "firm",
+  wait: "bold",
+  bold: "wait",
+};
+
+/**
+ * The course a head of `lean` calls his own: the writer's pick if listed,
+ * else the first that reads as his lean, else the first. Null with none.
+ */
+export function courseLeanPick(
+  courses: readonly { id: string; lean: readonly GwLean[] }[],
+  lean: GwLean,
+  pick?: string,
+): string | null {
+  if (courses.length === 0) return null;
+  if (pick !== undefined && courses.some((c) => c.id === pick)) return pick;
+  return (courses.find((c) => c.lean.includes(lean)) ?? courses[0]).id;
+}
+
+/** The course he likes least among `others`: his opposite lean, else the last. */
+export function dislikedCourse(
+  others: readonly { id: string; lean: readonly GwLean[] }[],
+  lean: GwLean,
+): string | null {
+  if (others.length === 0) return null;
+  const opp = GW_LEAN_OPPOSITE[lean];
+  return (others.find((c) => c.lean.includes(opp)) ?? others[others.length - 1])
+    .id;
 }
