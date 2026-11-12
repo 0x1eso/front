@@ -19064,7 +19064,8 @@
         "state": "나라",
         "vassal": "속국"
       },
-      "crown_empty": "왕관이 비어 있다.",
+      "crown_empty": "아직 비어 있다",
+      "crown_set": "주인이 정해졌다",
       "do": {
         "ally": "동맹에게 준다",
         "annex": "합병한다",

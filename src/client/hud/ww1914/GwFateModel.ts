@@ -76,10 +76,13 @@ export function crownName(pick: string | null | undefined): string {
   if (pick === null || pick === undefined) {
     return translateText("gw.fate.crown_empty");
   }
-  const key = `gw.crown.${pick}`;
-  const own = translateText(key);
-  if (own !== key) return own;
-  return pick === GW_REGENCY ? translateText("gw.fate.regency") : pick;
+  for (const key of [`gw.crown.${pick}`, `gw.fate.crown.${pick}`]) {
+    const own = translateText(key);
+    if (own !== key) return own;
+  }
+  return translateText(
+    pick === GW_REGENCY ? "gw.fate.regency" : "gw.fate.crown_set",
+  );
 }
 
 // ---- What a place can become ----

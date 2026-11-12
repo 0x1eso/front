@@ -146,8 +146,13 @@ function signRow(c: GwCtx, draft: readonly GwPlace[]): TemplateResult {
 }
 
 /** One land's fate: a chip that cycles the fates, a second for what it needs. */
-function fateRow(c: GwCtx, group: string): TemplateResult {
-  const places = landPlaces(c.seat.tag, group);
+function fateRow(
+  c: GwCtx,
+  group: string,
+  draft: readonly GwPlace[],
+): TemplateResult {
+  // The places painted in this land: what the chip shows and offers.
+  const places = landPlaces(c.seat.tag, group).filter((p) => draft.includes(p));
   const ch = choicesFor(c.seat, places);
   const now = landMark(c.seat.claims?.fates, places);
   const mark = now === "mixed" ? null : now;
@@ -174,16 +179,17 @@ function fateRow(c: GwCtx, group: string): TemplateResult {
     </button>
     ${detail === null
       ? nothing
-      : html`<button
-          class="${BTN} !px-2 !py-1"
-          data-gw-fate-detail=${group}
-          ?disabled=${more === null}
-          @click=${() => {
-            if (more !== null) c.send(fateOrder({ group }, more));
-          }}
-        >
-          ${detail}
-        </button>`}
+      : more === null
+        ? html`<span class=${CHIP} data-gw-fate-detail=${group}
+            >${detail}</span
+          >`
+        : html`<button
+            class="${BTN} !px-2 !py-1"
+            data-gw-fate-detail=${group}
+            @click=${() => c.send(fateOrder({ group }, more))}
+          >
+            ${detail}
+          </button>`}
   </div>`;
 }
 
@@ -196,7 +202,7 @@ function fateBox(c: GwCtx, draft: readonly GwPlace[]) {
   return html`<section class=${BOX} data-gw-fates>
     <h3 class=${HEAD}>${translateText("gw.ui.fate_title")}</h3>
     <p class=${MUTED}>${translateText("gw.ui.fate_how")}</p>
-    ${groups.map((g) => fateRow(c, g))}
+    ${groups.map((g) => fateRow(c, g, draft))}
   </section>`;
 }
 
@@ -313,8 +319,8 @@ function claimRow(c: GwCtx, x: GwTableClaimView): TemplateResult {
       class="h-2.5 w-2.5 shrink-0 rounded-sm"
       style=${ink(x.state === "dropped" ? "free" : x.state)}
     ></span>
-    <span class="truncate text-white/90">${placeName(x.place)}</span>
-    <span class="${MUTED} ml-auto shrink-0"
+    <span class="shrink-0 text-white/90">${placeName(x.place)}</span>
+    <span class="${MUTED} ml-auto min-w-0 text-right"
       >${countryName(x.against)} → ${countryName(x.by)} ·
       ${translateText(
         x.state === "traded" && x.offer !== null
@@ -527,7 +533,7 @@ function fateButtons(c: GwCtx, t: GwTableView, armed: GwPlace) {
           </button>`,
       )}
     </div>
-    ${details.length < 2
+    ${details.length === 0
       ? nothing
       : html`<div class="flex flex-wrap gap-1">${details}</div>`}
   </div>`;
@@ -662,8 +668,8 @@ function treatyFates(t: GwTableView) {
     ${given.map(
       (x) =>
         html`<li class="flex gap-1.5" data-gw-treaty-fate=${x.fate ?? "annex"}>
-          <span class="truncate text-white/90">${placeName(x.place)}</span>
-          <span class="${MUTED} ml-auto shrink-0"
+          <span class="shrink-0 text-white/90">${placeName(x.place)}</span>
+          <span class="${MUTED} ml-auto min-w-0 text-right"
             >${countryName(x.by)} ·
             ${markWord({
               fate: x.fate ?? "annex",

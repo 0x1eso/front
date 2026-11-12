@@ -2761,7 +2761,8 @@
         "state": "New state",
         "vassal": "Vassal"
       },
-      "crown_empty": "The throne is empty.",
+      "crown_empty": "not yet filled",
+      "crown_set": "someone is on it",
       "do": {
         "ally": "Give it to an ally",
         "annex": "Annex it",
