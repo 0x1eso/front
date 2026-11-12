@@ -6,7 +6,14 @@ import { translateText } from "../../Utils";
 import { footingChip } from "./GwCraft";
 import type { GwCtx } from "./GwCtx";
 import { houseChip } from "./GwHouse";
-import { clock, gaugeFill, gaugeLevel, secondsLeft, tempBand } from "./GwModel";
+import {
+  clock,
+  crisisShown,
+  gaugeFill,
+  gaugeLevel,
+  secondsLeft,
+  tempBand,
+} from "./GwModel";
 import { gaugeTitle } from "./GwNow";
 import { CHIP, fillColor, GLASS } from "./GwStyle";
 import { fullDate } from "./GwText";
@@ -58,7 +65,7 @@ export function band(c: GwCtx): TemplateResult {
             })}</span
           >`
         : nothing}
-      ${data.stage === "crisis" || (seat.world.chain ?? null) !== null
+      ${crisisShown(data, seat)
         ? html`<span
             class=${CHIP}
             data-gw-temp

@@ -264,6 +264,16 @@ function aimRow(c: GwCtx, id: string): TemplateResult {
   </div>`;
 }
 
+/**
+ * ww194: the aim asked in peace speaks of the country, not "this war": a seat
+ * still out of the war read "이 전쟁이 무엇을 위한 것인지" beside "평화".
+ */
+function aimKey(c: GwCtx, line: "ask" | "nudge"): string {
+  const peace = c.seat.world.side === null;
+  if (line === "ask") return peace ? "gw.aim.ask_peace" : "gw.aim.ask";
+  return peace ? "gw.aim.nudge_peace" : "gw.aim.nudge";
+}
+
 function aimBox(c: GwCtx): TemplateResult | typeof nothing {
   const a = c.seat.aims;
   if (a === null || a === undefined) return nothing;
@@ -274,7 +284,7 @@ function aimBox(c: GwCtx): TemplateResult | typeof nothing {
     <h3 class=${HEAD}>${translateText("gw.aim.title")}</h3>
     ${a.aim === null
       ? html`<p class="text-sm text-white/75">
-          ${translateText("gw.aim.ask")}
+          ${translateText(aimKey(c, "ask"))}
         </p>`
       : html`<p class="text-sm font-bold text-amber-100" data-gw-aim-now>
             ${words?.name ?? a.aim}
@@ -457,6 +467,6 @@ export function aimNudge(c: GwCtx): TemplateResult | typeof nothing {
       c.redraw();
     }}
   >
-    ${translateText("gw.aim.nudge")}
+    ${translateText(aimKey(c, "nudge"))}
   </button>`;
 }

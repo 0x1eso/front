@@ -7,7 +7,7 @@ import type {
   GwSeatView,
 } from "@openfront/engine-api/ww1914/GwView";
 import type { GameRunner } from "@openfront/engine/GameRunner";
-import { gwView } from "@openfront/engine/ww1914/View";
+import { gwDeskView, gwView } from "@openfront/engine/ww1914/View";
 import { HUMAN, stamped, step, wwRunnerCapture } from "../ww1936/util";
 
 export { HUMAN };
@@ -42,10 +42,14 @@ export function order(r: GameRunner, o: GwOrder): void {
   step(r, 1);
 }
 
-/** Decides every card the plain way and says ready. */
+/**
+ * Decides every card the plain way and says ready. It reads only the desk,
+ * not the whole view: a long game spends most of its time in views.
+ */
 export function playChapter(r: GameRunner): void {
+  const gw = r.game.greatWar()!;
   for (let guard = 0; guard < 50; guard++) {
-    const card = seat(r).desk[0];
+    const card = gwDeskView(gw, gw.s.seats[0])[0];
     if (card === undefined) break;
     if (card.node !== null) {
       const reply = card.replies.find((x) => x.open)!;
@@ -57,5 +61,5 @@ export function playChapter(r: GameRunner): void {
       order(r, { kind: "read", card: card.uid });
     }
   }
-  order(r, { kind: "ready", chapter: view(r).chapter, on: true });
+  order(r, { kind: "ready", chapter: gw.s.chapter, on: true });
 }

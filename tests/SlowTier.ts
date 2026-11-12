@@ -82,6 +82,7 @@ export const SLOW_TESTS: readonly string[] = [
   "tests/ww1914/BudgetGame.test.ts",
   "tests/ww1914/Content.test.ts",
   "tests/ww1914/Desk.test.ts",
+  "tests/ww1914/FiveSeatSync.test.ts",
   "tests/ww1914/Friends.test.ts",
   "tests/ww1914/GbrPrologue.test.ts",
   "tests/ww1914/Government.test.ts",

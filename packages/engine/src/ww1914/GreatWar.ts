@@ -108,6 +108,18 @@ export const GreatWarSnapshot = snapshotType({
   },
 });
 
+/**
+ * The state as a restore reads it back: the schema's key order everywhere, so
+ * a save encodes the same bytes as the game restored from it, whatever order
+ * the fields were first set in (a seat's powers after its craft, a log line's
+ * `act` before its `who`). Live state that the schema refuses is saved as it
+ * is; loading that save names the bad field.
+ */
+export function canonicalGreatWar(s: GreatWarState): GreatWarState {
+  const parsed = GreatWarStateSchema.safeParse(s);
+  return parsed.success ? parsed.data : s;
+}
+
 /** Every value of the state, whatever its shape; key order doesn't count. */
 function fold(h: number, v: unknown): number {
   if (typeof v === "number") return (Math.imul(h, 31) + v) | 0;

@@ -727,7 +727,14 @@ describe("the screens", () => {
       dropped: [],
     };
     const { panel, orders } = await mount(seatWith({ aims }));
+    // ww194: in peace it asks what the country is after, not "this war".
+    expect(panel.querySelector("[data-gw-aim-nudge]")!.textContent).toContain(
+      "gw.aim.nudge_peace",
+    );
     await tap(panel, "[data-gw-aim-nudge]");
+    expect(panel.querySelector("[data-gw-aims]")!.textContent).toContain(
+      "gw.aim.ask_peace",
+    );
     expect(panel.querySelector("[data-gw-aim-priced]")).toBeNull();
     await tap(panel, "[data-gw-aim-pick=t_aim_a]");
     expect(panel.querySelector("[data-gw-aims]")!.textContent).toContain(
@@ -880,6 +887,28 @@ describe("the screens", () => {
     expect(panel.querySelector("[data-gw-temp]")!.textContent).toBe(
       "gw.ui.temp.3",
     );
+  });
+
+  test("a war come early in the crisis chapters shows no crisis beside it (ww194)", async () => {
+    const d = {
+      ...data([], {
+        side: "central",
+        chain: null,
+        countries: [
+          { tag: "AUH", side: "central", out: false, mob: 2 },
+          { tag: "RUS", side: "entente", out: false, mob: 2 },
+        ],
+      }),
+      stage: "crisis" as const,
+      temp: 4,
+    };
+    const { panel } = await mount(d);
+    expect(nowText(panel)).toEqual([
+      "gw.ui.now.war",
+      "gw.ui.now.no_crisis",
+      "gw.ui.now.wait_none",
+    ]);
+    expect(panel.querySelector("[data-gw-temp]")).toBeNull();
   });
 
   test("gauges, chips and numbers carry their names and a word", async () => {
@@ -1036,6 +1065,10 @@ describe("departments at work (ww193)", () => {
     ]);
     // The briefing opens in the talk's column, waiting for his papers.
     expect(panel.querySelector("[data-gw-briefing=deu_jagow]")).not.toBeNull();
+    // ww194: the drawer steps away as for a talk (on a phone it showed through).
+    expect(
+      panel.querySelector("[data-gw-drawer]")!.classList.contains("invisible"),
+    ).toBe(true);
   });
 
   test("work is given from the department row: a topic first, then one order", async () => {
@@ -1085,6 +1118,10 @@ describe("departments at work (ww193)", () => {
     expect(
       brief.querySelector("[data-gw-card] [data-gw-dept-chip=foreign]"),
     ).not.toBeNull();
+    // ww194: the paper names the work it answers.
+    expect(
+      brief.querySelector("[data-gw-card] [data-gw-dept-work]")!.textContent,
+    ).toBe("gw.country.ROU 문제를 맡긴다");
     await tap(panel, "[data-gw-briefing] [data-gw-open='1']");
     const reader = panel.querySelector("[data-gw-reader]")!;
     expect(reader.querySelector("[data-gw-dept-line]")).not.toBeNull();

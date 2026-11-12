@@ -458,9 +458,18 @@ export function deptChips(
 ): TemplateResult | typeof nothing {
   const d = card.dept;
   if (d === undefined) return nothing;
+  // ww194: the work it answers, so a commission's paper says which one.
+  const work =
+    d.row !== null
+      ? taskName(c, d.row, d.topic)
+      : d.topic !== null
+        ? topicWord(c, d.topic)
+        : null;
   return html`<span class=${CHIP} data-gw-dept-chip=${d.office}
       >${deptName(c, d.office)}</span
-    >${d.counter
+    >${work === null
+      ? nothing
+      : html`<span class=${CHIP} data-gw-dept-work>${work}</span>`}${d.counter
       ? html`<span class=${CHIP} data-gw-dept-counter
           >${translateText("gw.ui.dept.counter")}</span
         >`

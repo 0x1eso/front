@@ -239,7 +239,7 @@ export class GwLens extends LitElement implements Controller {
     if (data === null || seat === null || seat.prologue?.done === false) {
       return nothing;
     }
-    if (gwMapState.busy) return nothing;
+    if (gwMapState.busy || gwMapState.covered === true) return nothing;
     const lens = gwMapState.lens;
     return html`<div
       data-gw-lens

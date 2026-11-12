@@ -23,6 +23,8 @@
     "scripts/warfare-sim-report.ts",
     "scripts/ww1936",
     "scripts/ww1914-sim.ts",
+    "scripts/ww1914-seek.ts",
+    "scripts/ww1914-regate.ts",
     "vite.config.ts"
   ],
   "exclude": [
