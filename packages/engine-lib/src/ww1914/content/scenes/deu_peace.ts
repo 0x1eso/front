@@ -278,7 +278,9 @@ const SCENES: readonly GwScene[] = [
     salience: 4,
     tags: ["foreign", "tension_down"],
     once: false,
-    cooldown: 0,
+    // ww190: spaced out and capped, with three more clippings to turn.
+    cooldown: 3,
+    max: 5,
     stamp: "confirmed",
     source: "press",
     variants: [
@@ -287,6 +289,9 @@ const SCENES: readonly GwScene[] = [
       { id: "ulster" },
       { id: "unions" },
       { id: "budget" },
+      { id: "albania" },
+      { id: "dreadnoughts" },
+      { id: "zeppelin" },
     ],
   }),
   decision("deu_w_late_mobilise", {

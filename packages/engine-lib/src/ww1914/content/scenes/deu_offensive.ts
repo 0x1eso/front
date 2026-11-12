@@ -232,6 +232,9 @@ export const DEU_OFFENSIVE_SCENES: readonly GwScene[] = [
       { id: "gave", when: foe({ result: ["bite"], min: 2 }) },
       { id: "held_first", when: foe({ result: HELD, max: 1 }) },
       { id: "held", when: foe({ result: HELD, min: 2 }) },
+      // ww190: a second body for the commonest round, taking turns with it.
+      { id: "held_again", when: foe({ result: HELD, min: 2 }) },
+      { id: "quiet_front" },
       { id: "base" },
     ],
   }),
