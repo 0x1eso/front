@@ -18,7 +18,6 @@ import {
   trustOf,
 } from "@openfront/engine-api/ww1914/SceneDsl";
 import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
-import { AUH_HONOURS_KEY } from "../depts/auh";
 import {
   able,
   atWar,
@@ -252,8 +251,16 @@ const ORDERS: GwAct[] = [
     fields: [list("subject", "north", "south")],
     effects: [reveal("auh_rail_muddle")],
   }),
-  // ww193: the inquiry is a commission now: the foreign office's task row
-  // auh_task_inquiry (content/depts/auh.ts) brings auh_a_o_inquiry_r.
+  // ww196: back from the departments (design ww195 §5): an order again.
+  act("auh_a_o_inquiry", "order", "auh_a_o_inquiry_r", 1, {
+    when: {
+      kind: "opening",
+      of: ["sarajevo", "sarajevo_survived", "sarajevo_failed"],
+    },
+    once: true,
+    fields: [list("subject", "officers", "ministers")],
+    effects: [reveal("srb_officers_plot")],
+  }),
   act("auh_a_o_redl", "order", "auh_a_o_redl_r", 1, {
     once: true,
     effects: [reveal("auh_redl_plans")],
@@ -464,12 +471,7 @@ const ceremonyMade = (key: string): GwEffect => ({
 
 /** ww193 의식: the schedule's ceremonies; their scenes are in content/depts. */
 const CEREMONIES: GwAct[] = [
-  // The Maria Theresa Order to the names the military chancellery listed.
-  act("auh_a_c_investiture", "ceremony", "auh_d_c_investiture", 0, {
-    when: { kind: "memory", key: AUH_HONOURS_KEY, within: 8 },
-    cooldown: 8,
-    effects: [opinion("army", 1), ceremonyMade("auh_d_invested")],
-  }),
+  // ww196: the Maria Theresa investiture went to the 서훈식 (Honours.ts).
   // The old emperor's funeral, soon after the new reign begins.
   act("auh_a_c_funeral", "ceremony", "auh_d_c_funeral", 0, {
     when: any(
