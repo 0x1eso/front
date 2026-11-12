@@ -271,7 +271,8 @@ const TALKS: readonly GwScene[] = [
     id: "auh_y_balkan_accord",
     when: all(
       peaceFor(3),
-      pressureIs("balkan", 3),
+      // ww190 tune: was 3; the accord is sought once the question has ripened.
+      pressureIs("balkan", 14),
       not(accordIn("balkan")),
       not(offered),
     ),
@@ -392,7 +393,8 @@ const INCIDENTS: readonly GwScene[] = [
   }),
   card({
     id: "auh_y_inc_border",
-    when: all(peaceFor(1), pressureIs("balkan", 7, 8)),
+    // ww190 tune: the border incident comes later (was 7 to 8).
+    when: all(peaceFor(1), pressureIs("balkan", 14, 17)),
     cast: { fm: FM, cos: COS },
     vs: [["race", race("RUS")], ["base"]],
     picks: [
@@ -410,9 +412,11 @@ const INCIDENTS: readonly GwScene[] = [
   }),
   card({
     id: "auh_y_inc_romania",
-    when: all(peaceFor(2), pressureIs("balkan", 4)),
+    // ww190 tune: incidents ripen in turn as pressure climbs (about a point a
+    // month in peace), not all in the first autumn.
+    when: all(peaceFor(2), pressureIs("balkan", 12)),
     cast: { hun: HUN, fm: FM },
-    vs: [["hot", pressureIs("balkan", 7)], ["base"]],
+    vs: [["hot", pressureIs("balkan", 15)], ["base"]],
     picks: [
       pick("schools", inst("hungary", -1), inst("nations", 1), trust("ROU", 1)),
       pick(
@@ -427,9 +431,11 @@ const INCIDENTS: readonly GwScene[] = [
   }),
   card({
     id: "auh_y_inc_galicia",
-    when: all(peaceFor(2), pressureIs("poland", 4)),
+    // ww190 tune: incidents ripen in turn as pressure climbs (about a point a
+    // month in peace), not all in the first autumn.
+    when: all(peaceFor(2), pressureIs("poland", 16)),
     cast: { pm: PM, fm: FM },
-    vs: [["hot", pressureIs("poland", 7)], ["base"]],
+    vs: [["hot", pressureIs("poland", 19)], ["base"]],
     picks: [
       pick("trial", trust("RUS", -1), gauge("order", 1), pressure("poland", 1)),
       pick("quiet", pressure("poland", -1), inst("army", -1)),
@@ -441,10 +447,11 @@ const INCIDENTS: readonly GwScene[] = [
     id: "auh_y_inc_asia",
     when: all(
       peaceFor(3),
-      any(pressureIs("straits", 4), pressureIs("colonial", 4)),
+      // ww190 tune: incidents ripen in turn as pressure climbs.
+      any(pressureIs("straits", 20), pressureIs("colonial", 20)),
     ),
     cast: { fm: FM },
-    vs: [["straits", pressureIs("straits", 4)], ["base"]],
+    vs: [["straits", pressureIs("straits", 20)], ["base"]],
     picks: [
       pick("seek", trust("ITA", -1), trust("OTT", 1), pressure("colonial", 1)),
       pick("drop", bond("DEU", 1), pressure("colonial", -1)),
@@ -457,7 +464,8 @@ const INCIDENTS: readonly GwScene[] = [
 const HOME: readonly GwScene[] = [
   card({
     id: "auh_y_home_bohemia",
-    when: peaceFor(4),
+    // ww190 tune: the home goes on from the first month after the summer.
+    when: peaceFor(0),
     cast: { pm: PM },
     vs: [["strike", low("order", 2)], ["base"]],
     picks: [
@@ -473,7 +481,9 @@ const HOME: readonly GwScene[] = [
   }),
   card({
     id: "auh_y_home_nowar",
-    when: peaceFor(18),
+    // ww190 tune: a year and a half after the summer (peace_months counts
+    // from the last crisis, so 18 of them never came), two quiet months on.
+    when: all(peaceFor(2), w({ is: "date", from: "1916-01" })),
     cast: { cos: COS },
     vs: [["armed", arming(2)], ["base"]],
     picks: [

@@ -125,7 +125,8 @@ export function timesDealt(seat: GwSeatState, scene: string): number {
 /**
  * The most times the desk draws `scene` in a game: its own `max`, else
  * GW_REPEAT_MAX, else none for the accounts, the quiet card, the schedule's
- * acts and the house's papers. Scheduled cards aren't drawn, so never capped.
+ * acts and the house's papers. ww190 tune: a called card is held to it too
+ * (takeDue), except the crisis's, must-reads, acts and papers sent back.
  */
 export function repeatCap(scene: GwScene): number {
   if (scene.max !== undefined) return scene.max;
@@ -506,7 +507,23 @@ function takeDue(gw: GreatWar, seat: GwSeatState): Due[] {
     const fits =
       scene === undefined ||
       assumesHold({ gw, seat, cast: {}, act, back: q.back ?? null }, scene);
-    if (scene !== undefined && !twice && !overWithTheWar(gw, scene) && fits) {
+    // ww190 tune: a called paper that came as often as the draw allows
+    // (repeatCap) comes no more, unless the schedule or a sent-back paper
+    // brings it, or it is the crisis's or a must-read.
+    const spent =
+      scene !== undefined &&
+      act === null &&
+      (q.back ?? null) === null &&
+      scene.essential !== true &&
+      scene.kind !== "crisis" &&
+      timesDealt(seat, scene.id) >= repeatCap(scene);
+    if (
+      scene !== undefined &&
+      !twice &&
+      !spent &&
+      !overWithTheWar(gw, scene) &&
+      fits
+    ) {
       out.push({ scene, who, act, back: q.back ?? null });
     }
     return false;

@@ -219,13 +219,20 @@ export function openFirstCrisis(gw: GreatWar): void {
 }
 
 /**
- * ww190: the question that sparks is the one under most pressure; a tie is
- * the seed's.
+ * ww190 tune: questions this close to the hottest are as hot. Pressure only
+ * climbs in peace, so the first question stayed on top for good and every
+ * later spark was the Balkans'; within this many points the seed picks.
+ */
+export const GW_SPARK_NEAR = 4;
+
+/**
+ * ww190: the question that sparks is one under most pressure; a near tie
+ * (GW_SPARK_NEAR) is the seed's.
  */
 function hottestTopic(gw: GreatWar): GwTopic {
   const s = gw.s;
   const top = Math.max(...SPARK_TOPICS.map((t) => s.pressure[t]));
-  const tied = SPARK_TOPICS.filter((t) => s.pressure[t] === top);
+  const tied = SPARK_TOPICS.filter((t) => s.pressure[t] >= top - GW_SPARK_NEAR);
   return tied[wwRoll(s.seed, P_SPARK, s.chains.length, 2) % tied.length];
 }
 

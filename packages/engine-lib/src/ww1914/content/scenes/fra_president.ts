@@ -342,7 +342,9 @@ const LIFE: GwScene[] = [
   ),
   own(
     "fra_pr_quiet_years",
-    peace(18),
+    // ww190 tune: well over a year after the summer; peace_months counts
+    // from the last crisis, so 18 of them never came.
+    all(peace(2), world({ is: "date", from: "1916-03" })),
     [v("base")],
     [
       ["write", []],

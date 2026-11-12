@@ -291,13 +291,14 @@ const TALKS: GwScene[] = [
       peaceFor(4),
       not(w({ is: "accord", tag: "GBR" })),
       not(offered()),
-      any(pressure("naval", 5), pressure("colonial", 4), race("GBR")),
+      // ww190 tune: was 5 and 4; talks are sought once the questions ripen.
+      any(pressure("naval", 14), pressure("colonial", 14), race("GBR")),
     ),
     cast: { chancellor, navy, london },
     salience: 7,
     tags: ["foreign", "tension_down"],
     once: true,
-    variants: [v("naval", pressure("naval", 5)), v("base")],
+    variants: [v("naval", pressure("naval", 14)), v("base")],
     options: (p) => [
       p("not_now", trusts("navy", 1), press("naval", 1)),
       p(
@@ -405,12 +406,14 @@ const INCIDENTS: GwScene[] = [
   }),
   card({
     id: "deu_y_inc_alsace",
-    when: all(peaceFor(1), pressure("alsace", 4)),
+    // ww190 tune: incidents ripen in turn as pressure climbs (about a point a
+    // month in peace), not all in the first autumn.
+    when: all(peaceFor(1), pressure("alsace", 10)),
     cast: { war, interior },
     salience: 6,
     tags: ["home", "foreign", "tension_up"],
     cooldown: 4,
-    variants: [v("hot", pressure("alsace", 7)), v("base")],
+    variants: [v("hot", pressure("alsace", 13)), v("base")],
     options: (p) => [
       p("consul", press("alsace", -1), trust("FRA", 1), inst("army", -1)),
       p("harsh", gauge("order", 1), trust("FRA", -1), press("alsace", 1)),
@@ -419,12 +422,14 @@ const INCIDENTS: GwScene[] = [
   }),
   card({
     id: "deu_y_inc_balkan",
-    when: all(peaceFor(2), pressure("balkan", 4)),
+    // ww190 tune: incidents ripen in turn as pressure climbs (about a point a
+    // month in peace), not all in the first autumn.
+    when: all(peaceFor(2), pressure("balkan", 15)),
     cast: { foreign, vienna },
     salience: 7,
     tags: ["foreign", "tension_up"],
     cooldown: 4,
-    variants: [v("hot", pressure("balkan", 7)), v("base")],
+    variants: [v("hot", pressure("balkan", 18)), v("base")],
     options: (p) => [
       p("restrain", bondBy("AUH", -1), press("balkan", -1), trust("RUS", 1)),
       p("back_vienna", bondBy("AUH", 1), temp(1), press("balkan", 1)),
@@ -439,12 +444,14 @@ const INCIDENTS: GwScene[] = [
   }),
   card({
     id: "deu_y_inc_straits",
-    when: all(peaceFor(2), pressure("straits", 4)),
+    // ww190 tune: incidents ripen in turn as pressure climbs (about a point a
+    // month in peace), not all in the first autumn.
+    when: all(peaceFor(2), pressure("straits", 20)),
     cast: { foreign, war },
     salience: 6,
     tags: ["foreign", "tension_up"],
     cooldown: 4,
-    variants: [v("hot", pressure("straits", 7)), v("base")],
+    variants: [v("hot", pressure("straits", 23)), v("base")],
     options: (p) => [
       p("quiet", press("straits", -1), trusts("war", -1)),
       p("stay", trust("OTT", 1), trust("RUS", -1), press("straits", 1)),
@@ -458,7 +465,8 @@ const INCIDENTS: GwScene[] = [
 const HOME: GwScene[] = [
   card({
     id: "deu_y_home_strike",
-    when: all(peaceFor(4), { kind: "gauge", gauge: "order", max: 4 }),
+    // ww190 tune: the home goes on from the first month after the summer.
+    when: all(peaceFor(0), { kind: "gauge", gauge: "order", max: 4 }),
     cast: { interior, chancellor },
     salience: 6,
     tags: ["home"],
@@ -477,7 +485,9 @@ const HOME: GwScene[] = [
   }),
   card({
     id: "deu_y_home_long",
-    when: peaceFor(18),
+    // ww190 tune: a year and a half after the summer (peace_months counts
+    // from the last crisis, so 18 of them never came), two quiet months on.
+    when: all(peaceFor(2), w({ is: "date", from: "1916-01" })),
     cast: { chancellor, cos },
     salience: 8,
     tags: ["home", "tension_down"],

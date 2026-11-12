@@ -8,6 +8,7 @@ import {
 import type { GameRunner } from "@openfront/engine/GameRunner";
 import {
   bodyId,
+  dealDesk,
   deskCandidates,
   GW_REPEAT_MAX,
   repeatCap,
@@ -74,6 +75,31 @@ describe("the repeat cap", () => {
     } finally {
       useGwContent(null);
     }
+  });
+});
+
+describe("the repeat cap on called cards (ww190 tune)", () => {
+  const FEELER = "gw_peace_feeler";
+  const called = (dealtBefore: number, act: number | null = null) => {
+    const seat = st();
+    seat.desk = [];
+    for (let i = 0; i < dealtBefore; i++) {
+      seat.shown.push(bodyId(FEELER, "base"));
+    }
+    seat.seen[FEELER] = 0;
+    gw.s.chapter += 3;
+    seat.scheduled.push({ scene: FEELER, chapter: gw.s.chapter, act });
+    dealDesk(gw, seat);
+    return seat.desk.some((c) => c.scene === FEELER);
+  };
+
+  test("a called card that came four times still comes", () => {
+    expect(called(GW_REPEAT_MAX - 1)).toBe(true);
+  });
+
+  test("a called card that came five times comes no more", () => {
+    expect(called(GW_REPEAT_MAX)).toBe(false);
+    expect(st().scheduled.some((q) => q.scene === FEELER)).toBe(false);
   });
 });
 

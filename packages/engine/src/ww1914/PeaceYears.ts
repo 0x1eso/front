@@ -659,7 +659,8 @@ function aiOffers(gw: GreatWar): void {
   const gbr = gw.nation("GBR");
   if (gbr === null || gbr.out || ruledBySeat(gw, "GBR")) return;
   if (gbr.ai !== "principled" && gbr.ai !== "cautious") return;
-  if (gw.s.pressure.naval < 5 || armsLevel(gw, "DEU") < 2) return;
+  // ww190 tune: was naval 5 and Germany two steps up; it seldom came at all.
+  if (gw.s.pressure.naval < 4 || armsLevel(gw, "DEU") < 1) return;
   offerAccord(gw, "GBR", "naval", "DEU");
 }
 

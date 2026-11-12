@@ -110,7 +110,8 @@ export const GBR_YEARS_SCENES: readonly GwScene[] = [
     id: "gbr_y_arms_rival",
     nation: GBR,
     kind: "proposal",
-    when: all(peaceFor(1), any(germanyArms, tension("naval", 4))),
+    // ww190 tune: from the first month after the summer (was 1).
+    when: all(peaceFor(0), any(germanyArms, tension("naval", 4))),
     cast: { navy },
     salience: 7,
     tags: ["foreign", "tension_up"],
@@ -380,7 +381,8 @@ export const GBR_YEARS_SCENES: readonly GwScene[] = [
     id: "gbr_y_inc_spy",
     nation: GBR,
     kind: "proposal",
-    when: all(peaceFor(1), tension("naval", 4, 6)),
+    // ww190 tune: from the first month after the summer (was 1).
+    when: all(peaceFor(0), tension("naval", 4, 6)),
     cast: { home },
     salience: 5,
     tags: ["home", "tension_up"],
@@ -404,7 +406,8 @@ export const GBR_YEARS_SCENES: readonly GwScene[] = [
     id: "gbr_y_inc_fog",
     nation: GBR,
     kind: "crisis",
-    when: all(peaceFor(1), tension("naval", 7, 8)),
+    // ww190 tune: the second naval scare comes later (was 7 to 8).
+    when: all(peaceFor(1), tension("naval", 14, 17)),
     cast: { navy, fm },
     salience: 8,
     tags: ["foreign", "tension_up"],
@@ -433,12 +436,14 @@ export const GBR_YEARS_SCENES: readonly GwScene[] = [
     id: "gbr_y_inc_albania",
     nation: GBR,
     kind: "proposal",
-    when: all(peaceFor(1), tension("balkan", 4)),
+    // ww190 tune: incidents ripen in turn as pressure climbs (about a point a
+    // month in peace), not all in the first autumn.
+    when: all(peaceFor(1), tension("balkan", 12)),
     cast: { fm },
     salience: 6,
     tags: ["foreign"],
     cooldown: 4,
-    variants: [{ id: "hot", when: tension("balkan", 7) }, { id: "base" }],
+    variants: [{ id: "hot", when: tension("balkan", 15) }, { id: "base" }],
     fallback: "vienna_rome",
     options: [
       pick("gbr_y_inc_albania", "cruiser", [
@@ -459,7 +464,9 @@ export const GBR_YEARS_SCENES: readonly GwScene[] = [
     id: "gbr_y_inc_colonies",
     nation: GBR,
     kind: "proposal",
-    when: all(peaceFor(2), tension("colonial", 4)),
+    // ww190 tune: incidents ripen in turn as pressure climbs (about a point a
+    // month in peace), not all in the first autumn.
+    when: all(peaceFor(2), tension("colonial", 18)),
     cast: { fm },
     salience: 6,
     tags: ["foreign"],
@@ -492,7 +499,8 @@ export const GBR_YEARS_SCENES: readonly GwScene[] = [
     id: "gbr_y_home_strike",
     nation: GBR,
     kind: "proposal",
-    when: peaceFor(2),
+    // ww190 tune: the home goes on from the first month after the summer.
+    when: peaceFor(0),
     cast: { home, fin },
     salience: 6,
     tags: ["home", "tension_up"],
@@ -523,7 +531,9 @@ export const GBR_YEARS_SCENES: readonly GwScene[] = [
     id: "gbr_y_home_long",
     nation: GBR,
     kind: "proposal",
-    when: peaceFor(18),
+    // ww190 tune: a year and a half after the summer (peace_months counts
+    // from the last crisis, so 18 of them never came), two quiet months on.
+    when: all(peaceFor(2), world({ is: "date", from: "1916-01" })),
     cast: { fin, navy },
     salience: 7,
     tags: ["home", "tension_down"],

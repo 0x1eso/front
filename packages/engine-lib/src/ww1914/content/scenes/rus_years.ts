@@ -220,7 +220,8 @@ const YEARS: GwScene[] = [
   }),
   rusScene("rus_y_arms_rail_loan", {
     kind: "proposal",
-    when: all(peace(1), bondWith("FRA", { min: 0 })),
+    // ww190 tune: from the first month after the summer (was 1).
+    when: all(peace(0), bondWith("FRA", { min: 0 })),
     cast: { ...FIN, ...COS },
     salience: 5,
     tags: ["foreign"],
@@ -237,7 +238,8 @@ const YEARS: GwScene[] = [
     kind: "proposal",
     when: all(
       peace(2),
-      any(pressureOf("balkan", 4), pressureOf("straits", 4)),
+      // ww190 tune: was 4; talks are sought once the questions have ripened.
+      any(pressureOf("balkan", 14), pressureOf("straits", 14)),
       not(accordOf()),
     ),
     cast: FOREIGN,
@@ -339,7 +341,8 @@ const YEARS: GwScene[] = [
   }),
   rusScene("rus_y_inc_straits_shut", {
     kind: "proposal",
-    when: all(peace(0), pressureOf("straits", 7)),
+    // ww190 tune: the Straits shut later (was 7).
+    when: all(peace(0), pressureOf("straits", 14)),
     cast: { ...FOREIGN, ...NAVY },
     salience: 7,
     tags: ["foreign", "tension_up"],
@@ -362,12 +365,14 @@ const YEARS: GwScene[] = [
   }),
   rusScene("rus_y_inc_balkan", {
     kind: "proposal",
-    when: all(peace(0), pressureOf("balkan", 4)),
+    // ww190 tune: incidents ripen in turn as pressure climbs (about a point a
+    // month in peace), not all in the first autumn.
+    when: all(peace(0), pressureOf("balkan", 10)),
     cast: FOREIGN,
     salience: 6,
     tags: ["foreign", "tension_up"],
     cooldown: 4,
-    variants: [v("hot", pressureOf("balkan", 7)), v("base")],
+    variants: [v("hot", pressureOf("balkan", 13)), v("base")],
     options: [
       o("back_belgrade", [
         pressure("balkan", 1),
@@ -389,7 +394,9 @@ const YEARS: GwScene[] = [
   }),
   rusScene("rus_y_inc_persia", {
     kind: "proposal",
-    when: all(peace(0), pressureOf("colonial", 4)),
+    // ww190 tune: incidents ripen in turn as pressure climbs (about a point a
+    // month in peace), not all in the first autumn.
+    when: all(peace(0), pressureOf("colonial", 16)),
     cast: FOREIGN,
     salience: 5,
     tags: ["foreign"],
@@ -408,7 +415,8 @@ const YEARS: GwScene[] = [
   // Home 2, and the war that didn't come; cooldown 3.
   rusScene("rus_y_home_strike", {
     kind: "proposal",
-    when: peace(1),
+    // ww190 tune: the home goes on from the first month after the summer.
+    when: peace(0),
     cast: { interior: held("interior") },
     salience: 5,
     tags: ["home"],
@@ -440,7 +448,9 @@ const YEARS: GwScene[] = [
   }),
   rusScene("rus_y_home_no_war", {
     kind: "proposal",
-    when: peace(18),
+    // ww190 tune: a year and a half after the summer (peace_months counts
+    // from the last crisis, so 18 of them never came), two quiet months on.
+    when: all(peace(2), w({ is: "date", from: "1916-01" })),
     cast: { pm: held("chancellor"), ...COS },
     salience: 6,
     tags: ["home", "tension_down"],

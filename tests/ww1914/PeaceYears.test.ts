@@ -3,8 +3,13 @@
 import type { GwCond } from "@openfront/engine-api/ww1914/SceneDsl";
 import { world } from "@openfront/engine-api/ww1914/WorldDsl";
 import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
+import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
 import type { GameRunner } from "@openfront/engine/GameRunner";
-import { closeChain } from "@openfront/engine/ww1914/Crises";
+import {
+  closeChain,
+  GW_SHORT_START,
+  GW_SPARK_NEAR,
+} from "@openfront/engine/ww1914/Crises";
 import type { GreatWar } from "@openfront/engine/ww1914/GreatWar";
 import {
   armsLevel,
@@ -152,6 +157,41 @@ describe("the second crisis", () => {
     gw.s.pressure.colonial = 20;
     closeChain(gw, "compromise");
     expect(gw.s.spark?.topic).toBe("colonial");
+  });
+
+  test("a question within GW_SPARK_NEAR of the hottest may spark too; one further off never", () => {
+    gw.s.pressure.colonial = 20;
+    gw.s.pressure.balkan = 20 - GW_SPARK_NEAR;
+    gw.s.pressure.straits = 20 - GW_SPARK_NEAR - 1;
+    const topics = new Set<string>();
+    for (let i = 0; i < 12; i++) {
+      gw.s.chain = { topic: "balkan", step: 0, hold: 0, short: true };
+      closeChain(gw, "compromise");
+      topics.add(gw.s.spark!.topic);
+    }
+    expect([...topics].sort()).toEqual(["balkan", "colonial"]);
+  });
+
+  test("the second-crisis wire reads a later spark's own steps; the long peace waits on the date, not on 18 quiet months", () => {
+    const scenes = gwContent().scenes;
+    const second = scenes.find((x) => x.id === "gw_y_second_crisis")!;
+    const chain = JSON.stringify(second.when).match(
+      /"is":"chain","short":true,"min":(\d+)/,
+    );
+    expect(Number(chain![1])).toBeGreaterThanOrEqual(GW_SHORT_START);
+    for (const id of [
+      "gw_y_long_peace",
+      "deu_y_home_long",
+      "gbr_y_home_long",
+      "fra_y_home_long_peace",
+      "rus_y_home_no_war",
+      "auh_y_home_nowar",
+    ]) {
+      const when = JSON.stringify(scenes.find((x) => x.id === id)!.when);
+      expect(when, id).toContain('"is":"date"');
+      const months = [...when.matchAll(/"is":"peace_months","min":(\d+)/g)];
+      for (const m of months) expect(Number(m[1]), id).toBeLessThan(6);
+    }
   });
 });
 
