@@ -1129,7 +1129,46 @@ export function proposalsFor(gw: GreatWar, seat: GwSeatState): GwProposal[] {
   ) {
     add("help_ally", wants, "hold", "limited", 2, null);
   }
-  return out;
+  return frontMarked(gw, seat, out);
+}
+
+/** Chapters after a front course that its paper still comes first. */
+const FRONT_MARK_CHAPTERS = 1;
+
+/**
+ * ww197 (ww195 §3 `front`): the course a department's front answer took fills
+ * the war paper: the open paper that fits it comes first, so the chief signs
+ * it if nobody does, and it is marked as the department's. 친다: an attack on
+ * the answer's front; 딴 전선으로: an attack elsewhere; 버틴다 and 줄인다:
+ * holding.
+ */
+function frontMarked(
+  gw: GreatWar,
+  seat: GwSeatState,
+  out: GwProposal[],
+): GwProposal[] {
+  const f = seat.depts?.front ?? null;
+  if (f === null || gw.s.chapter > f.chapter + FRONT_MARK_CHAPTERS) return out;
+  const attack = (p: GwProposal) =>
+    p.posture === "offensive" && p.offensive === undefined;
+  const fits = (p: GwProposal): boolean => {
+    if (!p.open) return false;
+    switch (f.course) {
+      case "attack":
+        return attack(p) && (f.theatre === null || p.main === f.theatre);
+      case "shift":
+        return attack(p) && f.theatre !== null && p.main !== f.theatre;
+      default:
+        return p.id === "hold_all";
+    }
+  };
+  const i = out.findIndex(fits);
+  if (i < 0) return out;
+  const marked = {
+    ...out[i],
+    marked: { office: f.office, by: f.by, course: f.course },
+  };
+  return [marked, ...out.filter((_, j) => j !== i)];
 }
 
 function pickMain(open: GwTheatre[], first: GwTheatre): GwTheatre {

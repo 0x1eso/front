@@ -1361,7 +1361,7 @@ const COURT_SCENES: GwScene[] = [
       o("close_seat", ["ends_game"], [closeSeat]),
       o(
         "go_on_as_ebert",
-        ["order:+1", "reichstag:+2"],
+        ["order:+1", "reichstag:+2", "ends_game"],
         [
           nextRegime,
           gauge("order", 1),
@@ -1374,7 +1374,7 @@ const COURT_SCENES: GwScene[] = [
       ),
       o(
         "go_on_as_regent",
-        ["order:+1", "reichstag:+1"],
+        ["order:+1", "reichstag:+1", "ends_game"],
         [
           nextRegime,
           gauge("order", 1),

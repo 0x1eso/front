@@ -5,6 +5,7 @@
 //
 // Marks, gates and bodies lie over scenes written elsewhere, so a scene's file
 // doesn't change.
+import type { GwEnding } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import type { GwRulerSide } from "@openfront/engine-api/ww1914/GwRuler";
 import {
@@ -21,6 +22,11 @@ export interface GwRulerRow {
   readonly person?: string;
   /** Regimes this row sits in; absent: all of them. */
   readonly regimes?: readonly string[];
+  /**
+   * ww197 (owner's A, "그 사람이 끝나면 내 판도 끝"): the ending when the
+   * country takes a form this row has no place in, by regime; `*` any other.
+   */
+  readonly ends?: Readonly<Record<string, GwEnding>>;
   /** A seat flag it needs. The first row that fits is the seat's. */
   readonly flag?: string;
   readonly born: string;
@@ -59,6 +65,7 @@ export const GW_RULERS: Readonly<
     {
       id: "wilhelm",
       regimes: ["empire"],
+      ends: { "*": "deu_end_holland" },
       born: "1859-01-27",
       start: side(4, 3, 4, 4, 3),
       agesEvery: 16,
@@ -109,6 +116,7 @@ export const GW_RULERS: Readonly<
     {
       id: "franz_joseph",
       regimes: ["dual_monarchy"],
+      ends: { "*": "auh_e_fj_federation" },
       born: "1830-08-18",
       start: side(3, 3, 4, 5, 4),
       agesEvery: 9,
@@ -125,6 +133,7 @@ export const GW_RULERS: Readonly<
       id: "karl",
       person: "auh_karl",
       regimes: ["karl"],
+      ends: { "*": "auh_e_karl_federation" },
       born: "1887-08-17",
       start: side(4, 4, 4, 3, 3),
       agesEvery: 24,
@@ -141,6 +150,7 @@ export const GW_RULERS: Readonly<
       id: "franz_ferdinand",
       person: "auh_ff",
       regimes: ["ff_throne"],
+      ends: { "*": "auh_e_ff_federation" },
       born: "1863-12-18",
       start: side(3, 4, 3, 2, 4),
       agesEvery: 14,
@@ -159,6 +169,11 @@ export const GW_RULERS: Readonly<
       id: "nicholas",
       person: "rus_nicholas",
       regimes: ["tsar", "crown"],
+      ends: {
+        provisional: "rus_end_pskov",
+        regency: "rus_end_for_heir",
+        "*": "rus_end_deposed",
+      },
       born: "1868-05-18",
       start: side(4, 3, 4, 3, 3),
       agesEvery: 18,

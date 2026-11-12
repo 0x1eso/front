@@ -619,6 +619,12 @@ export interface GwCourseView {
   for: boolean;
   against: boolean;
   needs: readonly GwNeed[];
+  /**
+   * ww197: the grain row it goes against while taking it costs a nerve
+   * (text `persona.grain.<id>`); `locked`: no nerve left for it today.
+   */
+  grain?: string;
+  locked?: true;
 }
 
 /** A desk paper of the departments or the honours (`GwCardView.paper`). */

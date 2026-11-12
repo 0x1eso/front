@@ -11,6 +11,7 @@ import type {
   GwSeatState,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { gwPersonaStart } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import type { GwLean } from "@openfront/engine-api/ww1914/GwDepts";
 import type {
   GwBearer,
   GwDeskHeadView,
@@ -253,6 +254,32 @@ export function grainOf(
   return null;
 }
 
+/**
+ * ww197: a course on an answer paper against his grain, like an option: the
+ * course reads as the row's lean and some other course on the paper doesn't.
+ */
+export function courseGrainOf(
+  gw: GreatWar,
+  seat: GwSeatState,
+  card: GwCard,
+  lean: readonly GwLean[],
+  others: readonly (readonly GwLean[])[],
+): { row: GwGrain; costs: boolean } | null {
+  const id = seat.ruler.id;
+  if (id === null) return null;
+  const scene = sceneOf(card.scene);
+  for (const r of persona().grain ?? []) {
+    if (r.ruler !== id || !r.nation.includes(seat.tag)) continue;
+    if (!lean.includes(r.lean)) continue;
+    if (others.every((o) => o.includes(r.lean))) continue;
+    if (scene !== null && !towards(r, seat, card, scene)) continue;
+    if (r.when !== undefined && !holds(ctxOf(gw, seat, card), r.when)) continue;
+    const before = seat.persona?.grain[r.id] ?? 0;
+    return { row: r, costs: r.second !== true || before >= 1 };
+  }
+  return null;
+}
+
 /** The grain row id to show on the option, when taking it costs a nerve. */
 export function grainView(
   gw: GreatWar,
@@ -294,7 +321,15 @@ export function grainTaken(
   scene: GwScene,
   o: GwOption,
 ): void {
-  const g = grainOf(gw, seat, card, scene, o);
+  grainCounted(gw, seat, grainOf(gw, seat, card, scene, o));
+}
+
+/** He took a thing against his grain himself: counted, and it may cost. */
+export function grainCounted(
+  gw: GreatWar,
+  seat: GwSeatState,
+  g: { row: GwGrain; costs: boolean } | null,
+): void {
   if (g === null) return;
   const st = personaState(seat);
   st.grain[g.row.id] = (st.grain[g.row.id] ?? 0) + 1;

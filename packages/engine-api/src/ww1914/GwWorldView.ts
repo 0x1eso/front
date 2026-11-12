@@ -52,6 +52,11 @@ export interface GwProposal {
   /** Painted land still to take on this paper's front. */
   claimed?: readonly GwPlace[];
   /**
+   * ww197: the paper a department's front course asked for, put first and
+   * marked as its own ("참모본부 안"); `course` is GW_FRONT_COURSES.
+   */
+  marked?: { office: GwOffice; by: string; course: string };
+  /**
    * ww173: the great offensive's paper. Each method with whether it is open
    * (text gw.plan_why.<why> if not), and the other fronts a feint can be on.
    */

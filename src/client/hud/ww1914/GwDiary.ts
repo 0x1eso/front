@@ -94,13 +94,16 @@ export function diaryText(c: GwCtx, d: GwDiaryView): string | null {
 }
 
 /** "니콜라이의 일기": the seat's form, else the plain word. */
-function diaryForm(c: GwCtx): string {
+export function diaryForm(c: GwCtx): string {
   return (
     c.pack?.persona?.forms?.[c.seat.tag] ?? translateText("gw.ui.persona.diary")
   );
 }
 
-function diaryRows(c: GwCtx, rows: readonly GwDiaryView[]): TemplateResult[] {
+export function diaryRows(
+  c: GwCtx,
+  rows: readonly GwDiaryView[],
+): TemplateResult[] {
   return rows.flatMap((d) => {
     const text = diaryText(c, d);
     return text === null
@@ -146,12 +149,17 @@ export function diarySection(c: GwCtx): TemplateResult | typeof nothing {
 }
 
 /** The person's line against an option's grain (`persona.grain`), if any. */
-export function grainLine(c: GwCtx, o: GwOptionView): string | undefined {
+export function grainLine(
+  c: GwCtx,
+  o: Pick<GwOptionView, "grain">,
+): string | undefined {
   return o.grain === undefined ? undefined : c.pack?.persona?.grain?.[o.grain];
 }
 
 /** "마음에 걸린다": an open option that goes against him costs him. */
-export function grainChip(o: GwOptionView): TemplateResult | typeof nothing {
+export function grainChip(
+  o: Pick<GwOptionView, "id" | "grain">,
+): TemplateResult | typeof nothing {
   if (o.grain === undefined) return nothing;
   return html`<span class="pl-1"
     ><span

@@ -26,6 +26,7 @@ import { daysFromCivil } from "@openfront/engine-lib/ww1936/Calendar";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { playingOn, waitsToPlayOn } from "./Aftermath";
 import { aimRecord } from "./Aims";
+import { memoirDiary } from "./Diary";
 import { warScore } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { holderOf } from "./Land";
@@ -467,6 +468,7 @@ export function memoirOf(
       .slice(-LAST_TURNS),
     people,
     unknown: pickUnknowns(gw, seat),
+    diary: memoirDiary(gw, seat),
     shelf: {
       ending,
       people: people.filter((p) => p.office !== null).map((p) => p.id),

@@ -78,12 +78,17 @@ function rung(id: string, nation: GwTag, options: Opt[]): GwScene {
   });
 }
 
-/** The top of the ladder: the next form of government, or the memoir. */
+/**
+ * The top of the ladder: the next form of government, or the memoir. `ends`:
+ * the next form has no place for the person, so handing over ends his game
+ * too (ww197, owner's A).
+ */
 function top(
   id: string,
   nation: GwTag,
   next: string[],
   price: string[],
+  ends = false,
 ): GwScene {
   return called(
     id,
@@ -92,7 +97,7 @@ function top(
     [
       opt(
         "go_on",
-        ["regime_change", ...price],
+        ["regime_change", ...price, ...(ends ? ["ends_game"] : [])],
         [doWorld({ do: "next_regime" })],
         world({ is: "regime", of: next }),
       ),
@@ -145,7 +150,7 @@ const DEU_HOME: GwScene[] = [
       [inst("army", 1), gauge("morale", -1), why("held_firm")],
     ),
   ]),
-  top("gw_home_deu_4", "DEU", ["empire"], ["army:-2"]),
+  top("gw_home_deu_4", "DEU", ["empire"], ["army:-2"], true),
 ];
 
 const GBR_HOME: GwScene[] = [
@@ -262,7 +267,7 @@ const AUH_HOME: GwScene[] = [
     ),
     opt("firm", ["morale:-1"], [gauge("morale", -1), why("held_firm")]),
   ]),
-  top("gw_home_auh_4", "AUH", ["dual_monarchy", "karl"], ["hungary:-2"]),
+  top("gw_home_auh_4", "AUH", ["dual_monarchy", "karl"], ["hungary:-2"], true),
 ];
 
 const RUS_HOME: GwScene[] = [
@@ -309,7 +314,7 @@ const RUS_HOME: GwScene[] = [
     ),
     opt("firm", ["morale:-1"], [gauge("morale", -1), why("held_firm")]),
   ]),
-  top("gw_home_rus_4", "RUS", ["tsar"], ["court:-3"]),
+  top("gw_home_rus_4", "RUS", ["tsar"], ["court:-3"], true),
 ];
 
 /** Britain is in: the papers still asking whether it should be go. */

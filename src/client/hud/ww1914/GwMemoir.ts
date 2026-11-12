@@ -2,6 +2,7 @@ import type { GwMemoir } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
 import type { GwCtx } from "./GwCtx";
+import { diaryForm, diaryRows } from "./GwDiary";
 import { rich } from "./GwDict";
 import { endingsOf, logByChapter, shelfTotals } from "./GwModel";
 import { officeTitle } from "./GwOffice";
@@ -49,6 +50,33 @@ function ending(c: GwCtx, m: GwMemoir): TemplateResult {
     ${rival === null
       ? nothing
       : html`<p class=${PROSE} data-gw-rival>${rival}</p>`}
+  </section>`;
+}
+
+/** ww197: the person's own lines, a few a year, under the year. */
+function diaryBox(c: GwCtx, m: GwMemoir): TemplateResult | typeof nothing {
+  const lines = m.diary ?? [];
+  const years = [...new Set(lines.map((d) => d.date.slice(0, 4)))];
+  const blocks = years.flatMap((y) => {
+    const rows = diaryRows(
+      c,
+      lines.filter((d) => d.date.startsWith(y)),
+    );
+    return rows.length === 0
+      ? []
+      : [
+          html`<div data-gw-memoir-diary-year=${y}>
+            <div class=${MUTED}>
+              ${translateText("gw.ui.memoir_diary_year", { year: y })}
+            </div>
+            ${rows}
+          </div>`,
+        ];
+  });
+  if (blocks.length === 0) return nothing;
+  return html`<section class=${BOX} data-gw-memoir-diary>
+    <h3 class=${HEAD}>${diaryForm(c)}</h3>
+    ${blocks}
   </section>`;
 }
 
@@ -304,8 +332,8 @@ export function memoirTab(c: GwCtx): TemplateResult {
             >
               ${translateText("gw.diplo.finale_open")}
             </button>`}
-        ${mapBox(c, m)} ${aimBox(c, m)} ${mandates(m)} ${turns(m)}
-        ${reckoning(m)} ${cast(c, m)} ${unknown(c, m)}`}
+        ${mapBox(c, m)} ${aimBox(c, m)} ${diaryBox(c, m)} ${mandates(m)}
+        ${turns(m)} ${reckoning(m)} ${cast(c, m)} ${unknown(c, m)}`}
     <section class=${BOX}>
       <h3 class=${HEAD}>${translateText("gw.ui.record_title")}</h3>
       ${record.length === 0

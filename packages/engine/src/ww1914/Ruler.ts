@@ -266,6 +266,27 @@ export function rulerGone(
   else s.ended = ending;
 }
 
+/**
+ * ww197 (owner's A, "그 사람이 끝나면 내 판도 끝"): the country took a form the
+ * person has no place in (a republic, the Provisional Government, a
+ * federation). His game ends there, with the ending his row names for it; in
+ * a game of several seats the others play on and this one watches.
+ */
+function personEnds(gw: GreatWar, seat: GwSeatState): void {
+  const s = gw.s;
+  const was = (GW_RULERS[seat.tag] ?? []).find((r) => r.id === seat.ruler.id);
+  const regime = gw.nation(seat.tag)?.regime ?? "";
+  const ending =
+    was?.ends?.[regime] ?? was?.ends?.["*"] ?? endingOf(seat.tag, "removed");
+  const p = was?.person === undefined ? null : gw.person(was.person);
+  if (p !== null && p.status !== "dead") {
+    p.status = "fallen";
+    p.office = null;
+  }
+  if (s.seats.length > 1) closeSeat(gw, seat, ending);
+  else s.ended = ending;
+}
+
 function endingOf(tag: GwTag, how: GwRulerEnd) {
   const id = `${tag.toLowerCase()}_r_${how}`;
   return id as Parameters<typeof closeSeat>[2];
@@ -342,6 +363,10 @@ export function rulerStep(gw: GreatWar): void {
   for (const seat of gw.s.seats) {
     if (seat.memoir !== null || gw.s.ended !== null) continue;
     const row = rulerRow(gw, seat);
+    if (row === null && seat.ruler.id !== null) {
+      personEnds(gw, seat);
+      continue;
+    }
     layRow(gw, seat, row);
     if (row === null) continue;
     const gone = personGone(gw, row);

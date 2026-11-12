@@ -2413,7 +2413,7 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
     options: [
       {
         id: "for_michael",
-        tell: ["regime_change"],
+        tell: ["regime_change", "ends_game"],
         effects: [
           { kind: "world", of: { do: "personal_command", on: false } },
 
@@ -2458,7 +2458,7 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
             },
           ],
         },
-        tell: ["court:-1", "regime_change", "heir"],
+        tell: ["court:-1", "regime_change", "heir", "ends_game"],
         effects: [
           { kind: "world", of: { do: "personal_command", on: false } },
 

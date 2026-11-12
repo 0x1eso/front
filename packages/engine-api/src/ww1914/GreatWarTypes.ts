@@ -1183,6 +1183,20 @@ export const GwDeptStateSchema = z.object({
   nextList: z
     .array(z.object({ person: GwIdSchema, honour: GwIdSchema }))
     .optional(),
+  /**
+   * ww197: a `front` course taken (GW_FRONT_COURSES): the chief's next war
+   * paper that fits it comes first, marked as the department's.
+   */
+  front: z
+    .object({
+      course: GwIdSchema,
+      theatre: z.enum(GW_THEATRES).nullable(),
+      office: z.enum(GW_OFFICES),
+      by: GwIdSchema,
+      chapter: z.number().int(),
+    })
+    .nullable()
+    .optional(),
   /** Work done, newest last: what came of it. */
   past: z.array(
     z.object({
@@ -1382,6 +1396,14 @@ export const GW_ENDINGS = [
   "pair_war_lost",
   "occupation_held",
   "under_occupation",
+  // ww197 (owner's A): a regime with no place for the person ends his game.
+  "deu_end_holland",
+  "rus_end_pskov",
+  "rus_end_for_heir",
+  "rus_end_deposed",
+  "auh_e_fj_federation",
+  "auh_e_karl_federation",
+  "auh_e_ff_federation",
 ] as const;
 export type GwEnding = (typeof GW_ENDINGS)[number];
 
@@ -1471,6 +1493,22 @@ export const GwMemoirSchema = z.object({
     })
     .nullable()
     .default(null),
+  /**
+   * ww197: the person's own lines, a few a year, the heaviest moments
+   * (Diary.ts); text `persona.diary.<row>` with its slots, like 수첩 › 일기.
+   */
+  diary: z
+    .array(
+      z.object({
+        chapter: z.number().int(),
+        date: z.string(),
+        row: GwIdSchema,
+        who: GwIdSchema.nullable(),
+        scene: GwIdSchema.nullable(),
+        theatre: z.enum(GW_THEATRES).nullable(),
+      }),
+    )
+    .optional(),
   /** What this game adds to the shelf between games (the client keeps it). */
   shelf: z.object({
     ending: GwIdSchema,
@@ -1643,6 +1681,8 @@ export const GwDiaryEntrySchema = z.object({
   who: GwIdSchema.nullable(),
   scene: GwIdSchema.nullable(),
   theatre: z.enum(GW_THEATRES).nullable(),
+  /** ww197: how heavy the moment was (the memoir keeps the heaviest). */
+  w: z.number().int().optional(),
 });
 export type GwDiaryEntry = z.infer<typeof GwDiaryEntrySchema>;
 

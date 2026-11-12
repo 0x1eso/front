@@ -15301,7 +15301,14 @@
       "pair_war_won": "이긴 우리만의 전쟁",
       "pair_war_lost": "진 우리만의 전쟁",
       "occupation_held": "손에 쥔 땅",
-      "under_occupation": "적의 손에 든 수도"
+      "under_occupation": "적의 손에 든 수도",
+      "deu_end_holland": "네덜란드 국경",
+      "rus_end_pskov": "프스코프의 서명",
+      "rus_end_for_heir": "아들에게 남긴 왕관",
+      "rus_end_deposed": "폐위",
+      "auh_e_fj_federation": "늙은 황제의 마지막 서명",
+      "auh_e_karl_federation": "에카르트자우로 가는 길",
+      "auh_e_ff_federation": "코노피슈테로"
     },
     "fact": {
       "force": {
@@ -17591,7 +17598,8 @@
         "grain_tip": "그의 성품을 거스르는 일이다. 하고 나면 지친다.",
         "no_diary": "아직 적은 것이 없다.",
         "private": "사사로운 것"
-      }
+      },
+      "memoir_diary_year": "{year}년"
     },
     "unknown": {
       "ai": "{country}의 원수는 {word} 인물이었다.",

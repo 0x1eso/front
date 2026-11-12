@@ -60,6 +60,7 @@ export const GW_ENDING_ROWS: Readonly<
 > = {
   DEU: [
     { id: "deu_end_abdicated", of: ["deu_end_abdicated"] },
+    { id: "deu_end_holland", of: ["deu_end_holland"] },
     { id: "deu_end_set_aside", of: ["deu_end_set_aside"] },
     { id: "deu_paris_dictated", of: ["victory_peace"], when: out("FRA") },
     {
@@ -129,6 +130,9 @@ export const GW_ENDING_ROWS: Readonly<
   ],
   AUH: [
     { id: "auh_e_abdicated", of: ["auh_e_abdicated"] },
+    { id: "auh_e_fj_federation", of: ["auh_e_fj_federation"] },
+    { id: "auh_e_karl_federation", of: ["auh_e_karl_federation"] },
+    { id: "auh_e_ff_federation", of: ["auh_e_ff_federation"] },
     { id: "auh_e_regency", of: ["auh_e_regency"] },
     { id: "auh_e_federal", of: ANY_END, when: flag("f_auh_federal") },
     {
@@ -175,6 +179,9 @@ export const GW_ENDING_ROWS: Readonly<
   ],
   RUS: [
     { id: "rus_abdicated", of: ["rus_abdicated"] },
+    { id: "rus_end_pskov", of: ["rus_end_pskov"] },
+    { id: "rus_end_for_heir", of: ["rus_end_for_heir"] },
+    { id: "rus_end_deposed", of: ["rus_end_deposed"] },
     { id: "rus_palace_coup", of: ["rus_palace_coup"] },
     {
       id: "rus_serbia_abandoned",

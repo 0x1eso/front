@@ -17,6 +17,7 @@ import type {
 import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
 import type { GwCtx, GwOffPick } from "./GwCtx";
+import { deptName } from "./GwDept";
 import { frontMove, frontRead, frontTone, type FrontRead } from "./GwModel";
 import { planWhy } from "./GwOffice";
 import { BTN, BTN_ON, CHIP, HEAD, MUTED } from "./GwStyle";
@@ -416,6 +417,15 @@ function paper(c: GwCtx, p: GwProposal): TemplateResult {
         >${translateText(`gw.ui.theatre.${p.main}`)}</span
       >
     </div>
+    ${p.marked === undefined
+      ? nothing
+      : html`<div class="flex flex-wrap gap-1">
+          <span class=${CHIP} data-gw-paper-marked=${p.marked.course}
+            >${translateText("gw.ui.dept.option", {
+              dept: deptName(c, p.marked.office),
+            })}</span
+          >
+        </div>`}
     ${p.offensive !== undefined
       ? offensivePicks(c, p)
       : html`<div class="flex flex-wrap gap-1">

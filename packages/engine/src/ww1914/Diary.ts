@@ -5,6 +5,7 @@
 // filler. Shown atop the next desk and kept in 수첩 › 일기.
 import type {
   GwDiaryEntry,
+  GwMemoir,
   GwSeatState,
   GwTheatre,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
@@ -238,6 +239,7 @@ export function writeDiary(
     who: m.who,
     scene: m.scene,
     theatre: m.theatre,
+    w: m.weight,
   });
   for (const m of moments) {
     if (lines.length >= GW_DIARY_LINES) break;
@@ -306,6 +308,46 @@ export function diaryViews(gw: GreatWar, seat: GwSeatState): GwDiaryView[] {
       ...(hindsight === undefined ? {} : { hindsight }),
     };
   });
+}
+
+/** Lines a year the memoir keeps. */
+export const GW_MEMOIR_DIARY_PER_YEAR = 3;
+
+/**
+ * ww197: the memoir's diary, a few lines a year: the heaviest moments of each
+ * year (the earlier on a tie), then in the order they were written.
+ */
+export function memoirDiary(
+  gw: GreatWar,
+  seat: GwSeatState,
+): NonNullable<GwMemoir["diary"]> {
+  const entries = seat.persona?.diary ?? [];
+  const views = diaryViews(gw, seat);
+  const years = new Map<string, number[]>();
+  views.forEach((v, i) => {
+    const y = v.date.slice(0, 4);
+    years.set(y, [...(years.get(y) ?? []), i]);
+  });
+  const kept: number[] = [];
+  for (const idx of years.values()) {
+    const heavy = [...idx].sort(
+      (a, b) => (entries[b].w ?? 0) - (entries[a].w ?? 0) || a - b,
+    );
+    kept.push(...heavy.slice(0, GW_MEMOIR_DIARY_PER_YEAR));
+  }
+  return kept
+    .sort((a, b) => a - b)
+    .map((i) => {
+      const v = views[i];
+      return {
+        chapter: v.chapter,
+        date: v.date,
+        row: v.row,
+        who: v.who,
+        scene: v.scene,
+        theatre: entries[i].theatre,
+      };
+    });
 }
 
 function isHindsightRow(id: string): boolean {
