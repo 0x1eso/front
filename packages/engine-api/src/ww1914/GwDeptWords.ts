@@ -29,6 +29,10 @@ export const GW_TASK_TYPES = [
   "refugees", // RUS 피난민
   "ausgleich", // AUH 헝가리와의 조정
   "nations", // AUH 민족 문제
+  // ww199: common to every seat, but given by the engine, not offered: the
+  // foreign office drafts a beaten country's fate the moment a table opens
+  // for it (free, past the one-per-department rule). Topic: the beaten tag.
+  "settle", // {나라}의 처분
 ] as const;
 export type GwTaskType = (typeof GW_TASK_TYPES)[number];
 export const GW_COMMON_TASK_TYPES: readonly GwTaskType[] = GW_TASK_TYPES.slice(

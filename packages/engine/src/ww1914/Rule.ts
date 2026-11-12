@@ -24,6 +24,10 @@ import type {
   GwWorldEffect,
 } from "@openfront/engine-api/ww1914/WorldDsl";
 import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
+import {
+  GW_CLIENT_ROWS,
+  gwClientRow,
+} from "@openfront/engine-lib/ww1914/FateRows";
 import { GW_CAPITALS } from "@openfront/engine-lib/ww1914/PlaceRules";
 import type { GreatWar } from "./GreatWar";
 import { holderOf } from "./Land";
@@ -55,18 +59,6 @@ const RESIST_MAX = 3;
 const CLIENT_AFTER = 12;
 /** America's readiness a hard rule adds every three months while neutral. */
 const NEUTRAL_OUTRAGE = 2;
-
-/** Each client state: whose land, and the groups that make it. */
-const CLIENTS: Readonly<
-  Record<GwClient, { of: GwTag; groups: readonly string[] }>
-> = {
-  poland: { of: "RUS", groups: ["russian_poland"] },
-  lithuania: { of: "RUS", groups: ["baltic"] },
-  ukraine: { of: "RUS", groups: ["ukraine"] },
-  flanders: { of: "BEL", groups: ["flanders"] },
-  albania: { of: "ALB", groups: ["albania"] },
-  serbia: { of: "SRB", groups: ["serbia"] },
-};
 
 /** The partner that wanted the same client: the bond suffers (Poland). */
 const RIVAL_CLAIM: Partial<Record<GwClient, readonly [GwTag, GwTag]>> = {
@@ -111,16 +103,14 @@ export function clientOpen(
   of: GwTag,
   client: GwClient,
 ): boolean {
-  const row = CLIENTS[client];
+  const row = gwClientRow(client);
   if (row.of !== of) return false;
   const n = gw.nation(of);
   if (n?.out === true || beatenAt(gw, of) !== null) return true;
   const cap = GW_CAPITALS[of];
   if (cap !== undefined && holderOf(gw, cap) === by) return true;
-  const land = GW_PLACE_KEYS.filter((p) =>
-    row.groups.includes(GW_PLACES[p].group),
-  );
-  return land.length > 0 && land.every((p) => holderOf(gw, p) === by);
+  // ww199: the state's own places (GW_CLIENT_ROWS), not whole groups.
+  return row.places.every((p) => holderOf(gw, p) === by);
 }
 
 const usNeutral = (gw: GreatWar): boolean => {
@@ -267,7 +257,7 @@ function aiRule(gw: GreatWar, r: GwRuleRow): void {
     r.client === null &&
     monthsFrom(gw, r.since) >= CLIENT_AFTER
   ) {
-    const client = (Object.keys(CLIENTS) as GwClient[]).find((c) =>
+    const client = GW_CLIENT_ROWS.map((x) => x.id).find((c) =>
       clientOpen(gw, r.by, r.of, c),
     );
     if (client !== undefined) setRule(gw, r.by, r.of, { client });

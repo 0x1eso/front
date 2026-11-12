@@ -1,5 +1,9 @@
 import { GameMap } from "@openfront/engine-api/game/GameMap";
-import { GW_TAGS, GwTag } from "@openfront/engine-api/ww1914/GwCountries";
+import {
+  GW_NEW_TAGS,
+  GW_TAGS,
+  GwTag,
+} from "@openfront/engine-api/ww1914/GwCountries";
 import { SEA_ZONE_BASE } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import owners1914 from "resources/maps/world1936/owners1914.json";
 import { z } from "zod";
@@ -43,8 +47,13 @@ export function gwOwnerOf(id: number, owner1936: string): GwTag | null {
 
 /** The world of June 1914 on its regions. */
 export interface GwWorld {
-  /** Countries with land, GW_TAGS order: smallID = index + 1. */
+  /**
+   * Countries with land, GW_TAGS order, then (ww199) the dormant tags a table
+   * may found (GW_NEW_TAGS): smallID = index + 1. The first `landed` have land.
+   */
   readonly tags: readonly GwTag[];
+  /** How many of `tags` have land in June 1914. */
+  readonly landed: number;
   /** Region id -> owner's smallID (0: nobody). */
   readonly owners: Uint16Array;
   /** Place name -> region id: empty on a map without the 1914 set. */
@@ -65,10 +74,16 @@ export function gwWorldOf(index: ScenarioIndex): GwWorld {
     if (r.id > maxId) maxId = r.id;
   }
   const present = new Set(tagById.values());
-  const tags = GW_TAGS.filter((t) => present.has(t));
+  const landed = GW_TAGS.filter((t) => present.has(t));
+  // ww199: the dormant new states and vassal slots come after every present
+  // tag, so no smallID of a country with land moves. Only on a map with the
+  // 1914 places: a test map has none and no table can found anything there.
+  const dormant =
+    places.size === 0 ? [] : GW_NEW_TAGS.filter((t) => !present.has(t));
+  const tags = [...landed, ...dormant];
   const owners = new Uint16Array(maxId + 1);
   for (const [id, t] of tagById) owners[id] = tags.indexOf(t) + 1;
-  return { tags, owners, places };
+  return { tags, owners, places, landed: landed.length };
 }
 
 /**

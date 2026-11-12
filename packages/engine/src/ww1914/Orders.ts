@@ -48,6 +48,7 @@ import {
   turnAway,
 } from "./Departments";
 import { inStage, makeCard, placeCard, repeatable, sceneWear } from "./Desk";
+import { crownPick, fatePaint, treatySign } from "./Fate";
 import { proposalsFor } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { answerPetition, holdHonours } from "./Honours";
@@ -326,6 +327,13 @@ export function applyGwOrder(
       return holdHonours(gw, seat, o.card, o.give);
     case "petition_answer":
       return answerPetition(gw, seat, o.card, o.answer);
+    // ww199: a beaten country's fate.
+    case "fate_paint":
+      return fatePaint(gw, seat, o);
+    case "treaty_sign":
+      return treatySign(gw, seat, o.how);
+    case "crown":
+      return crownPick(gw, seat, o.client, o.pick);
   }
 }
 

@@ -52,6 +52,7 @@ import {
   todoCount,
 } from "./Departments";
 import { diaryViews } from "./Diary";
+import { realmViews, ruledViews } from "./Fate";
 import { govView, pollView } from "./Government";
 import type { GreatWar } from "./GreatWar";
 import { openTopics, readyBlock } from "./Orders";
@@ -263,6 +264,7 @@ function seatView(gw: GreatWar, seat: GwSeatState): GwSeatView {
     aims: aimsView(gw, seat),
     claims: claimsView(gw, seat),
     table: tableView(gw, seat),
+    ruled: ruledViews(gw, seat),
     terms: termsView(gw, seat),
     desk: gwDeskView(gw, seat),
     people: defs.flatMap((d) => {
@@ -475,5 +477,7 @@ export function gwView(gw: GreatWar, viewer?: number | null): GreatWarData {
     },
     finale: finaleView(gw),
   };
+  const realms = realmViews(gw);
+  if (realms.length > 0) data.realms = realms;
   return JSON.parse(JSON.stringify(data)) as GreatWarData;
 }

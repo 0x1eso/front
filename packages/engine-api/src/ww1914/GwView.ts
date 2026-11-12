@@ -33,6 +33,7 @@ import type {
   GwTimeView,
   GwTodoView,
 } from "./GwDepts";
+import type { GwRealmView, GwRuledView } from "./GwFate";
 import type { GwOrderBlock } from "./GwOrders";
 import type { GwDeskHeadView, GwDiaryView } from "./GwPersona";
 import type { GwPlace } from "./GwPlaces";
@@ -345,6 +346,8 @@ export interface GwSeatView {
   claims?: GwClaimsView;
   /** The peace table; null before an armistice. */
   table?: GwTableView | null;
+  /** ww199: the 통치 tab's rows: land ruled, states founded, vassals; words only. */
+  ruled?: readonly GwRuledView[];
   terms?: GwTermsView;
   desk: readonly GwCardView[];
   people: readonly GwPersonView[];
@@ -432,4 +435,10 @@ export interface GreatWarData {
   slow: GwSlowView;
   /** Set once the game has closed and there are friends to compare. */
   finale: GwFinaleView | null;
+  /**
+   * ww199: countries named by their fate (new states, vassals), for every
+   * screen: the map's labels and the panels name them with `gwRealmName`.
+   * Absent with none.
+   */
+  realms?: readonly GwRealmView[];
 }

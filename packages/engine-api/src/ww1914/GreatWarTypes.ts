@@ -17,6 +17,13 @@ import {
   GW_STALL_REASONS,
   GW_TASK_TYPES,
 } from "./GwDeptWords";
+import {
+  GW_CLIENTS,
+  GwClientStateSchema,
+  GwFateMarkSchema,
+  GwFateRecordSchema,
+  GwVassalStateSchema,
+} from "./GwFate";
 import { GwHouseStateSchema } from "./GwHouse";
 import { GwLawStateSchema } from "./GwLaw";
 import { GwPlaceSchema } from "./GwPlaces";
@@ -781,6 +788,10 @@ export const GwNationStateSchema = z.object({
   naval: GwNavalSchema.optional(),
   /** ww180: its propaganda and censorship (Propaganda.ts); absent until used. */
   prop: GwPropStateSchema.optional(),
+  /** ww199: a new state a table founded (Fate.ts); absent for any other. */
+  client: GwClientStateSchema.optional(),
+  /** ww199: a vassal of a victor (Fate.ts); absent for any other. */
+  vassal: GwVassalStateSchema.optional(),
 });
 export type GwNationState = z.infer<typeof GwNationStateSchema>;
 
@@ -1608,6 +1619,12 @@ export const GwSeatStateSchema = z.object({
   claimsSigned: z.number().int().default(-1),
   /** Times it has been changed since. */
   claimsChanged: z.number().int().default(0),
+  /**
+   * ww199: the fate painted on each place (the claims pane's chips; the
+   * `settle` answer's plan fills it). The table reads it for the seat's
+   * claims. Absent until first painted.
+   */
+  fates: z.partialRecord(GwPlaceSchema, GwFateMarkSchema).optional(),
   /** Papers sent back, in order: "다시 써 오시오". */
   returns: z
     .array(
@@ -2176,6 +2193,12 @@ export const GwPairTableSchema = z.object({
   score: z.number().int(),
   opened: z.number().int().nullable(),
   signed: z.number().int().nullable(),
+  /**
+   * ww199: a coalition member that gave up mid-war (Brest, Bucharest): `b`
+   * is the beaten, `a` the lead of the other side, `with` the rest of that
+   * side that holds its land or fought it on a front. They sit with `a`.
+   */
+  with: z.array(z.enum(GW_TAGS)).optional(),
 });
 export type GwPairTable = z.infer<typeof GwPairTableSchema>;
 
@@ -2189,18 +2212,16 @@ export const GW_ACCORD_KINDS = [
 ] as const;
 export type GwAccordKind = (typeof GW_ACCORD_KINDS)[number];
 /** How land a country holds is ruled (Rule.ts). */
-export const GW_RULE_POLICIES = ["army", "civil", "client"] as const;
-export type GwRulePolicy = (typeof GW_RULE_POLICIES)[number];
-/** Client states a ruler can set up. */
-export const GW_CLIENTS = [
-  "poland",
-  "lithuania",
-  "ukraine",
-  "flanders",
-  "albania",
-  "serbia",
+export const GW_RULE_POLICIES = [
+  "army",
+  "civil",
+  "client",
+  // ww199: land a table annexed: resistance rises slowly and never clears.
+  "annexed",
 ] as const;
-export type GwClient = (typeof GW_CLIENTS)[number];
+export type GwRulePolicy = (typeof GW_RULE_POLICIES)[number];
+/** Client states a ruler can set up: GwFate's list (ww199 moved it there). */
+export { GW_CLIENTS, type GwClient } from "./GwFate";
 /** The command's answer to the refusals (Refusals.ts). */
 export const GW_REFUSAL_ANSWERS = ["none", "courts", "rest", "both"] as const;
 export type GwRefusalAnswer = (typeof GW_REFUSAL_ANSWERS)[number];
@@ -2233,6 +2254,13 @@ export const GwRuleRowSchema = z.object({
   resist: z.number().int(),
   client: z.enum(GW_CLIENTS).nullable(),
   since: z.number().int(),
+  /**
+   * ww199: a table's military government (fate `occupy`): the day it ends
+   * and the land goes home, and its term in words. The row runs past the
+   * armistice until then. Absent: rule while the war holds the land.
+   */
+  until: z.number().int().optional(),
+  term: z.enum(["short", "long"]).optional(),
 });
 export type GwRuleRow = z.infer<typeof GwRuleRowSchema>;
 
@@ -2378,5 +2406,7 @@ export const GreatWarStateSchema = z.object({
   flu: z
     .object({ wave: z.number().int(), chapter: z.number().int() })
     .optional(),
+  /** ww199: every fate a table signed, in order; a later one on a place replaces it. */
+  fates: z.array(GwFateRecordSchema).optional(),
 });
 export type GreatWarState = z.infer<typeof GreatWarStateSchema>;

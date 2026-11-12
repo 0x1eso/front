@@ -16,15 +16,17 @@ export function gwPlayers(
   random: PseudoRandom,
 ): PlayerInfo[] {
   const taken = new Map<GwTag, StartPlayer>();
+  // ww199: a human takes a country of June 1914, never a dormant new state.
+  const free = world.tags.slice(0, world.landed);
   for (const p of players) {
     const pick = p.gwCountry ?? p.country;
-    const tag = world.tags.find((t) => t === pick);
+    const tag = free.find((t) => t === pick);
     if (tag !== undefined && !taken.has(tag)) taken.set(tag, p);
   }
   for (const p of players) {
     if ([...taken.values()].includes(p)) continue;
-    const free = world.tags.find((t) => !taken.has(t));
-    if (free !== undefined) taken.set(free, p);
+    const next = free.find((t) => !taken.has(t));
+    if (next !== undefined) taken.set(next, p);
   }
   return world.tags.map((tag) => {
     const def = gwCountry(tag);

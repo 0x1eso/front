@@ -42,6 +42,7 @@ import {
   GwTaskPush,
   GwTaskType,
 } from "./GwDeptWords";
+import { GW_SETTLE_PLANS } from "./GwFate";
 import {
   GW_SCENE_TAGS,
   GwCondSchema,
@@ -169,6 +170,11 @@ export const GwCourseRowSchema = z
     thenAfter: z.number().int().min(1).max(4).optional(),
     needs: z.array(GwNeedSchema).optional(),
     front: z.enum(GW_FRONT_COURSES).optional(),
+    /**
+     * ww199: a `settle` course paints its plan on the beaten country (the
+     * task's topic): Fate.settlePlan. The table then reads the seat's fates.
+     */
+    settle: z.enum(GW_SETTLE_PLANS).optional(),
   })
   .strict();
 export type GwCourseRow = z.infer<typeof GwCourseRowSchema>;

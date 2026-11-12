@@ -459,6 +459,8 @@ describe("pack shares", () => {
       "ww1914/ko/common.depts.json",
       // ww196: the person's common words (address, diary heads).
       "ww1914/ko/common.persona.json",
+      // ww199: a beaten country's fate.
+      "ww1914/ko/common.settle.json",
       "ww1914/ko/DEU.cast.json",
       "ww1914/ko/GBR.people.json",
       "ww1914/ko/AUH.people.json",

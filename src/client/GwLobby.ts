@@ -6,8 +6,8 @@ import {
   type GwTimedPace,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import {
+  GW_MAP_TAGS,
   GW_SEAT_TAGS,
-  GW_TAGS,
   GW_WRITTEN_TAGS,
   gwCountry,
   GwTag,
@@ -152,7 +152,7 @@ function calendarRows(
 
 /** The countries the AI runs: every country of 1914 nobody sits in. */
 export function gwAiCountries(humans: number): number {
-  return Math.max(0, GW_TAGS.length - humans);
+  return Math.max(0, GW_MAP_TAGS.length - humans);
 }
 
 export interface GwSeatPick {

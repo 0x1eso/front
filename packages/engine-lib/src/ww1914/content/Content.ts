@@ -76,6 +76,7 @@ import {
 import { AUH_ECHOES, AUH_PROLOGUE_SCENES } from "./scenes/auh_prologue";
 import { AUH_REALM_SCENES } from "./scenes/auh_realm";
 import { AUH_RULE_SCENES } from "./scenes/auh_rule";
+import { AUH_SETTLE_SCENES } from "./scenes/auh_settle";
 import { AUH_STALL_EVENTS } from "./scenes/auh_stall";
 import { AUH_WAR_SCENES } from "./scenes/auh_war";
 import { AUH_WAR_EVENTS } from "./scenes/auh_wars";
@@ -111,6 +112,7 @@ import { DEU_ECHOES, DEU_PROLOGUE_SCENES } from "./scenes/deu_prologue";
 import { withDeuReplay } from "./scenes/deu_replay";
 import { DEU_RULE_SCENES } from "./scenes/deu_rule";
 import { DEU_SEA_SCENES } from "./scenes/deu_sea";
+import { DEU_SETTLE_SCENES } from "./scenes/deu_settle";
 import { DEU_STALL_EVENTS } from "./scenes/deu_stall";
 import { DEU_WAR_SCENES } from "./scenes/deu_war";
 import { DEU_WAR_EVENTS } from "./scenes/deu_wars";
@@ -129,6 +131,7 @@ import { FRA_PRESIDENT_SCENES } from "./scenes/fra_president";
 import { FRA_PRIVATE_PEOPLE, FRA_PRIVATE_SCENES } from "./scenes/fra_private";
 import { FRA_ECHOES, FRA_PROLOGUE_SCENES } from "./scenes/fra_prologue";
 import { FRA_RULE_SCENES } from "./scenes/fra_rule";
+import { FRA_SETTLE_SCENES } from "./scenes/fra_settle";
 import { FRA_STALL_EVENTS } from "./scenes/fra_stall";
 import { FRA_WAR_SCENES } from "./scenes/fra_war";
 import { FRA_WAR_EVENTS } from "./scenes/fra_wars";
@@ -148,6 +151,7 @@ import {
 } from "./scenes/gbr_private";
 import { GBR_ECHOES, GBR_PROLOGUE_SCENES } from "./scenes/gbr_prologue";
 import { GBR_RULE_SCENES } from "./scenes/gbr_rule";
+import { GBR_SETTLE_SCENES } from "./scenes/gbr_settle";
 import { GBR_STALL_EVENTS } from "./scenes/gbr_stall";
 import { GBR_WAR_SCENES } from "./scenes/gbr_war";
 import { GBR_WAR_EVENTS } from "./scenes/gbr_wars";
@@ -186,9 +190,11 @@ import { RUS_OFFENSIVE_SCENES } from "./scenes/rus_offensive";
 import { RUS_PRIVATE_SCENES, withRusPrivate } from "./scenes/rus_private";
 import { RUS_ECHOES, RUS_PROLOGUE_SCENES } from "./scenes/rus_prologue";
 import { RUS_RULE_SCENES } from "./scenes/rus_rule";
+import { RUS_SETTLE_SCENES } from "./scenes/rus_settle";
 import { RUS_STALL_EVENTS } from "./scenes/rus_stall";
 import { RUS_WAR_EVENTS } from "./scenes/rus_wars";
 import { RUS_YEARS_SCENES } from "./scenes/rus_years";
+import { SETTLE_SCENES } from "./scenes/settle";
 import { STALL_SCENES } from "./scenes/stall_events";
 import { TABLE_SCENES } from "./scenes/table";
 import { WARTIME_SCENES } from "./scenes/wartime";
@@ -355,22 +361,27 @@ export const GW_CONTENT: GwContent = {
         // ww190: the peace years, ruling land, the home front, the aftermath.
         ...DEU_YEARS_SCENES,
         ...DEU_RULE_SCENES,
+        ...DEU_SETTLE_SCENES,
         ...DEU_HOMEFRONT_SCENES,
         ...DEU_AFTER_SCENES,
         ...GBR_YEARS_SCENES,
         ...GBR_RULE_SCENES,
+        ...GBR_SETTLE_SCENES,
         ...GBR_HOMEFRONT_SCENES,
         ...GBR_AFTER_SCENES,
         ...FRA_YEARS_SCENES,
         ...FRA_RULE_SCENES,
+        ...FRA_SETTLE_SCENES,
         ...FRA_HOMEFRONT_SCENES,
         ...FRA_AFTER_SCENES,
         ...RUS_YEARS_SCENES,
         ...RUS_RULE_SCENES,
+        ...RUS_SETTLE_SCENES,
         ...RUS_HOMEFRONT_SCENES,
         ...RUS_AFTER_SCENES,
         ...AUH_YEARS_SCENES,
         ...AUH_RULE_SCENES,
+        ...AUH_SETTLE_SCENES,
         ...AUH_HOMEFRONT_SCENES,
         ...AUH_AFTER_SCENES,
         ...FRA_COLONIES_SCENES,
@@ -381,6 +392,7 @@ export const GW_CONTENT: GwContent = {
         ...FRA_PRESIDENT_SCENES,
         ...GW_YEARS_SCENES,
         ...GW_RULE_SCENES,
+        ...SETTLE_SCENES,
         ...GW_HOMEFRONT_SCENES,
         ...GW_AFTER_SCENES,
       ]

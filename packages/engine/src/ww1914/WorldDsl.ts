@@ -31,6 +31,7 @@ import { closeChain } from "./Crises";
 import { fileEffect, fileHolds } from "./Dossier";
 import { closeSeat, SEPARATE_PEACE } from "./Endings";
 import { eraOf, hasTech } from "./Eras";
+import { fateDo, fateHolds } from "./Fate";
 import { signChief, warScore } from "./Fronts";
 import { govBeaten, govHeat, govHeatBy, govSoon, pollOf } from "./Government";
 import { homeFrontDo, homeFrontHolds } from "./HomeFront";
@@ -361,6 +362,13 @@ export function worldHolds(ctx: SceneCtx, c: GwWorldCond): boolean {
       return refusalsHolds(gw, seat, c);
     case "sea_hold":
       return seaHolds(gw, seat, c);
+    // ww199
+    case "fate":
+    case "client_state":
+    case "vassal":
+    case "revanche":
+    case "settle_open":
+      return fateHolds(gw, seat, c);
   }
 }
 
@@ -694,6 +702,12 @@ export function worldEffect(ctx: SceneCtx, e: GwWorldEffect): void {
     case "refusals":
     case "pardon":
       refusalsDo(gw, seat, e);
+      return;
+    // ww199
+    case "crown":
+    case "treaty_sign":
+    case "settle_plan":
+      fateDo(gw, seat, e);
       return;
   }
 }

@@ -5,6 +5,17 @@
 // engine-lib/ww1914/TableRows; words in the pack's `table`.
 import { z } from "zod";
 import { GW_TAGS, GwTag } from "./GwCountries";
+import {
+  GW_CLIENTS,
+  GW_FATE_TERMS,
+  GW_FATES,
+  GW_SIGN_HOWS,
+  GwClient,
+  GwFate,
+  GwFateMark,
+  GwFateTerm,
+  GwSignHow,
+} from "./GwFate";
 import { GwPlace, GwPlaceSchema } from "./GwPlaces";
 
 /** What can stand in for the land. APPEND ONLY (wire). */
@@ -17,7 +28,18 @@ export const GW_TABLE_TRADES = [
 export type GwTableTrade = (typeof GW_TABLE_TRADES)[number];
 
 /** What one side can answer. APPEND ONLY (wire). */
-export const GW_TABLE_WORDS = ["yes", "no", "offer", "press", "drop"] as const;
+export const GW_TABLE_WORDS = [
+  "yes",
+  "no",
+  "offer",
+  "press",
+  "drop",
+  // ww199: a partner's word when another of its side asks for a place it
+  // holds or painted (step `partner`): 양보한다 / 함께 세운다 / 버틴다.
+  "yield",
+  "joint",
+  "hold",
+] as const;
 export type GwTableWord = (typeof GW_TABLE_WORDS)[number];
 
 /** Where a claim has got to. `pressed`: it has been insisted on, once. */
@@ -26,6 +48,8 @@ export const GW_TABLE_STEPS = [
   "refused",
   "offered",
   "pressed",
+  // ww199: waits for a partner's word (`partner`) before the holder's.
+  "partner",
 ] as const;
 
 export const GW_TABLE_ENDS = [
@@ -73,6 +97,17 @@ export const GwTableClaimSchema = z.object({
   offers: z.number().int(),
   /** It has been insisted on: that can't be done twice. */
   pressed: z.boolean(),
+  /**
+   * ww199: what becomes of the place once given (absent: annex, as before).
+   * `for`: the ally it goes to, or a joint founder of a state. `client`: the
+   * state it goes into. `term`: an occupation's length.
+   */
+  fate: z.enum(GW_FATES).optional(),
+  for: Tag.optional(),
+  client: z.enum(GW_CLIENTS).optional(),
+  term: z.enum(GW_FATE_TERMS).optional(),
+  /** ww199: the partner of the claimant's side whose word it waits for, or took. */
+  partner: Tag.optional(),
 });
 export type GwTableClaim = z.infer<typeof GwTableClaimSchema>;
 
@@ -117,8 +152,16 @@ export const GwTableStateSchema = z.object({
       b: Tag,
       winner: Tag.nullable(),
       score: z.number().int(),
+      /** ww199: the rest of the winner's side at a capitulation table. */
+      with: z.array(Tag).optional(),
     })
     .optional(),
+  /**
+   * ww199: how each chair's ruler signed (treaty_sign); absent: not yet. A
+   * chair that pressed (`press`) got one more round, once: `extra` counts them.
+   */
+  sign: z.partialRecord(Tag, z.enum(GW_SIGN_HOWS)).optional(),
+  extra: z.number().int().optional(),
 });
 export type GwTableState = z.infer<typeof GwTableStateSchema>;
 
@@ -133,6 +176,12 @@ export interface GwTableClaimView {
   step: (typeof GW_TABLE_STEPS)[number];
   offer: GwTableTrade | null;
   offerBy: GwTag | null;
+  /** ww199: the fate asked for it (absent: annex). */
+  fate?: GwFate;
+  for?: GwTag;
+  client?: GwClient;
+  term?: GwFateTerm;
+  partner?: GwTag;
 }
 
 /** What the seat has to do at the table now. */
@@ -171,6 +220,13 @@ export interface GwTableView {
   over: number;
   held: number;
   due: GwTableDue;
+  /**
+   * ww199: the seat's ruler is to sign (`sign`: the ways open), or signed
+   * (`signed`). Null where there is nothing to sign yet.
+   */
+  sign?: { ways: readonly GwSignHow[]; signed: GwSignHow | null } | null;
+  /** ww199: the fates the seat painted, by place (the turn box's defaults). */
+  fates?: Readonly<Partial<Record<GwPlace, GwFateMark>>>;
 }
 
 /** The seat's painted land (war aims). */
@@ -182,6 +238,10 @@ export interface GwClaimsView {
   open: boolean;
   /** It has been signed: a change now has a price. */
   priced: boolean;
+  /** ww199: the fate painted on each place; absent where none is. */
+  fates?: Readonly<Partial<Record<GwPlace, GwFateMark>>>;
+  /** ww199: fate painting is open (a war on, or a table not signed). */
+  fatesOpen?: boolean;
 }
 
 /** The map at the end, for the memoir. */

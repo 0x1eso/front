@@ -24,6 +24,7 @@ import {
   GW_PETITION_ANSWERS,
   GW_TASK_PUSHES,
 } from "./GwDeptWords";
+import { GW_CLIENTS, GW_FATE_TERMS, GW_FATES, GW_SIGN_HOWS } from "./GwFate";
 import { GW_SERVICE_BRANCHES, GW_SERVICE_SHARE_MAX } from "./GwSpies";
 import { GW_TABLE_TRADES, GW_TABLE_WORDS } from "./GwTable";
 
@@ -301,6 +302,28 @@ export const GwOrderSchema = z.discriminatedUnion("kind", [
     card: Card,
     answer: z.enum(GW_PETITION_ANSWERS),
   }),
+  /**
+   * ww199: a fate painted on a place, or on every place of a group (one of
+   * the two). `fate` null clears it. `for`: the ally (`ally`) or a joint
+   * founder (`state`); `client`: the state (`state`); `term`: `occupy`.
+   * The table reads the painted fate when the seat claims the place.
+   */
+  z.object({
+    kind: z.literal("fate_paint"),
+    place: Id.nullable(),
+    group: Id.nullable(),
+    fate: z.enum(GW_FATES).nullable(),
+    for: z.enum(GW_TAGS).nullable(),
+    client: z.enum(GW_CLIENTS).nullable(),
+    term: z.enum(GW_FATE_TERMS).nullable(),
+  }),
+  /** ww199: the ruler signs the treaty: 서명한다 / 한 번 더 / 유보를 달고. */
+  z.object({ kind: z.literal("treaty_sign"), how: z.enum(GW_SIGN_HOWS) }),
+  /**
+   * ww199: the crown of a state the seat founded: a candidate id of its
+   * GwClientRow, or "regency" (섭정회의에 맡긴다).
+   */
+  z.object({ kind: z.literal("crown"), client: z.enum(GW_CLIENTS), pick: Id }),
 ]);
 export type GwOrder = z.infer<typeof GwOrderSchema>;
 
@@ -376,5 +399,9 @@ export const GW_ORDER_BLOCKS = [
   "called",
   "no_honour",
   "gone", // ww196: briefings and gifts are gone
+  // ww199
+  "no_fate", // that fate can't be painted there, or painting is shut
+  "no_sign", // nothing to sign, or signed already
+  "no_crown", // no such state of the seat's, or its crown is set
 ] as const;
 export type GwOrderBlock = (typeof GW_ORDER_BLOCKS)[number];

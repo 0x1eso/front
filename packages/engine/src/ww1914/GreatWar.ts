@@ -185,8 +185,9 @@ export class GreatWar {
       pressure,
       secrets: [],
       sources: [],
+      // ww199: a dormant new state gets its row when a table founds it.
       nations: [
-        ...this.world.tags,
+        ...this.world.tags.slice(0, this.world.landed),
         ...GW_ACTORS.filter((t) => !this.world.tags.includes(t)),
       ].map(blankNation),
       people: gwContent().people.map((p) => ({
@@ -415,7 +416,7 @@ function blankTheatre(id: GwTheatre): GwTheatreState {
   };
 }
 
-function blankNation(tag: GwTag): GwNationState {
+export function blankNation(tag: GwTag): GwNationState {
   return {
     tag,
     gauges: { shells: 2, bread: 2, money: 2, morale: 3, order: 3 },

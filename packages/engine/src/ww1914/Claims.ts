@@ -173,5 +173,12 @@ export function claimsView(gw: GreatWar, seat: GwSeatState): GwClaimsView {
     held: claimsHeld(gw, seat),
     open: claimsOpen(gw),
     priced: seat.claimsSigned >= 0,
+    // ww199: the fate chips, painted while the war is on or a table sits.
+    fates: seat.fates ?? {},
+    fatesOpen:
+      claimsOpen(gw) ||
+      (gw.s.table !== null &&
+        !gw.s.table.closed &&
+        gw.s.table.order.includes(seat.tag)),
   };
 }

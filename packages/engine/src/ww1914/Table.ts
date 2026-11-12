@@ -38,6 +38,7 @@ import {
   GW_TABLE_SESSIONS,
 } from "@openfront/engine-lib/ww1914/TableRows";
 import { claimsHeld } from "./Claims";
+import { signWays } from "./Fate";
 import { warScore } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { holderOf, moveLand } from "./Land";
@@ -1137,6 +1138,10 @@ export function tableView(gw: GreatWar, seat: GwSeatState): GwTableView | null {
     over: t.over[seat.tag] ?? 0,
     held: t.held[seat.tag] ?? 0,
     due: dueOf(gw, seat),
+    sign: t.order.includes(seat.tag)
+      ? { ways: signWays(gw, seat), signed: t.sign?.[seat.tag] ?? null }
+      : null,
+    fates: seat.fates ?? {},
   };
 }
 

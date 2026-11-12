@@ -260,6 +260,9 @@ const WORD_KEYS: Readonly<Record<GwTableWord, string>> = {
   offer: "gw.table.word.offer",
   press: "gw.table.word.press",
   drop: "gw.table.word.drop",
+  yield: "gw.table.word.yield",
+  joint: "gw.table.word.joint",
+  hold: "gw.table.word.hold",
 };
 
 function question(x: GwTableClaimView, tag: GwTag): string {

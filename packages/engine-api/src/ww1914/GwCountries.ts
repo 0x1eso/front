@@ -65,8 +65,73 @@ export const GW_TAGS = [
   "URY",
   "ARG",
   "CHL",
+  // ww199: dormant until a table founds them. New states (own colour and
+  // name: GW_CLIENT_ROWS), then the vassal slots (GW_VASSAL_SLOTS: the
+  // colour of the country they are cut from). They have no land in June
+  // 1914, so they come after every present tag (World1914) and no smallID moves.
+  "POL",
+  "LTU",
+  "LVA",
+  "UKR",
+  "GEO",
+  "HEJ",
+  "CZE",
+  "RHN",
+  "FLA",
+  "VDE",
+  "VAU",
+  "VRU",
+  "VFR",
+  "VIT",
+  "VOT",
+  "VSR",
+  "VMN",
+  "VBE",
+  "VRO",
+  "VBG",
+  "VGR",
 ] as const;
 export type GwTag = (typeof GW_TAGS)[number];
+
+/** The first tag a table founds: those before it are the countries of June 1914. */
+export const GW_FIRST_NEW_TAG: GwTag = "POL";
+/** The countries of June 1914, GW_TAGS order: the lobby's and the AI's. */
+export const GW_MAP_TAGS: readonly GwTag[] = GW_TAGS.slice(
+  0,
+  GW_TAGS.indexOf(GW_FIRST_NEW_TAG),
+);
+/** Tags only a table brings onto the map (ww199). */
+export const GW_NEW_TAGS: readonly GwTag[] = GW_TAGS.slice(
+  GW_TAGS.indexOf(GW_FIRST_NEW_TAG),
+);
+
+/**
+ * ww199: a vassal carved out of part of a beaten country plays under a slot
+ * of its own, in that country's colour and flag: `of` -> slot. A whole-country
+ * vassal is the beaten country itself.
+ */
+export const GW_VASSAL_SLOTS: Readonly<Partial<Record<GwTag, GwTag>>> = {
+  DEU: "VDE",
+  AUH: "VAU",
+  RUS: "VRU",
+  FRA: "VFR",
+  ITA: "VIT",
+  OTT: "VOT",
+  SRB: "VSR",
+  MNE: "VMN",
+  BEL: "VBE",
+  ROU: "VRO",
+  BGR: "VBG",
+  GRC: "VGR",
+};
+
+/** The country a vassal slot was cut from; null for any other tag. */
+export function gwSlotOf(tag: GwTag): GwTag | null {
+  for (const [of, slot] of Object.entries(GW_VASSAL_SLOTS)) {
+    if (slot === tag) return of as GwTag;
+  }
+  return null;
+}
 
 export function isGwTag(v: string): v is GwTag {
   return (GW_TAGS as readonly string[]).includes(v);
@@ -115,10 +180,26 @@ const OWN: Readonly<Partial<Record<GwTag, GwCountryDef>>> = {
   SRB: { name: "Serbia", flag: "rs", color: [150, 70, 90] },
   MNE: { name: "Montenegro", flag: "me", color: [170, 110, 60] },
   ESP: { name: "Spain", flag: "spain", color: [195, 155, 75] },
+  // ww199: new states 1936 has no row for. Flags: F in ww199-format.md.
+  LVA: {
+    name: "Baltic Duchy",
+    flag: "Duchy of Courland and Semigallia",
+    color: [155, 65, 75],
+  },
+  UKR: { name: "Ukraine", flag: "ua", color: [205, 185, 85] },
+  GEO: { name: "Georgia", flag: "ge", color: [160, 70, 70] },
+  HEJ: { name: "Hejaz", flag: "Arabia", color: [95, 140, 80] },
+  CZE: { name: "Bohemia", flag: "cz", color: [100, 160, 210] },
+  RHN: { name: "Rhineland", flag: "Rhenish Republic", color: [120, 165, 120] },
+  FLA: { name: "Flanders", flag: "Flanders", color: [225, 200, 80] },
 };
 
 /** A country's name, flag and colour; 1936's row for a shared tag. */
 export function gwCountry(tag: GwTag): GwCountryDef {
+  // A vassal slot wears the colour and flag of the country it was cut from.
+  const of = gwSlotOf(tag);
+  if (of !== null)
+    return { ...gwCountry(of), name: `${gwCountry(of).name} (dependency)` };
   const own = OWN[tag];
   if (own !== undefined) return own;
   if (!isCountryTag(tag)) throw new Error(`no row for country ${tag}`);

@@ -94,6 +94,14 @@ import {
   GwShortage,
 } from "./GwCraft";
 import {
+  GW_FATES,
+  GW_SETTLE_PLANS,
+  GW_SIGN_HOWS,
+  GwFate,
+  GwSettlePlan,
+  GwSignHow,
+} from "./GwFate";
+import {
   GW_ASK_STAGES,
   GW_CHAMBERS,
   GW_FACTION_STATUS,
@@ -521,7 +529,43 @@ export type GwWorldCond =
       pardons?: Range;
     } & Range)
   /** Who holds a sea, from the seat's side. */
-  | { is: "sea_hold"; sea: GwSeaZone; by: "us" | "foe" | "none" };
+  | { is: "sea_hold"; sea: GwSeaZone; by: "us" | "foe" | "none" }
+  // ---- ww199: a beaten country's fate ----
+  /**
+   * A fate a table signed: the seat's country decided it (`as: "by"`, the
+   * default), lost the place (`of`), or holds it now (`to`). `tag`: the
+   * other party. The range is on whole months since it was signed.
+   */
+  | ({
+      is: "fate";
+      fate?: GwFate;
+      as?: "by" | "of" | "to";
+      tag?: GwTag;
+      client?: GwClient;
+    } & Range)
+  /**
+   * A state the seat's country founded (or `by` founded); the range is on
+   * its loyalty 0..3. `self`: the seat's own country is such a state.
+   */
+  | ({
+      is: "client_state";
+      client?: GwClient;
+      by?: GwTag;
+      self?: boolean;
+    } & Range)
+  /**
+   * A vassal of the seat's country (or of `by`), cut from `of`; the range is
+   * on its loyalty 0..3. `self`: the seat's own country is a vassal.
+   */
+  | ({ is: "vassal"; by?: GwTag; of?: GwTag; self?: boolean } & Range)
+  /**
+   * The seat's country's revanche: places it lost by annexation or to a
+   * taker's new state or vassal, less those given back; toward `tag` if set.
+   * The range is on that count.
+   */
+  | ({ is: "revanche"; tag?: GwTag } & Range)
+  /** A table sits with the seat's country in a chair, the fate of `of` (the beaten) open. */
+  | { is: "settle_open"; of?: GwTag };
 
 export type GwWorldEffect =
   /** Germany's plan for the war to come. */
@@ -737,7 +781,14 @@ export type GwWorldEffect =
   /** The command's answer to the refusals. */
   | { do: "refusals"; answer: Exclude<GwRefusalAnswer, "none"> }
   /** The President's review of the sentences. */
-  | { do: "pardon"; many: boolean };
+  | { do: "pardon"; many: boolean }
+  // ---- ww199: a beaten country's fate ----
+  /** The crown of a state the seat founded: a candidate of its row, or "regency". */
+  | { do: "crown"; client: GwClient; pick: string }
+  /** The seat's ruler signs the treaty now sitting. */
+  | { do: "treaty_sign"; how: GwSignHow }
+  /** Paints a plan on the beaten country `of` (else the table's beaten). */
+  | { do: "settle_plan"; plan: GwSettlePlan; of?: GwTag };
 
 const int = z.number().int();
 const yearMonth = z.string().regex(/^19[0-9]{2}-[01][0-9]$/);
@@ -1003,6 +1054,28 @@ export const GwWorldCondSchema = z.union([
     sea: z.enum(GW_SEA_ZONES),
     by: z.enum(["us", "foe", "none"]),
   }),
+  // ww199
+  is("fate", {
+    fate: z.enum(GW_FATES).optional(),
+    as: z.enum(["by", "of", "to"]).optional(),
+    tag: tag.optional(),
+    client: z.enum(GW_CLIENTS).optional(),
+    ...range,
+  }),
+  is("client_state", {
+    client: z.enum(GW_CLIENTS).optional(),
+    by: tag.optional(),
+    self: z.boolean().optional(),
+    ...range,
+  }),
+  is("vassal", {
+    by: tag.optional(),
+    of: tag.optional(),
+    self: z.boolean().optional(),
+    ...range,
+  }),
+  is("revanche", { tag: tag.optional(), ...range }),
+  is("settle_open", { of: tag.optional() }),
 ]) as unknown as z.ZodType<GwWorldCond>;
 
 export const GwWorldEffectSchema = z.union([
@@ -1129,6 +1202,16 @@ export const GwWorldEffectSchema = z.union([
   act("reprisal", { tag }),
   act("refusals", { answer: z.enum(["courts", "rest", "both"]) }),
   act("pardon", { many: z.boolean() }),
+  // ww199
+  act("crown", {
+    client: z.enum(GW_CLIENTS),
+    pick: z.string().regex(/^[a-z][a-z0-9_]*$/),
+  }),
+  act("treaty_sign", { how: z.enum(GW_SIGN_HOWS) }),
+  act("settle_plan", {
+    plan: z.enum(GW_SETTLE_PLANS),
+    of: tag.optional(),
+  }),
 ]) as unknown as z.ZodType<GwWorldEffect>;
 
 // ---- Authoring helpers ----
