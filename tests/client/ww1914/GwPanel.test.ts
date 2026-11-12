@@ -727,7 +727,14 @@ describe("the screens", () => {
       dropped: [],
     };
     const { panel, orders } = await mount(seatWith({ aims }));
+    // ww194: in peace it asks what the country is after, not "this war".
+    expect(panel.querySelector("[data-gw-aim-nudge]")!.textContent).toContain(
+      "gw.aim.nudge_peace",
+    );
     await tap(panel, "[data-gw-aim-nudge]");
+    expect(panel.querySelector("[data-gw-aims]")!.textContent).toContain(
+      "gw.aim.ask_peace",
+    );
     expect(panel.querySelector("[data-gw-aim-priced]")).toBeNull();
     await tap(panel, "[data-gw-aim-pick=t_aim_a]");
     expect(panel.querySelector("[data-gw-aims]")!.textContent).toContain(

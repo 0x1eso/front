@@ -2160,10 +2160,12 @@
     },
     "aim": {
       "ask": "Say what this war is for. Later papers and the memoir will hold you to it.",
+      "ask_peace": "Say what the country is after. Later papers and the memoir will hold you to it.",
       "change": "Change the aim",
       "declare": "Declare it",
       "dropped": "Given up: {list}",
       "nudge": "You have not yet said what this war is for. Tap to choose under \"National aim\" on the schedule tab.",
+      "nudge_peace": "You have not yet said what the country is after. Tap to choose under \"National aim\" on the schedule tab.",
       "priced": "Going back on your word has a price.",
       "title": "National aim"
     },
