@@ -15,8 +15,8 @@ import type { GwPlace } from "@openfront/engine-api/ww1914/GwPlaces";
 /**
  * A throne's candidate. `house`: the country whose ruling house he is of
  * (putting the founder's own house on the throne goes against the ally and
- * the neutrals); null for a native pick. Text `gw.fate.crown.<id>` and the
- * pack's crown papers. "regency" (섭정회의에 맡긴다) is always open besides.
+ * the neutrals); null for a native pick. Text `gw.crown.<id>` (gwCrownKey) and
+ * the pack's crown papers. "regency" (섭정회의에 맡긴다) is always open besides.
  */
 export interface GwCrownRow {
   readonly id: string;
@@ -222,6 +222,12 @@ export function gwClientOfPlace(place: GwPlace): GwClientRow | null {
 
 /** The crown pick for a regency council: open on every state. */
 export const GW_REGENCY = "regency";
+
+/** The text key naming a crown pick (a candidate id or "regency"). */
+export function gwCrownKey(pick: string): string {
+  const key = `gw.crown.${pick}`;
+  return key;
+}
 
 /** Days a military government lasts by its term: 2 years and 5 (design §2.2). */
 export const GW_FATE_TERM_DAYS: Readonly<Record<GwFateTerm, number>> = {

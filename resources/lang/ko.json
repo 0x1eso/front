@@ -19046,7 +19046,98 @@
       }
     },
     "vassal": {
+      "BEL_DEU": "벨기에령 독일",
+      "BGR_GRC": "불가리아령 그리스",
+      "BGR_MNE": "불가리아령 몬테네그로",
+      "BGR_OTT": "불가리아령 오스만",
+      "BGR_ROU": "불가리아령 루마니아",
+      "BGR_SRB": "불가리아령 세르비아",
+      "GRC_ALB": "그리스 보호하의 알바니아",
+      "GRC_BGR": "그리스령 불가리아",
+      "GRC_OTT": "그리스령 오스만",
+      "ITA_ALB": "이탈리아 보호하의 알바니아",
+      "ITA_AUH": "이탈리아령 오스트리아",
+      "ITA_DEU": "이탈리아령 독일",
+      "ITA_MNE": "이탈리아 보호하의 몬테네그로",
+      "ITA_OTT": "이탈리아령 오스만",
+      "JPN_CHN": "일본 보호하의 중국",
+      "JPN_DEU": "일본령 독일",
+      "JPN_RUS": "일본령 러시아",
+      "MNE_ALB": "몬테네그로 보호하의 알바니아",
+      "OTT_ALB": "오스만령 알바니아",
+      "OTT_BGR": "오스만령 불가리아",
+      "OTT_GRC": "오스만령 그리스",
+      "OTT_ITA": "오스만령 이탈리아",
+      "OTT_MNE": "오스만령 몬테네그로",
+      "OTT_ROU": "오스만령 루마니아",
+      "OTT_RUS": "오스만령 러시아",
+      "OTT_SRB": "오스만령 세르비아",
+      "ROU_AUH": "루마니아령 헝가리",
+      "ROU_BGR": "루마니아령 불가리아",
+      "SRB_ALB": "세르비아 보호하의 알바니아",
+      "SRB_AUH": "세르비아령 보스니아",
+      "SRB_BGR": "세르비아령 불가리아",
+      "SRB_MNE": "세르비아 보호하의 몬테네그로",
+      "USA_DEU": "미국 보호하의 독일",
+      "USA_MEX": "미국 보호하의 멕시코",
       "any": "{by}령 {of}"
+    },
+    "client": {
+      "albania": {
+        "principality": "알바니아 공국",
+        "protectorate": "알바니아 보호국"
+      },
+      "baltic_duchy": {
+        "duchy": "발트 연합 공국",
+        "regency": "발트 공국 (섭정)"
+      },
+      "bohemia": {
+        "republic": "체코슬로바키아 공화국"
+      },
+      "flanders": {
+        "regency": "플랑드르 (섭정)",
+        "republic": "플랑드르 공화국"
+      },
+      "georgia": {
+        "republic": "조지아 민주 공화국"
+      },
+      "hejaz": {
+        "kingdom": "헤자즈 왕국"
+      },
+      "lithuania": {
+        "kingdom": "리투아니아 왕국",
+        "regency": "리투아니아 (섭정)"
+      },
+      "poland": {
+        "kingdom": "폴란드 왕국",
+        "regency": "폴란드 섭정 왕국"
+      },
+      "rhineland": {
+        "republic": "라인 공화국"
+      },
+      "serbia": {
+        "kingdom": "세르비아 왕국",
+        "regency": "세르비아 (섭정)"
+      },
+      "ukraine": {
+        "hetmanate": "우크라이나 헤트만국",
+        "republic": "우크라이나 인민공화국"
+      }
+    },
+    "crown": {
+      "adolf_friedrich": "메클렌부르크 공 아돌프 프리드리히",
+      "archduke_wilhelm": "빌헬름 대공 (바실 비시바니)",
+      "dorten": "한스 아담 도르텐",
+      "georgian_council": "조지아 국민평의회",
+      "hussein": "후세인 빈 알리",
+      "karl_stephan": "카를 슈테판 대공",
+      "national_council": "체코슬로바키아 국민평의회",
+      "prussia": "프로이센 왕관과의 연합",
+      "raad": "플랑드르 평의회",
+      "regency": "섭정회의",
+      "skoropadsky": "파블로 스코로파드스키",
+      "urach": "우라흐 공작 빌헬름",
+      "wied": "비트 공 빌헬름"
     }
   },
   "imjin": {
