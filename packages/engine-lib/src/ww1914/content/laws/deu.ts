@@ -7,7 +7,7 @@ import {
   memory,
   setFlag,
 } from "@openfront/engine-api/ww1914/SceneDsl";
-import { world } from "@openfront/engine-api/ww1914/WorldDsl";
+import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
 import type { GwLawRow } from "../../LawRows";
 import {
   draft,
@@ -15,6 +15,7 @@ import {
   gauge,
   held,
   inst,
+  isText,
   lawTalk,
   low,
   men,
@@ -29,6 +30,30 @@ const allOf = (...of: GwLawRow["opens"][]): GwLawRow["opens"] => ({
   kind: "all",
   of,
 });
+
+/** ww190: the peace years, no great war anywhere. */
+const peaceYears = (months: number): GwLawRow["opens"] => ({
+  kind: "all",
+  of: [
+    world({ is: "peace_months", min: months }),
+    { kind: "not", of: world({ is: "war_months", min: 0 }) },
+  ],
+});
+/** What a text of the bill brings once it is law. */
+const onText = (
+  law: string,
+  text: string,
+  ...then: GwLawRow["passed"][number][]
+): GwLawRow["passed"][number] => ({
+  kind: "maybe",
+  when: isText(law, text),
+  then: [...then],
+});
+const armsBy = (delta: number) => doWorld({ do: "arms", line: "army", delta });
+const treasury = (pct: number) =>
+  doWorld({ do: "budget_item", item: "treasury", pct });
+const opinion = (bloc: "business" | "workers", delta: number) =>
+  ({ kind: "opinion", bloc, delta }) as const;
 
 /**
  * Germany's bills. The door is the Reichstag. In war the Bundesrat can rule on
@@ -401,6 +426,80 @@ export const DEU_LAWS: readonly GwLawRow[] = [
       tell: ["reichstag:-1"],
       price: [inst("reichstag", -1)],
       wins: 1,
+    }),
+  }),
+  // ww190 §1: the peace years' bill. A new army bill after 1913's; each text
+  // tilts the plan by its own measure and brings the tax that pays for it
+  // (Laws.test keeps a nation at ten bills, so the levy rides in the texts).
+  row({
+    id: "deu_army_bill",
+    opens: allOf(
+      peaceYears(6),
+      any(
+        world({ is: "arms_race", tag: "FRA" }),
+        world({ is: "arms_race", tag: "RUS" }),
+        { kind: "temp", min: 5 },
+      ),
+    ),
+    lean: 0,
+    decree: false,
+    cast: { war: held("war"), chancellor: held("chancellor") },
+    draft: [
+      draft("cadres", 2, ["army_line:+1"]),
+      draft(
+        "corps",
+        0,
+        ["army_line:+2", "money:+1", "reichstag:-1"],
+        [inst("reichstag", -1)],
+      ),
+      draft(
+        "full_service",
+        -2,
+        ["army_line:+3", "money:+1", "order:-1"],
+        [gauge("order", -1)],
+      ),
+    ],
+    passed: [
+      onText("deu_army_bill", "cadres", armsBy(2)),
+      onText(
+        "deu_army_bill",
+        "corps",
+        armsBy(4),
+        treasury(8),
+        opinion("business", -1),
+      ),
+      onText(
+        "deu_army_bill",
+        "full_service",
+        armsBy(6),
+        treasury(7),
+        opinion("workers", -1),
+      ),
+      inst("army", 1),
+    ],
+    passedTell: ["army:+1"],
+    term: [
+      {
+        gauge: "manpower",
+        delta: 1,
+        every: 6,
+        text: ["corps", "full_service"],
+      },
+      { gauge: "money", delta: -1, every: 10, offset: 4 },
+    ],
+    repeal: {
+      authority: 20,
+      tell: ["army:-1", "army_line:-1"],
+      effects: [inst("army", -1), armsBy(-3)],
+    },
+    talk: lawTalk("deu_army_bill", {
+      who: either(person("deu_erzberger"), held("finance")),
+      ask: "frank",
+      push: "cold",
+      tell: ["money:-1"],
+      price: [gauge("money", -1)],
+      wins: 1,
+      tempers: ["cunning"],
     }),
   }),
 ];
