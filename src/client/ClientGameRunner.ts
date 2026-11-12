@@ -956,6 +956,23 @@ export class ClientGameRunner {
   private idleTickInterval: ReturnType<typeof setInterval> | null = null;
   private lastUpdateAtMs = 0;
   private goToPlayerTimeout: NodeJS.Timeout | null = null;
+  private hasGoneToPlayer = false;
+
+  /** The camera goes to my country once, when the game is past spawning. */
+  private goToMyPlayerOnce(): void {
+    if (
+      this.gameView.inSpawnPhase() ||
+      this.hasGoneToPlayer ||
+      !this.gameView.myPlayer() ||
+      !this.userSettings.goToPlayer()
+    ) {
+      return;
+    }
+    this.hasGoneToPlayer = true;
+    // Great War 1914 opens on Europe, not on the capital's streets.
+    const zoom = this.gameView.isGreatWar?.() === true ? 3 : 8;
+    this.eventBus.emit(new GoToPlayerEvent(this.gameView.myPlayer()!, zoom));
+  }
 
   private lastTickReceiveTime: number = 0;
   private currentTickDelay: number | undefined = undefined;
@@ -1065,6 +1082,9 @@ export class ClientGameRunner {
         this.eventBus.emit(new SendHashEvent(hu.tick, hu.hash));
       });
       this.gameView.update(gu);
+      // ww194: a resumed Great War opens paused, and its one turn comes before
+      // the view has the seat: the camera goes once the view has it.
+      if (this.gameView.isGreatWar?.() === true) this.goToMyPlayerOnce();
       // World War 1936 P5 (spec §3.6): a takeover moved my controller; the
       // HUD re-reads myPlayer() and open drawers close.
       for (const e of this.gameView.takeControllerChanges()) {
@@ -1092,7 +1112,6 @@ export class ClientGameRunner {
       this.transport.rejoinGame(this.turnsSeen);
     };
 
-    let hasGoneToPlayer = false;
     const onmessage = (message: ServerMessage) => {
       this.lastMessageTime = Date.now();
       if (message.type === "start") {
@@ -1183,19 +1202,7 @@ export class ClientGameRunner {
         this.eventBus.emit(new NewLobbyEvent(message.gameID));
       }
       if (message.type === "turn") {
-        if (
-          !this.gameView.inSpawnPhase() &&
-          !hasGoneToPlayer &&
-          this.gameView.myPlayer() &&
-          this.userSettings.goToPlayer()
-        ) {
-          hasGoneToPlayer = true;
-          // Great War 1914 opens on Europe, not on the capital's streets.
-          const zoom = this.gameView.isGreatWar?.() === true ? 3 : 8;
-          this.eventBus.emit(
-            new GoToPlayerEvent(this.gameView.myPlayer()!, zoom),
-          );
-        }
+        this.goToMyPlayerOnce();
 
         // Track when we receive the turn to calculate delay
         const now = Date.now();
