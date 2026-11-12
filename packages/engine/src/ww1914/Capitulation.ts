@@ -45,6 +45,7 @@ import { frontPlaces } from "@openfront/engine-lib/ww1914/FrontLand";
 import { GW_CAPITALS } from "@openfront/engine-lib/ww1914/PlaceRules";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import type { GreatWar } from "./GreatWar";
+import { capitulationPrisoners } from "./HomeFront";
 import { holderOf, reachedLine } from "./Land";
 import {
   capitalHolder,
@@ -292,6 +293,8 @@ export function capitulate(
       }
     }
   }
+  // ww190: a fifth of the men it has left go into the enemy's camps.
+  capitulationPrisoners(gw, tag);
   if (n.side !== null) {
     sue(gw, tag, why);
   } else {

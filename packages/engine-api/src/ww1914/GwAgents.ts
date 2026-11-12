@@ -116,6 +116,60 @@ export const GW_AGENTS: readonly GwAgentDef[] = [
     skill: 2,
     care: 1,
   },
+  // ---- ww190: Russia's and Austria-Hungary's own ----
+  {
+    // Col. Pavel A. Ignatiev ran Russia's intelligence and counter-
+    // intelligence bureau in France from 1915 (the Interallied Bureau, Paris,
+    // Sep 1915); by spring 1917 a large network (his memoir, Paris 1933).
+    id: "ignatiev",
+    by: { RUS: "DEU" },
+    from: [1915, 9],
+    work: "eyes",
+    skill: 2,
+    care: 3,
+  },
+  {
+    // The Ceska druzina, formed at Kiev in August 1914 from the empire's
+    // Czechs: patrols that scouted, questioned prisoners and talked the
+    // regiments opposite over; first in action in November 1914.
+    id: "druzhina",
+    by: { RUS: "AUH" },
+    from: [1914, 10],
+    work: "eyes",
+    skill: 2,
+    care: 2,
+  },
+  {
+    // Capt. Rudolf Mayer's office in the consulate at Zurich, blamed for the
+    // Benedetto Brin (Brindisi, 27 Sep 1915) and the Leonardo da Vinci
+    // (Taranto, 2 Aug 1916); the Italians broke in at the end of Feb 1917.
+    id: "zurich_net",
+    by: { AUH: "ITA" },
+    from: [1915, 6],
+    work: "sabotage",
+    skill: 2,
+    care: 2,
+  },
+  {
+    // The Union for the Liberation of Ukraine: founded at Lemberg 4 Aug 1914,
+    // in Vienna from late August; papers, and the camps of Ukrainian POWs.
+    id: "svu",
+    by: { AUH: "RUS" },
+    from: [1914, 9],
+    work: "papers",
+    skill: 1,
+    care: 3,
+  },
+  {
+    // Pilsudski's Polish Military Organisation, named in November 1914:
+    // underground, spying and sabotage behind the Russian lines.
+    id: "pow_polish",
+    by: { AUH: "RUS" },
+    from: [1914, 11],
+    work: "eyes",
+    skill: 2,
+    care: 2,
+  },
 ];
 
 /** What a condition asks of named agents. APPEND ONLY. */

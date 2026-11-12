@@ -163,7 +163,8 @@ export const GW_HOME: Readonly<Partial<Record<GwTag, GwHomeRow>>> = {
     ],
   },
   FRA: {
-    rungs: COMMON,
+    // ww190: France's own rungs; the common scene stands in until written.
+    rungs: rungs("fra"),
     // The top of the ladder for a French seat, once written (lane W3).
     top: {
       fra_republic: "fra_h_top",

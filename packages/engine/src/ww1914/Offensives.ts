@@ -34,6 +34,7 @@ import {
 } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { GW_HOME } from "./HomeTable";
+import { restBlocks } from "./Refusals";
 import { actedOnRead, believedStrain, capturedOrders } from "./Spies";
 import { addStrain, strainOf } from "./Strain";
 import { memberEnd, membersOf } from "./Wars";
@@ -269,6 +270,8 @@ export function isReady(o: GwOffensive): boolean {
 
 /** Resting after one: no paper for a new one yet. */
 function resting(gw: GreatWar, tag: GwTag): boolean {
+  // ww190: the rest the command granted its refusing army (Refusals.ts).
+  if (restBlocks(gw, tag)) return true;
   return list(gw).some(
     (o) =>
       o.tag === tag &&
@@ -806,7 +809,11 @@ function armyRefuses(gw: GreatWar, n: GwNationState): void {
   moveGauge(gw, n.tag, "order", -1, "off_refusal");
   for (const seat of seatsOf(gw, n.tag)) reason(gw, seat, "off_refusal");
   if (callScene(gw, n.tag, "w_off_mutiny")) return;
-  const scene = GW_HOME[n.tag]?.rungs[ARMY_RUNG - 1] ?? "gw_unrest";
+  const rung = GW_HOME[n.tag]?.rungs[ARMY_RUNG - 1];
+  const scene =
+    rung !== undefined && gwContent().scenes.some((x) => x.id === rung)
+      ? rung
+      : "gw_unrest";
   for (const seat of seatsOf(gw, n.tag)) {
     seat.scheduled.push({ scene, chapter: gw.s.chapter + 1 });
   }

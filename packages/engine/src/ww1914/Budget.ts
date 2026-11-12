@@ -49,6 +49,7 @@ import {
   moneyStep,
   moneyWord,
   printedPrices,
+  tilted,
 } from "@openfront/engine-lib/ww1914/BudgetRules";
 import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
@@ -56,7 +57,9 @@ import {
   civilFromDays,
   formatIsoDate,
 } from "@openfront/engine-lib/ww1936/Calendar";
+import { dissolvedNow, GW_ELECTION_DAYS } from "./Assumes";
 import type { GreatWar } from "./GreatWar";
+import { chamberSits, houseRow } from "./House";
 import { officeHolder } from "./People";
 import {
   chapterOf,
@@ -83,6 +86,30 @@ const flagsOf = (gw: GreatWar, n: GwNationState): string[] =>
 /** The regime's body, unless a decree carries the budget past it (ww171). */
 const bodyOf = (gw: GreatWar, n: GwNationState): GwBudgetBody | null =>
   budgetBody(n.regime, flagsOf(gw, n));
+
+/** A decree that stands while the house is gone or sent home (not a once). */
+const shutByDecree = (gw: GreatWar, n: GwNationState): boolean => {
+  const flags = flagsOf(gw, n);
+  return GW_BUDGET_DECREE.some(
+    (d) => d.once !== true && flags.includes(d.flag),
+  );
+};
+
+/**
+ * ww190: the chamber that votes the budget doesn't sit (dissolved till its
+ * election): no bill passes through it. It waits, or is forced past it.
+ */
+function houseShut(gw: GreatWar, n: GwNationState): boolean {
+  const body = bodyOf(gw, n);
+  if (body === null) return false;
+  const row = houseRow(n.tag);
+  const chamber = row?.chambers.find((c) => c.inst === body.inst);
+  return seatsOf(gw, n.tag).some((seat) =>
+    chamber === undefined
+      ? dissolvedNow(gw, seat)
+      : !chamberSits({ gw, seat, cast: {} }, chamber),
+  );
+}
 
 /** A decree that carries one budget is spent by the budget it carried. */
 function spendDecree(gw: GreatWar, n: GwNationState): void {
@@ -290,7 +317,12 @@ function adopt(
   closeMeeting(gw, n, how);
   signEffects(gw, n, b.plan, war);
   b.notes = [];
-  tellSeats(gw, n, `budget_${how}`);
+  // ww190: by decree nothing "passed": the line says how it went out.
+  const decreed =
+    (how === "signed" || how === "proxy") &&
+    bodyOf(gw, n) === null &&
+    GW_BUDGET_DECREE.some((d) => flagsOf(gw, n).includes(d.flag));
+  tellSeats(gw, n, decreed ? "budget_by_decree" : `budget_${how}`);
   spendDecree(gw, n);
 }
 
@@ -313,7 +345,11 @@ export function submitBudget(
   n: GwNationState,
   plan: GwBudgetPlan,
   how: GwBudgetHow = "signed",
-): "passed" | "refused" {
+): "passed" | "refused" | "waits" {
+  if (houseShut(gw, n)) {
+    tellSeats(gw, n, "budget_waits");
+    return "waits";
+  }
   const body = bodyOf(gw, n);
   const vote: GwBudgetVote = voteOn(gw, n, plan);
   if (vote.pass) {
@@ -357,7 +393,7 @@ export function budgetOrder(
   if (force && body !== null) {
     if (n.authority < body.forcePrice) return "no_authority";
     forceBudget(gw, n, plan, body);
-  } else if (submitBudget(gw, n, plan) === "refused") {
+  } else if (submitBudget(gw, n, plan) !== "passed") {
     return null;
   }
   seat.desk = seat.desk.filter((c) => !MEETING.test(c.scene));
@@ -373,11 +409,31 @@ function meetingScene(n: GwNationState, year: number, war: boolean): string {
   return known(own) ? own : "gw_bm_common";
 }
 
+/**
+ * ww190: in the peace years a new year's draft keeps the arms the running
+ * plan was raised to (PeaceYears' `arms`), not the June 1914 shares: an arms
+ * race lasts until a budget turns it down.
+ */
+function keepArms(
+  n: GwNationState,
+  war: boolean,
+  draft: GwBudgetPlan,
+): GwBudgetPlan {
+  if (war || n.budget.warPlan) return draft;
+  let shares = draft.shares;
+  for (const line of ["army", "navy"] as const) {
+    const i = GW_BUDGET_LINES.indexOf(line);
+    const d = n.budget.plan.shares[i] - shares[i];
+    if (d > 0) shares = tilted(shares, line, d);
+  }
+  return { shares, mix: draft.mix };
+}
+
 function openMeeting(gw: GreatWar, n: GwNationState, year: number): void {
   const s = gw.s;
   const b = n.budget;
   const basis = basisOf(gw, n);
-  const draft = budgetDraft(basis, n.gauges);
+  const draft = keepArms(n, basis.war, budgetDraft(basis, n.gauges));
   const seats = seatsOf(gw, n.tag);
   if (seats.length === 0) {
     aiBudget(gw, n, draft);
@@ -415,7 +471,13 @@ function closeDue(gw: GreatWar, n: GwNationState): void {
     tellSeats(gw, n, "budget_runs_on");
     return;
   }
-  if (submitBudget(gw, n, b.draft, "proxy") === "refused") {
+  const vote = submitBudget(gw, n, b.draft, "proxy");
+  if (vote === "waits" && seatsOf(gw, n.tag).some((x) => dissolvedNow(gw, x))) {
+    // The house comes back with its election: the meeting waits for it.
+    b.meeting = gw.s.chapter + 1;
+    return;
+  }
+  if (vote !== "passed") {
     closeMeeting(gw, n, "refused");
     tellSeats(gw, n, "budget_runs_on");
   }
@@ -641,6 +703,19 @@ function nextMeeting(gw: GreatWar): string | null {
     : formatIsoDate(civilFromDays(c.day + s.dayShift));
 }
 
+/** ww190: the house is shut: till its election, or sent home with no date. */
+function shutView(
+  gw: GreatWar,
+  n: GwNationState,
+  seat: GwSeatState,
+): GwBudgetView["shut"] {
+  if (dissolvedNow(gw, seat)) {
+    const day = seat.dissolved! + GW_ELECTION_DAYS;
+    return { until: formatIsoDate(civilFromDays(day)) };
+  }
+  return shutByDecree(gw, n) ? { until: null } : null;
+}
+
 /** What the seat reads: all of it its own country's and all of it true. */
 export function budgetView(gw: GreatWar, seat: GwSeatState): GwBudgetView {
   const n = gw.nation(seat.tag)!;
@@ -660,6 +735,7 @@ export function budgetView(gw: GreatWar, seat: GwSeatState): GwBudgetView {
     body: bodyView(gw, n),
     authority: n.authority,
     holder: officeHolder(gw, seat, "finance")?.id ?? null,
+    shut: shutView(gw, n, seat),
   };
 }
 
