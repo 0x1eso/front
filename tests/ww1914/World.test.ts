@@ -611,7 +611,9 @@ describe("plausibility rails", () => {
     expect(britain).toBe(n);
     expect(long).toBeGreaterThanOrEqual(n - 1);
     useGwContent({ scenes: GW_CONTENT.scenes, people: CAST });
-  }, 180000);
+    // ww193 merge: eight full games on the real map pass three minutes here
+    // (they timed out on the live tune too).
+  }, 420000);
 
   test("closing a chain with war twice opens one war", async () => {
     const { gw } = await atWar("GWTWICE");

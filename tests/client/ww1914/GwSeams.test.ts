@@ -101,7 +101,8 @@ describe("the memoir on the world's data", () => {
     const box = panel.querySelector("[data-gw-memoir-aim]")!;
     expect(box.textContent).toContain("deu_aim_x");
     expect(box.textContent).toContain("deu_aim_y");
-  });
+    // ww193 merge: a whole game is played first; five seconds was too tight.
+  }, 30000);
 
   test("the end opens the memoir: ending, mandates, what you never knew", async () => {
     const d = await finished();

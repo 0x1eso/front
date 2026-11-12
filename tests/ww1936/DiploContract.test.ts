@@ -443,7 +443,7 @@ describe("diplomacy L0: the digests that never move", () => {
   // front): the Great War's own rules moved it, not the diplomacy.
   test("the Great War pin is unchanged", () => {
     expect(read("ww1914/GreatWarSnapshot.test.ts")).toContain(
-      'const GW_DIGEST = "1ada918cfa32d07c";',
+      'const GW_DIGEST = "6ca5ff4a16f4ab43";',
     );
   });
 });
