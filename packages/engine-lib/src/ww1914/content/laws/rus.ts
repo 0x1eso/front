@@ -1,4 +1,4 @@
-import { any, chose } from "@openfront/engine-api/ww1914/SceneDsl";
+import { any, chose, not } from "@openfront/engine-api/ww1914/SceneDsl";
 import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
 import type { GwLawRow } from "../../LawRows";
 import {
@@ -23,6 +23,14 @@ const allOf = (...of: GwLawRow["opens"][]): GwLawRow["opens"] => ({
 });
 /** While there is a sovereign to sign. */
 const crowned = world({ is: "regime", of: ["tsar", "crown", "regency"] });
+/** ww190: the peace years, once a crisis has passed without a war. */
+const peaceYears = allOf(
+  world({ is: "peace_months", min: 0 }),
+  not(world({ is: "war_months", min: 0 })),
+);
+const arms = (delta: number) => doWorld({ do: "arms", line: "army", delta });
+const mix = (source: "taxes" | "loans", delta: number) =>
+  doWorld({ do: "budget_mix", source, delta });
 
 /**
  * Russia's bills. A bill can go to the Duma, which may say no. Or the Tsar
@@ -405,6 +413,47 @@ export const RUS_LAWS: readonly GwLawRow[] = [
       tell: ["court:-1"],
       price: [inst("court", -1)],
       wins: 2,
+    }),
+  }),
+  row({
+    // ww190: the "Great Programme" for the army, passed in the summer of 1914
+    // (larger peacetime army and artillery, finished by 1917). A peace bill:
+    // its drafts tilt the budget to the army and say who pays.
+    id: "rus_great_programme",
+    opens: allOf(peaceYears, crowned),
+    lean: 1,
+    decree: true,
+    cast: { war: held("war"), fin: held("finance") },
+    draft: [
+      draft(
+        "whole_by_taxes",
+        0,
+        ["army_line:+10", "tax_rate:+1"],
+        [arms(10), mix("taxes", 10)],
+      ),
+      draft(
+        "whole_by_loans",
+        1,
+        ["army_line:+10", "loans_ask:+1"],
+        [arms(10), mix("loans", 10)],
+      ),
+      draft("guns_first", 1, ["army_line:+5"], [arms(5)]),
+    ],
+    passed: [inst("stavka", 1)],
+    passedTell: ["stavka:+1"],
+    term: [{ gauge: "money", delta: -1, every: 9, offset: 3 }],
+    repeal: {
+      authority: 15,
+      tell: ["stavka:-1", "money:+1"],
+      effects: [inst("stavka", -1), gauge("money", 1)],
+    },
+    talk: lawTalk("rus_great_programme", {
+      who: person("rus_rodzianko"),
+      ask: "warm",
+      push: "frank",
+      tell: ["duma:+1"],
+      price: [inst("duma", 1)],
+      wins: 1,
     }),
   }),
 ];
