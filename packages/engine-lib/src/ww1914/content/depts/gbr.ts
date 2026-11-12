@@ -917,6 +917,113 @@ const ANSWERS: GwAnswerRow[] = [
     ],
     { question: "person" },
   ),
+
+  // ---- settle (ww199): the Foreign Office drafts a beaten country's fate ----
+  // Given by the engine when a table opens with Britain among the winners.
+  // Each course paints a plan (Fate.settlePlan). The office's own is the
+  // gentle one; the general staff's counter-course is the firm `staff_strip`,
+  // kept last so it stays for the rival head (Departments.answerCard).
+  answer(
+    "settle_ott",
+    "settle",
+    [
+      f("hussein_promise", 3, { when: memory("k_gbr_hussein_promise") }),
+      f("hussein", 2, { when: not(memory("k_gbr_hussein_promise")) }),
+      f("paris", 3, { when: world({ is: "date", from: "1916-05" }) }),
+      f("straits", 2, {
+        when: all(
+          world({ is: "date", from: "1915-04" }),
+          not(world({ is: "out", tag: "RUS" })),
+        ),
+      }),
+      f("india", 2),
+      f("oil", 1),
+      f("welcome", 2, { wrong: true }),
+    ],
+    [
+      c("arab_crown", ["gentle", "calm"], [trust("FRA", -1)], {
+        settle: "wide",
+      }),
+      c("rivers", ["bold"], [trust("FRA", -1), trust("USA", -1)], {
+        settle: "narrow",
+      }),
+      c("protectorate", ["bold", "cheap"], [trust("RUS", -1)], {
+        settle: "vassal",
+      }),
+      c("hold_peace", ["wait", "cheap"], [], { settle: "hold" }),
+      c("staff_strip", ["firm"], [trust("USA", -1)], { settle: "strip" }),
+    ],
+    { topic: ["OTT"], question: "person" },
+  ),
+  answer(
+    "settle_deu",
+    "settle",
+    [
+      f("belgium", 3, { when: world({ is: "date", from: "1914-11" }) }),
+      f("rhine", 3),
+      f("colonies", 2),
+      f("america", 2, { when: world({ is: "entered", tag: "USA" }) }),
+      f("america_far", 1, { when: not(world({ is: "entered", tag: "USA" })) }),
+      f("hunger", 2),
+      f("falls_inside", 2, { wrong: true }),
+    ],
+    [
+      c("colonies_only", ["gentle", "calm"], [trust("USA", 1)], {
+        settle: "narrow",
+      }),
+      c("rhine_watch", ["wait", "cheap"], [trust("FRA", 1)], {
+        settle: "hold",
+      }),
+      c("rhine_state", ["bold"], [trust("FRA", 1), trust("USA", -1)], {
+        settle: "wide",
+      }),
+      c("staff_strip", ["firm"], [trust("USA", -1)], { settle: "strip" }),
+    ],
+    { topic: ["DEU"], question: "person" },
+  ),
+  answer(
+    "settle_auh",
+    "settle",
+    [
+      f("masaryk", 3, { when: world({ is: "date", from: "1915-11" }) }),
+      f("italy_price", 2, {
+        when: world({ is: "entered", tag: "ITA", side: "entente" }),
+      }),
+      f("serbs", 2),
+      f("vienna_tired", 1),
+      f("empire_holds", 2, { wrong: true }),
+    ],
+    [
+      c("small_nations", ["gentle", "calm"], [trust("USA", 1)], {
+        settle: "wide",
+      }),
+      c("give_back", ["cheap", "calm"], [trust("ITA", -1)], {
+        settle: "narrow",
+      }),
+      c("hold_peace", ["wait"], [], { settle: "hold" }),
+      c("staff_strip", ["firm"], [trust("USA", -1)], { settle: "strip" }),
+    ],
+    { topic: ["AUH"], question: "person" },
+  ),
+  answer(
+    "settle_bgr",
+    "settle",
+    [
+      f("macedonia", 3),
+      f("sofia", 2),
+      f("salonika", 2, { when: world({ is: "open", theatre: "balkan" }) }),
+      f("grateful", 2, { wrong: true }),
+    ],
+    [
+      c("give_back", ["gentle", "calm"], [trust("SRB", -1)], {
+        settle: "narrow",
+      }),
+      c("protectorate", ["bold"], [trust("RUS", -1)], { settle: "vassal" }),
+      c("hold_peace", ["wait", "cheap"], [], { settle: "hold" }),
+      c("staff_strip", ["firm"], [trust("GRC", 1)], { settle: "strip" }),
+    ],
+    { topic: ["BGR"] },
+  ),
 ];
 
 // ---- Tasks: Britain's own types, and where a common one opens later ----
