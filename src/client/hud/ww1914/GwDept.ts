@@ -644,7 +644,12 @@ export function briefingView(
 ): TemplateResult | typeof nothing {
   const who = c.ui.briefing ?? null;
   if (who === null) return nothing;
-  const papers = c.seat.desk.filter((x) => x.dept?.by === who);
+  // ww193 merge: the rival's counter-paper comes in with the head it answers.
+  const papers = c.seat.desk.filter(
+    (x) =>
+      x.dept?.by === who ||
+      (x.dept?.counter === true && x.dept.rival?.by === who),
+  );
   const office =
     papers.find((x) => !x.dept!.counter)?.dept?.office ??
     c.seat.people.find((p) => p.id === who)?.office ??

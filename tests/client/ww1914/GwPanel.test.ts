@@ -1062,9 +1062,23 @@ describe("departments at work (ww193)", () => {
         { id: "term_limit", open: true, tell: [] },
       ],
     });
-    const { panel, orders } = await mount(seat([paper]));
+    // ww193 merge: the staff's counter-paper comes in with him.
+    const counter = card({
+      uid: 2,
+      scene: "deu_sample_counter",
+      dept: {
+        ...DEPT,
+        office: "chief_of_staff",
+        by: "deu_moltke",
+        rival: { office: "foreign", by: "deu_jagow", option: null },
+        counter: true,
+        row: null,
+      },
+    });
+    const { panel, orders } = await mount(seat([paper, counter]));
     await tap(panel, "[data-gw-desk] [data-gw-room-meet=deu_jagow]");
     const brief = panel.querySelector("[data-gw-briefing=deu_jagow]")!;
+    expect(brief.querySelector("[data-gw-dept-counter]")).not.toBeNull();
     expect(brief.querySelector("[data-gw-brief-says]")!.textContent).toContain(
       "폐하, gw.country.ROU 일을 가져왔습니다.",
     );
