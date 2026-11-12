@@ -215,7 +215,13 @@ export const FRA_PROJECTS: readonly GwProjectRow[] = [
   {
     id: "fra_pj_voie",
     tag: "FRA",
-    opens: all(war, trenches, warAge(12)),
+    // ww187: the road to Verdun while Verdun is ours.
+    opens: all(
+      war,
+      trenches,
+      warAge(12),
+      world({ is: "held", place: "verdun", by: "us" }),
+    ),
     lead: orFavourite(office("war"), office("chief_of_staff")),
     odds: 55,
     start: [gauge("money", -1)],

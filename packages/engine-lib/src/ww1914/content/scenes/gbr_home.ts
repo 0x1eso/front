@@ -7,6 +7,7 @@ import type {
   GwTemperament,
   GwTopic,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import type { GwAssumes } from "@openfront/engine-api/ww1914/GwAssumes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import {
   all,
@@ -335,7 +336,7 @@ const visit = (
   ...(more.scheduledOnly === true ? { scheduledOnly: true } : {}),
 });
 
-export const GBR_HOME_SCENES: readonly GwScene[] = [
+const HOME_SCENES: readonly GwScene[] = [
   scene({
     id: "gbr_h_shells",
     kind: "crisis",
@@ -3049,3 +3050,39 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
     ],
   }),
 ];
+
+/** ww187: Kitchener at the War Office, the man these talks wait on. */
+const KIT_AT_WAR: GwCond = holds("war", "gbr_kitchener");
+
+/**
+ * ww187: what a scene's text takes for granted (the builders take no tags),
+ * and the state its words need besides its own `when`.
+ */
+const ASSUMES: Readonly<Record<string, { assumes: GwAssumes; when?: GwCond }>> =
+  {
+    gbr_t_lg_balkans: {
+      assumes: { active: ["gbr_kitchener"] },
+      when: KIT_AT_WAR,
+    },
+    gbr_t_lg_munitions: {
+      assumes: { active: ["gbr_kitchener"] },
+      when: KIT_AT_WAR,
+    },
+    gbr_t_venetia_wards: {
+      assumes: { active: ["gbr_kitchener"] },
+      when: KIT_AT_WAR,
+    },
+    // The shells press against Kitchener: he holds the War Office.
+    gbr_v_northcliffe_call: {
+      assumes: { active: ["gbr_kitchener"] },
+      when: KIT_AT_WAR,
+    },
+  };
+
+export const GBR_HOME_SCENES: readonly GwScene[] = HOME_SCENES.map((s) => {
+  const a = ASSUMES[s.id];
+  if (a === undefined) return s;
+  if (a.when === undefined) return { ...s, assumes: a.assumes };
+  const when = s.when === undefined ? a.when : all(s.when, a.when);
+  return { ...s, assumes: a.assumes, when };
+});

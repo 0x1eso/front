@@ -260,7 +260,16 @@ const ORDERS: GwAct[] = [
         options: [
           { id: "shells" },
           { id: "straits", when: world({ is: "open", theatre: "straits" }) },
-          { id: "kut", when: world({ is: "open", theatre: "mesopotamia" }) },
+          // ww187: only once the army came to Kut (the report tells of it).
+          {
+            id: "kut",
+            when: world({
+              is: "front",
+              theatre: "mesopotamia",
+              from: "kut",
+              to: "mosul",
+            }),
+          },
         ],
       },
     ],

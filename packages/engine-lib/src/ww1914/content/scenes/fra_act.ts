@@ -69,6 +69,13 @@ const card = (
   ...more,
 });
 /** What the President saw with his own eyes. */
+/** ww187: the body for a Chamber dissolved till its election. */
+const CHAMBER_SHUT: GwVariant = {
+  id: "shut",
+  when: not(world({ is: "sits", id: "chambre" })),
+  assumes: { shut: ["chambre"] },
+};
+
 const seenCard = (
   id: string,
   cast: GwScene["cast"],
@@ -256,7 +263,11 @@ const VISIT_SCENES: GwScene[] = [
     ["war"],
   ),
   seenCard("fra_a_barleduc_v", {}, [
-    v("road", all(war, period("16a", "16b"))),
+    // ww187: the trucks' road to Verdun once Verdun is fought, and still ours.
+    {
+      ...v("road", all(war, { kind: "seen", scene: "fra_big_verdun" })),
+      assumes: { held: { verdun: "us" } },
+    },
     v("war", war),
     v("base"),
   ]),
@@ -640,6 +651,8 @@ const ORDER_SCENES: GwScene[] = [
     "proposal",
     { pm: holder("chancellor") },
     [
+      // ww187: the weekly report while the Chamber is dissolved.
+      CHAMBER_SHUT,
       v("minister", picked("agenda", "minister")),
       v("front_tiger", all(picked("agenda", "front"), tiger)),
       v("front", picked("agenda", "front")),
@@ -758,15 +771,19 @@ const INTRIGUE_SCENES: GwScene[] = [
     v("gqg", picked("what", "gqg")),
     v("base"),
   ]),
-  caughtCard("fra_a_i_leak_out", { pm: holder("chancellor") }, [
-    o("say_nothing", [inst("chamber", -1), rumour(1)]),
-    o("own_up", [
-      trustOf(role("pm"), -1),
-      inst("countersign", -1),
-      authority(-1),
-      reason("fra_a_leak_out_r1"),
+  {
+    ...caughtCard("fra_a_i_leak_out", { pm: holder("chancellor") }, [
+      o("say_nothing", [inst("chamber", -1), rumour(1)]),
+      o("own_up", [
+        trustOf(role("pm"), -1),
+        inst("countersign", -1),
+        authority(-1),
+        reason("fra_a_leak_out_r1"),
+      ]),
     ]),
-  ]),
+    // ww187: the question waits for a Chamber that sits.
+    variants: [CHAMBER_SHUT, v("base")],
+  },
   card(
     "fra_a_i_police_r",
     "report",
@@ -812,7 +829,10 @@ const INTRIGUE_SCENES: GwScene[] = [
     ["people"],
   ),
   card("fra_a_i_sound_r", "report", {}, [
-    v("briand", picked("who", "briand")),
+    {
+      ...v("briand", picked("who", "briand")),
+      assumes: { sits: ["chambre"] },
+    },
     v("ribot", picked("who", "ribot")),
     v("base"),
   ]),
@@ -1065,7 +1085,8 @@ const OPENING_SCENES: GwScene[] = [
           v("survived", opening("sarajevo_survived")),
           v("failed", opening("sarajevo_failed", "sarajevo_delayed")),
           v("none", opening("no_sarajevo")),
-          v("base"),
+          // ww187: the Sarajevo wire tells what has happened.
+          { ...v("base"), assumes: { past: true } },
         ],
         replies: [go("call_in", "n2")],
       },

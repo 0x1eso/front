@@ -2,6 +2,7 @@ import type {
   GwPersonDef,
   GwStage,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import type { GwAssumes } from "@openfront/engine-api/ww1914/GwAssumes";
 import {
   all,
   any,
@@ -959,7 +960,11 @@ const STAMFORDHAM: readonly GwScene[] = [
         end("leave", "warm", 0),
       ),
       arran: node(base, end("end", "warm", 2, "m_p_king_john")),
-      wales: node(base, end("end", "warm", 1, "m_p_king_john")),
+      // ww187: the King's story of 1914: a memory.
+      wales: node(
+        [{ id: "base", assumes: { past: true } }],
+        end("end", "warm", 1, "m_p_king_john"),
+      ),
     },
   ),
   comes(
@@ -1700,7 +1705,13 @@ const HENDERSON: readonly GwScene[] = [
   ),
 ];
 
-export const GBR_PRIVATE_SCENES: readonly GwScene[] = [
+/** ww187: what a scene's text takes for granted (the builders take no tags). */
+const ASSUMES: Readonly<Record<string, GwAssumes>> = {
+  // "the Dardanelles is this colour": the straits front was fought.
+  gbr_p_chu_paint: { line: { straits: ["dardanelles", "constantinople"] } },
+};
+
+const PRIVATE_SCENES: readonly GwScene[] = [
   ...GREY,
   ...HALDANE,
   ...BIRRELL,
@@ -1712,6 +1723,10 @@ export const GBR_PRIVATE_SCENES: readonly GwScene[] = [
   ...REDMOND,
   ...HENDERSON,
 ];
+
+export const GBR_PRIVATE_SCENES: readonly GwScene[] = PRIVATE_SCENES.map((s) =>
+  ASSUMES[s.id] === undefined ? s : { ...s, assumes: ASSUMES[s.id] },
+);
 
 /** One person these lines need that work never called. */
 export const GBR_PRIVATE_PEOPLE: readonly GwPersonDef[] = [

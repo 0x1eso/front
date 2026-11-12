@@ -2,6 +2,7 @@ import type {
   GwInstitution,
   GwOpening,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import type { GwAssumes } from "@openfront/engine-api/ww1914/GwAssumes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import {
   all,
@@ -282,7 +283,7 @@ function visit(
   };
 }
 
-export const GBR_CRISIS_SCENES: readonly GwScene[] = [
+const CRISIS_SCENES: readonly GwScene[] = [
   // ---- The first desk: Ulster on top, Sarajevo under it ----
   scene(
     "gbr_c_roster",
@@ -387,7 +388,8 @@ export const GBR_CRISIS_SCENES: readonly GwScene[] = [
     [
       v("failed", opening("sarajevo_failed")),
       v("survived", opening("sarajevo_survived")),
-      base,
+      // ww187: the wire tells what has happened.
+      { ...base, assumes: { past: true } },
     ],
   ),
   // ---- The skeleton of July ----
@@ -942,10 +944,14 @@ export const GBR_CRISIS_SCENES: readonly GwScene[] = [
     [
       v("east1", east1),
       v("long", heardFrom("k_kit_long")),
-      v(
-        "liege",
-        world({ is: "battle", theatre: "west", of: ["advance", "break"] }),
-      ),
+      {
+        ...v(
+          "liege",
+          world({ is: "battle", theatre: "west", of: ["advance", "break"] }),
+        ),
+        // "fall back to Amiens and gather there"
+        assumes: { held: { amiens: "us" } },
+      },
       base,
     ],
     {
@@ -1008,7 +1014,11 @@ export const GBR_CRISIS_SCENES: readonly GwScene[] = [
     ),
     [
       v("six", flag("f_bef_six")),
-      v("kit", holds("war", "gbr_kitchener")),
+      {
+        ...v("kit", holds("war", "gbr_kitchener")),
+        // "to Paris by the night train"
+        assumes: { held: { paris: "us" } },
+      },
       base,
     ],
     {
@@ -1266,7 +1276,14 @@ export const GBR_CRISIS_SCENES: readonly GwScene[] = [
     ["foreign", "tension_down"],
     { fm: { office: "foreign" } },
     all(chapters(1, 3), not(crisis)),
-    [v("rail", world({ is: "thread", id: "baghdad_rail" })), base],
+    [
+      {
+        ...v("rail", world({ is: "thread", id: "baghdad_rail" })),
+        // "the German railway as far as Baghdad": the Turks' city.
+        assumes: { held: { baghdad: "owner" } },
+      },
+      base,
+    ],
     {
       fallback: "initial",
       options: [
@@ -2776,3 +2793,15 @@ export const GBR_CRISIS_SCENES: readonly GwScene[] = [
     },
   ),
 ];
+
+/** ww187: what a scene's text takes for granted (the builder takes no tags). */
+const ASSUMES: Readonly<Record<string, GwAssumes>> = {
+  gbr_c_war_office: { active: ["gbr_kitchener"] },
+  gbr_c_war_office_held: { active: ["gbr_kitchener"] },
+  // "a question in the House": it sits.
+  gbr_c_naval_talks: { sits: ["commons"] },
+};
+
+export const GBR_CRISIS_SCENES: readonly GwScene[] = CRISIS_SCENES.map((s) =>
+  ASSUMES[s.id] === undefined ? s : { ...s, assumes: ASSUMES[s.id] },
+);

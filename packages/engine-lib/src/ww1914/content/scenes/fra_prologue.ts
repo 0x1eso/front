@@ -8,6 +8,7 @@
 // choices are how he took it. The echoes land on his private life
 // (fra_private.ts), the part of the main story that is his own, and, since the
 // merge, on the crisis, the opening and the consultations where they belong.
+import type { GwAssumes } from "@openfront/engine-api/ww1914/GwAssumes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import {
   all,
@@ -98,6 +99,13 @@ const BARRES = byName("fra_barres");
 const LUCIEN = byName("fra_lucien");
 const HENRIETTE = byName("fra_henriette");
 const MESSIMY = byName("fra_messimy");
+
+/** ww187: what a scene's text takes for granted (the builders take no tags). */
+const ASSUMES_FRA_PROLOGUE_SCENES: Readonly<Record<string, GwAssumes>> = {
+  // The prologue's memories are history told as history.
+  fra_pro_babylone: { past: true },
+  fra_pro_dreyfus: { past: true },
+};
 
 export const FRA_PROLOGUE_SCENES: readonly GwScene[] = [
   // 1. 1870-71: the requisitioned house and the dog called Bismarck.
@@ -481,8 +489,11 @@ export const FRA_PROLOGUE_SCENES: readonly GwScene[] = [
     },
     false,
   ),
-];
-
+].map((s) =>
+  ASSUMES_FRA_PROLOGUE_SCENES[s.id] === undefined
+    ? s
+    : { ...s, assumes: ASSUMES_FRA_PROLOGUE_SCENES[s.id] },
+);
 /** Longchamp's telegram as it came: none of its other openings. */
 const sarajevoAsItWas: GwCond = not({
   kind: "opening",

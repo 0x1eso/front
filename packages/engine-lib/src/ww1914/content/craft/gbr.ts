@@ -436,10 +436,21 @@ const PROJECT_SCENES: GwScene[] = [
     ],
     { foe: orFavourite({ camp: "unionist" }) },
   ),
-  chapter("gbr_pj_vote_exec", [
-    opt("free_vote", [push]),
-    opt("whip", [slow, inst("commons", -1)]),
-  ]),
+  {
+    ...chapter("gbr_pj_vote_exec", [
+      opt("free_vote", [push]),
+      opt("whip", [slow, inst("commons", -1)]),
+    ]),
+    // ww187: the House shut, the bill waits for the new one.
+    variants: [
+      {
+        id: "shut",
+        when: not(world({ is: "sits", id: "commons" })),
+        assumes: { shut: ["commons"] },
+      },
+      { id: "base" },
+    ],
+  },
   ending("gbr_pj_vote_done"),
   ending("gbr_pj_vote_fail"),
   // The plough campaign: grass back to wheat, at a price the state guarantees.

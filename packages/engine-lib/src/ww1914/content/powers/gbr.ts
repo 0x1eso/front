@@ -37,6 +37,8 @@ import type { GwPowerOption, GwPowerRow, GwReactorRow } from "../../PowerRows";
 
 const flag = (f: string): GwCond => ({ kind: "flag", flag: f });
 const not = (of: GwCond): GwCond => ({ kind: "not", of });
+/** ww187: the Commons sits (not dissolved or prorogued). */
+const COMMONS_SITS: GwCond = world({ is: "sits", id: "commons" });
 const all = (...of: GwCond[]): GwCond => ({ kind: "all", of });
 const any = (...of: GwCond[]): GwCond => ({ kind: "any", of });
 const setFlag = (f: string): GwEffect => ({ kind: "flag", flag: f });
@@ -546,6 +548,8 @@ export const GBR_POWERS: readonly GwPowerRow[] = [
         when: all(not(flag("f_home_rule_lives")), not(flag("f_act_suspended"))),
         why: "settled",
       },
+      // ww187: the bill goes through the Commons; a shut House waits.
+      { when: COMMONS_SITS, why: "house_shut" },
     ],
     needs: {
       office: "ireland",
@@ -1342,11 +1346,15 @@ export const GBR_POWER_SCENES: readonly GwScene[] = [
     ["home"],
     [{ id: "labour", when: flag("f_gbr_labour_in") }, { id: "base" }],
   ),
-  card(
-    "gbr_pw_home_rule_r",
-    ["home"],
-    [{ id: "suspended", when: flag("f_act_suspended") }, { id: "base" }],
-  ),
+  {
+    ...card(
+      "gbr_pw_home_rule_r",
+      ["home"],
+      [{ id: "suspended", when: flag("f_act_suspended") }, { id: "base" }],
+    ),
+    // ww187: the vote is done: the House sat (the row waits while it's shut).
+    assumes: { sits: ["commons"] },
+  },
   card(
     "gbr_pw_martial_ireland_r",
     ["home"],
@@ -1362,7 +1370,19 @@ export const GBR_POWER_SCENES: readonly GwScene[] = [
   card("gbr_pw_peers_b_r", ["home"]),
   card("gbr_pw_peers_b_bad", ["home"]),
   card("gbr_pw_dora_press_r", ["home"]),
-  card("gbr_pw_dora_press_bad", ["home"]),
+  card(
+    "gbr_pw_dora_press_bad",
+    ["home"],
+    [
+      // ww187: the House shut, the questions wait for it.
+      {
+        id: "shut",
+        when: not(COMMONS_SITS),
+        assumes: { shut: ["commons"] },
+      },
+      { id: "base" },
+    ],
+  ),
   card("gbr_pw_dora_mps_r", ["home"]),
   card("gbr_pw_dora_mps_bad", ["home"]),
   card("gbr_pw_prorogue_r", ["home"]),

@@ -297,7 +297,15 @@ const THEIRS: GwScene[] = [
   proposal(
     "fra_ld_theirs_bordeaux",
     lostCapital(),
-    [v("britain", withUs("GBR")), v("russia", withUs("RUS")), v("base")],
+    [
+      v("britain", withUs("GBR")),
+      // ww187: "the wire that Paris fell": Paris still theirs.
+      {
+        ...v("russia", withUs("RUS")),
+        assumes: { held: { paris: "foe" } },
+      },
+      v("base"),
+    ],
     [
       ["bordeaux", [inst("chamber", 1), gauge("morale", -1)]],
       ["front", [gauge("morale", 1), inst("countersign", -1)]],

@@ -620,7 +620,8 @@ const ORDERS: GwScene[] = [
     { fm: holder("foreign") },
     [
       v("straits", picked("subject", "straits")),
-      v("kut", picked("subject", "kut")),
+      // ww187: the subject is offered only once the army came to Kut.
+      { ...v("kut", picked("subject", "kut")), assumes: { past: true } },
       v("base"),
     ],
     {
@@ -1196,7 +1197,8 @@ const BIG_SCENES: GwScene[] = [
           v("survived", opening("sarajevo_survived")),
           v("failed", opening("sarajevo_failed", "sarajevo_delayed")),
           v("none", opening("no_sarajevo")),
-          v("base"),
+          // ww187: the Sarajevo wire tells what has happened.
+          { ...v("base"), assumes: { past: true } },
         ],
         [go("ask_vienna", "n4b"), go("later", "n5", "cold")],
       ),
@@ -1800,7 +1802,10 @@ const QUIET_CARDS: GwScene[] = [
     v("base"),
   ]),
   silent("gbr_big_march_quiet", [
-    v("one", chose("gbr_big_march", "one_commander")),
+    {
+      ...v("one", chose("gbr_big_march", "one_commander")),
+      assumes: { held: { amiens: "us" } },
+    },
     v("base"),
   ]),
 ];

@@ -1048,8 +1048,13 @@ function withBody(variants: readonly GwVariant[], b: MoreBody): GwVariant[] {
   const at = variants.findIndex((v) => v.id === b.like);
   if (at < 0) throw new Error(`no body ${b.like} for ${b.id}`);
   const out = [...variants];
-  const when = variants[at].when;
-  out.splice(at, 0, when === undefined ? { id: b.id } : { id: b.id, when });
+  const { when, assumes } = variants[at];
+  out.splice(at, 0, {
+    id: b.id,
+    ...(when === undefined ? {} : { when }),
+    // ww187: a second body takes for granted what the first one does.
+    ...(assumes === undefined ? {} : { assumes }),
+  });
   return out;
 }
 

@@ -3247,12 +3247,16 @@ export const GBR_WORLD_SCENES: readonly GwScene[] = [
   },
   {
     id: "gbr_t_churchill_trenches",
+    // ww187: what its text takes for granted.
+    assumes: { line: { straits: ["dardanelles", "constantinople"] } },
     nation: NATION,
     kind: "talk",
     stage: WAR,
     when: all(
       world({ is: "war_months", min: 11, max: 23 }),
       not(holds("navy", "gbr_churchill")),
+      // ww187: "the Gallipoli numbers": the army went ashore.
+      flag("f_landed"),
     ),
     cast: { who: { person: "gbr_churchill" } },
     salience: 3,
@@ -3376,6 +3380,8 @@ export const GBR_WORLD_SCENES: readonly GwScene[] = [
   },
   {
     id: "gbr_t_churchill_back",
+    // ww187: what its text takes for granted.
+    assumes: { line: { straits: ["dardanelles", "constantinople"] } },
     nation: NATION,
     kind: "talk",
     stage: WAR,

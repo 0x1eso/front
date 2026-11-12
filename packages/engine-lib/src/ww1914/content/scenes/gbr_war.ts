@@ -5,6 +5,7 @@ import type {
   GwTemperament,
   GwTheatre,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import type { GwAssumes } from "@openfront/engine-api/ww1914/GwAssumes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import {
   all,
@@ -59,6 +60,25 @@ const during = period;
 
 const war: GwCond = { kind: "at_war", tag: "DEU" };
 const FORTS_SHORT: GwCond = { kind: "secret", id: "ott_forts_short" };
+/** ww187: the ledger's state: Paris, the west line, the Americans. */
+const PARIS_FOE: GwCond = world({ is: "held", place: "paris", by: "foe" });
+const PARIS_OURS: GwCond = world({ is: "held", place: "paris", by: "us" });
+const WEST_DEEP: GwCond = world({
+  is: "front",
+  theatre: "west",
+  from: "marne",
+  to: "paris",
+});
+const WEST_PUSHED: GwCond = world({
+  is: "front",
+  theatre: "west",
+  from: "rhine",
+  to: "hindenburg",
+});
+const USA_IN: GwCond = all(
+  world({ is: "entered", tag: "USA", side: "entente" }),
+  not(world({ is: "out", tag: "USA" })),
+);
 const known = (...keys: string[]): GwCond => any(...keys.map((k) => memory(k)));
 const holds = (
   office: "war" | "sea_lord" | "chief_of_staff",
@@ -251,7 +271,7 @@ const visit = (
   salience,
 });
 
-export const GBR_WAR_SCENES: readonly GwScene[] = [
+const WAR_SCENES: readonly GwScene[] = [
   // ---- Bones: the war's accounts, every three chapters ----
   scene({
     id: "gbr_w_ledger",
@@ -264,9 +284,29 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     once: false,
     cooldown: 3,
     variants: [
-      // ww187: by the war's state, not the calendar.
+      // ww187: by the war's state, not the calendar: Paris, the line past
+      // the old rivers either way, the Americans in or not.
+      {
+        ...v("paris_lost", all(PARIS_FOE, war, war)),
+        assumes: { held: { paris: "foe" } },
+      },
+      {
+        ...v("deep", all(WEST_DEEP, PARIS_OURS, war)),
+        assumes: { line: { west: ["marne", "paris"] }, held: { paris: "us" } },
+      },
       v("won", all(world({ is: "score", min: 40 }), war)),
-      v("kit_lives", all(holds("war", "gbr_kitchener"), during("17a", "18b"))),
+      { ...v("usa", USA_IN), assumes: { fights: ["USA"] } },
+      {
+        ...v("pushed", all(WEST_PUSHED, war)),
+        assumes: { line: { west: ["rhine", "hindenburg"] } },
+      },
+      {
+        ...v(
+          "kit_lives",
+          all(holds("war", "gbr_kitchener"), during("17a", "18b")),
+        ),
+        assumes: { active: ["gbr_kitchener"] },
+      },
       v("thin", gaugeAt("shells", 1)),
       v("trench", { kind: "trench", theatre: "west", min: 2 }),
       v("first", world({ is: "war_age", max: 2 })),
@@ -302,7 +342,13 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     variants: [
       v("lg_paper", memory("k_lg_balkans")),
       v("no_ott", not(world({ is: "entered", tag: "OTT" }))),
-      v("kit_holds", holds("war", "gbr_kitchener")),
+      {
+        ...v("kit_holds", holds("war", "gbr_kitchener")),
+        assumes: {
+          active: ["gbr_kitchener"],
+          line: { straits: ["dardanelles", "gallipoli"] },
+        },
+      },
       v("base"),
     ],
     fallback: "west",
@@ -456,6 +502,14 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
         }),
       ),
       v("lg", flag("f_pm_lg")),
+      // ww187: the trenches before the Somme, only with the line there.
+      {
+        ...v(
+          "somme",
+          world({ is: "front", theatre: "west", from: "somme", to: "aisne" }),
+        ),
+        assumes: { line: { west: ["somme", "aisne"] } },
+      },
       v("base"),
     ],
     fallback: "agreed_date",
@@ -770,6 +824,8 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
 
   scene({
     id: "gbr_w_march",
+    // ww187: what its text takes for granted.
+    assumes: { held: { amiens: "us" } },
     kind: "crisis",
     stage: WAR,
     when: all(
@@ -921,6 +977,8 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
 
   scene({
     id: "gbr_w_naval_only",
+    // ww187: what its text takes for granted.
+    assumes: { line: { straits: ["dardanelles", "gallipoli"] } },
     kind: "dispute",
     stage: WAR,
     when: all(
@@ -934,7 +992,13 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     tags: ["war", "tension_up"],
     variants: [
       v("fisher_writes", memory("k_fisher_no")),
-      v("fisher_sits", holds("sea_lord", "gbr_fisher")),
+      {
+        ...v(
+          "fisher_sits",
+          all(holds("sea_lord", "gbr_fisher"), holds("war", "gbr_kitchener")),
+        ),
+        assumes: { active: ["gbr_kitchener"] },
+      },
       v("base"),
     ],
     fallback: "ships_only",
@@ -967,6 +1031,8 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
 
   scene({
     id: "gbr_w_narrows",
+    // ww187: what its text takes for granted.
+    assumes: { line: { straits: ["dardanelles", "narrows"] } },
     kind: "report",
     stage: WAR,
     when: all(
@@ -993,6 +1059,8 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
 
   scene({
     id: "gbr_w_landing",
+    // ww187: what its text takes for granted.
+    assumes: { line: { straits: ["dardanelles", "gallipoli"] } },
     kind: "crisis",
     stage: WAR,
     when: all(war, world({ is: "war_months", own: true, min: 5, max: 23 }), {
@@ -1155,6 +1223,8 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
 
   scene({
     id: "gbr_w_evacuate",
+    // ww187: what its text takes for granted.
+    assumes: { line: { straits: ["dardanelles", "narrows"] } },
     kind: "crisis",
     stage: WAR,
     when: all(
@@ -1281,6 +1351,8 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
   // ---- Mesopotamia ----
   scene({
     id: "gbr_w_baghdad_road",
+    // ww187: what its text takes for granted.
+    assumes: { held: { baghdad: "foe", kut: "us" } },
     kind: "proposal",
     stage: WAR,
     when: all(
@@ -1441,6 +1513,8 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
 
   scene({
     id: "gbr_w_kitchener_lost",
+    // ww187: what its text takes for granted.
+    assumes: { active: ["gbr_kitchener"] },
     kind: "crisis",
     stage: WAR,
     when: all(
@@ -1495,6 +1569,8 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
   // ---- 1917: papers and people ----
   scene({
     id: "gbr_w_nivelle",
+    // ww187: what its text takes for granted.
+    assumes: { held: { calais: "us" } },
     kind: "crisis",
     stage: WAR,
     when: all(
@@ -3016,3 +3092,14 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     },
   ),
 ];
+
+/** ww187: what the talks' text takes for granted (their builders take no tags). */
+const ASSUMES: Readonly<Record<string, GwAssumes>> = {
+  gbr_t_kitchener_long: { active: ["gbr_kitchener"] },
+  gbr_t_robertson_terms: { active: ["gbr_kitchener"] },
+  gbr_v_french_home: { active: ["gbr_kitchener"] },
+};
+
+export const GBR_WAR_SCENES: readonly GwScene[] = WAR_SCENES.map((s) =>
+  ASSUMES[s.id] === undefined ? s : { ...s, assumes: ASSUMES[s.id] },
+);
