@@ -48,7 +48,7 @@ describe("Britain's own schedule and story", () => {
     const kind = (k: string) => GBR_ACTS.filter((a) => a.kind === k).length;
     expect(kind("visit")).toBe(14);
     expect(kind("letter")).toBe(6);
-    expect(kind("order")).toBe(8);
+    expect(kind("order")).toBe(6); // ww193: inquiry and commission are tasks now
     expect(kind("speech")).toBe(6);
     expect(kind("intrigue")).toBe(6);
     expect(GBR_AIMS.length).toBeGreaterThanOrEqual(6);
