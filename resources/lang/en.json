@@ -2340,6 +2340,48 @@
       "sign": "Sign this map",
       "title": "The land we want"
     },
+    "client": {
+      "albania": {
+        "principality": "Principality of Albania",
+        "protectorate": "Albanian Protectorate"
+      },
+      "baltic_duchy": {
+        "duchy": "United Baltic Duchy",
+        "regency": "Baltic Duchy (regency)"
+      },
+      "bohemia": {
+        "republic": "Czechoslovak Republic"
+      },
+      "flanders": {
+        "regency": "Flanders (regency)",
+        "republic": "Republic of Flanders"
+      },
+      "georgia": {
+        "republic": "Democratic Republic of Georgia"
+      },
+      "hejaz": {
+        "kingdom": "Kingdom of Hejaz"
+      },
+      "lithuania": {
+        "kingdom": "Kingdom of Lithuania",
+        "regency": "Lithuania (regency)"
+      },
+      "poland": {
+        "kingdom": "Kingdom of Poland",
+        "regency": "Regency Kingdom of Poland"
+      },
+      "rhineland": {
+        "republic": "Rhenish Republic"
+      },
+      "serbia": {
+        "kingdom": "Kingdom of Serbia",
+        "regency": "Serbia (regency)"
+      },
+      "ukraine": {
+        "hetmanate": "Ukrainian State (Hetmanate)",
+        "republic": "Ukrainian People's Republic"
+      }
+    },
     "country": {
       "AFG": "Afghanistan",
       "ALB": "Albania",
@@ -2486,6 +2528,21 @@
         "war": "Shells come faster; bread runs down."
       },
       "this_year": "this year's"
+    },
+    "crown": {
+      "adolf_friedrich": "Duke Adolf Friedrich of Mecklenburg",
+      "archduke_wilhelm": "Archduke Wilhelm (Vasyl Vyshyvanyi)",
+      "dorten": "Hans Adam Dorten",
+      "georgian_council": "The National Council of Georgia",
+      "hussein": "Hussein bin Ali",
+      "karl_stephan": "Archduke Karl Stephan",
+      "national_council": "The Czechoslovak National Council",
+      "prussia": "Union with the Prussian crown",
+      "raad": "The Council of Flanders",
+      "regency": "A regency council",
+      "skoropadsky": "Pavlo Skoropadsky",
+      "urach": "Wilhelm, Duke of Urach",
+      "wied": "Prince Wilhelm of Wied"
     },
     "diplo": {
       "clause_add": "Add a clause",
@@ -6004,6 +6061,40 @@
       "wrong_report": "A report on {country} was wrong and nobody put it right."
     },
     "vassal": {
+      "BEL_DEU": "Belgian Germany",
+      "BGR_GRC": "Bulgarian Greece",
+      "BGR_MNE": "Bulgarian Montenegro",
+      "BGR_OTT": "Bulgarian Ottoman lands",
+      "BGR_ROU": "Bulgarian Romania",
+      "BGR_SRB": "Bulgarian Serbia",
+      "GRC_ALB": "Albania under Greek protection",
+      "GRC_BGR": "Greek Bulgaria",
+      "GRC_OTT": "Greek Ottoman lands",
+      "ITA_ALB": "Albania under Italian protection",
+      "ITA_AUH": "Italian Austria",
+      "ITA_DEU": "Italian Germany",
+      "ITA_MNE": "Montenegro under Italian protection",
+      "ITA_OTT": "Italian Ottoman lands",
+      "JPN_CHN": "China under Japanese protection",
+      "JPN_DEU": "Japanese Germany",
+      "JPN_RUS": "Japanese Russia",
+      "MNE_ALB": "Albania under Montenegrin protection",
+      "OTT_ALB": "Ottoman Albania",
+      "OTT_BGR": "Ottoman Bulgaria",
+      "OTT_GRC": "Ottoman Greece",
+      "OTT_ITA": "Ottoman Italy",
+      "OTT_MNE": "Ottoman Montenegro",
+      "OTT_ROU": "Ottoman Romania",
+      "OTT_RUS": "Ottoman Russia",
+      "OTT_SRB": "Ottoman Serbia",
+      "ROU_AUH": "Romanian Hungary",
+      "ROU_BGR": "Romanian Bulgaria",
+      "SRB_ALB": "Albania under Serbian protection",
+      "SRB_AUH": "Serbian Bosnia",
+      "SRB_BGR": "Serbian Bulgaria",
+      "SRB_MNE": "Montenegro under Serbian protection",
+      "USA_DEU": "Germany under American protection",
+      "USA_MEX": "Mexico under American protection",
       "any": "{by}'s {of}"
     },
     "wire": {

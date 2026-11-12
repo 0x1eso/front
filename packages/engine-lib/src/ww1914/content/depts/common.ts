@@ -31,6 +31,10 @@ import {
   GW_PAPER_FORMS,
   GwPaperForm,
 } from "@openfront/engine-api/ww1914/GwDepts";
+import type {
+  GwPlace,
+  GwPlaceGroup,
+} from "@openfront/engine-api/ww1914/GwPlaces";
 import {
   all,
   any,
@@ -712,6 +716,177 @@ const MEN_COLONIES: GwAnswerRow = {
   ],
 };
 
+// ---- ww199: 외교: {나라}의 처분 (the `settle` task) ----
+//
+// The engine gives this task to the foreign office the moment a table opens
+// with the seat among the winners; the topic is the beaten country. Each
+// course paints a plan on the land the seat holds (Fate.settlePlan); the seat
+// can still change it place by place before the table. The country rows come
+// first: their `wide` course (new states) leads where a state can be founded,
+// and the general staff's `strip` stays last, for the rival head to bring.
+
+/** The seat's country holds land of `from` (in `group`, or `place`). */
+const holdsOf = (
+  from: GwTag,
+  where: { group?: GwPlaceGroup[]; place?: GwPlace[] } = {},
+): GwCond => world({ is: "land_taken", from, ...where });
+/** A country fights on the seat's side. */
+const withUs = (tag: GwTag): GwCond => joinedUs(tag);
+
+/** 넓게 묶는다: states where a row is open on the seat's side, the rest held long. */
+const wide = (side: GwCond): GwCourseRow =>
+  c("wide", ["bold"], [remember("c_settle_wide")], {
+    when: side,
+    settle: "wide",
+  });
+
+/** A beaten country's own findings, and its `wide` where states can rise. */
+const settleOf = (
+  tag: GwTag,
+  findings: GwFindingRow[],
+  side?: GwCond,
+): GwAnswerRow => ({
+  id: `c_settle_${tag.toLowerCase()}`,
+  nation: SEATS.filter((s) => s !== tag),
+  type: "settle",
+  topic: [tag],
+  findings,
+  courses: side === undefined ? [] : [wide(side)],
+});
+
+const SETTLE_RUS = settleOf(
+  "RUS",
+  [
+    f("poland", 3, { when: holdsOf("RUS", { group: ["russian_poland"] }) }),
+    f("baltic", 2, { when: holdsOf("RUS", { group: ["baltic"] }) }),
+    f("ukraine", 3, { when: holdsOf("RUS", { group: ["ukraine"] }) }),
+    f("caucasus", 2, { when: all(central, withUs("OTT")) }),
+    f("reds", 1),
+  ],
+  central,
+);
+const SETTLE_ROU = settleOf("ROU", [
+  f("oil", 3, { when: holdsOf("ROU", { place: ["ploesti"] }) }),
+  f("dobruja", 2, { when: all(central, withUs("BGR")) }),
+  f("king", 2, on({ ruler: ANY })),
+  f("grain", 1),
+]);
+const SETTLE_SRB = settleOf(
+  "SRB",
+  [
+    f("held", 3, { when: holdsOf("SRB", { group: ["serbia"] }) }),
+    f("macedonia", 2, { when: all(central, withUs("BGR")) }),
+    f("army_out", 2),
+    f("hills", 1),
+  ],
+  central,
+);
+const SETTLE_BEL = settleOf(
+  "BEL",
+  [
+    f("flemish", 3, { when: holdsOf("BEL", { group: ["flanders"] }) }),
+    f("watched", 2, { when: not(world({ is: "entered", tag: "USA" })) }),
+    f("king", 2),
+    f("ports", 1, { when: holdsOf("BEL", { group: ["flanders"] }) }),
+  ],
+  central,
+);
+const SETTLE_ALB = settleOf(
+  "ALB",
+  [
+    f("wied", 2),
+    f("valona", 2, { when: all(entente, withUs("ITA")) }),
+    f("clans", 1),
+  ],
+  any(central, entente),
+);
+const SETTLE_AUH = settleOf(
+  "AUH",
+  [
+    f("council", 3, { when: holdsOf("AUH", { group: ["bohemia"] }) }),
+    f("italy", 2, { when: all(entente, withUs("ITA")) }),
+    f("romania", 2, { when: all(entente, withUs("ROU")) }),
+    f("crown", 1, on({ ruler: ANY })),
+  ],
+  entente,
+);
+const SETTLE_OTT = settleOf(
+  "OTT",
+  [
+    f("hussein", 3, { when: holdsOf("OTT", { group: ["hejaz"] }) }),
+    f("shares", 2, { when: entente }),
+    f("straits", 2, { when: holdsOf("OTT", { group: ["straits"] }) }),
+    f("arabs", 1),
+  ],
+  entente,
+);
+const SETTLE_DEU = settleOf(
+  "DEU",
+  [
+    f("rhine", 3, { when: holdsOf("DEU", { group: ["rhineland"] }) }),
+    f("alsace", 2, { when: all(entente, withUs("FRA")) }),
+    f("colonies", 2, { when: holdsOf("DEU", { group: ["colonies"] }) }),
+    f("kaiser", 1, on({ ruler: ANY })),
+  ],
+  entente,
+);
+const SETTLE_FRA = settleOf("FRA", [
+  f("briey", 3, { when: holdsOf("FRA", { group: ["western_front"] }) }),
+  f("paris", 2, { when: holdsOf("FRA", { place: ["paris"] }) }),
+  f("colonies", 1),
+]);
+
+/**
+ * 외교: {나라}의 처분, any beaten country. Courses (design ww198 §1.2): 좁게
+ * 끝낸다, 전쟁이 끝날 때까지 군정, 속국으로 둔다, and last the general
+ * staff's 국경 띠 (firm), which the rival head brings when it is left over.
+ */
+const SETTLE: GwAnswerRow = {
+  id: "c_settle",
+  nation: SEATS,
+  type: "settle",
+  question: "person",
+  findings: [
+    f("ruler", 2, on({ ruler: ANY })),
+    f("sent", 2, on({ sent: ANY })),
+    f("resist", 3, { when: world({ is: "resist", min: 2 }) }),
+    f("us_watch", 2, { when: not(world({ is: "entered", tag: "USA" })) }),
+    f("us_in", 1, { when: world({ is: "entered", tag: "USA" }) }),
+    f("war_on", 2, { when: war }),
+    f("tired", 1, { when: level("morale", undefined, 1) }),
+  ],
+  courses: [
+    c(
+      "narrow",
+      ["gentle", "calm"],
+      [opinion("army", -1), remember("c_settle_narrow")],
+      { settle: "narrow" },
+    ),
+    c("hold", ["wait"], [remember("c_settle_hold")], { settle: "hold" }),
+    c("vassal", ["cheap", "bold"], [remember("c_settle_vassal")], {
+      settle: "vassal",
+    }),
+    c("strip", ["firm"], [opinion("army", 1), remember("c_settle_strip")], {
+      settle: "strip",
+    }),
+    waitCourse("c_settle_wait"),
+  ],
+};
+
+/** The settle rows: the country rows first (their `wide` leads), then the common. */
+const SETTLE_ROWS: readonly GwAnswerRow[] = [
+  SETTLE_RUS,
+  SETTLE_ROU,
+  SETTLE_SRB,
+  SETTLE_BEL,
+  SETTLE_ALB,
+  SETTLE_AUH,
+  SETTLE_OTT,
+  SETTLE_DEU,
+  SETTLE_FRA,
+  SETTLE,
+];
+
 /**
  * A course by law, at war: the seat's own bill (lawDraftCard) in place of the
  * common course of that id. Text `depts.answers.c_<type>_law_<tag>`.
@@ -847,6 +1022,7 @@ export const COMMON_ANSWERS: readonly GwAnswerRow[] = [
   ARMS,
   MEN,
   MEN_COLONIES,
+  ...SETTLE_ROWS,
 ];
 
 export const COMMON_DEPTS: GwDeptContent = {

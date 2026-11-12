@@ -32,6 +32,7 @@ import { SPY_SCENES } from "@openfront/engine-lib/ww1914/content/acts/common";
 import { GW_CAPITAL_CALLED } from "@openfront/engine-lib/ww1914/content/capital";
 import { GW_CONTENT } from "@openfront/engine-lib/ww1914/content/Content";
 import { GW_LADDER_CALLED } from "@openfront/engine-lib/ww1914/content/ladder";
+import { GW_SETTLE_CALLED } from "@openfront/engine-lib/ww1914/content/scenes/settle";
 import {
   GW_OFFENSIVE_CALLED,
   GW_STALL_CALLED,
@@ -134,6 +135,8 @@ describe("content", () => {
       // ww188: laid, set and read by Capitulation.ts.
       ...GW_CAPITAL_CALLED,
       ...GW_STALL_CALLED,
+      // ww199: laid by Fate.ts (the treaty card, the crown papers).
+      ...GW_SETTLE_CALLED,
       // ww173: laid by Spies.agentsTaken.
       ...SPY_SCENES.map((x) => x.id),
       // ww173: called by Offensives.callScene when a seat writes them.
