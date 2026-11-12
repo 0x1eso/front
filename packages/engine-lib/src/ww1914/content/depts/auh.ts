@@ -301,6 +301,8 @@ const lost = (theatre: "east" | "balkan" | "italy"): GwCond =>
 const berlinConsent = { kind: "consent", tag: "DEU" } as const;
 const conradCos = holds("chief_of_staff", "auh_conrad");
 const tiszaPm = holds("hun_pm", "auh_tisza");
+/** Bulgaria fights on our side (its zone in Serbia, its Dobruja). */
+const bgrIn = world({ is: "entered", tag: "BGR", side: "central" });
 /** Courses for a country still to be won over. */
 const unwon = { stance: ["neutral", "leans_us", "leans_them"] };
 
@@ -828,6 +830,175 @@ const ANSWERS: GwAnswerRow[] = [
       c("refuse", ["firm", "wait"], [inst("nations", -1), inst("hungary", 1)]),
     ],
     { office: "chancellor", topic: ["south_slavs"] },
+  ),
+  // ---- ww199: a beaten country's fate (`settle`, the Ballhausplatz) ----
+  // Each course paints a plan (Fate.settlePlan). The general staff's course,
+  // `strip`, is last and the only `firm` one: an opposed chief of staff
+  // brings it as his own (참모본부 안). Budapest wants no more Slavs inside
+  // the monarchy; the army wants the land (the council of 7 January 1916).
+  answer(
+    "auh_ans_settle_srb",
+    "settle",
+    [
+      f("budapest", 3),
+      f("army", 3),
+      f("bulgaria", 2, { when: bgrIn }),
+      f("dynasty", 2),
+      f("berlin", 1),
+      f("tired", 1, { wrong: true }),
+    ],
+    [
+      c(
+        "protect",
+        ["calm", "cheap"],
+        [inst("hungary", 1), opinion("army", -1)],
+        { settle: "vassal" },
+      ),
+      c(
+        "north",
+        ["gentle", "calm"],
+        [inst("hungary", -1), inst("nations", -1)],
+        { settle: "narrow" },
+      ),
+      c("rump", ["bold", "gentle"], [inst("hungary", 1), inst("nations", 1)], {
+        settle: "wide",
+      }),
+      c("hold", ["wait"], [], { settle: "hold" }),
+      c(
+        "strip",
+        ["firm"],
+        [opinion("army", 1), inst("hungary", -2), inst("nations", -1)],
+        { settle: "strip" },
+      ),
+    ],
+    { office: "foreign", topic: ["SRB"] },
+  ),
+  answer(
+    "auh_ans_settle_mne",
+    "settle",
+    [
+      f("lovcen", 3),
+      f("king", 2),
+      f("clans", 2),
+      f("italy", 2, { when: italyIn }),
+      f("quiet", 1, { wrong: true }),
+    ],
+    [
+      c("protect", ["calm", "gentle"], [inst("hungary", 1)], {
+        settle: "vassal",
+      }),
+      c("hold", ["wait", "cheap"], [], { settle: "hold" }),
+      c("strip", ["firm"], [opinion("army", 1), inst("nations", -1)], {
+        settle: "strip",
+      }),
+    ],
+    { office: "foreign", topic: ["MNE"] },
+  ),
+  answer(
+    "auh_ans_settle_rou",
+    "settle",
+    [
+      f("passes", 3),
+      f("oil", 3),
+      f("grain", 2),
+      f("dobruja", 2, { when: bgrIn }),
+      f("king", 2, { slots: { ruler: ["*"] } }),
+      f("signs_all", 1, { wrong: true }),
+    ],
+    [
+      c(
+        "give_back",
+        ["gentle", "calm"],
+        [inst("hungary", -1), inst("berlin", 1)],
+        { settle: "narrow" },
+      ),
+      c("protect", ["bold", "cheap"], [inst("berlin", -1)], {
+        settle: "vassal",
+      }),
+      c("hold", ["wait", "cheap"], [gauge("bread", 1)], { settle: "hold" }),
+      c(
+        "strip",
+        ["firm"],
+        [inst("hungary", 2), opinion("army", 1), trust("ROU", -1)],
+        { settle: "strip" },
+      ),
+    ],
+    { office: "foreign", topic: ["ROU"] },
+  ),
+  answer(
+    "auh_ans_settle_rus",
+    "settle",
+    [
+      f("poles", 3),
+      f("berlin_poland", 3),
+      f("ukraine", 2),
+      f("galicia_ask", 2),
+      f("lublin", 2),
+      f("no_return", 1, { wrong: true }),
+    ],
+    [
+      c("states", ["bold", "gentle"], [inst("nations", 1), inst("berlin", 1)], {
+        settle: "wide",
+      }),
+      c("lublin", ["cheap", "calm"], [inst("nations", -1)], {
+        settle: "narrow",
+      }),
+      c("hold", ["wait"], [gauge("bread", 1)], { settle: "hold" }),
+      c(
+        "strip",
+        ["firm"],
+        [opinion("army", 1), inst("nations", -1), inst("berlin", 1)],
+        { settle: "strip" },
+      ),
+    ],
+    { office: "foreign", topic: ["RUS"] },
+  ),
+  answer(
+    "auh_ans_settle_ita",
+    "settle",
+    [
+      f("veneto", 3),
+      f("pope", 2),
+      f("hungry", 2),
+      f("berlin", 2),
+      f("old_venetia", 1),
+      f("italy_done", 1, { wrong: true }),
+    ],
+    [
+      c("give_back", ["gentle", "calm"], [opinion("army", -1)], {
+        settle: "narrow",
+      }),
+      c("protect", ["bold"], [opinion("army", 1), inst("nations", -1)], {
+        settle: "vassal",
+      }),
+      c("hold", ["wait", "cheap"], [gauge("bread", 1)], { settle: "hold" }),
+      c("strip", ["firm"], [opinion("army", 1), trust("ITA", -1)], {
+        settle: "strip",
+      }),
+    ],
+    { office: "foreign", topic: ["ITA"] },
+  ),
+  // Any other country the monarchy beats (Albania, Greece, …).
+  answer(
+    "auh_ans_settle",
+    "settle",
+    [f("budapest", 3), f("army", 2), f("berlin", 2), f("neutrals", 1)],
+    [
+      c("protect", ["calm", "gentle"], [inst("hungary", 1)], {
+        settle: "vassal",
+      }),
+      c("give_back", ["gentle", "cheap"], [opinion("army", -1)], {
+        settle: "narrow",
+      }),
+      c("hold", ["wait"], [], { settle: "hold" }),
+      c("strip", ["firm"], [opinion("army", 1), inst("hungary", -1)], {
+        settle: "strip",
+      }),
+    ],
+    {
+      office: "foreign",
+      topic: ["ALB", "GRC", "BGR", "OTT", "BEL", "FRA", "DEU", "GBR"],
+    },
   ),
 ];
 

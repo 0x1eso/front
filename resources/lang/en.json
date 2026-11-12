@@ -5934,6 +5934,18 @@
       "wrong_report": "A report on {country} was wrong and nobody put it right."
     },
     "vassal": {
+      "AUH_ALB": "Principality of Albania (Austrian protectorate)",
+      "AUH_BEL": "Kingdom of Belgium (Austrian protectorate)",
+      "AUH_BGR": "Kingdom of Bulgaria (Austrian protectorate)",
+      "AUH_DEU": "Austrian Germany",
+      "AUH_FRA": "Austrian France",
+      "AUH_GRC": "Kingdom of Greece (Austrian protectorate)",
+      "AUH_ITA": "Austrian Italy",
+      "AUH_MNE": "Kingdom of Montenegro (Austrian protectorate)",
+      "AUH_OTT": "Ottoman Empire (Austrian protectorate)",
+      "AUH_ROU": "Kingdom of Romania (Austrian protectorate)",
+      "AUH_RUS": "Austrian Russia",
+      "AUH_SRB": "Kingdom of Serbia (Austrian protectorate)",
       "any": "{by}'s {of}"
     },
     "wire": {
