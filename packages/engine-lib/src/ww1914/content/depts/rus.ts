@@ -46,7 +46,6 @@ const atWar = (tag: "OTT" | "ROU" | "GRC" | "BGR" | "ITA"): GwCond => ({
 const months = (min: number): GwCond =>
   world({ is: "war_months", own: true, min });
 const after = (from: string): GwCond => world({ is: "date", from });
-const before = (to: string): GwCond => world({ is: "date", to });
 
 type Ear = "court" | "stavka" | "duma" | "ministers";
 type Gauge = "shells" | "bread" | "money" | "morale" | "order";
