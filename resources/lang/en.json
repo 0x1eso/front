@@ -5934,6 +5934,13 @@
       "wrong_report": "A report on {country} was wrong and nobody put it right."
     },
     "vassal": {
+      "FRA_AUH": "Austria-Hungary under French Protection",
+      "FRA_BGR": "Kingdom of Bulgaria under French Protection",
+      "FRA_DEU": "Germany under French Protection",
+      "FRA_GRC": "Kingdom of Greece under French Protection",
+      "FRA_ITA": "Kingdom of Italy under French Protection",
+      "FRA_OTT": "Ottoman Empire under French Protection",
+      "FRA_ROU": "Kingdom of Romania under French Protection",
       "any": "{by}'s {of}"
     },
     "wire": {
