@@ -4849,6 +4849,8 @@ export const GBR_WORLD_SCENES: readonly GwScene[] = [
     cast: { fm: { office: "foreign" } },
     salience: 8,
     tags: ["foreign", "tension_down"],
+    // ww190 §2: fewer repeats.
+    cooldown: 4,
     variants: [
       { id: "humbled", when: world({ is: "chain_end", of: ["humiliation"] }) },
       { id: "base" },
@@ -4902,6 +4904,8 @@ export const GBR_WORLD_SCENES: readonly GwScene[] = [
     },
     salience: 8,
     tags: ["home", "tension_up"],
+    // ww190 §2: fewer repeats.
+    cooldown: 4,
     variants: [
       // A quiet summer: no crisis has come and gone.
       { id: "n", when: all(noSarajevo, not(peace)) },
@@ -4935,6 +4939,177 @@ export const GBR_WORLD_SCENES: readonly GwScene[] = [
           cabinet(-1),
           setFlag("f_ireland_settled"),
           reason("wd_county_vote"),
+        ],
+      },
+    ],
+  },
+  // ---- ww190 §6: the neutral great power, courted and mediating ----
+  {
+    id: "gbr_nt_offer_central",
+    nation: NATION,
+    kind: "audience",
+    when: all(neutral, world({ is: "courted", side: "central", min: 1 })),
+    cast: {
+      amb: { office: "ambassador_london", tag: "DEU" },
+      fm: { office: "foreign" },
+    },
+    salience: 7,
+    tags: ["foreign"],
+    cooldown: 3,
+    max: 2,
+    variants: [
+      {
+        id: "losing",
+        when: world({ is: "courted", side: "central", min: 2 }),
+      },
+      { id: "base" },
+    ],
+    fallback: "polite",
+    options: [
+      {
+        id: "polite",
+        tell: [],
+        effects: [
+          nation("DEU", 1),
+          nation("FRA", -1),
+          reason("gbr_nt_offer_central_polite"),
+        ],
+      },
+      {
+        id: "refuse",
+        tell: [],
+        effects: [nation("DEU", -1), reason("gbr_nt_offer_central_refuse")],
+      },
+      {
+        id: "mediate",
+        when: not(world({ is: "mediating" })),
+        tell: [],
+        effects: [
+          doWorld({ do: "mediate" }),
+          reason("gbr_nt_offer_central_mediate"),
+        ],
+      },
+    ],
+  },
+  {
+    id: "gbr_nt_offer_entente",
+    nation: NATION,
+    kind: "audience",
+    when: all(neutral, world({ is: "courted", side: "entente", min: 1 })),
+    cast: {
+      amb: { office: "ambassador_london", tag: "FRA" },
+      fm: { office: "foreign" },
+    },
+    salience: 8,
+    tags: ["foreign", "tension_up"],
+    cooldown: 3,
+    max: 2,
+    variants: [{ id: "falling", when: franceFalling }, { id: "base" }],
+    fallback: "not_yet",
+    options: [
+      {
+        id: "come_in",
+        tell: [],
+        effects: [
+          doWorld({ do: "join", side: "entente" }),
+          reason("gbr_nt_offer_entente_come_in"),
+        ],
+      },
+      {
+        id: "not_yet",
+        tell: [],
+        effects: [nation("FRA", -1), reason("gbr_nt_offer_entente_not_yet")],
+      },
+      {
+        id: "the_coast",
+        tell: [],
+        effects: [
+          nation("FRA", 1),
+          nation("DEU", -1),
+          temp(1),
+          reason("gbr_nt_offer_entente_the_coast"),
+        ],
+      },
+    ],
+  },
+  {
+    id: "gbr_nt_envoy",
+    nation: NATION,
+    kind: "proposal",
+    when: all(neutral, warMonths(6), not(world({ is: "mediating" }))),
+    cast: { fm: { office: "foreign" } },
+    salience: 6,
+    tags: ["foreign", "tension_down"],
+    cooldown: 6,
+    variants: [
+      { id: "courted", when: world({ is: "courted", min: 2 }) },
+      { id: "base" },
+    ],
+    fallback: "not_yet",
+    options: [
+      {
+        id: "send",
+        tell: [],
+        effects: [doWorld({ do: "mediate" }), reason("gbr_nt_envoy_send")],
+      },
+      {
+        id: "not_yet",
+        tell: [],
+        effects: [reason("gbr_nt_envoy_not_yet")],
+      },
+    ],
+  },
+  {
+    id: "gbr_nt_mediating",
+    nation: NATION,
+    kind: "wire",
+    when: all(neutral, world({ is: "mediating" })),
+    cast: { fm: { office: "foreign" } },
+    salience: 5,
+    tags: ["foreign"],
+    cooldown: 3,
+    variants: [{ id: "base" }],
+  },
+  {
+    id: "gbr_nt_arms_orders",
+    nation: NATION,
+    kind: "proposal",
+    when: all(neutral, warMonths(4)),
+    cast: { fin: { office: "finance" } },
+    salience: 5,
+    tags: ["home", "foreign"],
+    cooldown: 3,
+    max: 3,
+    variants: [{ id: "rich", when: gaugeOver("money", 3) }, { id: "base" }],
+    fallback: "licence",
+    options: [
+      {
+        id: "sell",
+        tell: [],
+        effects: [
+          doWorld({ do: "budget_item", item: "treasury", pct: 5 }),
+          nation("FRA", -1),
+          nation("DEU", -1),
+          reason("gbr_nt_arms_orders_sell"),
+        ],
+      },
+      {
+        id: "licence",
+        tell: [],
+        effects: [
+          doWorld({ do: "budget_item", item: "treasury", pct: 3 }),
+          nation("FRA", 1),
+          nation("DEU", -1),
+          reason("gbr_nt_arms_orders_licence"),
+        ],
+      },
+      {
+        id: "ban",
+        tell: [],
+        effects: [
+          { kind: "opinion", bloc: "business", delta: -1 },
+          nation("DEU", 1),
+          reason("gbr_nt_arms_orders_ban"),
         ],
       },
     ],

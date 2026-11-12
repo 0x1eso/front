@@ -981,6 +981,9 @@ const BODIES: Readonly<Record<string, readonly MoreBody[]>> = {
   gbr_f_peace_ulster: [
     { id: "rifles2", like: "rifles" },
     { id: "base2", like: "base" },
+    // ww190 §2: fewer repeats.
+    { id: "n2", like: "n" },
+    { id: "base3", like: "base" },
   ],
   gbr_c_city: [
     { id: "sly2", like: "sly" },
@@ -1022,7 +1025,12 @@ const BODIES: Readonly<Record<string, readonly MoreBody[]>> = {
     { id: "base2", like: "base" },
   ],
   gbr_h_franchise: [{ id: "base2", like: "base" }],
-  gbr_f_peace_summer: [{ id: "base2", like: "base" }],
+  gbr_f_peace_summer: [
+    { id: "base2", like: "base" },
+    // ww190 §2: fewer repeats.
+    { id: "humbled2", like: "humbled" },
+    { id: "base3", like: "base" },
+  ],
   gbr_c_naval_talks: [{ id: "base2", like: "base" }],
   gbr_f_dollars: [{ id: "base2", like: "base" }],
   gbr_f_vienna_feeler: [
