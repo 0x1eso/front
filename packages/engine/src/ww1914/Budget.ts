@@ -49,6 +49,7 @@ import {
   moneyStep,
   moneyWord,
   printedPrices,
+  tilted,
 } from "@openfront/engine-lib/ww1914/BudgetRules";
 import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
@@ -408,11 +409,31 @@ function meetingScene(n: GwNationState, year: number, war: boolean): string {
   return known(own) ? own : "gw_bm_common";
 }
 
+/**
+ * ww190: in the peace years a new year's draft keeps the arms the running
+ * plan was raised to (PeaceYears' `arms`), not the June 1914 shares: an arms
+ * race lasts until a budget turns it down.
+ */
+function keepArms(
+  n: GwNationState,
+  war: boolean,
+  draft: GwBudgetPlan,
+): GwBudgetPlan {
+  if (war || n.budget.warPlan) return draft;
+  let shares = draft.shares;
+  for (const line of ["army", "navy"] as const) {
+    const i = GW_BUDGET_LINES.indexOf(line);
+    const d = n.budget.plan.shares[i] - shares[i];
+    if (d > 0) shares = tilted(shares, line, d);
+  }
+  return { shares, mix: draft.mix };
+}
+
 function openMeeting(gw: GreatWar, n: GwNationState, year: number): void {
   const s = gw.s;
   const b = n.budget;
   const basis = basisOf(gw, n);
-  const draft = budgetDraft(basis, n.gauges);
+  const draft = keepArms(n, basis.war, budgetDraft(basis, n.gauges));
   const seats = seatsOf(gw, n.tag);
   if (seats.length === 0) {
     aiBudget(gw, n, draft);
