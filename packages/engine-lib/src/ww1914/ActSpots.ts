@@ -110,8 +110,7 @@ export const GW_ACT_SPOTS: readonly GwActSpot[] = [
   ...at("ungvar", "auh_a_pass"),
   ...at("novi_sad", "auh_a_semlin"),
   ...at("pola", "auh_a_pola"),
-  // ww193: the inquiry act is now the Austrian PM's task (auh_task_inquiry).
-  ...at("sarajevo", "auh_a_bosnia"),
+  ...at("sarajevo", "auh_a_bosnia", "auh_a_o_inquiry"),
   ...front("italy", "auh_a_isonzo"),
   ...to("BGR", "auh_a_l_ferdinand"),
   ...at("rome", "auh_a_l_pope"),

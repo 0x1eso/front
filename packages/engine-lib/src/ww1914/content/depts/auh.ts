@@ -1,17 +1,24 @@
-// ww193: AUH's departments. Lane W-AUH owns this file and
-// resources/ww1914/ko/AUH.depts.json: task rows pointing at existing papers,
-// leans, wants, levers, and the new papers the design asks for: the honours
-// list and the Maria Theresa investiture (#1), the privy purse (#10), Karl's
-// last orders (#6: the fleet to Zagreb, the Hungarian regiments home; the
-// renunciation is the dissolution ending's own coda, auh_e_dissolution) and
-// the welfare ministries with Budapest's counter-paper (#7), plus the
-// ceremonies the schedule plays (acts/auh.ts).
+// ww196: AUH's departments. Lane W-AUH owns this file and
+// resources/ww1914/ko/AUH.depts.json: the answer rows over the common task
+// types and Austria's own (`ausgleich` with Budapest, `nations`), their task
+// rows, the honours rows at their occasions (the emperor's birthday, Karl's
+// coronation, the war crosses, the Maria Theresa Order through its chapter),
+// leans, wants, and the papers of the ww193 design that stay: the privy purse
+// (#10), Karl's last orders (#6: the fleet to Zagreb, the Hungarian regiments
+// home) and the welfare ministries with Budapest's counter-paper (#7), plus
+// the ceremonies the schedule plays (acts/auh.ts). ww196 dropped the product
+// task rows, the gifts (levers) and the old honours paper: honours come at
+// their occasions now (engine Honours.ts).
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import type {
+  GwAnswerRow,
+  GwCourseRow,
   GwDeptContent,
   GwDeptLean,
   GwDeptWant,
-  GwLeverRow,
+  GwFindingRow,
+  GwHonourOrder,
+  GwHonourRow,
   GwTaskRow,
 } from "@openfront/engine-api/ww1914/GwDepts";
 import {
@@ -25,14 +32,14 @@ import {
   holder,
   not,
   remember,
-  role,
   schedule,
   setFlag,
-  trustOf,
 } from "@openfront/engine-api/ww1914/SceneDsl";
-import { world } from "@openfront/engine-api/ww1914/WorldDsl";
+import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
 import {
   atWar,
+  berlinAt,
+  between,
   ffThrone,
   gauge,
   hungaryAt,
@@ -42,7 +49,9 @@ import {
   karl,
   opinion,
   peace,
+  since,
   trust,
+  until,
 } from "../scenes/auh_act";
 
 const NATION: GwScene["nation"] = ["AUH"];
@@ -65,15 +74,11 @@ const months = (min: number): GwCond =>
 const won = (theatre: "east" | "balkan" | "italy"): GwCond =>
   world({ is: "battle", theatre, of: ["advance", "break"], by: "seat" });
 const seen = (scene: string): GwCond => ({ kind: "seen", scene });
-const holds = (office: "hun_pm", person: string): GwCond => ({
+const holds = (office: GwTaskRow["office"], person: string): GwCond => ({
   kind: "holder",
   office,
   person,
 });
-const memory = (key: string, within?: number): GwCond =>
-  within === undefined
-    ? { kind: "memory", key }
-    : { kind: "memory", key, within };
 /** The crown is Karl's (or the heir's who lived). */
 const newReign = any(karl, ffThrone);
 /** The last weeks: the manifesto out, or the streets and the score gone. */
@@ -135,39 +140,7 @@ const rite = (
   source: "own_eyes",
 });
 
-/** Names chosen for the Order: the investiture is open (acts/auh.ts). */
-export const AUH_HONOURS_KEY = "auh_d_honours_list";
-
 export const AUH_DEPT_SCENES: readonly GwScene[] = [
-  // #1: the military chancellery brings the list now and then in the war
-  // (its words follow the last victory), or when asked. Choosing names opens
-  // the investiture.
-  paper(
-    "auh_d_honours",
-    "proposal",
-    { court: holder("court"), cos: holder("chief_of_staff") },
-    "court",
-    [
-      v("east", won("east")),
-      v("south", any(won("balkan"), won("italy"))),
-      v("quiet"),
-    ],
-    [
-      opt("front_first", [
-        remember(AUH_HONOURS_KEY),
-        opinion("army", 1),
-        trustOf(role("court"), 1),
-      ]),
-      opt("staff_too", [
-        remember(AUH_HONOURS_KEY),
-        remember("auh_d_honours_staff"),
-        trustOf(role("cos"), 1),
-        opinion("press", -1),
-      ]),
-      opt("small_list", [remember("auh_d_honours_small")]),
-    ],
-    { when: all(inWar, months(3)), cooldown: 10, tags: ["people", "war"] },
-  ),
   // #10: the purse's requests, brought by the military chancellery.
   paper(
     "auh_d_purse",
@@ -277,10 +250,6 @@ export const AUH_DEPT_SCENES: readonly GwScene[] = [
     { scheduledOnly: true, once: true },
   ),
   // The ceremonies (acts/auh.ts, kind "ceremony").
-  rite("auh_d_c_investiture", { court: holder("court") }, [
-    v("staff", memory("auh_d_honours_staff", 8)),
-    v("base"),
-  ]),
   rite("auh_d_c_funeral", { court: holder("court") }, [
     v("war", inWar),
     v("base"),
@@ -295,326 +264,602 @@ export const AUH_DEPT_SCENES: readonly GwScene[] = [
   ]),
 ];
 
-// ---- Task rows: existing papers first, in order (design §4.2) ----
+// ---- ww196: answers (design ww195 §2-3) ----
+// Each row adds findings and courses to the answer of a task of its type;
+// the common rows (common.ts) add theirs after. Findings and courses that
+// name a slot gate on it. Text: depts.answers.<row>.
+
+const f = (
+  id: string,
+  weight: 1 | 2 | 3,
+  more: Partial<GwFindingRow> = {},
+): GwFindingRow => ({ id, weight, ...more });
+const c = (
+  id: string,
+  lean: GwCourseRow["lean"],
+  effects: GwEffect[],
+  more: Partial<GwCourseRow> = {},
+): GwCourseRow => ({ id, lean, effects, ...more });
+const answer = (
+  id: string,
+  type: GwAnswerRow["type"],
+  findings: GwFindingRow[],
+  courses: GwCourseRow[],
+  more: Partial<GwAnswerRow> = {},
+): GwAnswerRow => ({ id, nation: AUH, type, findings, courses, ...more });
+
+const offer = (tag: GwTag, value: number): GwEffect =>
+  doWorld({ do: "offer", tag, value });
+const readiness = (tag: GwTag, delta: number): GwEffect =>
+  doWorld({ do: "readiness", tag, delta });
+const manpower = (delta: number): GwEffect =>
+  doWorld({ do: "manpower", delta });
+const rumour = (delta: number): GwEffect => ({ kind: "rumour", delta });
+const neutral = (tag: GwTag): GwCond => world({ is: "neutral", tag });
+const lost = (theatre: "east" | "balkan" | "italy"): GwCond =>
+  world({ is: "battle", theatre, of: ["advance", "break"], by: "foe" });
+const berlinConsent = { kind: "consent", tag: "DEU" } as const;
+const conradCos = holds("chief_of_staff", "auh_conrad");
+const tiszaPm = holds("hun_pm", "auh_tisza");
+/** Courses for a country still to be won over. */
+const unwon = { stance: ["neutral", "leans_us", "leans_them"] };
+
+const ANSWERS: GwAnswerRow[] = [
+  // 외무부 (Ballhausplatz): Romania, while it sits out.
+  answer(
+    "auh_ans_rou",
+    "envoy",
+    [
+      f("price", 3),
+      f("king", 2, { slots: { ruler: ["*"] }, when: until("1917-12") }),
+      f("bidders", 2, { slots: { bidders: ["bidding"] } }),
+      f("close", 3, { slots: { readiness: ["close"] } }),
+      f("far", 1, { slots: { readiness: ["far"] } }),
+      f("stays_out", 2, { wrong: true, truth: neutral("ROU") }),
+    ],
+    [
+      c(
+        "bukovina",
+        ["gentle", "bold"],
+        [offer("ROU", 2), opinion("army", -1)],
+        {
+          slots: unwon,
+        },
+      ),
+      c("schools", ["calm", "cheap"], [offer("ROU", 1), inst("hungary", -1)], {
+        slots: unwon,
+        needs: [{ kind: "bill", law: "auh_transylvania" }],
+        then: ["auh_h_transylvania"],
+      }),
+      c(
+        "warn",
+        ["firm"],
+        [readiness("ROU", -1), trust("ROU", -1), inst("berlin", 1)],
+        { slots: unwon, needs: [berlinConsent] },
+      ),
+      c("wait", ["wait"], [], { wait: true }),
+    ],
+    {
+      office: "foreign",
+      topic: ["ROU"],
+      when: not(atWar("ROU")),
+      question: "reach",
+    },
+  ),
+  // Italy, before May 1915: Article 7 and the Trentino.
+  answer(
+    "auh_ans_ita",
+    "envoy",
+    [
+      f("art7", 3),
+      f("trentino", 3),
+      f("bulow", 2, { when: between("1914-12", "1915-05") }),
+      f("bidders", 2, { slots: { bidders: ["bidding"] } }),
+      f("giolitti", 2, { wrong: true, truth: neutral("ITA") }),
+    ],
+    [
+      c(
+        "trentino",
+        ["gentle", "bold"],
+        [offer("ITA", 3), opinion("army", -1), inst("berlin", -1)],
+      ),
+      c("talk_long", ["wait", "calm", "cheap"], [offer("ITA", 1)]),
+      c(
+        "refuse",
+        ["firm"],
+        [trust("ITA", -1), readiness("ITA", 1), opinion("army", 1)],
+      ),
+    ],
+    {
+      office: "foreign",
+      topic: ["ITA"],
+      when: not(italyIn),
+      question: "reach",
+    },
+  ),
+  // Berlin, in the war: the ally that lends divisions and takes command.
+  answer(
+    "auh_ans_deu",
+    "envoy",
+    [
+      f("west_first", 3),
+      f("command", 2, { when: berlinAt({ min: 2 }) }),
+      f("customs", 2, { when: months(12) }),
+      f("tschirschky", 1, { when: until("1916-10") }),
+      f("winter", 2, { wrong: true }),
+    ],
+    [
+      c("help", ["gentle", "calm"], [inst("berlin", 1), trust("DEU", 1)]),
+      c(
+        "press",
+        ["firm", "bold"],
+        [
+          doWorld({ do: "force", tag: "DEU", theatre: "east", delta: 1 }),
+          inst("berlin", 1),
+          trust("DEU", -1),
+        ],
+        { needs: [berlinConsent] },
+      ),
+      c("own_way", ["bold", "cheap"], [inst("berlin", -1), trust("DEU", -1)]),
+    ],
+    { office: "foreign", topic: ["DEU"], when: inWar },
+  ),
+  // Bulgaria, while it can still be bought.
+  answer(
+    "auh_ans_bgr",
+    "envoy",
+    [
+      f("macedonia", 3),
+      f("tsar", 2, { slots: { ruler: ["*"] } }),
+      f("bidders", 2, { slots: { bidders: ["bidding"] } }),
+      f("loan", 1),
+    ],
+    [
+      c("macedonia", ["bold", "gentle"], [offer("BGR", 2)], { slots: unwon }),
+      c("win_first", ["wait", "calm"], [], { slots: unwon, wait: true }),
+      c("berlin_pays", ["cheap"], [offer("BGR", 1), inst("berlin", 1)], {
+        slots: unwon,
+        needs: [berlinConsent],
+      }),
+    ],
+    {
+      office: "foreign",
+      topic: ["BGR"],
+      when: not(atWar("BGR")),
+      question: "reach",
+    },
+  ),
+  // 참모본부: the Russian front.
+  answer(
+    "auh_ans_east",
+    "front",
+    [
+      f("line", 3, { slots: { line: ["*"] } }),
+      f("commander", 2, { slots: { commander: ["*"] } }),
+      f("passes", 2, { when: atWar("RUS") }),
+      f("broken", 3, { when: lost("east") }),
+      f("czechs", 1),
+      f("germans", 2, { when: berlinAt({ min: 1 }) }),
+      f("russians_spent", 2, { wrong: true, truth: won("east") }),
+    ],
+    [
+      c("attack", ["bold", "firm"], [gauge("shells", -1)], {
+        front: "attack",
+        needs: [{ kind: "divisions" }],
+        then: ["auh_w_carpathian"],
+      }),
+      c("with_germans", ["gentle"], [inst("berlin", 1), opinion("army", -1)], {
+        front: "attack",
+        needs: [berlinConsent],
+      }),
+      c("hold", ["calm", "cheap", "wait"], [], { front: "hold" }),
+      c("shorten", ["cheap"], [opinion("army", -1)], { front: "shorten" }),
+    ],
+    { office: "chief_of_staff", topic: ["east"], when: atWar("RUS") },
+  ),
+  // The Serbian front.
+  answer(
+    "auh_ans_balkan",
+    "front",
+    [
+      f("line", 3, { slots: { line: ["*"] } }),
+      f("commander", 2, { slots: { commander: ["*"] } }),
+      f("typhus", 2, { when: between("1914-12", "1915-06") }),
+      f("mackensen", 2, { when: since("1915-09") }),
+      f("hills", 1),
+      f("serbs_spent", 2, { wrong: true, truth: won("balkan") }),
+    ],
+    [
+      c("attack", ["bold", "firm"], [gauge("shells", -1)], {
+        front: "attack",
+        needs: [{ kind: "divisions" }],
+      }),
+      c("hold", ["calm", "cheap", "wait"], [], { front: "hold" }),
+      c("to_italy", ["gentle"], [opinion("army", -1)], {
+        front: "shift",
+        when: italyIn,
+      }),
+      c("to_east", ["gentle"], [opinion("army", -1)], {
+        front: "shift",
+        when: not(italyIn),
+      }),
+    ],
+    { office: "chief_of_staff", topic: ["balkan"], when: atWar("SRB") },
+  ),
+  // The Italian front.
+  answer(
+    "auh_ans_italy",
+    "front",
+    [
+      f("line", 3, { slots: { line: ["*"] } }),
+      f("commander", 2, { slots: { commander: ["*"] } }),
+      f("cadorna", 2, { when: until("1917-10") }),
+      f("tyrol", 2, { when: conradCos }),
+      f("mules", 2, { slots: { shells: ["low", "middling"] } }),
+      f("italians_spent", 2, { wrong: true, truth: won("italy") }),
+    ],
+    [
+      c("hold", ["calm", "cheap", "wait"], [], { front: "hold" }),
+      c("tyrol_strike", ["bold", "firm"], [gauge("shells", -1)], {
+        front: "attack",
+        needs: [{ kind: "divisions" }],
+      }),
+      c("with_germans", ["gentle"], [inst("berlin", 1), opinion("army", -1)], {
+        front: "attack",
+        needs: [berlinConsent],
+      }),
+    ],
+    { office: "chief_of_staff", topic: ["italy"], when: italyIn },
+  ),
+  // 공동 재무부: the war's money.
+  answer(
+    "auh_ans_money",
+    "money",
+    [
+      f("empty", 3, { slots: { treasury: ["low"] } }),
+      f("notes", 3),
+      f("quota", 2),
+      f("loan_vienna", 2),
+      f("berlin_debt", 2, { when: berlinAt({ min: 1 }) }),
+      f("crown_holds", 1, { wrong: true }),
+    ],
+    [
+      c(
+        "war_loan",
+        ["calm", "gentle"],
+        [gauge("money", 1), opinion("business", 1)],
+      ),
+      c(
+        "print",
+        ["cheap", "bold"],
+        [gauge("money", 1), gauge("order", -1), opinion("workers", -1)],
+      ),
+      c(
+        "berlin_loan",
+        ["wait", "firm"],
+        [gauge("money", 1), inst("berlin", 1)],
+        {
+          needs: [berlinConsent],
+        },
+      ),
+    ],
+    { office: "finance", when: inWar, question: "money" },
+  ),
+  // 오스트리아 총리실: bread.
+  answer(
+    "auh_ans_bread",
+    "bread",
+    [
+      f("hungary", 3),
+      f("queues", 2, { slots: { bread: ["low", "middling"] } }),
+      f("war_bread", 1),
+      f("galicia", 2, { when: lost("east") }),
+      f("hoards", 2, { wrong: true }),
+    ],
+    [
+      c("cards", ["firm", "calm"], [gauge("bread", 1), opinion("workers", -1)]),
+      c(
+        "ask_budapest",
+        ["gentle", "wait"],
+        [gauge("bread", 1), inst("hungary", -1)],
+        {
+          needs: [{ kind: "person", office: "hun_pm" }],
+        },
+      ),
+      c("food_office", ["bold"], [gauge("bread", 1), inst("council", -1)], {
+        needs: [{ kind: "bill", law: "auh_food" }],
+        then: ["auh_h_food_committee"],
+      }),
+      c("price_cap", ["cheap"], [gauge("order", 1), opinion("business", -1)]),
+    ],
+    { office: "chancellor", when: inWar },
+  ),
+  // Unrest: strikes, the Czechs, the men back from Russia.
+  answer(
+    "auh_ans_unrest",
+    "unrest",
+    [
+      f("agitators", 3, { slots: { agitators: ["*"] } }),
+      f("strikes", 3, { slots: { strikes: ["high"] } }),
+      f("prague", 2),
+      f("returned", 2, { when: since("1918-03") }),
+      f("few_men", 2, { wrong: true }),
+    ],
+    [
+      c(
+        "arrest",
+        ["firm"],
+        [gauge("order", 1), opinion("workers", -2), opinion("parliament", -1)],
+      ),
+      c("watch", ["wait", "calm", "cheap"], [], { wait: true }),
+      c("listen", ["gentle"], [opinion("workers", 1), gauge("money", -1)]),
+    ],
+    { office: "chancellor", when: inWar },
+  ),
+  // 해군부: the fleet in Pola.
+  answer(
+    "auh_ans_fleet",
+    "fleet",
+    [
+      f("pola", 3),
+      f("outnumbered", 2, { slots: { fleet: ["low", "middling"] } }),
+      f("otranto", 2, { when: italyIn }),
+      f("flag", 2, { when: all(inWar, until("1916-07")) }),
+      f("crews", 1, { when: months(30) }),
+      f("italians_out", 2, { wrong: true }),
+    ],
+    [
+      c("stay", ["wait", "cheap", "calm"], [], { wait: true }),
+      c("raid", ["bold", "firm"], [opinion("press", 1), opinion("army", 1)], {
+        when: inWar,
+        then: ["auh_cs_otranto"],
+      }),
+      c("uboats", ["firm"], [gauge("money", -1), trust("DEU", 1)], {
+        when: inWar,
+      }),
+      c("build", ["bold"], [gauge("money", -1), inst("hungary", -1)], {
+        when: peace,
+      }),
+    ],
+    { office: "navy" },
+  ),
+  // 전쟁부: shells and guns.
+  answer(
+    "auh_ans_arms",
+    "arms",
+    [
+      f("skoda", 3),
+      f("counted", 3, { slots: { shells: ["low"] } }),
+      f("nitrates", 2),
+      f("skilled", 2),
+      f("rails", 1, { wrong: true }),
+    ],
+    [
+      c("army_runs", ["firm"], [gauge("shells", 1), opinion("workers", -1)], {
+        needs: [{ kind: "bill", law: "auh_factories" }],
+      }),
+      c(
+        "owners",
+        ["gentle", "calm"],
+        [gauge("shells", 1), gauge("money", -1), opinion("business", 1)],
+        { then: ["auh_h_factory_law"] },
+      ),
+      c(
+        "buy_berlin",
+        ["cheap", "wait"],
+        [gauge("shells", 1), inst("berlin", 1)],
+        { needs: [berlinConsent] },
+      ),
+      c("skilled_home", ["bold"], [gauge("shells", 1), manpower(-1)]),
+    ],
+    { office: "war", when: inWar, question: "money" },
+  ),
+  // Men: the next class, the Landsturm, the languages of the army.
+  answer(
+    "auh_ans_men",
+    "men",
+    [
+      f("losses", 3),
+      f("landsturm", 2, { when: since("1915-02") }),
+      f("languages", 2),
+      f("harvest", 1),
+      f("reserves", 2, { wrong: true }),
+    ],
+    [
+      c("next_class", ["firm", "calm"], [manpower(1), gauge("morale", -1)]),
+      c("landsturm", ["bold"], [manpower(1), opinion("parliament", -1)], {
+        needs: [{ kind: "bill", law: "auh_landsturm" }],
+      }),
+      c("exempt", ["cheap"], [manpower(1), opinion("business", -1)]),
+      c("women", ["gentle"], [gauge("shells", 1), opinion("workers", 1)], {
+        then: ["auh_hf_women_2"],
+      }),
+    ],
+    { office: "war", when: inWar },
+  ),
+  // 정보국 (Evidenzbureau): what the codes say.
+  answer(
+    "auh_ans_intel",
+    "intel",
+    [
+      f("rus_radio", 3, { slots: { country: ["RUS"] } }),
+      f("ita_radio", 3, { slots: { country: ["ITA"] } }),
+      f("srb_bands", 2, { slots: { country: ["SRB"] } }),
+      f("rou_papers", 2, { slots: { country: ["ROU"] } }),
+      f("bought_press", 2, {
+        slots: { country: ["*"], stance: ["leans_them"] },
+      }),
+      f("redl", 1),
+      f("mutiny", 2, { wrong: true, slots: { country: ["*"] } }),
+    ],
+    [
+      c("more_men", ["bold", "firm"], [gauge("money", -1), opinion("army", 1)]),
+      c("false_word", ["cheap", "firm"], [rumour(1)]),
+      c("as_is", ["wait", "calm"], [], { wait: true }),
+    ],
+    { office: "intelligence", topic: ["RUS", "ITA", "SRB", "ROU"] },
+  ),
+  // ---- Austria's own: Budapest (헝가리 총리실) ----
+  answer(
+    "auh_ans_ag_quota",
+    "ausgleich",
+    [
+      f("share", 3),
+      f("renewal", 2, { when: until("1917-12") }),
+      f("language", 2),
+      f("army_bill", 1, { when: peace }),
+    ],
+    [
+      c("usual", ["calm", "wait"], [], { wait: true }),
+      c("more_from_pest", ["firm"], [gauge("money", 1), inst("hungary", -1)]),
+      c("concede", ["gentle", "cheap"], [inst("hungary", 1), inst("army", -1)]),
+    ],
+    { office: "hun_pm", topic: ["quota"], question: "money" },
+  ),
+  answer(
+    "auh_ans_ag_grain",
+    "ausgleich",
+    [
+      f("border", 3),
+      f("tisza", 2, { when: tiszaPm }),
+      f("cheaper", 2, { slots: { prices: ["high", "middling"] } }),
+      f("plenty", 1, { wrong: true }),
+    ],
+    [
+      c("ask", ["gentle", "wait"], [gauge("bread", 1), inst("hungary", -1)]),
+      c("committee", ["calm"], [gauge("bread", 1), inst("council", -1)], {
+        needs: [{ kind: "bill", law: "auh_food" }],
+      }),
+      c("order", ["firm", "bold"], [gauge("bread", 1), inst("hungary", -2)]),
+      c("trade", ["cheap"], [gauge("bread", 1), gauge("money", -1)]),
+    ],
+    { office: "hun_pm", topic: ["food"], when: inWar },
+  ),
+  answer(
+    "auh_ans_ag_franchise",
+    "ausgleich",
+    [
+      f("tisza_no", 3, { when: tiszaPm }),
+      f("soldiers", 2),
+      f("nations", 2),
+      f("workers", 1, { slots: { strikes: ["middling", "high"] } }),
+      f("quiet", 2, { wrong: true }),
+    ],
+    [
+      c(
+        "widen",
+        ["bold", "gentle"],
+        [inst("hungary", -1), opinion("workers", 1), gauge("morale", 1)],
+        { needs: [{ kind: "bill", law: "auh_franchise" }] },
+      ),
+      c("veterans", ["calm"], [opinion("army", 1), inst("hungary", -1)]),
+      c(
+        "leave",
+        ["wait", "firm", "cheap"],
+        [inst("hungary", 1), opinion("workers", -1)],
+        { wait: true },
+      ),
+    ],
+    { office: "hun_pm", topic: ["franchise"] },
+  ),
+  // ---- Austria's own: the nations (오스트리아 총리실) ----
+  answer(
+    "auh_ans_na_bohemia",
+    "nations",
+    [
+      f("kramar", 3, { when: between("1915-06", "1917-06") }),
+      f("masaryk", 2, { when: since("1915-01") }),
+      f("regiments", 2, { when: inWar }),
+      f("loyal_union", 2, { when: since("1917-01") }),
+      f("after_war", 2, { wrong: true }),
+    ],
+    [
+      c(
+        "army_rule",
+        ["firm"],
+        [inst("nations", -1), gauge("order", 1), opinion("parliament", -1)],
+      ),
+      c("talks", ["gentle", "calm"], [inst("nations", 1), opinion("army", -1)]),
+      c(
+        "amnesty",
+        ["bold"],
+        [inst("nations", 1), opinion("army", -1), opinion("parliament", 1)],
+        { when: karl, then: ["auh_k_amnesty"] },
+      ),
+      c("wait", ["wait", "cheap"], [], { wait: true }),
+    ],
+    { office: "chancellor", topic: ["bohemia"] },
+  ),
+  answer(
+    "auh_ans_na_galicia",
+    "nations",
+    [
+      f("poles", 3),
+      f("ruthenes", 2, { when: inWar }),
+      f("legions", 2, { when: all(inWar, until("1917-06")) }),
+      f("kingdom", 2, { when: since("1916-08") }),
+      f("all_loyal", 1, { wrong: true }),
+    ],
+    [
+      c(
+        "apart",
+        ["bold", "gentle"],
+        [inst("nations", 1), opinion("parliament", 1)],
+        { needs: [{ kind: "bill", law: "auh_galicia" }] },
+      ),
+      c("as_is", ["wait", "calm", "cheap"], [], { wait: true }),
+      c("army", ["firm"], [inst("nations", -1), gauge("order", 1)]),
+    ],
+    { office: "chancellor", topic: ["galicia"] },
+  ),
+  answer(
+    "auh_ans_na_south",
+    "nations",
+    [
+      f("may_decl", 3, { when: since("1917-06") }),
+      f("croats", 2),
+      f("bosnia", 2, { when: inWar }),
+      f("korosec", 2, { when: since("1917-05") }),
+      f("hate_belgrade", 1, { wrong: true }),
+    ],
+    [
+      c("third_crown", ["bold"], [inst("nations", 1), inst("hungary", -2)]),
+      c("hear", ["gentle", "calm"], [inst("nations", 1)]),
+      c("refuse", ["firm", "wait"], [inst("nations", -1), inst("hungary", 1)]),
+    ],
+    { office: "chancellor", topic: ["south_slavs"] },
+  ),
+];
+
+// ---- Task rows: Austria's own types (common types need none) ----
 
 const task = (
   id: string,
   office: GwTaskRow["office"],
-  kind: GwTaskRow["kind"],
-  chapters: number,
-  products: string[],
+  type: GwTaskRow["type"],
+  topic: string,
   more: Partial<GwTaskRow> = {},
 ): GwTaskRow => ({
   id,
   nation: AUH,
   office,
-  kind,
-  chapters,
-  products,
+  type,
+  topic,
+  chapters: 2,
   ...more,
 });
 
 const TASKS: GwTaskRow[] = [
-  // 외무부 (Ballhausplatz)
-  task(
-    "auh_task_romania",
-    "foreign",
-    "terms",
-    2,
-    ["auh_h_romania_offer", "auh_y_inc_romania", "auh_ld_table_sits_rou"],
-    { topic: "ROU", when: not(atWar("ROU")) },
-  ),
-  task(
-    "auh_task_italy",
-    "foreign",
-    "terms",
-    2,
-    [
-      "auh_c_italy_art7",
-      "auh_y_adriatic_accord",
-      "auh_y_ally_renew",
-      "auh_y_ally_crack",
-      "auh_ld_table_sits_ita",
-    ],
-    { topic: "ITA" },
-  ),
-  task(
-    "auh_task_berlin",
-    "foreign",
-    "plan",
-    2,
-    ["auh_h_mitteleuropa", "auh_nt_berlin", "auh_ld_occ_berlin_asks"],
-    { topic: "mitteleuropa" },
-  ),
-  task(
-    "auh_task_serbia",
-    "foreign",
-    "plan",
-    2,
-    [
-      "auh_h_serbia_rule",
-      "auh_ld_table_sits_srb",
-      "auh_ld_out_srb",
-      "auh_c_failed_plot",
-    ],
-    { topic: "SRB" },
-  ),
-  task(
-    "auh_task_poland",
-    "foreign",
-    "plan",
-    2,
-    ["auh_nt_poland", "auh_oc_poland", "auh_oc_ukraine"],
-    { topic: "poland" },
-  ),
-  task(
-    "auh_task_peace",
-    "foreign",
-    "terms",
-    3,
-    ["auh_m_peace", "auh_nt_mediate", "auh_nt_entente", "auh_sep_home"],
-    { topic: "sep_peace", when: inWar },
-  ),
-  task(
-    "auh_task_balkans",
-    "foreign",
-    "plan",
-    1,
-    ["auh_y_balkan_accord", "auh_c_albania", "auh_y_inc_albania"],
-    { topic: "albania" },
-  ),
-  // The order act retired into a commission (design §4.2): the inquiry.
-  task("auh_task_inquiry", "foreign", "report", 1, ["auh_a_o_inquiry_r"], {
-    topic: "sarajevo",
-    when: {
-      kind: "opening",
-      of: ["sarajevo", "sarajevo_survived", "sarajevo_failed"],
-    },
-    once: true,
+  // 헝가리 총리실: the bargain with Budapest.
+  task("auh_task_ag_quota", "hun_pm", "ausgleich", "quota"),
+  task("auh_task_ag_grain", "hun_pm", "ausgleich", "food", { when: inWar }),
+  task("auh_task_ag_franchise", "hun_pm", "ausgleich", "franchise", {
+    chapters: 3,
   }),
-  // 오스트리아 총리실
-  task(
-    "auh_task_bread",
-    "chancellor",
-    "study",
-    2,
-    ["auh_h_bread_cards", "auh_hf_hunger", "auh_m_bread"],
-    { topic: "food", when: inWar },
-  ),
-  task(
-    "auh_task_strikes",
-    "chancellor",
-    "report",
-    1,
-    ["auh_h_strike_1", "auh_lb_strike", "auh_lb_union"],
-    { topic: "strikes", when: inWar },
-  ),
-  task(
-    "auh_task_bohemia",
-    "chancellor",
-    "plan",
-    2,
-    [
-      "auh_h_bohemia_rule",
-      "auh_y_home_bohemia",
-      "auh_c_q_bohemia",
-      "auh_k_may_decl",
-    ],
-    { topic: "bohemia" },
-  ),
-  task(
-    "auh_task_reichsrat",
-    "chancellor",
-    "plan",
-    2,
-    ["auh_h_reichsrat_call", "auh_k_amnesty", "auh_h_kramar_verdict"],
-    { topic: "reichsrat" },
-  ),
-  task(
-    "auh_task_refugees",
-    "chancellor",
-    "study",
-    1,
-    [
-      "auh_hf_refugees",
-      "auh_hf_women_1",
-      "auh_hf_pows_theirs",
-      "auh_oc_ruled_exiles",
-    ],
-    { topic: "refugees", when: inWar },
-  ),
-  task(
-    "auh_task_galicia",
-    "chancellor",
-    "plan",
-    2,
-    ["auh_y_inc_galicia", "auh_oc_ruled_galicia"],
-    { topic: "galicia" },
-  ),
-  // #7
-  task("auh_task_welfare", "chancellor", "bill", 2, ["auh_d_welfare"], {
-    topic: "welfare",
-    when: welfareDue,
-    once: true,
-  }),
-  // 헝가리 총리실
-  task(
-    "auh_task_grain",
-    "hun_pm",
-    "terms",
-    2,
-    ["auh_h_grain_border", "auh_h_food_committee", "auh_nt_profits"],
-    { topic: "food" },
-  ),
-  task(
-    "auh_task_transylvania",
-    "hun_pm",
-    "plan",
-    2,
-    ["auh_h_transylvania", "auh_y_inc_romania"],
-    { topic: "transylvania" },
-  ),
-  task(
-    "auh_task_pows",
-    "hun_pm",
-    "study",
-    1,
-    ["auh_hf_pows_ours", "auh_y_arms_price"],
-    { topic: "pows" },
-  ),
-  // 참모본부
-  task(
-    "auh_task_east",
-    "chief_of_staff",
-    "plan",
-    2,
-    ["auh_w_galicia_plan", "auh_w_przemysl", "auh_w_carpathian"],
-    { topic: "east", when: atWar("RUS") },
-  ),
-  task(
-    "auh_task_south",
-    "chief_of_staff",
-    "plan",
-    2,
-    ["auh_w_serbia_again", "auh_cs_danube", "auh_cs_albania"],
-    { topic: "balkan", when: inWar },
-  ),
-  task("auh_task_tyrol", "chief_of_staff", "plan", 3, ["auh_w_tyrol_strike"], {
-    topic: "italy",
-    when: italyIn,
-  }),
-  task(
-    "auh_task_occupied",
-    "chief_of_staff",
-    "study",
-    2,
-    ["auh_oc_serbia", "auh_oc_italy", "auh_oc_resistance"],
-    { topic: "occupation", when: inWar },
-  ),
-  task(
-    "auh_task_army_peace",
-    "chief_of_staff",
-    "plan",
-    2,
-    ["auh_y_rus_army", "auh_y_army_bill", "auh_y_staff_talks", "auh_nt_army"],
-    { topic: "army_bill", when: peace },
-  ),
-  // 전쟁부
-  task(
-    "auh_task_shells",
-    "war",
-    "study",
-    2,
-    ["auh_h_shell_output", "auh_sh_nitrates", "auh_sh_copper", "auh_sh_rubber"],
-    { topic: "shells", when: inWar },
-  ),
-  task(
-    "auh_task_manpower",
-    "war",
-    "study",
-    2,
-    ["auh_h_manpower", "auh_c_harvest", "auh_hf_wounded", "auh_lb_women"],
-    { topic: "manpower", when: inWar },
-  ),
-  task(
-    "auh_task_factories",
-    "war",
-    "bill",
-    2,
-    [
-      "gw_law_auh_factories",
-      "auh_h_factory_law",
-      "auh_hf_women_2",
-      "auh_h_language_order",
-    ],
-    { topic: "factories", when: inWar },
-  ),
-  // #6, the war ministry's half
-  task("auh_task_regiments", "war", "plan", 1, ["auh_d_last_regiments"], {
-    topic: "regiments",
-    when: theEnd,
-    once: true,
-  }),
-  // 해군부
-  task(
-    "auh_task_fleet",
-    "navy",
-    "plan",
-    2,
-    [
-      "auh_w_fleet_out",
-      "auh_cs_fleet_harbour",
-      "auh_cs_otranto",
-      "auh_cs_barrage",
-      "auh_cs_fleet_idle",
-      "auh_y_navy_estimates",
-      "auh_y_ita_navy",
-    ],
-    { topic: "fleet" },
-  ),
-  // #6, the navy's half
-  task("auh_task_last_fleet", "navy", "plan", 1, ["auh_d_last_fleet"], {
-    topic: "fleet",
-    when: theEnd,
-    once: true,
-  }),
-  // 공동 재무부
-  task(
-    "auh_task_quota",
-    "finance",
-    "terms",
-    2,
-    ["auh_h_quota", "auh_c_q_bosnia_rail", "auh_y_arms_price"],
-    { topic: "quota" },
-  ),
-  // 군사내각 (#1, #10)
-  task("auh_task_honours", "court", "report", 1, ["auh_d_honours"], {
-    topic: "honours",
-    when: inWar,
-    cooldown: 8,
-  }),
-  task("auh_task_purse", "court", "report", 1, ["auh_d_purse"], {
-    topic: "purse",
-    when: inWar,
-    cooldown: 10,
-  }),
-  // 정보국 (Evidenzbureau)
-  task(
-    "auh_task_codes",
-    "intelligence",
-    "report",
-    2,
-    ["auh_spy_read", "auh_spy_codebook", "auh_spy_dark", "auh_ag_hire"],
-    { topic: "codes", when: inWar },
-  ),
-  task(
-    "auh_task_hunt",
-    "intelligence",
-    "report",
-    1,
-    ["auh_spy_hunt", "auh_spy_blown", "auh_ag_polish_pow"],
-    { topic: "spies", when: inWar },
-  ),
+  // 오스트리아 총리실: the nations.
+  task("auh_task_na_bohemia", "chancellor", "nations", "bohemia"),
+  task("auh_task_na_galicia", "chancellor", "nations", "galicia"),
+  task("auh_task_na_south", "chancellor", "nations", "south_slavs"),
 ];
 
 // ---- Leans (design §4.3): the option each department marks ----
@@ -678,10 +923,7 @@ const LEANS: GwDeptLean[] = [
     auh_d_last_fleet: "keep_for_terms",
   }),
   lean("finance", "cheap"),
-  lean("court", "wait", {
-    auh_d_honours: "front_first",
-    auh_d_purse: "red_cross",
-  }),
+  lean("court", "wait", { auh_d_purse: "red_cross" }),
   lean("intelligence", "firm"),
 ];
 
@@ -740,59 +982,117 @@ const WANTS: GwDeptWant[] = [
   want("auh_want_intel_money", { office: "intelligence" }),
 ];
 
-// ---- Levers (design §4.9): gifts in an audience ----
+// ---- ww196: honours at their occasions (design ww195 §4) ----
+// The emperor's birthday lists (18 Aug Franz Joseph, 17 Aug Karl, who gave
+// the Maria Theresa Order at Wartholz on that day in 1917 and 1918), Karl's
+// Hungarian coronation (30 Dec 1916), the war crosses on the general staff's
+// proposal after a won battle, and the Maria Theresa Order, which its own
+// chapter reviewed and proposed (ww196-facts.md, AUH).
 
-const pride = (delta: number): GwEffect => ({
-  kind: "pride",
-  who: role("who"),
-  delta,
-});
+const order = (
+  id: string,
+  rank: 1 | 2 | 3,
+  pools: GwHonourOrder["pools"],
+  more: Partial<GwHonourOrder> = {},
+): GwHonourOrder => ({ id, nation: AUH, rank, pools, ...more });
 
-const LEVERS: GwLeverRow[] = [
-  {
-    id: "auh_lv_maria_theresa",
-    nation: AUH,
-    lever: "honour",
-    people: "own",
-    when: inWar,
-    effects: [pride(1), opinion("army", 1)],
-  },
-  {
-    id: "auh_lv_title",
-    nation: AUH,
-    lever: "honour",
-    people: "cabinet",
-    effects: [pride(1), opinion("court", 1)],
-  },
-  {
-    id: "auh_lv_privy",
-    nation: AUH,
-    lever: "post",
-    people: "own",
-    effects: [pride(1), remember("auh_lv_privy_given", role("who"))],
-  },
-  {
-    id: "auh_lv_purse",
-    nation: AUH,
-    lever: "purse",
-    when: inWar,
-    effects: [ruler("conscience", 1, "auh_d_purse_widows")],
-  },
-  {
-    id: "auh_lv_pardon",
-    nation: AUH,
-    lever: "pardon",
-    people: "own",
-    effects: [
-      remember("auh_lv_pardoned", role("who")),
-      opinion("parliament", 1),
+const ORDERS: GwHonourOrder[] = [
+  order("auh_ord_mmto", 3, ["generals"]),
+  order("auh_ord_stephen", 3, ["heads", "officials"]),
+  order("auh_ord_leopold", 2, ["heads", "officials", "generals"]),
+  order("auh_ord_iron_crown", 2, ["officials", "industry", "generals"]),
+  // A title, not a post: Wirklicher Geheimer Rat, "Excellency".
+  order("auh_ord_privy", 2, ["heads", "officials"]),
+  order("auh_ord_bravery", 2, ["soldier"]),
+  order("auh_ord_fjo", 1, ["industry", "officials"]),
+  order("auh_ord_mvk", 1, ["generals"]),
+  order("auh_ord_signum", 1, ["generals"]),
+  // Founded by Karl in December 1916.
+  order("auh_ord_ktk", 1, ["soldier"], { from: "1916-12-13" }),
+];
+
+const honour = (
+  id: string,
+  occasion: GwHonourRow["occasion"],
+  pools: GwHonourRow["pools"],
+  orders: string[],
+  from: GwHonourRow["from"],
+  more: Partial<GwHonourRow> = {},
+): GwHonourRow => ({ id, nation: AUH, occasion, pools, orders, from, ...more });
+
+const HONOURS: GwHonourRow[] = [
+  honour(
+    "auh_hon_fj_birthday",
+    "date",
+    ["generals", "heads", "officials", "industry"],
+    ["auh_ord_leopold", "auh_ord_iron_crown", "auh_ord_privy", "auh_ord_fjo"],
+    ["court", "chancellor"],
+    { day: "08-18", when: not(newReign) },
+  ),
+  honour(
+    "auh_hon_karl_birthday",
+    "date",
+    ["generals", "heads", "officials", "industry"],
+    [
+      "auh_ord_mmto",
+      "auh_ord_leopold",
+      "auh_ord_iron_crown",
+      "auh_ord_privy",
+      "auh_ord_fjo",
     ],
-  },
+    ["court", "chancellor"],
+    { day: "08-17", when: karl },
+  ),
+  honour(
+    "auh_hon_ff_birthday",
+    "date",
+    ["generals", "heads", "officials", "industry"],
+    ["auh_ord_leopold", "auh_ord_iron_crown", "auh_ord_privy", "auh_ord_fjo"],
+    ["court", "chancellor"],
+    { day: "12-18", when: ffThrone },
+  ),
+  honour(
+    "auh_hon_coronation",
+    "date",
+    ["heads", "officials"],
+    ["auh_ord_stephen", "auh_ord_privy", "auh_ord_iron_crown"],
+    ["hun_pm"],
+    { day: "12-30", when: karl, since: "1916-12-01", until: "1916-12-31" },
+  ),
+  honour(
+    "auh_hon_victory",
+    "victory",
+    ["generals", "soldier"],
+    ["auh_ord_mvk", "auh_ord_signum", "auh_ord_bravery", "auh_ord_ktk"],
+    ["chief_of_staff"],
+    { theatre: ["east", "balkan", "italy"], when: inWar },
+  ),
+  honour("auh_hon_mmto", "deed", ["generals"], ["auh_ord_mmto"], ["court"], {
+    when: all(inWar, months(6)),
+  }),
+  honour(
+    "auh_hon_bravery",
+    "deed",
+    ["soldier"],
+    ["auh_ord_bravery", "auh_ord_ktk"],
+    ["war"],
+    { when: inWar },
+  ),
+  honour(
+    "auh_hon_petition",
+    "petition",
+    ["generals", "heads", "industry"],
+    ["auh_ord_mvk", "auh_ord_leopold", "auh_ord_iron_crown", "auh_ord_fjo"],
+    ["chief_of_staff", "war", "navy"],
+    { when: inWar },
+  ),
 ];
 
 export const AUH_DEPTS: GwDeptContent = {
   tasks: TASKS,
+  answers: ANSWERS,
   leans: LEANS,
   wants: WANTS,
-  levers: LEVERS,
+  honours: HONOURS,
+  orders: ORDERS,
 };
