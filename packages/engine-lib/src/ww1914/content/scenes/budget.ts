@@ -357,7 +357,6 @@ const cheaper = { tell: "prices_down", effect: prices(-4) };
 const loaf = { tell: "bread:+1", effect: gauge("bread", 1) };
 
 const atWar = world({ is: "war" });
-const since = (from: string) => all(atWar, world({ is: "date", from }));
 const financeHolder = office("finance");
 
 /** A card with four ways through a bankruptcy; the last asks nothing. */
