@@ -231,18 +231,28 @@ export interface GwBeaten {
   readonly after: number;
   /** Counts only once this country has gone: the front has turned round. */
   readonly behind?: GwTag;
+  /** ww188: the capital's line: only on a map without the places. */
+  readonly capital?: boolean;
 }
 
 /** A country loses the war when its ground goes. */
 export const GW_BEATEN: readonly GwBeaten[] = [
-  { tag: "FRA", theatre: "west", from: "paris", after: 2 },
+  // ww188: a row at a capital's line counts only on a map without the
+  // places; with them the fallen capital is Capitulation.ts's.
+  { tag: "FRA", theatre: "west", from: "paris", after: 2, capital: true },
   { tag: "RUS", theatre: "east", from: "kiev", after: 24 },
   { tag: "SRB", theatre: "balkan", from: "nis", after: 13 },
   { tag: "MNE", theatre: "balkan", from: "nis", after: 13 },
   { tag: "ROU", theatre: "east", from: "warsaw", after: 3 },
   { tag: "GRC", theatre: "balkan", from: "salonika", after: 3 },
   { tag: "ITA", theatre: "italy", from: "adige", after: 12 },
-  { tag: "OTT", theatre: "straits", from: "constantinople", after: 12 },
+  {
+    tag: "OTT",
+    theatre: "straits",
+    from: "constantinople",
+    after: 12,
+    capital: true,
+  },
   { tag: "OTT", theatre: "palestine", from: "damascus", after: 24 },
   { tag: "BGR", theatre: "balkan", to: "belgrade", after: 6, behind: "SRB" },
   { tag: "DEU", theatre: "west", to: "rhine", after: 30 },

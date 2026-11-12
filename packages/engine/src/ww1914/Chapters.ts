@@ -3,6 +3,7 @@ import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
 import { aiStep } from "./Ai";
 import { alliesStep } from "./Asks";
 import { budgetStep } from "./Budget";
+import { capitulationStep } from "./Capitulation";
 import { craftStep } from "./Craft";
 import { crisisStep, stampMobilisation } from "./Crises";
 import { dealDesk } from "./Desk";
@@ -47,6 +48,7 @@ export const GW_CHAPTER_STEPS: readonly ((gw: GreatWar) => void)[] = [
   warStep,
   frontsStep,
   frontLandStep,
+  capitulationStep,
   occupationStep,
   (gw) => seaStep(gw, warScore(gw, "central")),
   budgetStep,

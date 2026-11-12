@@ -472,6 +472,26 @@ export const GwCollapseSchema = z.object({
 });
 export type GwCollapse = z.infer<typeof GwCollapseSchema>;
 
+/**
+ * ww188: a government that left its fallen capital: where it sits now, null
+ * abroad; the chapter the capital fell; whether it chose to fight on.
+ */
+export const GwGovSeatSchema = z.object({
+  tag: z.enum(GW_TAGS),
+  place: GwPlaceSchema.nullable(),
+  fell: z.number().int(),
+  fightOn: z.boolean(),
+});
+export type GwGovSeat = z.infer<typeof GwGovSeatSchema>;
+
+/** ww188: an ally that left a front when the country beside it gave up. */
+export const GwWithdrawnSchema = z.object({
+  theatre: z.enum(GW_THEATRES),
+  tag: z.enum(GW_TAGS),
+  chapter: z.number().int(),
+});
+export type GwWithdrawn = z.infer<typeof GwWithdrawnSchema>;
+
 export const GwTheatreStateSchema = z.object({
   id: z.enum(GW_THEATRES),
   /** Index into GW_LINES[id]. */
@@ -1902,5 +1922,9 @@ export const GreatWarStateSchema = z.object({
   offensives: z.array(GwOffensiveSchema).optional(),
   /** ww180: named agents hired so far, in order (absent until the first). */
   agents: z.array(GwAgentStateSchema).optional(),
+  /** ww188: governments that left a fallen capital (absent until one does). */
+  govSeats: z.array(GwGovSeatSchema).optional(),
+  /** ww188: allies that left a front when their partner gave up. */
+  withdrawn: z.array(GwWithdrawnSchema).optional(),
 });
 export type GreatWarState = z.infer<typeof GreatWarStateSchema>;

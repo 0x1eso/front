@@ -15616,7 +15616,8 @@
       "morale_propaganda": "선전이 먹혀 사기가 올랐다.",
       "morale_defeatist_press": "패배주의 신문들이 사기를 꺾었다.",
       "morale_hush_out": "덮어 둔 나쁜 소식이 한꺼번에 드러났다.",
-      "order_leaflets": "적이 뿌린 전단이 거리에 돌았다."
+      "order_leaflets": "적이 뿌린 전단이 거리에 돌았다.",
+      "capital_fell": "수도가 적의 손에 들어갔다."
     },
     "mandate": {
       "deu_bread_for_the_winter": "겨울 빵을 남기기",
@@ -15839,7 +15840,18 @@
       "agent_fate_swapped": "{a}과(와) {b}이(가) 그 요원을 붙잡힌 자기 사람들과 맞바꾸었다.",
       "agent_fate_fled": "그 요원은 {a}의 손에서 달아났다.",
       "prop_hush_out": "{a}에서 검열이 덮어 둔 패전 소식이 한꺼번에 터져 나왔다.",
-      "prop_papers_out": "{a}의 신문들이 {b}에게서 돈을 받은 사실이 드러났다."
+      "prop_papers_out": "{a}의 신문들이 {b}에게서 돈을 받은 사실이 드러났다.",
+      "capital_fell": "{a}의 수도 {place}이(가) {b}의 손에 들어갔다.",
+      "gov_moved": "{a} 정부가 {place}(으)로 옮겨 갔다.",
+      "gov_exile": "{a} 정부가 나라 밖으로 피했다.",
+      "gov_exile_srb": "세르비아 정부가 바다 건너 코르푸섬으로 옮겨 갔다.",
+      "gov_exile_bel": "벨기에 정부가 프랑스 르아브르 곁의 생타드레스로 옮겨 갔다.",
+      "gov_exile_mne": "몬테네그로 정부가 프랑스로 망명했다.",
+      "gov_returned": "{a} 정부가 {place}(으)로 돌아왔다.",
+      "nation_capitulated": "{a}이(가) 항복했다.",
+      "gov_fell_capitulation": "{a} 정부가 무너졌다. 뒤를 이은 내각이 항복 문서에 서명했다.",
+      "front_withdrawn": "{a}이(가) {theatre} 전선에서 군대를 거두어 본국으로 돌렸다.",
+      "front_follows": "{theatre} 전선이 점령지를 따라 앞으로 옮겨 갔다."
     },
     "odds": {
       "0": "될 일이 아닙니다.",
@@ -16287,7 +16299,9 @@
       "agent_ours_lost": "외국에서 일하던 우리 요원이 잡혔다.",
       "agent_we_took": "방첩대가 이름난 외국 요원을 잡았다.",
       "prop_hush_cost": "의회가 신문이 왜 이리 조용하냐고 따진다.",
-      "prop_papers_out": "중립국 신문에 댄 우리 돈이 드러났다."
+      "prop_papers_out": "중립국 신문에 댄 우리 돈이 드러났다.",
+      "gov_we_moved": "정부가 {what}(으)로 옮겨 왔다.",
+      "capital_we_lost": "수도 {what}이(가) {country}의 손에 들어갔다."
     },
     "result": {
       "advance": "전진",

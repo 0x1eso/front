@@ -16,6 +16,7 @@ import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { warMonths } from "./Eras";
 import { warScore } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
+import { hasLandGraph } from "./Occupation";
 import { STRAIN_WORN, worstStrain } from "./Strain";
 import { closeTable, tableStart } from "./Table";
 import { GW_BEATEN, GwBeaten } from "./Tables";
@@ -77,6 +78,8 @@ function beatenBy(gw: GreatWar, row: GwBeaten): boolean {
     return false;
   }
   if (gw.s.chapter - n.entered < row.after) return false;
+  // ww188: where the places are, a fallen capital is Capitulation.ts's.
+  if (row.capital === true && hasLandGraph(gw)) return false;
   if (row.behind !== undefined && gw.nation(row.behind)?.out !== true) {
     return false;
   }
@@ -248,7 +251,7 @@ export function openTalks(gw: GreatWar, seat: GwSeatState): void {
 }
 
 /** The seat's country asks. A leader's asking stops its side. */
-export function sue(gw: GreatWar, tag: GwTag): void {
+export function sue(gw: GreatWar, tag: GwTag, why = "sued_for_peace"): void {
   const n = gw.nation(tag);
   if (n === null || n.side === null) return;
   if (LEADERS[n.side].includes(tag)) {
@@ -262,7 +265,7 @@ export function sue(gw: GreatWar, tag: GwTag): void {
       return;
     }
   }
-  leaveWar(gw, tag, "sued_for_peace");
+  leaveWar(gw, tag, why);
 }
 
 /** The chapter after an armistice is the conference, whatever the calendar says. */

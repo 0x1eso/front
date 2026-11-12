@@ -163,6 +163,7 @@ export const GW_COMMON_SHARES: readonly string[] = [
   "ladder",
   "filler",
   "sea",
+  "capital",
 ];
 /**
  * Casts in files of their own. Every seat loads them: a scene can cast another
