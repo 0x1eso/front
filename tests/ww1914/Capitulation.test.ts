@@ -3,11 +3,13 @@
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import type { GwPlace } from "@openfront/engine-api/ww1914/GwPlaces";
 import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
+import { GW_CONTENT } from "@openfront/engine-lib/ww1914/content/Content";
 import {
   GW_CAPITAL_FELL,
   GW_CAPITAL_TAKEN,
 } from "@openfront/engine-lib/ww1914/content/capital";
 import { createGameRunner } from "@openfront/engine/GameRunner";
+import { alliesStep } from "@openfront/engine/ww1914/Asks";
 import {
   capitulationOdds,
   capitulationStep,
@@ -15,6 +17,7 @@ import {
   lineFollowsLand,
 } from "@openfront/engine/ww1914/Capitulation";
 import type { GreatWar } from "@openfront/engine/ww1914/GreatWar";
+import { houseStep } from "@openfront/engine/ww1914/House";
 import { moveLand } from "@openfront/engine/ww1914/Land";
 import {
   pickVariant,
@@ -172,5 +175,26 @@ describe("capitulation", () => {
     // Bordeaux gone too: the plain body, which names no city.
     moveLand(gw, "bordeaux", "DEU", null, "occupation");
     expect(pickVariant(ctx, fell)).toBe("base");
+  });
+
+  test("a France that has given up asks Britain nothing more", async () => {
+    const fromFrance = async (id: string, out: boolean) => {
+      const gw = await world(id, "GBR");
+      openGeneral(gw, "DEU", "FRA", "test");
+      enter(gw, "GBR", "entente", "test");
+      enter(gw, "BGR", "central", "test");
+      houseStep(gw);
+      gw.nation("FRA")!.out = out;
+      const seat = gw.s.seats.find((x) => x.tag === "GBR")!;
+      for (let i = 0; i < 12; i++) {
+        gw.s.chapter++;
+        alliesStep(gw);
+      }
+      const french = (x: string) =>
+        GW_CONTENT.asks?.find((r) => r.id === x)?.from === "FRA";
+      return (seat.house?.asks ?? []).filter((a) => french(a.id)).length;
+    };
+    expect(await fromFrance("GWCAP6", false)).toBeGreaterThan(0);
+    expect(await fromFrance("GWCAP6", true)).toBe(0);
   });
 });

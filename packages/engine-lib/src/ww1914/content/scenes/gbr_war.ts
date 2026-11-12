@@ -286,6 +286,8 @@ const WAR_SCENES: readonly GwScene[] = [
     variants: [
       // ww187: by the war's state, not the calendar: Paris, the line past
       // the old rivers either way, the Americans in or not.
+      // ww187 merge: France has given up (ww188); no French army is left.
+      v("france_out", all(world({ is: "out", tag: "FRA" }), war)),
       {
         ...v("paris_lost", all(PARIS_FOE, war, war)),
         assumes: { held: { paris: "foe" } },

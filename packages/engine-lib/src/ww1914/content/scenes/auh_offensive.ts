@@ -104,6 +104,8 @@ const opt = (id: string, tell: string[], effects: GwEffect[]): GwOption => ({
   effects,
 });
 
+const SERBIA_IN = { fights: ["SRB"] } as const;
+
 export const AUH_OFFENSIVE_SCENES: readonly GwScene[] = [
   // The plan laid out, the chapter after the seat signed it (round 0).
   report("auh_w_off_prep", [
@@ -144,8 +146,10 @@ export const AUH_OFFENSIVE_SCENES: readonly GwScene[] = [
     v("italy_broke", foe({ t: ITALY, r: ["break"] })),
     v("isonzo_gave", foe({ t: ITALY, r: ["bite"] })),
     v("isonzo_held", foe({ t: ITALY, r: HELD })),
-    v("serbia_gave", foe({ t: BALKAN, r: GAVE })),
-    v("serbia_held", foe({ t: BALKAN, r: HELD })),
+    // ww187 merge: the Serbian army is named, so Serbia is still in it
+    // (ww188: it can give up while the Balkan front goes on).
+    { ...v("serbia_gave", foe({ t: BALKAN, r: GAVE })), assumes: SERBIA_IN },
+    { ...v("serbia_held", foe({ t: BALKAN, r: HELD })), assumes: SERBIA_IN },
     v("romania", foe({ t: ROMANIA })),
     v("gave", foe({ r: GAVE })),
     v("held", foe({ r: HELD })),

@@ -68,6 +68,9 @@ function arrive(gw: GreatWar, seat: GwSeatState): void {
     if (sceneOf(row.scene) === null || headOf(gw, seat, row.from) === null) {
       continue;
     }
+    // ww187 merge: a country that has left the war (ww188: given up) asks
+    // nothing of its old partners.
+    if (gw.nation(row.from)?.out === true) continue;
     if (!holds(ctx, row.when)) continue;
     h.asks.push({ id: row.id, stage: "asked", chapter: gw.s.chapter });
     let wait = 1;
