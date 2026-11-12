@@ -190,6 +190,7 @@ describe("the person (ww196 §0)", () => {
         who: null,
         scene: null,
         theatre: "west",
+        w: 5,
       },
       {
         chapter: now,
@@ -197,6 +198,7 @@ describe("the person (ww196 §0)", () => {
         who: null,
         scene: "t_p_hard",
         theatre: null,
+        w: 2,
       },
     ]);
     expect(seatView(gw).diary?.[0]).toMatchObject({
