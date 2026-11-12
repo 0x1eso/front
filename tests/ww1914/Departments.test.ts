@@ -11,6 +11,7 @@ import {
 } from "@openfront/engine-lib/ww1914/content/Content";
 import {
   GW_TRAY_WAIT,
+  productFitsTopic,
   taskChapters,
 } from "@openfront/engine-lib/ww1914/TaskRows";
 import {
@@ -20,6 +21,7 @@ import {
   roomShut,
 } from "@openfront/engine/ww1914/Departments";
 import type { GreatWar } from "@openfront/engine/ww1914/GreatWar";
+import { lawOfDraft, lawStage } from "@openfront/engine/ww1914/Laws";
 import { applyGwOrder } from "@openfront/engine/ww1914/Orders";
 import { ctxOf, optionOpen, sceneOf } from "@openfront/engine/ww1914/SceneRun";
 import { backOpen } from "@openfront/engine/ww1914/SendBack";
@@ -82,6 +84,23 @@ const SCENES: GwScene[] = [
     ],
   },
   {
+    id: "t_dept_topic",
+    nation: ["DEU"],
+    kind: "report",
+    cast: { head: { office: "foreign" } },
+    author: "head",
+    salience: 3,
+    tags: ["foreign"],
+    scheduledOnly: true,
+    variants: [
+      {
+        id: "shells",
+        when: { kind: "picked", field: "subject", of: ["shells"] },
+      },
+      { id: "base" },
+    ],
+  },
+  {
     id: "t_dept_trip",
     nation: ["DEU"],
     kind: "wire",
@@ -120,12 +139,12 @@ const TRIP: GwAct = {
 
 afterEach(() => useGwContent(null));
 
-async function deu() {
+async function deu(depts: GwDeptContent = DEPTS) {
   useGwContent({
     ...GW_CONTENT,
     scenes: [...GW_CONTENT.scenes, ...SCENES],
     acts: [...(GW_CONTENT.acts ?? []), TRIP],
-    depts: DEPTS,
+    depts,
   });
   const { runner } = await gwRunner({ greatWar1914Calendar: "full" });
   const gw = runner.game.greatWar()!;
@@ -140,17 +159,37 @@ async function deu() {
   return { gw, st, head };
 }
 
-/** Commissions t_task and opens the chapter its work is done. */
-function commission(gw: GreatWar, st: GwSeatState) {
+/** Commissions `row` and opens the chapter its work is done. */
+function commission(gw: GreatWar, st: GwSeatState, row = "t_task") {
   const head = deptHead(gw, st, "foreign")!;
-  const order = { kind: "task", office: "foreign", row: "t_task", topic: null };
+  const order = { kind: "task", office: "foreign", row, topic: null };
   expect(applyGwOrder(gw, st, order as never)).toBeNull();
   const due = gw.s.chapter + taskChapters(1, head, "foreign");
   expect(deptState(st).tasks[0].due).toBe(due);
   gw.s.chapter = due;
   openDepts(gw, st);
-  return deptState(st).tray.find((c) => c.dept?.row === "t_task")!;
+  return deptState(st).tray.find((c) => c.dept?.row === row)!;
 }
+
+/** One foreign task row of these products, and a topic if fixed. */
+const oneTask = (
+  products: string[],
+  topic?: string,
+  rivals: GwDeptContent["rivals"] = [],
+): GwDeptContent => ({
+  tasks: [
+    {
+      id: "t_task",
+      nation: ["DEU"],
+      office: "foreign",
+      kind: "bill",
+      chapters: 1,
+      products,
+      ...(topic === undefined ? {} : { topic }),
+    },
+  ],
+  rivals,
+});
 
 const band = (head: { competence: number[] }, v: number) => {
   head.competence[GW_FIELDS.indexOf("politics")] = v;
@@ -242,6 +281,54 @@ describe("departments", () => {
     expect(st.desk.map((c) => c.scene)).toEqual(
       expect.arrayContaining(["t_dept_paper", "t_dept_dispute"]),
     );
+  });
+
+  test("a bill task lays its law's draft in the tray; shelved, the bill is idle", async () => {
+    const { gw, st } = await deu(oneTask(["gw_law_deu_censor"]));
+    // At war, past the first winter (as Laws.test's atWar).
+    gw.s.warChapter = 0;
+    const n = gw.nation("DEU")!;
+    n.atWar = ["FRA"];
+    n.side = "central";
+    gw.s.dayShift = 800;
+    gw.s.day += 800;
+    const card = commission(gw, st);
+    expect(lawOfDraft(card.scene)).toBe("deu_censor");
+    expect(lawStage(n, "deu_censor")?.stage).toBe("draft");
+    expect(st.desk.some((c) => c.scene === card.scene)).toBe(false);
+    applyGwOrder(gw, st, { kind: "brief", office: "foreign" });
+    expect(applyGwOrder(gw, st, { kind: "shelve", card: card.uid })).toBeNull();
+    expect(lawStage(n, "deu_censor")?.stage).toBe("idle");
+  });
+
+  test("a topic narrows the products and reaches the paper's subject", async () => {
+    expect(productFitsTopic("deu_dept_kin_grc", "GRC", ["GRC", "ROU"])).toBe(
+      true,
+    );
+    expect(productFitsTopic("deu_dept_kin_rou", "GRC", ["GRC", "ROU"])).toBe(
+      false,
+    );
+    expect(productFitsTopic("deu_w_plain", "GRC", ["GRC", "ROU"])).toBe(true);
+    const { gw, st } = await deu(oneTask(["t_dept_topic"], "shells"));
+    expect(commission(gw, st).variant).toBe("shells");
+  });
+
+  test("a rival row about a named paper brings its own counter, feud or not", async () => {
+    const rivals = [
+      {
+        office: "foreign" as const,
+        against: ["chief_of_staff" as const],
+        papers: ["t_dept_paper"],
+        counter: "t_dept_dispute",
+      },
+    ];
+    const { gw, st, head } = await deu(
+      oneTask(["t_dept_paper"], undefined, rivals),
+    );
+    head.feuds = [];
+    commission(gw, st);
+    const counter = deptState(st).tray.find((c) => c.dept?.counter === true);
+    expect(counter?.scene).toBe("t_dept_dispute");
   });
 
   test("a trip costs two of the time and shuts the room", async () => {
