@@ -233,8 +233,54 @@ const LETTERS: GwAct[] = [
 const attend = { id: "attend", people: "cabinet", count: 2 } as const;
 
 const ORDERS: GwAct[] = [
-  // ww193: the inquiry and the commission are the departments' tasks now
-  // (content/depts/gbr.ts): their papers are the tasks' products.
+  // ww196: back from the departments (design ww195 §5): the inquiry and the
+  // commission are the PM's own orders again.
+  {
+    id: "gbr_a_o_inquiry",
+    nation: NATION,
+    kind: "order",
+    scene: "gbr_a_o_inquiry_r",
+    wait: 1,
+    fields: [
+      {
+        id: "subject",
+        options: [
+          { id: "rifles" },
+          { id: "shells", effects: [inspect("shells", "GBR")] },
+          { id: "bread", when: war },
+          { id: "recruits", when: war },
+        ],
+      },
+    ],
+  },
+  {
+    id: "gbr_a_o_commission",
+    nation: NATION,
+    kind: "order",
+    once: true,
+    when: all(war, world({ is: "war_months", own: true, min: 11 })),
+    scene: "gbr_a_o_commission_r",
+    wait: 2,
+    fields: [
+      {
+        id: "subject",
+        options: [
+          { id: "shells" },
+          { id: "straits", when: world({ is: "open", theatre: "straits" }) },
+          // ww187: only once the army came to Kut (the report tells of it).
+          {
+            id: "kut",
+            when: world({
+              is: "front",
+              theatre: "mesopotamia",
+              from: "kut",
+              to: "mosul",
+            }),
+          },
+        ],
+      },
+    ],
+  },
   {
     id: "gbr_a_o_cid",
     nation: NATION,
