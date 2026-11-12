@@ -5934,6 +5934,13 @@
       "wrong_report": "A report on {country} was wrong and nobody put it right."
     },
     "vassal": {
+      "GBR_AUH": "Austria-Hungary under British Protection",
+      "GBR_BGR": "Bulgaria under British Protection",
+      "GBR_DEU": "Germany under British Protection",
+      "GBR_GRC": "Greece under British Protection",
+      "GBR_ITA": "Italy under British Protection",
+      "GBR_OTT": "Ottoman Sultanate (British Protectorate)",
+      "GBR_ROU": "Romania under British Protection",
       "any": "{by}'s {of}"
     },
     "wire": {
