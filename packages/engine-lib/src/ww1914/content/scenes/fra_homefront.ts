@@ -83,7 +83,10 @@ export const FRA_HOMEFRONT_SCENES: readonly GwScene[] = [
     all(atWar, theirs(20), ours(20), warMonths(12)),
     [v("long", warMonths(30)), v("base")],
     [
-      ["reprisal", [doWorld({ do: "reprisal", tag: "DEU" }), gauge("morale", 1)]],
+      [
+        "reprisal",
+        [doWorld({ do: "reprisal", tag: "DEU" }), gauge("morale", 1)],
+      ],
       ["red_cross", [doWorld({ do: "exchange", tag: "DEU" })]],
       ["protest", [readiness(1), opinion("press", 1)]],
     ],

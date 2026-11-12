@@ -45,8 +45,7 @@ const ruleDeu = (min?: number, max?: number): GwCond =>
   ranged({ is: "rule", of: "DEU" }, min, max);
 const resist = (min: number): GwCond =>
   ranged({ is: "resist", of: "DEU" }, min);
-const ruled = (min?: number): GwCond =>
-  ranged({ is: "ruled", by: "DEU" }, min);
+const ruled = (min?: number): GwCond => ranged({ is: "ruled", by: "DEU" }, min);
 const usNeutral = world({ is: "neutral", tag: "USA" });
 
 // ---- Effects ----
@@ -137,7 +136,10 @@ const RULED: GwScene[] = [
     ],
     [
       ["neutrals", [readiness(2), opinion("press", 1)]],
-      ["reprisal", [doWorld({ do: "reprisal", tag: "DEU" }), gauge("morale", 1)]],
+      [
+        "reprisal",
+        [doWorld({ do: "reprisal", tag: "DEU" }), gauge("morale", 1)],
+      ],
       ["silence", [gauge("order", 1)]],
     ],
     { cast: { fm, home }, cooldown: 4, salience: 7, tags: ["war", "home"] },

@@ -30,11 +30,7 @@ import {
 type Option = NonNullable<GwScene["options"]>[number];
 
 /** A world cond whose range fields are left out when undefined. */
-export const ranged = (
-  of: GwWorldCond,
-  min?: number,
-  max?: number,
-): GwCond =>
+export const ranged = (of: GwWorldCond, min?: number, max?: number): GwCond =>
   world({
     ...of,
     ...(min === undefined ? {} : { min }),
@@ -241,11 +237,14 @@ const TALKS: GwScene[] = [
   paper(
     "fra_y_accord_keep",
     all(peace(), colonialInForce),
-    [v("ours", {
+    [
+      v("ours", {
         kind: "chose",
         scene: "fra_y_accord_seek",
         pick: "offer_deu",
-      }), v("base")],
+      }),
+      v("base"),
+    ],
     [
       ["keep", [temp(-1), opinion("army", -1)]],
       ["guard", [opinion("parliament", 1)]],
