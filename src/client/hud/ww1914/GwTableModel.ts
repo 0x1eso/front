@@ -2,6 +2,7 @@
 // (no DOM): what is painted on which region, what is said in whose voice.
 import type { GwOffice } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
+import type { GwFateMark } from "@openfront/engine-api/ww1914/GwFate";
 import type { GwPack } from "@openfront/engine-api/ww1914/GwPack";
 import { GW_PLACES, GwPlace } from "@openfront/engine-api/ww1914/GwPlaces";
 import type {
@@ -17,6 +18,7 @@ import {
   type OccupationCell,
 } from "../../render/gl/passes/OccupationPass";
 import { translateText } from "../../Utils";
+import { fateRgb, gwName } from "./GwFateModel";
 import { officeTitle } from "./GwOffice";
 
 type Rgb = readonly [number, number, number];
@@ -89,16 +91,21 @@ const cell = (
   flags,
 });
 
-/** The map while painting: every place faint, the draft in gold. */
+/**
+ * The map while painting: every place faint, the draft in gold, or in its
+ * fate's ink where one is painted (ww199).
+ */
 export function paintCells(
   tag: GwTag,
   draft: readonly GwPlace[],
+  fates?: Readonly<Partial<Record<GwPlace, GwFateMark>>>,
 ): OccupationCell[] {
-  return paintable(tag).map((p) =>
-    draft.includes(p)
-      ? cell(p, "wanted", LEVEL.wanted)
-      : cell(p, "free", LEVEL.free),
-  );
+  return paintable(tag).map((p) => {
+    if (!draft.includes(p)) return cell(p, "free", LEVEL.free);
+    const m = fates?.[p];
+    if (m === undefined) return cell(p, "wanted", LEVEL.wanted);
+    return { ...cell(p, "wanted", LEVEL.wanted), rgb: fateRgb(m, p) };
+  });
 }
 
 function claimCell(c: GwTableClaimView): OccupationCell | null {
@@ -151,8 +158,8 @@ export function tagged(t: GwTableView): GwTableClaimView[] {
     .reverse();
 }
 
-/** A country's name, or a place's. */
-export const countryName = (tag: GwTag) => translateText(`gw.country.${tag}`);
+/** A country's name (a new state's or a vassal's by its fate), or a place's. */
+export const countryName = (tag: GwTag) => gwName(tag);
 export const placeName = (p: GwPlace) => GW_PLACES[p].nameKo;
 
 function fill(line: string, c: GwTableClaimView | undefined, who: GwTag) {

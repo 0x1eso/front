@@ -3,6 +3,7 @@ import { GW_PLACES } from "@openfront/engine-api/ww1914/GwPlaces";
 import { GW_CAPITALS } from "@openfront/engine-lib/ww1914/PlaceRules";
 import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
+import { gwName } from "./GwFateModel";
 import type { GwMap } from "./GwMap";
 import {
   GwReplayBeat,
@@ -183,7 +184,7 @@ export function replayOverlay(r: GwReplay): TemplateResult {
         ${r.fallen.map(
           (f) =>
             html`<span class=${CHIP}
-              >${fallenLabel(f)} · ${translateText(`gw.country.${f.to}`)}</span
+              >${fallenLabel(f)} · ${gwName(f.to)}</span
             >`,
         )}
       </div>

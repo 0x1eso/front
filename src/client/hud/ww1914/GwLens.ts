@@ -9,6 +9,7 @@ import { customElement, state } from "lit/decorators.js";
 import { Controller } from "../../Controller";
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view";
+import { gwName } from "./GwFateModel";
 import {
   GW_LENSES,
   gwMapState,
@@ -153,7 +154,7 @@ export class GwLens extends LitElement implements Controller {
             (x) =>
               html`<p class="text-xs text-white/85" data-gw-lens-line>
                 ${translateText("gw.lens.rumour_line", {
-                  country: translateText(`gw.country.${x.tag}`),
+                  country: gwName(x.tag),
                   what: translateText(`gw.lens.rung.${x.rung}`),
                 })}
               </p>`,
@@ -163,7 +164,7 @@ export class GwLens extends LitElement implements Controller {
     if (!head.hasOwn) {
       return html`<p class=${MUTED} data-gw-lens-line>
         ${translateText("gw.lens.nations_none", {
-          country: translateText(`gw.country.${seat.tag}`),
+          country: gwName(seat.tag),
         })}
       </p>`;
     }
@@ -179,7 +180,7 @@ export class GwLens extends LitElement implements Controller {
             }));
     return html`<p class="text-xs text-white/90" data-gw-lens-line>
         ${translateText("gw.lens.own", {
-          country: translateText(`gw.country.${seat.tag}`),
+          country: gwName(seat.tag),
           step: translateText(`gw.lens.step.${lens}.${head.step}`),
         })}
       </p>
@@ -215,7 +216,7 @@ export class GwLens extends LitElement implements Controller {
           class="flex justify-between text-xs text-white/90"
           data-gw-rail-row=${row.tag}
         >
-          <span>${translateText(`gw.country.${row.tag}`)}</span>
+          <span>${gwName(row.tag)}</span>
           <span
             >${elapsed >= row.days
               ? translateText("gw.lens.rail_done")

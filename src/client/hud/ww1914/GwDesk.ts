@@ -26,6 +26,7 @@ import {
 } from "./GwDiary";
 import { briefLine, rich } from "./GwDict";
 import { newPass, TextPass } from "./GwDictModel";
+import { gwName } from "./GwFateModel";
 import { lawStrip } from "./GwLaws";
 import {
   dangers,
@@ -663,7 +664,7 @@ export function reader(c: GwCtx, card: GwCardView): TemplateResult {
         : html`<div class=${MUTED} data-gw-letter-from>
             ${translateText("gw.ui.letter_from", {
               name: personName(c.pack, card.who ?? ""),
-              country: translateText(`gw.country.${card.letterFrom}`),
+              country: gwName(card.letterFrom),
             })}
           </div>`}
       ${card.letterFrom === undefined ? nothing : threadBox(c, card, pass)}

@@ -13,6 +13,7 @@ import { assetUrl } from "@openfront/shared/AssetUrls";
 import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
 import type { GwCtx, GwSpot } from "./GwCtx";
+import { gwName } from "./GwFateModel";
 import { lastBattle } from "./GwFronts";
 import { deskPins, GwPin, placeOfCard, theatreOfPlace } from "./GwPlaceModel";
 import { actRow } from "./GwSchedule";
@@ -124,7 +125,7 @@ function holderRow(c: GwCtx, s: GwSpot): TemplateResult | typeof nothing {
   const owner = s.place === null ? holder : GW_PLACES[s.place].owner;
   return html`<div class="flex items-center gap-2 text-sm" data-gw-holder>
       ${flag(holder)}
-      <span>${translateText(`gw.country.${holder}`)}</span>
+      <span>${gwName(holder)}</span>
       <span class="${MUTED} ml-auto">${standing(c, holder)}</span>
     </div>
     ${owner === holder
@@ -141,8 +142,8 @@ function movedRow(c: GwCtx, place: GwPlace | null) {
   if (m === undefined) return nothing;
   return html`<p class="text-sm text-amber-100" data-gw-moved>
     ${translateText("gw.map.moved", {
-      from: translateText(`gw.country.${m.from}`),
-      to: translateText(`gw.country.${m.to}`),
+      from: gwName(m.from),
+      to: gwName(m.to),
     })}
   </p>`;
 }

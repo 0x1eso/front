@@ -13,6 +13,7 @@ import { translateText } from "../../Utils";
 import type { GwCtx } from "./GwCtx";
 import { canSpend, timeChip } from "./GwDept";
 import { rich } from "./GwDict";
+import { gwName } from "./GwFateModel";
 import { BTN, BTN_ON, CHIP, HEAD, MUTED } from "./GwStyle";
 import { claimsBox } from "./GwTable";
 import { personName } from "./GwText";
@@ -347,7 +348,7 @@ function termAnswer(
   c: GwCtx,
   x: NonNullable<GwCtx["seat"]["terms"]>["log"][0],
 ) {
-  const name = translateText(`gw.country.${x.tag}`);
+  const name = gwName(x.tag);
   const clauses = [
     ...x.give.map((g: GwGiveClause) => translateText(`gw.terms.give.${g}`)),
     ...x.ask.map((a: GwAskClause) => translateText(`gw.terms.ask.${a}`)),
@@ -387,7 +388,7 @@ function termsBox(c: GwCtx): TemplateResult | typeof nothing {
                     c.redraw();
                   }}
                 >
-                  ${translateText(`gw.country.${x.tag}`)}
+                  ${gwName(x.tag)}
                 </button>`,
             )}
           </div>

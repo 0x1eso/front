@@ -7,6 +7,7 @@ import { Controller } from "../../Controller";
 import type { TransformHandler } from "../../TransformHandler";
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view";
+import { gwName } from "./GwFateModel";
 import { gwMapState } from "./GwLensModel";
 import {
   pathOf,
@@ -268,7 +269,7 @@ export class GwRail extends LitElement implements Controller {
     at: [number, number],
     rgb: string,
   ): Label {
-    const country = translateText(`gw.country.${tag}`);
+    const country = gwName(tag);
     const text =
       shown >= days
         ? translateText("gw.rail.ready", { country })

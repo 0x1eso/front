@@ -8,6 +8,7 @@ import { budgetSummary } from "./GwBudget";
 import { craftSection, researchBox } from "./GwCraft";
 import type { GwCtx } from "./GwCtx";
 import { rich } from "./GwDict";
+import { gwName } from "./GwFateModel";
 import { govBox } from "./GwGov";
 import { houseSection } from "./GwHouse";
 import { lawsSection } from "./GwLaws";
@@ -147,9 +148,7 @@ function powers(c: GwCtx): TemplateResult {
     ${c.seat.world.countries.map(
       (n) =>
         html`<div class="flex justify-between text-sm">
-          <span class="text-white/70"
-            >${translateText(`gw.country.${n.tag}`)}</span
-          >
+          <span class="text-white/70">${gwName(n.tag)}</span>
           <span
             >${translateText(
               n.out ? "gw.ui.side.out" : `gw.ui.side.${n.side ?? "neutral"}`,

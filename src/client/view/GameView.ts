@@ -47,6 +47,7 @@ import {
 } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import { PlayerCosmetics, WirePlayer } from "@openfront/shared/WireSchemas";
 import { noteGwRun } from "../GwRecentRuns";
+import { setGwRealms } from "../hud/ww1914/GwFateModel";
 import { useWwCalendar } from "../hud/ww1936/WwClientCalendar";
 import { computeAllianceClusters } from "../render/frame/derive/AllianceClusters";
 import { extractAttackRings } from "../render/frame/derive/AttackRings";
@@ -583,6 +584,7 @@ export class GameView implements GameLike {
     }
     for (const u of gu.updates[GameUpdateType.GreatWar] ?? []) {
       this._greatWarData = u.data;
+      setGwRealms(u.data.realms);
       const me = this.myPlayer()?.smallID();
       const seat = u.data.seats.find((x) => x.smallID === me);
       noteGwRun(this.gameID(), seat?.shown ?? []);

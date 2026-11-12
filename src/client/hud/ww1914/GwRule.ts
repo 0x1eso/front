@@ -1,6 +1,7 @@
 // Great War 1914: the 통치 tab (ww169, design ww168 B2). Each power the person
 // holds, by group: what it is, who must sign or vote, and why a greyed one
 // can't be used now. Nothing shows its result: no odds, no price, no tell.
+import type { GwRuledView } from "@openfront/engine-api/ww1914/GwFate";
 import type { GwPack } from "@openfront/engine-api/ww1914/GwPack";
 import type {
   GwPowerGroup,
@@ -12,6 +13,7 @@ import { translateText } from "../../Utils";
 import type { GwCtx, GwRuleDraft } from "./GwCtx";
 import { timeLeft } from "./GwDept";
 import { rich } from "./GwDict";
+import { crownName, gwName, ruledWords } from "./GwFateModel";
 import { factionName } from "./GwHouse";
 import type { GwTab } from "./GwModel";
 import { officeTitle } from "./GwOffice";
@@ -97,7 +99,7 @@ export function targetLabel(c: GwCtx, p: GwPowerView, id: string): string {
     case "person":
       return personName(c.pack, id);
     case "country":
-      return translateText(`gw.country.${id}`);
+      return gwName(id);
     case "front":
       return translateText(`gw.theatre.${id}`);
     case "house":
@@ -409,12 +411,42 @@ function group(
   </section>`;
 }
 
+/** One land the seat rules, or a state or vassal of its: words only. */
+function ruledRow(r: GwRuledView): TemplateResult {
+  const words = ruledWords(r);
+  return html`<div
+    class="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5"
+    data-gw-ruled=${r.tag}
+    data-gw-ruled-kind=${r.kind}
+  >
+    <span class="text-sm text-white/90">${gwName(r.tag)}</span>
+    <span class=${CHIP}>${translateText(`gw.fate.kind.${r.kind}`)}</span>
+    <span class="${MUTED} ml-auto">${words.join(", ")}</span>
+    ${r.kind === "client"
+      ? html`<p class="${MUTED} w-full" data-gw-ruled-crown>
+          ${translateText("gw.ui.fate_crown", { who: crownName(r.crown) })}
+        </p>`
+      : nothing}
+  </div>`;
+}
+
+/** ww199: the land the seat rules, the states it founded, its vassals. */
+function ruledBox(c: GwCtx): TemplateResult | typeof nothing {
+  const rows = c.seat.ruled ?? [];
+  if (rows.length === 0) return nothing;
+  return html`<section class=${BOX} data-gw-ruled-box>
+    <h3 class=${HEAD}>${translateText("gw.ui.fate_ruled")}</h3>
+    ${rows.map(ruledRow)}
+  </section>`;
+}
+
 /** The 통치 tab: every power by group; 일정 links to the schedule. */
 export function ruleTab(c: GwCtx): TemplateResult {
   const d = draftOf(c);
   const all = c.seat.powers ?? [];
   return html`<div class="space-y-2.5" data-gw-rule-tab>
     <p class=${MUTED}>${translateText("gw.power.hint")}</p>
+    ${ruledBox(c)}
     ${GW_POWER_GROUPS.map((g) =>
       group(
         c,

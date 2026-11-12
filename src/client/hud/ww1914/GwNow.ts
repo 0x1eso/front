@@ -9,6 +9,7 @@ import type {
 import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
 import type { GwCtx } from "./GwCtx";
+import { gwName } from "./GwFateModel";
 import {
   crisisShown,
   isReadOnly,
@@ -38,7 +39,7 @@ export function nowLines(data: GreatWarData, seat: GwSeatView): GwNowLine[] {
   } else {
     const foes = w.countries
       .filter((n) => n.side !== null && n.side !== w.side && !n.out)
-      .map((n) => translateText(`gw.country.${n.tag}`));
+      .map((n) => gwName(n.tag));
     const named = foes.slice(0, FOES_SHOWN).join(", ");
     out.push({
       key:
@@ -106,7 +107,7 @@ function propLine(seat: GwSeatView): GwNowLine | null {
   const v = seat.world.prop;
   if (v === undefined) return null;
   const names = (tags: readonly string[]) =>
-    tags.map((t) => translateText(`gw.country.${t}`)).join(", ");
+    tags.map((t) => gwName(t)).join(", ");
   const parts: string[] = [];
   if (v.home) parts.push(translateText("gw.ui.now.prop_home"));
   if (v.hush) parts.push(translateText("gw.ui.now.prop_hush"));

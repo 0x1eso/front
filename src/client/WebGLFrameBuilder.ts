@@ -243,6 +243,24 @@ export class WebGLFrameBuilder {
     this.view.refreshNames(displayNames);
   }
 
+  private gwDataSeen: unknown = null;
+  private gwRealmsKey = "";
+
+  /**
+   * Great War 1914 (ww199): a country a table made a new state or a vassal
+   * is named by its fate: the names on the map are written again when that
+   * list changes.
+   */
+  private syncGwRealms(gameView: GameView): void {
+    const data = gameView.greatWarData?.() ?? null;
+    if (data === this.gwDataSeen) return;
+    this.gwDataSeen = data;
+    const key = JSON.stringify(data?.realms ?? []);
+    if (key === this.gwRealmsKey) return;
+    this.gwRealmsKey = key;
+    this.refreshNames(gameView);
+  }
+
   /**
    * World War 1936 P5 (spec §3.5): a woken civil-war slot or a renamed
    * country is labelled with the endgame's English name ("Free Spain") and
@@ -302,6 +320,7 @@ export class WebGLFrameBuilder {
   update(gameView: GameView): void {
     this.syncPlayers(gameView);
     this.syncWwCountries(gameView);
+    this.syncGwRealms(gameView);
     this.syncPlayerEffects(gameView);
     this.syncPlayerSpawns(gameView);
     this.syncLocalPlayer(gameView);

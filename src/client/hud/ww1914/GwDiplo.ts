@@ -28,6 +28,7 @@ import { html, nothing, TemplateResult } from "lit";
 import { keyed } from "lit/directives/keyed.js";
 import { translateText } from "../../Utils";
 import type { GwCtx } from "./GwCtx";
+import { gwName } from "./GwFateModel";
 import { BTN, BTN_ON, CHIP, GLASS, HEAD, MUTED } from "./GwStyle";
 import { countInMan, endingTitle, shortDate } from "./GwText";
 
@@ -35,7 +36,7 @@ const BOX = "space-y-1.5 rounded border border-white/15 bg-black/35 p-2.5";
 const FIELD =
   "rounded border border-white/25 bg-slate-800 px-2 py-1 text-sm text-white";
 
-const countryName = (tag: GwTag): string => translateText(`gw.country.${tag}`);
+const countryName = (tag: GwTag): string => gwName(tag);
 
 function flag(tag: GwTag) {
   return html`<img

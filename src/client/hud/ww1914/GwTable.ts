@@ -1,4 +1,5 @@
 import { gwCountry, GwTag } from "@openfront/engine-api/ww1914/GwCountries";
+import type { GwFateMark } from "@openfront/engine-api/ww1914/GwFate";
 import { GW_PLACES, GwPlace } from "@openfront/engine-api/ww1914/GwPlaces";
 import type {
   GwTableClaimView,
@@ -12,6 +13,21 @@ import { translateText } from "../../Utils";
 import type { GwCtx } from "./GwCtx";
 import { rich } from "./GwDict";
 import { gwFace } from "./GwFace";
+import {
+  choicesFor,
+  clientName,
+  detailWord,
+  fateChip,
+  fateDo,
+  fateOrder,
+  landMark,
+  landPlaces,
+  markOf,
+  markWord,
+  nextDetail,
+  nextFate,
+  sameMark,
+} from "./GwFateModel";
 import { officeTitle } from "./GwOffice";
 import { BTN, BTN_ON, CHIP, GLASS, HEAD, MUTED } from "./GwStyle";
 import {
@@ -48,11 +64,13 @@ const ink = (name: string) => {
   return `background: rgb(${r} ${g} ${b})`;
 };
 
-/** A name kept on its tile by GwMapPaint. */
-function tag(p: GwPlace, extra = ""): TemplateResult {
+/** A name kept on its tile by GwMapPaint; a new state's or an ally's after it. */
+function tag(p: GwPlace, mark?: GwFateMark): TemplateResult {
   const [x, y] = GW_PLACES[p].center;
-  return html`<span class="${TAG} ${extra}" data-gw-tag-at="${x} ${y}"
-    >${placeName(p)}</span
+  const to =
+    mark?.fate === "state" || mark?.fate === "ally" ? detailWord(mark) : null;
+  return html`<span class=${TAG} data-gw-tag-at="${x} ${y}"
+    >${placeName(p)}${to === null ? nothing : html` → ${to}`}</span
   >`;
 }
 
@@ -60,14 +78,22 @@ function tag(p: GwPlace, extra = ""): TemplateResult {
 export function paintTags(c: GwCtx): TemplateResult | typeof nothing {
   const draft = c.ui.paint;
   if (draft === null) return nothing;
-  return html`${draft.map((p) => tag(p))}`;
+  const fates = c.seat.claims?.fates;
+  return html`${draft.map((p) => tag(p, fates?.[p]))}`;
 }
 
 /** The names over what is on the table. */
 export function tableTags(c: GwCtx): TemplateResult | typeof nothing {
   const t = c.seat.table;
   if (t === null || t === undefined || c.ui.tab !== "table") return nothing;
-  return html`${tagged(t).map((x) => tag(x.place))}`;
+  return html`${tagged(t).map((x) =>
+    tag(
+      x.place,
+      x.fate === undefined
+        ? undefined
+        : { fate: x.fate, for: x.for, client: x.client },
+    ),
+  )}`;
 }
 
 function land(c: GwCtx, group: string, draft: readonly GwPlace[]) {
@@ -119,6 +145,61 @@ function signRow(c: GwCtx, draft: readonly GwPlace[]): TemplateResult {
   </div>`;
 }
 
+/** One land's fate: a chip that cycles the fates, a second for what it needs. */
+function fateRow(c: GwCtx, group: string): TemplateResult {
+  const places = landPlaces(c.seat.tag, group);
+  const ch = choicesFor(c.seat, places);
+  const now = landMark(c.seat.claims?.fates, places);
+  const mark = now === "mixed" ? null : now;
+  const more = mark === null ? null : nextDetail(mark, ch);
+  const detail = mark === null ? null : detailWord(mark);
+  return html`<div
+    class="flex flex-wrap items-center gap-1"
+    data-gw-fate-land=${group}
+  >
+    <span class="mr-auto text-sm text-white/85"
+      >${translateText(`gw.land.${group}`)}</span
+    >
+    <button
+      class="${mark === null ? BTN : BTN_ON} !px-2 !py-1"
+      data-gw-fate-chip=${group}
+      data-gw-fate=${mark?.fate ?? now ?? "none"}
+      @click=${() => c.send(fateOrder({ group }, nextFate(mark, ch)))}
+    >
+      ${now === "mixed"
+        ? translateText("gw.fate.mixed")
+        : mark === null
+          ? translateText("gw.fate.none")
+          : fateChip(mark.fate)}
+    </button>
+    ${detail === null
+      ? nothing
+      : html`<button
+          class="${BTN} !px-2 !py-1"
+          data-gw-fate-detail=${group}
+          ?disabled=${more === null}
+          @click=${() => {
+            if (more !== null) c.send(fateOrder({ group }, more));
+          }}
+        >
+          ${detail}
+        </button>`}
+  </div>`;
+}
+
+/** What becomes of each land painted: open while the war is on or a table sits. */
+function fateBox(c: GwCtx, draft: readonly GwPlace[]) {
+  if (c.seat.claims?.fatesOpen !== true || draft.length === 0) return nothing;
+  const groups = landsOf(c.seat.tag).filter((g) =>
+    draft.some((p) => GW_PLACES[p].group === g),
+  );
+  return html`<section class=${BOX} data-gw-fates>
+    <h3 class=${HEAD}>${translateText("gw.ui.fate_title")}</h3>
+    <p class=${MUTED}>${translateText("gw.ui.fate_how")}</p>
+    ${groups.map((g) => fateRow(c, g))}
+  </section>`;
+}
+
 /** The drawer while the seat paints: the map does the rest. */
 export function paintPane(c: GwCtx): TemplateResult {
   const draft = c.ui.paint ?? [];
@@ -149,6 +230,7 @@ export function paintPane(c: GwCtx): TemplateResult {
             ${draft.map(placeName).join(", ")}
           </p>
         </section>`}
+    ${fateBox(c, draft)}
   </div>`;
 }
 
@@ -238,7 +320,17 @@ function claimRow(c: GwCtx, x: GwTableClaimView): TemplateResult {
         x.state === "traded" && x.offer !== null
           ? `gw.table.trade.${x.offer}`
           : `gw.table.state.${x.state}`,
-      )}</span
+      )}${x.fate === undefined
+        ? nothing
+        : html` ·
+            <span data-gw-claim-fate=${x.fate}
+              >${markWord({
+                fate: x.fate,
+                for: x.for,
+                client: x.client,
+                term: x.term,
+              })}</span
+            >`}</span
     >
   </button>`;
 }
@@ -266,6 +358,17 @@ const WORD_KEYS: Readonly<Record<GwTableWord, string>> = {
 };
 
 function question(x: GwTableClaimView, tag: GwTag): string {
+  if (x.step === "partner") {
+    return translateText(
+      x.partner === tag ? "gw.ui.fate_partner_ask" : "gw.ui.fate_partner_wait",
+      {
+        place: placeName(x.place),
+        by: countryName(x.by),
+        partner: x.partner === undefined ? "" : countryName(x.partner),
+        fate: x.fate === undefined ? fateChip("annex") : fateChip(x.fate),
+      },
+    );
+  }
   const mine = x.by === tag;
   const key =
     x.step === "offered"
@@ -353,6 +456,83 @@ function wordBox(c: GwCtx, t: GwTableView) {
   </section>`;
 }
 
+/** The fate picked for the armed place: this turn's pick, else what was painted. */
+export function armedMark(
+  c: GwCtx,
+  t: GwTableView,
+  armed: GwPlace,
+): GwFateMark {
+  const picked = c.ui.tableFate;
+  if (picked !== null && picked !== undefined && picked.place === armed) {
+    return picked.mark;
+  }
+  return t.fates?.[armed] ?? { fate: "annex" };
+}
+
+/** What the armed place is to become: a row of fates, then what it needs. */
+function fateButtons(c: GwCtx, t: GwTableView, armed: GwPlace) {
+  const ch = choicesFor(c.seat, [armed]);
+  const mark = armedMark(c, t, armed);
+  const pick = (m: GwFateMark) => {
+    c.ui.tableFate = { place: armed, mark: m };
+    c.redraw();
+  };
+  const detail = (on: boolean, label: string, m: GwFateMark, id: string) =>
+    html`<button
+      class="${on ? BTN_ON : BTN} !px-2 !py-1"
+      data-gw-turn-detail=${id}
+      @click=${() => pick(m)}
+    >
+      ${label}
+    </button>`;
+  let details: TemplateResult[] = [];
+  if (mark.fate === "state") {
+    details = ch.states.map((id) =>
+      detail(
+        mark.client === id,
+        clientName(id),
+        { fate: "state", client: id },
+        id,
+      ),
+    );
+  } else if (mark.fate === "ally") {
+    details = ch.allies.map((tag) =>
+      detail(
+        mark.for === tag,
+        countryName(tag),
+        { fate: "ally", for: tag },
+        tag,
+      ),
+    );
+  } else if (mark.fate === "occupy") {
+    details = (["short", "long"] as const).map((term) =>
+      detail(
+        (mark.term ?? "short") === term,
+        translateText(`gw.fate.term.${term}`),
+        { fate: "occupy", term },
+        term,
+      ),
+    );
+  }
+  return html`<div class="space-y-1" data-gw-turn-fates>
+    <div class="grid grid-cols-2 gap-1">
+      ${ch.fates.map(
+        (f) =>
+          html`<button
+            class="${mark.fate === f ? BTN_ON : BTN} !px-2 !py-1 text-center"
+            data-gw-turn-fate=${f}
+            @click=${() => pick(mark.fate === f ? mark : markOf(f, ch))}
+          >
+            ${fateDo(f)}
+          </button>`,
+      )}
+    </div>
+    ${details.length < 2
+      ? nothing
+      : html`<div class="flex flex-wrap gap-1">${details}</div>`}
+  </div>`;
+}
+
 function turnBox(c: GwCtx, t: GwTableView) {
   const due = t.due;
   if (due?.kind !== "turn") return nothing;
@@ -366,16 +546,23 @@ function turnBox(c: GwCtx, t: GwTableView) {
       ? html`<p class="text-sm text-white/80">
           ${translateText("gw.table.tap")}
         </p>`
-      : html`<button
-          class="${BTN_ON} w-full text-center"
-          data-gw-claim-go
-          @click=${() => {
-            c.send({ kind: "table_claim", place: armed });
-            c.ui.tableArmed = null;
-          }}
-        >
-          ${translateText("gw.table.demand", { place: placeName(armed) })}
-        </button>`}
+      : html`${fateButtons(c, t, armed)}
+          <button
+            class="${BTN_ON} w-full text-center"
+            data-gw-claim-go
+            @click=${() => {
+              // The fate goes with the claim: painted on the place first.
+              const mark = armedMark(c, t, armed);
+              if (!sameMark(t.fates?.[armed] ?? { fate: "annex" }, mark)) {
+                c.send(fateOrder({ place: armed }, mark));
+              }
+              c.send({ kind: "table_claim", place: armed });
+              c.ui.tableArmed = null;
+              c.ui.tableFate = null;
+            }}
+          >
+            ${translateText("gw.table.demand", { place: placeName(armed) })}
+          </button>`}
     ${c.ui.tableBarred === null
       ? nothing
       : html`<p class=${MUTED} data-gw-barred>
@@ -465,15 +652,74 @@ export function closeRow(c: GwCtx, t: GwTableView) {
   </div>`;
 }
 
+/** The places the treaty gave, each with what becomes of it (ww199). */
+function treatyFates(t: GwTableView) {
+  const given = t.claims.filter(
+    (x) => x.state === "agreed" || x.state === "imposed",
+  );
+  if (given.length === 0) return nothing;
+  return html`<ul class="space-y-0.5 text-sm" data-gw-treaty-fates>
+    ${given.map(
+      (x) =>
+        html`<li class="flex gap-1.5" data-gw-treaty-fate=${x.fate ?? "annex"}>
+          <span class="truncate text-white/90">${placeName(x.place)}</span>
+          <span class="${MUTED} ml-auto shrink-0"
+            >${countryName(x.by)} ·
+            ${markWord({
+              fate: x.fate ?? "annex",
+              for: x.for,
+              client: x.client,
+              term: x.term,
+            })}</span
+          >
+        </li>`,
+    )}
+  </ul>`;
+}
+
 /** The treaty: who has what now. */
 function treaty(c: GwCtx, t: GwTableView) {
   if (!t.closed) return nothing;
   const words = c.pack?.table?.close?.[t.role];
+  const signed = t.sign?.signed ?? null;
   return html`<section class=${BOX} data-gw-treaty>
     <h3 class=${HEAD}>${translateText("gw.table.signed")}</h3>
     ${words === undefined
       ? nothing
       : html`<p class="text-sm leading-6 text-white/90">${rich(c, words)}</p>`}
+    ${treatyFates(t)}
+    ${signed === null
+      ? nothing
+      : html`<p class=${MUTED} data-gw-signed=${signed}>
+          ${translateText(`gw.fate.signed.${signed}`)}
+        </p>`}
+  </section>`;
+}
+
+/** The ruler's hand on the treaty: how he signs, once (ww199). */
+function signBox(c: GwCtx, t: GwTableView) {
+  const sign = t.sign ?? null;
+  if (sign === null || t.closed) return nothing;
+  if (sign.signed !== null) {
+    return html`<p class="${MUTED} px-1" data-gw-signed=${sign.signed}>
+      ${translateText(`gw.fate.signed.${sign.signed}`)}
+    </p>`;
+  }
+  if (sign.ways.length === 0) return nothing;
+  return html`<section class=${BOX} data-gw-sign>
+    <h3 class=${HEAD}>${translateText("gw.ui.fate_sign_title")}</h3>
+    <div class="space-y-1">
+      ${sign.ways.map(
+        (how) =>
+          html`<button
+            class="${BTN} w-full"
+            data-gw-sign-how=${how}
+            @click=${() => c.send({ kind: "treaty_sign", how })}
+          >
+            ${translateText(`gw.fate.sign.${how}`)}
+          </button>`,
+      )}
+    </div>
   </section>`;
 }
 
@@ -501,7 +747,7 @@ export function tableTab(c: GwCtx): TemplateResult | typeof nothing {
         : nothing}
     </section>
     ${treaty(c, t)} ${wordBox(c, t)} ${turnBox(c, t)} ${aides(c, t)}
-    ${closeRow(c, t)} ${agenda(c, t)}
+    ${closeRow(c, t)} ${signBox(c, t)} ${agenda(c, t)}
   </div>`;
 }
 

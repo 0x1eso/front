@@ -17623,7 +17623,14 @@
         "no_diary": "아직 적은 것이 없다.",
         "private": "사사로운 것"
       },
-      "memoir_diary_year": "{year}년"
+      "memoir_diary_year": "{year}년",
+      "fate_title": "땅의 처분",
+      "fate_how": "땅마다 무엇으로 할지 정한다. 누를 때마다 바뀐다.",
+      "fate_partner_ask": "{by}이(가) {place}을(를) 요구한다. 우리도 바라던 곳이다.",
+      "fate_partner_wait": "{place}을(를) 두고 {partner}의 말을 기다린다.",
+      "fate_sign_title": "조약 서명",
+      "fate_crown": "왕관: {who}",
+      "fate_ruled": "다스리는 땅과 세운 나라"
     },
     "unknown": {
       "ai": "{country}의 원수는 {word} 인물이었다.",
@@ -19047,6 +19054,61 @@
     },
     "vassal": {
       "any": "{by}령 {of}"
+    },
+    "fate": {
+      "chip": {
+        "ally": "동맹",
+        "annex": "합병",
+        "occupy": "군정",
+        "return": "돌려줌",
+        "state": "나라",
+        "vassal": "속국"
+      },
+      "crown_empty": "왕관이 비어 있다.",
+      "do": {
+        "ally": "동맹에게 준다",
+        "annex": "합병한다",
+        "occupy": "군정으로 둔다",
+        "return": "돌려준다",
+        "state": "나라를 세운다",
+        "vassal": "속국으로 둔다"
+      },
+      "kind": {
+        "client": "세운 나라",
+        "rule": "다스리는 땅",
+        "vassal": "속국"
+      },
+      "loyalty_loyal": "믿을 만함",
+      "loyalty_turning": "등을 돌리려 함",
+      "loyalty_wavering": "흔들림",
+      "mixed": "곳마다 다름",
+      "none": "정하지 않음",
+      "policy": {
+        "annexed": "합병한 땅",
+        "army": "군정",
+        "civil": "민정",
+        "client": "현지 정부에 맡김"
+      },
+      "regency": "섭정회의",
+      "resist_0": "조용함",
+      "resist_1": "불만이 쌓임",
+      "resist_2": "저항이 거셈",
+      "resist_3": "봉기 직전",
+      "sign": {
+        "press": "한 번 더 밀어붙인다",
+        "reserve": "유보를 달고 서명한다",
+        "sign": "서명한다"
+      },
+      "signed": {
+        "press": "한 번 더 밀어붙였다.",
+        "reserve": "유보를 달고 서명했다.",
+        "sign": "조약에 서명했다."
+      },
+      "term": {
+        "long": "오래",
+        "short": "짧게"
+      },
+      "with": "{fate} ({what})"
     }
   },
   "imjin": {
