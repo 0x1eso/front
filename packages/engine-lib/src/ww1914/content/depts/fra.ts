@@ -405,11 +405,6 @@ const gauge = (g: GwGauge, delta: number): GwEffect => ({
 });
 const readiness = (tag: GwTag, delta: number): GwEffect =>
   doWorld({ do: "readiness", tag, delta });
-const headOf = (office: GwOffice, delta: number): GwEffect => ({
-  kind: "person_trust",
-  who: { office },
-  delta,
-});
 const rumour = (delta: number): GwEffect => ({ kind: "rumour", delta });
 const neutral = (tag: GwTag): GwCond => world({ is: "neutral", tag });
 const atWarWith = (tag: GwTag): GwCond => ({ kind: "at_war", tag });
