@@ -23,12 +23,9 @@ import type { GwEffect, GwOption } from "@openfront/engine-api/ww1914/SceneDsl";
 
 /**
  * What each kind of business costs from the one time pool (남은 일정). ww196:
- * giving a task is free and nothing is briefed; `brief` and `task` stay only
- * for the ww193 client until U1 drops them.
+ * giving a task is free and nothing is briefed, so neither has a price.
  */
 export const GW_TIME_PRICES = {
-  brief: 1,
-  task: 0,
   act: 1,
   ceremony: 1,
   trip: 2,

@@ -367,7 +367,7 @@ function answerBody(
         : html`<button
             class="${BTN} w-full"
             data-gw-call=${card.uid}
-            ?disabled=${!canSpend(c, "petition")}
+            ?disabled=${!canSpend(c, "call")}
             @click=${() => {
               c.send({ kind: "call", card: card.uid });
               c.ui.summoned = Date.now();
@@ -585,7 +585,7 @@ function honoursBody(
     <button
       class=${SIGN}
       data-gw-honours-hold
-      ?disabled=${!canSpend(c, "ceremony")}
+      ?disabled=${!canSpend(c, "honours")}
       @click=${() => {
         c.send({ kind: "honours", card: card.uid, give });
         c.ui.honourPick = null;
