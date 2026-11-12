@@ -116,13 +116,16 @@ export const DEU_ACTS: readonly GwAct[] = [
       },
     ],
   }),
+  // ww193: the fronts and the heir's army are trips: the ruler is away.
   visit("deu_a_west", {
+    trip: true,
     when: atWar("FRA"),
     effects: [
       doWorld({ do: "inspect", fact: "force", tag: "FRA", theatre: "west" }),
     ],
   }),
   visit("deu_a_east", {
+    trip: true,
     when: atWar("RUS"),
     effects: [
       doWorld({ do: "inspect", fact: "force", tag: "RUS", theatre: "east" }),
@@ -149,6 +152,7 @@ export const DEU_ACTS: readonly GwAct[] = [
     ],
   }),
   visit("deu_a_heir", {
+    trip: true,
     when: all(war, { kind: "person_active", person: "deu_heir" }),
     effects: [find("deu_heir_ring")],
   }),
@@ -251,35 +255,46 @@ export const DEU_ACTS: readonly GwAct[] = [
     ],
   },
 
-  // 칙령과 지시
+  // ww193 #2: kin on neutral thrones. The foreign office can draft them first
+  // (content/depts/deu.ts); the reply reads its advice.
   {
-    id: "deu_a_inquiry",
+    id: "deu_a_constantine",
     nation: ["DEU"],
-    kind: "order",
-    scene: "deu_a_inquiry_r",
+    kind: "letter",
+    when: all(war, world({ is: "neutral", tag: "GRC" })),
+    scene: "deu_a_constantine_r",
+    effects: [wrote],
     wait: 1,
+    cooldown: 4,
     fields: [
       {
         id: "subject",
-        options: [
-          {
-            id: "shells",
-            effects: [
-              doWorld({ do: "inspect", fact: "shells", tag: "DEU" }),
-              find("deu_shell_stock_thin"),
-            ],
-          },
-          { id: "bread", when: war, effects: [find("deu_food_books")] },
-          {
-            id: "tonnage",
-            when: all(war, atWar("GBR")),
-            effects: [find("deu_table_wrong")],
-          },
-          { id: "wounded", when: war },
-        ],
+        options: [{ id: "stay_out" }, { id: "family" }, { id: "the_king" }],
       },
+      tones,
     ],
   },
+  {
+    id: "deu_a_marie",
+    nation: ["DEU"],
+    kind: "letter",
+    when: all(war, world({ is: "neutral", tag: "ROU" })),
+    scene: "deu_a_marie_r",
+    effects: [wrote],
+    wait: 1,
+    cooldown: 4,
+    fields: [
+      {
+        id: "subject",
+        options: [{ id: "stay_out" }, { id: "family" }, { id: "the_house" }],
+      },
+      tones,
+    ],
+  },
+
+  // 칙령과 지시
+  // ww193: the inquiry is retired; its subjects are task rows of the war
+  // office and the interior (content/depts/deu.ts).
   {
     id: "deu_a_envoy",
     nation: ["DEU"],
@@ -441,6 +456,81 @@ export const DEU_ACTS: readonly GwAct[] = [
       { kind: "flag", flag: "f_franchise_word" },
       { kind: "inst", inst: "reichstag", delta: 1 },
       opinion("court", -1),
+    ],
+  },
+
+  // ww193 의식: ceremonies, and the privy purse (#1, #10)
+  {
+    id: "deu_a_investiture",
+    nation: ["DEU"],
+    kind: "ceremony",
+    when: war,
+    scene: "deu_a_investiture_r",
+    wait: 0,
+    cooldown: 4,
+    tell: ["opinion:+1", "reputation:+1"],
+    effects: [
+      opinion("army", 1),
+      { kind: "ruler", side: "reputation", delta: 1, key: "deu_a_cer_honours" },
+    ],
+  },
+  {
+    id: "deu_a_review",
+    nation: ["DEU"],
+    kind: "ceremony",
+    when: war,
+    scene: "deu_a_review_r",
+    wait: 0,
+    cooldown: 5,
+    tell: ["morale:+1", "opinion:+1"],
+    effects: [{ kind: "gauge", gauge: "morale", delta: 1 }, opinion("army", 1)],
+  },
+  {
+    id: "deu_a_service",
+    nation: ["DEU"],
+    kind: "ceremony",
+    when: all(war, world({ is: "war_months", min: 3 })),
+    scene: "deu_a_service_r",
+    wait: 0,
+    cooldown: 6,
+    tell: ["morale:+1", "conscience:+1"],
+    effects: [
+      { kind: "gauge", gauge: "morale", delta: 1 },
+      { kind: "ruler", side: "conscience", delta: 1, key: "deu_a_cer_service" },
+    ],
+  },
+  {
+    id: "deu_a_purse",
+    nation: ["DEU"],
+    kind: "order",
+    when: all(war, world({ is: "war_months", min: 6 })),
+    scene: "deu_a_purse_r",
+    wait: 0,
+    cooldown: 6,
+    fields: [
+      {
+        id: "where",
+        options: [
+          {
+            id: "red_cross",
+            tell: ["opinion:+1"],
+            effects: [opinion("press", 1)],
+          },
+          {
+            id: "widows",
+            tell: ["opinion:+1"],
+            effects: [opinion("workers", 1)],
+          },
+          {
+            id: "loan",
+            tell: ["opinion:+1", "money:+1"],
+            effects: [
+              opinion("business", 1),
+              { kind: "gauge", gauge: "money", delta: 1 },
+            ],
+          },
+        ],
+      },
     ],
   },
 
