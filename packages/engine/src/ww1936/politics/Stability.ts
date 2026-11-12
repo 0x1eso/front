@@ -126,7 +126,8 @@ function lines(
     out?.push({ key: "ww1936.pol.line.stab_base", bp: c.stabBaseBp });
     add("ww1936.pol.line.stab_modifiers", c.stats.stabilityBp);
     add("ww1936.pol.line.stab_party", rulingPartyBp(c.pop[c.ruling]));
-    if (c.ruling === IDEO_DEM && offensiveWar(pol, id)) {
+    // ww194: no democracy's offensive-war cost on an Imjin court.
+    if (c.ruling === IDEO_DEM && !pol.ww.imjin && offensiveWar(pol, id)) {
       add("ww1936.pol.line.stab_offensive", -1000);
     }
     add("ww1936.pol.line.stab_occupation", 0 - Math.min(2000, lostPct * 20));

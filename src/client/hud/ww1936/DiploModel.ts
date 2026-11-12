@@ -89,6 +89,7 @@ import {
   type WhitePeaceCardView,
 } from "./WhitePeaceModel";
 import { today, wwActive, wwSeconds, wwWindowTicks } from "./WorldWarModel";
+import { imjinCalendarOn } from "./WwClientCalendar";
 
 export type DiploGame = NegPeaceGame;
 
@@ -372,8 +373,11 @@ export function ultimatumGate(
   if (eg?.isExile(me) === true) return "dead";
   if (eg?.isExile(other) === true) return "bad_target";
   const ruling = rulingOf(game, me);
-  if (ruling === IDEO_DEM) return "ultimatum_gov";
+  // ww194: the Imjin courts are not 1936 governments (Ultimatum.ts).
+  const imjin = imjinCalendarOn();
+  if (!imjin && ruling === IDEO_DEM) return "ultimatum_gov";
   if (
+    !imjin &&
     IDEOLOGIES[ruling] === "neutral" &&
     wtPct(game) < WW_ULT_NEUTRAL_TENSION_PCT
   ) {

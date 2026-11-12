@@ -33,6 +33,7 @@ export function lawCtxOf(
     atWar: econ.ww.hasWar(ce.smallID),
     ppMilli: c?.ppMilli ?? 0,
     costMilli: lawCost(value, ce.stats) * 1000,
+    ...(econ.ww.imjin ? { noGovGates: true } : {}),
   };
 }
 

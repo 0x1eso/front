@@ -800,7 +800,7 @@ export class WwTopBand extends LitElement implements Controller {
    * P3 (spec §21.1): "🏛 132" with "+2.3" under it, "⚖ 62%", "⚔ 45%"
    * (orange under 50%, red under 30%) open the politics drawer's
    * government tab; "🌍 34%" at the right end opens the diplomacy drawer's
-   * world tab.
+   * world tab. ww194: no world tension in the Imjin War, so no 🌍 chip.
    */
   private renderPolitics(mode: PolMode) {
     const p = this.politics;
@@ -836,15 +836,18 @@ export class WwTopBand extends LitElement implements Controller {
                 >⚔ ${p.wsPct}%</span
               >`}
       </button>
-      <button
-        type="button"
-        data-ww-tension
-        aria-label=${p.wtLabel}
-        class="h-6 shrink-0 rounded-md border border-white/15 bg-white/5 px-2 text-xs tabular-nums hover:bg-white/10"
-        @click=${() => this.eventBus.emit(new OpenWwDiplomacyEvent("world"))}
-      >
-        🌍 ${p.wtPct}%
-      </button>`;
+      ${imjinCalendarOn()
+        ? nothing
+        : html`<button
+            type="button"
+            data-ww-tension
+            aria-label=${p.wtLabel}
+            class="h-6 shrink-0 rounded-md border border-white/15 bg-white/5 px-2 text-xs tabular-nums hover:bg-white/10"
+            @click=${() =>
+              this.eventBus.emit(new OpenWwDiplomacyEvent("world"))}
+          >
+            🌍 ${p.wtPct}%
+          </button>`}`;
   }
 
   /**

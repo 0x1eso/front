@@ -66,6 +66,7 @@ import {
   statLines,
 } from "./PoliticsModel";
 import { countryName, dateLabel, enemiesOf, today } from "./WorldWarModel";
+import { imjinCalendarOn } from "./WwClientCalendar";
 
 // ---- Congress (spec §13.1) ----
 
@@ -420,7 +421,9 @@ export class DepthMiscModel {
   /** My country's balance-of-power bar (China, Japan, France); null otherwise. */
   bopBar(tag: string): BopBar | null {
     const d = this.view.wwDepth?.() ?? null;
-    if (d === null || this.myTag() !== tag) return null;
+    // ww194: the engine runs no 1936 balance of power in the Imjin War
+    // (WwDepth); without this the bar showed Japan's army-navy start value.
+    if (d === null || this.myTag() !== tag || imjinCalendarOn()) return null;
     const i = BOP_DEFS.findIndex((b) => b.tag === tag);
     if (i < 0) return null;
     const v = d.bopData.find((x) => x[0] === i)?.[1] ?? BOP_DEFS[i].startPm;

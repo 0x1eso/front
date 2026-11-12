@@ -168,6 +168,9 @@ export function ultimatumGovBlock(
   const pol = eg.ww.politics;
   const c = pol.country(from);
   if (c === null) return "dead";
+  // ww194: the Imjin courts are not 1936 governments (no democracy's ban,
+  // no neutral's tension line).
+  if (eg.ww.imjin) return null;
   if (c.ruling === IDEO_DEM) return "ultimatum_gov";
   if (c.ruling === IDEO_NEU && pol.wtBp < WW_ULT_NEUTRAL_TENSION_PCT * 100) {
     return "ultimatum_gov";

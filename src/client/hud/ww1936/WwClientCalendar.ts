@@ -37,6 +37,17 @@ export function imjinCalendarOn(): boolean {
   return imjin;
 }
 
+let viewer: CountryTag | null = null;
+
+/** ww194: the viewer's country, whose court names the screens read by default. */
+export function setImjinViewer(tag: CountryTag | null): void {
+  viewer = tag;
+}
+
+export function imjinViewer(): CountryTag | null {
+  return viewer;
+}
+
 /** The court whose years a viewer reads: Japan's for Japan, else Joseon's. */
 export function courtOf(tag: CountryTag | null): ImjinCourt {
   if (tag === "JPN") return "japan";

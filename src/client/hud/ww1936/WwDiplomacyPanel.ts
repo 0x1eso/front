@@ -26,6 +26,7 @@ import {
 import type { WarCard, WarMemberView } from "./EndgameModel";
 import { countryBadges, endgameKey } from "./EndgameModel";
 import { countryText } from "./EndgameNames";
+import { imjinOrderRows } from "./ImjinOrderModel";
 import { linePeacePreview, linePeaceUiOf } from "./LinePeaceModel";
 import {
   negPeaceComposer,
@@ -58,6 +59,7 @@ import {
 } from "./WorldWarModel";
 import { type AidPreset, OpenWwAidEvent } from "./WwAidTab";
 import { autoMaskOf, renderAutoSwitch } from "./WwAutoUi";
+import { imjinCalendarOn } from "./WwClientCalendar";
 import {
   OpenWwDiplomacyEvent,
   WW_DIPLOMACY_TABS,
@@ -99,7 +101,29 @@ const TAB_ICONS: Readonly<Record<DiploDrawerTab, string>> = {
   world: "🌐",
 };
 
+/**
+ * ww194: the Imjin War's tabs: the investiture order in the factions' place,
+ * then wars, treaties and the world; no 1936 aid or subjects.
+ */
+const IMJIN_DRAWER_TABS: readonly DiploDrawerTab[] = [
+  "factions",
+  "wars",
+  "treaties",
+  "world",
+];
+
+function drawerTabs(): readonly DiploDrawerTab[] {
+  return imjinCalendarOn() ? IMJIN_DRAWER_TABS : DIPLO_DRAWER_TABS;
+}
+
+function tabIcon(t: DiploDrawerTab): string {
+  return imjinCalendarOn() && t === "factions" ? "🏯" : TAB_ICONS[t];
+}
+
 function tabLabel(t: DiploDrawerTab): string {
+  if (imjinCalendarOn() && t === "factions") {
+    return translateText("imjin.order.tab");
+  }
   if (t === "aid") return translateText("ww1936.aid.tab");
   if (t === "subjects") return translateText("ww1936.subject.tab");
   return translateText(`ww1936.diplo.tab.${t}`);
@@ -294,7 +318,7 @@ export class WwDiplomacyPanel extends LitElement implements Controller {
       role="tablist"
       class="flex min-w-0 flex-1 flex-wrap gap-1"
     >
-      ${DIPLO_DRAWER_TABS.map(
+      ${drawerTabs().map(
         (t) =>
           html`<button
             type="button"
@@ -312,7 +336,7 @@ export class WwDiplomacyPanel extends LitElement implements Controller {
               this.tick();
             }}
           >
-            <span aria-hidden="true">${TAB_ICONS[t]}</span>
+            <span aria-hidden="true">${tabIcon(t)}</span>
             <span class="max-w-24 truncate">${tabLabel(t)}</span>
           </button>`,
       )}
@@ -372,9 +396,13 @@ export class WwDiplomacyPanel extends LitElement implements Controller {
   }
 
   private renderTab(i: PoliticsModelInput | null): TemplateResult {
-    switch (this.tab) {
+    // ww194: an Imjin drawer opened on a hidden tab shows the order instead.
+    const tab = drawerTabs().includes(this.tab) ? this.tab : "factions";
+    switch (tab) {
       case "factions":
-        return this.renderFactions(i);
+        return imjinCalendarOn()
+          ? this.renderImjinOrder()
+          : this.renderFactions(i);
       case "wars":
         return this.renderWars(i);
       case "treaties":
@@ -507,6 +535,38 @@ export class WwDiplomacyPanel extends LitElement implements Controller {
               { kind: "faction_request", target: f.leader },
             )}
           </div>`}
+    </section>`;
+  }
+
+  /** ww194: the Imjin War's investiture order (ImjinOrderModel). */
+  private renderImjinOrder(): TemplateResult {
+    const me = this.game.myPlayer()?.smallID() ?? 0;
+    const rows = imjinOrderRows(this.game, me);
+    return html`<section data-ww-imjin-order class="mb-3">
+      <div class=${HEADING}>${translateText("imjin.order.title")}</div>
+      <p class="m-0 mb-2 text-xs text-white/70">
+        ${translateText("imjin.order.intro")}
+      </p>
+      <ul class="m-0 flex list-none flex-col gap-2 p-0">
+        ${rows.map(
+          (r) =>
+            html`<li data-ww-imjin-order-row=${r.tag} class="text-xs">
+              <div
+                class="flex items-center gap-1.5 font-semibold ${r.mine
+                  ? "text-amber-300"
+                  : ""}"
+              >
+                ${this.flag(r.tag)}<span>${r.name}</span>
+              </div>
+              <div class="text-white/80">${r.standing}</div>
+              ${r.now === null
+                ? nothing
+                : html`<div data-ww-imjin-order-now class="text-emerald-300">
+                    ${r.now}
+                  </div>`}
+            </li>`,
+        )}
+      </ul>
     </section>`;
   }
 
@@ -1099,7 +1159,7 @@ export class WwDiplomacyPanel extends LitElement implements Controller {
           })
         : null;
     return html`
-      ${w === null
+      ${w === null || imjinCalendarOn()
         ? nothing
         : html`<div class="${HEADING} flex justify-between">
               <span>${translateText("ww1936.diplo.world.tension")}</span>

@@ -221,7 +221,9 @@ export function declareWarRules(
   }
   if (join) return { block: null, noGoal: false };
   const noGoal = !pol.hasWarGoal(attacker, target);
-  if (noGoal && pol.country(attacker)?.ruling === IDEO_DEM) {
+  // ww194: an Imjin court is not a 1936 democracy; it may go to war
+  // without a goal (and pays the no-goal costs like anyone else).
+  if (noGoal && !pol.ww.imjin && pol.country(attacker)?.ruling === IDEO_DEM) {
     return { block: "democracy_no_goal", noGoal };
   }
   return { block: null, noGoal };

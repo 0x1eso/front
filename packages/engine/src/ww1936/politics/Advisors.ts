@@ -98,6 +98,9 @@ export function candidatesFor(
       out.push(p.id);
     }
   }
+  // ww194: the Imjin War seats only its own people; the generic 1936 title
+  // cards (union organizer, carrier admiral, tank designer…) are not offered.
+  if (pol.ww.imjin) return out;
   for (const t of pol.content.traits) {
     const a = `title:${t.id}`;
     if (!t.generic || c.advisors.includes(a)) continue;
@@ -130,6 +133,7 @@ function hireable(
 ): boolean {
   if (a.startsWith("title:")) {
     return (
+      !pol.ww.imjin &&
       pol.content.traitIdx.get(a.slice(6) as TraitId)?.generic === true &&
       advisorFitsIdeology(pol, c, a, c.ruling)
     );
