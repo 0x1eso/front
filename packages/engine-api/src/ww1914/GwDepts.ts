@@ -302,7 +302,8 @@ export type GwTaskRow = z.infer<typeof GwTaskRowSchema>;
  * The option a department marks (design §4.3 camp). The first row that fits
  * the seat, the office and the head's camps wins; a row with no `camp` fits
  * any head. `picks`: scene id -> option id, over the lean, for papers where
- * the writer knows the department's line.
+ * the writer knows the department's line; or answer row id -> course id, the
+ * department's own course on that answer (ww196).
  */
 export const GwDeptLeanSchema = z
   .object({
@@ -781,8 +782,17 @@ export function gwDeptProblems(
       }
     }
   }
+  const answerRows = new Map((c.answers ?? []).map((a) => [a.id, a]));
   for (const l of c.leans ?? []) {
     for (const [scene, opt] of Object.entries(l.picks ?? {})) {
+      // ww196: a pick may name an answer row and the department's own course.
+      const a = answerRows.get(scene);
+      if (a !== undefined) {
+        if (!a.courses.some((x) => x.id === opt)) {
+          out.push(`lean ${l.office}: ${scene} has no course ${opt}`);
+        }
+        continue;
+      }
       const s = scenes.get(scene);
       if (s === undefined) out.push(`lean ${l.office}: no scene ${scene}`);
       else if (!(s.options ?? []).some((o) => o.id === opt)) {

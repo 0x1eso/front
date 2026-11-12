@@ -180,6 +180,21 @@ describe("content", () => {
     const scenes = new Map(GW_CONTENT.scenes.map((s) => [s.id, s]));
     const depts = GW_CONTENT.depts ?? {};
     expect(gwDeptProblems(depts, scenes)).toEqual([]);
+    // ww196: a lean may name an answer row's course as the department's own.
+    const row = (depts.answers ?? [])[0];
+    const lean = (pick: string) => ({
+      ...depts,
+      leans: [
+        {
+          nation: row.nation,
+          office: "foreign" as const,
+          lean: "wait" as const,
+          picks: { [row.id]: pick },
+        },
+      ],
+    });
+    expect(gwDeptProblems(lean(row.courses[0].id), scenes)).toEqual([]);
+    expect(gwDeptProblems(lean("no_such_course"), scenes)).toHaveLength(1);
     for (const tag of SEATS) {
       const pack = await loadGwPack(tag, async (p) => json(p));
       const own = {

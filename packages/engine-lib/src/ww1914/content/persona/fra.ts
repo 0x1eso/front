@@ -23,7 +23,7 @@ import { flag, not } from "@openfront/engine-api/ww1914/SceneDsl";
 import { world } from "@openfront/engine-api/ww1914/WorldDsl";
 
 const NATION: GwRulerPlace["nation"] = ["FRA"];
-const RULER = "fra_poincare";
+const RULER = "poincare";
 
 const war = world({ is: "war" });
 const tiger = flag("f_pm_clemenceau");

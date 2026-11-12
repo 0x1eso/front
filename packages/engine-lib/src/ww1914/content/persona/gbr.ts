@@ -9,7 +9,7 @@
 // from 9 Dec 1916; the letters to Venetia Stanley ran to 12 May 1915, then
 // to her sister Sylvia Henley; until Dec 1916 the PM's letter to the King
 // after each cabinet was its only record. BEF GHQ: Saint-Omer, then
-// Montreuil from spring 1916 [K]. Dates are New Style.
+// Montreuil from 30 Mar 1916 (checked). Dates are New Style.
 import type {
   GwBearer,
   GwDiaryMoment,
@@ -43,13 +43,17 @@ const PLACES: GwRulerPlace[] = [
   // Asquith's weekends at the Wharf, Sutton Courtenay, in a quiet summer.
   place("wharf", { ruler: ASQUITH, when: all(peace, month(8, 9)) }),
   place("cabinet_room", { ruler: ASQUITH, when: war }),
-  // Walmer Castle, lent to him in the war's first summers [K].
-  place("walmer", { ruler: ASQUITH, when: all(war, month(7, 8)) }),
+  // Walmer Castle, his wartime weekend house: weekends there are on record in
+  // Mar 1915 and Feb 1916 (checked), so a spring and a summer month stand in.
+  place("walmer", { ruler: ASQUITH, when: all(war, month(3, 8)) }),
   place("war_cabinet", { ruler: LG, when: war }),
-  place("walton", { ruler: LG, when: month(8) }),
+  // The Walton Heath house Riddell built him in 1913; wartime weekends there
+  // (he heard the Messines mines from it in June 1917).
+  place("walton", { ruler: LG, when: month(6, 8) }),
   // The trips: GHQ in France, Dublin.
-  place("st_omer", { act: "gbr_a_gq", until: "1916-03-31" }),
-  place("montreuil", { act: "gbr_a_gq", from: "1916-04-01" }),
+  // GHQ moved from St Omer to Montreuil on 30 Mar 1916 (checked).
+  place("st_omer", { act: "gbr_a_gq", until: "1916-03-30" }),
+  place("montreuil", { act: "gbr_a_gq", from: "1916-03-30" }),
   place("dublin", { act: "gbr_a_dublin" }),
 ];
 
@@ -68,14 +72,15 @@ const BEARERS: GwBearer[] = [
   bearer("stamfordham", { person: "gbr_stamfordham", offices: ["court"] }),
   // The honours lists and petitions, by the Patronage Secretary.
   bearer("whip", { forms: ["honours", "petition"] }),
-  // Lloyd George's garden suburb: Kerr on the foreign papers.
-  bearer("kerr", { ruler: LG, tags: ["foreign"] }),
+  // Lloyd George's garden suburb, from Jan 1917: Kerr on the foreign papers.
+  bearer("kerr", { ruler: LG, tags: ["foreign"], from: "1917-01-01" }),
   // The war's papers: Hankey, the War Council's secretary, then the War
   // Cabinet's.
   bearer("hankey", { person: "gbr_hankey", tags: ["war"], from: "1914-11-25" }),
   // The Foreign Office's red boxes.
   bearer("box", { tags: ["foreign"] }),
-  // Everything else: the private secretary.
+  // Everything else: the private secretary (J. T. Davies was Lloyd George's
+  // from 1912 to 1922, checked).
   bearer("bonham_carter", { ruler: ASQUITH }),
   bearer("davies", { ruler: LG }),
 ];

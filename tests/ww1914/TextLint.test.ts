@@ -150,14 +150,15 @@ const readAllow = (group: string): string[] => {
 // RUS, AUH), 대통령 각하 (FRA), 총리 (GBR). A seat's department and persona
 // words never use another seat's form; the shared (common) words use none.
 // A form after a title or a slot speaks of someone else ("황후 폐하", "재상
-// 각하", "{ruler} 폐하") and passes. The diary is his own hand (Asquith writes
+// 각하", "{ruler} 폐하") and passes, and so does a form in quotes, which names
+// the title rather than speaking to anyone ("'각하'로 불리게 된다"). The diary is his own hand (Asquith writes
 // to the King) and `address` is the forms themselves: both are left out.
 const ADDRESS: Readonly<Record<string, RegExp>> = {
   majesty:
-    /(?<![가-힣])(?<!(?:황제|황후|황태자|국왕|여왕|왕|차르|카이저|술탄|교황|대공|}) ?)폐하/,
+    /(?<![가-힣'‘])(?<!(?:황제|황후|황태자|국왕|여왕|왕|차르|카이저|술탄|교황|대공|}) ?)폐하/,
   president:
-    /(?<![가-힣])(?<!(?:재상|장관|대신|대사|공사|백작|공작|후작|남작|원수|장군|총독|}) ?)각하/,
-  premier: /(?<![가-힣])총리님/,
+    /(?<![가-힣'‘])(?<!(?:재상|장관|대신|대사|공사|백작|공작|후작|남작|원수|장군|총독|}) ?)각하/,
+  premier: /(?<![가-힣'‘])총리님/,
 };
 const SEAT_ADDRESS: Readonly<Record<string, string>> = {
   DEU: "majesty",

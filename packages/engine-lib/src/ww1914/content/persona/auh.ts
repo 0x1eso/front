@@ -5,15 +5,16 @@
 // Facts (ww196-facts.md, AUH): Franz Joseph works at Schönbrunn, rising
 // before dawn; he was at Bad Ischl in July 1914 and back on 30 Jul. Karl's
 // court: Schönbrunn to 15 Mar 1917, Laxenburg (Blauer Hof) to early Feb 1918,
-// the Kaiserhaus at Baden 6 Feb-1 Jul 1918, Eckartsau, Vienna from 27 Oct
-// 1918; Wartholz in summer (the Maria Theresa ceremonies of 17 Aug 1917 and
-// 1918). The AOK sat at Teschen, then at Baden from Jan 1917. Bearers:
+// the Kaiserhaus at Baden 6 Feb-1 Jul 1918, Wartholz in summer (the Maria
+// Theresa ceremony of 17 Aug 1917; the official seat 27 Jul-22 Oct 1918),
+// Schönbrunn again, Eckartsau from 12 Nov 1918 (checked on the web). The AOK sat at Teschen, then at Baden from Jan 1917. Bearers:
 // Ketterl the valet (to Franz Joseph's death), Bolfras of the military
 // chancellery, Paar the adjutant-general, Schießl of the cabinet chancellery
 // (to Feb 1917); for Karl, Polzer-Hoditz (cabinet chief 7 Feb 1917, on leave
-// from 25 Nov 1917), Seidler (from 25 Jul 1918), Prince Lobkowicz
+// from 25 Nov 1917), Seidler (the last cabinet director, after he left the premiership on 25
+// Jul 1918, checked), Prince Lobkowicz
 // (adjutant-general), and Zita. Franz Ferdinand, if he reigns: Bardolff of
-// his military chancellery. Diary forms: Franz Joseph's desk note, now and
+// his military chancellery 1911-14 (checked). Diary forms: Franz Joseph's desk note, now and
 // then a short letter to Katharina Schratt; Karl's note written on the court
 // train (no diary of his survives). Rulers are GW_RULERS ids.
 import type {
@@ -57,22 +58,20 @@ const PLACES: GwRulerPlace[] = [
   place("auh_pl_baden", {
     ruler: KARL,
     from: "1918-02-06",
-    until: "1918-06-30",
+    until: "1918-07-01",
   }),
-  place("auh_pl_eckartsau", {
-    ruler: KARL,
-    from: "1918-07-01",
-    until: "1918-10-26",
-  }),
+  // Eckartsau only after the end, from 12 Nov 1918.
+  place("auh_pl_eckartsau", { ruler: KARL, from: "1918-11-12" }),
   place("auh_pl_wartholz_17", {
     ruler: KARL,
     from: "1917-08-10",
     until: "1917-08-25",
   }),
+  // Wartholz was the summer seat in 1918, officially 27 Jul-22 Oct (checked).
   place("auh_pl_wartholz_18", {
     ruler: KARL,
-    from: "1918-08-10",
-    until: "1918-08-25",
+    from: "1918-07-01",
+    until: "1918-10-23",
   }),
   // Trips (acts/auh.ts): the place while the trip runs.
   place("auh_pl_trip_teschen", { act: "auh_a_hq", until: "1916-12-31" }),
@@ -114,7 +113,7 @@ const BEARERS: GwBearer[] = [
   bearer("auh_br_cabinet", {
     ruler: KARL,
     from: "1917-11-25",
-    until: "1918-07-24",
+    until: "1918-07-25",
   }),
   bearer("auh_br_seidler", { ruler: KARL, from: "1918-07-25" }),
   bearer("auh_br_bardolff", { ruler: FF }),

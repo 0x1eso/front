@@ -5,6 +5,7 @@ import {
   GW_CONTENT,
   useGwContent,
 } from "@openfront/engine-lib/ww1914/content/Content";
+import { GW_RULERS } from "@openfront/engine-lib/ww1914/RulerRows";
 import { daysFromCivil } from "@openfront/engine-lib/ww1936/Calendar";
 import { makeCard, placeCard } from "@openfront/engine/ww1914/Desk";
 import { personaStep } from "@openfront/engine/ww1914/Diary";
@@ -207,5 +208,23 @@ describe("the person (ww196 §0)", () => {
     gw.s.chapter++;
     personaStep(gw);
     expect(st.persona?.diary.slice(-1)[0]?.row).toBe("t_d_filler");
+  });
+
+  test("persona rows name the ruler by his RulerRows id (ww196 merge)", () => {
+    const p = GW_CONTENT.persona;
+    const rows = [
+      ...(p?.places ?? []),
+      ...(p?.bearers ?? []),
+      ...(p?.grain ?? []),
+      ...(p?.diary ?? []),
+    ];
+    const bad = rows.flatMap((r) =>
+      r.ruler === undefined ||
+      r.nation.some((t) => (GW_RULERS[t] ?? []).some((x) => x.id === r.ruler))
+        ? []
+        : [`${r.id} ${r.ruler}`],
+    );
+    expect(rows.length).toBeGreaterThan(0);
+    expect(bad).toEqual([]);
   });
 });
