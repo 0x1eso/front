@@ -17322,6 +17322,8 @@
         },
         "wait": "당신을 기다리는 일: {what}.",
         "wait_decide": "정할 서류 {n}장",
+        "wait_dept": "부서에 올라온 보고 {n}건",
+        "wait_room": "접견실에 {n}명",
         "wait_read": "읽을 서류 {n}장",
         "wait_talk": "만날 사람 {n}명",
         "wait_none": "기다리는 서류도 손님도 없다."

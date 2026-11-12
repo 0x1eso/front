@@ -128,6 +128,10 @@ export type GwDeptLean = z.infer<typeof GwDeptLeanSchema>;
  * `against`'s head when the two heads are rivals, feuding or in opposing camps.
  * `tags`: only papers with one of these tags. `cost`: only papers that spend
  * money, and then `against` absent means any office.
+ * ww193 merge: `papers` names the papers the row is about; on those the two
+ * heads need not be at odds, since the paper is the quarrel. `counter` is the
+ * counter-paper `against` brings (a dispute casting both offices); without it
+ * the first such dispute that holds comes, or his option is marked.
  */
 export const GwDeptRivalSchema = z
   .object({
@@ -135,6 +139,8 @@ export const GwDeptRivalSchema = z
     against: z.array(z.enum(GW_OFFICES)).min(1).optional(),
     tags: z.array(z.enum(GW_SCENE_TAGS)).min(1).optional(),
     cost: z.boolean().optional(),
+    papers: z.array(GwIdSchema).min(1).optional(),
+    counter: GwIdSchema.optional(),
   })
   .strict();
 export type GwDeptRival = z.infer<typeof GwDeptRivalSchema>;
@@ -387,7 +393,35 @@ export function gwDeptProblems(
       out.push(`lever ${v.id}: no scene ${v.scene}`);
     }
   }
+  // ww193 merge: a rival row's named papers and its counter-paper.
+  for (const r of c.rivals ?? []) {
+    for (const id of r.papers ?? []) {
+      if (!scenes.has(id)) out.push(`rival ${r.office}: no scene ${id}`);
+    }
+    if (r.counter === undefined) continue;
+    const x = scenes.get(r.counter);
+    if (x === undefined) out.push(`rival ${r.office}: no scene ${r.counter}`);
+    else if (x.kind !== "dispute") {
+      out.push(`rival ${r.office}: ${r.counter} is no dispute`);
+    }
+  }
   return out;
+}
+
+/**
+ * ww193 merge: scenes the departments bring (task products, fallbacks and
+ * counter-papers): called by the engine, so a `scheduledOnly` one is reached.
+ */
+export function gwDeptCalled(c: GwDeptContent): string[] {
+  return [
+    ...(c.tasks ?? []).flatMap((t) => [
+      ...t.products,
+      t.fallback ?? `gw_dept_${t.kind}`,
+    ]),
+    ...(c.rivals ?? []).flatMap((r) =>
+      r.counter === undefined ? [] : [r.counter],
+    ),
+  ];
 }
 
 /** What the pack lacks for the rows; a content test requires an empty list. */

@@ -60,6 +60,7 @@ import {
   GW_TRIP_BRIEFERS,
   leanPick,
   leanRow,
+  productFitsTopic,
   spendsMoney,
   taskChapters,
   taskRow,
@@ -73,8 +74,11 @@ import {
   inStage,
   makeCard,
   repeatable,
+  repeatCap,
+  timesDealt,
 } from "./Desk";
 import type { GreatWar } from "./GreatWar";
+import { lawDraftCard, lawDropDraft } from "./Laws";
 import { openTopics } from "./Orders";
 import { moveRumour } from "./Press";
 import {
@@ -229,9 +233,10 @@ function rivalOf(
   head: GwPersonState,
   scene: GwScene,
   open: readonly GwOption[],
-): { office: GwOffice; head: GwPersonState } | null {
+): { office: GwOffice; head: GwPersonState; counter: string | null } | null {
   for (const r of gwContent().depts?.rivals ?? []) {
     if (r.office !== office) continue;
+    if (r.papers !== undefined && !r.papers.includes(scene.id)) continue;
     if (r.tags !== undefined && !r.tags.some((t) => scene.tags.includes(t))) {
       continue;
     }
@@ -241,7 +246,10 @@ function rivalOf(
       if (o2 === office) continue;
       const h2 = deptHead(gw, seat, o2);
       if (h2 === null || h2.id === head.id) continue;
-      if (opposed(gw, head, h2)) return { office: o2, head: h2 };
+      // A row about named papers needs no feud: the paper is the quarrel.
+      if (r.papers !== undefined || opposed(gw, head, h2)) {
+        return { office: o2, head: h2, counter: r.counter ?? null };
+      }
     }
   }
   return null;
@@ -257,9 +265,18 @@ function disputeFor(
   seat: GwSeatState,
   a: GwOffice,
   b: GwOffice,
+  counter: string | null,
 ): GwScene | null {
-  for (const x of gwContent().scenes) {
+  const named = counter === null ? null : sceneOf(counter);
+  // A row's own counter-paper answers only its papers.
+  const owned = new Set(
+    (gwContent().depts?.rivals ?? []).flatMap((r) =>
+      r.counter === undefined ? [] : [r.counter],
+    ),
+  );
+  for (const x of named === null ? gwContent().scenes : [named]) {
     if (x.kind !== "dispute" || !x.nation.includes(seat.tag)) continue;
+    if (named === null && owned.has(x.id)) continue;
     const offices = Object.values(x.cast).flatMap((r) =>
       ("any_of" in r ? r.any_of : [r]).flatMap((q) =>
         "office" in q && !("tag" in q) ? [q.office] : [],
@@ -325,7 +342,7 @@ function mark(
   };
   const out = [card];
   if (rival === null) return out;
-  const x = disputeFor(gw, seat, office, rival.office);
+  const x = disputeFor(gw, seat, office, rival.office, rival.counter);
   const c = x === null ? null : makeCard(gw, seat, x, "summon");
   if (x === null || c === null) return out;
   const xctx: SceneCtx = { gw, seat, cast: c.cast, card: c };
@@ -365,7 +382,45 @@ function file(gw: GreatWar, seat: GwSeatState, cards: readonly GwCard[]): void {
 
 // ---- Commissioned work ----
 
-/** The first of the task's papers that holds now; else its fallback. */
+const GW_CALLED_ONLY = "gw_world_called_only";
+
+/** A paper only its own system calls (`gw_world_called_only`). */
+function calledOnly(x: GwScene): boolean {
+  return (
+    x.when !== undefined &&
+    x.when.kind === "flag" &&
+    x.when.flag === GW_CALLED_ONLY
+  );
+}
+
+/**
+ * ww193 merge: a called-only product comes only when its system has called
+ * it: the department brings it early, off the schedule. Never the crisis's,
+ * a must-read or an act's.
+ */
+function fromSchedule(
+  gw: GreatWar,
+  seat: GwSeatState,
+  x: GwScene,
+  head: GwPersonState,
+): GwCard | null {
+  if (x.essential === true || x.kind === "crisis") return null;
+  if (x.salience >= GW_SALIENCE_MUST) return null;
+  const i = seat.scheduled.findIndex(
+    (q) => q.scene === x.id && (q.act ?? null) === null,
+  );
+  if (i < 0) return null;
+  const q = seat.scheduled[i];
+  const card = makeCard(gw, seat, x, "summon", q.who ?? head.id, null, q.back);
+  if (card !== null) seat.scheduled.splice(i, 1);
+  return card;
+}
+
+/**
+ * The first of the task's papers that holds now; else its fallback. A law's
+ * draft (`gw_law_<id>`) is laid as the country tab's order would (ww193
+ * merge), a picked topic narrows the list, and the desk's repeat cap holds.
+ */
 function product(
   gw: GreatWar,
   seat: GwSeatState,
@@ -374,10 +429,16 @@ function product(
 ): GwCard | null {
   const row = t.row === null ? null : taskRow(gwContent().depts, t.row);
   const fixed = t.scene !== null;
+  const topics = row === null ? [] : topicsOf(gw, seat, row);
   const list =
     t.scene !== null
       ? [t.scene]
-      : [...(row?.products ?? []), row?.fallback ?? `gw_dept_${row?.kind}`];
+      : [
+          ...(row?.products ?? []).filter((id) =>
+            productFitsTopic(id, t.topic, topics),
+          ),
+          row?.fallback ?? `gw_dept_${row?.kind}`,
+        ];
   for (const [i, id] of list.entries()) {
     const x = sceneOf(id);
     if (x === null || x.kind === "talk" || !x.nation.includes(seat.tag)) {
@@ -386,11 +447,31 @@ function product(
     // The fallback and a paper passed on or sent back come whatever holds.
     const sure = fixed || i === list.length - 1;
     if (!sure && (!inStage(gw, x) || !repeatable(gw, seat, x))) continue;
+    if (!sure && timesDealt(seat, id) >= repeatCap(x)) continue;
     if (inTray(seat, id) || seat.desk.some((c) => c.scene === id)) continue;
+    if (!sure && id.startsWith("gw_law_")) {
+      const draft = lawDraftCard(gw, seat, id.slice("gw_law_".length), head.id);
+      if (draft !== null) return draft;
+      continue;
+    }
+    if (!sure && calledOnly(x)) {
+      const called = fromSchedule(gw, seat, x, head);
+      if (called !== null) return called;
+      continue;
+    }
     const cast = castOf(gw, seat, x, head.id);
     if (cast === null) continue;
-    if (!sure && !sceneHolds({ gw, seat, cast }, x)) continue;
-    const card = makeCard(gw, seat, x, "summon", head.id, null, t.back ?? null);
+    if (!sure && !sceneHolds({ gw, seat, cast, topic: t.topic }, x)) continue;
+    const card = makeCard(
+      gw,
+      seat,
+      x,
+      "summon",
+      head.id,
+      null,
+      t.back ?? null,
+      t.topic,
+    );
     if (card !== null) return card;
   }
   return null;
@@ -828,6 +909,8 @@ export function shelvePaper(
   const card = deskDept(seat, uid);
   if (card === null) return "no_card";
   removeCard(seat, uid);
+  // ww193 merge: a bill's draft set aside leaves the bill idle again.
+  lawDropDraft(gw, seat, card.scene);
   writePast(gw, seat, card, "shelve");
   reasonOf(gw, seat, "dept_shelved", dept(card).by);
   return null;

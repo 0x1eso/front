@@ -144,35 +144,6 @@
         }
       }
     },
-    "gbr_a_o_inquiry": {
-      "name": "조사 지시",
-      "note": "내각 서기실에 사실 조사를 시킨다.",
-      "fields": {
-        "subject": {
-          "label": "무엇을 조사하나",
-          "opt": {
-            "rifles": "아일랜드의 소총",
-            "shells": "포탄 납품",
-            "bread": "곡물 재고",
-            "recruits": "병력 숫자"
-          }
-        }
-      }
-    },
-    "gbr_a_o_commission": {
-      "name": "조사 위원회",
-      "note": "실패한 작전을 조사할 위원회를 세운다.",
-      "fields": {
-        "subject": {
-          "label": "무엇을 조사하나",
-          "opt": {
-            "shells": "포탄 사태",
-            "straits": "해협 작전",
-            "kut": "메소포타미아 원정"
-          }
-        }
-      }
-    },
     "gbr_a_o_cid": {
       "name": "제국 방위 위원회",
       "note": "방위 위원회를 불러 안건을 올린다.",

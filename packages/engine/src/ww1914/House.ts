@@ -6,6 +6,7 @@
 // round the house where the constitution allows. A bill without a row runs as
 // before (Laws.ts). Plots, files and asks are the S2 files'.
 import type {
+  GwCard,
   GwNationState,
   GwSeatState,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
@@ -994,6 +995,7 @@ export function houseDraft(
   seat: GwSeatState,
   st: GwLawState,
   sponsor: string | null,
+  place: (card: GwCard) => void = (card) => placeCard(gw, seat, card),
 ): boolean {
   if (billRow(seat, st.id) === null) return false;
   const scene = sceneOf(houseIds.draft(st.id));
@@ -1001,7 +1003,7 @@ export function houseDraft(
     scene === null ? null : makeCard(gw, seat, scene, "scheduled", sponsor);
   if (card === null) return false;
   st.sponsor = card.cast.who ?? null;
-  placeCard(gw, seat, card);
+  place(card);
   return true;
 }
 
@@ -1116,9 +1118,12 @@ function canStart(gw: GreatWar, seat: GwSeatState, row: GwFactionRow): boolean {
 
 /** Papers that closed unanswered: a draft takes its first text, an ask lies. */
 function unanswered(gw: GreatWar, seat: GwSeatState): void {
+  // ww193 merge: a draft a department holds (tray or work) is not closed.
   const there = (scene: string) =>
     seat.desk.some((c) => c.scene === scene) ||
-    seat.scheduled.some((q) => q.scene === scene);
+    seat.scheduled.some((q) => q.scene === scene) ||
+    (seat.depts?.tray ?? []).some((c) => c.scene === scene) ||
+    (seat.depts?.tasks ?? []).some((t) => t.scene === scene);
   const m = movingBill(gw, seat);
   if (m !== null && m.st.stage === "draft" && !there(houseIds.draft(m.st.id))) {
     m.st.text = m.row.draft[0].id;

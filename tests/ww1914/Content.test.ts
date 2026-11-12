@@ -8,6 +8,7 @@ import {
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { GW_TAGS, gwCountry } from "@openfront/engine-api/ww1914/GwCountries";
 import {
+  gwDeptCalled,
   gwDeptPackProblems,
   gwDeptProblems,
 } from "@openfront/engine-api/ww1914/GwDepts";
@@ -139,6 +140,8 @@ describe("content", () => {
       ...GW_OFFENSIVE_CALLED,
       // ww190: laid by Aftermath.ts (ratification, playing on) and PeaceYears.ts.
       ...GW_AFTER_CALLED,
+      // ww193 merge: brought by the departments (products, counter-papers).
+      ...gwDeptCalled(GW_CONTENT.depts ?? {}),
     ];
     // ww190: the engine lays these; the deal never draws them.
     for (const s of scenes.filter((x) => GW_AFTER_CALLED.includes(x.id))) {

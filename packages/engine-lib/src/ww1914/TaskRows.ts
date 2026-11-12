@@ -172,6 +172,23 @@ export function taskRow(c: GwDeptContent | undefined, id: string) {
   return (c?.tasks ?? []).find((t) => t.id === id) ?? null;
 }
 
+/**
+ * ww193 merge: a picked topic (a country, a front) narrows a row's products.
+ * A paper whose id names another of the row's topics, as a whole `_` part
+ * ("deu_dept_kin_grc" for GRC), is not this topic's; papers that name none
+ * stay. So one row can list every country's papers.
+ */
+export function productFitsTopic(
+  id: string,
+  topic: string | null,
+  topics: readonly string[],
+): boolean {
+  if (topic === null || topics.length < 2) return true;
+  const parts = id.toLowerCase().split("_");
+  if (parts.includes(topic.toLowerCase())) return true;
+  return !topics.some((t) => parts.includes(t.toLowerCase()));
+}
+
 /** Rows for this seat and office, in content order. */
 export function taskRowsFor(
   c: GwDeptContent | undefined,

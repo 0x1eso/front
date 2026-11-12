@@ -79,6 +79,28 @@ export const COMMON_DEPTS: GwDeptContent = {
   // Design §4.8: whose head comes with a counter-paper. Several rows may name
   // one office: each row is its own pairing, with its own tags.
   rivals: [
+    // ww193 merge: rows about named papers come first; on those the heads
+    // need not be at odds. DEU #3: the general staff answers the plan to
+    // dissolve the Prussian house with its own paper.
+    {
+      office: "chancellor",
+      against: ["chief_of_staff"],
+      papers: ["deu_dept_landtag"],
+      counter: "deu_dept_landtag_ohl",
+    },
+    {
+      office: "interior",
+      against: ["chief_of_staff"],
+      papers: ["deu_dept_landtag"],
+      counter: "deu_dept_landtag_ohl",
+    },
+    // GBR #4: the intelligence head's line on Casement (the diaries) is
+    // marked beside the Home Office's.
+    {
+      office: "interior",
+      against: ["intelligence"],
+      papers: ["gbr_dept_casement"],
+    },
     // The diplomats against the soldiers, both ways.
     { office: "foreign", against: ["chief_of_staff", "supreme_commander"] },
     { office: "chief_of_staff", against: ["foreign"] },

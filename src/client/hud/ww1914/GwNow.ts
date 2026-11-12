@@ -68,7 +68,13 @@ export function nowLines(data: GreatWarData, seat: GwSeatView): GwNowLine[] {
   const decide = papers.filter((p) => !isReadOnly(p)).length;
   const read = papers.length - decide;
   const talks = talkCards(seat).length;
-  if (decide + read + talks === 0) {
+  // ww193: the audience room and the departments' trays wait too.
+  const room = (seat.room ?? []).length;
+  const trays = (seat.depts ?? []).reduce(
+    (n, d) => n + d.ready + d.initiatives,
+    0,
+  );
+  if (decide + read + talks + room + trays === 0) {
     out.push({ key: "gw.ui.now.wait_none", params: {} });
   } else {
     const parts: string[] = [];
@@ -77,6 +83,10 @@ export function nowLines(data: GreatWarData, seat: GwSeatView): GwNowLine[] {
     if (read > 0) parts.push(translateText("gw.ui.now.wait_read", { n: read }));
     if (talks > 0)
       parts.push(translateText("gw.ui.now.wait_talk", { n: talks }));
+    if (room > 0) parts.push(translateText("gw.ui.now.wait_room", { n: room }));
+    if (trays > 0) {
+      parts.push(translateText("gw.ui.now.wait_dept", { n: trays }));
+    }
     out.push({ key: "gw.ui.now.wait", params: { what: parts.join(", ") } });
   }
   return out;

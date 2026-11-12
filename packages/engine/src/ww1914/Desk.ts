@@ -188,10 +188,11 @@ export function makeCard(
   called: string | null = null,
   act: number | null = null,
   back: GwBack | null = null,
+  topic: string | null = null,
 ): GwCard | null {
   const cast = castOf(gw, seat, scene, called, act);
   if (cast === null) return null;
-  const ctx: SceneCtx = { gw, seat, cast, act, back };
+  const ctx: SceneCtx = { gw, seat, cast, act, back, topic };
   const uid = gw.s.nextCard++;
   const salt = idHash(scene.id);
   const voice: Record<string, string> = {};

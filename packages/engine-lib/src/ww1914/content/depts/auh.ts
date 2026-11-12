@@ -541,7 +541,12 @@ const TASKS: GwTaskRow[] = [
     "war",
     "bill",
     2,
-    ["auh_h_factory_law", "auh_hf_women_2", "auh_h_language_order"],
+    [
+      "gw_law_auh_factories",
+      "auh_h_factory_law",
+      "auh_hf_women_2",
+      "auh_h_language_order",
+    ],
     { topic: "factories", when: inWar },
   ),
   // #6, the war ministry's half

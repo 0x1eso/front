@@ -8,6 +8,7 @@
 import {
   GW_INST_MAX,
   GW_INST_MIN,
+  GwCard,
   GwInstitution,
   GwNationState,
   GwSeatState,
@@ -20,6 +21,7 @@ import type {
 import type { GwOrderBlock } from "@openfront/engine-api/ww1914/GwOrders";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
 import { GW_LAWS } from "@openfront/engine-lib/ww1914/content/scenes/laws";
+import { houseIds } from "@openfront/engine-lib/ww1914/HouseRows";
 import type { GwLawBody, GwLawRow } from "@openfront/engine-lib/ww1914/LawRows";
 import { authorityRow, holdVote, voteCount } from "./Authority";
 import { makeCard, placeCard } from "./Desk";
@@ -359,6 +361,7 @@ function takeUp(
   n: GwNationState,
   row: GwLawRow,
   sponsor: string | null,
+  place: (card: GwCard) => void = (card) => placeCard(gw, seat, card),
 ): GwOrderBlock | null {
   if (row.tag !== seat.tag || !openNow(gw, seat, row)) return "no_law";
   const had = lawStage(n, row.id);
@@ -372,7 +375,7 @@ function takeUp(
     st.text = null;
     st.how = "none";
     toStage(gw, st, "draft");
-    if (houseDraft(gw, seat, st, sponsor)) return null;
+    if (houseDraft(gw, seat, st, sponsor, place)) return null;
     Object.assign(st, was);
     return "no_law";
   }
@@ -384,8 +387,50 @@ function takeUp(
   st.text = null;
   st.how = "none";
   toStage(gw, st, "draft");
-  placeCard(gw, seat, card);
+  place(card);
   return null;
+}
+
+/**
+ * ww193 merge: a department's bill task lays the law's draft as the country
+ * tab's order would, into the head's tray instead of onto the desk: the
+ * draft's card, or null when the law can't be taken up now.
+ */
+export function lawDraftCard(
+  gw: GreatWar,
+  seat: GwSeatState,
+  id: string,
+  sponsor: string | null,
+): GwCard | null {
+  const n = gw.nation(seat.tag);
+  const row = rowOf(id);
+  if (n === null || row === null || row.tag !== seat.tag) return null;
+  let card: GwCard | null = null;
+  const block = takeUp(gw, seat, n, row, sponsor, (c) => (card = c));
+  return block === null ? card : null;
+}
+
+/** The law whose draft `scene` is: `gw_law_<id>` or the house's draft. */
+export function lawOfDraft(scene: string): string | null {
+  if (scene.startsWith("gw_law_")) return scene.slice("gw_law_".length);
+  const row = GW_LAWS.find((r) => houseIds.draft(r.id) === scene);
+  return row?.id ?? null;
+}
+
+/** ww193 merge: a draft set aside unread (shelved): the bill goes back idle. */
+export function lawDropDraft(
+  gw: GreatWar,
+  seat: GwSeatState,
+  scene: string,
+): void {
+  const id = lawOfDraft(scene);
+  const n = gw.nation(seat.tag);
+  const st = id === null || n === null ? null : lawStage(n, id);
+  if (st?.stage !== "draft") return;
+  toStage(gw, st, "idle");
+  st.support = 0;
+  st.text = null;
+  resetHouse(st);
 }
 
 function repeal(

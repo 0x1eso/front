@@ -613,6 +613,47 @@ export const DEU_POWERS: readonly GwPowerRow[] = [
     effects: [],
     scene: "deu_pw_franchise_r",
   },
+  // ww193 #3: the Prussian house gutted the bill; the chancellery's plan
+  // (deu_dept_landtag) opens the crown's right to dissolve it. The new house
+  // is elected by the same three classes, so it may come back the same.
+  {
+    id: "deu_pw_landtag",
+    tag: "DEU",
+    group: "house",
+    kind: "lawful",
+    shows: world({
+      is: "law",
+      id: "deu_three_class",
+      of: ["persuade", "vote"],
+      text: "plural_vote",
+    }),
+    opens: [{ when: flag("f_deu_landtag_plan"), why: "no_plan" }],
+    needs: { office: "chancellor" },
+    against: ["hard"],
+    authority: 10,
+    once: true,
+    tags: ["dissolve", "franchise"],
+    effects: [
+      { kind: "opinion", bloc: "workers", delta: 1 },
+      { kind: "opinion", bloc: "court", delta: -1 },
+      remember("k_deu_landtag_dissolve"),
+      { kind: "unflag", flag: "f_deu_landtag_plan" },
+      {
+        kind: "roll",
+        key: "deu_landtag_vote",
+        pct: 50,
+        then: [
+          act({ do: "law_support", law: "deu_three_class", delta: 2 }),
+          remember("k_deu_landtag_new"),
+        ],
+        otherwise: [
+          remember("k_deu_landtag_same"),
+          { kind: "opinion", bloc: "court", delta: 1 },
+        ],
+      },
+    ],
+    scene: "deu_pw_landtag_r",
+  },
 
   // ---- 내각 ----
   {
@@ -1195,6 +1236,11 @@ export const DEU_POWER_SCENES: readonly GwScene[] = [
   card("deu_pw_dissolve_r", [{ id: "war", when: war }, { id: "base" }]),
   card("deu_pw_franchise_r", [
     { id: "promise", when: recent("k_deu_pw_franchise_promise") },
+    { id: "base" },
+  ]),
+  card("deu_pw_landtag_r", [
+    { id: "new", when: recent("k_deu_landtag_new") },
+    { id: "same", when: recent("k_deu_landtag_same") },
     { id: "base" },
   ]),
   card("deu_pw_majority_r"),

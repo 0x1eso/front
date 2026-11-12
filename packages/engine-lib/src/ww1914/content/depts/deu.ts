@@ -24,7 +24,6 @@ import {
   memory,
   remember,
   role,
-  schedule,
 } from "@openfront/engine-api/ww1914/SceneDsl";
 import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
 
@@ -277,8 +276,9 @@ export const DEU_DEPT_SCENES: readonly GwScene[] = [
   kinDraft("deu_dept_kin_grc", "GRC", "grc"),
   kinDraft("deu_dept_kin_rou", "ROU", "rou"),
   // #3 The Prussian franchise: once the house guts the bill, the chancellery
-  // and the interior bring the dissolution plan. Dissolving brings the OHL's
-  // counter-paper the next chapter.
+  // and the interior bring the dissolution plan. Taking it opens the power
+  // `deu_pw_landtag` on the 통치 tab (powers/deu.ts); the OHL's counter-paper
+  // comes with the plan through the rival rule (depts/common.ts, ww193 merge).
   {
     id: "deu_dept_landtag",
     nation: NATION,
@@ -294,13 +294,10 @@ export const DEU_DEPT_SCENES: readonly GwScene[] = [
     options: [
       o(
         "dissolve",
-        ["authority:-1", "opinion:+1", "opinion:-1"],
+        [],
         [
-          doWorld({ do: "authority", delta: -1 }),
-          opinion("workers", 1),
-          opinion("court", -1),
-          remember("k_deu_landtag_dissolve"),
-          schedule("deu_dept_landtag_ohl", 1),
+          { kind: "flag", flag: "f_deu_landtag_plan" },
+          remember("k_deu_landtag_plan"),
         ],
       ),
       o(
@@ -323,33 +320,19 @@ export const DEU_DEPT_SCENES: readonly GwScene[] = [
     nation: NATION,
     kind: "dispute",
     scheduledOnly: true,
-    cast: { a: holder("chancellor"), b: holder("chief_of_staff") },
-    author: "a",
+    // The chancellery's or the interior's plan; the general staff answers.
+    cast: {
+      a: { any_of: [{ office: "chancellor" }, { office: "interior" }] },
+      b: holder("chief_of_staff"),
+    },
+    author: "b",
     salience: 7,
     tags: ["home", "tension_up"],
     once: true,
     variants: [v("base")],
     fallback: "back_b",
     options: [
-      o(
-        "back_a",
-        ["army:-1", "order:+1"],
-        [
-          army(-1),
-          gauge("order", 1),
-          // The new house may come back the same.
-          {
-            kind: "roll",
-            key: "deu_landtag_vote",
-            pct: 50,
-            then: [
-              doWorld({ do: "law_support", law: "deu_three_class", delta: 2 }),
-              remember("k_deu_landtag_new"),
-            ],
-            otherwise: [remember("k_deu_landtag_same"), opinion("court", 1)],
-          },
-        ],
-      ),
+      o("back_a", ["army:-1", "order:+1"], [army(-1), gauge("order", 1)]),
       o(
         "back_b",
         ["army:+1", "opinion:-2", "order:-1"],
@@ -358,6 +341,7 @@ export const DEU_DEPT_SCENES: readonly GwScene[] = [
           opinion("workers", -2),
           gauge("order", -1),
           remember("k_deu_landtag_kept"),
+          { kind: "unflag", flag: "f_deu_landtag_plan" },
         ],
       ),
     ],
@@ -597,7 +581,12 @@ const TASKS: GwTaskRow[] = [
     "interior",
     "bill",
     2,
-    ["deu_k_three_class", "deu_w_peace_franchise", "deu_m_home_lords"],
+    [
+      "gw_law_deu_three_class",
+      "deu_k_three_class",
+      "deu_w_peace_franchise",
+      "deu_m_home_lords",
+    ],
     { topic: "franchise" },
   ),
   task("landtag_i", "interior", "plan", 1, ["deu_dept_landtag"], {
@@ -605,7 +594,7 @@ const TASKS: GwTaskRow[] = [
     when: gutted,
     once: true,
   }),
-  task("censor", "interior", "bill", 1, ["deu_h_censor"], {
+  task("censor", "interior", "bill", 1, ["gw_law_deu_censor", "deu_h_censor"], {
     topic: "censor",
     when: war,
   }),
@@ -662,7 +651,12 @@ const TASKS: GwTaskRow[] = [
     "war",
     "bill",
     2,
-    ["deu_w_peace_arms", "deu_y_arms_bill", "deu_h_war_office"],
+    [
+      "gw_law_deu_army_bill",
+      "deu_w_peace_arms",
+      "deu_y_arms_bill",
+      "deu_h_war_office",
+    ],
     { topic: "army_bill" },
   ),
   task(

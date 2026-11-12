@@ -128,6 +128,8 @@ export function actViews(gw: GreatWar, seat: GwSeatState): GwActView[] {
         kind: a.kind,
         fields: fields.flatMap((f) => (f === null ? [] : [f])),
         tell: a.tell ?? [],
+        // ww193: the schedule marks a trip (two of the time, the room shut).
+        ...(a.trip === true ? { trip: true } : {}),
       },
     ];
   });

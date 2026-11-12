@@ -188,11 +188,11 @@ const TASKS: GwTaskRow[] = [
     ["gbr_f_morgan", "gbr_sh_dollars", "gw_o_usa_loans", "gw_d_ally_money"],
     { topic: "loan", when: war },
   ),
-  task("drink", "finance", "bill", 1, ["gbr_h_pledge", "gw_law_gbr_drink"], {
+  task("drink", "finance", "bill", 1, ["gw_law_gbr_drink", "gbr_h_pledge"], {
     topic: "drink",
     when: war,
   }),
-  task("tax", "finance", "bill", 2, ["gw_x_prices", "gw_law_gbr_wealth"], {
+  task("tax", "finance", "bill", 2, ["gw_law_gbr_wealth", "gw_x_prices"], {
     topic: "tax",
     when: war,
   }),
@@ -271,7 +271,7 @@ const TASKS: GwTaskRow[] = [
     "interior",
     "bill",
     2,
-    ["gbr_h_franchise", "gw_law_gbr_franchise"],
+    ["gw_law_gbr_franchise", "gbr_h_franchise"],
     { topic: "franchise", when: months(24) },
   ),
   task("flu", "interior", "study", 1, ["gbr_hf_flu"], {
@@ -315,9 +315,9 @@ const TASKS: GwTaskRow[] = [
     "bill",
     2,
     [
-      "gw_gbr_conscription",
       "gw_law_gbr_conscription",
       "gw_law_gbr_married_men",
+      "gw_gbr_conscription",
     ],
     { topic: "conscription", when: months(9) },
   ),

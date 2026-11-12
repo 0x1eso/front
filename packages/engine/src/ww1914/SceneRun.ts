@@ -80,6 +80,8 @@ export interface SceneCtx {
   fx?: GwActFx;
   /** What if these keys were remembered: a talk asked from a decision (AskFirst). */
   assume?: ReadonlySet<string>;
+  /** ww193 merge: before a card exists, the department task's topic. */
+  topic?: string | null;
 }
 
 const clamp = (v: number, lo: number, hi: number) =>
@@ -501,6 +503,12 @@ export function holds(ctx: SceneCtx, c: GwCond): boolean {
       return inRange(seat.press.censor, c);
     case "picked": {
       const row = actRow(ctx, c.act);
+      // ww193 merge: a commission's paper, brought by a department, reads
+      // the task's topic where the act read its picked subject.
+      if (row === undefined && c.act === undefined) {
+        const topic = ctx.topic ?? ctx.card?.dept?.topic ?? null;
+        return topic !== null && c.of.includes(topic);
+      }
       return (row?.picks[c.field] ?? []).some((x) => c.of.includes(x));
     }
     case "acted":

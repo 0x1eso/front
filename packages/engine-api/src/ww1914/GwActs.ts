@@ -146,6 +146,10 @@ export function gwActProblems(
     if (s === undefined) out.push(`${where}: no scene ${id}`);
     else if (s.scheduledOnly !== true) {
       out.push(`${where}: scene ${id} is not scheduledOnly`);
+    } else if (s.byAct !== true) {
+      // ww193 merge: a scene kept outside acts/ (a ceremony in depts/) marks
+      // itself, or the desk's repeat caps and notes treat it as a paper.
+      out.push(`${where}: scene ${id} is not byAct`);
     } else called.add(id);
   };
   played(a.scene, a.id);
