@@ -2,5 +2,128 @@
   "version": 1,
   "scenes": {},
   "people": {},
-  "persona": {}
+  "persona": {
+    "places": {
+      "fra_pl_elysee": "엘리제 궁 집무실",
+      "fra_pl_elysee_war": "엘리제 궁, 전선 지도를 건 집무실",
+      "fra_pl_victory": "엘리제 궁, 깃발이 내걸린 창가",
+      "fra_pl_sea": "라 프랑스호의 선실",
+      "fra_pl_bordeaux": "보르도 도청",
+      "fra_pl_thann": "알자스의 탄",
+      "fra_pl_dunkirk": "됭케르크"
+    },
+    "bearers": {
+      "fra_br_henriette": {
+        "name": "앙리에트",
+        "manner": [
+          "앙리에트가 문을 두드리지 않고 들어와 봉투를 책상 모서리에 놓는다.",
+          "앙리에트가 서류 대신 편지 한 장을 내민다. 읽어 보라는 눈짓만 한다.",
+          "앙리에트가 차를 내려놓으며, 이것만은 직접 보셔야 한다고 말한다.",
+          "앙리에트가 말없이 의자를 끌어다 옆에 앉는다."
+        ]
+      },
+      "fra_br_protocol": {
+        "name": "윌리엄 마르탱 의전국장",
+        "manner": [
+          "마르탱이 명단을 두 손으로 받쳐 들고 들어온다. 이름마다 훈등이 적혀 있다.",
+          "마르탱이 누가 누구 옆에 서야 하는지부터 말한다.",
+          "마르탱이 빠진 이름은 없는지 각하께서 한 번 더 보아 달라고 청한다.",
+          "마르탱이 식의 날짜와 순서를 적은 종이를 맨 위에 얹는다."
+        ]
+      },
+      "fra_br_military": {
+        "name": "대통령 군사실장",
+        "manner": [
+          "군사실장이 구두 뒤축을 맞부딪치고 서류철을 내민다.",
+          "군사실장이 총사령부가 보낸 것이라며 봉인을 뜯지 않은 채 올린다.",
+          "군사실장이 지도 한 장을 서류 위에 펴 놓는다.",
+          "군사실장이 묻기 전에는 아무 말도 덧붙이지 않는다."
+        ]
+      },
+      "fra_br_decori": {
+        "name": "드코리 비서실장",
+        "manner": [
+          "드코리가 서류를 급한 순서대로 반듯이 쌓아 내려놓는다.",
+          "드코리가 서명이 빠진 장마다 쪽지를 끼워 두었다고 낮게 말한다.",
+          "드코리가 헛기침을 한 번 하고 서류를 내민다.",
+          "드코리가 장관실에서 들은 말을 한 줄로 덧붙인다."
+        ]
+      },
+      "fra_br_sainsere": {
+        "name": "생세르 비서실장",
+        "manner": [
+          "생세르가 서류철을 펴 첫 장을 각하 쪽으로 돌려놓는다.",
+          "생세르가 앞의 비서실장이 쓰던 책상에서 가져왔다고 말한다.",
+          "생세르가 의원들이 이 일을 벌써 알고 있다고 귀띔한다.",
+          "생세르가 서류를 놓고 한 걸음 물러서서 기다린다."
+        ]
+      }
+    },
+    "grain": {
+      "fra_gr_tiger": "클레망소에게 또 고개를 숙이는 말은 오늘 내 입에서 나오지 않는다.",
+      "fra_gr_caillaux": "카요를 감싸 주는 글을 내 손으로 쓸 기력이 없다.",
+      "fra_gr_overstep": "헌법은 대통령에게 서명할 펜만 주었다. 그 선을 한 번 넘었다. 오늘 또 넘을 힘은 없다."
+    },
+    "diary": {
+      "fra_di_decision_signed": "{scene}. 서명했다. 총리는 고맙다는 말 대신 시계를 보았다.",
+      "fra_di_decision_faces": "{scene}의 일을 정했다. 장관들은 저마다 다른 것을 들은 얼굴로 나갔다.",
+      "fra_di_decision_pen": "{scene}. 헌법은 내게 펜만 주었다. 오늘은 그 펜을 썼다.",
+      "fra_di_decision_page": "{scene}. 정하고 나서야 서류 넷째 장에 숨은 조건이 보였다. 그 장을 펴 보라고 한 사람은 없었다.",
+      "fra_di_decision_short": "{scene}. 결정은 짧았고 그 뒤의 설명이 길었다.",
+      "fra_di_decision_record": "{scene}. 적어 둔다. 훗날 누가 물으면, 이 날 나는 이렇게 정했다.",
+      "fra_di_decision_front": "{scene}. 이 결정의 값을 치를 사람들은 오늘 밤 참호에 있고, 이 일을 모른다.",
+      "fra_di_decision_tiger": "{scene}. 클레망소에게 알렸다. 그는 이미 알고 있었다.",
+      "fra_di_decision_year": "{scene}. 또 하나의 서명. 지난해 이맘때 서명한 것 가운데 지금도 옳은 것을 세어 보았다. 많지 않다.",
+      "fra_di_death_wreath": "{who}의 부고. 화환을 보내라고 일렀다. 그와 마지막으로 나눈 말은 예산 이야기였다.",
+      "fra_di_death_papers": "{who}이(가) 죽었다. 내일 신문들은 그를 칭찬할 것이다. 어제까지 그를 헐뜯던 신문들이.",
+      "fra_di_death_rain": "{who}의 장례. 비가 왔다. 장관들은 우산 아래에서 다음 내각을 이야기했다.",
+      "fra_di_death_debt": "{who}. 공화국은 그에게 빚을 졌다. 그 빚을 여기 적어 둔다.",
+      "fra_di_death_audience": "{who}의 부음을 들었다. 오후 접견을 미루지 않았다. 미뤘어야 했는지 모르겠다.",
+      "fra_di_death_list": "{who}의 전사 소식. 지난 명단에서 그의 이름을 본 기억이 있다.",
+      "fra_di_front_short": "{front}의 소식. 총사령부의 보고는 늘 그렇듯 짧고, 빠진 것이 많다.",
+      "fra_di_front_pins": "{front}. 지도 위의 핀을 손수 옮겼다. 옮긴 거리만큼 사람이 죽었다.",
+      "fra_di_front_orient": "{front}. 동방군은 병원선 편으로만 소식을 보낸다. 오늘 온 것은 지난주의 일이다.",
+      "fra_di_front_italy": "{front}. 이탈리아의 전선 소식은 로마를 거쳐 하루 늦게 온다.",
+      "fra_di_front_east": "{front}. 러시아의 보고에는 늘 숫자가 크고 지명이 흐리다.",
+      "fra_di_front_sea": "{front}. 해군장관은 바다의 일을 뭍사람에게 설명하는 데 지친 얼굴이었다.",
+      "fra_di_front_officer": "{front}의 일로 총사령부의 연락 장교가 왔다. 그는 내가 묻는 것에만 답했다.",
+      "fra_di_front_papers": "{front}. 신문은 이긴 날만 쓰고 검열관은 진 날을 지운다. 나는 둘 다 읽는다.",
+      "fra_di_audience_long": "오후에 {who} 접견. 말은 길었고 숫자는 없었다.",
+      "fra_di_audience_after": "{who}이(가) 왔다. 무엇을 청하러 왔는지는 그가 나간 뒤에야 알았다.",
+      "fra_di_audience_excellency": "{who}을(를) 만났다. 문장마다 '각하'를 붙였다. 그만큼 청할 것이 큰 모양이다.",
+      "fra_di_audience_complaints": "{who}이(가) 장관들 흉을 보았다. 그 장관들은 오전에 그의 흉을 보았다.",
+      "fra_di_audience_hid": "{who}과(와) 반 시간. 그가 숨긴 것이 있다. 내일이면 알게 될 것이다.",
+      "fra_di_audience_tiger": "{who} 접견. 클레망소가 그를 보냈는지, 그가 클레망소를 피해 왔는지는 모르겠다.",
+      "fra_di_family_parcels": "앙리에트가 병사들에게 보낼 소포를 싸는 방에서 늦게까지 있었다. 저녁은 둘이서 말없이.",
+      "fra_di_family_letters": "앙리에트가 오늘도 익명의 편지를 감추려 했다. 모른 척했다.",
+      "fra_di_family_garden": "앙리에트와 정원을 한 바퀴 돌았다. 그녀는 아무것도 묻지 않았다. 고마웠다.",
+      "fra_di_family_meuse": "뫼즈의 집 소식을 물었다. 관리인은 괜찮다고만 썼다.",
+      "fra_di_health_sleep": "거의 못 잤다. 새벽에 일어나 어제 서명한 것들을 다시 읽었다.",
+      "fra_di_health_head": "두통. 접견을 줄이라는 의사의 말은 듣지 않았다.",
+      "fra_di_health_pen": "오늘은 펜이 무겁다. 몇 줄만 적는다.",
+      "fra_di_hindsight_face": "{who}이(가) {topic}에 대해 한 말이 틀렸다. 그는 기억나지 않는다는 얼굴을 할 것이다.",
+      "fra_di_hindsight_pencil": "{topic}. 지난번 보고를 다시 꺼내 읽었다. 틀린 곳에 연필로 줄을 그었다.",
+      "fra_di_hindsight_wishes": "{who}의 보고가 틀렸다. 놀랍지 않다. 그는 늘 듣고 싶은 쪽으로 쓴다.",
+      "fra_di_hindsight_knew": "{topic}의 일. 장관들은 이제 처음부터 그렇게 될 줄 알았다고 말한다.",
+      "fra_di_filler_winter": "추운 날. 엘리제의 난로는 연기만 냈다. 오전에 국무회의.",
+      "fra_di_filler_spring": "봄비. 정원의 마로니에에 잎이 났다. 접견이 이어졌고 다들 같은 것을 청했다.",
+      "fra_di_filler_summer": "더운 날. 장관들이 휴가 이야기를 하다가 내가 들어가자 멈췄다.",
+      "fra_di_filler_autumn": "가을. 낙엽 쓰는 소리를 들으며 예산 서류를 읽었다.",
+      "fra_di_filler_council": "국무회의. 장관들은 서로의 서류를 읽지 않고 왔다.",
+      "fra_di_filler_quai": "외무장관이 전보를 보여 주었다. 보여 주지 않은 전보가 더 있다는 것을 안다.",
+      "fra_di_filler_finance": "재무장관이 왔다. 그가 감춘 숫자는 다음 주 신문에서 보게 될 것이다.",
+      "fra_di_filler_premier": "총리가 왔다가 금방 갔다. 다른 데서는 더 오래 머문다는 것을 안다.",
+      "fra_di_filler_signing": "하루 종일 서명. 대통령의 일은 대부분 남이 정한 것에 이름을 쓰는 일이다.",
+      "fra_di_filler_academy": "아카데미의 동료가 편지를 보냈다. 문장은 좋았고 내용은 없었다.",
+      "fra_di_filler_papers": "신문을 읽었다. 내가 하지 않은 말이 여럿 실렸다.",
+      "fra_di_filler_liaison": "총사령부의 연락 장교가 왔다. 총사령부가 내게 알리지 않은 것을 그는 모르는 척했다.",
+      "fra_di_filler_tiger": "클레망소는 오늘도 오지 않았다. 국무회의의 결정은 신문으로 알았다.",
+      "fra_di_filler_bordeaux": "보르도. 도청의 방은 좁고 장관들은 서로 너무 가깝다.",
+      "fra_di_filler_sea": "바다. 무선이 끊겼다 이어진다. 파리 소식이 반나절 늦다.",
+      "fra_di_filler_deputies": "의원 몇이 찾아왔다. 삼 년법 이야기였다. 그들이 감춘 것은 다음 선거다."
+    },
+    "forms": {
+      "FRA": "푸앵카레의 메모"
+    }
+  }
 }
