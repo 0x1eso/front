@@ -49,6 +49,10 @@ export const GW_PACK_SHARES: Readonly<
     "lands",
     "stall",
     "offensive",
+    "years",
+    "rule",
+    "homefront",
+    "after",
   ],
   GBR: [
     "crisis",
@@ -72,6 +76,10 @@ export const GW_PACK_SHARES: Readonly<
     "lands",
     "stall",
     "offensive",
+    "years",
+    "rule",
+    "homefront",
+    "after",
   ],
   AUH: [
     "crisis",
@@ -95,6 +103,12 @@ export const GW_PACK_SHARES: Readonly<
     "lands",
     "stall",
     "offensive",
+    "years",
+    "rule",
+    "homefront",
+    "after",
+    "colonies",
+    "agents",
   ],
   RUS: [
     "crisis",
@@ -118,6 +132,12 @@ export const GW_PACK_SHARES: Readonly<
     "lands",
     "stall",
     "offensive",
+    "years",
+    "rule",
+    "homefront",
+    "after",
+    "colonies",
+    "agents",
   ],
   FRA: [
     "crisis",
@@ -141,6 +161,12 @@ export const GW_PACK_SHARES: Readonly<
     "lands",
     "stall",
     "offensive",
+    "years",
+    "rule",
+    "homefront",
+    "after",
+    "colonies",
+    "president",
   ],
 };
 
@@ -164,6 +190,10 @@ export const GW_COMMON_SHARES: readonly string[] = [
   "filler",
   "sea",
   "capital",
+  "years",
+  "rule",
+  "homefront",
+  "after",
 ];
 /**
  * Casts in files of their own. Every seat loads them: a scene can cast another

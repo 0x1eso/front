@@ -15617,7 +15617,19 @@
       "morale_defeatist_press": "패배주의 신문들이 사기를 꺾었다.",
       "morale_hush_out": "덮어 둔 나쁜 소식이 한꺼번에 드러났다.",
       "order_leaflets": "적이 뿌린 전단이 거리에 돌았다.",
-      "capital_fell": "수도가 적의 손에 들어갔다."
+      "capital_fell": "수도가 적의 손에 들어갔다.",
+      "accord_offered": "협정 제안이 오갔다.",
+      "accord_made": "협정을 맺었다.",
+      "accord_refused": "협정이 거절되었다.",
+      "accord_broken": "협정이 깨졌다.",
+      "arms_raised": "군비가 늘었다.",
+      "mediation_half": "한쪽만 중재에 응했다.",
+      "mediation_refused": "양쪽 모두 중재를 거절했다.",
+      "mediation_peace": "중재로 강화가 이루어졌다.",
+      "ratified": "조약이 비준되었다.",
+      "ratify_refused": "조약 비준이 거부되었다.",
+      "demob_done": "병사들이 집으로 돌아왔다.",
+      "left_war_on": "우리는 전쟁 밖에 머문다."
     },
     "mandate": {
       "deu_bread_for_the_winter": "겨울 빵을 남기기",
@@ -15851,7 +15863,19 @@
       "nation_capitulated": "{a}이(가) 항복했다.",
       "gov_fell_capitulation": "{a} 정부가 무너졌다. 뒤를 이은 내각이 항복 문서에 서명했다.",
       "front_withdrawn": "{a}이(가) {theatre} 전선에서 군대를 거두어 본국으로 돌렸다.",
-      "front_follows": "{theatre} 전선이 점령지를 따라 앞으로 옮겨 갔다."
+      "front_follows": "{theatre} 전선이 점령지를 따라 앞으로 옮겨 갔다.",
+      "accord_offered": "{a}이(가) {b}에 협정을 제안했다.",
+      "accord_made": "{a}과(와) {b}이(가) 협정을 맺었다.",
+      "accord_refused": "{b}이(가) {a}의 협정 제안을 거절했다.",
+      "accord_broken": "{a}과(와) {b} 사이의 협정이 깨졌다.",
+      "arms_raised": "{a}이(가) 군비를 늘렸다.",
+      "mediation_half": "{a}이(가) 중재에 나섰지만 {b}만 귀를 기울였다.",
+      "mediation_refused": "양쪽 모두 {a}의 중재 제안을 거절했다.",
+      "mediation_peace": "{a}의 중재로 싸움이 멈췄다.",
+      "ratified": "{a}이(가) 조약을 비준했다.",
+      "ratify_refused": "{a}이(가) 조약 비준을 거부했다.",
+      "demob_done": "{a}이(가) 군대를 집으로 돌려보냈다.",
+      "left_war_on": "{a}은(는) 단독 강화를 맺고 전쟁 밖에 머문다."
     },
     "odds": {
       "0": "될 일이 아닙니다.",

@@ -1,5 +1,6 @@
 import type { GwSeatState } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
+import { aftermathStep } from "./Aftermath";
 import { aiStep } from "./Ai";
 import { alliesStep } from "./Asks";
 import { electionStep } from "./Assumes";
@@ -14,6 +15,7 @@ import { frontsStep, warScore } from "./Fronts";
 import { govStep } from "./Government";
 import type { GreatWar } from "./GreatWar";
 import { homeStep } from "./Home";
+import { homeFrontStep } from "./HomeFront";
 import { houseStep } from "./House";
 import { intelStep } from "./Intel";
 import { ladderStep } from "./Ladder";
@@ -22,8 +24,11 @@ import { lawStep } from "./Laws";
 import { occupationStep } from "./Occupation";
 import { warStep } from "./PairWar";
 import { nextConferenceChapter, skipToConference } from "./Peace";
+import { peaceYearsStep } from "./PeaceYears";
 import { peopleStep } from "./People";
 import { firstEdition, pressStep } from "./Press";
+import { refusalsStep } from "./Refusals";
+import { ruleStep } from "./Rule";
 import { rulerAudiences, rulerStep } from "./Ruler";
 import { closeUndecided } from "./SceneRun";
 import { seaStep } from "./Sea";
@@ -51,6 +56,7 @@ export const GW_CHAPTER_STEPS: readonly ((gw: GreatWar) => void)[] = [
   frontLandStep,
   capitulationStep,
   occupationStep,
+  ruleStep,
   (gw) => seaStep(gw, warScore(gw, "central")),
   budgetStep,
   electionStep,
@@ -59,10 +65,13 @@ export const GW_CHAPTER_STEPS: readonly ((gw: GreatWar) => void)[] = [
   dossierStep,
   alliesStep,
   homeStep,
+  homeFrontStep,
+  refusalsStep,
   craftStep,
   peopleStep,
   govStep,
   aiStep,
+  peaceYearsStep,
   termsStep,
   intelStep,
   worldFlagsStep,
@@ -71,6 +80,7 @@ export const GW_CHAPTER_STEPS: readonly ((gw: GreatWar) => void)[] = [
   storyStep,
   tableStep,
   pairTableStep,
+  aftermathStep,
   endingStep,
   treatyStep,
   regentStep,

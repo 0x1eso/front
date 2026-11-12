@@ -675,6 +675,11 @@ export const GwSceneSchema = z
     once: z.boolean().optional(),
     /** Chapters it stays away after coming; 0: it can come the next chapter. */
     cooldown: int.min(0).optional(),
+    /**
+     * ww190: the most times a game it is dealt (Desk.ts counts the deals).
+     * Absent: GW_REPEAT_MAX for a drawn scene, no cap for the exempt ones.
+     */
+    max: int.min(1).optional(),
     /** The place on the map it comes from (GW_PLACES). */
     place: GwPlaceSchema.optional(),
     /** Read-only report: its stamp and source. */

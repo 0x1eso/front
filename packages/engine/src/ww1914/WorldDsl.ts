@@ -14,6 +14,7 @@ import { tilted } from "@openfront/engine-lib/ww1914/BudgetRules";
 import { civilFromDays } from "@openfront/engine-lib/ww1936/Calendar";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { noteFx } from "./ActNote";
+import { afterDo, afterHolds } from "./Aftermath";
 import { agentHolds, hire } from "./Agents";
 import { askEffect, askHolds } from "./Asks";
 import { dissolve, dissolvedNow, heldBy, sitsNow } from "./Assumes";
@@ -32,6 +33,7 @@ import { closeSeat, SEPARATE_PEACE } from "./Endings";
 import { eraOf, hasTech } from "./Eras";
 import { signChief, warScore } from "./Fronts";
 import { govBeaten, govHeat, govHeatBy, govSoon, pollOf } from "./Government";
+import { homeFrontDo, homeFrontHolds } from "./HomeFront";
 import { houseEffect, houseHolds } from "./House";
 import { inspect, sendReport } from "./Intel";
 import {
@@ -68,12 +70,16 @@ import {
   seatOffersPeace,
 } from "./PairWar";
 import { armistice, openTalks, sue } from "./Peace";
+import { yearsDo, yearsHolds } from "./PeaceYears";
 import { keepPerson, openLetter, personLeaves, recordResult } from "./People";
 import { plotEffect, plotHolds } from "./Plots";
 import { propEffect, propHolds } from "./Propaganda";
+import { refusalsDo, refusalsHolds } from "./Refusals";
 import { changeRegime, regimeRow } from "./Regimes";
+import { ruleDo, ruleHolds } from "./Rule";
 import { SceneCtx, whoIn } from "./SceneRun";
 import { setUboats } from "./Sea";
+import { seaHolds } from "./Seas";
 import { atPeace, spyEffect, spyHolds } from "./Spies";
 import { collapseHolds } from "./Stalemate";
 import { enter, leaveWar } from "./Wars";
@@ -326,6 +332,35 @@ export function worldHolds(ctx: SceneCtx, c: GwWorldCond): boolean {
       return dissolvedNow(gw, seat);
     case "flag_now":
       return flagNow(gw, seat, c.flag);
+    // ww190
+    case "arming":
+    case "arms_race":
+    case "bond":
+    case "accord":
+    case "accord_offered":
+    case "courted":
+    case "mediating":
+      return yearsHolds(gw, seat, c);
+    case "ratified":
+    case "after_months":
+    case "demob":
+    case "left_war":
+      return afterHolds(gw, seat, c);
+    case "rule":
+    case "resist":
+    case "ruled":
+    case "relief":
+      return ruleHolds(gw, seat, c);
+    case "prisoners":
+    case "hunger":
+    case "women_work":
+    case "refugees":
+    case "flu":
+      return homeFrontHolds(gw, seat, c);
+    case "refusals":
+      return refusalsHolds(gw, seat, c);
+    case "sea_hold":
+      return seaHolds(gw, seat, c);
   }
 }
 
@@ -634,6 +669,31 @@ export function worldEffect(ctx: SceneCtx, e: GwWorldEffect): void {
       return;
     case "dissolve":
       dissolve(ctx.gw, ctx.seat);
+      return;
+    // ww190
+    case "arms":
+    case "bond":
+    case "accord":
+    case "accord_answer":
+    case "break_accord":
+    case "mediate":
+      yearsDo(gw, seat, e);
+      return;
+    case "ratify":
+    case "demob":
+    case "play_on":
+      afterDo(gw, seat, e);
+      return;
+    case "rule":
+      ruleDo(gw, seat, e);
+      return;
+    case "exchange":
+    case "reprisal":
+      homeFrontDo(gw, seat, e);
+      return;
+    case "refusals":
+    case "pardon":
+      refusalsDo(gw, seat, e);
       return;
   }
 }

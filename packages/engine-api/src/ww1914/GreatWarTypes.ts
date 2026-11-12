@@ -34,6 +34,8 @@ export const GW_STAGES = [
   "closing",
   // After an armistice: the chapters of the peace, before the closing one.
   "conference",
+  // ww190: the chapters after the table's sessions, before the closing one.
+  "aftermath",
 ] as const;
 export type GwStage = (typeof GW_STAGES)[number];
 
@@ -1360,6 +1362,8 @@ export const GwSeatStateSchema = z.object({
   tempo: z.enum(GW_TEMPOS).optional(),
   /** ww187: the day the house was dissolved, until its election; absent: it sits. */
   dissolved: z.number().int().optional(),
+  /** ww190: the chapter its own peace was made, while it plays on (Aftermath.ts). */
+  leftAt: z.number().int().optional(),
 });
 export type GwSeatState = z.infer<typeof GwSeatStateSchema>;
 
@@ -1831,6 +1835,78 @@ export const GwPairTableSchema = z.object({
 });
 export type GwPairTable = z.infer<typeof GwPairTableSchema>;
 
+// ---- ww190: the peace years, ruling land, the home front, the aftermath ----
+/** Accords two countries can make in the peace years (PeaceYears.ts). */
+export const GW_ACCORD_KINDS = [
+  "naval",
+  "colonial",
+  "balkan",
+  "straits",
+] as const;
+export type GwAccordKind = (typeof GW_ACCORD_KINDS)[number];
+/** How land a country holds is ruled (Rule.ts). */
+export const GW_RULE_POLICIES = ["army", "civil", "client"] as const;
+export type GwRulePolicy = (typeof GW_RULE_POLICIES)[number];
+/** Client states a ruler can set up. */
+export const GW_CLIENTS = [
+  "poland",
+  "lithuania",
+  "ukraine",
+  "flanders",
+  "albania",
+  "serbia",
+] as const;
+export type GwClient = (typeof GW_CLIENTS)[number];
+/** The command's answer to the refusals (Refusals.ts). */
+export const GW_REFUSAL_ANSWERS = ["none", "courts", "rest", "both"] as const;
+export type GwRefusalAnswer = (typeof GW_REFUSAL_ANSWERS)[number];
+/** Seas whose holder a scene can read (Seas.ts). */
+export const GW_SEA_ZONES = ["north", "black", "adriatic", "med"] as const;
+export type GwSeaZone = (typeof GW_SEA_ZONES)[number];
+
+/** An accord between two countries; `broken`: the chapter it ended, else null. */
+export const GwAccordSchema = z.object({
+  kind: z.enum(GW_ACCORD_KINDS),
+  a: z.enum(GW_TAGS),
+  b: z.enum(GW_TAGS),
+  chapter: z.number().int(),
+  broken: z.number().int().nullable(),
+});
+export type GwAccord = z.infer<typeof GwAccordSchema>;
+
+/** `by` rules land of `of`: how hard (0..3), relief, resistance (0..3). */
+export const GwRuleRowSchema = z.object({
+  by: z.enum(GW_TAGS),
+  of: z.enum(GW_TAGS),
+  policy: z.enum(GW_RULE_POLICIES),
+  hard: z.number().int(),
+  relief: z.boolean(),
+  resist: z.number().int(),
+  client: z.enum(GW_CLIENTS).nullable(),
+  since: z.number().int(),
+});
+export type GwRuleRow = z.infer<typeof GwRuleRowSchema>;
+
+/** Men of `of` held by `by`, in thousands. */
+export const GwPrisonersSchema = z.object({
+  by: z.enum(GW_TAGS),
+  of: z.enum(GW_TAGS),
+  n: z.number().int(),
+});
+export type GwPrisoners = z.infer<typeof GwPrisonersSchema>;
+
+/** Refusals in a country's army: stage 0..3, the answer, pardons given. */
+export const GwRefusalSchema = z.object({
+  tag: z.enum(GW_TAGS),
+  stage: z.number().int(),
+  since: z.number().int(),
+  answer: z.enum(GW_REFUSAL_ANSWERS),
+  pardons: z.number().int(),
+  /** The chapter the rest ends; -1 none. */
+  restUntil: z.number().int(),
+});
+export type GwRefusal = z.infer<typeof GwRefusalSchema>;
+
 /** All of the mode's state. Version bumps go through GreatWarSnapshot. */
 export const GreatWarStateSchema = z.object({
   seed: z.number().int(),
@@ -1933,5 +2009,25 @@ export const GreatWarStateSchema = z.object({
   govSeats: z.array(GwGovSeatSchema).optional(),
   /** ww188: allies that left a front when their partner gave up. */
   withdrawn: z.array(GwWithdrawnSchema).optional(),
+  // ww190: absent until first used, so a game that never uses them hashes as before.
+  /** Bonds between allies, "A_B" with the tags sorted: -3..3, absent 0. */
+  bonds: z.partialRecord(z.string(), z.number().int()).optional(),
+  /** Accords of the peace years, in order. */
+  accords: z.array(GwAccordSchema).optional(),
+  /** Demobilisation by country: 0 hold, 1 by classes, 2 all at once. */
+  demob: z.partialRecord(z.enum(GW_TAGS), z.number().int()).optional(),
+  /** Countries that ratified the treaty, and those that refused. */
+  ratified: z.array(z.enum(GW_TAGS)).optional(),
+  unratified: z.array(z.enum(GW_TAGS)).optional(),
+  /** Land ruled by a country that holds it (Rule.ts). */
+  rule: z.array(GwRuleRowSchema).optional(),
+  /** Prisoners held, by holder and nation (HomeFront.ts). */
+  prisoners: z.array(GwPrisonersSchema).optional(),
+  /** Refusals in an army (Refusals.ts). */
+  refusals: z.array(GwRefusalSchema).optional(),
+  /** The flu: its wave 0..3 and the chapter that wave began. */
+  flu: z
+    .object({ wave: z.number().int(), chapter: z.number().int() })
+    .optional(),
 });
 export type GreatWarState = z.infer<typeof GreatWarStateSchema>;

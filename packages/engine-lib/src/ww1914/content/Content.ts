@@ -44,9 +44,13 @@ import { FRA_POWER_SCENES, FRA_POWERS, FRA_REACTORS } from "./powers/fra";
 import { GBR_POWER_SCENES, GBR_POWERS, GBR_REACTORS } from "./powers/gbr";
 import { RUS_POWER_SCENES, RUS_POWERS, RUS_REACTORS } from "./powers/rus";
 import { AUH_STORY_SCENES } from "./scenes/auh_act";
+import { AUH_AFTER_SCENES } from "./scenes/auh_after";
+import { AUH_AGENTS_SCENES } from "./scenes/auh_agents";
 import { AUH_QUIET_SCENES, withAuhBodies } from "./scenes/auh_bodies";
+import { AUH_COLONIES_SCENES } from "./scenes/auh_colonies";
 import { AUH_CRISIS_SCENES } from "./scenes/auh_crisis";
 import { AUH_CROWN_SCENES } from "./scenes/auh_crown";
+import { AUH_HOMEFRONT_SCENES } from "./scenes/auh_homefront";
 import { AUH_LAND_EVENTS } from "./scenes/auh_lands";
 import { AUH_OFFENSIVE_SCENES } from "./scenes/auh_offensive";
 import {
@@ -56,9 +60,11 @@ import {
 } from "./scenes/auh_private";
 import { AUH_ECHOES, AUH_PROLOGUE_SCENES } from "./scenes/auh_prologue";
 import { AUH_REALM_SCENES } from "./scenes/auh_realm";
+import { AUH_RULE_SCENES } from "./scenes/auh_rule";
 import { AUH_STALL_EVENTS } from "./scenes/auh_stall";
 import { AUH_WAR_SCENES } from "./scenes/auh_war";
 import { AUH_WAR_EVENTS } from "./scenes/auh_wars";
+import { AUH_YEARS_SCENES } from "./scenes/auh_years";
 import { BUDGET_SCENES } from "./scenes/budget";
 import { COMMON_SCENES } from "./scenes/common";
 import {
@@ -70,11 +76,13 @@ import {
 } from "./scenes/craft";
 import { DEU_SCENES } from "./scenes/deu";
 import { DEU_STORY_SCENES } from "./scenes/deu_act";
+import { DEU_AFTER_SCENES } from "./scenes/deu_after";
 import { DEU_BACK_SCENES, withPromiseTerms } from "./scenes/deu_back";
 import { DEU_COURT_SCENES } from "./scenes/deu_court";
 import { DEU_CRISIS_SCENES } from "./scenes/deu_crisis";
 import { DEU_FRONT_SCENES } from "./scenes/deu_front";
 import { DEU_HOME_SCENES } from "./scenes/deu_home";
+import { DEU_HOMEFRONT_SCENES } from "./scenes/deu_homefront";
 import { DEU_LAND_EVENTS } from "./scenes/deu_lands";
 import { DEU_OFFENSIVE_SCENES } from "./scenes/deu_offensive";
 import { DEU_PEACE_SCENES, withSummerWar } from "./scenes/deu_peace";
@@ -86,25 +94,35 @@ import {
 } from "./scenes/deu_private";
 import { DEU_ECHOES, DEU_PROLOGUE_SCENES } from "./scenes/deu_prologue";
 import { withDeuReplay } from "./scenes/deu_replay";
+import { DEU_RULE_SCENES } from "./scenes/deu_rule";
 import { DEU_SEA_SCENES } from "./scenes/deu_sea";
 import { DEU_STALL_EVENTS } from "./scenes/deu_stall";
 import { DEU_WAR_SCENES } from "./scenes/deu_war";
 import { DEU_WAR_EVENTS } from "./scenes/deu_wars";
+import { DEU_YEARS_SCENES } from "./scenes/deu_years";
 import { gwDossierActs, gwDossierScenes } from "./scenes/dossier";
 import { GW_FILLER_SCENES } from "./scenes/filler";
 import { FRA_STORY_SCENES } from "./scenes/fra_act";
+import { FRA_AFTER_SCENES } from "./scenes/fra_after";
+import { FRA_COLONIES_SCENES } from "./scenes/fra_colonies";
 import { FRA_CRISIS_SCENES } from "./scenes/fra_crisis";
 import { FRA_HOME_SCENES } from "./scenes/fra_home";
+import { FRA_HOMEFRONT_SCENES } from "./scenes/fra_homefront";
 import { FRA_LAND_EVENTS } from "./scenes/fra_lands";
 import { FRA_OFFENSIVE_SCENES } from "./scenes/fra_offensive";
+import { FRA_PRESIDENT_SCENES } from "./scenes/fra_president";
 import { FRA_PRIVATE_PEOPLE, FRA_PRIVATE_SCENES } from "./scenes/fra_private";
 import { FRA_ECHOES, FRA_PROLOGUE_SCENES } from "./scenes/fra_prologue";
+import { FRA_RULE_SCENES } from "./scenes/fra_rule";
 import { FRA_STALL_EVENTS } from "./scenes/fra_stall";
 import { FRA_WAR_SCENES } from "./scenes/fra_war";
 import { FRA_WAR_EVENTS } from "./scenes/fra_wars";
 import { FRA_WORLD_SCENES } from "./scenes/fra_world";
+import { FRA_YEARS_SCENES } from "./scenes/fra_years";
+import { GBR_AFTER_SCENES } from "./scenes/gbr_after";
 import { GBR_CRISIS_SCENES } from "./scenes/gbr_crisis";
 import { GBR_HOME_SCENES } from "./scenes/gbr_home";
+import { GBR_HOMEFRONT_SCENES } from "./scenes/gbr_homefront";
 import { GBR_LAND_EVENTS } from "./scenes/gbr_lands";
 import { withMore } from "./scenes/gbr_more";
 import { GBR_OFFENSIVE_SCENES } from "./scenes/gbr_offensive";
@@ -114,16 +132,22 @@ import {
   withGbrPrivate,
 } from "./scenes/gbr_private";
 import { GBR_ECHOES, GBR_PROLOGUE_SCENES } from "./scenes/gbr_prologue";
+import { GBR_RULE_SCENES } from "./scenes/gbr_rule";
 import { GBR_STALL_EVENTS } from "./scenes/gbr_stall";
 import { GBR_WAR_SCENES } from "./scenes/gbr_war";
 import { GBR_WAR_EVENTS } from "./scenes/gbr_wars";
 import { GBR_WORLD_SCENES } from "./scenes/gbr_world";
+import { GBR_YEARS_SCENES } from "./scenes/gbr_years";
 import { GOV_SCENES } from "./scenes/gov";
+import { GW_AFTER_SCENES } from "./scenes/gw_after";
 import { GW_DIP_SCENES } from "./scenes/gw_dip";
 import { GW_FRAME_SCENES } from "./scenes/gw_frame";
+import { GW_HOMEFRONT_SCENES } from "./scenes/gw_homefront";
 import { GW_NEUTRAL_SCENES } from "./scenes/gw_neutral";
 import { withCommonBodies } from "./scenes/gw_replay";
+import { GW_RULE_SCENES } from "./scenes/gw_rule";
 import { GW_WORLD2_SCENES } from "./scenes/gw_world2";
+import { GW_YEARS_SCENES } from "./scenes/gw_years";
 import {
   GW_HOUSE_CONTENT,
   gwHouseScenes,
@@ -134,16 +158,22 @@ import { PRESS_SCENES } from "./scenes/press";
 import { withEchoes } from "./scenes/prologue_echoes";
 import { RULER_SCENES } from "./scenes/ruler";
 import { RUS_STORY_SCENES } from "./scenes/rus_act";
+import { RUS_AFTER_SCENES } from "./scenes/rus_after";
+import { RUS_AGENTS_SCENES } from "./scenes/rus_agents";
+import { RUS_COLONIES_SCENES } from "./scenes/rus_colonies";
 import { RUS_CRISIS_SCENES } from "./scenes/rus_crisis";
 import { RUS_FALL_SCENES } from "./scenes/rus_fall";
 import { RUS_FRONT_SCENES } from "./scenes/rus_front";
 import { RUS_HOME_SCENES } from "./scenes/rus_home";
+import { RUS_HOMEFRONT_SCENES } from "./scenes/rus_homefront";
 import { RUS_LAND_EVENTS } from "./scenes/rus_lands";
 import { RUS_OFFENSIVE_SCENES } from "./scenes/rus_offensive";
 import { RUS_PRIVATE_SCENES, withRusPrivate } from "./scenes/rus_private";
 import { RUS_ECHOES, RUS_PROLOGUE_SCENES } from "./scenes/rus_prologue";
+import { RUS_RULE_SCENES } from "./scenes/rus_rule";
 import { RUS_STALL_EVENTS } from "./scenes/rus_stall";
 import { RUS_WAR_EVENTS } from "./scenes/rus_wars";
+import { RUS_YEARS_SCENES } from "./scenes/rus_years";
 import { STALL_SCENES } from "./scenes/stall_events";
 import { TABLE_SCENES } from "./scenes/table";
 import { WARTIME_SCENES } from "./scenes/wartime";
@@ -296,6 +326,37 @@ export const GW_CONTENT: GwContent = {
         ...FRA_OFFENSIVE_SCENES,
         // ww173: the secret war's desk scenes (acts/common).
         ...SPY_SCENES,
+        // ww190: the peace years, ruling land, the home front, the aftermath.
+        ...DEU_YEARS_SCENES,
+        ...DEU_RULE_SCENES,
+        ...DEU_HOMEFRONT_SCENES,
+        ...DEU_AFTER_SCENES,
+        ...GBR_YEARS_SCENES,
+        ...GBR_RULE_SCENES,
+        ...GBR_HOMEFRONT_SCENES,
+        ...GBR_AFTER_SCENES,
+        ...FRA_YEARS_SCENES,
+        ...FRA_RULE_SCENES,
+        ...FRA_HOMEFRONT_SCENES,
+        ...FRA_AFTER_SCENES,
+        ...RUS_YEARS_SCENES,
+        ...RUS_RULE_SCENES,
+        ...RUS_HOMEFRONT_SCENES,
+        ...RUS_AFTER_SCENES,
+        ...AUH_YEARS_SCENES,
+        ...AUH_RULE_SCENES,
+        ...AUH_HOMEFRONT_SCENES,
+        ...AUH_AFTER_SCENES,
+        ...FRA_COLONIES_SCENES,
+        ...RUS_COLONIES_SCENES,
+        ...AUH_COLONIES_SCENES,
+        ...RUS_AGENTS_SCENES,
+        ...AUH_AGENTS_SCENES,
+        ...FRA_PRESIDENT_SCENES,
+        ...GW_YEARS_SCENES,
+        ...GW_RULE_SCENES,
+        ...GW_HOMEFRONT_SCENES,
+        ...GW_AFTER_SCENES,
       ]
         .map(withDeuReplay)
         .map(withDeuPrivate)

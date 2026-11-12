@@ -5,9 +5,11 @@
 // variant can differ on a truth the seat doesn't know. Show those only as text.
 import { z } from "zod";
 import {
+  GW_ACCORD_KINDS,
   GW_AI_KINDS,
   GW_ARMISTICE_KINDS,
   GW_CHAIN_OUTCOMES,
+  GW_CLIENTS,
   GW_ERAS,
   GW_FACT_KINDS,
   GW_FIELDS,
@@ -18,7 +20,10 @@ import {
   GW_OFF_RESULTS,
   GW_OFFICES,
   GW_PLANS,
+  GW_REFUSAL_ANSWERS,
   GW_RESULTS,
+  GW_RULE_POLICIES,
+  GW_SEA_ZONES,
   GW_SECRETS,
   GW_SIDES,
   GW_SOURCES,
@@ -28,9 +33,11 @@ import {
   GW_THREADS,
   GW_WAR_ENDS,
   GW_WORLD_FLAGS,
+  GwAccordKind,
   GwAiKind,
   GwArmisticeKind,
   GwChainOutcome,
+  GwClient,
   GwEra,
   GwFactKind,
   GwField,
@@ -42,7 +49,10 @@ import {
   GwOffMethod,
   GwOffResult,
   GwPlan,
+  GwRefusalAnswer,
   GwResult,
+  GwRulePolicy,
+  GwSeaZone,
   GwSecret,
   GwSide,
   GwSource,
@@ -455,7 +465,63 @@ export type GwWorldCond =
   /** The seat's house was dissolved and its election hasn't come yet. */
   | { is: "dissolved" }
   /** A world flag true now, not only once (engine/ww1914/WorldFlags.flagNow). */
-  | { is: "flag_now"; flag: GwWorldFlag };
+  | { is: "flag_now"; flag: GwWorldFlag }
+  // ---- The peace years and after (ww190, S1: PeaceYears.ts, Aftermath.ts) ----
+  /** How far a country arms past its June 1914 budget, 0..3 (the seat's if no tag). */
+  | ({ is: "arming"; tag?: GwTag } & Range)
+  /** The seat's country and `tag` are rivals in arms, both arming ≥ 1. */
+  | { is: "arms_race"; tag: GwTag }
+  /** The seat's country's bond with `tag`, -3..3; false if the pair has none. */
+  | ({ is: "bond"; tag: GwTag } & Range)
+  /** An accord of the seat's country; `broken`: only broken / only in force. */
+  | { is: "accord"; kind?: GwAccordKind; tag?: GwTag; broken?: boolean }
+  /** An accord offered to the seat's country, not answered yet. */
+  | { is: "accord_offered"; kind?: GwAccordKind; tag?: GwTag }
+  /** The best price a side offers the seat's neutral country. */
+  | ({ is: "courted"; side?: GwSide } & Range)
+  /** The seat offered to mediate and has no answer yet. */
+  | { is: "mediating" }
+  /** The seat's country (or `tag`) ratified the treaty; `no`: refused it. */
+  | { is: "ratified"; tag?: GwTag; no?: boolean }
+  /** Whole months since the table signed; false before. */
+  | ({ is: "after_months" } & Range)
+  /** Demobilisation, 0 hold .. 2 all at once (the seat's country if no tag). */
+  | ({ is: "demob"; tag?: GwTag } & Range)
+  /** Months since the seat's own peace, while it plays on; false otherwise. */
+  | ({ is: "left_war" } & Range)
+  // ---- Ruling land, the home front, France, the seas (ww190, S2) ----
+  /** The seat's country rules land of `of`; the range is on `hard`. */
+  | ({
+      is: "rule";
+      of?: GwTag;
+      policy?: GwRulePolicy;
+      client?: GwClient;
+    } & Range)
+  /** Resistance in land the seat's country rules (the highest), 0..3. */
+  | ({ is: "resist"; of?: GwTag } & Range)
+  /** The seat's country's land under foreign rule; the range is on `hard`. */
+  | ({ is: "ruled"; by?: GwTag; policy?: GwRulePolicy } & Range)
+  /** Relief let in: as the ruler of `of`, or as the ruled with no `of`. */
+  | { is: "relief"; of?: GwTag }
+  /** Prisoners in thousands: `ours` held by the seat's country, `theirs` of it held. */
+  | ({ is: "prisoners"; held: "ours" | "theirs"; tag?: GwTag } & Range)
+  /** Hunger, 0..3 (the seat's country if no tag). */
+  | ({ is: "hunger"; tag?: GwTag } & Range)
+  /** Women at work, 0..3. */
+  | ({ is: "women_work" } & Range)
+  /** Refugees, 0..3. */
+  | ({ is: "refugees" } & Range)
+  /** The flu's wave now, 0 none .. 3. */
+  | ({ is: "flu" } & Range)
+  /** Refusals' stage 0..3 in `tag`'s army (France if no tag). */
+  | ({
+      is: "refusals";
+      tag?: GwTag;
+      answer?: GwRefusalAnswer;
+      pardons?: Range;
+    } & Range)
+  /** Who holds a sea, from the seat's side. */
+  | { is: "sea_hold"; sea: GwSeaZone; by: "us" | "foe" | "none" };
 
 export type GwWorldEffect =
   /** Germany's plan for the war to come. */
@@ -634,7 +700,44 @@ export type GwWorldEffect =
   /** ww180: a propaganda campaign (engine/ww1914/Propaganda). */
   | { do: "prop"; act: GwPropAct; tag?: GwTag }
   /** ww187: the seat's house is dissolved: closed until its election (GW_ELECTION_DAYS). */
-  | { do: "dissolve" };
+  | { do: "dissolve" }
+  // ---- The peace years and after (ww190, S1) ----
+  /** Tilts the running plan's army or navy share, out of works, relief, national. */
+  | { do: "arms"; line: "army" | "navy"; delta: number }
+  /** The seat's country's bond with `tag`, clamped -3..3. */
+  | { do: "bond"; tag: GwTag; delta: number }
+  /** An accord offered to `tag`: answered next chapter. */
+  | { do: "accord"; kind: GwAccordKind; tag: GwTag }
+  /** The answer to the accord offered to the seat. */
+  | { do: "accord_answer"; yes: boolean }
+  /** An accord of the seat's country ends, with its prices. */
+  | { do: "break_accord"; kind: GwAccordKind; tag?: GwTag }
+  /** The seat's neutral country offers to mediate: answered next chapter. */
+  | { do: "mediate" }
+  /** The seat's country ratifies the treaty, or refuses. */
+  | { do: "ratify"; yes: boolean }
+  /** Demobilisation, 0 hold .. 2 all at once. */
+  | { do: "demob"; level: number }
+  /** After a separate peace: play on, or close with the memoir. */
+  | { do: "play_on"; on: boolean }
+  // ---- Ruling land, the home front, France (ww190, S2) ----
+  /** How the seat's country rules land of `of`; `hard` is a delta, clamped 0..3. */
+  | {
+      do: "rule";
+      of: GwTag;
+      policy?: GwRulePolicy;
+      hard?: number;
+      relief?: boolean;
+      client?: GwClient;
+    }
+  /** Prisoners swapped with `tag`, a tenth each way. */
+  | { do: "exchange"; tag: GwTag }
+  /** A reprisal on `tag`'s prisoners. */
+  | { do: "reprisal"; tag: GwTag }
+  /** The command's answer to the refusals. */
+  | { do: "refusals"; answer: Exclude<GwRefusalAnswer, "none"> }
+  /** The President's review of the sentences. */
+  | { do: "pardon"; many: boolean };
 
 const int = z.number().int();
 const yearMonth = z.string().regex(/^19[0-9]{2}-[01][0-9]$/);
@@ -850,6 +953,56 @@ export const GwWorldCondSchema = z.union([
   is("sits", { id: z.enum(GW_CHAMBERS) }),
   is("dissolved", {}),
   is("flag_now", { flag: z.enum(GW_WORLD_FLAGS) }),
+  is("arming", { tag: tag.optional(), ...range }),
+  is("arms_race", { tag }),
+  is("bond", { tag, ...range }),
+  is("accord", {
+    kind: z.enum(GW_ACCORD_KINDS).optional(),
+    tag: tag.optional(),
+    broken: z.boolean().optional(),
+  }),
+  is("accord_offered", {
+    kind: z.enum(GW_ACCORD_KINDS).optional(),
+    tag: tag.optional(),
+  }),
+  is("courted", { side: z.enum(GW_SIDES).optional(), ...range }),
+  is("mediating", {}),
+  is("ratified", { tag: tag.optional(), no: z.boolean().optional() }),
+  is("after_months", range),
+  is("demob", { tag: tag.optional(), ...range }),
+  is("left_war", range),
+  is("rule", {
+    of: tag.optional(),
+    policy: z.enum(GW_RULE_POLICIES).optional(),
+    client: z.enum(GW_CLIENTS).optional(),
+    ...range,
+  }),
+  is("resist", { of: tag.optional(), ...range }),
+  is("ruled", {
+    by: tag.optional(),
+    policy: z.enum(GW_RULE_POLICIES).optional(),
+    ...range,
+  }),
+  is("relief", { of: tag.optional() }),
+  is("prisoners", {
+    held: z.enum(["ours", "theirs"]),
+    tag: tag.optional(),
+    ...range,
+  }),
+  is("hunger", { tag: tag.optional(), ...range }),
+  is("women_work", range),
+  is("refugees", range),
+  is("flu", range),
+  is("refusals", {
+    tag: tag.optional(),
+    answer: z.enum(GW_REFUSAL_ANSWERS).optional(),
+    pardons: z.object(range).strict().optional(),
+    ...range,
+  }),
+  is("sea_hold", {
+    sea: z.enum(GW_SEA_ZONES),
+    by: z.enum(["us", "foe", "none"]),
+  }),
 ]) as unknown as z.ZodType<GwWorldCond>;
 
 export const GwWorldEffectSchema = z.union([
@@ -953,6 +1106,29 @@ export const GwWorldEffectSchema = z.union([
   act("agent", { id: GwIdSchema.optional() }),
   act("prop", { act: z.enum(GW_PROP_ACTS), tag: tag.optional() }),
   act("dissolve", {}),
+  act("arms", { line: z.enum(["army", "navy"]), delta: int }),
+  act("bond", { tag, delta: int }),
+  act("accord", { kind: z.enum(GW_ACCORD_KINDS), tag }),
+  act("accord_answer", { yes: z.boolean() }),
+  act("break_accord", {
+    kind: z.enum(GW_ACCORD_KINDS),
+    tag: tag.optional(),
+  }),
+  act("mediate", {}),
+  act("ratify", { yes: z.boolean() }),
+  act("demob", { level: int.min(0).max(2) }),
+  act("play_on", { on: z.boolean() }),
+  act("rule", {
+    of: tag,
+    policy: z.enum(GW_RULE_POLICIES).optional(),
+    hard: int.optional(),
+    relief: z.boolean().optional(),
+    client: z.enum(GW_CLIENTS).optional(),
+  }),
+  act("exchange", { tag }),
+  act("reprisal", { tag }),
+  act("refusals", { answer: z.enum(["courts", "rest", "both"]) }),
+  act("pardon", { many: z.boolean() }),
 ]) as unknown as z.ZodType<GwWorldEffect>;
 
 // ---- Authoring helpers ----

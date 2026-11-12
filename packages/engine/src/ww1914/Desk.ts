@@ -91,6 +91,19 @@ export function bodyId(scene: string, variant: string): string {
   return `${scene}.${variant}`;
 }
 
+/** ww190 §2: the most times a drawn scene is dealt in a game, by default. */
+export const GW_REPEAT_MAX = 5;
+/** Papers whose id starts with one of these have no cap: budget, law, house. */
+export const GW_REPEAT_FREE: readonly string[] = ["budget_", "law_", "house_"];
+
+/** Times `scene` was dealt to the seat this game: one body in `shown` a deal. */
+export function timesDealt(seat: GwSeatState, scene: string): number {
+  const head = `${scene}.`;
+  let n = 0;
+  for (const b of seat.shown) if (b.startsWith(head)) n++;
+  return n;
+}
+
 interface Recent {
   bodies: ReadonlySet<string>;
   scenes: ReadonlySet<string>;
