@@ -13,11 +13,13 @@ import { GW_VOICE_NOTES } from "@openfront/engine-lib/ww1914/content/people";
 import { GW_VOICE_NOTES_COMMON } from "@openfront/engine-lib/ww1914/content/people_common";
 import {
   FRA_PEOPLE,
+  FRA_POSTS,
   FRA_SEAT_PERSON,
   FRA_SUMMONED,
   FRA_VOICE_NOTES,
 } from "@openfront/engine-lib/ww1914/content/people_fra";
 import { RUS_VOICE_NOTES } from "@openfront/engine-lib/ww1914/content/people_rus";
+import { SPY_PEOPLE } from "@openfront/engine-lib/ww1914/content/people_spies";
 import {
   FRA_PRIVATE_PEOPLE,
   FRA_PRIVATE_VOICE_NOTES,
@@ -40,6 +42,10 @@ const pack = (file: string): GwPack =>
 const people = gwContent().people;
 const ids = new Set(people.map((p) => p.id));
 const french = people.filter((p) => p.tag === "FRA");
+// ww173 spy chiefs and ww179 vacancy names: French, but no speaking part.
+const silent = new Set(
+  [...FRA_POSTS, ...SPY_PEOPLE.filter((p) => p.tag === "FRA")].map((p) => p.id),
+);
 const voice = (id: string) =>
   FRA_VOICE_NOTES[id] ??
   FRA_PRIVATE_VOICE_NOTES[id] ??
@@ -51,7 +57,7 @@ describe("France's cast", () => {
   test("every person is well formed, named once, and in the game's content", () => {
     expect(ids.size).toBe(people.length);
     expect(french.length).toBe(
-      FRA_PEOPLE.length + 8 + FRA_PRIVATE_PEOPLE.length,
+      FRA_PEOPLE.length + 8 + FRA_PRIVATE_PEOPLE.length + silent.size,
     );
     for (const p of FRA_PEOPLE) {
       GwPersonDefSchema.parse(p);
@@ -145,7 +151,9 @@ describe("France's cast", () => {
     const own = pack("FRA.people.json");
     for (const p of french) {
       expect(p.source.length, p.id).toBeGreaterThan(20);
-      expect(voice(p.id)?.length ?? 0, p.id).toBeGreaterThan(20);
+      if (!silent.has(p.id)) {
+        expect(voice(p.id)?.length ?? 0, p.id).toBeGreaterThan(20);
+      }
       const text = own.people[p.id] ?? merged.people[p.id];
       expect(text?.name, p.id).toBeTruthy();
       expect(text?.lean, p.id).toBeTruthy();

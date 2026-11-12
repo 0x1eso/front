@@ -102,10 +102,14 @@ describe("diplomacy L0: the lists", () => {
   test("the four orders are appended after the battle planner's (after template_auto), in DIPLO_ORDER_KINDS order", () => {
     const kinds = kindsOf();
     // ww162 release: the battle planner's nine came first, ending in
-    // group_fallback; the diplomacy's four follow, and nothing after them.
+    // group_fallback; the diplomacy's four follow.
     const at = kinds.indexOf("group_fallback");
     expect(at).toBe(kinds.indexOf("template_auto") + 9);
-    expect(kinds.length).toBe(at + 1 + DIPLO_ORDER_KINDS.length);
+    // ww177 (Imjin) appended its two orders after them; nothing else since.
+    expect(kinds.slice(at + 1 + DIPLO_ORDER_KINDS.length)).toEqual([
+      "imjin_fleet",
+      "imjin_battle",
+    ]);
     expect(kinds.slice(at + 1, at + 1 + DIPLO_ORDER_KINDS.length)).toEqual([
       ...DIPLO_ORDER_KINDS,
     ]);

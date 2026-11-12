@@ -51,11 +51,15 @@ describe("Austria's last pass", () => {
     }
   });
 
-  it("the empire can't dissolve before mid-1917", () => {
-    const dated = leaves(scene("auh_k_new_form").when).filter(
-      (c) => c.kind === "world" && c.of.is === "date",
+  // Since ww170 RA the new form comes by state (unrest, the nations), not
+  // by a date: the owner's "the state calls scenes".
+  it("the empire's new form comes by its unrest, not a date", () => {
+    const leafs = leaves(scene("auh_k_new_form").when);
+    const dated = leafs.filter((c) => c.kind === "world" && c.of.is === "date");
+    expect(dated).toEqual([]);
+    expect(leafs.some((c) => c.kind === "world" && c.of.is === "unrest")).toBe(
+      true,
     );
-    expect(dated.length).toBe(1);
   });
 
   it("the funeral's voices belong to the shot", () => {

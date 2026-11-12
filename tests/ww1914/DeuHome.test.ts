@@ -61,7 +61,8 @@ describe("the home share of Germany", () => {
 
   test("the plan's counts, and Ballin's one line", () => {
     const n = (p: string) => scenes.filter((s) => s.id.startsWith(p)).length;
-    expect(n("deu_h_")).toBe(28);
+    // deu_h_ballin_record went in f17a62327 (only its date stood behind it).
+    expect(n("deu_h_")).toBe(27);
     expect(n("deu_t2_")).toBe(24);
     expect(n("deu_v2_")).toBe(5);
   });

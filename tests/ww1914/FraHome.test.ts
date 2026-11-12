@@ -56,7 +56,9 @@ describe("the home share of France", () => {
   test("the plan's counts", () => {
     const n = (p: string) => scenes.filter((s) => s.id.startsWith(p)).length;
     // 26 desk scenes of plan §7 and the top of the ladder.
-    expect(n("fra_h_")).toBe(27);
+    // and the four autumn-desk papers of 1458e52b3 (army post, Caillaux
+    // back, coal for the cities, first winter).
+    expect(n("fra_h_")).toBe(31);
     expect(n("fra_big_")).toBe(1);
     expect(n("fra_t_")).toBe(24);
     expect(n("fra_v_")).toBe(5);

@@ -119,6 +119,9 @@ describe("Britain, as played to the end", () => {
     const when = sceneOf("gbr_f_neutral_line").when!;
     const ctx = { gw, seat: st, cast: {} };
     gw.s.chapter = 7;
+    // Since ww170 RG the card asks the war's age (its first four months),
+    // not the chapter: the war is on from this chapter.
+    gw.s.warChapter = 7;
     gw.nation("FRA")!.side = "entente";
     st.flags.push("f_stand_france");
     expect(holds(ctx, when)).toBe(false);

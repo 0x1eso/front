@@ -1,6 +1,7 @@
 import { GameMapSize, GameMapType } from "@openfront/engine-api/game/GameTypes";
 import type { MapFiles } from "@openfront/engine-api/game/MapFiles";
 import type { GwBattle } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
 import {
   RUS_ACTS,
   RUS_AIMS,
@@ -55,12 +56,25 @@ describe("the breakthrough night", () => {
     luck: 0,
   });
 
-  const at = async (id: string, y: number, m: number, foes: string[]) => {
+  // Since ww170 RG the night waits on our own war's age (a year and more),
+  // not on 1916: `since` is the month Russia came in.
+  const at = async (
+    id: string,
+    y: number,
+    m: number,
+    foes: string[],
+    since: readonly [number, number] = [1914, 8],
+  ) => {
     const { gw, st } = await russia(id);
-    gw.s.day = daysFromCivil(y, m, 15);
+    const rows = gwChapters(gw.s.calendar);
+    const chapterAt = (yy: number, mm: number) =>
+      rows.findIndex((c) => c.day >= daysFromCivil(yy, mm, 1));
+    gw.s.chapter = chapterAt(y, m);
+    gw.s.day = rows[gw.s.chapter].day;
     const n = gw.nation("RUS")!;
     n.side = "entente";
     n.atWar = foes as never;
+    n.entered = chapterAt(since[0], since[1]);
     return { gw, ctx: { gw, seat: st, cast: {} } };
   };
 
@@ -80,7 +94,8 @@ describe("the breakthrough night", () => {
     }
     gw.s.battles.push(push("break", "central"));
     expect(holds(ctx, scene.when!)).toBe(false);
-    const late = await at("rus_lutsk_late", 1917, 6, ["AUH"]);
+    // Too early in our own war: in since January, five months on.
+    const late = await at("rus_lutsk_late", 1917, 6, ["AUH"], [1917, 1]);
     late.gw.s.battles.push(push("break", "entente"));
     expect(holds(late.ctx, scene.when!)).toBe(false);
     const noAustria = await at("rus_lutsk_deu", 1916, 6, ["DEU"]);

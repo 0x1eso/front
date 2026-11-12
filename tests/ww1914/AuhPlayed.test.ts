@@ -45,8 +45,13 @@ describe("what an Austrian run on the screen showed", () => {
     s.temp = 8;
     crisisStep(gw);
     expect(s.chain?.step).toBe(5);
+    // Since ww176 a later spark's top link ends in a note between the
+    // topic's pair (Crises.sparkNote), never in a war of its own.
+    const notes = s.ladders.length;
     crisisStep(gw);
-    expect(s.warChapter).not.toBeNull();
+    expect(s.chain).toBeNull();
+    expect(s.warChapter).toBeNull();
+    expect(s.ladders.length).toBeGreaterThanOrEqual(notes);
   });
 
   test("a later spark brings Vienna a paper that can end it, at a price", async () => {

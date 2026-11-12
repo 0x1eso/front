@@ -7,6 +7,7 @@ import {
 import { GW_CONTENT } from "@openfront/engine-lib/ww1914/content/Content";
 import {
   RUS_PEOPLE,
+  RUS_POSTS,
   RUS_SEAT_PERSON,
   RUS_SUMMONED,
   RUS_VOICE_NOTES,
@@ -91,7 +92,10 @@ describe("Russia's cast", () => {
       expect(people[p.id]?.bio, p.id).toBeDefined();
     }
     expect(Object.keys(RUS_VOICE_NOTES).length).toBe(RUS_PEOPLE.length);
-    expect(Object.keys(people).length).toBe(RUS_PEOPLE.length);
+    // ww179: the vacancy names (RUS_POSTS) have their name, lean and bio here too.
+    expect(Object.keys(people).length).toBe(
+      RUS_PEOPLE.length + RUS_POSTS.length,
+    );
   });
 
   test("a Russian seat's pack loads with the cast in it", async () => {

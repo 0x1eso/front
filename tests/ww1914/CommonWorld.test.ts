@@ -8,6 +8,7 @@ import {
   gwSceneProblems,
 } from "@openfront/engine-api/ww1914/SceneDsl";
 import { GW_WORLD2_SCENES } from "@openfront/engine-lib/ww1914/content/scenes/gw_world2";
+import { WORLD_SCENES } from "@openfront/engine-lib/ww1914/content/scenes/world";
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
@@ -30,9 +31,13 @@ describe("common share: world", () => {
   });
 
   test("the pack holds every line and nothing more", () => {
-    expect(gwPackProblems(scenes, pack)).toEqual([]);
+    // ww173 S7b keeps the common text of its offensive card (world.ts) here.
+    const offensive = WORLD_SCENES.filter((s) => s.id === "gw_offensive_seen");
+    expect(offensive).toHaveLength(1);
+    const all = [...scenes, ...offensive];
+    expect(gwPackProblems(all, pack)).toEqual([]);
     expect(Object.keys(pack.scenes).sort()).toEqual(
-      scenes.map((s) => s.id).sort(),
+      all.map((s) => s.id).sort(),
     );
   });
 
