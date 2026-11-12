@@ -58,13 +58,24 @@ const calmed: GwEffect = {
   when: world({ is: "unrest", min: 1 }),
   then: [doWorld({ do: "calm", key: "visit_calmed" })],
 };
-const visit = (id: string, when: GwCond, effects: GwEffect[] = []): GwAct =>
-  act(id, "visit", `${id}_s`, 0, { when, cooldown: VISIT_REST, effects });
+const visit = (
+  id: string,
+  when: GwCond,
+  effects: GwEffect[] = [],
+  trip = false,
+): GwAct =>
+  act(id, "visit", `${id}_s`, 0, {
+    when,
+    cooldown: VISIT_REST,
+    effects,
+    ...(trip ? { trip } : {}),
+  });
 
 const VISITS: GwAct[] = [
   visit("rus_a_v_putilov", reign, [see("shells")]),
   visit("rus_a_v_tula", reign, [see("shells")]),
-  visit("rus_a_v_northwest", inWar, [see("force", "east")]),
+  // ww193: the far fronts are trips: two of the time, the room shut.
+  visit("rus_a_v_northwest", inWar, [see("force", "east")], true),
   visit(
     "rus_a_v_galicia",
     all(
@@ -72,11 +83,13 @@ const VISITS: GwAct[] = [
       world({ is: "front", theatre: "east", from: "oder", to: "east_prussia" }),
     ),
     [see("morale")],
+    true,
   ),
   visit(
     "rus_a_v_caucasus",
     all(inWar, world({ is: "open", theatre: "caucasus" })),
     [see("force", "caucasus")],
+    true,
   ),
   visit("rus_a_v_sevastopol", reign, [see("force", "sea")]),
   visit("rus_a_v_kronstadt", reign, [see("morale")]),
@@ -119,7 +132,10 @@ const toneField = (who: string, tones: ("warm" | "frank" | "threat")[]) => ({
   })),
 });
 
-const atWarWith = (tag: "DEU" | "BGR"): GwCond => ({ kind: "at_war", tag });
+const atWarWith = (tag: "DEU" | "BGR" | "ROU" | "GRC"): GwCond => ({
+  kind: "at_war",
+  tag,
+});
 
 const LETTERS: GwAct[] = [
   act("rus_a_l_willy", "letter", "rus_a_l_willy_r", 1, {
@@ -180,6 +196,37 @@ const LETTERS: GwAct[] = [
       { id: "subject", options: [{ id: "brothers" }, { id: "macedonia" }] },
     ],
   }),
+  // ww193 #2: cousins on neutral thrones; the foreign office drafts the tone.
+  act("rus_a_l_marie", "letter", "rus_a_l_marie_r", 1, {
+    when: all(
+      reign,
+      not(atWarWith("ROU")),
+      not(world({ is: "out", tag: "ROU" })),
+    ),
+    cooldown: 3,
+    fields: [
+      {
+        id: "subject",
+        options: [{ id: "join", when: war }, { id: "grain" }, { id: "family" }],
+      },
+      toneField("rou_marie", ["warm", "frank", "threat"]),
+    ],
+  }),
+  act("rus_a_l_tino", "letter", "rus_a_l_tino_r", 1, {
+    when: all(
+      reign,
+      not(atWarWith("GRC")),
+      world({ is: "neutral", tag: "GRC" }),
+    ),
+    cooldown: 3,
+    fields: [
+      {
+        id: "subject",
+        options: [{ id: "stay_out" }, { id: "family" }],
+      },
+      toneField("grc_constantine", ["warm", "frank", "threat"]),
+    ],
+  }),
   act("rus_a_l_subject", "letter", "rus_a_l_subject_r", 1, {
     when: reign,
     cooldown: 2,
@@ -213,17 +260,6 @@ const ORDERS: GwAct[] = [
         options: [{ id: "bread" }, { id: "shells" }, { id: "duma" }],
       },
       { id: "attend", people: "cabinet", count: 2 },
-    ],
-  }),
-  act("rus_a_o_figures", "order", "rus_a_o_figures_s", 1, {
-    when: reign,
-    cooldown: 4,
-    effects: [see("shells")],
-    fields: [
-      {
-        id: "subject",
-        options: [{ id: "shells" }, { id: "bread" }, { id: "rails" }],
-      },
     ],
   }),
   act("rus_a_o_envoy", "order", "rus_a_o_envoy_s", 2, {
@@ -508,12 +544,44 @@ const INTRIGUES: GwAct[] = [
   }),
 ];
 
+/** ww193: 의식. Their cards are in content/depts/rus.ts. */
+const CEREMONIES: GwAct[] = [
+  act("rus_a_c_st_george", "ceremony", "rus_a_c_st_george_s", 0, {
+    when: inWar,
+    cooldown: 6,
+    fields: [
+      {
+        id: "place",
+        options: [
+          { id: "hall", tell: ["court:+1"], effects: [inst("court", 1)] },
+          { id: "stavka", tell: ["stavka:+1"], effects: [inst("stavka", 1)] },
+        ],
+      },
+    ],
+    tell: ["army:+1"],
+    effects: [opinion("army", 1)],
+  }),
+  act("rus_a_c_panikhida", "ceremony", "rus_a_c_panikhida_s", 0, {
+    when: all(inWar, world({ is: "war_months", own: true, min: 2 })),
+    cooldown: 8,
+    tell: ["morale:+1"],
+    effects: [gauge("morale", 1)],
+  }),
+  act("rus_a_c_icon", "ceremony", "rus_a_c_icon_s", 0, {
+    when: inWar,
+    cooldown: 6,
+    tell: ["army:+1", "court:+1"],
+    effects: [opinion("army", 1), opinion("court", 1)],
+  }),
+];
+
 export const RUS_ACTS: readonly GwAct[] = [
   ...VISITS,
   ...LETTERS,
   ...ORDERS,
   ...SPEECHES,
   ...INTRIGUES,
+  ...CEREMONIES,
 ];
 
 const inPeace = not(war);

@@ -108,10 +108,12 @@ describe("russia's schedule", () => {
   test("the brief's counts", () => {
     const count = (k: string) => RUS_ACTS.filter((a) => a.kind === k).length;
     expect(count("visit")).toBe(14);
-    expect(count("letter")).toBe(6);
-    expect(count("order")).toBe(8);
+    // ww193: two cousins' letters; 숫자 조사 went to the war ministry's tasks.
+    expect(count("letter")).toBe(8);
+    expect(count("order")).toBe(7);
     expect(count("speech")).toBe(6);
     expect(count("intrigue")).toBe(6);
+    expect(count("ceremony")).toBe(3);
     expect(RUS_AIMS).toHaveLength(6);
   });
 
