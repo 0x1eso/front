@@ -184,9 +184,20 @@ export function applyGwOrder(
         feint: o.feint,
         quiet: o.quiet,
       };
-      const no = signOffensivePaper(gw, seat, paper.id, paper.main, pick, true);
-      if (no !== null) return no;
-      signOffensivePaper(gw, seat, paper.id, paper.main, pick);
+      // Only the great offensive's own papers go through its file: a plain
+      // plan of the chief's has no offensive behind it (ww187 merge fix).
+      if (GW_OFFENSIVE_PAPERS.includes(paper.id)) {
+        const no = signOffensivePaper(
+          gw,
+          seat,
+          paper.id,
+          paper.main,
+          pick,
+          true,
+        );
+        if (no !== null) return no;
+        signOffensivePaper(gw, seat, paper.id, paper.main, pick);
+      }
       seat.signed = gw.s.chapter;
       seat.alloc = {
         main: paper.main,

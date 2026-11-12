@@ -43,9 +43,15 @@ export function dissolvedNow(gw: GreatWar, seat: GwSeatState): boolean {
   return d !== undefined && gw.s.day - d < GW_ELECTION_DAYS;
 }
 
-/** A chamber of the seat's house sits now; false with no such chamber. */
+/**
+ * A chamber of the seat's house sits now; false with no such chamber. A
+ * content with no house for the seat at all (a test's small world) has
+ * nothing that could shut it but a dissolution.
+ */
 export function sitsNow(ctx: SceneCtx, id: GwChamber): boolean {
-  const c = houseRow(ctx.seat.tag)?.chambers.find((x) => x.id === id);
+  const row = houseRow(ctx.seat.tag);
+  if (row === null) return !dissolvedNow(ctx.gw, ctx.seat);
+  const c = row.chambers.find((x) => x.id === id);
   return c !== undefined && chamberSits(ctx, c);
 }
 
