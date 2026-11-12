@@ -50,6 +50,7 @@ describe("the papers through a whole game on the real map", () => {
       const seen = new Set<string>();
       let chapters = 0;
       let lowest = 9;
+      let war = false;
       await playRun(
         map,
         `press-${tag}`,
@@ -69,6 +70,7 @@ describe("the papers through a whole game on the real map", () => {
             ).toBeDefined();
           }
           stories.add(e!.story);
+          war = war || gw.nation(tag)!.atWar.length > 0;
           chapters++;
           for (const b of blocViews(gw, seat)) {
             seen.add(`${b.id}:${b.support}`);
@@ -77,7 +79,11 @@ describe("the papers through a whole game on the real map", () => {
         },
       );
       expect(chapters).toBeGreaterThan(10);
-      expect(stories.size).toBeGreaterThan(Math.min(12, chapters / 3));
+      // A run that keeps the peace has no war stories: since Vienna signs
+      // July itself, Austria's bot run here never goes to war (long_peace).
+      expect(stories.size).toBeGreaterThan(
+        Math.min(12, chapters / (war ? 3 : 4)),
+      );
       expect(seen.size).toBeGreaterThan(12);
       expect(lowest).toBeGreaterThanOrEqual(-5);
       expect(GW_BLOC_AGAINST).toBe(-3);

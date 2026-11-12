@@ -866,6 +866,9 @@ describe("terms offered first", () => {
     gw.nation("DEU")!.side = "central";
     const rus = gw.nation("RUS")!;
     rus.side = "entente";
+    // Since ww171 peace is asked only of a country we are at war with.
+    gw.nation("DEU")!.atWar = ["RUS"];
+    rus.atWar = ["DEU"];
     s.terms.push({
       tag: "RUS",
       give: [],

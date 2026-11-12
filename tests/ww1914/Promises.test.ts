@@ -33,9 +33,11 @@ describe("promises come back", () => {
     }
   });
 
-  test("a promise with no return can't break: its keep ends in a date", () => {
+  // Since ww170 RD a keep may end by the state's own clock (months of peace
+  // or of war) rather than a chapter: either way it can't hang for ever.
+  test("a promise with no return can't break: its keep ends in time", () => {
     const dated = (c: unknown): boolean =>
-      JSON.stringify(c).includes("chapter");
+      /chapter|peace_months|war_months/.test(JSON.stringify(c));
     for (const { scene, promise } of everyPromise()) {
       if (promise.back !== undefined) continue;
       // The other countries' keepers can lapse: the person comes back with

@@ -19,7 +19,8 @@ const pack = GwPackSchema.parse(
 
 describe("common scenes, the neutrals' share", () => {
   test("the plan's count, every id gw_o_", () => {
-    expect(GW_NEUTRAL_SCENES).toHaveLength(35);
+    // gw_o_prt_ships went in f17a62327 (only its date stood behind it).
+    expect(GW_NEUTRAL_SCENES).toHaveLength(34);
     for (const s of GW_NEUTRAL_SCENES) expect(s.id).toMatch(/^gw_o_/);
   });
 

@@ -64,7 +64,7 @@ describe("common share: frame", () => {
     expect(card.options).toBeUndefined();
   });
 
-  test("the six common endings have a paragraph, under the countries' own", () => {
+  test("the common endings have a paragraph, under the countries' own", () => {
     // common.json loads before a country's file, so a country's own wins.
     const common = GwPackSchema.parse(
       JSON.parse(
@@ -81,6 +81,12 @@ describe("common share: frame", () => {
       "deadline",
       "home_collapse",
       "long_peace",
+      // ww172 s5: occupation and the bilateral table's own endings.
+      "occupation_held",
+      "pair_war_lost",
+      "pair_war_won",
+      "separate_peace",
+      "under_occupation",
       "victory_peace",
     ]);
   });

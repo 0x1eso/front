@@ -24,9 +24,12 @@ beforeAll(() => useGwContent(FOUNDATION_CONTENT));
 afterAll(() => useGwContent(null));
 
 describe("the config key", () => {
-  test("is the last of the schema but its own lists", () => {
+  test("is the last of the schema but its own lists and later modes' keys", () => {
     const keys = Object.keys(GameConfigSchema.shape);
-    expect(keys.slice(-6)).toEqual([
+    // The 1936 scenario and Imjin's calendar were appended after (other
+    // modes' keys); the Great War's six stay together, in order.
+    const at = keys.indexOf("greatWar1914");
+    expect(keys.slice(at, at + 6)).toEqual([
       "greatWar1914",
       "greatWar1914Calendar",
       "greatWar1914Recent",
@@ -34,6 +37,7 @@ describe("the config key", () => {
       "greatWar1914Prologue",
       "greatWar1914Pace",
     ]);
+    expect(keys.slice(at + 6)).toEqual(["ww1936Scenario", "imjinCalendar"]);
   });
 
   test("off: the very object comes back", () => {

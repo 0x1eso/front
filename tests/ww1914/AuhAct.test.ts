@@ -2,6 +2,7 @@ import { GameMapSize, GameMapType } from "@openfront/engine-api/game/GameTypes";
 import type { MapFiles } from "@openfront/engine-api/game/MapFiles";
 import type { GwBattle } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { gwSceneProblems } from "@openfront/engine-api/ww1914/SceneDsl";
+import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
 import {
   AUH_ACT_SCENES,
   AUH_ACTS,
@@ -137,10 +138,18 @@ describe("Austria's own moves and story", () => {
   /** A game in `month`, at war with Russia, the last battle in the east as given. */
   async function inTheWar(month: [number, number], battle?: Partial<GwBattle>) {
     const { gw, seat } = await firstGame(`auh_war_${month.join("_")}`);
+    // Since ww170 RA these cards ask the war's age, not the year: the war
+    // began in August 1914, and this chapter is `month`.
+    const rows = gwChapters(gw.s.calendar);
+    const at = (y: number, m: number) =>
+      rows.findIndex((c) => c.day >= daysFromCivil(y, m, 1));
+    gw.s.chapter = at(month[0], month[1]);
     gw.s.day = daysFromCivil(month[0], month[1], 15);
+    gw.s.warChapter = at(1914, 8);
     const n = gw.nation("AUH")!;
     n.side = "central";
     n.atWar = ["RUS"];
+    n.entered = gw.s.warChapter;
     if (battle !== undefined) {
       gw.s.battles.push({
         theatre: "east",

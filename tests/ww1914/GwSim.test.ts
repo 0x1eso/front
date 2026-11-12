@@ -93,7 +93,8 @@ describe("the N-run report", () => {
   });
 
   test("the bot signs the chief of staff's papers through the war", async () => {
-    useScenes(content());
+    // The real scenes: on the small fixture all six games now end in a long
+    // peace, with no war and so no paper to sign.
     const ids = ["GWP0", "GWP1", "GWP2", "GWP3", "GWP4", "GWP5"];
     const profile = GW_SIM_PROFILES[0];
     const games: GwRunRecord[] = [];

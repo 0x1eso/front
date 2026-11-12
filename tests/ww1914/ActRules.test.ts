@@ -44,6 +44,12 @@ const NOTED = new Set([
   "w:calm",
 ]);
 
+/**
+ * The secret war's picks (ww173 spies and agents, ww180 the navy's ears and
+ * propaganda) report on the 정보부 tab, which shows what each one did.
+ */
+const OWN_TAB = new Set(["w:spy", "w:naval", "w:agent", "w:prop"]);
+
 function real(list: readonly GwEffect[] | undefined): boolean {
   return (list ?? []).some((e) => {
     if (e.kind === "maybe") return real(e.then);
@@ -125,7 +131,7 @@ describe("the schedule's content", () => {
       }
     }
     const silent = [...used].filter(
-      (k) => !NOTED.has(k) && !TEXT.has(k) && k !== "flag",
+      (k) => !NOTED.has(k) && !TEXT.has(k) && !OWN_TAB.has(k) && k !== "flag",
     );
     expect(silent).toEqual([]);
   });

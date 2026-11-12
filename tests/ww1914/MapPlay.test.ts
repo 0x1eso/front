@@ -87,6 +87,9 @@ describe("a general sent to a front", () => {
     const gw = runner.game.greatWar()!;
     gw.nation("DEU")!.side = "central";
     gw.nation("RUS")!.side = "entente";
+    // Since ww171 a front's members are those at war (Wars.membersOf).
+    gw.nation("DEU")!.atWar = ["RUS"];
+    gw.nation("RUS")!.atWar = ["DEU"];
     const t = gw.s.theatres.find((x) => x.id === "east")!;
     t.open = true;
     t.since = gw.s.chapter;

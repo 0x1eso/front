@@ -5,6 +5,7 @@ import { proposalsFor } from "@openfront/engine/ww1914/Fronts";
 import type { GreatWar } from "@openfront/engine/ww1914/GreatWar";
 import { runEffect, sceneOf } from "@openfront/engine/ww1914/SceneRun";
 import { GW_WAR_ORDERS } from "@openfront/engine/ww1914/Tables";
+import { declareWar } from "@openfront/engine/ww1914/Wars";
 import { describe, expect, test } from "vitest";
 import { gwRunner, playChapter, seat } from "./util";
 
@@ -57,6 +58,9 @@ describe("the shares on the world", () => {
 
   test("a retreat signed moves the line back before the guns", async () => {
     const { runner, gw } = await warAt(5, "GWI3", "west");
+    // Since ww171 July's war is Vienna's; Germany comes in by its own
+    // signature (treaty_calls). Here it does: the west is its front.
+    declareWar(gw, "DEU", "FRA", "test");
     playChapter(runner);
     const s = gw.s.seats[0];
     const west = gw.s.theatres.find((t) => t.id === "west")!;

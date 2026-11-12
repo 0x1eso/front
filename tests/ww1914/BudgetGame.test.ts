@@ -43,7 +43,10 @@ describe("a whole game on the real map", () => {
           (gw) => {
             const b = gw.nation(tag)!.budget;
             // The months after an armistice have no budgets: count the war.
-            if (gw.s.armistice === null) year = civilFromDays(gw.s.day).year;
+            if (gw.s.armistice === null) {
+              const d = civilFromDays(gw.s.day);
+              year = d.year * 100 + d.month;
+            }
             war = war || gw.nation(tag)!.atWar.length > 0;
             if (b.lastChapter !== lastSeen) {
               lastSeen = b.lastChapter;
@@ -53,7 +56,9 @@ describe("a whole game on the real map", () => {
             prices = b.prices;
           },
         );
-        if (year < 1917 || !war) continue;
+        // Past 1916 means past 1917's budget, laid in February: a game that
+        // ends in January 1917 (budget-RUS-1, a palace coup) never met it.
+        if (year < 191702 || !war) continue;
         expect(signed).toBeGreaterThanOrEqual(3);
         expect(debt).toBeGreaterThan(budgetRow(tag).debt);
         expect(prices).toBeGreaterThan(1000);
