@@ -42,7 +42,8 @@ export function moveLand(
   const smallID = gw.world.tags.indexOf(to) + 1;
   if (id === undefined || smallID === 0 || from === to) return;
   const player = gw.mg.playerBySmallID(smallID);
-  if (!player.isPlayer()) return;
+  // ww199: an old save has no player for a new state.
+  if (player === undefined || !player.isPlayer()) return;
   gw.scenario.ensureRegionTiles(gw.mg.map());
   // ww179: the place's whole cell goes with it (Cells.ts).
   for (const region of placeCells(gw).get(place) ?? [id]) {

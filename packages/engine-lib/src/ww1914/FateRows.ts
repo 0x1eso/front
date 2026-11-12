@@ -317,3 +317,10 @@ export const GW_AI_FATES: Readonly<
     vassal: false,
   },
 };
+
+/** The partner that wanted the same state: the bond suffers (Poland, 1916). */
+export const GW_RIVAL_CLAIMS: Readonly<
+  Partial<Record<GwClient, readonly [GwTag, GwTag]>>
+> = {
+  poland: ["DEU", "AUH"],
+};

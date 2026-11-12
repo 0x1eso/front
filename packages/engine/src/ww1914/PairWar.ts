@@ -23,6 +23,7 @@ import {
 } from "@openfront/engine-lib/ww1914/content/ladder";
 import { GW_TABLE_AIMS } from "@openfront/engine-lib/ww1914/TableRows";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
+import { cutFrom, revancheOf } from "./Fate";
 import { pairScore } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import {
@@ -282,6 +283,9 @@ export function peaceWill(gw: GreatWar, tag: GwTag, foe: GwTag): number {
   else if (worn >= STRAIN_WORN) will += 15;
   will -= Math.floor(pairScore(gw, tag, foe) / 2);
   will += { cautious: 15, opportunist: 10, principled: 0, hardline: -15 }[n.ai];
+  // ww199: a state the foe founded on its land (the Act of 5 November)
+  // makes a separate peace harder.
+  if (cutFrom(gw, foe, tag)) will -= 20;
   return will;
 }
 
@@ -429,7 +433,10 @@ export function warCase(gw: GreatWar, from: GwTag, to: GwTag): number {
   const aims = (GW_TABLE_AIMS[from] ?? []).filter(
     (p) => holderOf(gw, p) === to || GW_PLACES[p].owner === to,
   ).length;
-  let score = Math.min(36, aims * 12);
+  // ww199: places it lost by annexation or to the other's state or vassal
+  // count as aims do (revanche), within ten years.
+  const lost = revancheOf(gw, from, to);
+  let score = Math.min(36, aims * 12 + lost * 12);
   if ((n.trust[to] ?? 0) <= -2) score += 15;
   const balkan = ["SRB", "BGR", "GRC", "ROU", "MNE", "OTT", "AUH"];
   if (balkan.includes(from) && balkan.includes(to)) {

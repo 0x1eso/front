@@ -19,7 +19,7 @@ import { warScore } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { hasLandGraph } from "./Occupation";
 import { STRAIN_WORN, worstStrain } from "./Strain";
-import { closeTable, tableStart } from "./Table";
+import { closeTable, conferenceOpened, tableStart } from "./Table";
 import { GW_BEATEN, GwBeaten } from "./Tables";
 import { leaveWar } from "./Wars";
 import {
@@ -295,6 +295,8 @@ export function skipToConference(gw: GreatWar): void {
   s.conferenceLeft = CONFERENCE_CHAPTERS + GW_AFTER_CHAPTERS;
   s.chapter = last - 1;
   s.table = tableStart(gw);
+  // ww199: the victors' foreign offices draft the fates; their rulers' cards.
+  conferenceOpened(gw);
   // The war's papers stop with it; the jump mustn't bring them all at once.
   for (const seat of s.seats) {
     seat.scheduled = seat.scheduled.filter((q) => {

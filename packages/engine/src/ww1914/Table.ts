@@ -11,6 +11,7 @@ import {
   GwSide,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
+import type { GwFateMark } from "@openfront/engine-api/ww1914/GwFate";
 import type { GwOrderBlock } from "@openfront/engine-api/ww1914/GwOrders";
 import {
   GW_PLACE_KEYS,
@@ -28,6 +29,9 @@ import {
   GwTableView,
   GwTableWord,
 } from "@openfront/engine-api/ww1914/GwTable";
+import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
+import { GW_FATE_TERM_DAYS } from "@openfront/engine-lib/ww1914/FateRows";
+import { GW_CAPITALS } from "@openfront/engine-lib/ww1914/PlaceRules";
 import {
   GW_TABLE_AIMS,
   GW_TABLE_CAPITALS,
@@ -38,7 +42,18 @@ import {
   GW_TABLE_SESSIONS,
 } from "@openfront/engine-lib/ww1914/TableRows";
 import { claimsHeld } from "./Claims";
-import { signWays } from "./Fate";
+import { giveSettle } from "./Departments";
+import {
+  aiFate,
+  aiPartnerWord,
+  applyClaim,
+  applyVassals,
+  crownsAfter,
+  markOf,
+  recordOf,
+  signWays,
+  undoForLosers,
+} from "./Fate";
 import { warScore } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { holderOf, moveLand } from "./Land";
@@ -50,6 +65,7 @@ import {
   monthsHeld,
 } from "./Occupation";
 import { sessionsLeft } from "./Peace";
+import { moveBond } from "./PeaceYears";
 import { promiseCost } from "./Spies";
 import { weariness } from "./Terms";
 import {
@@ -124,6 +140,8 @@ const TRADER_WORTH = 6;
 const OFFERS_MOST = 2;
 /** The most a bill takes off the money gauge. */
 const BILL_MOST = 3;
+/** ww199: what signing with reservations costs at home. */
+const RESERVE_AUTHORITY = 5;
 
 /**
  * Where a country sits. At the conference its coalition; at a bilateral table
@@ -133,7 +151,9 @@ const BILL_MOST = 3;
 function sideOf(gw: GreatWar, tag: GwTag): GwSide | null {
   const p = gw.s.table?.pair;
   if (p !== undefined) {
-    return tag === p.a ? "central" : tag === p.b ? "entente" : null;
+    // ww199: a capitulation table's other victors sit with the first chair.
+    if (tag === p.a || p.with?.includes(tag) === true) return "central";
+    return tag === p.b ? "entente" : null;
   }
   return gw.nation(tag)?.side ?? null;
 }
@@ -221,6 +241,7 @@ const openClaim = (t: GwTableState) => t.claims.find((c) => c.state === "open");
 
 /** Who has to speak on a claim. */
 function dueBy(c: GwTableClaim): GwTag {
+  if (c.step === "partner") return c.partner ?? c.against;
   if (c.step === "refused") return c.by;
   if (c.step === "offered") return c.offerBy === c.by ? c.against : c.by;
   return c.against;
@@ -381,6 +402,10 @@ function tradesFor(gw: GreatWar, c: GwTableClaim): GwTableTrade[] {
 function wordsFor(c: GwTableClaim, tag: GwTag): GwTableWord[] {
   const offers = c.offers < OFFERS_MOST;
   if (dueBy(c) !== tag) return [];
+  // ww199: a partner's word comes first: give way, found it together, hold.
+  if (c.step === "partner") {
+    return c.fate === "state" ? ["yield", "joint", "hold"] : ["yield", "hold"];
+  }
   if (tag === c.against) {
     if (c.step === "offered") return ["yes", "no"];
     return offers ? ["yes", "no", "offer"] : ["yes", "no"];
@@ -424,7 +449,8 @@ function resultLines(
 function give(gw: GreatWar, c: GwTableClaim, state: "agreed" | "imposed") {
   const t = gw.s.table!;
   c.state = state;
-  moveLand(gw, c.place, c.by, null, "table");
+  // ww199: the place goes as its fate says (Fate.applyClaim).
+  applyClaim(gw, c);
   resultLines(gw, c, state === "agreed" ? "ceded" : "imposed");
   if (state === "agreed") say(t, "yes", c.against, c.id);
   else say(t, "impose", c.by, c.id);
@@ -507,6 +533,20 @@ function word(
       say(t, "drop", tag, c.id);
       resultLines(gw, c, "dropped");
       return;
+    // ww199: the partner's word, then the holder's as before.
+    case "yield":
+      c.step = "asked";
+      return;
+    case "joint":
+      c.step = "asked";
+      if (c.fate === "state") c.for = tag;
+      return;
+    case "hold":
+      // Two of a side fall out over it: the claim goes, and the bond suffers.
+      c.state = "dropped";
+      say(t, "drop", c.by, c.id);
+      partnerHeld(gw, c.by, tag);
+      return;
   }
 }
 
@@ -533,6 +573,10 @@ function insists(gw: GreatWar, c: GwTableClaim): boolean {
 
 /** The answer of anyone with no seat, or a seat that left it to its people. */
 function answer(gw: GreatWar, c: GwTableClaim, who: GwTag): void {
+  if (c.step === "partner") {
+    word(gw, c, who, aiPartnerWord(gw, who, c), null);
+    return;
+  }
   const gap = gapOf(gw, c);
   if (who === c.against) {
     const offers = c.offers < OFFERS_MOST;
@@ -577,6 +621,7 @@ const WANT_MONTHS_MOST = 20;
 const WANT_CASE = 25;
 const WANT_PORT = 5;
 const WANT_CAPITAL = 10;
+const WANT_VASSAL = 60;
 
 /**
  * Nobody beaten at a bilateral table: each keeps what it stands on (design
@@ -618,6 +663,11 @@ function wishesOf(gw: GreatWar, tag: GwTag): GwPlace[] {
     if (known >= 0) want += WANT_CASE - known;
     if (GW_TABLE_PORTS.includes(place)) want += WANT_PORT;
     if (GW_TABLE_CAPITALS.includes(place)) want -= WANT_CAPITAL;
+    // ww199: a winner that would keep the beaten as a vassal asks for its
+    // capital first: that makes the whole country the vassal.
+    if (holder === tag && owner !== tag && GW_CAPITALS[owner] === place) {
+      if (aiFate(gw, tag, place).fate === "vassal") want += WANT_VASSAL;
+    }
     out.push({ place, want });
   }
   out.sort(
@@ -651,7 +701,10 @@ function pickFor(gw: GreatWar, tag: GwTag): GwPlace | null {
   const made = t.claims.filter((c) => c.by === tag).length;
   // What it asked for, got or not, it doesn't ask for again.
   const wishes = wishesOf(gw, tag).filter(
-    (place) => !t.claims.some((c) => c.by === tag && c.place === place),
+    (place) =>
+      !t.claims.some((c) => c.by === tag && c.place === place) &&
+      // ww199: one gives back only what one holds.
+      (holderOf(gw, place) === tag || aiFate(gw, tag, place).fate !== "return"),
   );
   if (made >= appetiteOf(gw, tag, wishes.length + made)) return null;
   return wishes.find((place) => !onTable(t, place)) ?? null;
@@ -659,6 +712,7 @@ function pickFor(gw: GreatWar, tag: GwTag): GwPlace | null {
 
 function put(gw: GreatWar, by: GwTag, place: GwPlace, against: GwTag): void {
   const t = gw.s.table!;
+  const mark = fateFor(gw, by, place);
   const c: GwTableClaim = {
     id: t.claims.length,
     place,
@@ -672,8 +726,65 @@ function put(gw: GreatWar, by: GwTag, place: GwPlace, against: GwTag): void {
     offers: 0,
     pressed: false,
   };
+  if (mark !== null) {
+    c.fate = mark.fate;
+    if (mark.for !== undefined) c.for = mark.for;
+    if (mark.client !== undefined) c.client = mark.client;
+    if (mark.term !== undefined) c.term = mark.term;
+  }
   t.claims.push(c);
   say(t, "claim", by, c.id);
+  // A place given back is given back: nobody refuses his own land.
+  if (
+    c.fate === "return" &&
+    holderOf(gw, place) === by &&
+    against === GW_PLACES[place].owner
+  ) {
+    give(gw, c, "agreed");
+    return;
+  }
+  const partner = partnerFor(gw, c);
+  if (partner !== null) {
+    c.step = "partner";
+    c.partner = partner;
+  }
+}
+
+/**
+ * ww199: the fate a claim asks for: the seat's painted mark, else its
+ * character's (Fate.aiFate). Null (annex) for one's own land.
+ */
+function fateFor(gw: GreatWar, by: GwTag, place: GwPlace): GwFateMark | null {
+  if (GW_PLACES[place].owner === by) return null;
+  if (!hasSeat(gw, by)) return aiFate(gw, by, place);
+  const seat = seatsOf(gw, by)[0];
+  return seat === undefined ? null : markOf(seat, place);
+}
+
+/**
+ * ww199 (design §2.4): another chair of the claimant's side that holds the
+ * place, painted it, or has it as its known case, has a word first.
+ */
+function partnerFor(gw: GreatWar, c: GwTableClaim): GwTag | null {
+  const t = gw.s.table!;
+  const side = sideOf(gw, c.by);
+  for (const x of t.order) {
+    if (x === c.by || x === c.against || sideOf(gw, x) !== side) continue;
+    if (holderOf(gw, c.place) === x) return x;
+    const seat = seatsOf(gw, x)[0];
+    if (seat !== undefined && markOf(seat, c.place) !== null) return x;
+    if (!hasSeat(gw, x) && (GW_TABLE_AIMS[x] ?? []).includes(c.place)) {
+      return x;
+    }
+  }
+  return null;
+}
+
+/** A partner held on to a place: the claimant's trust and their bond fall. */
+function partnerHeld(gw: GreatWar, by: GwTag, partner: GwTag): void {
+  trustDown(gw, by, partner);
+  moveBond(gw, by, partner, -1);
+  for (const seat of seatsOf(gw, by)) reason(gw, seat, "fate_partner_hold");
 }
 
 /** One thing happens; false when it waits for a seat, or there's nothing left. */
@@ -741,7 +852,7 @@ export function tableStep(gw: GreatWar): void {
   if (t === null || t.closed) return;
   // A bilateral table sits one month: it signs as that month closes.
   if (t.pair !== undefined) {
-    closeTable(gw);
+    closeTable(gw, true);
     return;
   }
   if (sessionsLeft(gw) === 0) return;
@@ -753,8 +864,12 @@ export function tableStep(gw: GreatWar): void {
 function ofThePair(t: GwTableState, owner: GwTag, holder: GwTag): boolean {
   const p = t.pair;
   if (p === undefined) return true;
-  const two = [p.a, p.b];
-  return two.includes(owner) && two.includes(holder) && owner !== holder;
+  if (owner === holder) return false;
+  // ww199: a capitulation table covers the beaten's land in any victor's
+  // hands, and the victors' land in the beaten's.
+  const won = [p.a, ...(p.with ?? [])];
+  if (owner === p.b) return won.includes(holder);
+  return holder === p.b && won.includes(owner);
 }
 
 /**
@@ -765,19 +880,29 @@ function ofThePair(t: GwTableState, owner: GwTag, holder: GwTag): boolean {
 function returnLand(gw: GreatWar): void {
   const t = gw.s.table!;
   if (standsOn(gw)) return;
-  const kept = (place: GwPlace, tag: GwTag) =>
+  // ww199: a place agreed at this table went as its fate said, whoever holds it.
+  const kept = (place: GwPlace) =>
     t.claims.some(
       (c) =>
-        c.place === place &&
-        c.by === tag &&
-        (c.state === "agreed" || c.state === "imposed"),
+        c.place === place && (c.state === "agreed" || c.state === "imposed"),
     );
+  /**
+   * A fate an earlier table signed stays (design §2.1), unless its holder
+   * came here beaten: then it goes home. A state is freed, not undone
+   * (Fate.undoForLosers).
+   */
+  const earlier = (place: GwPlace, holder: GwTag) => {
+    if (recordOf(gw, place) === null) return false;
+    if (gw.nation(holder)?.client !== undefined) return true;
+    return !(t.pair === undefined && beatenHere(gw, holder));
+  };
   const places = Object.keys(gw.s.held).sort() as GwPlace[];
   const told = new Set<string>();
   for (const place of places) {
     const holder = gw.s.held[place]!;
     const owner = GW_PLACES[place].owner;
-    if (!ofThePair(t, owner, holder) || kept(place, holder)) continue;
+    if (!ofThePair(t, owner, holder) || kept(place)) continue;
+    if (earlier(place, holder)) continue;
     moveLand(gw, place, owner, null, "table");
     if (holderOf(gw, place) !== owner || told.has(`${holder}>${owner}`)) {
       continue;
@@ -860,15 +985,77 @@ function seatCloses(gw: GreatWar, seat: GwSeatState): void {
   }
 }
 
-/** The treaty: what wasn't agreed goes home, the bills fall due. */
-export function closeTable(gw: GreatWar): void {
+/**
+ * ww199: a seat's ruler said 한 번 더 밀어붙인다 at a bilateral table: it
+ * sits one more month, once, and the partners think less of him.
+ */
+function pressedOn(gw: GreatWar, t: GwTableState): boolean {
+  if (t.pair === undefined || (t.extra ?? 0) > 0) return false;
+  const who = t.order.find((x) => t.sign?.[x] === "press");
+  if (who === undefined) return false;
+  t.extra = 1;
+  delete t.sign![who];
+  t.round = 0;
+  t.at = 0;
+  t.done = false;
+  for (const x of t.order) {
+    if (x !== who && sideOf(gw, x) === sideOf(gw, who)) trustDown(gw, x, who);
+  }
+  for (const seat of seatsOf(gw, who)) {
+    reason(gw, seat, "fate_sign_press");
+    signPaper(gw, seat);
+  }
+  gw.touch();
+  return true;
+}
+
+/**
+ * ww199: 유보를 달고 서명한다: the seat's hard clauses run softer (its long
+ * governments of this table shortened), and its press and staff grumble.
+ */
+function reservations(gw: GreatWar, t: GwTableState): void {
+  for (const tag of t.order) {
+    if (t.sign?.[tag] !== "reserve") continue;
+    const short = gw.s.day + GW_FATE_TERM_DAYS.short;
+    for (const r of gw.s.rule ?? []) {
+      if (r.by !== tag || r.term !== "long") continue;
+      r.term = "short";
+      r.until = Math.min(r.until ?? short, short);
+    }
+    for (const f of gw.s.fates ?? []) {
+      if (f.by === tag && f.fate === "occupy" && f.until !== undefined) {
+        f.until = Math.min(f.until, short);
+      }
+    }
+    const n = gw.nation(tag);
+    if (n !== null)
+      n.authority = clampTo(n.authority - RESERVE_AUTHORITY, 0, 100);
+    for (const seat of seatsOf(gw, tag)) reason(gw, seat, "fate_sign_reserve");
+  }
+}
+
+/**
+ * The treaty: what wasn't agreed goes home, the bills fall due. ww199:
+ * `canPress`: a bilateral table's own month end, where a ruler may press for
+ * one more round.
+ */
+export function closeTable(gw: GreatWar, canPress = false): void {
   const t = gw.s.table;
   if (t === null || t.closed) return;
   runOut(gw);
+  if (canPress && pressedOn(gw, t)) return;
   t.closed = true;
+  // ww199: vassals take shape now, once all of a country's claims are in.
+  applyVassals(gw, t.claims);
+  if (t.pair === undefined) {
+    const w = winnerOf(gw);
+    if (w !== null) undoForLosers(gw, other(w));
+  }
   settleLand(gw);
   returnLand(gw);
   payBills(gw);
+  reservations(gw, t);
+  crownsAfter(gw);
   if (t.pair !== undefined) {
     pairSigned(gw, t);
     gw.touch();
@@ -897,6 +1084,7 @@ function rowOf(gw: GreatWar, t: GwTableState): GwPairTable | null {
 /** How the table came out for `tag`: `won`, `lost` or `even`. */
 function pairResult(p: NonNullable<GwTableState["pair"]>, tag: GwTag) {
   if (p.winner === null) return "even";
+  if (p.with?.includes(tag) === true) return "won";
   return p.winner === tag ? "won" : "lost";
 }
 
@@ -906,10 +1094,24 @@ function pairSigned(gw: GreatWar, t: GwTableState): void {
   const row = rowOf(gw, t);
   if (row !== null) row.signed = gw.s.chapter;
   news(gw, "pair_table_signed", p.a, p.b);
-  for (const [me, them] of [
+  // ww199: a hardline loser nobody plays signs and never ratifies (Bucharest).
+  const loser = p.winner === null ? null : p.winner === p.a ? p.b : p.a;
+  if (
+    loser !== null &&
+    gw.s.armistice === null &&
+    !hasSeat(gw, loser) &&
+    gw.nation(loser)?.ai === "hardline" &&
+    !(gw.s.unratified ?? []).includes(loser)
+  ) {
+    (gw.s.unratified ??= []).push(loser);
+    news(gw, "fate_unratified", loser);
+  }
+  const pairs: (readonly [GwTag, GwTag])[] = [
     [p.a, p.b],
     [p.b, p.a],
-  ] as const) {
+    ...(p.with ?? []).map((x) => [x, p.b] as const),
+  ];
+  for (const [me, them] of pairs) {
     for (const seat of seatsOf(gw, me)) {
       const key = `pair_table_${pairResult(p, me)}`;
       seat.log.push({ key, chapter: gw.s.chapter, tag: them });
@@ -929,9 +1131,11 @@ function openPairTable(gw: GreatWar, row: GwPairTable): void {
   row.opened = s.chapter;
   const first = row.winner ?? row.a;
   const second = first === row.a ? row.b : row.a;
+  // ww199: a capitulation table's other victors speak after the first.
+  const others = (row.with ?? []).filter((x) => x !== first && x !== second);
   s.table = {
     session: 0,
-    order: [first, second],
+    order: [first, ...others, second],
     round: 0,
     at: 0,
     next: 0,
@@ -942,9 +1146,16 @@ function openPairTable(gw: GreatWar, row: GwPairTable): void {
     bill: {},
     over: {},
     held: {},
-    pair: { a: row.a, b: row.b, winner: row.winner, score: row.score },
+    pair: {
+      a: row.a,
+      b: row.b,
+      winner: row.winner,
+      score: row.score,
+      ...(others.length > 0 ? { with: others } : {}),
+    },
   };
   news(gw, "pair_table_open", row.a, row.b);
+  tableOpened(gw);
   for (const [me, them] of [
     [row.a, row.b],
     [row.b, row.a],
@@ -970,7 +1181,7 @@ export function pairTableStep(gw: GreatWar): void {
     const row = (s.pairTables ?? []).find((r) => r.opened === null);
     if (row === undefined) return;
     openPairTable(gw, row);
-    if (hasSeat(gw, row.a) || hasSeat(gw, row.b)) return;
+    if (s.table!.order.some((x) => hasSeat(gw, x))) return;
     const table = s.table!;
     say(table, "open", table.order[0], -1);
     closeTable(gw);
@@ -987,12 +1198,17 @@ export function queuePairTable(
   b: GwTag,
   winner: GwTag | null,
   score: number,
+  with_: readonly GwTag[] = [],
 ): boolean {
   const s = gw.s;
+  const won = [a, ...with_];
   const stake = GW_PLACE_KEYS.some((place) => {
     const owner = GW_PLACES[place].owner;
     const holder = holderOf(gw, place);
-    return (owner === a && holder === b) || (owner === b && holder === a);
+    return (
+      (owner === b && won.includes(holder)) ||
+      (holder === b && won.includes(owner))
+    );
   });
   if (!stake && winner === null) return false;
   s.pairTables ??= [];
@@ -1004,8 +1220,75 @@ export function queuePairTable(
     score,
     opened: null,
     signed: null,
+    ...(with_.length > 0 ? { with: [...with_] } : {}),
   });
   return true;
+}
+
+/**
+ * ww199 (design §2.1): a coalition member gave up mid-war (Brest,
+ * Bucharest): its own table sits at once, with the other side's members
+ * that hold its land or faced it on a front (`foes`, read before it left).
+ * The first of them in the table's order leads. False with nobody to sit.
+ */
+export function queueCapitulationTable(
+  gw: GreatWar,
+  loser: GwTag,
+  foes: readonly GwTag[],
+): boolean {
+  const n = gw.nation(loser);
+  if (n === null || n.side === null || gw.s.armistice !== null) return false;
+  const side = other(n.side);
+  const at = new Set(foes);
+  for (const place of GW_PLACE_KEYS) {
+    if (GW_PLACES[place].owner !== loser) continue;
+    const h = holderOf(gw, place);
+    if (h !== loser) at.add(h);
+  }
+  const chairs = GW_TABLE_ORDER[side].filter((x) => {
+    const m = gw.nation(x);
+    return at.has(x) && m !== null && m.side === side && !m.out;
+  });
+  if (chairs.length === 0) return false;
+  const [lead, ...rest] = chairs;
+  const score = clampTo(warScore(gw, side), -100, 100);
+  return queuePairTable(gw, lead, loser, lead, score, rest);
+}
+
+/**
+ * ww199: a table opens: each victor's seat gets its foreign office's draft
+ * (the `settle` task) and the treaty card for its ruler's hand.
+ */
+function tableOpened(gw: GreatWar): void {
+  const t = gw.s.table;
+  if (t === null) return;
+  const beaten = t.order.filter((x) => {
+    const w = winnerOf(gw);
+    return w !== null && sideOf(gw, x) !== w;
+  });
+  if (beaten.length === 0) return;
+  for (const tag of t.order) {
+    if (beaten.includes(tag) || !hasSeat(gw, tag)) continue;
+    for (const seat of seatsOf(gw, tag)) {
+      giveSettle(gw, seat, beaten[0]);
+      signPaper(gw, seat);
+    }
+  }
+}
+
+/** The treaty card for the seat's ruler: its own, else the common one. */
+function signPaper(gw: GreatWar, seat: GwSeatState): void {
+  const ids = [`${seat.tag.toLowerCase()}_settle_sign`, "gw_settle_sign"];
+  const scene = ids.find((id) => gwContent().scenes.some((x) => x.id === id));
+  if (scene === undefined) return;
+  if (seat.scheduled.some((q) => q.scene === scene)) return;
+  if (seat.desk.some((c) => c.scene === scene)) return;
+  seat.scheduled.push({ scene, chapter: gw.s.chapter + 1 });
+}
+
+/** ww199: the conference sits down: the victors' drafts and treaty cards. */
+export function conferenceOpened(gw: GreatWar): void {
+  tableOpened(gw);
 }
 
 const myTurn = (gw: GreatWar, seat: GwSeatState) => {

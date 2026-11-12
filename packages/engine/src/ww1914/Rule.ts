@@ -26,9 +26,11 @@ import type {
 import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
 import {
   GW_CLIENT_ROWS,
+  GW_RIVAL_CLAIMS,
   gwClientRow,
 } from "@openfront/engine-lib/ww1914/FateRows";
 import { GW_CAPITALS } from "@openfront/engine-lib/ww1914/PlaceRules";
+import { foundOnRule } from "./Fate";
 import type { GreatWar } from "./GreatWar";
 import { holderOf } from "./Land";
 import { beatenAt, monthsHeld } from "./Occupation";
@@ -59,11 +61,6 @@ const RESIST_MAX = 3;
 const CLIENT_AFTER = 12;
 /** America's readiness a hard rule adds every three months while neutral. */
 const NEUTRAL_OUTRAGE = 2;
-
-/** The partner that wanted the same client: the bond suffers (Poland). */
-const RIVAL_CLAIM: Partial<Record<GwClient, readonly [GwTag, GwTag]>> = {
-  poland: ["DEU", "AUH"],
-};
 
 const inRange = (v: number, c: { min?: number; max?: number }) =>
   v >= (c.min ?? -Infinity) && v <= (c.max ?? Infinity);
@@ -149,7 +146,9 @@ export function setRule(
       r.resist = Math.max(0, r.resist - 1);
       news(gw, "rule_client", by, of);
       tell(gw, by, "rule_client");
-      const rival = RIVAL_CLAIM[ch.client];
+      // ww199: the state stands on the map, its own colour and name.
+      foundOnRule(gw, ch.client, by);
+      const rival = GW_RIVAL_CLAIMS[ch.client];
       if (rival?.includes(by) === true) {
         moveBond(gw, rival[0], rival[1], -1);
       }
@@ -308,7 +307,7 @@ function openAndClose(gw: GreatWar): void {
 }
 
 /** One row's month: what hard rule brings, and what it stirs. */
-function monthOf(gw: GreatWar, r: GwRuleRow): void {
+export function ruleMonth(gw: GreatWar, r: GwRuleRow): void {
   const at = (k: number) => beatSince(gw, r.since, k);
   if (r.hard >= 1 && at(Math.max(1, 6 - 2 * r.hard))) {
     moveGauge(gw, r.by, "bread", 1, "rule_requisition");
@@ -350,7 +349,9 @@ export function ruleStep(gw: GreatWar): void {
   openAndClose(gw);
   for (const r of rows(gw)) {
     if (r.since === s.chapter) continue;
+    // ww199: a table's rows (annexed land, a term's government) run in Fate.
+    if (r.policy === "annexed" || r.until !== undefined) continue;
     if (!ruledBySeat(gw, r.by)) aiRule(gw, r);
-    monthOf(gw, r);
+    ruleMonth(gw, r);
   }
 }

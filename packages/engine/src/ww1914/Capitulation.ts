@@ -56,6 +56,7 @@ import {
 } from "./Occupation";
 import { pairPeace } from "./PairWar";
 import { sue } from "./Peace";
+import { queueCapitulationTable } from "./Table";
 import { GW_MANPOWER } from "./Tables";
 import { membersOf, refreshTheatres, sideIn } from "./Wars";
 import {
@@ -293,10 +294,26 @@ export function capitulate(
       }
     }
   }
+  // ww199: who faced it on a front over its soil, for its own table.
+  const foes = new Set<GwTag>();
+  for (const t of gw.s.theatres) {
+    if (!t.open) continue;
+    if (!frontPlaces(t.id).some((p) => GW_PLACES[p].owner === tag)) continue;
+    for (const end of ["central", "entente"] as const) {
+      if (!membersOf(gw, t.id, end).includes(tag)) continue;
+      const far = end === "central" ? "entente" : "central";
+      for (const x of membersOf(gw, t.id, far)) foes.add(x);
+    }
+  }
   // ww190: a fifth of the men it has left go into the enemy's camps.
   capitulationPrisoners(gw, tag);
   if (n.side !== null) {
     sue(gw, tag, why);
+    // ww199: a coalition member out mid-war gets its own table at once
+    // (Brest, Bucharest); the war goes on elsewhere.
+    if (gw.s.armistice === null && n.out) {
+      queueCapitulationTable(gw, tag, [...foes].sort());
+    }
   } else {
     for (const foe of [...n.atWar]) pairPeace(gw, tag, foe, tag, why);
     n.out = true;

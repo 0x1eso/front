@@ -25,6 +25,7 @@ import {
   GwSeatState,
   GwVerdict,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import { isGwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import type {
   GwAnswerRedo,
   GwAnswerRow,
@@ -108,6 +109,7 @@ import {
   placeCard,
   repeatable,
 } from "./Desk";
+import { settlePlan } from "./Fate";
 import { ownFronts } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { lawDraftCard, lawDropDraft } from "./Laws";
@@ -828,11 +830,32 @@ export function giveTask(
   return null;
 }
 
+/**
+ * ww199: a table opens with the seat among the victors: its foreign office
+ * drafts the beaten country's fate at once, free and past the one-task rule.
+ * The answer comes as the next chapter opens. Nothing without a head there.
+ */
+export function giveSettle(gw: GreatWar, seat: GwSeatState, of: string): void {
+  const office = GW_TASK_OFFICES[seat.tag]?.envoy?.[0] ?? "foreign";
+  const head = deptHead(gw, seat, office);
+  if (head === null) return;
+  const d = deptState(seat);
+  if (d.tasks.some((t) => t.type === "settle" && t.topic === of)) return;
+  const t = newTask(gw, office, head, "settle", null, of);
+  t.due = gw.s.chapter + 1;
+  d.tasks.push(t);
+}
+
 // ---- Tasks: the chapter's work ----
 
 /** The topic no longer makes sense: the country is out, the front shut. */
 function moot(gw: GreatWar, seat: GwSeatState, t: GwDeptTask): boolean {
   if (t.topic === null) return false;
+  // ww199: a beaten country's fate is moot once no table sits for it.
+  if (t.type === "settle") {
+    const tb = gw.s.table;
+    return tb === null || tb.closed || !tb.order.includes(seat.tag);
+  }
   const n = gw.s.nations.find((x) => x.tag === t.topic);
   if (n !== undefined) return n.out;
   const th = gw.s.theatres.find((x) => x.id === t.topic);
@@ -1265,6 +1288,10 @@ function takeCourse(
   if (c === undefined || row === null) return;
   const ctx: SceneCtx = { gw, seat, cast: { head: c.who }, topic: p.topic };
   runEffects(ctx, row.effects);
+  // ww199: a settle course paints its plan on the beaten country.
+  if (row.settle !== undefined && p.topic !== null && isGwTag(p.topic)) {
+    settlePlan(gw, seat, p.topic, row.settle);
+  }
   // ww197: a front course marks the chief's next war paper (§3 `front`).
   if (row.front !== undefined) {
     const t = GW_THEATRES.find((x) => x === p.topic) ?? null;

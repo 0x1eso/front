@@ -15932,7 +15932,14 @@
       "agent_druzhina": "{a}이(가) {b}의 체코 정찰대를 잡아들였다.",
       "agent_zurich_net": "{a}이(가) 취리히에 있는 {b}의 비밀 사무실을 덮쳤다.",
       "agent_svu": "{a}이(가) {b}의 우크라이나 해방 연맹 사람들을 잡아들였다.",
-      "agent_pow_polish": "{a}이(가) {b}의 폴란드 지하 조직을 잡아들였다."
+      "agent_pow_polish": "{a}이(가) {b}의 폴란드 지하 조직을 잡아들였다.",
+      "fate_state_founded": "{a}이(가) {b}을(를) 새 나라로 세웠다.",
+      "fate_vassal_made": "{b}이(가) {a}의 속국이 되었다.",
+      "fate_state_free": "{a}이(가) {b}의 손을 떠나 제 길을 간다.",
+      "fate_vassal_free": "{a}이(가) {b}에게서 떨어져 나갔다.",
+      "fate_state_turned": "{a}이(가) {b} 편으로 돌아섰다.",
+      "fate_term_over": "{a}의 군정 기한이 끝나 그 땅이 {b}에 돌아갔다.",
+      "fate_unratified": "{a}이(가) 서명한 조약을 끝내 비준하지 않았다."
     },
     "odds": {
       "0": "될 일이 아닙니다.",

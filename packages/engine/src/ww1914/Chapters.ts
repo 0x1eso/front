@@ -14,6 +14,7 @@ import { dealDesk } from "./Desk";
 import { personaStep } from "./Diary";
 import { dossierStep } from "./Dossier";
 import { closeGame, endingStep, finalEnding } from "./Endings";
+import { fateStep } from "./Fate";
 import { frontsStep, warScore } from "./Fronts";
 import { govStep } from "./Government";
 import type { GreatWar } from "./GreatWar";
@@ -62,6 +63,7 @@ export const GW_CHAPTER_STEPS: readonly ((gw: GreatWar) => void)[] = [
   capitulationStep,
   occupationStep,
   ruleStep,
+  fateStep,
   (gw) => seaStep(gw, warScore(gw, "central")),
   budgetStep,
   electionStep,
