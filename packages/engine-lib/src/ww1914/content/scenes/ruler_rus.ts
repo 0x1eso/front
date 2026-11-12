@@ -39,8 +39,9 @@ export const RULER_RUS: readonly GwScene[] = [
     cast: { court, fedorov },
     salience: 7,
     once: false,
-    cooldown: 6,
-    variants: [v("stavka", atStavka), v("base")],
+    // ww190: a long war deals it less often, in more words.
+    cooldown: 9,
+    variants: [v("stavka", atStavka), v("night"), v("lessons"), v("base")],
     fallback: "stay",
     options: [
       opt("stay", [
