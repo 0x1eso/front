@@ -1205,7 +1205,10 @@ export function lensReadout(
             f === undefined
               ? translateText("ww1936.lens.no_faction")
               : factionName(f.key, game as never),
-          ideology: ideologyName(ideologyOf(c, holder)),
+          ideology: ideologyName(
+            ideologyOf(c, holder),
+            c.s.tagOfSmallId(holder) ?? null,
+          ),
         }),
       );
       if (c.me > 0 && c.sides.isEnemy(c.me, holder)) {

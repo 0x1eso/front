@@ -35,6 +35,7 @@ import {
 import { armyName } from "./LandModel";
 import { srName } from "./NavyModel";
 import { dateLabel, TWO_TAP_MS, TwoTap, wwActive } from "./WorldWarModel";
+import { imjinCalendarOn } from "./WwClientCalendar";
 
 const HEADING =
   "mb-1 mt-3 text-xs font-bold uppercase tracking-wide text-white/70";
@@ -606,6 +607,8 @@ export class AidActions {
   ): TemplateResult | typeof nothing {
     const me = game.myPlayer()?.smallID() ?? 0;
     if (
+      // ww194: no 1936 lend-lease or volunteers in the Imjin War.
+      imjinCalendarOn() ||
       game.wwEndgame?.() === null ||
       game.wwEndgame === undefined ||
       me === 0 ||

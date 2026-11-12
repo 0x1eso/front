@@ -144,7 +144,12 @@ import {
   type WwGame,
   wwSeconds,
 } from "./WorldWarModel";
-import { imjinCalendarOn, wwEpoch } from "./WwClientCalendar";
+import {
+  imjinCalendarOn,
+  imjinViewer,
+  setImjinViewer,
+  wwEpoch,
+} from "./WwClientCalendar";
 
 /**
  * ww177 P6 (lane I6a): the game's own content. Imjin has its own scenes,
@@ -173,6 +178,8 @@ export function politicsInput(game: PolGame): PoliticsModelInput | null {
   const view = game.wwPolitics?.() ?? null;
   const me = game.myPlayer();
   if (view === null || me === null) return null;
+  // ww194: the Imjin screens name my own court by default (ideologyName).
+  if (imjinCalendarOn()) setImjinViewer(tagOf(game, me.smallID()));
   return { game, view, me: me.smallID() };
 }
 
@@ -268,21 +275,55 @@ export function flagUrl(tag: CountryTag): string {
   return assetUrl(`flags/${COUNTRIES[tag].flag}.svg`);
 }
 
-export function ideologyName(i: number | Ideology | string): string {
+/**
+ * ww194: the Imjin courts that read the ideology slots their own way:
+ * Japan's daimyo council, the Ming court and the Jurchen; anyone else
+ * (Joseon) reads Joseon's factions.
+ */
+const IMJIN_OWN_COURTS: ReadonlySet<CountryTag> = new Set<CountryTag>([
+  "JPN",
+  "MIN",
+  "JUR",
+]);
+
+/** `tag`'s own court (Japan, Ming, the Jurchen); null: Joseon's. The viewer's when absent. */
+function ownCourt(tag: CountryTag | null | undefined): CountryTag | null {
+  const t = tag ?? imjinViewer();
+  return t !== null && IMJIN_OWN_COURTS.has(t) ? t : null;
+}
+
+/**
+ * An ideology slot's name. In the Imjin War the slots are a court's
+ * factions: `tag`'s (default: my own country's).
+ */
+export function ideologyName(
+  i: number | Ideology | string,
+  tag?: CountryTag | null,
+): string {
   const id = typeof i === "number" ? IDEOLOGIES[i] : i;
   // ww177 P4 (lane I4a): in the Imjin War the slots are the court's factions.
-  if (imjinCalendarOn()) return translateText(`imjin.court.${id}`);
+  if (imjinCalendarOn()) {
+    const own = ownCourt(tag);
+    return own === null
+      ? translateText(`imjin.court.${id}`)
+      : translateText(`imjin.court_of.${own}.${id}`);
+  }
   return translateText(`ww1936.ideology.${id}`);
 }
 
-/** A person by id (its nameKey), or a title card ("title:<id>"); "None" for nobody. */
-export function personName(id: string): string {
+/**
+ * A person by id (its nameKey), or a title card ("title:<id>"); "None" for
+ * nobody. `tag`: whose court a leader's title card belongs to (Imjin).
+ */
+export function personName(id: string, tag?: CountryTag | null): string {
   if (id.startsWith("title:")) {
     // ww177 P4 (lane I4a): the Imjin courts' heads by their faction.
     if (imjinCalendarOn() && id.startsWith("title:leader_")) {
-      return translateText(
-        `imjin.court_head.${id.slice("title:leader_".length)}`,
-      );
+      const head = id.slice("title:leader_".length);
+      const own = ownCourt(tag);
+      return own === null
+        ? translateText(`imjin.court_head.${head}`)
+        : translateText(`imjin.court_head_of.${own}.${head}`);
     }
     return translateText(`ww1936.title.${id.slice("title:".length)}`);
   }
@@ -323,8 +364,26 @@ export const eventDesc = (id: string) =>
 export const optionName = (event: string, option: string) =>
   translateText(`ww1936.event_opt.${event}.${option}`);
 export const wargoalName = (t: string) => translateText(`ww1936.wargoal.${t}`);
-export const slotName = (s: AdvisorSlot) =>
-  translateText(`ww1936.advisor_slot.${s}`);
+/** ww194: the Imjin courts' own names of the seats (others keep 1936's). */
+const IMJIN_SLOT_NAMES: Readonly<
+  Partial<Record<CountryTag, readonly AdvisorSlot[]>>
+> = {
+  JOS: ["political", "army_chief", "navy_chief"],
+  JPN: ["political", "army_chief", "navy_chief"],
+  MIN: ["political", "army_chief", "navy_chief"],
+};
+export const slotName = (s: AdvisorSlot) => {
+  const tag = imjinCalendarOn() ? imjinViewer() : null;
+  return tag !== null && IMJIN_SLOT_NAMES[tag]?.includes(s) === true
+    ? translateText(`imjin.slot.${tag}.${s}`)
+    : translateText(`ww1936.advisor_slot.${s}`);
+};
+/** ww194: the seats an Imjin court has people for (no air, industry or research). */
+const IMJIN_NO_SEAT: readonly AdvisorSlot[] = [
+  "air_chief",
+  "industry",
+  "research",
+];
 export const groupName = (id: string) =>
   translateText(`ww1936.pol.group.${id}`);
 const tplName = (id: string) => translateText(`ww1936.tpl.${id}`);
@@ -661,7 +720,9 @@ function paramText(
       return lawKindName(v as LawKind);
     case "value":
       return kind === "law" || kind === "law_ge" || kind === "set_law"
-        ? translateText(`ww1936.law.${params.law}.${v}`)
+        ? translateText(
+            `${imjinCalendarOn() ? "imjin" : "ww1936"}.law.${params.law}.${v}`,
+          )
         : v;
     case "building":
       return buildingName(v as never);
@@ -1012,6 +1073,21 @@ const BASE_LINE_KEYS: ReadonlySet<string> = new Set([
   "ww1936.pol.line.ws_base",
 ]);
 
+/**
+ * ww194: lines whose 1936 words the Imjin War reads its own way: the war
+ * support from the world's tension (the region's unrest; no world tension
+ * shows there) and the offensive-war line of a "democracy" (a court).
+ */
+const IMJIN_LINE_KEYS: Readonly<Record<string, string>> = {
+  "ww1936.pol.line.ws_tension": "imjin.line.ws_tension",
+  "ww1936.pol.line.stab_offensive": "imjin.line.stab_offensive",
+};
+
+function lineLabel(key: string): string {
+  const own = imjinCalendarOn() ? IMJIN_LINE_KEYS[key] : undefined;
+  return translateText(own ?? key);
+}
+
 function bar(
   bp: number,
   baseBp: number,
@@ -1026,7 +1102,7 @@ function bar(
     lines: lines
       .filter((l) => !BASE_LINE_KEYS.has(l.key))
       .map((l) => ({
-        label: translateText(l.key),
+        label: lineLabel(l.key),
         value: signedPctText(l.bp),
         negative: l.bp < 0,
       })),
@@ -1055,7 +1131,7 @@ export function governmentTab(i: PoliticsModelInput): GovernmentTab | null {
     const drift = statOf(d, DRIFT_KEYS[n]);
     return {
       ideology: n,
-      name: ideologyName(n),
+      name: ideologyName(n, tag),
       pct: pctOf(s.pop[n] ?? 0),
       color: IDEOLOGY_COLORS[n],
       drift:
@@ -1122,9 +1198,9 @@ export function governmentTab(i: PoliticsModelInput): GovernmentTab | null {
   const wsEffects = statLines(warSupportEffects(s.wsBp));
   if (sp.ws !== 0) wsEffects.push(...statLines({ surrenderPp: sp.ws }));
   return {
-    leader: personName(s.leader),
+    leader: personName(s.leader, tag),
     government: governmentName(tag, s.ruling),
-    ideology: ideologyName(s.ruling),
+    ideology: ideologyName(s.ruling, tag),
     rulingColor: IDEOLOGY_COLORS[s.ruling],
     pie,
     pieGradient: `conic-gradient(${stops.join(", ")})`,
@@ -1287,8 +1363,9 @@ export function advisorTab(i: PoliticsModelInput): AdvisorSeat[] {
       }),
     };
   }).filter(
-    // ww184: no air force in the Imjin War, so no air chief.
-    (_, k) => !(imjinCalendarOn() && ADVISOR_SLOTS[k] === "air_chief"),
+    // ww184: no air force in the Imjin War, so no air chief. ww194: and no
+    // 1936 industry or research seat, which only title cards filled.
+    (_, k) => !(imjinCalendarOn() && IMJIN_NO_SEAT.includes(ADVISOR_SLOTS[k])),
   );
 }
 
@@ -1378,7 +1455,13 @@ export function lawLines(
         now: pctOf(ctx.wsBp),
       }),
     });
-    if (g.wt > 0 && ctx.ruling === IDEO_DEM && !ctx.atWar) {
+    // ww194: the Imjin courts have no democracy's tension line (lawBlock).
+    if (
+      g.wt > 0 &&
+      ctx.ruling === IDEO_DEM &&
+      !ctx.atWar &&
+      !imjinCalendarOn()
+    ) {
       out.push({
         ok: ctx.wtBp >= g.wt,
         text: translateText("ww1936.pol.law.need_tension", {
@@ -1390,8 +1473,9 @@ export function lawLines(
   }
   const fasCom = ctx.ruling === 1 || ctx.ruling === 2;
   if (
-    (value === "free_trade" && fasCom) ||
-    (value === "closed_economy" && !fasCom && !ctx.atWar)
+    !imjinCalendarOn() &&
+    ((value === "free_trade" && fasCom) ||
+      (value === "closed_economy" && !fasCom && !ctx.atWar))
   ) {
     out.push({ ok: false, text: blockText("law_ideology") });
   }
@@ -1553,7 +1637,11 @@ export function lawTab(i: PoliticsModelInput): LawLadderView[] | null {
     return {
       kind,
       name: lawKindName(kind),
-      summary: translateText(`ww1936.pol.law.summary.${kind}`),
+      summary: translateText(
+        imjinCalendarOn()
+          ? `imjin.law_summary.${kind}`
+          : `ww1936.pol.law.summary.${kind}`,
+      ),
       wait:
         wait > 0 ? translateText("ww1936.pol.law.wait", { days: wait }) : null,
       steps: steps.map((st): LawStepView => {
@@ -1913,7 +2001,7 @@ function factionView(
     name: factionName(f.id, i.game),
     leader: f.leader,
     leaderName: f.leader > 0 ? nameOf(i.game, f.leader) : "",
-    ideology: ruling < 0 ? "" : ideologyName(ruling),
+    ideology: ruling < 0 ? "" : ideologyName(ruling, tagOf(i.game, f.leader)),
     ideologyColor: ruling < 0 ? "#a3a3a3" : IDEOLOGY_COLORS[ruling],
     members: f.members
       .map((id) => ({ id, tag: tagOf(i.game, id) }))
@@ -2064,9 +2152,12 @@ function joinBlock(
       i,
       country,
       translateText("ww1936.pol.fac.ideology", {
-        ideology: ideologyName(ruling),
+        ideology: ideologyName(ruling, tagOf(i.game, country)),
         faction: fname,
-        theirs: ideologyName(i.view.summary(f.leader)?.ruling ?? 3),
+        theirs: ideologyName(
+          i.view.summary(f.leader)?.ruling ?? 3,
+          tagOf(i.game, f.leader),
+        ),
       }),
     );
   }
@@ -2088,7 +2179,10 @@ function joinBlock(
       country,
       translateText("ww1936.pol.fac.ideology_lock", {
         faction: fname,
-        ideology: ideologyName(i.view.summary(f.leader)?.ruling ?? 3),
+        ideology: ideologyName(
+          i.view.summary(f.leader)?.ruling ?? 3,
+          tagOf(i.game, f.leader),
+        ),
       }),
     );
   }
@@ -2608,15 +2702,24 @@ export function declareButton(
     block ??= "democracy_no_goal";
   } else if (s !== null) {
     const bp = tensionFor("declare_no_goal", isMajor(i, other), statsOf(d));
-    label = translateText("ww1936.diplo.act.declare_no_goal", {
-      tension: Math.round(bp / 100),
-    });
+    // ww194: no world tension in the Imjin War's words.
+    label = imjinCalendarOn()
+      ? translateText("imjin.declare_no_goal")
+      : translateText("ww1936.diplo.act.declare_no_goal", {
+          tension: Math.round(bp / 100),
+        });
   }
   if (engine === true) block = null;
   if (engine === false && block === null) block = "isolation";
   return {
     label,
-    block: block === null ? null : translateText(DECLARE_BLOCK_KEYS[block]),
+    block:
+      block === null
+        ? null
+        : // ww194: an Imjin court is not a 1936 democracy.
+          imjinCalendarOn() && block === "democracy_no_goal"
+          ? translateText("imjin.block.declare_no_goal")
+          : translateText(DECLARE_BLOCK_KEYS[block]),
     blockId: block,
   };
 }
@@ -2712,9 +2815,10 @@ function countryInfoLine(
   o: { ruling: number; leader: string; stabBp: number; wsBp: number },
   other: number,
   fog: CountryFog | undefined,
+  tag: CountryTag | null = null,
 ): string {
-  const ideology = ideologyName(o.ruling);
-  const leader = personName(o.leader);
+  const ideology = ideologyName(o.ruling, tag);
+  const leader = personName(o.leader, tag);
   const seen = fog?.countryView(other).stability ?? "exact";
   if (seen === "hidden") {
     return translateText("ww1936.diplo.info_basic", { ideology, leader });
@@ -2744,7 +2848,8 @@ export function playerActions(
   const o = i.view.summary(other);
   const g = i.view.global;
   const day = today(i.game);
-  const info = o === null ? null : countryInfoLine(o, other, fog);
+  const info =
+    o === null ? null : countryInfoLine(o, other, fog, tagOf(i.game, other));
   const rel = other === i.me ? null : relationBase(i, other, i.me);
   const relations =
     rel === null ? null : translateText("ww1936.diplo.relations", { n: rel });
@@ -2907,9 +3012,11 @@ export function playerActions(
       { kind: "access_ask", target: other },
     );
   }
-  // Factions (spec §15.3).
+  // Factions (spec §15.3). ww194: the Imjin War has no 1936 factions to
+  // found or join (its order is the investiture tab).
   const ft = factionTab(i);
-  if (ft.amLeader && theirFaction === null) {
+  const factionsOn = !imjinCalendarOn();
+  if (factionsOn && ft.amLeader && theirFaction === null) {
     push(
       "faction_invite",
       translateText("ww1936.diplo.act.faction_invite"),
@@ -2918,7 +3025,7 @@ export function playerActions(
       { kind: "faction_invite", target: other },
     );
   }
-  if (myFaction === null && theirFaction !== null) {
+  if (factionsOn && myFaction === null && theirFaction !== null) {
     push(
       "faction_request",
       translateText("ww1936.diplo.act.faction_request"),

@@ -19190,6 +19190,124 @@
       "JPN": "도요토미 정권",
       "MIN": "명 조정",
       "JUR": "여진 추장들"
-    }
+    },
+    "court_of": {
+      "JPN": {
+        "communist": "봉행",
+        "democratic": "원로 다이묘",
+        "fascist": "무장",
+        "neutral": "도요토미 가"
+      },
+      "JUR": {
+        "communist": "야인 여진",
+        "democratic": "해서 여진",
+        "fascist": "여진 장수들",
+        "neutral": "건주 여진"
+      },
+      "MIN": {
+        "communist": "언관",
+        "democratic": "내각",
+        "fascist": "무신",
+        "neutral": "황제"
+      }
+    },
+    "court_head_of": {
+      "JPN": {
+        "communist": "봉행의 수장",
+        "democratic": "원로 다이묘의 수장",
+        "fascist": "무장들의 수장",
+        "neutral": "도요토미 가의 당주"
+      },
+      "JUR": {
+        "communist": "야인 여진 추장",
+        "democratic": "해서 여진 추장",
+        "fascist": "여진 장수",
+        "neutral": "누르하치"
+      },
+      "MIN": {
+        "communist": "도어사",
+        "democratic": "내각 수보",
+        "fascist": "병부상서",
+        "neutral": "만력제"
+      }
+    },
+    "slot": {
+      "JOS": {
+        "army_chief": "도원수 자리",
+        "navy_chief": "삼도수군통제사 자리",
+        "political": "비변사 당상 자리"
+      },
+      "JPN": {
+        "army_chief": "총대장 자리",
+        "navy_chief": "수군 대장 자리",
+        "political": "중신 자리"
+      },
+      "MIN": {
+        "army_chief": "제독 자리",
+        "navy_chief": "수군 제독 자리",
+        "political": "조정 대신 자리"
+      }
+    },
+    "law_kind": {
+      "conscription": "군역",
+      "economy": "공물",
+      "trade": "교역"
+    },
+    "law_summary": {
+      "conscription": "백성 가운데 얼마를 군사로 불러낼 수 있는지, 그 대가로 농사와 민심이 얼마나 깎이는지 정합니다.",
+      "economy": "나라의 곡식과 공물, 백성의 일손을 얼마나 군량과 무기에 돌릴지 정합니다.",
+      "trade": "바다와 국경의 교역을 얼마나 열지, 그것이 축성과 연구 속도에 어떤 영향을 주는지 정합니다."
+    },
+    "law": {
+      "conscription": {
+        "all_adults": "모든 장정",
+        "disarmed": "군역을 면한다",
+        "extensive": "군적을 다시 채운다",
+        "limited": "정병만 번을 선다",
+        "scraping": "늙은이와 아이까지",
+        "service": "고을마다 장정을 뽑는다",
+        "volunteer": "베로 군역을 대신한다"
+      },
+      "economy": {
+        "civilian": "평시 공납",
+        "early_mobilization": "군량을 쌓는다",
+        "partial_mobilization": "공물을 군수로 돌린다",
+        "total_mobilization": "온 나라를 전쟁에",
+        "war_economy": "전시 징발"
+      },
+      "trade": {
+        "closed_economy": "바다를 닫는다 (해금)",
+        "export_focus": "교역을 넓힌다",
+        "free_trade": "포구를 연다",
+        "limited_exports": "정해진 곳에서만 교역"
+      }
+    },
+    "order": {
+      "intro": "명의 황제는 이웃 나라의 왕을 책봉하고, 책봉받은 나라는 사절을 보내 조공합니다. 이 질서에서 각 나라가 선 자리입니다.",
+      "now": {
+        "ming_help": "명군이 조선 땅에서 함께 싸우고 있습니다.",
+        "ming_wait": "명은 아직 군대를 보내지 않았습니다.",
+        "ming_war": "일본과 싸우고 있습니다."
+      },
+      "standing": {
+        "JOS": "명이 책봉한 나라. 해마다 사절을 보내 조공합니다.",
+        "JPN": "책봉 밖에 있습니다. 200년 가까이 전 아시카가 쇼군이 받은 책봉은 잊혔고, 감합 무역도 끊겼습니다.",
+        "JUR": "명의 위소에 묶인 부족들. 추장은 명의 벼슬을 받고, 변경 시장에서 말과 인삼을 팝니다.",
+        "MIN": "천자의 나라. 이웃 왕을 책봉하고 조공을 받습니다."
+      },
+      "tab": "책봉·조공",
+      "title": "책봉과 조공"
+    },
+    "line": {
+      "stab_offensive": "먼저 일으킨 전쟁",
+      "ws_tension": "주변 정세"
+    },
+    "block": {
+      "declare_no_goal": "지금 조정은 명분 없이 전쟁을 선포하지 않습니다",
+      "law_tension": "주변 정세가 아직 무르익지 않았습니다",
+      "tension_gate": "주변 정세가 아직 무르익지 않았습니다",
+      "ultimatum_gov": "지금 조정으로는 최후통첩을 보낼 수 없습니다"
+    },
+    "declare_no_goal": "명분 없이 선전포고 - 안정도 -15%, 전쟁지지도 -10%"
   }
 }

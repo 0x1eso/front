@@ -6014,6 +6014,12 @@
         "rolling": "rolling fire, a little every round"
       }
     },
+    "block": {
+      "declare_no_goal": "The court as it stands will not go to war without a cause",
+      "law_tension": "The region is not unsettled enough yet",
+      "tension_gate": "The region is not unsettled enough yet",
+      "ultimatum_gov": "The court as it stands cannot send an ultimatum"
+    },
     "court": {
       "communist": "Southerners",
       "democratic": "Westerners",
@@ -6025,6 +6031,46 @@
       "democratic": "Westerner chief councillor",
       "fascist": "Northerner chief councillor",
       "neutral": "The ruler"
+    },
+    "court_head_of": {
+      "JPN": {
+        "communist": "Chief commissioner",
+        "democratic": "Head of the great lords",
+        "fascist": "First of the generals",
+        "neutral": "Head of the Toyotomi house"
+      },
+      "JUR": {
+        "communist": "Wild Jurchen chief",
+        "democratic": "Haixi chief",
+        "fascist": "Jurchen war leader",
+        "neutral": "Nurhaci"
+      },
+      "MIN": {
+        "communist": "Censor-in-chief",
+        "democratic": "Senior Grand Secretary",
+        "fascist": "Minister of War",
+        "neutral": "The Wanli Emperor"
+      }
+    },
+    "court_of": {
+      "JPN": {
+        "communist": "Commissioners",
+        "democratic": "Great lords",
+        "fascist": "Field generals",
+        "neutral": "The Toyotomi house"
+      },
+      "JUR": {
+        "communist": "Wild Jurchens",
+        "democratic": "Haixi Jurchens",
+        "fascist": "Jurchen war leaders",
+        "neutral": "Jianzhou Jurchens"
+      },
+      "MIN": {
+        "communist": "Censors",
+        "democratic": "Grand Secretariat",
+        "fascist": "Military men",
+        "neutral": "The emperor"
+      }
     },
     "daimyo": {
       "fukushima": "Fukushima Masanori",
@@ -6043,6 +6089,7 @@
       "lunar": "lunar {month}/{day}",
       "lunar_leap": "lunar leap {month}/{day}"
     },
+    "declare_no_goal": "Declare war without a reason — stability −15%, war support −10%",
     "equip": {
       "artillery": "Guns",
       "convoy": "Transports",
@@ -6073,6 +6120,44 @@
       "JUR": "The Jurchen chiefs",
       "MIN": "The Ming court"
     },
+    "law": {
+      "conscription": {
+        "all_adults": "Every able man",
+        "disarmed": "No service",
+        "extensive": "Full muster rolls",
+        "limited": "Registered soldiers in turns",
+        "scraping": "Old men and boys too",
+        "service": "Levies from every county",
+        "volunteer": "Cloth in place of service"
+      },
+      "economy": {
+        "civilian": "Peacetime dues",
+        "early_mobilization": "Grain stores",
+        "partial_mobilization": "Dues to the army",
+        "total_mobilization": "All for the war",
+        "war_economy": "War requisitions"
+      },
+      "trade": {
+        "closed_economy": "Sea ban",
+        "export_focus": "Wide trade",
+        "free_trade": "Open harbours",
+        "limited_exports": "Trade at set places"
+      }
+    },
+    "law_kind": {
+      "conscription": "Military service",
+      "economy": "Tribute and levies",
+      "trade": "Trade"
+    },
+    "law_summary": {
+      "conscription": "How many of the people can be called to arms, and what that costs the fields and the people's mood.",
+      "economy": "How much of the realm's grain, tribute and labour goes to the army's food and arms.",
+      "trade": "How far trade at sea and at the borders is open, and what that does to building and research."
+    },
+    "line": {
+      "stab_offensive": "A war of our making",
+      "ws_tension": "Unrest in the region"
+    },
     "lobby": {
       "ai_note": "The AI plays {countries}.",
       "calendar": {
@@ -6093,6 +6178,22 @@
         "JOS": "Mountain passes, fortresses and a navy with cannon",
         "JPN": "The best foot army in Asia, fed across one strait"
       }
+    },
+    "order": {
+      "intro": "The Ming emperor invests the kings around him, and the kings he invests send envoys with tribute. Here is where each country stands in that order.",
+      "now": {
+        "ming_help": "Ming's army fights beside Joseon on its soil.",
+        "ming_wait": "Ming has not sent an army yet.",
+        "ming_war": "At war with Japan."
+      },
+      "standing": {
+        "JOS": "Invested by Ming; it sends envoys with tribute every year.",
+        "JPN": "Outside the order: the Ashikaga shogun's investiture of almost two centuries ago is forgotten, and the tally trade has ended.",
+        "JUR": "Tribes held in Ming's frontier guards: their chiefs take Ming titles and sell horses and ginseng at the border markets.",
+        "MIN": "The Son of Heaven's realm: it invests the kings around it and receives their tribute."
+      },
+      "tab": "Investiture",
+      "title": "Investiture and tribute"
     },
     "person": {
       "chen_lin": "Chen Lin",
@@ -6258,6 +6359,23 @@
       "starve": "Starve",
       "starve_hint": "Besiegers without cannon starve the town",
       "starving": "Out of grain: morale falls each day"
+    },
+    "slot": {
+      "JOS": {
+        "army_chief": "Supreme field commander",
+        "navy_chief": "Naval commander of the three provinces",
+        "political": "Border Defence Council seat"
+      },
+      "JPN": {
+        "army_chief": "Commander-in-chief",
+        "navy_chief": "Fleet commander",
+        "political": "Senior retainer seat"
+      },
+      "MIN": {
+        "army_chief": "Field commander",
+        "navy_chief": "Fleet admiral",
+        "political": "Court minister seat"
+      }
     }
   },
   "inventory": {

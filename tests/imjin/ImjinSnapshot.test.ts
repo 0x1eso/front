@@ -17,8 +17,8 @@ const CONFIG: Partial<GameConfig> = {
 const HUMANS = [{ clientID: HUMAN }];
 const hash = (r: { game: unknown }) => (r.game as { hash(): number }).hash();
 
-// Re-pinned at ww184 (the Imjin tech table; no 1936 focus tree, templates or balance of power) with two equal runs (imjinmini, 3,000 ticks).
-const IMJIN_DIGEST = "acfc7cbaf39f29c9";
+// Re-pinned at ww194 (no 1936 government gates on the courts' laws; no 1936 title-card advisors) with two equal runs (imjinmini, 3,000 ticks).
+const IMJIN_DIGEST = "961283a3e777e5d3";
 
 async function imjinRunner() {
   return wwRunner(CONFIG, HUMANS, MAP);

@@ -931,6 +931,7 @@ function economyTarget(
 /** What the law step reads of an AI turn's input. */
 type LawInput = Pick<
   AiInput,
+  | "imjinTag"
   | "personality"
   | "day"
   | "warDays"
@@ -955,6 +956,8 @@ function planLaws(i: LawInput, orders: AiOrder[]): void {
     atWar: i.warDays >= 0,
     ppMilli: i.ppMilli,
     costMilli: 0,
+    // ww194: the Imjin courts have no 1936 government gates (lawBlock).
+    ...(i.imjinTag !== undefined ? { noGovGates: true } : {}),
   };
   const allowed = (kind: LawKind, v: LawValue) =>
     lawBlockOf(laws, i.lawCooldownUntil, kind, v, i.day, ctx) === null;
@@ -3169,6 +3172,7 @@ function lawTargetAt(
   const orders: AiOrder[] = [];
   planLaws(
     {
+      ...(econ.ww.imjin ? { imjinTag: ce.tag } : {}),
       personality: aiPersonality(ce.tag),
       day,
       warDays: econ.warDays(ce.smallID, tick),

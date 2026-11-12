@@ -212,6 +212,12 @@ export interface LawCtx {
   atWar: boolean;
   ppMilli: number;
   costMilli: number;
+  /**
+   * ww194: the Imjin War's courts sit on the ideology slots but are not
+   * 1936 governments: no democracy's tension line and no trade law closed
+   * by the government. Absent (1936): the gates hold.
+   */
+  noGovGates?: boolean;
 }
 
 /**
@@ -223,7 +229,7 @@ export interface LawCtx {
  * The tension line of a democracy is gone at war.
  */
 export function lawBlock(value: LawValue, ctx: LawCtx): WwOrderBlock | null {
-  const dem = ctx.ruling === IDEO_DEM;
+  const dem = ctx.ruling === IDEO_DEM && ctx.noGovGates !== true;
   const gate = (
     ws: number,
     wt: number,
@@ -259,13 +265,17 @@ export function lawBlock(value: LawValue, ctx: LawCtx): WwOrderBlock | null {
       break;
     case "free_trade":
       block =
-        ctx.ruling === IDEO_COM || ctx.ruling === IDEO_FAS
+        ctx.noGovGates !== true &&
+        (ctx.ruling === IDEO_COM || ctx.ruling === IDEO_FAS)
           ? "law_ideology"
           : null;
       break;
     case "closed_economy":
       block =
-        ctx.ruling === IDEO_COM || ctx.ruling === IDEO_FAS || ctx.atWar
+        ctx.noGovGates === true ||
+        ctx.ruling === IDEO_COM ||
+        ctx.ruling === IDEO_FAS ||
+        ctx.atWar
           ? null
           : "law_ideology";
       break;

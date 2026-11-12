@@ -20,6 +20,7 @@ import {
   EQUIPMENT_GENS,
   EQUIPMENT_TYPES,
   EquipmentType,
+  LAW_KINDS,
   LAW_LADDERS,
   LawKind,
   LawValue,
@@ -952,8 +953,14 @@ export const equipmentName = (e: EquipmentType) =>
     : translateText(EQUIPMENT_KEYS[e]);
 export const genName = (gen: number) => translateText(GEN_KEYS[gen - 1]);
 export const techName = (t: WwTechId) => translateText(TECH_KEYS[t]);
-export const lawName = (v: LawValue) => translateText(LAW_KEYS[v]);
-export const lawKindName = (k: LawKind) => translateText(LAW_KIND_KEYS[k]);
+/** ww194: in the Imjin War the laws read as the era's: 공물, 교역 and 군역. */
+export const lawName = (v: LawValue) => {
+  if (!imjinCalendarOn()) return translateText(LAW_KEYS[v]);
+  const kind = LAW_KINDS.find((k) => LAW_LADDERS[k].includes(v)) ?? "economy";
+  return translateText(`imjin.law.${kind}.${v}`);
+};
+export const lawKindName = (k: LawKind) =>
+  translateText(imjinCalendarOn() ? `imjin.law_kind.${k}` : LAW_KIND_KEYS[k]);
 /** ww184: the Imjin War names its four research tabs its own way. */
 const IMJIN_BRANCHES: ReadonlySet<TechBranch> = new Set<TechBranch>([
   "infantry",
@@ -966,7 +973,21 @@ export const branchName = (b: TechBranch) =>
     ? translateText(`ww1936.imjin.tech.tab.${b}`)
     : translateText(BRANCH_KEYS[b]);
 export const schoolName = (s: DoctrineSchool) => translateText(SCHOOL_KEYS[s]);
-export const blockText = (b: WwOrderBlock) => translateText(BLOCK_KEYS[b]);
+/**
+ * ww194: the blocks whose 1936 words (world tension, a democracy) the
+ * Imjin War reads as its courts' and the region's.
+ */
+const IMJIN_BLOCKS: ReadonlySet<WwOrderBlock> = new Set<WwOrderBlock>([
+  "tension_gate",
+  "law_tension",
+  "ultimatum_gov",
+]);
+export const blockText = (b: WwOrderBlock) =>
+  translateText(
+    imjinCalendarOn() && IMJIN_BLOCKS.has(b)
+      ? `imjin.block.${b}`
+      : BLOCK_KEYS[b],
+  );
 export const regionCatName = (c: RegionCategory) =>
   translateText(REGION_CAT_KEYS[c]);
 
@@ -2774,6 +2795,8 @@ export function lawLadder(
       atWar: warDays >= 0,
       ppMilli: pol.ppMilli,
       costMilli: costPp * 1000,
+      // ww194: as LawsRun, the Imjin courts have no 1936 government gates.
+      ...(imjinCalendarOn() ? { noGovGates: true } : {}),
     };
     const condition = lawBlock(value, { ...ctx, ppMilli: 0, costMilli: 0 });
     return {
