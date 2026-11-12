@@ -51,9 +51,18 @@ import {
   timeView,
   todoCount,
 } from "./Departments";
+import { diaryViews } from "./Diary";
 import { govView, pollView } from "./Government";
 import type { GreatWar } from "./GreatWar";
 import { openTopics, readyBlock } from "./Orders";
+import {
+  bearerRow,
+  deskHead,
+  grainLocked,
+  grainView,
+  isPrivatePaper,
+  misledOf,
+} from "./Persona";
 import { powerViews } from "./Powers";
 import { prologueView } from "./Prologue";
 import { rulerView } from "./Ruler";
@@ -111,12 +120,16 @@ function cardView(
     variant: c.variant,
     cast: c.cast,
     stamp: scene.stamp ?? null,
-    options: (scene.options ?? []).map((o) => ({
-      id: o.id,
-      open: optionOpen(ctx, o),
-      tell: c.back?.changed ? reworkTell(o, c.back.direction) : o.tell,
-      ...(o.screen === undefined ? {} : { screen: o.screen }),
-    })),
+    options: (scene.options ?? []).map((o) => {
+      const grain = grainView(gw, seat, c, scene, o);
+      return {
+        id: o.id,
+        open: optionOpen(ctx, o) && !grainLocked(gw, seat, c, scene, o),
+        tell: c.back?.changed ? reworkTell(o, c.back.direction) : o.tell,
+        ...(o.screen === undefined ? {} : { screen: o.screen }),
+        ...(grain === undefined ? {} : { grain }),
+      };
+    }),
     who: speaker === null ? null : (c.cast[speaker] ?? null),
     node: c.node,
     says:
@@ -143,6 +156,21 @@ function cardView(
     ...decryptOf(gw, seat, c.scene),
     ...(c.dept === undefined ? {} : { dept: cardDeptView(gw, c) }),
     ...(c.paper === undefined ? {} : { paper: paperView(gw, seat, c) }),
+    ...bearerOf(gw, seat, c, scene),
+  };
+}
+
+/** ww196: who hands the paper in, and whether it is a private one. */
+function bearerOf(
+  gw: GreatWar,
+  seat: GwSeatState,
+  c: GwCard,
+  scene: GwScene,
+): Pick<GwCardView, "bearer" | "private"> {
+  const b = bearerRow(gw, seat, c);
+  return {
+    ...(b === null ? {} : { bearer: b.id }),
+    ...(isPrivatePaper(scene) ? { private: true } : {}),
   };
 }
 
@@ -247,6 +275,7 @@ function seatView(gw: GreatWar, seat: GwSeatState): GwSeatView {
       if (hidden && !metYet(seat, p, heard)) return [];
       if (opening && newcomers(gw, seat, [p.id]).length > 0) return [];
       const todo = personTodo(gw, seat, p.id);
+      const misled = misledOf(gw, seat, p.id);
       return [
         {
           id: p.id,
@@ -257,6 +286,7 @@ function seatView(gw: GreatWar, seat: GwSeatState): GwSeatView {
           fit: d.fit,
           rivals: d.rivals,
           ...(todo.length === 0 ? {} : { todo }),
+          ...(misled > 0 || p.office !== null ? { misled } : {}),
         },
       ];
     }),
@@ -307,6 +337,8 @@ function seatView(gw: GreatWar, seat: GwSeatState): GwSeatView {
     poll: pollView(gw, seat),
     world: worldView(gw, seat),
     ruler: rulerView(gw, seat),
+    head: deskHead(gw, seat),
+    diary: diaryViews(gw, seat),
     prologue: prologueView(gw, seat),
     diplo: diploView(gw, seat),
   };

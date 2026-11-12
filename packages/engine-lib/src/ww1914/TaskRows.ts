@@ -356,7 +356,8 @@ function sums(o: GwOption): Sums {
   return s;
 }
 
-function leanScore(o: GwOption, lean: GwLean): number {
+/** How strongly an option reads as `lean` (ww196: the grain reads it too). */
+export function leanScore(o: GwOption, lean: GwLean): number {
   const s = sums(o);
   const wait = WAIT.test(o.id) ? 1 : 0;
   const firm = FIRM.test(o.id) ? 1 : 0;

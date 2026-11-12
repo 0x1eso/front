@@ -111,6 +111,7 @@ import { ownFronts } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { lawDraftCard, lawDropDraft } from "./Laws";
 import { openTopics } from "./Orders";
+import { voiceKeys } from "./Persona";
 import { moveRumour } from "./Press";
 import {
   castOf,
@@ -1737,7 +1738,7 @@ export function deptViews(
     return {
       office,
       head: head.id,
-      voice: [head.id, office, head.temperament],
+      voice: voiceKeys(head, office),
       task:
         t === null
           ? null

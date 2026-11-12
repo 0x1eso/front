@@ -60,6 +60,7 @@ import {
   dismissPrice,
   pressPremier,
 } from "./People";
+import { grainLocked, grainTaken } from "./Persona";
 import { postGeneral } from "./Post";
 import { takePower } from "./Powers";
 import { pressCensor, pressInvite, pressLeak } from "./Press";
@@ -127,8 +128,10 @@ export function applyGwOrder(
       if (opt === undefined) return "no_option";
       const ctx = ctxOf(gw, seat, card);
       if (!optionOpen(ctx, opt)) return "closed";
+      if (grainLocked(gw, seat, card, scene, opt)) return "closed";
       removeCard(seat, card.uid);
       takeOption(ctx, scene, opt, false);
+      grainTaken(gw, seat, card, scene, opt);
       deptChosen(gw, seat, card, opt.id);
       return null;
     }

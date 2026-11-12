@@ -90,6 +90,8 @@ export const GwRulerPackSchema = z
     family: Bands,
     conscience: Bands,
     reputation: Bands,
+    /** ww196: nerve (기력), the fifth side. */
+    nerve: Bands.optional(),
     /** Stands for `conscience` once it has given out. */
     broken: Text,
     /**

@@ -22,7 +22,9 @@ function sideLine(
 ): string {
   const words = c.pack?.rulers?.[id];
   if (words === undefined) return "";
-  return side === "conscience" && broken ? words.broken : words[side][level];
+  return side === "conscience" && broken
+    ? words.broken
+    : (words[side]?.[level] ?? "");
 }
 
 /**

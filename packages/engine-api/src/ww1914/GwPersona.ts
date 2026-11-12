@@ -14,6 +14,11 @@ import { GW_LEANS } from "./GwDepts";
 import { GW_PAPER_FORMS } from "./GwDeptWords";
 import { GW_SCENE_KINDS, GW_SCENE_TAGS, GwCondSchema } from "./SceneDsl";
 
+/**
+ * Dates are Gregorian, as the game's calendar is (a Russian row converts the
+ * Julian date: 13 days on). `from` is the first day it holds, `until` the
+ * first day it no longer does.
+ */
 const Iso = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const Text = z.string().min(1);
 const ById = z.record(GwIdSchema, Text);
@@ -220,4 +225,15 @@ export interface GwDiaryView {
   who: string | null;
   scene: string | null;
   theatre: string | null;
+  /**
+   * A "hindsight" line: the answer row and finding that proved wrong; text
+   * `depts.answers.<row>.hindsight.<id>` when written, else the row's.
+   */
+  hindsight?: { row: string; id: string };
 }
+
+/**
+ * The diary row a hindsight line falls back on when the seat has none of its
+ * own (`persona.diary.gw_hindsight` in common.persona.json, with {who}).
+ */
+export const GW_DIARY_HINDSIGHT = "gw_hindsight";
