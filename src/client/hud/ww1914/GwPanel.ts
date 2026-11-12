@@ -563,10 +563,7 @@ export class GwPanel extends LitElement implements Controller {
     const open =
       ui.readerUid === null || replaying ? undefined : c.card(ui.readerUid);
     const talk = replaying ? null : activeTalk(c);
-    // ww194: a briefing hides the drawer as a talk does; on a phone its rows
-    // showed through the briefing's papers.
-    const briefing = !replaying && (ui.briefing ?? null) !== null;
-    setMapCovered(talk !== null || open !== undefined || briefing);
+    setMapCovered(talk !== null || open !== undefined);
     // The years: no desk, no map, nothing of 1914 yet.
     const years =
       seat.prologue?.done === false ||
@@ -605,9 +602,7 @@ export class GwPanel extends LitElement implements Controller {
           ? "!h-9"
           : ui.paint !== null || ui.tab === "table"
             ? "max-sm:!h-[42vh]"
-            : ""} ${talk === null && !replaying && !briefing
-          ? ""
-          : "invisible"}"
+            : ""} ${talk === null && !replaying ? "" : "invisible"}"
       >
         <nav
           class="flex shrink-0 flex-wrap items-center gap-0.5 border-b border-white/10 p-1.5"
