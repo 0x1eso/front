@@ -23,6 +23,7 @@ import { FRA_ACT_SCENES, FRA_ACTS, FRA_AIMS } from "./acts/fra";
 import { GBR_ACT_SCENES, GBR_ACTS, GBR_AIMS } from "./acts/gbr";
 import { NAVAL_ACT_SCENES, NAVAL_ACTS } from "./acts/naval";
 import { RUS_ACT_SCENES, RUS_ACTS, RUS_AIMS } from "./acts/rus";
+import { GW_CAPITAL_SCENES } from "./capital";
 import { GW_LADDER_POWERS, GW_LADDER_SCENES } from "./ladder";
 import { GW_PEOPLE } from "./people";
 import { AUH_PEOPLE } from "./people_auh";
@@ -265,6 +266,8 @@ export const GW_CONTENT: GwContent = {
         ...RUS_PROLOGUE_SCENES,
         ...FRA_PROLOGUE_SCENES,
         ...GW_LADDER_SCENES,
+        // ww188: a fallen capital and giving up.
+        ...GW_CAPITAL_SCENES,
         ...GW_FILLER_SCENES,
         // ww171 phase 4: each seat's scenes of new wars and peaces.
         ...DEU_WAR_EVENTS,

@@ -24,6 +24,7 @@ import {
 } from "@openfront/engine-api/ww1914/SceneDsl";
 import { ScenarioDataSchema } from "@openfront/engine-api/ww1936/ScenarioTypes";
 import { SPY_SCENES } from "@openfront/engine-lib/ww1914/content/acts/common";
+import { GW_CAPITAL_CALLED } from "@openfront/engine-lib/ww1914/content/capital";
 import { GW_CONTENT } from "@openfront/engine-lib/ww1914/content/Content";
 import { GW_LADDER_CALLED } from "@openfront/engine-lib/ww1914/content/ladder";
 import {
@@ -116,6 +117,8 @@ describe("content", () => {
       ...houseCalledScenes(GW_CONTENT),
       ...powerCalledScenes(GW_CONTENT),
       ...GW_LADDER_CALLED,
+      // ww188: laid, set and read by Capitulation.ts.
+      ...GW_CAPITAL_CALLED,
       ...GW_STALL_CALLED,
       // ww173: laid by Spies.agentsTaken.
       ...SPY_SCENES.map((x) => x.id),

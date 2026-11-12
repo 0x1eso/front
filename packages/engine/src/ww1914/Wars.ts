@@ -160,9 +160,19 @@ export function membersOf(gw: GreatWar, t: GwTheatre, end: GwSide): GwTag[] {
     behind !== undefined && gw.nation(behind.once)?.out !== true
       ? behind.tags
       : [];
+  // ww188: an ally that left this front when its partner gave up.
+  const gone = (gw.s.withdrawn ?? [])
+    .filter((x) => x.theatre === t)
+    .map((x) => x.tag);
   const live = (tag: GwTag) => {
     const n = gw.nation(tag);
-    return n !== null && !n.out && n.atWar.length > 0 && !waiting.includes(tag);
+    return (
+      n !== null &&
+      !n.out &&
+      n.atWar.length > 0 &&
+      !waiting.includes(tag) &&
+      !gone.includes(tag)
+    );
   };
   const ends = GW_FRONT_ENDS[t];
   const far = ends[other(end)].filter(live);
