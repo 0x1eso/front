@@ -6,7 +6,7 @@ import {
   not,
   setFlag,
 } from "@openfront/engine-api/ww1914/SceneDsl";
-import { world } from "@openfront/engine-api/ww1914/WorldDsl";
+import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
 import type { GwLawRow } from "../../LawRows";
 import {
   draft,
@@ -25,6 +25,9 @@ import {
 const row = (r: Omit<GwLawRow, "tag">): GwLawRow => ({ ...r, tag: "GBR" });
 const home = { home: held("interior") };
 const treasury = { fin: held("finance") };
+/** ww190: the peace years' bill tilts the running plan's navy share. */
+const navyShare = (delta: number) =>
+  doWorld({ do: "arms", line: "navy", delta });
 
 /**
  * Britain's bills. The door is the Commons, the cabinet behind it; a regulation
@@ -448,6 +451,58 @@ export const GBR_LAWS: readonly GwLawRow[] = [
       price: [inst("opposition", 1), inst("irish", -1)],
       wins: 2,
       tempers: ["stubborn"],
+    }),
+  }),
+  // ww190 §1: the peace bill. The naval estimates go to the Commons in a
+  // year with no war; the drafts carry the navy's share and how it is paid.
+  row({
+    id: "gbr_navy_estimates",
+    opens: {
+      kind: "all",
+      of: [not(war), world({ is: "peace_months", min: 1 })],
+    },
+    lean: 0,
+    decree: false,
+    cast: { first: held("navy") },
+    draft: [
+      draft(
+        "full_programme",
+        0,
+        ["navy_line:+5", "money:-1"],
+        [
+          navyShare(5),
+          doWorld({ do: "budget_mix", source: "taxes", delta: 5 }),
+        ],
+      ),
+      draft(
+        "holiday_clause",
+        1,
+        ["navy_line:+5"],
+        [navyShare(5), doWorld({ do: "accord", kind: "naval", tag: "DEU" })],
+      ),
+      draft(
+        "fewer_keels",
+        -1,
+        ["navy_line:-5", "money:+1"],
+        [navyShare(-5), gauge("money", 1)],
+      ),
+    ],
+    passed: [],
+    passedTell: [],
+    term: [],
+    replaces: ["gbr_y_arms_bill"],
+    repeal: {
+      authority: 10,
+      tell: ["navy_line:-5"],
+      effects: [navyShare(-5)],
+    },
+    talk: lawTalk("gbr_navy_estimates", {
+      who: person("gbr_lloyd_george"),
+      ask: "frank",
+      push: "cold",
+      tell: ["cabinet:-1"],
+      price: [inst("cabinet", -1)],
+      wins: 2,
     }),
   }),
 ];
