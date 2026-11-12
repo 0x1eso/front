@@ -64,9 +64,21 @@ const base = (
   variants: [{ id: "base" }],
 });
 
+/**
+ * ww190 §2: a long peace deals its rows more often (cooldown 3, the desk's
+ * cap of five a game), so each has a second body to take turns with.
+ */
+const peaceRepeats = (
+  body: string,
+): Pick<GwScene, "cooldown" | "variants"> => ({
+  cooldown: 3,
+  variants: [{ id: body }, { id: "base" }],
+});
+
 export const GW_FILLER_SCENES: readonly GwScene[] = [
   {
     ...base("gw_fill_peace_reserves", "proposal", longPeace(2), ["home"]),
+    ...peaceRepeats("harvest"),
     fallback: "send_home",
     options: [
       {
@@ -87,9 +99,13 @@ export const GW_FILLER_SCENES: readonly GwScene[] = [
       },
     ],
   },
-  base("gw_fill_peace_markets", "report", longPeace(1), ["home"]),
+  {
+    ...base("gw_fill_peace_markets", "report", longPeace(1), ["home"]),
+    ...peaceRepeats("bonds"),
+  },
   {
     ...base("gw_fill_peace_spring", "proposal", longPeace(3), ["foreign"]),
+    ...peaceRepeats("papers"),
     fallback: "wait",
     options: [
       {

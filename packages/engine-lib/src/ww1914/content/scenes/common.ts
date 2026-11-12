@@ -83,7 +83,12 @@ export const COMMON_SCENES: readonly GwScene[] = [
     tags: ["people"],
     scheduledOnly: true,
     who: "who",
-    variants: [{ id: "base" }],
+    // ww190 §2: by who came, an old friend or one long estranged.
+    variants: [
+      { id: "friend", when: { kind: "person_trust", who, min: 2 } },
+      { id: "estranged", when: { kind: "person_trust", who, max: -2 } },
+      { id: "base" },
+    ],
     start: "open",
     nodes: {
       open: {
