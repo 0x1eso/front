@@ -231,7 +231,7 @@ function seatView(gw: GreatWar, seat: GwSeatState): GwSeatView {
     claims: claimsView(gw, seat),
     table: tableView(gw, seat),
     terms: termsView(gw, seat),
-    desk: seat.desk.flatMap((c) => cardView(gw, seat, c) ?? []),
+    desk: gwDeskView(gw, seat),
     people: defs.flatMap((d) => {
       const p = gw.person(d.id);
       if (p === null || p.status !== "active") return [];
@@ -394,6 +394,14 @@ function finaleView(gw: GreatWar): GwFinaleView | null {
         date: dateOf(gw, t.chapter),
       })),
   };
+}
+
+/**
+ * The seat's desk alone, as `gwView` shows it: for tests and tools that answer
+ * card by card and need no more than the cards (the whole view is far dearer).
+ */
+export function gwDeskView(gw: GreatWar, seat: GwSeatState): GwCardView[] {
+  return seat.desk.flatMap((c) => cardView(gw, seat, c) ?? []);
 }
 
 /**

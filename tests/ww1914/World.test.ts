@@ -579,7 +579,7 @@ describe("plausibility rails", () => {
     while (gw.s.chapter < 5) playChapter(runner);
     gw.s.chain = { topic: "balkan", step: 5, hold: 0, short: false };
     gw.s.temp = 9;
-    while (view(runner).ended === null) playChapter(runner);
+    while (gw.s.ended === null) playChapter(runner);
     return gw;
   };
 
@@ -611,8 +611,9 @@ describe("plausibility rails", () => {
     expect(britain).toBe(n);
     expect(long).toBeGreaterThanOrEqual(n - 1);
     useGwContent({ scenes: GW_CONTENT.scenes, people: CAST });
-    // ww193 merge: eight full games on the real map pass three minutes here
-    // (they timed out on the live tune too).
+    // ww194: eight full games took about six minutes under load, near the
+    // limit: the plain player read the whole view for every card. It reads
+    // the desk alone now (util.playChapter), about 17 s a game.
   }, 420000);
 
   test("closing a chain with war twice opens one war", async () => {
