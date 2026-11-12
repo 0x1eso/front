@@ -108,9 +108,9 @@ describe("russia's schedule", () => {
   test("the brief's counts", () => {
     const count = (k: string) => RUS_ACTS.filter((a) => a.kind === k).length;
     expect(count("visit")).toBe(14);
-    // ww193: two cousins' letters; 숫자 조사 went to the war ministry's tasks.
+    // ww193: two cousins' letters. ww196: 숫자 조사 is an order again.
     expect(count("letter")).toBe(8);
-    expect(count("order")).toBe(7);
+    expect(count("order")).toBe(8);
     expect(count("speech")).toBe(6);
     expect(count("intrigue")).toBe(6);
     expect(count("ceremony")).toBe(3);

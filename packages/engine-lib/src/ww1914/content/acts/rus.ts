@@ -264,6 +264,18 @@ const ORDERS: GwAct[] = [
       { id: "attend", people: "cabinet", count: 2 },
     ],
   }),
+  // ww196: back from the war ministry's tasks (ww193): the Tsar's own audit.
+  act("rus_a_o_figures", "order", "rus_a_o_figures_s", 1, {
+    when: reign,
+    cooldown: 4,
+    effects: [see("shells")],
+    fields: [
+      {
+        id: "subject",
+        options: [{ id: "shells" }, { id: "bread" }, { id: "rails" }],
+      },
+    ],
+  }),
   act("rus_a_o_envoy", "order", "rus_a_o_envoy_s", 2, {
     when: reign,
     cooldown: 5,
