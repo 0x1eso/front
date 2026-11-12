@@ -1,6 +1,7 @@
 import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
 import type { GwCtx } from "./GwCtx";
+import { diarySection } from "./GwDiary";
 import { rich } from "./GwDict";
 import { keyDecisions, promisesInOrder } from "./GwModel";
 import { CHIP, HEAD, MUTED } from "./GwStyle";
@@ -122,9 +123,12 @@ function dossier(c: GwCtx): TemplateResult | typeof nothing {
   </section>`;
 }
 
-/** The notebook: what was promised to whom and by when, what was decided. */
+/**
+ * The notebook: his diary (ww196), what was promised to whom and by when,
+ * what was decided.
+ */
 export function notebookTab(c: GwCtx): TemplateResult {
   return html`<div class="space-y-3" data-gw-notebook>
-    ${promises(c)} ${dossier(c)} ${decisions(c)}
+    ${diarySection(c)} ${promises(c)} ${dossier(c)} ${decisions(c)}
   </div>`;
 }

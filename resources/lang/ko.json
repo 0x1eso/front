@@ -17405,27 +17405,19 @@
       "dept": {
         "title": "부서",
         "room_title": "접견실",
-        "room_hint": "만나기를 기다리는 사람들. 한 사람을 만나는 데 일정 하나가 들고, 그가 가져온 것을 모두 듣는다.",
+        "room_hint": "만나기를 기다리는 사람들. 한 사람을 만나거나 부서장을 불러 묻는 데 일정 하나가 든다.",
         "room_shut": "집무실을 비웠다. 이번 장에는 아무도 접견하지 않고, 부서의 서류는 전보로 온다.",
-        "room_brings": "가져온 것 {n}건",
         "room_petition": "청원: {what}",
         "meet": "만난다",
         "turn_away": "돌려보낸다",
         "want": "바라는 것: {what}",
-        "working": "작업 중: {what}",
-        "working_soon": "작업 중: {what} · 곧",
-        "ready": "보고 {n}건 준비됨",
         "initiatives": "건의 {n}건",
         "idle": "한가함",
         "empty": "맡은 사람이 없음",
         "passed_work": "다른 부서에서 넘어온 일",
-        "brief": "{name}을(를) 들인다",
-        "busy": "부서가 일하는 중이다. 한 번에 한 가지 일만 맡길 수 있다.",
         "no_offers": "지금 맡길 만한 일이 없다.",
-        "offers": "서면으로 일을 맡긴다 (일정 하나)",
-        "offers_free": "만난 김에 일을 맡긴다 (일정이 들지 않는다)",
+        "offers": "일을 맡긴다 (일정이 들지 않는다)",
         "give": "이 일을 맡긴다",
-        "give_free": "만난 자리에서 맡긴다",
         "past": "지난 일",
         "verdict": {
           "accept": "받아들임",
@@ -17433,7 +17425,9 @@
           "send_back": "다시 써 오게 함",
           "pass_on": "다른 부서에 맡김",
           "shelve": "묵혀 둠",
-          "acted": "부서가 알아서 처리함"
+          "acted": "부서가 알아서 처리함",
+          "redo": "다시 알아보게 함",
+          "withdraw": "거둠"
         },
         "counter": "맞서는 안",
         "waited": "오래 기다림",
@@ -17450,21 +17444,147 @@
         "overrule": "다른 안으로 정한다",
         "pass_on": "다른 부서에 맡긴다",
         "shelve": "묵혀 둔다",
-        "gifts": "내릴 수 있는 은전",
-        "lever": {
-          "honour": "훈장",
-          "post": "자리",
-          "purse": "내탕금",
-          "pardon": "사면"
-        },
-        "brief_empty": "더 올릴 것이 없습니다.",
-        "brief_leave": "물러가게 한다",
         "trip": "행차 · 일정 둘",
         "act_more": "그 밖에 {n}가지 더",
         "time": "남은 일정 {n}",
         "time_away": "행차 중 · 남은 일정 {n}",
-        "time_tip": "접견 한 번, 서면 지시 한 번, 일정 하나에 각각 하나가 든다. 행차에는 둘이 든다. 접견 자리에서 맡기는 일에는 들지 않는다. 쓰지 않은 것은 하나까지 다음 장으로 넘어간다.",
-        "time_carry": "지난 장에서 넘어온 것이 있다."
+        "time_tip": "누구를 만나거나, 부서장을 불러 묻거나, 행사 하나에 일정 하나가 든다. 행차에는 둘이 든다. 부서에 일을 맡기는 데에는 들지 않는다. 쓰지 않은 것은 하나까지 다음 장으로 넘어간다.",
+        "time_carry": "지난 장에서 넘어온 것이 있다.",
+        "answer_waited": "다음 장이 끝날 때까지 정하지 않으면 {dept}이(가) 제 안대로 한다.",
+        "call": "{who}을(를) 불러서 묻는다 (일정 하나)",
+        "called": "{who}을(를) 불러 물었다. 그가 빼놓았던 것이 함께 적혀 있다.",
+        "conf": {
+          "heard": "들은 말",
+          "mostly": "대체로",
+          "sure": "확인함"
+        },
+        "course_against": "걸리는 점:",
+        "course_for": "좋은 점:",
+        "course_own": "부서의 안",
+        "course_take": "이 안으로 정한다",
+        "course_unsaid": "적어 오지 않았다",
+        "courses": "안",
+        "finding_late": "불러서 들은 것",
+        "findings": "알아낸 것",
+        "form": {
+          "answer": "답신",
+          "honours": "서훈 명단",
+          "news": "부서 소식",
+          "petition": "서훈 상신",
+          "question": "물음",
+          "stall": "멈춤"
+        },
+        "honour_none": "주지 않는다",
+        "honour_pool": {
+          "generals": "장군",
+          "heads": "부서장",
+          "industry": "산업계",
+          "officials": "관리",
+          "soldier": "병사"
+        },
+        "honour_proposed": "{dept} 상신: {honour}",
+        "honour_soldier": "한 병사",
+        "honours_gist": "명단에 오른 사람: {names}",
+        "honours_hold": "서훈식을 연다 (일정 하나)",
+        "honours_until_next": "이번 장이나 다음 장에 서훈식을 열지 않으면 상신한 대로 내려지고, 그 공은 올린 부서의 것이 된다.",
+        "honours_until_now": "이번 장에 서훈식을 열지 않으면 상신한 대로 내려지고, 그 공은 올린 부서의 것이 된다.",
+        "hurried": "서두르라고 일렀다.",
+        "lean_pick": "{who}에게 맡기면: {what}",
+        "needs": "필요한 것:",
+        "paper_from": {
+          "answer": "{dept}의 {who}이(가) 올린 답신 · {what}",
+          "question": "{dept}의 {who}이(가) 여쭙는다 · {what}",
+          "stall": "{dept}의 {who}이(가) 알려 왔다 · {what}"
+        },
+        "paper_title": {
+          "honours": "서훈 명단 · {what}",
+          "petition": "서훈 상신 · {who}",
+          "question": "{what}: 여쭙는 것",
+          "stall": "{what}: 일이 멈췄다"
+        },
+        "petition": {
+          "accept": "받아들인다",
+          "next": "다음 명단으로 미룬다",
+          "refuse": "거절한다"
+        },
+        "petition_line": "{dept}의 {who}이(가) {person}에게 {honour}을(를) 내려 주기를 청한다.",
+        "pick": {
+          "ample": "넉넉히 쓴다",
+          "sign": "서명까지 받아 온다",
+          "sound": "떠보기만 한다",
+          "terms": "조건까지 내놓는다",
+          "thrift": "아껴서 쓴다"
+        },
+        "push": {
+          "hurry": "서두르게 한다",
+          "money": "돈을 더 쓴다",
+          "staff": "사람을 붙인다",
+          "wait": "기다린다",
+          "withdraw": "거둔다"
+        },
+        "question": {
+          "money": "이 일에 돈을 얼마나 쓸지 정해 주십시오.",
+          "person": "누구를 보낼지 정해 주십시오.",
+          "reach": "어디까지 해도 되는지 정해 주십시오."
+        },
+        "redo": {
+          "more": "더 알아봐라",
+          "other": "다른 안을 가져와라"
+        },
+        "room_call": "불러서 물을 수 있음: {what}",
+        "room_call_go": "부른다",
+        "room_free": "일정 들지 않음",
+        "room_press": "뵙기를 청한다",
+        "room_waits": "기다린다",
+        "soon": "곧",
+        "staffed": "{who}이(가) 곁에서 돕는다.",
+        "stage": {
+          "draft": "초안",
+          "inquiry": "조사",
+          "report": "보고",
+          "start": "착수"
+        },
+        "stage_line": {
+          "draft": "{what}의 초안을 쓰고 있다.",
+          "inquiry": "{what}을(를) 알아보고 있다.",
+          "report": "{what}에 대한 보고를 곧 올린다.",
+          "start": "{what}에 착수했다."
+        },
+        "stall": {
+          "disloyal": "부서장이 미적거림",
+          "money": "돈이 바닥남",
+          "moot": "쓸모없어짐",
+          "rival": "다른 부서가 막음"
+        },
+        "stall_line": {
+          "disloyal": "부서장이 이 일을 미적거리고 있다.",
+          "money": "국고가 바닥이라 일을 이어 갈 돈이 없다.",
+          "moot": "사정이 바뀌어 이 일은 더 물을 것이 없어졌다.",
+          "rival": "다른 부서가 이 일을 막고 나섰다."
+        },
+        "task_any": "{topic}에 관한 일",
+        "task_plain": "맡긴 일",
+        "working_stage": "작업 중: {what} · {stage}"
+      },
+      "dept_need_bill": "법안: {what}",
+      "dept_need_consent": "{what}의 동의",
+      "dept_need_divisions": "병력: {what}",
+      "dept_need_money": "돈: {what}",
+      "dept_need_person": "사람: {what}",
+      "dept_todo_answer": "답신 올라옴",
+      "dept_todo_asks": "뵙기를 청함",
+      "dept_todo_callable": "부를 수 있음",
+      "dept_todo_idle": "한가함 · 일을 맡길 수 있음",
+      "dept_todo_question": "물을 것이 있음",
+      "dept_todo_stall": "일이 멈춤: {why}",
+      "persona": {
+        "brought": "{who}이(가) 올린 서류",
+        "comes_in": "{who}이(가) 서류를 들고 들어온다.",
+        "diary": "일기",
+        "grain": "마음에 걸린다",
+        "grain_tip": "그의 성품을 거스르는 일이다. 하고 나면 지친다.",
+        "no_diary": "아직 적은 것이 없다.",
+        "private": "사사로운 것"
       }
     },
     "unknown": {
@@ -17710,7 +17830,13 @@
         "conscience": "양심",
         "family": "집안",
         "health": "건강",
-        "reputation": "평판"
+        "reputation": "평판",
+        "nerve": "기력"
+      },
+      "nerve": {
+        "0": "기력이 바닥났다. 마음에 걸리는 말은 오늘 꺼낼 수 없다.",
+        "1": "지쳐 있다. 모진 말 한마디가 힘에 부친다.",
+        "2": "아직 버틸 힘이 있다."
       }
     },
     "gov": {

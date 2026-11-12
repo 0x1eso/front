@@ -7,10 +7,10 @@ import type { GwCtx } from "./GwCtx";
 import {
   canSpend,
   deptsBox,
-  giftButtons,
   roomBox,
   timeChip,
   timeLeft,
+  todoChips,
 } from "./GwDept";
 import { rich } from "./GwDict";
 import { gwFace } from "./GwFace";
@@ -187,7 +187,7 @@ export function personDetails(c: GwCtx, p: GwPersonView): TemplateResult {
           ${translateText("gw.ui.rivals")}:
           ${p.rivals.map((r) => personName(c.pack, r)).join(", ")}
         </p>`}
-    ${promises(c, p.id)} ${giftButtons(c, p.id)}
+    ${promises(c, p.id)}
     <div class="space-y-1">
       ${topics.length === 0
         ? html`<p class=${MUTED}>${translateText("gw.ui.no_topics")}</p>`
@@ -271,7 +271,7 @@ export function personRow(c: GwCtx, p: GwPersonView): TemplateResult {
         >
       </span>
     </button>
-    ${marks(c, p)}
+    ${todoChips(c, p.todo)} ${marks(c, p)}
     ${open
       ? html`<div class="mt-2 space-y-2 border-t border-white/10 pt-2">
           ${personDetails(c, p)}

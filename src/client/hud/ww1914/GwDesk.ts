@@ -17,6 +17,13 @@ import {
   roomBox,
   signWord,
 } from "./GwDept";
+import {
+  bearerLine,
+  deskHeading,
+  diaryCard,
+  grainChip,
+  grainLine,
+} from "./GwDiary";
 import { briefLine, rich } from "./GwDict";
 import { newPass, TextPass } from "./GwDictModel";
 import { lawStrip } from "./GwLaws";
@@ -29,6 +36,7 @@ import {
   talkCards,
 } from "./GwModel";
 import { nowBox } from "./GwNow";
+import { paperBody, paperChips, paperGist, paperTitle } from "./GwPaper";
 import { openCard, placeChip } from "./GwPlaceSheet";
 import { brokenLine } from "./GwRuler";
 import { aimNudge } from "./GwSchedule";
@@ -109,13 +117,23 @@ function sender(c: GwCtx, card: GwCardView): string {
   return first === undefined ? "" : personName(c.pack, first);
 }
 
+/** The card's heading: a paper's own, else its scene's title. */
+function titleOf(c: GwCtx, card: GwCardView): string {
+  return paperTitle(c, card) ?? cardTitle(c.pack, card);
+}
+
 export function cardBox(c: GwCtx, card: GwCardView): TemplateResult {
   const stamp = cardStamp(card);
   const fill = (t: string) => fillGw(t, c.pack, card, c.seat, c.data.date);
   const isTalk = card.kind === "talk";
   const read = isReadOnly(card);
   const pass = newPass();
-  const brief = briefText(c.pack, card, c.seat, c.data.date);
+  // ww196: a department's paper says what it is about in place of a brief.
+  const gist = paperGist(c, card);
+  const brief =
+    card.paper === undefined
+      ? briefText(c.pack, card, c.seat, c.data.date)
+      : null;
   return html`<section
     data-gw-card=${card.scene}
     class="space-y-1.5 rounded border border-white/15 bg-black/35 p-2.5"
@@ -129,10 +147,11 @@ export function cardBox(c: GwCtx, card: GwCardView): TemplateResult {
             title=${translateText(`gw.ui.stamp_hint.${stamp}`)}
             >${translateText(`gw.ui.stamp.${stamp}`)}</span
           >`}
-      ${deptChips(c, card)} ${placeChip(c, card)}
+      ${deptChips(c, card)} ${paperChips(c, card)} ${placeChip(c, card)}
       <span class="${MUTED} ml-auto truncate">${sender(c, card)}</span>
     </div>
-    <h3 class=${HEAD}>${cardTitle(c.pack, card)}</h3>
+    <h3 class=${HEAD}>${titleOf(c, card)}</h3>
+    ${bearerLine(c, card)}
     ${brief === null ? nothing : briefLine(c, brief, pass)}
     ${backLine(c, card, pass)}
     ${isTalk
@@ -144,7 +163,7 @@ export function cardBox(c: GwCtx, card: GwCardView): TemplateResult {
               })}
         </p>`
       : html`<p class="line-clamp-3 text-sm text-white/85">
-          ${rich(c, bodyPlain(fill(cardBody(c.pack, card))), pass)}
+          ${rich(c, gist ?? bodyPlain(fill(cardBody(c.pack, card))), pass)}
         </p>`}
     <button
       class=${BTN}
@@ -321,14 +340,32 @@ function resultsBox(c: GwCtx): TemplateResult | typeof nothing {
   </div>`;
 }
 
+/** 사사로운 것: the private papers, in the existing card style, as one group. */
+function privateBox(
+  c: GwCtx,
+  cards: readonly GwCardView[],
+): TemplateResult | typeof nothing {
+  if (cards.length === 0) return nothing;
+  return html`<section
+    class="space-y-1.5 rounded border border-amber-200/25 bg-black/35 p-2.5"
+    data-gw-private-papers
+  >
+    <h3 class=${HEAD}>${translateText("gw.ui.persona.private")}</h3>
+    ${cards.map((p) => cardBox(c, p))}
+  </section>`;
+}
+
 /** The desk tab: what the last chapter left, the papers, the visitors, ready. */
 export function deskTab(c: GwCtx): TemplateResult {
   const { seat, data } = c;
   const reasons = lastReasons(c);
-  const papers = paperCards(seat);
-  const talks = talkCards(seat);
+  // ww196: private papers come by the private bearer, grouped at the top.
+  const own = seat.desk.filter((p) => p.private === true);
+  const papers = paperCards(seat).filter((p) => p.private !== true);
+  const talks = talkCards(seat).filter((p) => p.private !== true);
   return html`<div class="space-y-2.5" data-gw-desk>
-    ${nowBox(c)} ${dangerBox(c)} ${roomBox(c)} ${aimNudge(c)}
+    ${deskHeading(c)} ${diaryCard(c)} ${nowBox(c)} ${dangerBox(c)} ${roomBox(c)}
+    ${aimNudge(c)}
     ${reasons.length === 0
       ? nothing
       : html`<div class="rounded border border-white/10 bg-white/5 p-2">
@@ -337,8 +374,8 @@ export function deskTab(c: GwCtx): TemplateResult {
             (r) => html`<p class="text-sm text-white/80">${rich(c, r)}</p>`,
           )}
         </div>`}
-    ${resultsBox(c)} ${deskPapers(c)}
-    ${papers.length + talks.length === 0
+    ${resultsBox(c)} ${deskPapers(c)} ${privateBox(c, own)}
+    ${papers.length + talks.length + own.length === 0
       ? html`<p class="text-sm text-white/65" data-gw-empty>
           ${translateText("gw.ui.desk_empty")}
         </p>`
@@ -399,7 +436,11 @@ function optionButton(
   pass: TextPass,
 ): TemplateResult {
   const armed = c.ui.armed?.uid === card.uid && c.ui.armed.option === o.id;
-  const why = o.open ? undefined : c.pack?.scenes[card.scene]?.why?.[o.id];
+  // ww196: shut against his grain, the person's own line is the why.
+  const grain = grainLine(c, o);
+  const why = o.open
+    ? undefined
+    : (grain ?? c.pack?.scenes[card.scene]?.why?.[o.id]);
   // The year's pick (ww179): what each project works on, never its result.
   const aim = card.scene.endsWith("_agenda")
     ? (c.pack?.craft?.[o.id]?.aim ?? null)
@@ -425,7 +466,7 @@ function optionButton(
         ></span
       >
     </button>
-    ${optionMarks(c, card, o.id)}
+    ${optionMarks(c, card, o.id)} ${o.open ? grainChip(o) : nothing}
     ${aim === null
       ? nothing
       : html`<p class="${MUTED} pl-1" data-gw-option-aim=${o.id}>
@@ -562,9 +603,14 @@ export function reader(c: GwCtx, card: GwCardView): TemplateResult {
   const fill = (t: string) => fillGw(t, c.pack, card, c.seat, c.data.date);
   const after = brokenLine(c, card);
   const read = isReadOnly(card);
-  const body = bodyParts(fill(cardBody(c.pack, card)));
+  // ww196: a paper's sections stand in for its stub scene's body.
+  const body =
+    card.paper === undefined ? bodyParts(fill(cardBody(c.pack, card))) : [];
   const pass = newPass();
-  const brief = briefText(c.pack, card, c.seat, c.data.date);
+  const brief =
+    card.paper === undefined
+      ? briefText(c.pack, card, c.seat, c.data.date)
+      : null;
   const stamp = cardStamp(card);
   const armedOpt =
     c.ui.armed?.uid === card.uid
@@ -575,6 +621,8 @@ export function reader(c: GwCtx, card: GwCardView): TemplateResult {
     c.ui.armed = null;
     c.ui.backOpen = false;
     c.ui.backArmed = null;
+    c.ui.redoArmed = null;
+    c.ui.deptStaff = null;
     c.redraw();
   };
   return html`<div
@@ -598,8 +646,8 @@ export function reader(c: GwCtx, card: GwCardView): TemplateResult {
           ✕
         </button>
       </header>
-      <h2 class="text-lg font-bold leading-snug">${cardTitle(c.pack, card)}</h2>
-      ${deptLine(c, card)}
+      <h2 class="text-lg font-bold leading-snug">${titleOf(c, card)}</h2>
+      ${bearerLine(c, card, true)} ${deptLine(c, card)}
       ${brief === null ? nothing : briefLine(c, brief, pass)}
       ${backLine(c, card, pass)}
       ${card.letterFrom === undefined
@@ -631,7 +679,7 @@ export function reader(c: GwCtx, card: GwCardView): TemplateResult {
       </div>
       ${card.scene.startsWith("gw_bm_") ? budgetStrip(c) : nothing}
       ${card.scene.startsWith("gw_lv_") ? lawStrip(c, card.scene) : nothing}
-      ${projectDoneLine(c, card.scene)}
+      ${projectDoneLine(c, card.scene)} ${paperBody(c, card, close)}
       ${(card.folded ?? []).length === 0
         ? nothing
         : html`<div class="space-y-0.5" data-gw-folded>
@@ -641,43 +689,45 @@ export function reader(c: GwCtx, card: GwCardView): TemplateResult {
                 html`<p class="text-sm text-white/75">${rich(c, l, pass)}</p>`,
             )}
           </div>`}
-      ${read
-        ? html`<button
-              class="${BTN} w-full text-center"
-              data-gw-readdone
-              @click=${() => {
-                c.send({ kind: "read", card: card.uid });
-                close();
-              }}
-            >
-              ${translateText("gw.ui.read_done")}
-            </button>
-            ${deptVerdicts(c, card, close)}`
-        : html`<div class="space-y-1.5">
-            <div class=${MUTED}>${translateText("gw.ui.options")}</div>
-            ${card.options.map((o) => optionButton(c, card, o, pass))}
-            ${armedOpt === undefined
-              ? nothing
-              : html`<button
-                  class="w-full rounded border border-amber-300 bg-amber-300/90 px-3 py-2 text-center text-sm font-bold text-slate-900 hover:bg-amber-200"
-                  data-gw-sign
-                  @click=${() => {
-                    c.ui.notes.push(resultNote(c, card, armedOpt));
-                    c.send({
-                      kind: "choose",
-                      card: card.uid,
-                      option: armedOpt.id,
-                    });
-                    if (armedOpt.screen === "fronts") {
-                      c.ui.tab = armedOpt.screen;
-                    }
-                    close();
-                  }}
-                >
-                  ${signWord(card, armedOpt.id)}
-                </button>`}
-            ${backControl(c, card, close)} ${deptVerdicts(c, card, close)}
-          </div>`}
+      ${card.paper !== undefined && card.paper.form !== "news"
+        ? deptVerdicts(c, card, close)
+        : read
+          ? html`<button
+                class="${BTN} w-full text-center"
+                data-gw-readdone
+                @click=${() => {
+                  c.send({ kind: "read", card: card.uid });
+                  close();
+                }}
+              >
+                ${translateText("gw.ui.read_done")}
+              </button>
+              ${deptVerdicts(c, card, close)}`
+          : html`<div class="space-y-1.5">
+              <div class=${MUTED}>${translateText("gw.ui.options")}</div>
+              ${card.options.map((o) => optionButton(c, card, o, pass))}
+              ${armedOpt === undefined
+                ? nothing
+                : html`<button
+                    class="w-full rounded border border-amber-300 bg-amber-300/90 px-3 py-2 text-center text-sm font-bold text-slate-900 hover:bg-amber-200"
+                    data-gw-sign
+                    @click=${() => {
+                      c.ui.notes.push(resultNote(c, card, armedOpt));
+                      c.send({
+                        kind: "choose",
+                        card: card.uid,
+                        option: armedOpt.id,
+                      });
+                      if (armedOpt.screen === "fronts") {
+                        c.ui.tab = armedOpt.screen;
+                      }
+                      close();
+                    }}
+                  >
+                    ${signWord(card, armedOpt.id)}
+                  </button>`}
+              ${backControl(c, card, close)} ${deptVerdicts(c, card, close)}
+            </div>`}
     </article>
   </div>`;
 }

@@ -3,6 +3,7 @@ import type {
   GwBackDirection,
   GwClause,
   GwGiveClause,
+  GwOffice,
   GwOffMethod,
   GwReason,
   GwResearch,
@@ -10,6 +11,7 @@ import type {
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwBudgetPlan } from "@openfront/engine-api/ww1914/GwBudget";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
+import type { GwAnswerRedo } from "@openfront/engine-api/ww1914/GwDeptWords";
 import type { GwOrder } from "@openfront/engine-api/ww1914/GwOrders";
 import type { GwPack } from "@openfront/engine-api/ww1914/GwPack";
 import type { GwPlace } from "@openfront/engine-api/ww1914/GwPlaces";
@@ -155,12 +157,16 @@ export interface GwUi {
   deptOpen?: string | null;
   /** ww193: the task picked there, and its topic, before it is given. */
   deptTask?: { row: string; topic: string | null } | null;
-  /** ww193: the head whose briefing is on screen; null none. */
-  briefing?: string | null;
   /** ww193: the paper whose 다른 부서에 맡긴다 list is open. */
   passOpen?: number | null;
   /** ww193: schedule sections unfolded past their first entries. */
   actFold?: string[];
+  /** ww196: the redo picked on an answer (다시 써 오시오), before it goes. */
+  redoArmed?: GwAnswerRedo | null;
+  /** ww196: the department whose 사람을 붙인다 list is open. */
+  deptStaff?: GwOffice | null;
+  /** ww196: the 서훈식's picks on a 서훈 명단: honour per entry, null none. */
+  honourPick?: { uid: number; picks: (string | null)[] } | null;
 }
 
 export interface GwRuleDraft {
