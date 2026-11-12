@@ -12,6 +12,7 @@ import { html, nothing, TemplateResult } from "lit";
 import { applyJosa } from "../../Josa";
 import { translateText } from "../../Utils";
 import type { GwCtx } from "./GwCtx";
+import { timeLeft } from "./GwDept";
 import { blocFactions } from "./GwHouse";
 import { officeTitle, planWhy } from "./GwOffice";
 import { BTN, BTN_ON, CHIP, fillColor, HEAD, MUTED } from "./GwStyle";
@@ -317,7 +318,7 @@ function policy(c: GwCtx, p: GwPressView): TemplateResult {
     ${p.censorBar === null
       ? nothing
       : html`<p class=${MUTED}>${planWhy(c.seat.tag, p.censorBar)}</p>`}
-    ${pickButton(c, "invite", p.acted || c.seat.audiences <= 0)}
+    ${pickButton(c, "invite", p.acted || timeLeft(c) <= 0)}
     ${c.ui.pressPick === "invite" ? invitePick(c, invitable) : nothing}
     ${pickButton(c, "leak", p.acted)}
     ${c.ui.pressPick === "leak" ? leakPick(c) : nothing}

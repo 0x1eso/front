@@ -31,7 +31,7 @@ import { diploTab, finaleView } from "./GwDiplo";
 import { loadGwFaces } from "./GwFace";
 import { frontsTab } from "./GwFronts";
 import { intelTab } from "./GwIntel";
-import { setMapBusy } from "./GwLensModel";
+import { setMapBusy, setMapCovered } from "./GwLensModel";
 import { GwMap } from "./GwMap";
 import { GwMapPaint } from "./GwMapPaint";
 import { memoirTab } from "./GwMemoir";
@@ -563,6 +563,10 @@ export class GwPanel extends LitElement implements Controller {
     const open =
       ui.readerUid === null || replaying ? undefined : c.card(ui.readerUid);
     const talk = replaying ? null : activeTalk(c);
+    // ww194: a briefing hides the drawer as a talk does; on a phone its rows
+    // showed through the briefing's papers.
+    const briefing = !replaying && (ui.briefing ?? null) !== null;
+    setMapCovered(talk !== null || open !== undefined || briefing);
     // The years: no desk, no map, nothing of 1914 yet.
     const years =
       seat.prologue?.done === false ||
@@ -601,7 +605,9 @@ export class GwPanel extends LitElement implements Controller {
           ? "!h-9"
           : ui.paint !== null || ui.tab === "table"
             ? "max-sm:!h-[42vh]"
-            : ""} ${talk === null && !replaying ? "" : "invisible"}"
+            : ""} ${talk === null && !replaying && !briefing
+          ? ""
+          : "invisible"}"
       >
         <nav
           class="flex shrink-0 flex-wrap items-center gap-0.5 border-b border-white/10 p-1.5"

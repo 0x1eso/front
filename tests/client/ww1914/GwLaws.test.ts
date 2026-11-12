@@ -33,7 +33,12 @@ const PACK = {
   },
 } as unknown as GwPack;
 
-function ctx(rows: GwLawView[], audiences = 1, ahead = false) {
+function ctx(
+  rows: GwLawView[],
+  audiences = 1,
+  ahead = false,
+  time?: { left: number; away: boolean; carry: number },
+) {
   const sent: GwOrder[] = [];
   const root = document.createElement("div");
   const c = {
@@ -41,6 +46,7 @@ function ctx(rows: GwLawView[], audiences = 1, ahead = false) {
     seat: {
       tag: "DEU",
       audiences,
+      ...(time === undefined ? {} : { time }),
       world: { laws: rows, ...(ahead ? { lawsAhead: true } : {}) },
     } as unknown as GwSeatView,
     pack: PACK,
@@ -105,6 +111,22 @@ describe("the country tab's lines", () => {
       talk: { person: "deu_ebert", topic: "gw_lt_deu_censor" },
     });
     expect(q(ctx([row], 0).root, "[data-gw-law-talk]")!.disabled).toBe(true);
+  });
+
+  test("the call reads the one time pool (ww193), not the audiences alone", () => {
+    const row = bill({
+      stage: "vote",
+      talk: { person: "deu_ebert", topic: "gw_lt_deu_censor" },
+    });
+    // The summons are spent, but a schedule slot is left: the pool pays.
+    const left = { left: 1, away: false, carry: 0 };
+    const spent = { left: 0, away: false, carry: 0 };
+    expect(
+      q(ctx([row], 0, false, left).root, "[data-gw-law-talk]")!.disabled,
+    ).toBe(false);
+    expect(
+      q(ctx([row], 2, false, spent).root, "[data-gw-law-talk]")!.disabled,
+    ).toBe(true);
   });
 
   test("repeal takes a second tap; its price shows only after it", () => {

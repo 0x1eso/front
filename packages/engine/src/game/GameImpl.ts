@@ -83,7 +83,11 @@ import type {
   SnapshotReader,
   SnapshotWriter,
 } from "../snapshot/SnapshotContext";
-import { GreatWar, GreatWarSnapshot } from "../ww1914/GreatWar";
+import {
+  canonicalGreatWar,
+  GreatWar,
+  GreatWarSnapshot,
+} from "../ww1914/GreatWar";
 import { WorldWar, WorldWarStateSchema } from "../ww1936/WorldWar";
 import { AllianceImpl } from "./AllianceImpl";
 import { AllianceRequestImpl } from "./AllianceRequestImpl";
@@ -1658,7 +1662,10 @@ export class GameImpl implements Game {
       ...(this._greatWar === null
         ? {}
         : {
-            greatWar: w.versioned(GreatWarSnapshot, this._greatWar.snapshot()),
+            greatWar: w.versioned(
+              GreatWarSnapshot,
+              canonicalGreatWar(this._greatWar.snapshot()),
+            ),
           }),
     };
   }

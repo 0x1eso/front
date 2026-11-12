@@ -42,6 +42,12 @@ export interface GwMapState {
   rail: boolean;
   /** War aims or the table have the map: no lens, and their column steps aside. */
   busy: boolean;
+  /**
+   * ww194: a talk, a reader or a briefing covers the screen. The lens keeps
+   * its pick but its buttons step away: on a phone they sat over the talk's
+   * nameplate.
+   */
+  covered?: boolean;
   /** Bumped on every change. */
   version: number;
 }
@@ -62,6 +68,12 @@ export function setMapBusy(busy: boolean): void {
   if (gwMapState.busy === busy) return;
   gwMapState.busy = busy;
   if (busy) gwMapState.lens = null;
+  gwMapState.version++;
+}
+
+export function setMapCovered(covered: boolean): void {
+  if ((gwMapState.covered ?? false) === covered) return;
+  gwMapState.covered = covered;
   gwMapState.version++;
 }
 

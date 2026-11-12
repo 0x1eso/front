@@ -53,6 +53,28 @@ describe("snapshot and hash", () => {
     expect(hash(copy)).toBe(hash(runner));
   });
 
+  test("a save's bytes don't depend on the order fields were first set (ww194)", async () => {
+    const { runner } = await gwRunner();
+    playChapter(runner);
+    const s = runner.game.greatWar()!.s;
+    const seat = s.seats[0] as unknown as Record<string, unknown>;
+    // Live state gains fields as play reaches them: a seat's first fields set
+    // late, a log line written `act` first, a front's id moved last.
+    for (const k of Object.keys(seat).slice(0, 3)) {
+      const v = seat[k];
+      delete seat[k];
+      seat[k] = v;
+    }
+    s.seats[0].log.push({ act: "x", key: "seat_taken_back", chapter: 0 });
+    const front = s.theatres[0] as unknown as Record<string, unknown>;
+    const id = front.id;
+    delete front.id;
+    front.id = id;
+    const copy = await restore(runner);
+    expect(diffSnapshots(runner.snapshot(), copy.snapshot())).toEqual([]);
+    expect(hash(copy)).toBe(hash(runner));
+  });
+
   test("a restored game is the same game, mid-talk and through the end", async () => {
     const { runner } = await gwRunner();
     playChapter(runner);

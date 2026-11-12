@@ -156,32 +156,32 @@ function draftTalk(bill: GwBillRow, law: GwLawRow): GwScene {
     ]);
     return d.when === undefined ? r : { ...r, when: d.when };
   });
+  const armySay: GwVariant[] = [
+    { id: "cold", when: { kind: "inst", inst: "army", max: -1 } },
+    { id: "base" },
+  ];
+  const toPick = reply("pick", "warm", "ask", "pick");
+  // ww194: each question once. Asked one after the other, the two used to
+  // send each other back and forth for as long as the player kept asking.
   const nodes: Record<string, GwNode> = {
     open: {
       says: [{ id: "base" }],
       replies: [
         reply("foes", "frank", "ask", "foes"),
         reply("army", "cold", "ask", "army"),
-        reply("pick", "warm", "ask", "pick"),
+        toPick,
       ],
     },
     foes: {
       says: foesSay,
-      replies: [
-        reply("army", "cold", "ask", "army"),
-        reply("pick", "warm", "ask", "pick"),
-      ],
+      replies: [reply("army", "cold", "ask", "army_then"), toPick],
     },
     army: {
-      says: [
-        { id: "cold", when: { kind: "inst", inst: "army", max: -1 } },
-        { id: "base" },
-      ],
-      replies: [
-        reply("foes", "frank", "ask", "foes"),
-        reply("pick", "warm", "ask", "pick"),
-      ],
+      says: armySay,
+      replies: [reply("foes", "frank", "ask", "foes_then"), toPick],
     },
+    foes_then: { says: foesSay, replies: [toPick] },
+    army_then: { says: armySay, replies: [toPick] },
     pick: { says: [{ id: "base" }], replies: pick },
   };
   return {

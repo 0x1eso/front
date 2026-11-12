@@ -1219,3 +1219,19 @@ describe("a save", () => {
     void n;
   });
 });
+
+describe("the draft talk (ww194)", () => {
+  test("each question is asked once, then only the text is left", () => {
+    const drafts = GW_CONTENT.scenes.filter((s) => s.id.startsWith("gw_ld_"));
+    expect(drafts.length).toBeGreaterThan(0);
+    for (const s of drafts) {
+      const nodes = s.nodes!;
+      const to = (n: string) =>
+        nodes[n].replies.map((r) => `${r.id}>${r.next}`);
+      expect(to("foes"), s.id).toEqual(["army>army_then", "pick>pick"]);
+      expect(to("army"), s.id).toEqual(["foes>foes_then", "pick>pick"]);
+      expect(to("foes_then"), s.id).toEqual(["pick>pick"]);
+      expect(to("army_then"), s.id).toEqual(["pick>pick"]);
+    }
+  });
+});

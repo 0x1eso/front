@@ -10,6 +10,7 @@ import { GW_POWER_GROUPS } from "@openfront/engine-api/ww1914/GwPowers";
 import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
 import type { GwCtx, GwRuleDraft } from "./GwCtx";
+import { timeLeft } from "./GwDept";
 import { rich } from "./GwDict";
 import { factionName } from "./GwHouse";
 import type { GwTab } from "./GwModel";
@@ -246,7 +247,7 @@ function rowBody(c: GwCtx, p: GwPowerView, d: GwRuleDraft): TemplateResult {
         : html`<button
             class="${BTN} ${SMALL} w-full"
             data-gw-power-sound
-            ?disabled=${c.seat.audiences <= 0}
+            ?disabled=${timeLeft(c) <= 0}
             @click=${() => {
               c.send({
                 kind: "power",
