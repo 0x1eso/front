@@ -49,17 +49,58 @@ function bodiesOf(id: string, pack: Record<string, unknown>): Body[] {
     const a = s?.nodes?.[node]?.says.find((x) => x.id === v)?.assumes;
     return a === undefined ? top : [...top, a];
   };
+  // ww187 merge: an option gated by its own `when` assumes what that asks.
+  const opt = (o: string) => {
+    const a = whenTags(s?.options?.find((x) => x.id === o)?.when);
+    return a === null ? top : [...top, a];
+  };
   const out: Body[] = [];
   for (const [field, text] of strings(pack, "")) {
     const p = field.split(".");
     let tags = top;
-    if (p[0] === "text" || p[0] === "optBy") tags = variant(p[1]);
+    if (p[0] === "opt" && p.length === 2) tags = opt(p[1]);
+    else if (p[0] === "text" || p[0] === "optBy") tags = variant(p[1]);
     else if (p[0] === "brief" && p.length > 1) tags = variant(p[1]);
     else if (p[0] === "nodes" && p[2] === "says") tags = says(p[1], p[3]);
     else if (p[0] === "nodes" && p[2] === "saysBy") tags = says(p[1], p[4]);
     out.push({ field, text, tags });
   }
   return out;
+}
+
+/**
+ * The tags an option's `when` stands for: each fact the whole of it needs
+ * (the top `all`, or the one cond), read as gwAssumesCond writes them.
+ */
+function whenTags(when: unknown): GwAssumes | null {
+  if (when === undefined || when === null) return null;
+  const w = when as { kind: string; of?: unknown };
+  const parts: { kind: string; [k: string]: unknown }[] =
+    w.kind === "all" && Array.isArray(w.of) ? w.of : [w];
+  const held: Record<string, string> = {};
+  const line: Record<string, [string, string]> = {};
+  const sits: string[] = [];
+  const shut: string[] = [];
+  const active: string[] = [];
+  for (const c of parts) {
+    const of = c.of as Record<string, string> | undefined;
+    if (c.kind === "person_active") active.push(c.person as string);
+    else if (c.kind === "world" && of?.is === "held") held[of.place] = of.by;
+    else if (c.kind === "world" && of?.is === "front") {
+      line[of.theatre] = [of.from, of.to];
+    } else if (c.kind === "world" && of?.is === "sits") sits.push(of.id);
+    else if (c.kind === "not") {
+      const inner = (c.of as { of?: Record<string, string> } | undefined)?.of;
+      if (inner?.is === "sits") shut.push(inner.id);
+    }
+  }
+  const a: Record<string, unknown> = {};
+  if (Object.keys(held).length > 0) a.held = held;
+  if (Object.keys(line).length > 0) a.line = line;
+  if (sits.length > 0) a.sits = sits;
+  if (shut.length > 0) a.shut = shut;
+  if (active.length > 0) a.active = active;
+  return Object.keys(a).length === 0 ? null : (a as GwAssumes);
 }
 
 function covered(hit: string, tags: readonly GwAssumes[]): boolean {

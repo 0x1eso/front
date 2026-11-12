@@ -3,7 +3,8 @@
 // flag it reads as the chapter closes. Text in
 // resources/ww1914/ko/common.capital.json.
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
-import type { GwScene } from "@openfront/engine-api/ww1914/SceneDsl";
+import type { GwPlace } from "@openfront/engine-api/ww1914/GwPlaces";
+import type { GwScene, GwVariant } from "@openfront/engine-api/ww1914/SceneDsl";
 
 const SEATS: readonly GwTag[] = ["DEU", "GBR", "AUH", "RUS", "FRA"];
 
@@ -19,10 +20,20 @@ export const GW_CAP_SUE = "gw_cap_sue";
 export const GW_CAP_SIGN = "gw_cap_sign";
 export const GW_CAP_REFUSE = "gw_cap_refuse";
 
-/** Where a seat's government can go, with a body of its own. */
-const REFUGES = ["bordeaux", "moscow", "budapest", "dresden", "manchester"];
+/**
+ * Where a seat's government can go, with a body of its own, and the capital
+ * that body says the enemy holds (ww187 merge: its `held` tags).
+ */
+const REFUGE_OF: readonly (readonly [GwPlace, GwPlace])[] = [
+  ["bordeaux", "paris"],
+  ["moscow", "petrograd"],
+  ["budapest", "vienna"],
+  ["dresden", "berlin"],
+  ["manchester", "london"],
+];
+const REFUGES = REFUGE_OF.map(([p]) => p);
 /** Capitals a seat's army can take, with a body of their own. */
-const TAKEN = [
+const TAKEN: readonly GwPlace[] = [
   "paris",
   "petrograd",
   "berlin",
@@ -69,7 +80,14 @@ export const GW_CAPITAL_SCENES: readonly GwScene[] = [
     salience: 9,
     tags: ["war"],
     variants: [
-      ...REFUGES.map((p) => ({ id: p, when: mem(`gov_to_${p}`) })),
+      ...REFUGE_OF.map(
+        ([p, cap]): GwVariant => ({
+          id: p,
+          when: mem(`gov_to_${p}`),
+          // The capital is the enemy's, the refuge still ours.
+          assumes: { held: { [cap]: "foe", [p]: "us" } },
+        }),
+      ),
       { id: "base" },
     ],
     fallback: "fight_on",
@@ -105,7 +123,14 @@ export const GW_CAPITAL_SCENES: readonly GwScene[] = [
     salience: 9,
     tags: ["war"],
     variants: [
-      ...TAKEN.map((p) => ({ id: p, when: mem(`took_${p}`) })),
+      ...TAKEN.map(
+        (p): GwVariant => ({
+          id: p,
+          when: mem(`took_${p}`),
+          // Our army stands in it.
+          assumes: { held: { [p]: "us" } },
+        }),
+      ),
       { id: "base" },
     ],
   },

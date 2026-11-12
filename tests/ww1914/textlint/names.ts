@@ -56,15 +56,24 @@ export const LINT_LINES: readonly { word: string; theatre: GwTheatre }[] = [
   { word: "드비나", theatre: "east" },
   { word: "이손초", theatre: "italy" },
   { word: "피아베", theatre: "italy" },
-  { word: "갈리폴리", theatre: "straits" },
-  { word: "다르다넬스", theatre: "straits" },
+  // ww187 merge: the straits as a front, not as a plan or the map's water.
+  {
+    word: "(?:갈리폴리|다르다넬스)(?: 반도| 해협)?(?:에서 (?:싸|버티|밀|물러|죽)|의 (?:참호|해변|전선|부상)|에 ?전선|(?:의 )?전선)",
+    theatre: "straits",
+  },
 ];
+
+/**
+ * The bare word for a house: not inside a longer word (평의회, 시의회) and not
+ * a foreign one (미국 의회 is no seat's house).
+ */
+const HOUSE = "(?<![가-힣]|미국 )의회";
 
 /** Each seat's house, and what it does only while it sits. Needs `sits` or `shut`. */
 export const LINT_HOUSES: Readonly<Record<string, string>> = {
-  DEU: "제국의회|라이히스타크|의사당|의회",
-  GBR: "하원|상원|의사당|의회",
-  FRA: "하원|상원|의사당|의회|부르봉궁",
+  DEU: `제국의회|라이히스타크|의사당|${HOUSE}`,
+  GBR: `하원|상원|의사당|${HOUSE}`,
+  FRA: `하원|상원|의사당|${HOUSE}|부르봉궁`,
   RUS: "두마|국가평의회|의사당",
   AUH: "제국의회|라이히스라트|의사당",
 };
@@ -86,11 +95,11 @@ export const LINT_PEOPLE: Readonly<Record<string, string>> = {
 
 /**
  * A place is a claim when the words after it march on it, stand before it,
- * or say it fell: "파리까지", "파리를 친다", "렘베르크가 떨어졌다". A bare
+ * or say it fell (its 외곽, the suburbs, is only where a thing is): "파리까지", "파리를 친다", "렘베르크가 떨어졌다". A bare
  * mention (the government in Paris, Belgrade's answer) is not linted.
  */
 const APPROACH =
-  "까지|로 가|으로 가|로 간|으로 간|로 들어가|으로 들어가|를 향|을 향|앞에|앞이|앞까지|외곽|근처|가 보인|이 보인|로 진격|으로 진격|를 뺏|을 뺏|를 친다|을 친다|를 치|을 치|입성|를 노|을 노|를 포위|을 포위|가 멀지|이 멀지";
+  "까지|로 가|으로 가|로 간|으로 간|로 들어가|으로 들어가|를 향|을 향|앞에|앞이|앞까지|근처|가 보인|이 보인|로 진격|으로 진격|를 뺏|을 뺏|를 친다|을 친다|를 치|을 치|입성|를 노|을 노|를 포위|을 포위|가 멀지|이 멀지";
 const TAKEN =
   "가 떨어졌|이 떨어졌|를 잃었|을 잃었|를 잃은|을 잃은|가 우리 손|이 우리 손|를 점령|을 점령|가 함락|이 함락|를 내주|을 내주|를 되찾|을 되찾|를 지켰|을 지켰|가 버티|이 버티";
 const placeRe = LINT_PLACES.map((p) => ({

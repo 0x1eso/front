@@ -3,6 +3,10 @@
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import type { GwPlace } from "@openfront/engine-api/ww1914/GwPlaces";
 import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
+import {
+  GW_CAPITAL_FELL,
+  GW_CAPITAL_TAKEN,
+} from "@openfront/engine-lib/ww1914/content/capital";
 import { createGameRunner } from "@openfront/engine/GameRunner";
 import {
   capitulationOdds,
@@ -12,13 +16,21 @@ import {
 } from "@openfront/engine/ww1914/Capitulation";
 import type { GreatWar } from "@openfront/engine/ww1914/GreatWar";
 import { moveLand } from "@openfront/engine/ww1914/Land";
+import {
+  pickVariant,
+  sceneHolds,
+  sceneOf,
+} from "@openfront/engine/ww1914/SceneRun";
 import { enter, openGeneral } from "@openfront/engine/ww1914/Wars";
 import { describe, expect, test } from "vitest";
 import { realMap } from "./realMap";
 import { startOf } from "./sim/GwSim";
 
-async function world(id: string): Promise<GreatWar> {
-  const start = { ...startOf(id, "full", []), players: [] };
+async function world(id: string, seat?: GwTag): Promise<GreatWar> {
+  const start =
+    seat === undefined
+      ? { ...startOf(id, "full", []), players: [] }
+      : startOf(id, "full", [], seat);
   const runner = await createGameRunner(start, undefined, realMap(), () => {});
   for (let t = 0; t < 2; t++) {
     runner.addTurn({ turnNumber: t, intents: [] });
@@ -50,8 +62,8 @@ function takeAllBut(gw: GreatWar, owner: GwTag, to: GwTag, keep: GwPlace[]) {
  * France beaten down to three places, Belgium overrun, Britain beside them
  * in the west.
  */
-async function franceAtTheEnd(id: string): Promise<GreatWar> {
-  const gw = await world(id);
+async function franceAtTheEnd(id: string, seat?: GwTag): Promise<GreatWar> {
+  const gw = await world(id, seat);
   openGeneral(gw, "DEU", "FRA", "test");
   enter(gw, "GBR", "entente", "test");
   gw.s.chapter = nextMonth(gw, 8);
@@ -119,7 +131,7 @@ describe("capitulation", () => {
   });
 
   test("the west front's line moves past an occupied Paris", async () => {
-    const gw = await world("GWCAP4");
+    const gw = await world("GWCAP4", "DEU");
     openGeneral(gw, "DEU", "FRA", "test");
     const west = theatre(gw, "west");
     west.line = 5; // the Marne
@@ -127,5 +139,38 @@ describe("capitulation", () => {
     moveLand(gw, "paris", "DEU", null, "occupation");
     lineFollowsLand(gw);
     expect(west.line).toBe(6);
+    // ww187 merge: the drifted line and the held city agree with the tags.
+    // Germany's chair: Paris is ours, no longer marched on; the monthly
+    // paper reads the city taken.
+    const seat = gw.s.seats.find((x) => x.tag === "DEU")!;
+    const ctx = { gw, seat, cast: {} };
+    expect(sceneHolds(ctx, sceneOf("deu_f_paris_held")!)).toBe(true);
+    expect(sceneHolds(ctx, sceneOf("deu_f_paris_in_range")!)).toBe(false);
+    expect(sceneHolds(ctx, sceneOf("deu_w_marne_order")!)).toBe(false);
+    expect(pickVariant(ctx, sceneOf("deu_f_ledger")!.variants)).toBe("paris");
+    // The card of the city taken reads Paris, and only while it is ours.
+    seat.memory.push({
+      key: "took_paris",
+      who: null,
+      chapter: gw.s.chapter,
+      weight: 0,
+    });
+    const taken = sceneOf(GW_CAPITAL_TAKEN)!.variants;
+    expect(pickVariant(ctx, taken)).toBe("paris");
+    moveLand(gw, "paris", "FRA", null, "occupation");
+    expect(pickVariant(ctx, taken)).toBe("base");
+  });
+
+  test("France's card reads Bordeaux while Paris is the enemy's and Bordeaux French", async () => {
+    const gw = await franceAtTheEnd("GWCAP5", "FRA");
+    capitulationStep(gw);
+    const seat = gw.s.seats.find((x) => x.tag === "FRA")!;
+    expect(seat.scheduled.map((q) => q.scene)).toContain(GW_CAPITAL_FELL);
+    const fell = sceneOf(GW_CAPITAL_FELL)!.variants;
+    const ctx = { gw, seat, cast: {} };
+    expect(pickVariant(ctx, fell)).toBe("bordeaux");
+    // Bordeaux gone too: the plain body, which names no city.
+    moveLand(gw, "bordeaux", "DEU", null, "occupation");
+    expect(pickVariant(ctx, fell)).toBe("base");
   });
 });
