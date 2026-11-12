@@ -25,11 +25,13 @@ import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { createGameRunner, GameRunner } from "@openfront/engine/GameRunner";
 import { advanceChapter } from "@openfront/engine/ww1914/Chapters";
+import { roomView, taskOffers } from "@openfront/engine/ww1914/Departments";
 import { DeskTrace, watchDesk } from "@openfront/engine/ww1914/Desk";
 import { proposalsFor } from "@openfront/engine/ww1914/Fronts";
 import type { GreatWar } from "@openfront/engine/ww1914/GreatWar";
 import { applyGwOrder, openTopics } from "@openfront/engine/ww1914/Orders";
 import { ctxOf, optionOpen, sceneOf } from "@openfront/engine/ww1914/SceneRun";
+import { timeLeft } from "@openfront/engine/ww1914/Time";
 
 /**
  * How a bot plays: percent of summons used, percent of talks walked out of,
@@ -163,7 +165,7 @@ export interface GwRunRecord {
 }
 
 /** The bot's dice: stateless, as the game's are. */
-function dice(gameID: string) {
+export function dice(gameID: string) {
   const seed = idHash(gameID);
   let n = 0;
   return (below: number): number => wwRoll(seed, 77, n++) % below;
@@ -178,7 +180,7 @@ function castKey(c: GwCard): string {
   return `${c.scene}|${roles.join(",")}`;
 }
 
-function summonAll(
+export function summonAll(
   gw: GreatWar,
   seat: GwSeatState,
   profile: GwSimProfile,
@@ -291,8 +293,41 @@ export function clearDesk(
   }
 }
 
+/**
+ * ww193: the departments heard as a player hears them: each head with papers
+ * in comes in (the room's rows), a written task follows now and then (free
+ * right after his briefing), and the petitioners as the habit has it. Talks
+ * and papers this lays are left on the desk for clearDesk.
+ */
+export function deptsAll(
+  gw: GreatWar,
+  seat: GwSeatState,
+  profile: GwSimProfile,
+  roll: (below: number) => number,
+): void {
+  for (const r of roomView(gw, seat)) {
+    if (timeLeft(seat) === 0) return;
+    if (r.petition) {
+      if (r.topic === undefined || roll(100) >= profile.summons) continue;
+      applyGwOrder(gw, seat, {
+        kind: "summon",
+        person: r.person,
+        topic: r.topic,
+      });
+      continue;
+    }
+    const office = r.office!;
+    if (applyGwOrder(gw, seat, { kind: "brief", office }) !== null) continue;
+    const offers = taskOffers(gw, seat, office);
+    if (offers.length === 0 || roll(100) >= profile.summons) continue;
+    const o = offers[roll(offers.length)];
+    const topic = o.topics.length > 0 ? o.topics[roll(o.topics.length)] : null;
+    applyGwOrder(gw, seat, { kind: "task", office, row: o.row, topic });
+  }
+}
+
 /** The chapter's war paper: any of the open ones, as a client sends it. */
-function signPaper(
+export function signPaper(
   gw: GreatWar,
   seat: GwSeatState,
   roll: (below: number) => number,

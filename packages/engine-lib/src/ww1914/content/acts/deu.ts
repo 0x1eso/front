@@ -278,7 +278,12 @@ export const DEU_ACTS: readonly GwAct[] = [
     id: "deu_a_marie",
     nation: ["DEU"],
     kind: "letter",
-    when: all(war, world({ is: "neutral", tag: "ROU" })),
+    // ww193 merge: Marie is queen only once Ferdinand is king (Carol I died 10 Oct 1914).
+    when: all(
+      war,
+      world({ is: "neutral", tag: "ROU" }),
+      world({ is: "date", from: "1914-11" }),
+    ),
     scene: "deu_a_marie_r",
     effects: [wrote],
     wait: 1,

@@ -1457,6 +1457,12 @@ export const GwSeatStateSchema = z.object({
   away: z.boolean().default(false),
   /** Absent unless the lobby asked for a prologue (GwPrologue.ts). */
   prologue: GwPrologueStateSchema.optional(),
+  /**
+   * ww193: the departments' work, trays and the room (Departments.ts); absent
+   * until any. Before craft and house: the first chapter opens it before
+   * them, and a restored seat keeps the live key order.
+   */
+  depts: GwDeptStateSchema.optional(),
   /** Inventions, the year's project, the footing (GwCraft.ts); absent until any. */
   craft: GwCraftStateSchema.optional(),
   /** The house, its factions, files, asks, plots (GwHouse.ts); absent until any. */
@@ -1469,8 +1475,6 @@ export const GwSeatStateSchema = z.object({
   dissolved: z.number().int().optional(),
   /** ww190: the chapter its own peace was made, while it plays on (Aftermath.ts). */
   leftAt: z.number().int().optional(),
-  /** ww193: the departments' work, trays and the room (Departments.ts); absent until any. */
-  depts: GwDeptStateSchema.optional(),
 });
 export type GwSeatState = z.infer<typeof GwSeatStateSchema>;
 

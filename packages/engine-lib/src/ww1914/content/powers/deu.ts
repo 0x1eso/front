@@ -1238,9 +1238,9 @@ export const DEU_POWER_SCENES: readonly GwScene[] = [
     { id: "promise", when: recent("k_deu_pw_franchise_promise") },
     { id: "base" },
   ]),
+  // The roll writes k_deu_landtag_new or k_deu_landtag_same; base is "same".
   card("deu_pw_landtag_r", [
     { id: "new", when: recent("k_deu_landtag_new") },
-    { id: "same", when: recent("k_deu_landtag_same") },
     { id: "base" },
   ]),
   card("deu_pw_majority_r"),

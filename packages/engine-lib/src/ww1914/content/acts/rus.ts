@@ -198,10 +198,12 @@ const LETTERS: GwAct[] = [
   }),
   // ww193 #2: cousins on neutral thrones; the foreign office drafts the tone.
   act("rus_a_l_marie", "letter", "rus_a_l_marie_r", 1, {
+    // ww193 merge: Marie is queen only once Ferdinand is king (Carol I died 10 Oct 1914).
     when: all(
       reign,
       not(atWarWith("ROU")),
       not(world({ is: "out", tag: "ROU" })),
+      world({ is: "date", from: "1914-11" }),
     ),
     cooldown: 3,
     fields: [

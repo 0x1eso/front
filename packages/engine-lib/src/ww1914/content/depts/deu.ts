@@ -160,12 +160,18 @@ function card(
 }
 
 /** A foreign office draft for a letter to a king (#2). */
+/** ww193 merge: Marie is queen only once Ferdinand is king (10 Oct 1914). */
+const queenMarie: GwCond = world({ is: "date", from: "1914-11" });
+
 function kinDraft(id: string, tag: "GRC" | "ROU", key: string): GwScene {
   return {
     id,
     nation: NATION,
     kind: "proposal",
-    when: all(war, neutral(tag)),
+    when:
+      tag === "ROU"
+        ? all(war, neutral(tag), queenMarie)
+        : all(war, neutral(tag)),
     cast: { fm: holder("foreign") },
     author: "fm",
     salience: 4,
@@ -494,7 +500,7 @@ const TASKS: GwTaskRow[] = [
   }),
   task("kin_rou", "foreign", "plan", 1, ["deu_dept_kin_rou"], {
     topic: "ROU",
-    when: all(war, neutral("ROU")),
+    when: all(war, neutral("ROU"), queenMarie),
     once: true,
   }),
 

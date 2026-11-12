@@ -206,7 +206,8 @@ const TASKS: GwTaskRow[] = [
   // #2: the draft of a letter to a cousin on a neutral throne.
   task("kin_rou", "foreign", "plan", 1, ["rus_dept_kin_rou"], {
     topic: "ROU",
-    when: all(reign, not(atWar("ROU"))),
+    // Marie is queen only once Ferdinand is king (Carol I died 10 Oct 1914).
+    when: all(reign, not(atWar("ROU")), world({ is: "date", from: "1914-11" })),
     cooldown: 4,
   }),
   task("kin_grc", "foreign", "plan", 1, ["rus_dept_kin_grc"], {

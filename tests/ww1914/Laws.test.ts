@@ -17,6 +17,7 @@ import {
   lawScenes,
 } from "@openfront/engine-lib/ww1914/content/scenes/laws";
 import { GW_LAW_HOME } from "@openfront/engine-lib/ww1914/LawRows";
+import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { GW_AUTHORITY } from "@openfront/engine/ww1914/AuthorityTable";
 import { advanceChapter } from "@openfront/engine/ww1914/Chapters";
 import type { GreatWar } from "@openfront/engine/ww1914/GreatWar";
@@ -38,7 +39,7 @@ import {
   test,
 } from "vitest";
 import { NodeGameMapLoader } from "../perf/fullgame/NodeGameMapLoader";
-import { GW_SIM_PROFILES, playRun } from "./sim/GwSim";
+import { deptsAll, GW_SIM_PROFILES, playRun } from "./sim/GwSim";
 import { gwRunner, order, playChapter, seat, view } from "./util";
 
 const NATIONS: GwTag[] = ["DEU", "GBR", "AUH", "RUS", "FRA"];
@@ -538,6 +539,9 @@ describe("a whole game on the real map", () => {
         const passed = new Set<string>();
         let brought = 0;
         let war = false;
+        const seed = idHash(`laws-${tag}-${i}`);
+        let rolls = 0;
+        const roll = (below: number) => wwRoll(seed, 91, rolls++) % below;
         await playRun(
           map,
           `laws-${tag}-${i}`,
@@ -549,6 +553,9 @@ describe("a whole game on the real map", () => {
             const seat = gw.s.seats[0];
             const n = gw.nation(tag)!;
             war = war || n.atWar.length > 0;
+            // ww193: a person hears the departments, or they act on the bills'
+            // papers themselves.
+            deptsAll(gw, seat, GW_SIM_PROFILES[1], roll);
             for (const x of n.laws) {
               if (x.stage === "force" && x.how !== "scene") passed.add(x.id);
             }

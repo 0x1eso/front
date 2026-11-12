@@ -141,13 +141,20 @@ describe("the fronts past 1914", () => {
 
 describe("the sea", () => {
   test("the blockade starves the Central side, and more as it tightens", async () => {
-    const { gw, runner } = await war();
-    gw.s.blockade = 8;
-    gw.nation("GBR")!.side = "entente";
-    const n = gw.nation("DEU")!;
-    n.gauges.bread = 3;
-    pass(gw, runner, 12);
-    expect(n.gauges.bread).toBeLessThan(3);
+    // ww193: unheard papers are now acted on by the departments, and one may
+    // feed the country, so the blockade is measured against the same game
+    // with an open sea.
+    const bread = async (blockade: number) => {
+      const { gw, runner } = await war();
+      gw.s.blockade = blockade;
+      gw.nation("GBR")!.side = "entente";
+      const n = gw.nation("DEU")!;
+      // Below the top, so a paper that feeds it shows in both games.
+      n.gauges.bread = 1;
+      pass(gw, runner, 12);
+      return n.gauges.bread;
+    };
+    expect(await bread(8)).toBeLessThan(await bread(0));
   });
 
   test("the signature turns up America's temperature", async () => {
