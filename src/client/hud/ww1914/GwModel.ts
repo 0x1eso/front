@@ -176,9 +176,12 @@ export function tabBadge(seat: GwSeatView, tab: GwTab, seenWires = 0): number {
     case "desk":
       return seat.desk.length;
     case "people":
-      return seat.audiences;
+      // ww193: who waits in the audience room, where there is one.
+      return seat.room === undefined ? seat.audiences : seat.room.length;
     case "schedule":
-      return (seat.acts ?? []).length === 0 ? 0 : (seat.actsLeft ?? 0);
+      return (seat.acts ?? []).length === 0
+        ? 0
+        : (seat.time?.left ?? seat.actsLeft ?? 0);
     case "blocs":
       return (
         seat.world.press?.blocs.filter((b) => b.turning === "leaving").length ??

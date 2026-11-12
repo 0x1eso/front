@@ -25,7 +25,8 @@ import { blocsTab } from "./GwBlocs";
 import { budgetPanel } from "./GwBudget";
 import { countryTab } from "./GwCountry";
 import type { GwCtx, GwUi } from "./GwCtx";
-import { deskTab, reader } from "./GwDesk";
+import { briefingView } from "./GwDept";
+import { cardBox, deskTab, reader } from "./GwDesk";
 import { dictCard } from "./GwDict";
 import { diploTab, finaleView } from "./GwDiplo";
 import { loadGwFaces } from "./GwFace";
@@ -181,6 +182,11 @@ export class GwPanel extends LitElement implements Controller {
       seenWires: 0,
     },
     finale: false,
+    deptOpen: null,
+    deptTask: null,
+    briefing: null,
+    passOpen: null,
+    actFold: [],
   };
 
   createRenderRoot() {
@@ -370,6 +376,10 @@ export class GwPanel extends LitElement implements Controller {
       ui.backOpen = false;
       ui.backArmed = null;
       ui.paint = null;
+      ui.deptTask = null;
+      ui.briefing = null;
+      ui.passOpen = null;
+      ui.actFold = [];
       if (data.chapter >= GW_OPENING_CHAPTERS) {
         ui.shelf = shelve(ui.shelf, "played", [seat.tag]);
         saveShelf(ui.shelf);
@@ -626,6 +636,7 @@ export class GwPanel extends LitElement implements Controller {
       ${replaying
         ? nothing
         : html`${paintTags(c)} ${tableTags(c)} ${speech(c)}`}
+      ${replaying ? nothing : briefingView(c, (p) => cardBox(c, p))}
       ${open === undefined ? nothing : reader(c, open)}
       ${ui.budgetOpen ? budgetPanel(c) : nothing}
       ${ui.spot === null || replaying || painting

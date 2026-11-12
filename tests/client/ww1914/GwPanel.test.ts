@@ -149,6 +149,12 @@ const PACK = GwPackSchema.parse({
   ...packFile("DEU.json"),
   people: packFile("DEU.cast.json").people,
   scenes: { ...SCENES, ...STORY_SCENES },
+  depts: {
+    names: { foreign: "외무부", chief_of_staff: "참모본부" },
+    tasks: { t_task_rom: { name: "{topic} 문제를 맡긴다" } },
+    wants: { t_want_rom: "루마니아에 양보" },
+    voices: { foreign: { bring: "폐하, {topic} 일을 가져왔습니다." } },
+  },
   acts: {
     t_krupp: { name: "크루프 공장", note: "포탄 공장을 직접 본다." },
     t_nicky: {
@@ -897,6 +903,241 @@ describe("the screens", () => {
     const chip = panel.querySelector("[data-gw-authority]")!;
     expect(chip.textContent!.trim()).toBe("gw.ui.authority");
     expect(chip.getAttribute("title")).toBe("gw.ui.authority_hint");
+  });
+});
+
+describe("departments at work (ww193)", () => {
+  const FOREIGN = {
+    office: "foreign" as const,
+    head: "deu_jagow",
+    voice: ["deu_jagow", "foreign"],
+    task: null,
+    ready: 1,
+    initiatives: 0,
+    want: "t_want_rom",
+    offers: [
+      {
+        row: "t_task_rom",
+        kind: "plan" as const,
+        topics: ["ROU", "ITA"],
+        topic: null,
+      },
+    ],
+    price: 1,
+    past: [],
+  };
+  const STAFF = {
+    ...FOREIGN,
+    office: "chief_of_staff" as const,
+    head: "deu_moltke",
+    voice: ["chief_of_staff"],
+    ready: 0,
+    want: null,
+    offers: [],
+    task: { row: "t_task_rom", topic: "ROU", soon: true },
+  };
+  const DEPT = {
+    office: "foreign" as const,
+    by: "deu_jagow",
+    option: "back_vienna",
+    confidence: 3,
+    rival: {
+      office: "chief_of_staff" as const,
+      by: "deu_moltke",
+      option: "term_limit",
+    },
+    counter: false,
+    initiative: false,
+    row: "t_task_rom",
+    topic: "ROU",
+    stamp: null,
+    waited: 0,
+  };
+  const seat = (
+    desk: GwCardView[],
+    over: Partial<GreatWarData["seats"][0]> = {},
+  ) => {
+    const d = data(desk);
+    const s0 = d.seats[0];
+    return {
+      ...d,
+      seats: [
+        {
+          ...s0,
+          people: [
+            ...s0.people,
+            {
+              id: "deu_jagow",
+              office: "foreign" as const,
+              trust: 1,
+              topics: [],
+              fit: [],
+              rivals: [],
+            },
+          ],
+          depts: [FOREIGN, STAFF],
+          room: [
+            {
+              person: "deu_jagow",
+              office: "foreign" as const,
+              brings: 1,
+              petition: false,
+            },
+            {
+              person: "deu_bethmann",
+              office: null,
+              brings: 0,
+              petition: true,
+              topic: "deu_sample_talk",
+            },
+          ],
+          time: { left: 3, away: false, carry: 0 },
+          ...over,
+        },
+      ],
+    };
+  };
+  const tap = async (panel: GwPanel, sel: string) => {
+    panel.querySelector<HTMLButtonElement>(sel)!.click();
+    await panel.updateComplete;
+  };
+
+  test("the room waits on the desk and on 사람; a head is briefed, a petitioner summoned", async () => {
+    const { panel, orders } = await mount(seat([]));
+    expect(panel.querySelector("[data-gw-desk] [data-gw-room]")).not.toBeNull();
+    await tap(panel, "[data-gw-tab=people]");
+    const people = panel.querySelector("[data-gw-people]")!;
+    // One chip for the one pool; the departments come first, their heads not again.
+    expect(people.querySelector("[data-gw-time]")).not.toBeNull();
+    expect(people.querySelector("[data-gw-audiences]")).toBeNull();
+    expect(people.querySelectorAll("[data-gw-dept]").length).toBe(2);
+    expect(people.querySelector("[data-gw-person=deu_jagow]")).toBeNull();
+    expect(
+      people.querySelector("[data-gw-person=deu_bethmann]"),
+    ).not.toBeNull();
+    const row = people.querySelector("[data-gw-dept=foreign]")!;
+    expect(row.textContent).toContain("외무부");
+    expect(row.querySelector("[data-gw-dept-status]")!.textContent).toContain(
+      "gw.ui.dept.ready",
+    );
+    expect(row.querySelector("[data-gw-dept-want]")).not.toBeNull();
+    expect(
+      people.querySelector(
+        "[data-gw-dept=chief_of_staff] [data-gw-dept-status]",
+      )!.textContent,
+    ).toContain("gw.ui.dept.working_soon");
+    await tap(panel, "[data-gw-people] [data-gw-room-meet=deu_jagow]");
+    await tap(panel, "[data-gw-people] [data-gw-room-meet=deu_bethmann]");
+    await tap(panel, "[data-gw-people] [data-gw-room-away=deu_bethmann]");
+    expect(orders).toEqual([
+      { kind: "brief", office: "foreign" },
+      { kind: "summon", person: "deu_bethmann", topic: "deu_sample_talk" },
+      { kind: "turn_away", person: "deu_bethmann" },
+    ]);
+    // The briefing opens in the talk's column, waiting for his papers.
+    expect(panel.querySelector("[data-gw-briefing=deu_jagow]")).not.toBeNull();
+  });
+
+  test("work is given from the department row: a topic first, then one order", async () => {
+    const { panel, orders } = await mount(seat([]));
+    await tap(panel, "[data-gw-tab=people]");
+    await tap(panel, "[data-gw-dept=foreign] > button");
+    await tap(panel, "[data-gw-dept-task=t_task_rom]");
+    const give = () =>
+      panel.querySelector<HTMLButtonElement>("[data-gw-dept-give]")!;
+    expect(give().disabled).toBe(true);
+    await tap(panel, "[data-gw-dept-topic=ROU]");
+    expect(give().disabled).toBe(false);
+    await tap(panel, "[data-gw-dept-give]");
+    expect(orders).toEqual([
+      { kind: "task", office: "foreign", row: "t_task_rom", topic: "ROU" },
+    ]);
+  });
+
+  test("a briefing lays his papers; his option is marked, the rival's too, and it can go elsewhere", async () => {
+    const paper = card({
+      dept: DEPT,
+      options: [
+        { id: "back_vienna", open: true, tell: [] },
+        { id: "term_limit", open: true, tell: [] },
+      ],
+    });
+    const { panel, orders } = await mount(seat([paper]));
+    await tap(panel, "[data-gw-desk] [data-gw-room-meet=deu_jagow]");
+    const brief = panel.querySelector("[data-gw-briefing=deu_jagow]")!;
+    expect(brief.querySelector("[data-gw-brief-says]")!.textContent).toContain(
+      "폐하, gw.country.ROU 일을 가져왔습니다.",
+    );
+    expect(
+      brief.querySelector("[data-gw-card] [data-gw-dept-chip=foreign]"),
+    ).not.toBeNull();
+    await tap(panel, "[data-gw-briefing] [data-gw-open='1']");
+    const reader = panel.querySelector("[data-gw-reader]")!;
+    expect(reader.querySelector("[data-gw-dept-line]")).not.toBeNull();
+    expect(
+      reader.querySelector("[data-gw-dept-option=back_vienna]")!.textContent,
+    ).toContain("gw.ui.dept.confidence.3");
+    expect(
+      reader.querySelector("[data-gw-dept-rival-option=term_limit]"),
+    ).not.toBeNull();
+    await tap(panel, "[data-gw-option=term_limit]");
+    expect(panel.querySelector("[data-gw-sign]")!.textContent).toContain(
+      "gw.ui.dept.overrule",
+    );
+    await tap(panel, "[data-gw-option=back_vienna]");
+    expect(panel.querySelector("[data-gw-sign]")!.textContent).toContain(
+      "gw.ui.dept.accept",
+    );
+    await tap(panel, "[data-gw-pass-open]");
+    // The staff is at work: one task a department.
+    expect(
+      panel.querySelector<HTMLButtonElement>(
+        "[data-gw-pass-to=chief_of_staff]",
+      )!.disabled,
+    ).toBe(true);
+    await tap(panel, "[data-gw-shelve]");
+    expect(orders).toEqual([
+      { kind: "brief", office: "foreign" },
+      { kind: "shelve", card: 1 },
+    ]);
+  });
+
+  test("the schedule: ceremonies, a trip's price in words, the rest folded, the pool", async () => {
+    const act = (id: string, kind: "visit" | "ceremony", trip = false) => ({
+      id,
+      kind,
+      fields: [],
+      tell: [],
+      ...(trip ? { trip } : {}),
+    });
+    const acts = [
+      act("v1", "visit", true),
+      act("v2", "visit"),
+      act("v3", "visit"),
+      act("v4", "visit"),
+      act("c1", "ceremony"),
+    ];
+    const { panel } = await mount(
+      seat([], { acts, actsLeft: 2, time: { left: 1, away: false, carry: 0 } }),
+    );
+    await tap(panel, "[data-gw-tab=schedule]");
+    expect(panel.querySelector("[data-gw-act-kind=ceremony]")).not.toBeNull();
+    expect(
+      panel.querySelector("[data-gw-schedule] [data-gw-time]"),
+    ).not.toBeNull();
+    expect(panel.querySelector("[data-gw-act=v4]")).toBeNull();
+    await tap(panel, "[data-gw-act-more=visit]");
+    expect(panel.querySelector("[data-gw-act=v4]")).not.toBeNull();
+    // One left: a trip takes two, an act one.
+    expect(
+      panel.querySelector("[data-gw-act-open=v1] [data-gw-act-trip]"),
+    ).not.toBeNull();
+    expect(
+      panel.querySelector<HTMLButtonElement>("[data-gw-act-open=v1]")!.disabled,
+    ).toBe(true);
+    expect(
+      panel.querySelector<HTMLButtonElement>("[data-gw-act-open=v2]")!.disabled,
+    ).toBe(false);
   });
 });
 

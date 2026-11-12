@@ -4,6 +4,14 @@ import { GW_PREMIER_PICKS } from "@openfront/engine-lib/ww1914/StoryRows";
 import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
 import type { GwCtx } from "./GwCtx";
+import {
+  canSpend,
+  deptsBox,
+  giftButtons,
+  roomBox,
+  timeChip,
+  timeLeft,
+} from "./GwDept";
 import { rich } from "./GwDict";
 import { gwFace } from "./GwFace";
 import {
@@ -165,11 +173,60 @@ function topicBadge(n: number): TemplateResult | typeof nothing {
   >`;
 }
 
+/** What an opened person row holds: bio, rivals, promises, talks, posts. */
+export function personDetails(c: GwCtx, p: GwPersonView): TemplateResult {
+  const bio = personBio(c.pack, p.id);
+  const offices = appointBlock(c.data) === null ? appointable(c.seat, p) : [];
+  const topics = talkTopics(p);
+  return html`${bio === ""
+      ? nothing
+      : html`<p class="text-sm text-white/80">${bio}</p>`}
+    ${p.rivals.length === 0
+      ? nothing
+      : html`<p class=${MUTED}>
+          ${translateText("gw.ui.rivals")}:
+          ${p.rivals.map((r) => personName(c.pack, r)).join(", ")}
+        </p>`}
+    ${promises(c, p.id)} ${giftButtons(c, p.id)}
+    <div class="space-y-1">
+      ${topics.length === 0
+        ? html`<p class=${MUTED}>${translateText("gw.ui.no_topics")}</p>`
+        : topics.map(
+            (t) =>
+              html`<button
+                class="${BTN} w-full"
+                data-gw-topic=${t}
+                ?disabled=${timeLeft(c) <= 0 || !canSpend(c, "petition")}
+                @click=${() => {
+                  c.send({ kind: "summon", person: p.id, topic: t });
+                  c.ui.summoned = Date.now();
+                }}
+              >
+                ${topicLabel(c.pack, t)}
+              </button>`,
+          )}
+    </div>
+    ${offices.map(
+      (o) =>
+        html`<button
+          class="${BTN} w-full"
+          data-gw-appoint=${o}
+          @click=${() => c.send({ kind: "appoint", person: p.id, office: o })}
+        >
+          ${translateText(
+            pressOnly(c, o) ? "gw.ui.appoint_ask" : "gw.ui.appoint",
+            { office: officeTitle(c.seat.tag, o) },
+          )}
+        </button>`,
+    )}
+    ${p.office === null || (p.office === "chancellor" && premierPicks(c))
+      ? nothing
+      : dismissButton(c, p)}`;
+}
+
 export function personRow(c: GwCtx, p: GwPersonView): TemplateResult {
   const open = c.ui.openPerson === p.id;
   const lean = personLean(c.pack, p.id);
-  const bio = personBio(c.pack, p.id);
-  const offices = appointBlock(c.data) === null ? appointable(c.seat, p) : [];
   const name = personName(c.pack, p.id);
   const topics = talkTopics(p);
   // Nobody to talk to about anything now: the row steps back until opened.
@@ -217,51 +274,7 @@ export function personRow(c: GwCtx, p: GwPersonView): TemplateResult {
     ${marks(c, p)}
     ${open
       ? html`<div class="mt-2 space-y-2 border-t border-white/10 pt-2">
-          ${bio === ""
-            ? nothing
-            : html`<p class="text-sm text-white/80">${bio}</p>`}
-          ${p.rivals.length === 0
-            ? nothing
-            : html`<p class=${MUTED}>
-                ${translateText("gw.ui.rivals")}:
-                ${p.rivals.map((r) => personName(c.pack, r)).join(", ")}
-              </p>`}
-          ${promises(c, p.id)}
-          <div class="space-y-1">
-            ${topics.length === 0
-              ? html`<p class=${MUTED}>${translateText("gw.ui.no_topics")}</p>`
-              : topics.map(
-                  (t) =>
-                    html`<button
-                      class="${BTN} w-full"
-                      data-gw-topic=${t}
-                      ?disabled=${c.seat.audiences <= 0}
-                      @click=${() => {
-                        c.send({ kind: "summon", person: p.id, topic: t });
-                        c.ui.summoned = Date.now();
-                      }}
-                    >
-                      ${topicLabel(c.pack, t)}
-                    </button>`,
-                )}
-          </div>
-          ${offices.map(
-            (o) =>
-              html`<button
-                class="${BTN} w-full"
-                data-gw-appoint=${o}
-                @click=${() =>
-                  c.send({ kind: "appoint", person: p.id, office: o })}
-              >
-                ${translateText(
-                  pressOnly(c, o) ? "gw.ui.appoint_ask" : "gw.ui.appoint",
-                  { office: officeTitle(c.seat.tag, o) },
-                )}
-              </button>`,
-          )}
-          ${p.office === null || (p.office === "chancellor" && premierPicks(c))
-            ? nothing
-            : dismissButton(c, p)}
+          ${personDetails(c, p)}
         </div>`
       : nothing}
   </section>`;
@@ -415,19 +428,38 @@ function agents(c: GwCtx): TemplateResult | typeof nothing {
 /** The people tab: the cabinet and the court, summons left, who to call. */
 export function peopleTab(c: GwCtx): TemplateResult {
   const { seat } = c;
-  const office = seat.people.filter((p) => p.office !== null);
+  // ww193: a department's head is its row in 부서; the other office holders follow.
+  const heads = new Set((seat.depts ?? []).map((d) => d.head));
+  const office = seat.people.filter(
+    (p) => p.office !== null && !heads.has(p.id),
+  );
   const rest = seat.people.filter((p) => p.office === null);
   return html`<div class="space-y-2.5" data-gw-people>
     <div class="flex items-center gap-2">
-      <span
-        class=${CHIP}
-        data-gw-audiences
-        title=${translateText("gw.ui.audiences_tip")}
-        >${translateText("gw.ui.audiences", { n: seat.audiences })}</span
-      >
+      ${seat.time === undefined
+        ? html`<span
+            class=${CHIP}
+            data-gw-audiences
+            title=${translateText("gw.ui.audiences_tip")}
+            >${translateText("gw.ui.audiences", { n: seat.audiences })}</span
+          >`
+        : timeChip(c)}
       ${authorityChip(seat.world.authority)}
       <span class=${MUTED}>${translateText("gw.ui.audiences_hint")}</span>
     </div>
+    ${roomBox(c)}
+    ${deptsBox(c, {
+      badge: (id) => {
+        const p = seat.people.find((x) => x.id === id);
+        return p === undefined ? nothing : topicBadge(talkTopics(p).length);
+      },
+      body: (id) => {
+        const p = seat.people.find((x) => x.id === id);
+        return p === undefined
+          ? nothing
+          : html`${marks(c, p)} ${personDetails(c, p)}`;
+      },
+    })}
     ${privateMeetings(c)} ${vacancies(c)} ${office.map((p) => personRow(c, p))}
     ${rest.length === 0
       ? nothing

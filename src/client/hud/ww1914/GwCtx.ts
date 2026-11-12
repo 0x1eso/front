@@ -151,6 +151,16 @@ export interface GwUi {
   diplo: GwDiploDraft;
   /** The memoirs side by side are open. */
   finale: boolean;
+  /** ww193: the department row open on 사람 › 부서; null none. */
+  deptOpen?: string | null;
+  /** ww193: the task picked there, and its topic, before it is given. */
+  deptTask?: { row: string; topic: string | null } | null;
+  /** ww193: the head whose briefing is on screen; null none. */
+  briefing?: string | null;
+  /** ww193: the paper whose 다른 부서에 맡긴다 list is open. */
+  passOpen?: number | null;
+  /** ww193: schedule sections unfolded past their first entries. */
+  actFold?: string[];
 }
 
 export interface GwRuleDraft {

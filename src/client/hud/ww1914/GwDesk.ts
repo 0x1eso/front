@@ -8,6 +8,15 @@ import { translateText } from "../../Utils";
 import { deskPapers } from "./GwBlocs";
 import { budgetStrip, openLedger } from "./GwBudget";
 import type { GwCtx, GwResultNote } from "./GwCtx";
+import {
+  cardStamp,
+  deptChips,
+  deptLine,
+  deptVerdicts,
+  optionMarks,
+  roomBox,
+  signWord,
+} from "./GwDept";
 import { briefLine, rich } from "./GwDict";
 import { newPass, TextPass } from "./GwDictModel";
 import { lawStrip } from "./GwLaws";
@@ -100,7 +109,8 @@ function sender(c: GwCtx, card: GwCardView): string {
   return first === undefined ? "" : personName(c.pack, first);
 }
 
-function cardBox(c: GwCtx, card: GwCardView): TemplateResult {
+export function cardBox(c: GwCtx, card: GwCardView): TemplateResult {
+  const stamp = cardStamp(card);
   const fill = (t: string) => fillGw(t, c.pack, card, c.seat, c.data.date);
   const isTalk = card.kind === "talk";
   const read = isReadOnly(card);
@@ -110,16 +120,16 @@ function cardBox(c: GwCtx, card: GwCardView): TemplateResult {
     data-gw-card=${card.scene}
     class="space-y-1.5 rounded border border-white/15 bg-black/35 p-2.5"
   >
-    <div class="flex items-center gap-2">
+    <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
       <span class=${CHIP}>${translateText(`gw.ui.kind.${card.kind}`)}</span>
-      ${card.stamp === null
+      ${stamp === null
         ? nothing
         : html`<span
             class=${CHIP}
-            title=${translateText(`gw.ui.stamp_hint.${card.stamp}`)}
-            >${translateText(`gw.ui.stamp.${card.stamp}`)}</span
+            title=${translateText(`gw.ui.stamp_hint.${stamp}`)}
+            >${translateText(`gw.ui.stamp.${stamp}`)}</span
           >`}
-      ${placeChip(c, card)}
+      ${deptChips(c, card)} ${placeChip(c, card)}
       <span class="${MUTED} ml-auto truncate">${sender(c, card)}</span>
     </div>
     <h3 class=${HEAD}>${cardTitle(c.pack, card)}</h3>
@@ -318,7 +328,7 @@ export function deskTab(c: GwCtx): TemplateResult {
   const papers = paperCards(seat);
   const talks = talkCards(seat);
   return html`<div class="space-y-2.5" data-gw-desk>
-    ${nowBox(c)} ${dangerBox(c)} ${aimNudge(c)}
+    ${nowBox(c)} ${dangerBox(c)} ${roomBox(c)} ${aimNudge(c)}
     ${reasons.length === 0
       ? nothing
       : html`<div class="rounded border border-white/10 bg-white/5 p-2">
@@ -415,6 +425,7 @@ function optionButton(
         ></span
       >
     </button>
+    ${optionMarks(c, card, o.id)}
     ${aim === null
       ? nothing
       : html`<p class="${MUTED} pl-1" data-gw-option-aim=${o.id}>
@@ -554,6 +565,7 @@ export function reader(c: GwCtx, card: GwCardView): TemplateResult {
   const body = bodyParts(fill(cardBody(c.pack, card)));
   const pass = newPass();
   const brief = briefText(c.pack, card, c.seat, c.data.date);
+  const stamp = cardStamp(card);
   const armedOpt =
     c.ui.armed?.uid === card.uid
       ? card.options.find((o) => o.id === c.ui.armed?.option)
@@ -575,10 +587,10 @@ export function reader(c: GwCtx, card: GwCardView): TemplateResult {
     >
       <header class="flex items-center gap-2">
         <span class=${CHIP}>${translateText(`gw.ui.kind.${card.kind}`)}</span>
-        ${card.stamp === null
+        ${stamp === null
           ? nothing
           : html`<span class=${CHIP} data-gw-stamp
-              >${translateText(`gw.ui.stamp.${card.stamp}`)}</span
+              >${translateText(`gw.ui.stamp.${stamp}`)}</span
             >`}
         ${placeChip(c, card, close)}
         <span class="${MUTED} ml-auto">${fullDate(c.data.date)}</span>
@@ -587,6 +599,7 @@ export function reader(c: GwCtx, card: GwCardView): TemplateResult {
         </button>
       </header>
       <h2 class="text-lg font-bold leading-snug">${cardTitle(c.pack, card)}</h2>
+      ${deptLine(c, card)}
       ${brief === null ? nothing : briefLine(c, brief, pass)}
       ${backLine(c, card, pass)}
       ${card.letterFrom === undefined
@@ -630,15 +643,16 @@ export function reader(c: GwCtx, card: GwCardView): TemplateResult {
           </div>`}
       ${read
         ? html`<button
-            class="${BTN} w-full text-center"
-            data-gw-readdone
-            @click=${() => {
-              c.send({ kind: "read", card: card.uid });
-              close();
-            }}
-          >
-            ${translateText("gw.ui.read_done")}
-          </button>`
+              class="${BTN} w-full text-center"
+              data-gw-readdone
+              @click=${() => {
+                c.send({ kind: "read", card: card.uid });
+                close();
+              }}
+            >
+              ${translateText("gw.ui.read_done")}
+            </button>
+            ${deptVerdicts(c, card, close)}`
         : html`<div class="space-y-1.5">
             <div class=${MUTED}>${translateText("gw.ui.options")}</div>
             ${card.options.map((o) => optionButton(c, card, o, pass))}
@@ -660,9 +674,9 @@ export function reader(c: GwCtx, card: GwCardView): TemplateResult {
                     close();
                   }}
                 >
-                  ${translateText("gw.ui.sign")}
+                  ${signWord(card, armedOpt.id)}
                 </button>`}
-            ${backControl(c, card, close)}
+            ${backControl(c, card, close)} ${deptVerdicts(c, card, close)}
           </div>`}
     </article>
   </div>`;
