@@ -846,6 +846,8 @@ const task = (
   type,
   topic,
   chapters: 2,
+  // The bargain and the nations move slowly: asked less often (ww196 merge).
+  cooldown: 18,
   ...more,
 });
 
