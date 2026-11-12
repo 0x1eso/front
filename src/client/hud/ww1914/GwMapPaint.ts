@@ -60,7 +60,7 @@ export class GwMapPaint implements OccupationSource {
   key(): string {
     if (!this.painting) return `lens:${this.lens.key()}`;
     return this.drawn
-      .map((c) => `${c.region}:${c.level}:${c.flags}:${c.rgb[0]}`)
+      .map((c) => `${c.region}:${c.level}:${c.flags}:${c.rgb.join(".")}`)
       .join(",");
   }
 

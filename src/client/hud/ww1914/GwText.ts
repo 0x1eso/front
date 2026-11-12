@@ -24,6 +24,7 @@ import type {
 import type { GwReportView } from "@openfront/engine-api/ww1914/GwWorldView";
 import { applyJosa } from "../../Josa";
 import { translateText } from "../../Utils";
+import { gwName } from "./GwFateModel";
 import { instName, officeTitle } from "./GwOffice";
 
 /** A key's text, or null when it has none. */
@@ -296,8 +297,7 @@ export function reasonText(
   const line =
     pack?.reasons?.[r.key] ??
     (own === ownKey ? translateText(`gw.reason.${r.key}`) : own);
-  const country =
-    r.tag === undefined ? "" : translateText(`gw.country.${r.tag}`);
+  const country = r.tag === undefined ? "" : gwName(r.tag);
   const what =
     r.what === undefined || r.what === null
       ? r.key.startsWith("project_")
@@ -464,7 +464,7 @@ export function endingTitle(id: string): string {
   return textOrNull(`gw.ending.${id}`) ?? translateText("gw.ui.ending_default");
 }
 
-export const country = (tag: string) => translateText(`gw.country.${tag}`);
+export const country = (tag: string) => gwName(tag);
 
 const theatreName = (t: GwTheatre) => translateText(`gw.theatre.${t}`);
 

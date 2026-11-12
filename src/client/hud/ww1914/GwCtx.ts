@@ -12,6 +12,7 @@ import type {
 import type { GwBudgetPlan } from "@openfront/engine-api/ww1914/GwBudget";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import type { GwAnswerRedo } from "@openfront/engine-api/ww1914/GwDeptWords";
+import type { GwFateMark } from "@openfront/engine-api/ww1914/GwFate";
 import type { GwOrder } from "@openfront/engine-api/ww1914/GwOrders";
 import type { GwPack } from "@openfront/engine-api/ww1914/GwPack";
 import type { GwPlace } from "@openfront/engine-api/ww1914/GwPlaces";
@@ -130,6 +131,8 @@ export interface GwUi {
   tableArmed: GwPlace | null;
   /** A place tapped that this table can't ask for. */
   tableBarred: GwPlace | null;
+  /** ww199: the fate picked for the armed place, before it is asked for. */
+  tableFate?: { place: GwPlace; mark: GwFateMark } | null;
   /** The list of what could stand in for the land is open. */
   tableOffer: boolean;
   /** Terms being drawn up. */

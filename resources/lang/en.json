@@ -2752,6 +2752,62 @@
         "4": "revolution"
       }
     },
+    "fate": {
+      "chip": {
+        "ally": "To an ally",
+        "annex": "Annex",
+        "occupy": "Occupy",
+        "return": "Return",
+        "state": "New state",
+        "vassal": "Vassal"
+      },
+      "crown_empty": "not yet filled",
+      "crown_set": "someone is on it",
+      "do": {
+        "ally": "Give it to an ally",
+        "annex": "Annex it",
+        "occupy": "Hold it under military rule",
+        "return": "Give it back",
+        "state": "Found a state",
+        "vassal": "Keep it as a vassal"
+      },
+      "kind": {
+        "client": "our state",
+        "rule": "ruled",
+        "vassal": "vassal"
+      },
+      "loyalty_loyal": "loyal",
+      "loyalty_turning": "about to turn",
+      "loyalty_wavering": "wavering",
+      "mixed": "Mixed",
+      "none": "Not decided",
+      "policy": {
+        "annexed": "annexed land",
+        "army": "military rule",
+        "civil": "civil rule",
+        "client": "left to a local government"
+      },
+      "regency": "a regency council",
+      "resist_0": "quiet",
+      "resist_1": "restless",
+      "resist_2": "resisting hard",
+      "resist_3": "close to rising",
+      "sign": {
+        "press": "Press once more",
+        "reserve": "Sign with reservations",
+        "sign": "Sign it"
+      },
+      "signed": {
+        "press": "We pressed once more.",
+        "reserve": "We signed with reservations.",
+        "sign": "We signed the treaty."
+      },
+      "term": {
+        "long": "long",
+        "short": "short"
+      },
+      "with": "{fate} ({what})"
+    },
     "front": {
       "alps": {
         "alps": "the Alpine passes",
@@ -5348,6 +5404,13 @@
         "unrest": "home front"
       },
       "fact_plan_to": "main force to {theatre}",
+      "fate_crown": "Throne: {who}",
+      "fate_how": "Decide what each land becomes. Each press changes it.",
+      "fate_partner_ask": "{by} asks for {place}. We wanted it too.",
+      "fate_partner_wait": "{partner} has yet to answer about {place}.",
+      "fate_ruled": "Land we rule, states we founded",
+      "fate_sign_title": "Signing the treaty",
+      "fate_title": "What becomes of the land",
       "fold": "Fold or unfold",
       "folded_title": "Small news meanwhile",
       "front_bar_hint": "The bar is this front from our end (left) to the enemy's (right). The white mark is where the line stands now. The paler our green, the more worn out our men are.",

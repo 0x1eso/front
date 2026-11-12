@@ -234,7 +234,9 @@ export class GwPanel extends LitElement implements Controller {
     const seat = this.seat();
     const ui = this.ui;
     if (seat === null) return null;
-    if (ui.paint !== null) return paintCells(seat.tag, ui.paint);
+    if (ui.paint !== null) {
+      return paintCells(seat.tag, ui.paint, seat.claims?.fates);
+    }
     const t = seat.table ?? null;
     if (t === null || ui.tab !== "table") return null;
     return tableCells(t, seat.claims?.places ?? [], ui.tableArmed);

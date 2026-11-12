@@ -32,7 +32,7 @@ import { PlayerCosmetics } from "@openfront/shared/WireSchemas";
 import { Colord, colord } from "colord";
 import { base64url } from "jose";
 import { UserSettings } from "../UserSettings";
-import { translateText } from "../Utils";
+import { gwName } from "../hud/ww1914/GwFateModel";
 import { wwMapName } from "../hud/ww1936/EndgameNames";
 import { PlayerState, PlayerStatic, PlayerTypeEnum } from "../render/types";
 import { themeProvider } from "../theme/ThemeProvider";
@@ -433,7 +433,8 @@ export class PlayerView implements PlayerLike {
   displayName(): string {
     // Great War 1914: every player is a country, named in the UI's language.
     const gwTag = this.game.gwTagOf?.(this.smallID()) ?? null;
-    if (gwTag !== null) return translateText(`gw.country.${gwTag}`);
+    // ww199: a new state or a vassal goes by the name its fate gave it.
+    if (gwTag !== null) return gwName(gwTag);
     if (this.anonymousName !== null && userSettings.anonymousNames()) {
       return this.anonymousName;
     }
