@@ -141,6 +141,9 @@
       },
       "auh_task_na_south": {
         "name": "남슬라브인들의 요구를 알아보게 한다"
+      },
+      "auh_task_fleet": {
+        "name": "폴라 함대의 사정을 살피게 한다"
       }
     },
     "topics": {

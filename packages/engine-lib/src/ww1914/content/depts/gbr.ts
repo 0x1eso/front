@@ -929,7 +929,7 @@ const TASKS: GwTaskRow[] = [
     office: "ireland",
     type: "ireland",
     chapters: 2,
-    cooldown: 3,
+    cooldown: 12,
   },
   // Until conscription the War Office argues about men; after, it finds them.
   {

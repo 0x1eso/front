@@ -251,7 +251,9 @@ export function pickFindings(
   const sorted = [...right].sort((a, b) => b.weight - a.weight);
   if (band >= 3) return sorted.map((row) => ({ row, left: false }));
   if (band === 2) {
-    return sorted.map((row) => ({ row, left: row.weight <= 1 }));
+    // The slight ones are left out, unless they are all there is.
+    const more = sorted.some((row) => row.weight > 1);
+    return sorted.map((row) => ({ row, left: more && row.weight <= 1 }));
   }
   const kept = sorted.slice(0, GW_WEAK_FINDINGS);
   const out = sorted.map((row) => ({ row, left: !kept.includes(row) }));

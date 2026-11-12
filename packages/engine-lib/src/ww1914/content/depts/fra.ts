@@ -242,7 +242,7 @@ const TASKS: GwTaskRow[] = [
     office: "chancellor",
     type: "chambers",
     chapters: 1,
-    cooldown: 3,
+    cooldown: 12,
   },
 ];
 

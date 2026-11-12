@@ -44,7 +44,7 @@ export const GW_TIME_CARRY = 1;
 /** Petitioners in the room a chapter, at most. */
 export const GW_PETITIONERS_MAX = 3;
 /** Chapters before a task row is offered again; a row may set its own. */
-export const GW_TASK_COOLDOWN = 2;
+export const GW_TASK_COOLDOWN = 12;
 /** Trust at or below which a head's work is slow and his office may leak. */
 export const GW_DEPT_DISLOYAL = -2;
 /** Percent a disloyal head's office leaks a paper when it is ready. */
@@ -136,9 +136,9 @@ export const GW_ANSWER_WAIT = 2;
 export const GW_THEN_AFTER = 2;
 /** Percent a task stalls a chapter, by reason, when the reason holds. */
 export const GW_STALL_PCT: Readonly<Record<GwStallReason, number>> = {
-  disloyal: 40,
-  rival: 15,
-  money: 50,
+  disloyal: 20,
+  rival: 8,
+  money: 25,
   moot: 100,
 };
 /** Percent a stall left waiting (기다린다) clears by itself a chapter. */

@@ -127,7 +127,7 @@ const TASKS: GwTaskRow[] = [
     type: "refugees",
     chapters: 2,
     when: all(inWar, months(6)),
-    cooldown: 4,
+    cooldown: 12,
   },
   // 정보부 looks at the enemy and the neutrals it can reach.
   {

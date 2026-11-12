@@ -363,7 +363,7 @@ const OWN_TASKS: GwTaskRow[] = [
     type: "aims",
     chapters: 2,
     when: all(war, months(1)),
-    cooldown: 4,
+    cooldown: 12,
   },
   {
     id: "deu_task_poland",
@@ -372,7 +372,7 @@ const OWN_TASKS: GwTaskRow[] = [
     type: "poland",
     chapters: 2,
     when: all(war, warsawOurs),
-    cooldown: 4,
+    cooldown: 12,
   },
   {
     id: "deu_task_franchise",
@@ -381,7 +381,7 @@ const OWN_TASKS: GwTaskRow[] = [
     type: "franchise",
     chapters: 2,
     when: all(war, months(6)),
-    cooldown: 4,
+    cooldown: 12,
   },
 ];
 

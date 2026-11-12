@@ -30,6 +30,7 @@ import { DeskTrace, watchDesk } from "@openfront/engine/ww1914/Desk";
 import { proposalsFor } from "@openfront/engine/ww1914/Fronts";
 import type { GreatWar } from "@openfront/engine/ww1914/GreatWar";
 import { applyGwOrder, openTopics } from "@openfront/engine/ww1914/Orders";
+import { grainLocked } from "@openfront/engine/ww1914/Persona";
 import { ctxOf, optionOpen, sceneOf } from "@openfront/engine/ww1914/SceneRun";
 import { timeLeft } from "@openfront/engine/ww1914/Time";
 
@@ -273,7 +274,11 @@ export function clearDesk(
     if (card.node !== null) {
       talkThrough(gw, seat, card, profile, roll, rec);
     } else if ((scene.options ?? []).length > 0) {
-      const open = scene.options!.filter((o) => optionOpen(ctx, o));
+      // As the client lists them: an option against his grain at the bottom
+      // of his nerve is shown but locked.
+      const open = scene.options!.filter(
+        (o) => optionOpen(ctx, o) && !grainLocked(gw, seat, card, scene, o),
+      );
       for (const o of open) rec.openedOptions.push(`${scene.id}.${o.id}`);
       const stays = open.filter((o) => !o.tell.includes("ends_game"));
       const from = stays.length > 0 && roll(100) >= profile.ends ? stays : open;

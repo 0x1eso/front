@@ -860,6 +860,15 @@ const TASKS: GwTaskRow[] = [
   task("auh_task_na_bohemia", "chancellor", "nations", "bohemia"),
   task("auh_task_na_galicia", "chancellor", "nations", "galicia"),
   task("auh_task_na_south", "chancellor", "nations", "south_slavs"),
+  // 해군부: the fleet at Pola changes little; asked less often (ww196 merge).
+  {
+    id: "auh_task_fleet",
+    nation: AUH,
+    office: "navy",
+    type: "fleet",
+    chapters: 2,
+    cooldown: 20,
+  },
 ];
 
 // ---- Leans (design §4.3): the option each department marks ----

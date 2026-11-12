@@ -158,7 +158,7 @@ export const GW_RULERS: Readonly<
     {
       id: "nicholas",
       person: "rus_nicholas",
-      regimes: ["tsar"],
+      regimes: ["tsar", "crown"],
       born: "1868-05-18",
       start: side(4, 3, 4, 3, 3),
       agesEvery: 18,

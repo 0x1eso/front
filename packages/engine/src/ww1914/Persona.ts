@@ -34,7 +34,7 @@ import {
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import type { GreatWar } from "./GreatWar";
 import { GW_NERVE_WORN, moveRuler } from "./Ruler";
-import { ctxOf, holds, personDef, sceneOf } from "./SceneRun";
+import { ctxOf, holds, optionOpen, personDef, sceneOf } from "./SceneRun";
 import { seatPerson } from "./World";
 
 const P_HINDSIGHT = idHash("gw_hindsight");
@@ -265,7 +265,10 @@ export function grainView(
   return g?.costs === true ? g.row.id : undefined;
 }
 
-/** Listed but not his to take today: no nerve left for it. */
+/**
+ * Listed but not his to take today: no nerve left for it. Never the last way
+ * out: an option stays open while no other open one is free of his grain.
+ */
 export function grainLocked(
   gw: GreatWar,
   seat: GwSeatState,
@@ -274,7 +277,13 @@ export function grainLocked(
   o: GwOption,
 ): boolean {
   if (seat.ruler.nerve > GW_NERVE_WORN) return false;
-  return grainOf(gw, seat, card, scene, o)?.costs === true;
+  const against = (x: GwOption) =>
+    grainOf(gw, seat, card, scene, x)?.costs === true;
+  if (!against(o)) return false;
+  const ctx = ctxOf(gw, seat, card);
+  return (scene.options ?? []).some(
+    (x) => x.id !== o.id && optionOpen(ctx, x) && !against(x),
+  );
 }
 
 /** He took it himself: counted, and it costs what it costs. */

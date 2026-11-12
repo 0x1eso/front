@@ -690,10 +690,66 @@ function offerOpen(
   const topics = topicsOf(gw, seat, o);
   // A front task in peace checks the war plans: no front to pick.
   if (pickOf(o) === "country" && topics.length === 0) return false;
-  // Only while some answer row of the type could hold.
+  // Only while some answer row of the type could hold, with courses to take.
   const any = topics.length === 0 ? [t?.topic ?? null] : topics;
-  return any.some(
-    (topic) => holdingRows(gw, seat, o.type, office, topic, head).length > 0,
+  return any.some((topic) => topicWorks(gw, seat, o.type, office, topic, head));
+}
+
+/** The question's slots are known only at 조사; a course may wait on them. */
+const QUESTION_SLOTS: readonly string[] = ["spend", "reach", "sent"];
+
+/**
+ * ww196 merge: a topic is offered only where an answer could come of it: a
+ * row holds, a true finding and at least two courses (the wait aside) can
+ * hold on today's slots. A course that plans a front needs a front to plan (§3 `front`).
+ */
+function topicWorks(
+  gw: GreatWar,
+  seat: GwSeatState,
+  type: GwTaskType,
+  office: GwOffice,
+  topic: string | null,
+  head: GwPersonState,
+): boolean {
+  const rows = holdingRows(gw, seat, type, office, topic, head);
+  if (rows.length === 0) return false;
+  const ctx: SceneCtx = { gw, seat, cast: { head: head.id }, topic };
+  const slots = answerSlots(gw.s, seat, type, topic);
+  const can = (x: GwFindingRow | GwCourseRow) =>
+    (x.when === undefined || holds(ctx, x.when)) &&
+    slotsHold(
+      Object.fromEntries(
+        Object.entries(x.slots ?? {}).filter(
+          ([k]) => !QUESTION_SLOTS.includes(k),
+        ),
+      ),
+      slots,
+    );
+  // Something to report: a true finding that can hold.
+  if (!rows.some((r) => r.findings.some((f) => f.wrong !== true && can(f)))) {
+    return false;
+  }
+  const ids = new Set<string>();
+  for (const r of rows) {
+    for (const c of r.courses) {
+      if (c.wait === true) continue;
+      if (c.front !== undefined && topic === null) continue;
+      if (can(c)) ids.add(c.id);
+    }
+  }
+  return ids.size >= 2;
+}
+
+/** The topics `o` offers now: those an answer could come of. */
+function liveTopics(
+  gw: GreatWar,
+  seat: GwSeatState,
+  o: Offer,
+  office: GwOffice,
+  head: GwPersonState,
+): string[] {
+  return topicsOf(gw, seat, o).filter((topic) =>
+    topicWorks(gw, seat, o.type, office, topic, head),
   );
 }
 
@@ -711,7 +767,7 @@ export function taskOffers(
       row: o.key,
       type: o.type,
       kind: "plan",
-      topics: topicsOf(gw, seat, o),
+      topics: liveTopics(gw, seat, o, office, head),
       topic: o.row?.topic ?? null,
     }));
 }
@@ -782,6 +838,24 @@ function moot(gw: GreatWar, seat: GwSeatState, t: GwDeptTask): boolean {
   return false;
 }
 
+/**
+ * Moot, or (ww196 merge) a task with no topic whose answer can no longer come:
+ * the war plans checked in peace, and the war has begun.
+ */
+function mootNow(
+  gw: GreatWar,
+  seat: GwSeatState,
+  t: GwDeptTask,
+  head: GwPersonState,
+): boolean {
+  if (moot(gw, seat, t)) return true;
+  return (
+    t.topic === null &&
+    t.type !== undefined &&
+    !topicWorks(gw, seat, t.type, t.office, null, head)
+  );
+}
+
 /** Why the task stalls this chapter, if it does. */
 function stallOf(
   gw: GreatWar,
@@ -789,7 +863,7 @@ function stallOf(
   t: GwDeptTask,
   head: GwPersonState,
 ): GwStallReason | null {
-  if (moot(gw, seat, t)) return "moot";
+  if (mootNow(gw, seat, t, head)) return "moot";
   const roll = (r: GwStallReason) =>
     wwRoll(gw.s.seed, P_STALL, gw.s.chapter, idHash(`${t.office}_${r}`)) % 100 <
     GW_STALL_PCT[r];
@@ -910,8 +984,14 @@ function workTask(
     }
     t.stall = null;
     dropPapers(seat, t.office, ["stall"]);
-  } else if (c < t.due && c > t.from) {
-    const why = stallOf(gw, seat, t, head);
+  } else if (c > t.from) {
+    // On the report's chapter only a moot topic stops it (ww196 merge).
+    const why =
+      c < t.due
+        ? stallOf(gw, seat, t, head)
+        : mootNow(gw, seat, t, head)
+          ? "moot"
+          : null;
     if (why !== null) {
       layPaper(
         seat,
