@@ -9,7 +9,13 @@ import type {
 import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
 import type { GwCtx } from "./GwCtx";
-import { isReadOnly, paperCards, talkCards, tempBand } from "./GwModel";
+import {
+  crisisShown,
+  isReadOnly,
+  paperCards,
+  talkCards,
+  tempBand,
+} from "./GwModel";
 import { CHIP, MUTED } from "./GwStyle";
 import { textOrNull } from "./GwText";
 
@@ -47,7 +53,7 @@ export function nowLines(data: GreatWarData, seat: GwSeatView): GwNowLine[] {
   const prop = propLine(seat);
   if (prop !== null) out.push(prop);
   const chain = w.chain ?? null;
-  if (data.stage === "crisis" || chain !== null) {
+  if (crisisShown(data, seat)) {
     const band = tempBand(data.temp);
     out.push({
       key:

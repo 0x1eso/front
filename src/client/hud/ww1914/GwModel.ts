@@ -71,6 +71,19 @@ export function gaugeFill(gauge: GwGauge, value: number): number {
 }
 
 /** The crisis temperature as one of four words. */
+/**
+ * The crisis shows (the band's chip, the 지금 상황 line) while a chain is
+ * open, or in the calendar's crisis chapters until the war has come. ww194:
+ * a war that came early showed "위기: 긴장, 오가는 말이 거칠어지고 있다"
+ * beside "전쟁 중".
+ */
+export function crisisShown(data: GreatWarData, seat: GwSeatView): boolean {
+  const w = seat.world;
+  if ((w.chain ?? null) !== null) return true;
+  if (data.stage !== "crisis") return false;
+  return !w.countries.some((n) => n.side !== null);
+}
+
 export function tempBand(temp: number): 0 | 1 | 2 | 3 {
   if (temp <= 2) return 0;
   if (temp <= 5) return 1;

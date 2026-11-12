@@ -882,6 +882,28 @@ describe("the screens", () => {
     );
   });
 
+  test("a war come early in the crisis chapters shows no crisis beside it (ww194)", async () => {
+    const d = {
+      ...data([], {
+        side: "central",
+        chain: null,
+        countries: [
+          { tag: "AUH", side: "central", out: false, mob: 2 },
+          { tag: "RUS", side: "entente", out: false, mob: 2 },
+        ],
+      }),
+      stage: "crisis" as const,
+      temp: 4,
+    };
+    const { panel } = await mount(d);
+    expect(nowText(panel)).toEqual([
+      "gw.ui.now.war",
+      "gw.ui.now.no_crisis",
+      "gw.ui.now.wait_none",
+    ]);
+    expect(panel.querySelector("[data-gw-temp]")).toBeNull();
+  });
+
   test("gauges, chips and numbers carry their names and a word", async () => {
     const { panel } = await mount(data([]));
     const shells = panel.querySelector("[data-gw-band-gauge=shells]")!;
