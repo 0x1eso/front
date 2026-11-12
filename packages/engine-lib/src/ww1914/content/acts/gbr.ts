@@ -73,13 +73,18 @@ const VISITS: GwAct[] = [
   visit("gbr_a_fleet", undefined, [inspect("force", "GBR", "sea")]),
   visit("gbr_a_woolwich", undefined, [inspect("shells", "GBR")]),
   visit("gbr_a_clyde", undefined),
-  visit("gbr_a_gq", atDeu, [
-    inspect("morale", "GBR"),
-    inspect("force", "GBR", "west"),
-    inspect("force", "DEU", "west"),
-  ]),
+  // ww193: across the Channel, and to Ireland, are trips: two of the time,
+  // the room shut, the trays by wire.
+  {
+    ...visit("gbr_a_gq", atDeu, [
+      inspect("morale", "GBR"),
+      inspect("force", "GBR", "west"),
+      inspect("force", "DEU", "west"),
+    ]),
+    trip: true,
+  },
   visit("gbr_a_netley", war, [inspect("morale", "GBR")]),
-  visit("gbr_a_dublin", undefined),
+  { ...visit("gbr_a_dublin", undefined), trip: true },
   visit("gbr_a_belfast", all(notWar, not(flag("f_home_rule_lives")))),
   visit("gbr_a_city", undefined),
   visit(
@@ -228,52 +233,8 @@ const LETTERS: GwAct[] = [
 const attend = { id: "attend", people: "cabinet", count: 2 } as const;
 
 const ORDERS: GwAct[] = [
-  {
-    id: "gbr_a_o_inquiry",
-    nation: NATION,
-    kind: "order",
-    scene: "gbr_a_o_inquiry_r",
-    wait: 1,
-    fields: [
-      {
-        id: "subject",
-        options: [
-          { id: "rifles" },
-          { id: "shells", effects: [inspect("shells", "GBR")] },
-          { id: "bread", when: war },
-          { id: "recruits", when: war },
-        ],
-      },
-    ],
-  },
-  {
-    id: "gbr_a_o_commission",
-    nation: NATION,
-    kind: "order",
-    once: true,
-    when: all(war, world({ is: "war_months", own: true, min: 11 })),
-    scene: "gbr_a_o_commission_r",
-    wait: 2,
-    fields: [
-      {
-        id: "subject",
-        options: [
-          { id: "shells" },
-          { id: "straits", when: world({ is: "open", theatre: "straits" }) },
-          // ww187: only once the army came to Kut (the report tells of it).
-          {
-            id: "kut",
-            when: world({
-              is: "front",
-              theatre: "mesopotamia",
-              from: "kut",
-              to: "mosul",
-            }),
-          },
-        ],
-      },
-    ],
-  },
+  // ww193: the inquiry and the commission are the departments' tasks now
+  // (content/depts/gbr.ts): their papers are the tasks' products.
   {
     id: "gbr_a_o_cid",
     nation: NATION,
@@ -643,12 +604,70 @@ const INTRIGUES: GwAct[] = [
   },
 ];
 
+/**
+ * ww193 의식: the PM's part in the Crown's ceremonies. The papers they play
+ * are in content/depts/gbr.ts (GBR_DEPT_SCENES), their words in GBR.depts.json.
+ */
+const ceremony = (
+  id: string,
+  when: GwCond | undefined,
+  effects: GwEffect[],
+  tell: string[],
+  more: Partial<GwAct> = {},
+): GwAct => ({
+  id,
+  nation: NATION,
+  kind: "ceremony",
+  ...(when === undefined ? {} : { when }),
+  cooldown: 6,
+  scene: `${id}_r`,
+  wait: 0,
+  tell,
+  effects,
+  ...more,
+});
+
+const CEREMONIES: GwAct[] = [
+  // The honours list the Household brought, given at the Palace.
+  ceremony(
+    "gbr_a_c_investiture",
+    seenScene("gbr_dept_honours"),
+    [opinion("army", 1)],
+    ["opinion:+1"],
+  ),
+  // The King's new name, proclaimed in Council (gbr_dept_windsor).
+  ceremony(
+    "gbr_a_c_privy_council",
+    { kind: "memory", key: "k_gbr_windsor" },
+    [opinion("press", 1), opinion("court", 1)],
+    ["opinion:+1"],
+    { once: true },
+  ),
+  // The King reviews a New Army division before it crosses to France.
+  ceremony(
+    "gbr_a_c_review",
+    all(atDeu, world({ is: "war_months", own: true, min: 4 })),
+    [inspect("morale", "GBR"), opinion("press", 1)],
+    ["opinion:+1"],
+    { cooldown: 8 },
+  ),
+  // A service at St Paul's for the dead, once the lists grow long.
+  ceremony(
+    "gbr_a_c_memorial",
+    all(atDeu, world({ is: "casualties", min: 300 })),
+    [{ kind: "gauge", gauge: "morale", delta: 1 }],
+    ["morale:+1"],
+    { cooldown: 10 },
+  ),
+];
+
 export const GBR_ACTS: readonly GwAct[] = [
   ...VISITS,
   ...LETTERS,
   ...ORDERS,
   ...SPEECHES,
   ...INTRIGUES,
+  ...CEREMONIES,
 ];
 
 const aim = (
