@@ -145,6 +145,11 @@ describe("content", () => {
       ...GW_AFTER_CALLED,
       // ww193 merge: brought by the departments (products, counter-papers).
       ...gwDeptCalled(GW_CONTENT.depts ?? {}),
+      // ww199 (W-DEU, until S1 lists them): laid by Fate.ts by id, the
+      // treaty card and the crown papers, a seat's before the common one.
+      ...scenes
+        .map((x) => x.id)
+        .filter((id) => /^[a-z]{2,3}_settle_(?:sign|crown_[a-z_]+)$/.test(id)),
     ];
     // ww190: the engine lays these; the deal never draws them.
     for (const s of scenes.filter((x) => GW_AFTER_CALLED.includes(x.id))) {

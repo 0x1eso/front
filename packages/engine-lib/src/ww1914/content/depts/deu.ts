@@ -1073,7 +1073,126 @@ const ANSWERS: GwAnswerRow[] = [
     ],
     { question: "reach" },
   ),
+
+  // ---- ww199: settle, a beaten country's fate (외무부; the topic is the
+  // beaten). Each course paints its plan (Fate.settlePlan). The order is the
+  // counter-course's: the foreign office's own and the next two go up, and
+  // the general staff's head takes his from what is left, so `strip` (the
+  // border strip, the OHL's at Brest) stands where he finds it. ----
+  ...settleRows(),
 ];
+
+/** ww199: the `settle` answers, by the beaten country. */
+function settleRows(): GwAnswerRow[] {
+  type Beaten = "RUS" | "FRA" | "BEL" | "ROU";
+  const ours = (
+    from: Beaten,
+    group: "russian_poland" | "baltic" | "ukraine" | "flanders",
+  ): GwCond => world({ is: "land_taken", from, group: [group] });
+  const capital = (from: Beaten): GwCond =>
+    world({ is: "land_taken", from, capital: true });
+  const usaOut = not(entered("USA"));
+  const wide = (effects: GwEffect[], more: Partial<GwCourseRow> = {}) =>
+    co("wide", ["gentle", "calm"], effects, { settle: "wide", ...more });
+  const narrow = (effects: GwEffect[]) =>
+    co("narrow", ["cheap", "gentle"], effects, { settle: "narrow" });
+  const hold = co("hold", ["wait", "calm"], [], { settle: "hold" });
+  const strip = co("strip", ["firm", "bold"], [opinion("army", 1)], {
+    settle: "strip",
+  });
+  const vassal = (of: Beaten) =>
+    co("vassal", ["bold"], [opinion("army", 1), opinion("business", 1)], {
+      settle: "vassal",
+      when: capital(of),
+    });
+  return [
+    ans(
+      "settle_rus",
+      "settle",
+      [
+        fd("poland_held", 3, { when: ours("RUS", "russian_poland") }),
+        fd("vienna_poland", 3),
+        fd("baltic_barons", 2, { when: ours("RUS", "baltic") }),
+        fd("rada", 2, { when: ours("RUS", "ukraine") }),
+        fd("ohl_strip", 2),
+        fd("wilson", 2, { when: usaOut }),
+        fd("poles_grateful", 1, {
+          wrong: true,
+          truth: world({ is: "client_state", client: "poland", min: 2 }),
+        }),
+      ],
+      [
+        wide([opinion("parliament", 1)], {
+          needs: [{ kind: "consent", tag: "AUH" }],
+        }),
+        narrow([opinion("parliament", 1), opinion("army", -1)]),
+        hold,
+        strip,
+        vassal("RUS"),
+      ],
+      { topic: ["RUS"], question: "person" },
+    ),
+    ans(
+      "settle_rou",
+      "settle",
+      [
+        fd("oil", 3),
+        fd("grain", 3),
+        fd("dobruja", 2),
+        fd("king", 2),
+        fd("wilson", 1, { when: usaOut }),
+      ],
+      [
+        wide([gauge("bread", 1)]),
+        narrow([opinion("parliament", 1)]),
+        hold,
+        vassal("ROU"),
+      ],
+      { topic: ["ROU"] },
+    ),
+    ans(
+      "settle_bel",
+      "settle",
+      [
+        fd("britain", 3),
+        fd("flemish", 3, { when: ours("BEL", "flanders") }),
+        fd("antwerp", 2),
+        fd("wilson", 2, { when: usaOut }),
+        fd("belgians_quiet", 1, {
+          wrong: true,
+          truth: world({ is: "resist", of: "BEL", max: 1 }),
+        }),
+      ],
+      [
+        wide([opinion("parliament", 1)]),
+        narrow([opinion("parliament", 1), opinion("army", -1)]),
+        hold,
+        strip,
+        vassal("BEL"),
+      ],
+      { topic: ["BEL"], question: "person" },
+    ),
+    ans(
+      "settle_fra",
+      "settle",
+      [
+        fd("iron", 3),
+        fd("revanche", 3),
+        fd("coast", 2),
+        fd("wilson", 2, { when: usaOut }),
+        fd("france_broken", 1, { wrong: true }),
+      ],
+      [
+        narrow([opinion("parliament", 1), opinion("army", -1)]),
+        wide([opinion("business", 1)]),
+        hold,
+        strip,
+        vassal("FRA"),
+      ],
+      { topic: ["FRA"], question: "person" },
+    ),
+  ];
+}
 
 // ---- ww196: honours (design ww195 §4; facts ww196-facts.md DEU) ----
 
