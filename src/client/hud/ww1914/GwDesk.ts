@@ -139,7 +139,11 @@ export function cardBox(c: GwCtx, card: GwCardView): TemplateResult {
     class="space-y-1.5 rounded border border-white/15 bg-black/35 p-2.5"
   >
     <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
-      <span class=${CHIP}>${translateText(`gw.ui.kind.${card.kind}`)}</span>
+      ${card.paper === undefined
+        ? html`<span class=${CHIP}
+            >${translateText(`gw.ui.kind.${card.kind}`)}</span
+          >`
+        : nothing}
       ${stamp === null
         ? nothing
         : html`<span
@@ -634,7 +638,11 @@ export function reader(c: GwCtx, card: GwCardView): TemplateResult {
       class="${GLASS} max-h-[88vh] w-full max-w-[640px] space-y-3 overflow-y-auto rounded-md p-5 text-white shadow-2xl"
     >
       <header class="flex items-center gap-2">
-        <span class=${CHIP}>${translateText(`gw.ui.kind.${card.kind}`)}</span>
+        ${card.paper === undefined
+          ? html`<span class=${CHIP}
+              >${translateText(`gw.ui.kind.${card.kind}`)}</span
+            >`
+          : paperChips(c, card)}
         ${stamp === null
           ? nothing
           : html`<span class=${CHIP} data-gw-stamp

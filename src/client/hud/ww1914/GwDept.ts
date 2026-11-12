@@ -10,6 +10,7 @@ import type {
   GwDeptMoment,
   GwDeptView,
   GwRoomRowView,
+  GwStallReason,
   GwTaskOfferView,
   GwTaskPush,
   GwTaskType,
@@ -175,24 +176,30 @@ function statusLine(c: GwCtx, d: GwDeptView): string {
         ? taskName(c, t.row, null, t.type)
         : topicWord(c, t.topic);
     parts.push(
-      t.stall === null
-        ? translateText("gw.ui.dept.working_stage", {
-            what,
-            stage: translateText(`gw.ui.dept.stage.${t.stage}`),
-          })
-        : translateText("gw.ui.dept_todo_stall", {
-            why: translateText(`gw.ui.dept.stall.${t.stall}`),
-          }),
+      translateText("gw.ui.dept.working_stage", {
+        what,
+        stage: translateText(`gw.ui.dept.stage.${t.stage}`),
+      }),
     );
-    if (t.soon && t.stall === null)
+    // A stall shows once: as its 할 일 chip where there is one.
+    if (t.stall !== null && !d.todo.some((x) => x.kind === "stall")) {
+      parts.push(
+        translateText("gw.ui.dept_todo_stall", {
+          why: translateText(`gw.ui.dept.stall.${t.stall}`),
+        }),
+      );
+    } else if (t.soon && t.stall === null) {
       parts.push(translateText("gw.ui.dept.soon"));
+    }
   }
   if (d.initiatives > 0) {
     parts.push(translateText("gw.ui.dept.initiatives", { n: d.initiatives }));
   }
-  return parts.length === 0
-    ? translateText("gw.ui.dept.idle")
-    : parts.join(" · ");
+  if (parts.length > 0) return parts.join(" · ");
+  // The muted "한가함 · 일을 맡길 수 있음" chip says it where it is sent.
+  return d.todo.some((x) => x.kind === "idle")
+    ? ""
+    : translateText("gw.ui.dept.idle");
 }
 
 /** An amber 할 일 chip; `idle` is muted. A paper's chip opens the paper. */
@@ -366,6 +373,26 @@ export function pushButtons(
   </div>`;
 }
 
+/** Why the work stalled, in a line: the pack's, else the plain one. */
+export function stallText(
+  c: GwCtx,
+  reason: GwStallReason,
+  by: string,
+  topic: string | null,
+): string {
+  const own = c.pack?.depts?.stalls?.[reason];
+  if (own === undefined) {
+    return translateText(`gw.ui.dept.stall_line.${reason}`);
+  }
+  return applyJosa(
+    own
+      .split("{who}")
+      .join(personName(c.pack, by))
+      .split("{topic}")
+      .join(topicWord(c, topic)),
+  );
+}
+
 /** The work under way: its stage, who is beside the head, what can be done. */
 function workBox(c: GwCtx, d: GwDeptView): TemplateResult | typeof nothing {
   const t = d.task;
@@ -379,9 +406,7 @@ function workBox(c: GwCtx, d: GwDeptView): TemplateResult | typeof nothing {
     ${t.stall === null
       ? nothing
       : html`<p class="text-sm text-amber-100/90" data-gw-dept-stall>
-          ${translateText("gw.ui.dept_todo_stall", {
-            why: translateText(`gw.ui.dept.stall.${t.stall}`),
-          })}
+          ${rich(c, stallText(c, t.stall, head, t.topic))}
         </p>`}
     ${t.staff === null
       ? nothing
@@ -476,11 +501,16 @@ export function deptRow(
             : html`${personName(c.pack, head)} ·
               ${officeTitle(c.seat.tag, d.office)}`}</span
         >
-        <span
-          class="block truncate text-xs text-amber-100/90"
-          data-gw-dept-status
-          >${statusLine(c, d)}</span
-        >
+        ${(() => {
+          const line = statusLine(c, d);
+          return line === ""
+            ? nothing
+            : html`<span
+                class="block truncate text-xs text-amber-100/90"
+                data-gw-dept-status
+                >${line}</span
+              >`;
+        })()}
         ${wantLine(c, d)}
       </span>
     </button>

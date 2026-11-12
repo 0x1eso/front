@@ -20,7 +20,14 @@ import { html, nothing, TemplateResult } from "lit";
 import { applyJosa } from "../../Josa";
 import { translateText } from "../../Utils";
 import type { GwCtx } from "./GwCtx";
-import { canSpend, deptName, pushButtons, taskName, topicWord } from "./GwDept";
+import {
+  canSpend,
+  deptName,
+  pushButtons,
+  stallText,
+  taskName,
+  topicWord,
+} from "./GwDept";
 import { rich } from "./GwDict";
 import { officeTitle } from "./GwOffice";
 import { BTN, BTN_ON, CHIP, MUTED } from "./GwStyle";
@@ -70,7 +77,12 @@ export function fillPaper(
         return p.by === undefined ? whole : personName(c.pack, p.by);
       if (key === "topic") return topicWord(c, p.topic ?? null);
       const v = p.slots?.[key as keyof GwSlots];
-      return v === undefined ? whole : slotWord(c, v);
+      if (v !== undefined) return slotWord(c, v);
+      // A paper without that slot (a question, a stall) names its topic.
+      if ((key === "country" || key === "front") && p.topic !== undefined) {
+        return p.topic === null ? whole : topicWord(c, p.topic);
+      }
+      return whole;
     }),
   );
 }
@@ -115,10 +127,7 @@ function questionLine(c: GwCtx, p: Paper<"question">): string {
 }
 
 function stallLine(c: GwCtx, p: Paper<"stall">): string {
-  const own = c.pack?.depts?.stalls?.[p.reason];
-  return own === undefined
-    ? translateText(`gw.ui.dept.stall_line.${p.reason}`)
-    : fillPaper(c, own, p);
+  return stallText(c, p.reason, p.by, p.topic);
 }
 
 function newsLine(c: GwCtx, l: Paper<"news">["lines"][number]): string {
@@ -249,15 +258,17 @@ function courseBox(
     >
       <b>${text === undefined ? o.id : fill(text.name)}</b>
     </button>
-    <div class="flex flex-wrap gap-1 pl-1">
-      <span class=${CHIP} data-gw-course-by=${o.by}
-        >${o.own
-          ? translateText("gw.ui.dept.course_own")
-          : translateText("gw.ui.dept.option", {
-              dept: deptName(c, o.by),
-            })}</span
-      >
-    </div>
+    ${o.own || o.by !== p.office
+      ? html`<div class="flex flex-wrap gap-1 pl-1">
+          <span class=${CHIP} data-gw-course-by=${o.by}
+            >${o.own
+              ? translateText("gw.ui.dept.course_own")
+              : translateText("gw.ui.dept.option", {
+                  dept: deptName(c, o.by),
+                })}</span
+          >
+        </div>`
+      : nothing}
     <p class="pl-1 text-sm text-white/80" data-gw-course-for>
       <span class=${MUTED}>${translateText("gw.ui.dept.course_for")}</span>
       ${o.for && text !== undefined
