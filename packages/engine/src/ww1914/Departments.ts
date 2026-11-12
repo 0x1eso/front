@@ -78,7 +78,7 @@ import {
   timesDealt,
 } from "./Desk";
 import type { GreatWar } from "./GreatWar";
-import { lawDraftCard, lawDropDraft } from "./Laws";
+import { lawDraftable, lawDraftCard, lawDropDraft } from "./Laws";
 import { openTopics } from "./Orders";
 import { moveRumour } from "./Press";
 import {
@@ -417,6 +417,33 @@ function fromSchedule(
 }
 
 /**
+ * ww193 merge: whether `id` could come as the task's paper now: what
+ * product() checks, without making it. A row is offered only while one of
+ * its own papers could come, so a commission seldom ends in the fallback.
+ */
+function productNow(
+  gw: GreatWar,
+  seat: GwSeatState,
+  id: string,
+  head: GwPersonState,
+  topic: string | null,
+): boolean {
+  const x = sceneOf(id);
+  if (x === null || x.kind === "talk" || !x.nation.includes(seat.tag)) {
+    return false;
+  }
+  if (!inStage(gw, x) || !repeatable(gw, seat, x)) return false;
+  if (timesDealt(seat, id) >= repeatCap(x)) return false;
+  if (inTray(seat, id) || seat.desk.some((c) => c.scene === id)) return false;
+  if (id.startsWith("gw_law_")) {
+    return lawDraftable(gw, seat, id.slice("gw_law_".length));
+  }
+  if (calledOnly(x)) return seat.scheduled.some((q) => q.scene === id);
+  const cast = castOf(gw, seat, x, head.id);
+  return cast !== null && sceneHolds({ gw, seat, cast, topic }, x);
+}
+
+/**
  * The first of the task's papers that holds now; else its fallback. A law's
  * draft (`gw_law_<id>`) is laid as the country tab's order would (ww193
  * merge), a picked topic narrows the list, and the desk's repeat cap holds.
@@ -709,7 +736,17 @@ function rowOpen(
   if (t.when !== undefined) {
     if (!holds({ gw, seat, cast: { head: head.id } }, t.when)) return false;
   }
-  return t.pick === undefined || topicsOf(gw, seat, t).length > 0;
+  if (t.pick !== undefined && topicsOf(gw, seat, t).length === 0) return false;
+  // ww193 merge: only while one of its own papers could come (a row that
+  // names none, as C's fallback-only rows, is always open).
+  if (t.products.length === 0) return true;
+  const topics = topicsOf(gw, seat, t);
+  const any = topics.length === 0 ? [t.topic ?? null] : topics;
+  return any.some((topic) =>
+    t.products
+      .filter((id) => productFitsTopic(id, topic, topics))
+      .some((id) => productNow(gw, seat, id, head, topic)),
+  );
 }
 
 /** What `office` can be given now; empty while it is busy. */

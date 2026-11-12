@@ -19,6 +19,7 @@ import {
   deptState,
   openDepts,
   roomShut,
+  taskOffers,
 } from "@openfront/engine/ww1914/Departments";
 import type { GreatWar } from "@openfront/engine/ww1914/GreatWar";
 import { lawOfDraft, lawStage } from "@openfront/engine/ww1914/Laws";
@@ -299,6 +300,15 @@ describe("departments", () => {
     applyGwOrder(gw, st, { kind: "brief", office: "foreign" });
     expect(applyGwOrder(gw, st, { kind: "shelve", card: card.uid })).toBeNull();
     expect(lawStage(n, "deu_censor")?.stage).toBe("idle");
+  });
+
+  test("a row is offered only while one of its papers could come", async () => {
+    const { gw, st } = await deu(oneTask(["t_dept_closed"]));
+    expect(taskOffers(gw, st, "foreign")).toEqual([]);
+    const r = await deu(oneTask(["t_dept_closed", "t_dept_paper"]));
+    expect(taskOffers(r.gw, r.st, "foreign").map((o) => o.row)).toEqual([
+      "t_task",
+    ]);
   });
 
   test("a topic narrows the products and reaches the paper's subject", async () => {

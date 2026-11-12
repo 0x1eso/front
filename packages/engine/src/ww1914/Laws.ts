@@ -410,6 +410,21 @@ export function lawDraftCard(
   return block === null ? card : null;
 }
 
+/** ww193 merge: whether the law could be taken up now (takeUp's checks). */
+export function lawDraftable(
+  gw: GreatWar,
+  seat: GwSeatState,
+  id: string,
+): boolean {
+  const n = gw.nation(seat.tag);
+  const row = rowOf(id);
+  if (n === null || row === null || row.tag !== seat.tag) return false;
+  if (!openNow(gw, seat, row)) return false;
+  const had = lawStage(n, row.id);
+  if (had !== null && had.stage !== "idle") return false;
+  return moving(n) === null && !shelved(gw, had);
+}
+
 /** The law whose draft `scene` is: `gw_law_<id>` or the house's draft. */
 export function lawOfDraft(scene: string): string | null {
   if (scene.startsWith("gw_law_")) return scene.slice("gw_law_".length);

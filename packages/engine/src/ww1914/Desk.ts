@@ -502,9 +502,11 @@ function takeDue(gw: GreatWar, seat: GwSeatState): Due[] {
     const who = q.who ?? null;
     const act = q.act ?? null;
     // Two causes can call the same paper for the same day: it comes once.
-    const twice = out.some(
-      (x) => x.scene === scene && x.who === who && x.act === act,
-    );
+    // ww193 merge: a paper a department holds in its tray is there already.
+    const twice =
+      out.some((x) => x.scene === scene && x.who === who && x.act === act) ||
+      (act === null &&
+        (seat.depts?.tray ?? []).some((c) => c.scene === q.scene));
     // ww187: a paper whose text the state now gives the lie to doesn't come.
     const fits =
       scene === undefined ||
@@ -651,15 +653,19 @@ function castIds(gw: GreatWar, seat: GwSeatState, scene: GwScene): string[] {
 /** Deals the chapter's desk (design §5.2). */
 export function dealDesk(gw: GreatWar, seat: GwSeatState): void {
   settlePromises(gw, seat);
-  const due = takeDue(gw, seat);
+  const called = takeDue(gw, seat);
   // ww193: the departments' own papers go to their heads' trays.
-  const all = routeInitiatives(
+  const routed = routeInitiatives(
     gw,
     seat,
     deskCandidates(gw, seat).filter(
-      (c) => !due.some((q) => q.scene === c.scene),
+      (c) => !called.some((q) => q.scene === c.scene),
     ),
   );
+  // ww193 merge: a counter-paper a rival brought with them is in a tray now.
+  const held = new Set((seat.depts?.tray ?? []).map((c) => c.scene));
+  const due = called.filter((q) => q.act !== null || !held.has(q.scene.id));
+  const all = routed.filter((c) => !held.has(c.scene.id));
   const big = bigDue(due, all);
   if (big !== null && dealBig(gw, seat, big, due, all)) return;
   const dueCards: GwCard[] = [];

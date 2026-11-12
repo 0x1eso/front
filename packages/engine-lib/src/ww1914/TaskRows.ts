@@ -32,13 +32,13 @@ export const GW_TIME_PRICES = {
 } as const;
 
 /** Time added to every chapter's pool on top of the summons and the slots. */
-export const GW_TIME_EXTRA = 1;
+export const GW_TIME_EXTRA = 0;
 /** Unspent time that carries to the next chapter, at most. */
 export const GW_TIME_CARRY = 1;
 /** Chapters a ready paper waits unheard before the department acts (대행). */
 export const GW_TRAY_WAIT = 2;
 /** Initiatives a head brings a chapter: idle, and busy on a task. */
-export const GW_INITIATIVES_IDLE = 2;
+export const GW_INITIATIVES_IDLE = 3;
 export const GW_INITIATIVES_BUSY = 1;
 /** Papers a tray holds at most; past this the desk keeps them. */
 export const GW_TRAY_MAX = 3;
