@@ -38,6 +38,8 @@ export function topicWord(c: GwCtx, topic: string | null): string {
   const own = c.pack?.depts?.topics?.[topic];
   if (own !== undefined) return own;
   if ((GW_TAGS as readonly string[]).includes(topic)) return country(topic);
+  const named = translateText(`gw.country.${topic}`);
+  if (named !== `gw.country.${topic}`) return named;
   if ((GW_THEATRES as readonly string[]).includes(topic)) {
     return translateText(`gw.theatre.${topic}`);
   }
@@ -50,7 +52,8 @@ export function taskName(
   row: string | null,
   topic: string | null,
 ): string {
-  const word = topicWord(c, topic);
+  // No topic picked yet: a blank to fill, as the schedule's pickers leave one.
+  const word = topic === null ? "…" : topicWord(c, topic);
   const name =
     row === null
       ? translateText("gw.ui.dept.passed_work")
@@ -141,7 +144,11 @@ function statusLine(c: GwCtx, d: GwDeptView): string {
       translateText(
         d.task.soon ? "gw.ui.dept.working_soon" : "gw.ui.dept.working",
         {
-          what: taskName(c, d.task.row, d.task.topic),
+          // The subject alone: the row's name is how it was offered.
+          what:
+            d.task.topic === null
+              ? taskName(c, d.task.row, null)
+              : topicWord(c, d.task.topic),
         },
       ),
     );
@@ -173,7 +180,7 @@ function offerRow(c: GwCtx, d: GwDeptView, o: GwTaskOfferView): TemplateResult {
         c.redraw();
       }}
     >
-      ${taskName(c, o.row, o.topics.length > 0 ? null : o.topic)}
+      ${taskName(c, o.row, topic)}
     </button>
     ${picked === null
       ? nothing
@@ -422,7 +429,10 @@ function roomRow(c: GwCtx, r: GwRoomRowView): TemplateResult {
 }
 
 /** 접견실: who waits, as the vacancy box looks. On the desk and on 사람. */
-export function roomBox(c: GwCtx): TemplateResult | typeof nothing {
+export function roomBox(
+  c: GwCtx,
+  chip = true,
+): TemplateResult | typeof nothing {
   const rows = c.seat.room ?? [];
   const away = c.seat.time?.away === true;
   if (rows.length === 0 && !away) return nothing;
@@ -432,7 +442,7 @@ export function roomBox(c: GwCtx): TemplateResult | typeof nothing {
   >
     <div class="flex items-center gap-2">
       <h3 class=${HEAD}>${translateText("gw.ui.dept.room_title")}</h3>
-      <span class="ml-auto">${timeChip(c)}</span>
+      ${chip ? html`<span class="ml-auto">${timeChip(c)}</span>` : nothing}
     </div>
     <p class=${MUTED}>
       ${translateText(away ? "gw.ui.dept.room_shut" : "gw.ui.dept.room_hint")}

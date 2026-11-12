@@ -447,7 +447,7 @@ export function peopleTab(c: GwCtx): TemplateResult {
       ${authorityChip(seat.world.authority)}
       <span class=${MUTED}>${translateText("gw.ui.audiences_hint")}</span>
     </div>
-    ${roomBox(c)}
+    ${roomBox(c, false)}
     ${deptsBox(c, {
       badge: (id) => {
         const p = seat.people.find((x) => x.id === id);
