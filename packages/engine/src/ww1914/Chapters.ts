@@ -11,6 +11,7 @@ import { craftStep } from "./Craft";
 import { crisisStep, stampMobilisation } from "./Crises";
 import { carriedTime, closeDepts, openDepts } from "./Departments";
 import { dealDesk } from "./Desk";
+import { personaStep } from "./Diary";
 import { dossierStep } from "./Dossier";
 import { closeGame, endingStep, finalEnding } from "./Endings";
 import { frontsStep, warScore } from "./Fronts";
@@ -28,6 +29,7 @@ import { warStep } from "./PairWar";
 import { nextConferenceChapter, skipToConference } from "./Peace";
 import { peaceYearsStep } from "./PeaceYears";
 import { peopleStep } from "./People";
+import { noteFindings } from "./Persona";
 import { firstEdition, pressStep } from "./Press";
 import { refusalsStep } from "./Refusals";
 import { ruleStep } from "./Rule";
@@ -78,6 +80,7 @@ export const GW_CHAPTER_STEPS: readonly ((gw: GreatWar) => void)[] = [
   intelStep,
   worldFlagsStep,
   rulerStep,
+  personaStep,
   pressStep,
   storyStep,
   tableStep,
@@ -142,6 +145,7 @@ export function openChapter(gw: GreatWar, ticks: number): void {
     firstEdition(gw, seat);
     openDepts(gw, seat);
     dealDesk(gw, seat);
+    noteFindings(gw, seat);
   }
   openSession(gw, ticks);
   gw.touch();

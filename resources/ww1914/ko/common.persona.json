@@ -2,5 +2,21 @@
   "version": 1,
   "scenes": {},
   "people": {},
-  "persona": {}
+  "persona": {
+    "address": {
+      "majesty": "폐하",
+      "president": "대통령 각하",
+      "premier": "총리"
+    },
+    "forms": {
+      "DEU": "황제의 여백 글씨",
+      "GBR": "총리의 편지",
+      "FRA": "대통령의 메모",
+      "RUS": "황제의 일기",
+      "AUH": "황제의 편지와 메모"
+    },
+    "diary": {
+      "gw_hindsight": "알고 보니 {who}의 보고는 틀렸다."
+    }
+  }
 }

@@ -1648,13 +1648,18 @@ export type GwDiaryEntry = z.infer<typeof GwDiaryEntrySchema>;
 
 export const GwPersonaStateSchema = z.object({
   diary: z.array(GwDiaryEntrySchema),
-  /** Findings that proved wrong and were told ("알고 보니"): row, id, who. */
+  /**
+   * Findings that proved wrong and were told ("알고 보니"): row, id, who.
+   * `chapter`: when it is told; one still ahead is a finding waiting for its
+   * day (noted when the answer came, with the answer's topic for `truth`).
+   */
   hindsight: z.array(
     z.object({
       chapter: z.number().int(),
       row: GwIdSchema,
       id: GwIdSchema,
       by: GwIdSchema,
+      topic: z.string().nullable().optional(),
     }),
   ),
   /** Grain options taken: grain row id -> times (for `second`). */
