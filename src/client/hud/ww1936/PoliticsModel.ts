@@ -1074,13 +1074,11 @@ const BASE_LINE_KEYS: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * ww194: lines whose 1936 words the Imjin War reads its own way: the war
- * support from the world's tension (the region's unrest; no world tension
- * shows there) and the offensive-war line of a "democracy" (a court).
+ * ww194: the war support from the world's tension reads as the region's
+ * unrest in the Imjin War (no world tension shows there).
  */
 const IMJIN_LINE_KEYS: Readonly<Record<string, string>> = {
   "ww1936.pol.line.ws_tension": "imjin.line.ws_tension",
-  "ww1936.pol.line.stab_offensive": "imjin.line.stab_offensive",
 };
 
 function lineLabel(key: string): string {
@@ -2698,7 +2696,8 @@ export function declareButton(
     label = translateText("ww1936.diplo.act.declare_goal", {
       type: wargoalName(goal.type),
     });
-  } else if (s !== null && s.ruling === IDEO_DEM) {
+  } else if (s !== null && s.ruling === IDEO_DEM && !imjinCalendarOn()) {
+    // ww194: an Imjin court is not a 1936 democracy (WarGoals).
     block ??= "democracy_no_goal";
   } else if (s !== null) {
     const bp = tensionFor("declare_no_goal", isMajor(i, other), statsOf(d));
@@ -2713,13 +2712,7 @@ export function declareButton(
   if (engine === false && block === null) block = "isolation";
   return {
     label,
-    block:
-      block === null
-        ? null
-        : // ww194: an Imjin court is not a 1936 democracy.
-          imjinCalendarOn() && block === "democracy_no_goal"
-          ? translateText("imjin.block.declare_no_goal")
-          : translateText(DECLARE_BLOCK_KEYS[block]),
+    block: block === null ? null : translateText(DECLARE_BLOCK_KEYS[block]),
     blockId: block,
   };
 }

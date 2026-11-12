@@ -128,19 +128,12 @@ describe("the Imjin courts' names", () => {
 });
 
 describe("no world tension and no democracy in the Imjin words", () => {
-  test("the tension and government blocks read as the region's and the court's", () => {
+  test("the tension gate reads as the region's unrest", () => {
     imjin("JOS");
-    for (const b of ["tension_gate", "law_tension", "ultimatum_gov"] as const) {
-      expect(blockText(b)).toBe(`imjin.block.${b}`);
-      expect(has(blockText(b))).toBe(true);
-    }
+    expect(blockText("tension_gate")).toBe("imjin.block.tension_gate");
+    expect(has(blockText("tension_gate"))).toBe(true);
     expect(blockText("no_pp")).toBe("ww1936.econ.block.no_pp");
-    for (const k of [
-      "imjin.block.declare_no_goal",
-      "imjin.declare_no_goal",
-      "imjin.line.ws_tension",
-      "imjin.line.stab_offensive",
-    ]) {
+    for (const k of ["imjin.declare_no_goal", "imjin.line.ws_tension"]) {
       expect(has(k)).toBe(true);
     }
     useWwCalendar({});

@@ -10,9 +10,11 @@ import {
   type LawCtx,
 } from "@openfront/engine-lib/ww1936/PoliticsRules";
 import { lawBlock as econLawBlock } from "@openfront/engine/ww1936/economy/LawsRun";
+import { ultimatumGovBlock } from "@openfront/engine/ww1936/endgame/Ultimatum";
 import { candidatesFor } from "@openfront/engine/ww1936/politics/Advisors";
+import { stabilityLines } from "@openfront/engine/ww1936/politics/Stability";
 import { describe, expect, test } from "vitest";
-import { byTag, HUMAN, wwRunner } from "../ww1936/util";
+import { byTag, HUMAN, warAfterPrep, wwRunner } from "../ww1936/util";
 
 const PEACE: LawCtx = {
   wsBp: 6000,
@@ -66,5 +68,22 @@ describe("the Imjin game", () => {
       expect(c.length).toBeGreaterThan(0);
       expect(c.filter((a) => a.startsWith("title:"))).toEqual([]);
     }
+  });
+
+  test("the Westerners' court may send ultimatums and declare war without a goal, at no democracy's cost", async () => {
+    const r = await wwRunner(CONFIG, [{ clientID: HUMAN }], "imjinmini");
+    const g = r.game;
+    const ww = g.worldWar()!;
+    const jos = byTag(g, "JOS").smallID();
+    const jpn = byTag(g, "JPN").smallID();
+    expect(ww.politics.country(jos)!.ruling).toBe(IDEO_DEM);
+    expect(ultimatumGovBlock(ww.endgame, jos)).toBeNull();
+    // 1936 refused a democracy's war without a goal (democracy_no_goal).
+    warAfterPrep(r, HUMAN, "JPN");
+    expect(ww.isAtWar(jos, jpn)).toBe(true);
+    expect(ww.politics.country(jos)!.ruling).toBe(IDEO_DEM);
+    expect(
+      stabilityLines(ww.politics, jos, "stab").map((l) => l.key),
+    ).not.toContain("ww1936.pol.line.stab_offensive");
   });
 });

@@ -19299,14 +19299,10 @@
       "title": "책봉과 조공"
     },
     "line": {
-      "stab_offensive": "먼저 일으킨 전쟁",
       "ws_tension": "주변 정세"
     },
     "block": {
-      "declare_no_goal": "지금 조정은 명분 없이 전쟁을 선포하지 않습니다",
-      "law_tension": "주변 정세가 아직 무르익지 않았습니다",
-      "tension_gate": "주변 정세가 아직 무르익지 않았습니다",
-      "ultimatum_gov": "지금 조정으로는 최후통첩을 보낼 수 없습니다"
+      "tension_gate": "주변 정세가 아직 무르익지 않았습니다"
     },
     "declare_no_goal": "명분 없이 선전포고 - 안정도 -15%, 전쟁지지도 -10%"
   }

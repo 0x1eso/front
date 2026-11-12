@@ -974,13 +974,11 @@ export const branchName = (b: TechBranch) =>
     : translateText(BRANCH_KEYS[b]);
 export const schoolName = (s: DoctrineSchool) => translateText(SCHOOL_KEYS[s]);
 /**
- * ww194: the blocks whose 1936 words (world tension, a democracy) the
- * Imjin War reads as its courts' and the region's.
+ * ww194: the guarantee and embargo gates' world tension reads as the
+ * region's unrest in the Imjin War.
  */
 const IMJIN_BLOCKS: ReadonlySet<WwOrderBlock> = new Set<WwOrderBlock>([
   "tension_gate",
-  "law_tension",
-  "ultimatum_gov",
 ]);
 export const blockText = (b: WwOrderBlock) =>
   translateText(

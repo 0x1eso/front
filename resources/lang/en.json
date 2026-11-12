@@ -6015,10 +6015,7 @@
       }
     },
     "block": {
-      "declare_no_goal": "The court as it stands will not go to war without a cause",
-      "law_tension": "The region is not unsettled enough yet",
-      "tension_gate": "The region is not unsettled enough yet",
-      "ultimatum_gov": "The court as it stands cannot send an ultimatum"
+      "tension_gate": "The region is not unsettled enough yet"
     },
     "court": {
       "communist": "Southerners",
@@ -6155,7 +6152,6 @@
       "trade": "How far trade at sea and at the borders is open, and what that does to building and research."
     },
     "line": {
-      "stab_offensive": "A war of our making",
       "ws_tension": "Unrest in the region"
     },
     "lobby": {
