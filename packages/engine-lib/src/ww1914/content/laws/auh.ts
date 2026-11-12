@@ -436,4 +436,61 @@ export const AUH_LAWS: readonly GwLawRow[] = [
       tempers: ["arrogant"],
     }),
   }),
+  // ww190: the peace years' army bill. The recruits' quota is joint: Budapest
+  // passes it or nobody does, and it asks its price in words of command.
+  row({
+    id: "auh_army_bill",
+    opens: allOf(
+      { kind: "not", of: world({ is: "war_months", min: 0 }) },
+      world({ is: "peace_months", min: 3 }),
+    ),
+    lean: -1,
+    decree: false,
+    cast: both,
+    draft: [
+      draft(
+        "full_quota",
+        0,
+        ["hungary:-1"],
+        [doWorld({ do: "arms", line: "army", delta: 5 }), inst("hungary", -1)],
+      ),
+      draft(
+        "magyar_words",
+        1,
+        ["army:-1", "hungary:+1"],
+        [
+          doWorld({ do: "arms", line: "army", delta: 5 }),
+          inst("army", -1),
+          inst("hungary", 1),
+        ],
+      ),
+      draft(
+        "with_levy",
+        -1,
+        ["order:-1"],
+        [
+          doWorld({ do: "arms", line: "army", delta: 3 }),
+          doWorld({ do: "budget_item", item: "treasury", pct: 5 }),
+          gauge("order", -1),
+        ],
+      ),
+    ],
+    passed: [men(4), inst("army", 1)],
+    passedTell: ["manpower:+4", "army:+1"],
+    term: [],
+    repeal: {
+      authority: 15,
+      tell: ["army:-1"],
+      effects: [inst("army", -1)],
+    },
+    talk: lawTalk("auh_army_bill", {
+      who: held("hun_pm"),
+      ask: "frank",
+      push: "cold",
+      tell: ["hungary:+1", "army:-1"],
+      price: [inst("hungary", 1), inst("army", -1)],
+      wins: 2,
+      tempers: ["stubborn"],
+    }),
+  }),
 ];

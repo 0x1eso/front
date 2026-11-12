@@ -2959,6 +2959,13 @@ const BODIES: Readonly<Record<string, GwBodies>> = {
       {
         id: "base5",
       },
+      // ww190: two more, so the quota reads new in a long war.
+      {
+        id: "base6",
+      },
+      {
+        id: "base7",
+      },
     ],
   },
   gw_home_auh_1: {
