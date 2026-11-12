@@ -531,9 +531,11 @@ export const GBR_YEARS_SCENES: readonly GwScene[] = [
     id: "gbr_y_home_long",
     nation: GBR,
     kind: "proposal",
-    // ww190 tune: a year and a half after the summer (peace_months counts
-    // from the last crisis, so 18 of them never came), two quiet months on.
-    when: all(peaceFor(2), world({ is: "date", from: "1916-01" })),
+    // ww190 tune: peace_months counts from the last crisis, so 18 of them never
+    // came. The home question climbs about a point a month in peace: at 18
+    // the summer is a year and a half behind (the state, not a
+    // date), two quiet months on.
+    when: all(peaceFor(2), { kind: "pressure", topic: "home", min: 18 }),
     cast: { fin, navy },
     salience: 7,
     tags: ["home", "tension_down"],

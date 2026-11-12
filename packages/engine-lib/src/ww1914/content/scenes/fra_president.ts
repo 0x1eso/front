@@ -342,9 +342,11 @@ const LIFE: GwScene[] = [
   ),
   own(
     "fra_pr_quiet_years",
-    // ww190 tune: well over a year after the summer; peace_months counts
-    // from the last crisis, so 18 of them never came.
-    all(peace(2), world({ is: "date", from: "1916-03" })),
+    // ww190 tune: peace_months counts from the last crisis, so 18 of them never
+    // came. The home question climbs about a point a month in peace: at 20
+    // the summer is well over a year behind (the state, not a
+    // date), two quiet months on.
+    all(peace(2), { kind: "pressure", topic: "home", min: 20 }),
     [v("base")],
     [
       ["write", []],

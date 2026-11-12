@@ -191,7 +191,9 @@ export const GW_YEARS_SCENES: readonly GwScene[] = [
     nation: [...SEATS],
     kind: "report",
     // ww190 tune: peace_months counts from the last crisis, so 30 never came.
-    when: all(peace(2), world({ is: "date", from: "1916-04" })),
+    // The home question climbs about a point a month in peace: the state, not
+    // a date, says the peace has lasted.
+    when: all(peace(2), { kind: "pressure", topic: "home", min: 21 }),
     cast: {},
     salience: 4,
     tags: ["home", "tension_down"],

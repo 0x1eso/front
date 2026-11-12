@@ -172,7 +172,7 @@ describe("the second crisis", () => {
     expect([...topics].sort()).toEqual(["balkan", "colonial"]);
   });
 
-  test("the second-crisis wire reads a later spark's own steps; the long peace waits on the date, not on 18 quiet months", () => {
+  test("the second-crisis wire reads a later spark's own steps; the long peace waits on the home question, not on 18 quiet months", () => {
     const scenes = gwContent().scenes;
     const second = scenes.find((x) => x.id === "gw_y_second_crisis")!;
     const chain = JSON.stringify(second.when).match(
@@ -188,7 +188,8 @@ describe("the second crisis", () => {
       "auh_y_home_nowar",
     ]) {
       const when = JSON.stringify(scenes.find((x) => x.id === id)!.when);
-      expect(when, id).toContain('"is":"date"');
+      expect(when, id).not.toContain('"is":"date"');
+      expect(when, id).toMatch(/"kind":"pressure","topic":"home","min":\d+/);
       const months = [...when.matchAll(/"is":"peace_months","min":(\d+)/g)];
       for (const m of months) expect(Number(m[1]), id).toBeLessThan(6);
     }

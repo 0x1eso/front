@@ -448,9 +448,11 @@ const YEARS: GwScene[] = [
   }),
   rusScene("rus_y_home_no_war", {
     kind: "proposal",
-    // ww190 tune: a year and a half after the summer (peace_months counts
-    // from the last crisis, so 18 of them never came), two quiet months on.
-    when: all(peace(2), w({ is: "date", from: "1916-01" })),
+    // ww190 tune: peace_months counts from the last crisis, so 18 of them never
+    // came. The home question climbs about a point a month in peace: at 18
+    // the summer is a year and a half behind (the state, not a
+    // date), two quiet months on.
+    when: all(peace(2), { kind: "pressure", topic: "home", min: 18 }),
     cast: { pm: held("chancellor"), ...COS },
     salience: 6,
     tags: ["home", "tension_down"],

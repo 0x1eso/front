@@ -382,9 +382,11 @@ const HOME: GwScene[] = [
   ),
   paper(
     "fra_y_home_long_peace",
-    // ww190 tune: a year after the summer; peace_months counts from the last
-    // crisis, so 18 of them never came.
-    all(peace(2), world({ is: "date", from: "1915-08" })),
+    // ww190 tune: peace_months counts from the last crisis, so 18 of them never
+    // came. The home question climbs about a point a month in peace: at 12
+    // the summer is a year behind (the state, not a
+    // date), two quiet months on.
+    all(peace(2), { kind: "pressure", topic: "home", min: 12 }),
     [v("armed", arming(null, 2)), v("base")],
     [
       ["exhibition", [gauge("morale", 1), gauge("money", -1)]],

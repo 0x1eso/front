@@ -481,9 +481,11 @@ const HOME: readonly GwScene[] = [
   }),
   card({
     id: "auh_y_home_nowar",
-    // ww190 tune: a year and a half after the summer (peace_months counts
-    // from the last crisis, so 18 of them never came), two quiet months on.
-    when: all(peaceFor(2), w({ is: "date", from: "1916-01" })),
+    // ww190 tune: peace_months counts from the last crisis, so 18 of them never
+    // came. The home question climbs about a point a month in peace: at 18
+    // the summer is a year and a half behind (the state, not a
+    // date), two quiet months on.
+    when: all(peaceFor(2), { kind: "pressure", topic: "home", min: 18 }),
     cast: { cos: COS },
     vs: [["armed", arming(2)], ["base"]],
     picks: [
