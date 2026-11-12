@@ -30,9 +30,15 @@ import { setClaims } from "./Claims";
 import { fieldOrder, raiseFooting } from "./Craft";
 import {
   briefDept,
+  deptChosen,
+  deptRead,
+  deptSentBack,
   giveGift,
   giveTask,
+  isPetitioner,
   passOn,
+  petitionerSeen,
+  roomShut,
   shelvePaper,
   turnAway,
 } from "./Departments";
@@ -103,6 +109,7 @@ export function applyGwOrder(
       if (scene === null) return "no_card";
       if (!GW_READ_ONLY_KINDS.includes(scene.kind)) return "wrong_kind";
       removeCard(seat, o.card);
+      if (card !== undefined) deptRead(gw, seat, card);
       return null;
     }
     case "choose": {
@@ -115,6 +122,7 @@ export function applyGwOrder(
       if (!optionOpen(ctx, opt)) return "closed";
       removeCard(seat, card.uid);
       takeOption(ctx, scene, opt, false);
+      deptChosen(gw, seat, card, opt.id);
       return null;
     }
     case "reply": {
@@ -137,10 +145,13 @@ export function applyGwOrder(
       if (price !== null) return price;
       if (scene?.kind !== "talk" || scene.summon !== true) return "no_topic";
       if (!summonable(gw, seat, o.person, o.topic)) return "no_topic";
+      // ww193: on a trip the room is shut; private meetings go on.
+      if (!isPrivateTalk(scene) && roomShut(gw, seat)) return "room_shut";
       const card = makeCard(gw, seat, scene, "summon");
       if (card === null) return "no_topic";
       paySummon(seat, scene, o.topic);
       placeCard(gw, seat, card);
+      if (isPetitioner(seat, o.person)) petitionerSeen(seat, o.person);
       return null;
     }
     case "dismiss": {
@@ -229,8 +240,12 @@ export function applyGwOrder(
       return pressLeak(gw, seat, o.person);
     case "act":
       return takeAct(gw, seat, o.act, o.picks);
-    case "send_back":
-      return sendBack(gw, seat, o.card, o.direction);
+    case "send_back": {
+      const card = seat.desk.find((c) => c.uid === o.card);
+      const no = sendBack(gw, seat, o.card, o.direction);
+      if (no === null && card !== undefined) deptSentBack(gw, seat, card);
+      return no;
+    }
     case "aim":
       return declareAim(gw, seat, o.aim);
     case "claims":

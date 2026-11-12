@@ -18,6 +18,7 @@ import type { GreatWar } from "./GreatWar";
 import { factionOf, factionRow } from "./House";
 import { GW_PRESS_ROWS, GwPressRow, GwStory } from "./PressTable";
 import { holds, sceneOf } from "./SceneRun";
+import { spendTime, timeLeft } from "./Time";
 import { clampTo, everyMonths, moveGauge, reason } from "./World";
 
 const P_STORY = idHash("gw_press_story");
@@ -130,8 +131,8 @@ export function pressInvite(
   const row = GW_PRESS_ROWS[seat.tag]?.papers.find((x) => x.id === paper);
   if (row === undefined || row.noInvite === true) return "no_paper";
   if (p.acted === gw.s.chapter) return "press_done";
-  if (seat.audiences <= 0) return "no_audience";
-  seat.audiences--;
+  if (timeLeft(seat) <= 0) return "no_audience";
+  spendTime(seat, 1, "audiences");
   p.friend = paper;
   p.friendTo = gw.s.chapter + FRIEND_FOR - 1;
   p.acted = gw.s.chapter;

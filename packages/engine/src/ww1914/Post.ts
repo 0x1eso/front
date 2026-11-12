@@ -10,6 +10,7 @@ import { ownFronts } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { fieldCommanders, trustBy } from "./People";
 import { GW_COMMAND_NAMED_AFTER } from "./Tables";
+import { spendTime, timeLeft } from "./Time";
 import { reasonOf } from "./World";
 
 /** Trust a general loses for being replaced in the field. */
@@ -35,7 +36,7 @@ export function postGeneral(
   person: string,
   theatre: GwTheatre,
 ): GwOrderBlock | null {
-  if (seat.acts <= 0) return "no_slot";
+  if (timeLeft(seat) <= 0) return "no_slot";
   const t = ownFronts(gw, seat).find((x) => x.id === theatre);
   if (t === undefined || theatre === "sea") return "no_front";
   if (!generalsFor(gw, seat).includes(person)) return "no_person";
@@ -54,7 +55,7 @@ export function postGeneral(
     if (other.commander === person) other.commander = null;
   }
   t.commander = person;
-  seat.acts--;
+  spendTime(seat, 1, "acts");
   reasonOf(gw, seat, "post_sent", person);
   return null;
 }

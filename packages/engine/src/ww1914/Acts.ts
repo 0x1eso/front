@@ -24,7 +24,9 @@ import {
 } from "@openfront/engine-lib/ww1914/ActRules";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
 import { stanceFit } from "@openfront/engine-lib/ww1914/TalkRules";
+import { GW_TIME_PRICES } from "@openfront/engine-lib/ww1914/TaskRows";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
+import { goAway } from "./Departments";
 import { inStage, makeCard, placeCard } from "./Desk";
 import type { GreatWar } from "./GreatWar";
 import { factionLeader } from "./House";
@@ -37,6 +39,7 @@ import {
   SceneCtx,
   sceneOf,
 } from "./SceneRun";
+import { spendTime, timeLeft } from "./Time";
 import { ownPeople, seatPerson, seatsOf, stageOf } from "./World";
 
 const P_CAUGHT = idHash("gw_act_caught");
@@ -163,9 +166,11 @@ export function takeAct(
   id: string,
   flat: readonly string[],
 ): GwOrderBlock | null {
-  if (seat.acts <= 0) return "no_slot";
   const a = (gwContent().acts ?? []).find((x) => x.id === id);
   if (a === undefined || !actOpen(gw, seat, a)) return "no_act";
+  // ww193: one time pool; a trip costs two and takes the ruler away.
+  const price = a.trip === true ? GW_TIME_PRICES.trip : GW_TIME_PRICES.act;
+  if (timeLeft(seat) < price) return "no_slot";
   const picks = gwSplitPicks(a, flat);
   const before = actCtx(gw, seat, a)!;
   if (picks === null || !picksFit(before, a, picks)) return "bad_pick";
@@ -181,7 +186,8 @@ export function takeAct(
     seat.acted.pop();
     return "no_act";
   }
-  seat.acts--;
+  spendTime(seat, price, "acts");
+  if (a.trip === true) goAway(gw, seat);
   const ctx: SceneCtx = {
     gw,
     seat,

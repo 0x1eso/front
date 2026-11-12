@@ -21,6 +21,7 @@ import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
 import { GW_OPENING_DESK } from "@openfront/engine-lib/ww1914/StoryRows";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { spentTalk } from "./AskFirst";
+import { routeInitiatives } from "./Departments";
 import type { GreatWar } from "./GreatWar";
 import { lawReplaces } from "./Laws";
 import {
@@ -633,8 +634,13 @@ function castIds(gw: GreatWar, seat: GwSeatState, scene: GwScene): string[] {
 export function dealDesk(gw: GreatWar, seat: GwSeatState): void {
   settlePromises(gw, seat);
   const due = takeDue(gw, seat);
-  const all = deskCandidates(gw, seat).filter(
-    (c) => !due.some((q) => q.scene === c.scene),
+  // ww193: the departments' own papers go to their heads' trays.
+  const all = routeInitiatives(
+    gw,
+    seat,
+    deskCandidates(gw, seat).filter(
+      (c) => !due.some((q) => q.scene === c.scene),
+    ),
   );
   const big = bigDue(due, all);
   if (big !== null && dealBig(gw, seat, big, due, all)) return;

@@ -62,6 +62,7 @@ import {
   SceneCtx,
   sceneOf,
 } from "./SceneRun";
+import { spendTime, timeLeft } from "./Time";
 import {
   clampTo,
   defOf,
@@ -123,7 +124,7 @@ function gateWhy(ctx: SceneCtx, row: GwPowerRow): string | null {
   if ((row.authority ?? 0) > (gw.nation(seat.tag)?.authority ?? 0)) {
     return "no_authority";
   }
-  if (row.slot === true && seat.acts <= 0) return "no_slot";
+  if (row.slot === true && timeLeft(seat) <= 0) return "no_slot";
   const s = signerOf(gw, seat, row);
   if (s.needed && s.p === null) return "no_signer";
   return null;
@@ -242,7 +243,7 @@ function sound(
   if (st.sounded.some((x) => x.id === row.id && x.chapter === gw.s.chapter)) {
     return "sounded";
   }
-  if (seat.audiences <= 0) return "no_audience";
+  if (timeLeft(seat) <= 0) return "no_audience";
   const scene = sceneOf(GW_POWER_SOUND);
   if (scene === null) return "no_topic";
   const said = saysHeSigns(p, willSign(p, row));
@@ -262,7 +263,7 @@ function sound(
   });
   const card = makeCard(gw, seat, scene, "summon", p.id);
   if (card === null) return "no_topic";
-  seat.audiences--;
+  spendTime(seat, 1, "audiences");
   st.sounded.push({ id: row.id, person: p.id, said, chapter: gw.s.chapter });
   placeCard(gw, seat, card);
   return null;
@@ -549,7 +550,7 @@ function goThrough(
   if (n !== null && row.authority !== undefined) {
     n.authority = Math.max(0, n.authority - row.authority);
   }
-  if (row.slot === true) seat.acts--;
+  if (row.slot === true) spendTime(seat, 1, "acts");
   runEffects(ctx, row.effects);
   for (const o of chosen) runEffects(ctx, o.effects ?? []);
   react(ctx, [...row.tags, ...chosen.flatMap((o) => o.tags ?? [])], row.id);

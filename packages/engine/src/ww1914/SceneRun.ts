@@ -989,7 +989,11 @@ export function needsDecision(card: GwCard): boolean {
 }
 
 export function ctxOf(gw: GreatWar, seat: GwSeatState, card: GwCard): SceneCtx {
-  return { gw, seat, cast: card.cast, card };
+  // ww193: what a department head's skill opened on his paper (Departments).
+  const keys = card.dept?.keys ?? [];
+  return keys.length === 0
+    ? { gw, seat, cast: card.cast, card }
+    : { gw, seat, cast: card.cast, card, assume: new Set(keys) };
 }
 
 export function removeCard(seat: GwSeatState, uid: number): void {

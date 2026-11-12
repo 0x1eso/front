@@ -41,6 +41,13 @@ import { actViews } from "./Acts";
 import { aimsView } from "./Aims";
 import { askOffers, summonPrice } from "./AskFirst";
 import { claimsView } from "./Claims";
+import {
+  cardDeptView,
+  deptViews,
+  leverViews,
+  roomView,
+  timeView,
+} from "./Departments";
 import { govView, pollView } from "./Government";
 import type { GreatWar } from "./GreatWar";
 import { openTopics, readyBlock } from "./Orders";
@@ -131,6 +138,7 @@ function cardView(
     ...(letterFrom === undefined ? {} : { letterFrom }),
     ...asksOf(gw, seat, c),
     ...decryptOf(gw, seat, c.scene),
+    ...(c.dept === undefined ? {} : { dept: cardDeptView(gw, c) }),
   };
 }
 
@@ -215,6 +223,10 @@ function seatView(gw: GreatWar, seat: GwSeatState): GwSeatView {
     actsLeft: seat.acts,
     acts: actViews(gw, seat),
     powers: powerViews(gw, seat),
+    depts: deptViews(gw, seat, (ch) => dateOf(gw, ch)),
+    room: roomView(gw, seat),
+    time: timeView(gw, seat),
+    levers: leverViews(gw, seat),
     aims: aimsView(gw, seat),
     claims: claimsView(gw, seat),
     table: tableView(gw, seat),

@@ -267,7 +267,9 @@ describe("the fixture's two scenes", () => {
     expect(talk()).toBeUndefined();
     expect(seat(runner).audiences).toBe(2);
     delete st.seen["fx_talk"];
+    // ww193: one time pool: the slots' share pays for a summons too.
     st.audiences = 0;
+    st.acts = 0;
     summon();
     expect(talk()).toBeUndefined();
   });

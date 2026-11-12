@@ -1014,6 +1014,8 @@ export const GwDeptTaskSchema = z.object({
   /** The chapter the work is done: it reaches the tray when that one opens. */
   due: z.number().int(),
   by: GwIdSchema,
+  /** A paper sent back (다시 써 오시오): how it comes again. */
+  back: GwBackSchema.nullable().optional(),
 });
 export type GwDeptTask = z.infer<typeof GwDeptTaskSchema>;
 

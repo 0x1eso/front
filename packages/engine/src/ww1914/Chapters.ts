@@ -1,5 +1,6 @@
 import type { GwSeatState } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
+import { GW_TIME_EXTRA } from "@openfront/engine-lib/ww1914/TaskRows";
 import { aftermathStep } from "./Aftermath";
 import { aiStep } from "./Ai";
 import { alliesStep } from "./Asks";
@@ -8,6 +9,7 @@ import { budgetStep } from "./Budget";
 import { capitulationStep } from "./Capitulation";
 import { craftStep } from "./Craft";
 import { crisisStep, stampMobilisation } from "./Crises";
+import { carriedTime, closeDepts, openDepts } from "./Departments";
 import { dealDesk } from "./Desk";
 import { dossierStep } from "./Dossier";
 import { closeGame, endingStep, finalEnding } from "./Endings";
@@ -135,8 +137,10 @@ export function openChapter(gw: GreatWar, ticks: number): void {
       ) - summonsLess(seat),
     );
     seat.privates = ch.privates;
-    seat.acts = ch.acts;
+    // ww193: one time pool; the slots' share holds the extra and the carry.
+    seat.acts = ch.acts + GW_TIME_EXTRA + carriedTime(seat);
     firstEdition(gw, seat);
+    openDepts(gw, seat);
     dealDesk(gw, seat);
   }
   openSession(gw, ticks);
@@ -152,6 +156,7 @@ export function advanceChapter(
   const s = gw.s;
   // Nobody decided for a seat that isn't there: that is the proxy's stamp too.
   for (const seat of s.seats) {
+    closeDepts(gw, seat);
     closeUndecided(gw, seat, late || !waitedFor(seat));
   }
   closeSeats(gw);

@@ -19,6 +19,7 @@ import type { GreatWar } from "./GreatWar";
 import { spendHouseCall } from "./House";
 import { castOf, ctxOf, holds, needsDecision, sceneOf } from "./SceneRun";
 import { inOpening, newcomers } from "./Story";
+import { spendTime, timeLeft } from "./Time";
 
 /** How long an asked talk holds the chapter's clock, at most: seconds. */
 export const GW_ASK_HOLD_SEC = 180;
@@ -46,7 +47,7 @@ export function summonPrice(
   const own = scene !== null && isPrivateTalk(scene);
   const extra = (seat.house?.calls ?? 0) > 0 && topic.startsWith("gw_lb_");
   if (own && seat.privates <= 0) return "no_private";
-  if (!own && !extra && seat.audiences <= 0) return "no_audience";
+  if (!own && !extra && timeLeft(seat) <= 0) return "no_audience";
   return null;
 }
 
@@ -58,7 +59,7 @@ export function paySummon(
 ): void {
   if (isPrivateTalk(scene)) seat.privates--;
   // A lobby talk spends the house's extra calls first (owner's call 2).
-  else if (!spendHouseCall(seat, topic)) seat.audiences--;
+  else if (!spendHouseCall(seat, topic)) spendTime(seat, 1, "audiences");
 }
 
 /**

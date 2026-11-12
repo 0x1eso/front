@@ -138,7 +138,9 @@ describe("a general sent to a front", () => {
     order(runner, { kind: "post", person, theatre: "palestine" });
     order(runner, { kind: "post", person: "deu_kaiser", theatre: "east" });
     expect(t.commander).toBeNull();
+    // ww193: one time pool: the summons' share pays for a slot too.
     gw.s.seats[0].acts = 0;
+    gw.s.seats[0].audiences = 0;
     order(runner, { kind: "post", person, theatre: "east" });
     expect(t.commander).toBeNull();
   });

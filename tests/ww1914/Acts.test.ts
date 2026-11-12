@@ -248,6 +248,9 @@ describe("the schedule", () => {
     order(runner, { kind: "act", act: "t_council", picks: ["shells", a, b] });
     const card = seat(runner).desk.find((c) => c.scene === "t_council_other");
     expect(card?.cast).toEqual({ a, b });
+    // ww193: one time pool; once it is spent, nothing more is taken.
+    state(runner).audiences = 0;
+    state(runner).acts = 0;
     const before = seat(runner).desk.length;
     order(runner, { kind: "act", act: "t_visit", picks: [] });
     expect(seat(runner).desk.length).toBe(before);

@@ -361,6 +361,8 @@ describe("topics", () => {
       say(runner, "bye");
     }
     expect(seat(runner).audiences).toBe(0);
+    // ww193: one time pool: with the slots' share spent too, nobody comes.
+    runner.game.greatWar()!.s.seats[0].acts = 0;
     summon(runner, "deu_cold", "d");
     expect(openTalk(runner)).toBeUndefined();
   });
