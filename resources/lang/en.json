@@ -4499,10 +4499,16 @@
         "health": "The body will not hold. Without rest in a few months, this ends here.",
         "reputation": "Standing has hit the bottom. Unless it is won back in a few months, the seat is lost."
       },
+      "nerve": {
+        "0": "Worn out. What goes against him he cannot bring himself to say today.",
+        "1": "Tired. The hard words cost him.",
+        "2": "Still has the strength to bear it."
+      },
       "side": {
         "conscience": "Conscience",
         "family": "Family",
         "health": "Health",
+        "nerve": "Nerve",
         "reputation": "Reputation"
       },
       "title": "{name}, {age}"
@@ -5093,51 +5099,150 @@
       "dept": {
         "accept": "Accept",
         "act_more": "{n} more",
-        "brief": "Call {name} in",
-        "brief_empty": "Nothing more to bring.",
-        "brief_leave": "Dismiss",
-        "busy": "The department is at work: one task at a time.",
+        "answer_waited": "Left unanswered until the next chapter's end, {dept} takes its own course.",
+        "call": "Call {who} in and ask (one engagement)",
+        "called": "{who} was called in: what he had left out is written in.",
+        "conf": {
+          "heard": "Hearsay",
+          "mostly": "Mostly",
+          "sure": "Confirmed"
+        },
         "confidence": {
           "1": "Unsure",
           "2": "Fairly sure",
           "3": "Sure"
         },
         "counter": "Counter-paper",
+        "course_against": "Against:",
+        "course_for": "For:",
+        "course_own": "The department's course",
+        "course_take": "Take this course",
+        "course_unsaid": "not written",
+        "courses": "Courses",
         "empty": "Nobody heads it",
-        "gifts": "Favours you can grant",
+        "finding_late": "Told when called",
+        "findings": "What was found",
+        "form": {
+          "answer": "Answer",
+          "honours": "Honours list",
+          "news": "Department news",
+          "petition": "Honours petition",
+          "question": "Question",
+          "stall": "Stalled"
+        },
         "give": "Give the work",
-        "give_free": "Give it while they are here",
+        "honour_none": "Nothing",
+        "honour_pool": {
+          "generals": "A general",
+          "heads": "A head of department",
+          "industry": "Industry",
+          "officials": "An official",
+          "soldier": "A soldier"
+        },
+        "honour_proposed": "{dept} proposes {honour}",
+        "honour_soldier": "A soldier",
+        "honours_gist": "On the list: {names}",
+        "honours_hold": "Hold the ceremony (one engagement)",
+        "honours_until_next": "Hold it this chapter or the next. Left unheld, the list is given as proposed, and the credit goes to those who proposed it.",
+        "honours_until_now": "Hold it this chapter. Left unheld, the list is given as proposed, and the credit goes to those who proposed it.",
+        "hurried": "Told to hurry.",
         "idle": "Idle",
         "initiatives": "{n} of its own",
-        "lever": {
-          "honour": "An honour",
-          "pardon": "A pardon",
-          "post": "A post",
-          "purse": "The privy purse"
-        },
+        "lean_pick": "Left to {who}: {what}",
         "line_own": "{who} of the {dept} brings this of their own accord.",
         "line_rival": "{who} of the {dept} came in too, with another view.",
         "line_task": "{who} of the {dept} brings the work you gave.",
         "meet": "See",
+        "needs": "Needs:",
         "no_offers": "Nothing to give them now.",
-        "offers": "Give work by written order (one of the time)",
-        "offers_free": "Give work while they are here (no time)",
+        "offers": "Give it work (no engagement)",
         "option": "{dept}'s view",
         "overrule": "Decide otherwise",
+        "paper_from": {
+          "answer": "{who} of {dept} sends an answer · {what}",
+          "question": "{who} of {dept} asks · {what}",
+          "stall": "{who} of {dept} reports · {what}"
+        },
+        "paper_title": {
+          "honours": "Honours list · {what}",
+          "petition": "Honours petition · {who}",
+          "question": "{what}: a question",
+          "stall": "{what}: the work has stalled"
+        },
         "pass_on": "Give it to another department",
         "passed_work": "work passed on from another department",
         "past": "Work done",
-        "ready": "{n} ready",
-        "room_brings": "Papers brought: {n}",
-        "room_hint": "Who waits to see you. Seeing one takes one of the time and hears all they bring.",
+        "petition": {
+          "accept": "Grant it",
+          "next": "To the next list",
+          "refuse": "Refuse"
+        },
+        "petition_line": "{who} of {dept} asks that {person} be given {honour}.",
+        "pick": {
+          "ample": "Spend freely",
+          "sign": "As far as a signature",
+          "sound": "Only sound them out",
+          "terms": "As far as terms",
+          "thrift": "Spend sparingly"
+        },
+        "push": {
+          "hurry": "Hurry it",
+          "money": "Spend more money",
+          "staff": "Put someone beside him",
+          "wait": "Wait",
+          "withdraw": "Call it off"
+        },
+        "question": {
+          "money": "How much may be spent on this?",
+          "person": "Whom shall we send?",
+          "reach": "How far may we go?"
+        },
+        "redo": {
+          "more": "Find out more",
+          "other": "Bring another course"
+        },
+        "room_call": "Can be asked about: {what}",
+        "room_call_go": "Call in",
+        "room_free": "No engagement",
+        "room_hint": "People waiting to be seen. Seeing one, or calling a head in, takes one engagement.",
         "room_petition": "Petition: {what}",
+        "room_press": "Presses to be seen",
         "room_shut": "You are away: nobody is received this chapter, and the departments send their papers by wire.",
         "room_title": "Audience room",
+        "room_waits": "Waiting",
         "shelve": "Shelve it",
+        "soon": "soon",
+        "staffed": "{who} works beside him.",
+        "stage": {
+          "draft": "Draft",
+          "inquiry": "Inquiry",
+          "report": "Report",
+          "start": "Begun"
+        },
+        "stage_line": {
+          "draft": "Drafting: {what}.",
+          "inquiry": "Looking into {what}.",
+          "report": "The report on {what} is nearly ready.",
+          "start": "Has begun on {what}."
+        },
+        "stall": {
+          "disloyal": "the head drags his feet",
+          "money": "the money has run out",
+          "moot": "no longer needed",
+          "rival": "another department blocks it"
+        },
+        "stall_line": {
+          "disloyal": "The head of the department is dragging his feet on this.",
+          "money": "The treasury is at the bottom: there is no money to go on.",
+          "moot": "Things have changed: there is nothing more to ask here.",
+          "rival": "Another department has stepped in to block this."
+        },
+        "task_any": "The matter of {topic}",
+        "task_plain": "The work given",
         "time": "Time left: {n}",
         "time_away": "Away · time left: {n}",
         "time_carry": "Some was carried over from last chapter.",
-        "time_tip": "Seeing someone, a written order and each act take one; a trip takes two; work given while they are here takes none. Up to one left over carries to the next chapter.",
+        "time_tip": "Seeing someone, calling a head in, an act or a ceremony takes one engagement each; a trip takes two. Giving a department work takes none. One unspent carries to the next chapter.",
         "title": "Departments",
         "trip": "Trip · two of the time",
         "turn_away": "Send away",
@@ -5146,14 +5251,26 @@
           "acted": "acted on its own",
           "overrule": "overruled",
           "pass_on": "passed on",
+          "redo": "Sent to look again",
           "send_back": "sent back",
-          "shelve": "shelved"
+          "shelve": "shelved",
+          "withdraw": "Called off"
         },
         "waited": "Long unheard",
         "want": "Wants: {what}",
-        "working": "At work: {what}",
-        "working_soon": "At work: {what} · soon"
+        "working_stage": "At work: {what} · {stage}"
       },
+      "dept_need_bill": "A bill: {what}",
+      "dept_need_consent": "{what}'s consent",
+      "dept_need_divisions": "Troops: {what}",
+      "dept_need_money": "Money: {what}",
+      "dept_need_person": "Someone: {what}",
+      "dept_todo_answer": "An answer has come",
+      "dept_todo_asks": "Asks to be seen",
+      "dept_todo_callable": "Can be called in",
+      "dept_todo_idle": "Idle · can be given work",
+      "dept_todo_question": "Has a question",
+      "dept_todo_stall": "Stalled: {why}",
       "desk_empty": "Nothing waits on the desk. You may call someone or close the chapter.",
       "dict_close": "Close",
       "dismiss": "Dismiss",
@@ -5456,6 +5573,15 @@
         "dead": "Dead",
         "exiled": "Gone",
         "fallen": "Stepped down"
+      },
+      "persona": {
+        "brought": "Brought in by {who}",
+        "comes_in": "{who} comes in with the papers.",
+        "diary": "Diary",
+        "grain": "Weighs on him",
+        "grain_tip": "It goes against the grain. It wears him down.",
+        "no_diary": "Nothing written yet.",
+        "private": "Private matters"
       },
       "posture": {
         "hold": "Hold",

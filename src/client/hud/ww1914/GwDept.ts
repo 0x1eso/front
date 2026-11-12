@@ -1,6 +1,8 @@
-// Great War 1914 (ww193): departments at work on the screens. 사람 › 부서, the
-// audience room (접견실), a head's briefing, the department's mark on a paper,
-// the one time pool. Existing boxes and the talk column only: no new look.
+// Great War 1914 (ww193, ww196): departments at work on the screens. 사람 ›
+// 부서 with the work under way and the 할 일 markers, the audience room
+// (접견실: petitioners, heads to call, people who press), the department's mark
+// on a paper, the one time pool. ww196: nothing is briefed and nothing is
+// given as a gift; the papers come to the desk (GwPaper). Existing boxes only.
 import type { GwOffice } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { GW_THEATRES } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { GW_TAGS } from "@openfront/engine-api/ww1914/GwCountries";
@@ -8,19 +10,26 @@ import type {
   GwDeptMoment,
   GwDeptView,
   GwRoomRowView,
+  GwStallReason,
   GwTaskOfferView,
+  GwTaskPush,
+  GwTaskType,
+  GwTodoView,
 } from "@openfront/engine-api/ww1914/GwDepts";
 import type { GwCardView } from "@openfront/engine-api/ww1914/GwView";
 import { GW_TIME_PRICES } from "@openfront/engine-lib/ww1914/TaskRows";
 import { html, nothing, TemplateResult } from "lit";
+import { applyJosa } from "../../Josa";
 import { translateText } from "../../Utils";
 import type { GwCtx } from "./GwCtx";
 import { rich } from "./GwDict";
 import { gwFace } from "./GwFace";
 import { topicLabel } from "./GwModel";
 import { officeTitle } from "./GwOffice";
+import { paperTitle } from "./GwPaper";
+import { openCard } from "./GwPlaceSheet";
 import { BTN, BTN_ON, CHIP, HEAD, MUTED } from "./GwStyle";
-import { country, personName, shortDate } from "./GwText";
+import { cardTitle, country, personName, shortDate } from "./GwText";
 
 const SMALL = "!px-2 !py-1";
 
@@ -46,19 +55,36 @@ export function topicWord(c: GwCtx, topic: string | null): string {
   return topic;
 }
 
-/** How a task row reads, with its topic filled in. */
+/**
+ * How a task reads, with its topic filled in: the row's own name, else its
+ * type's ("{topic}에 대한 방침"), else a plain "{topic}에 관한 일".
+ */
 export function taskName(
   c: GwCtx,
   row: string | null,
   topic: string | null,
+  type?: GwTaskType | null,
 ): string {
   // No topic picked yet: a blank to fill, as the schedule's pickers leave one.
   const word = topic === null ? "…" : topicWord(c, topic);
   const name =
-    row === null
+    (row === null ? undefined : c.pack?.depts?.tasks?.[row]?.name) ??
+    (type === undefined || type === null
+      ? undefined
+      : c.pack?.depts?.types?.[type]?.name) ??
+    (row === null && (type === undefined || type === null)
       ? translateText("gw.ui.dept.passed_work")
-      : (c.pack?.depts?.tasks?.[row]?.name ?? row);
+      : topic === null
+        ? translateText("gw.ui.dept.task_plain")
+        : translateText("gw.ui.dept.task_any", { topic: "{topic}" }));
   return name.split("{topic}").join(word);
+}
+
+/** A task's note, the row's own or its type's. */
+function taskNote(c: GwCtx, o: GwTaskOfferView): string | undefined {
+  return (
+    c.pack?.depts?.tasks?.[o.row]?.note ?? c.pack?.depts?.types?.[o.type]?.note
+  );
 }
 
 /** The department's line for a moment: the person's, the office's, the kind's. */
@@ -87,11 +113,14 @@ export function timeLeft(c: GwCtx): number {
   return c.seat.time?.left ?? c.seat.audiences;
 }
 
-/** The pool can pay for this now. */
+/**
+ * The pool can pay for this now. ww196: an audience (a petitioner, 불러서
+ * 묻는다) is `petition`; the 서훈식 is `ceremony`. The room is shut on a trip.
+ */
 export function canSpend(c: GwCtx, what: keyof typeof GW_TIME_PRICES): boolean {
   const t = c.seat.time;
   if (t === undefined) return true;
-  if (t.away && (what === "brief" || what === "petition")) return false;
+  if (t.away && what === "petition") return false;
   return t.left >= GW_TIME_PRICES[what];
 }
 
@@ -135,58 +164,106 @@ function wantLine(c: GwCtx, d: GwDeptView): TemplateResult | typeof nothing {
   </p>`;
 }
 
-/** One status line: at work, papers ready, or idle. */
+/** One status line: the work and its stage, a stall, or idle. */
 function statusLine(c: GwCtx, d: GwDeptView): string {
   if (d.head === null) return translateText("gw.ui.dept.empty");
   const parts: string[] = [];
-  if (d.task !== null) {
+  const t = d.task;
+  if (t !== null) {
+    // The subject alone: the row's name is how it was offered.
+    const what =
+      t.topic === null
+        ? taskName(c, t.row, null, t.type)
+        : topicWord(c, t.topic);
     parts.push(
-      translateText(
-        d.task.soon ? "gw.ui.dept.working_soon" : "gw.ui.dept.working",
-        {
-          // The subject alone: the row's name is how it was offered.
-          what:
-            d.task.topic === null
-              ? taskName(c, d.task.row, null)
-              : topicWord(c, d.task.topic),
-        },
-      ),
+      translateText("gw.ui.dept.working_stage", {
+        what,
+        stage: translateText(`gw.ui.dept.stage.${t.stage}`),
+      }),
     );
-  }
-  if (d.ready > 0) {
-    parts.push(translateText("gw.ui.dept.ready", { n: d.ready }));
+    // A stall shows once: as its 할 일 chip where there is one.
+    if (t.stall !== null && !d.todo.some((x) => x.kind === "stall")) {
+      parts.push(
+        translateText("gw.ui.dept_todo_stall", {
+          why: translateText(`gw.ui.dept.stall.${t.stall}`),
+        }),
+      );
+    } else if (t.soon && t.stall === null) {
+      parts.push(translateText("gw.ui.dept.soon"));
+    }
   }
   if (d.initiatives > 0) {
     parts.push(translateText("gw.ui.dept.initiatives", { n: d.initiatives }));
   }
-  return parts.length === 0
-    ? translateText("gw.ui.dept.idle")
-    : parts.join(" · ");
+  if (parts.length > 0) return parts.join(" · ");
+  // The muted "한가함 · 일을 맡길 수 있음" chip says it where it is sent.
+  return d.todo.some((x) => x.kind === "idle")
+    ? ""
+    : translateText("gw.ui.dept.idle");
+}
+
+/** An amber 할 일 chip; `idle` is muted. A paper's chip opens the paper. */
+const TODO =
+  "inline-block rounded bg-amber-300/20 px-1.5 py-0.5 text-xs text-amber-100";
+
+export function todoText(t: GwTodoView): string {
+  return translateText(`gw.ui.dept_todo_${t.kind}`, {
+    why:
+      t.reason === undefined
+        ? ""
+        : translateText(`gw.ui.dept.stall.${t.reason}`),
+  });
+}
+
+/** The 할 일 markers of a department row or a person row. */
+export function todoChips(
+  c: GwCtx,
+  todo: readonly GwTodoView[] | undefined,
+): TemplateResult | typeof nothing {
+  if (todo === undefined || todo.length === 0) return nothing;
+  return html`<span class="flex flex-wrap gap-1" data-gw-todos>
+    ${todo.map((t) => {
+      const card =
+        t.card === undefined
+          ? undefined
+          : c.seat.desk.find((x) => x.uid === t.card);
+      const cls = t.kind === "idle" ? CHIP : TODO;
+      return card === undefined
+        ? html`<span class=${cls} data-gw-todo=${t.kind}>${todoText(t)}</span>`
+        : html`<button
+            class="${cls} hover:bg-amber-300/35"
+            data-gw-todo=${t.kind}
+            @click=${(e: Event) => {
+              e.stopPropagation();
+              openCard(c, card);
+            }}
+          >
+            ${todoText(t)}
+          </button>`;
+    })}
+  </span>`;
 }
 
 function offerRow(c: GwCtx, d: GwDeptView, o: GwTaskOfferView): TemplateResult {
   const picked = c.ui.deptTask?.row === o.row ? c.ui.deptTask : null;
   const topic = picked?.topic ?? o.topic;
   const ready = picked !== null && (o.topics.length === 0 || topic !== null);
-  const free = d.price === 0;
-  const afford = free || canSpend(c, "task");
   return html`<div class="space-y-1" data-gw-dept-offer=${o.row}>
     <button
       class="${picked === null ? BTN : BTN_ON} w-full"
       data-gw-dept-task=${o.row}
-      ?disabled=${!afford}
       @click=${() => {
         c.ui.deptTask = picked === null ? { row: o.row, topic: o.topic } : null;
         c.redraw();
       }}
     >
-      ${taskName(c, o.row, topic)}
+      ${taskName(c, o.row, topic, o.type)}
     </button>
     ${picked === null
       ? nothing
       : html`<div class="space-y-1 pl-1">
           ${(() => {
-            const note = c.pack?.depts?.tasks?.[o.row]?.note;
+            const note = taskNote(c, o);
             return note === undefined
               ? nothing
               : html`<p class="text-sm text-white/75">${rich(c, note)}</p>`;
@@ -224,10 +301,140 @@ function offerRow(c: GwCtx, d: GwDeptView, o: GwTaskOfferView): TemplateResult {
               c.redraw();
             }}
           >
-            ${translateText(free ? "gw.ui.dept.give_free" : "gw.ui.dept.give")}
+            ${translateText("gw.ui.dept.give")}
           </button>
         </div>`}
   </div>`;
+}
+
+/** People who could be put beside a head: the seat's, not the head himself. */
+function staffable(c: GwCtx, head: string): string[] {
+  return c.seat.people.filter((x) => x.id !== head).map((x) => x.id);
+}
+
+/**
+ * The work-under-way buttons (서두르게 한다, 사람을 붙인다, 거둔다, 기다린다,
+ * 돈을 더 쓴다), on the department row and on a stall paper. 사람을 붙인다
+ * opens the list of people first.
+ */
+export function pushButtons(
+  c: GwCtx,
+  office: GwOffice,
+  head: string,
+  pushes: readonly GwTaskPush[],
+  done: () => void,
+): TemplateResult | typeof nothing {
+  if (pushes.length === 0) return nothing;
+  const staffing = c.ui.deptStaff === office;
+  return html`<div class="space-y-1" data-gw-pushes=${office}>
+    <div class="flex flex-wrap gap-1">
+      ${pushes.map(
+        (how) =>
+          html`<button
+            class="${how === "staff" && staffing ? BTN_ON : BTN} ${SMALL}"
+            data-gw-push=${how}
+            @click=${() => {
+              if (how === "staff") {
+                c.ui.deptStaff = staffing ? null : office;
+                c.redraw();
+                return;
+              }
+              c.send({ kind: "task_push", office, how, person: null });
+              done();
+            }}
+          >
+            ${translateText(`gw.ui.dept.push.${how}`)}
+          </button>`,
+      )}
+    </div>
+    ${staffing
+      ? html`<div class="flex flex-wrap gap-1 pl-1" data-gw-staff-list>
+          ${staffable(c, head).map(
+            (id) =>
+              html`<button
+                class="${BTN} ${SMALL}"
+                data-gw-staff=${id}
+                @click=${() => {
+                  c.send({
+                    kind: "task_push",
+                    office,
+                    how: "staff",
+                    person: id,
+                  });
+                  c.ui.deptStaff = null;
+                  done();
+                }}
+              >
+                ${personName(c.pack, id)}
+              </button>`,
+          )}
+        </div>`
+      : nothing}
+  </div>`;
+}
+
+/** Why the work stalled, in a line: the pack's, else the plain one. */
+export function stallText(
+  c: GwCtx,
+  reason: GwStallReason,
+  by: string,
+  topic: string | null,
+): string {
+  const own = c.pack?.depts?.stalls?.[reason];
+  if (own === undefined) {
+    return translateText(`gw.ui.dept.stall_line.${reason}`);
+  }
+  return applyJosa(
+    own
+      .split("{who}")
+      .join(personName(c.pack, by))
+      .split("{topic}")
+      .join(topicWord(c, topic)),
+  );
+}
+
+/** The work under way: its stage, who is beside the head, what can be done. */
+function workBox(c: GwCtx, d: GwDeptView): TemplateResult | typeof nothing {
+  const t = d.task;
+  if (t === null || d.head === null) return nothing;
+  const head = d.head;
+  return html`<div class="space-y-1" data-gw-dept-work data-gw-stage=${t.stage}>
+    <p class="text-sm text-white/85">
+      ${taskName(c, t.row, t.topic, t.type)} ·
+      ${translateText(`gw.ui.dept.stage.${t.stage}`)}
+    </p>
+    ${t.stall === null
+      ? nothing
+      : html`<p class="text-sm text-amber-100/90" data-gw-dept-stall>
+          ${rich(c, stallText(c, t.stall, head, t.topic))}
+        </p>`}
+    ${t.staff === null
+      ? nothing
+      : html`<p class=${MUTED} data-gw-dept-staff>
+          ${applyJosa(
+            translateText("gw.ui.dept.staffed", {
+              who: personName(c.pack, t.staff),
+            }),
+          )}
+        </p>`}
+    ${t.hurried
+      ? html`<p class=${MUTED}>${translateText("gw.ui.dept.hurried")}</p>`
+      : nothing}
+    ${pushButtons(c, d.office, head, t.pushes, () => c.redraw())}
+  </div>`;
+}
+
+/** A past task: its answer's course, else its paper's title, else the task. */
+function pastTitle(c: GwCtx, p: GwDeptView["past"][number]): string {
+  const name = taskName(c, p.row, p.topic, p.type);
+  if (p.course !== undefined && p.course !== null) {
+    for (const a of Object.values(c.pack?.depts?.answers ?? {})) {
+      const course = a.courses?.[p.course];
+      if (course !== undefined) return `${name} · ${course.name}`;
+    }
+  }
+  if (p.type !== undefined) return name;
+  return c.pack?.scenes[p.scene]?.title ?? name;
 }
 
 function pastRows(c: GwCtx, d: GwDeptView): TemplateResult | typeof nothing {
@@ -238,7 +445,7 @@ function pastRows(c: GwCtx, d: GwDeptView): TemplateResult | typeof nothing {
       (p) =>
         html`<p class="text-sm text-white/75">
           <span class=${MUTED}>${shortDate(p.date)}</span>
-          ${c.pack?.scenes[p.scene]?.title ?? taskName(c, p.row, p.topic)}
+          ${pastTitle(c, p)}
           <span class=${MUTED}
             >· ${translateText(`gw.ui.dept.verdict.${p.verdict}`)}</span
           >
@@ -261,7 +468,6 @@ export function deptRow(
 ): TemplateResult {
   const open = c.ui.deptOpen === d.office;
   const head = d.head;
-  const waiting = d.ready + d.initiatives;
   return html`<section
     data-gw-dept=${d.office}
     class="rounded border border-white/15 bg-black/35 p-2.5 ${head === null
@@ -295,41 +501,31 @@ export function deptRow(
             : html`${personName(c.pack, head)} ·
               ${officeTitle(c.seat.tag, d.office)}`}</span
         >
-        <span
-          class="block truncate text-xs text-amber-100/90"
-          data-gw-dept-status
-          >${statusLine(c, d)}</span
-        >
+        ${(() => {
+          const line = statusLine(c, d);
+          return line === ""
+            ? nothing
+            : html`<span
+                class="block truncate text-xs text-amber-100/90"
+                data-gw-dept-status
+                >${line}</span
+              >`;
+        })()}
         ${wantLine(c, d)}
       </span>
     </button>
+    ${head === null ? nothing : todoChips(c, d.todo)}
     ${open && head !== null
       ? html`<div class="mt-2 space-y-2 border-t border-white/10 pt-2">
-          ${waiting === 0
-            ? nothing
-            : html`<button
-                class="${BTN} w-full"
-                data-gw-dept-brief=${d.office}
-                ?disabled=${!canSpend(c, "brief")}
-                @click=${() => meet(c, head, d.office, false)}
-              >
-                ${translateText("gw.ui.dept.brief", {
-                  name: personName(c.pack, head),
-                })}
-              </button>`}
           ${d.task !== null
-            ? html`<p class=${MUTED}>${translateText("gw.ui.dept.busy")}</p>`
+            ? workBox(c, d)
             : d.offers.length === 0
               ? html`<p class=${MUTED}>
                   ${translateText("gw.ui.dept.no_offers")}
                 </p>`
               : html`<div class="space-y-1">
                   <div class=${MUTED}>
-                    ${translateText(
-                      d.price === 0
-                        ? "gw.ui.dept.offers_free"
-                        : "gw.ui.dept.offers",
-                    )}
+                    ${translateText("gw.ui.dept.offers")}
                   </div>
                   ${d.offers.map((o) => offerRow(c, d, o))}
                 </div>`}
@@ -355,68 +551,108 @@ export function deptsBox(
   </div>`;
 }
 
-/** Seeing someone: a head's briefing, or a petitioner as a summons. */
-function meet(
-  c: GwCtx,
-  person: string,
-  office: GwOffice | null,
-  petition: boolean,
-  topic?: string,
-): void {
-  if (petition) {
-    if (topic === undefined) return;
-    c.send({ kind: "summon", person, topic });
-  } else {
-    if (office === null) return;
-    c.send({ kind: "brief", office });
-    c.ui.briefing = person;
-  }
+/** Seeing a petitioner: the summons of his topic. */
+function meet(c: GwCtx, person: string, topic: string): void {
+  c.send({ kind: "summon", person, topic });
   c.ui.summoned = Date.now();
   c.redraw();
 }
 
+/** What a person in the room comes for, in words. */
+function roomWhat(c: GwCtx, r: GwRoomRowView): string {
+  if (r.petition) {
+    return translateText("gw.ui.dept.room_petition", {
+      what: r.topic === undefined ? "" : topicLabel(c.pack, r.topic),
+    });
+  }
+  const paper =
+    r.call === undefined
+      ? undefined
+      : c.seat.desk.find((x) => x.uid === r.call);
+  if (paper !== undefined) {
+    return translateText("gw.ui.dept.room_call", {
+      what: paperTitle(c, paper) ?? cardTitle(c.pack, paper),
+    });
+  }
+  return translateText(
+    r.press === true ? "gw.ui.dept.room_press" : "gw.ui.dept.room_waits",
+  );
+}
+
+/** His wants in words: up to three, the old single one else. */
+function roomWants(c: GwCtx, r: GwRoomRowView): string[] {
+  const ids =
+    r.wants ?? (r.want === undefined || r.want === null ? [] : [r.want]);
+  return ids.slice(0, 3).flatMap((id) => {
+    const text = c.pack?.depts?.wants?.[id];
+    return text === undefined ? [] : [text];
+  });
+}
+
 function roomRow(c: GwCtx, r: GwRoomRowView): TemplateResult {
   const name = personName(c.pack, r.person);
-  const what = r.petition
-    ? translateText("gw.ui.dept.room_petition", {
-        what: r.topic === undefined ? "" : topicLabel(c.pack, r.topic),
-      })
-    : translateText("gw.ui.dept.room_brings", { n: r.brings });
-  const want =
-    r.want === undefined || r.want === null
-      ? undefined
-      : c.pack?.depts?.wants?.[r.want];
-  const shut = c.seat.time?.away === true;
-  const afford = canSpend(c, r.petition ? "petition" : "brief");
+  const wants = roomWants(c, r);
+  const shut = c.seat.time?.away === true && r.free !== true;
+  const afford = r.free === true || canSpend(c, "petition");
+  const topic = r.topic;
+  const call = r.call;
   return html`<div
     class="flex items-center gap-2 border-t border-white/10 pt-1.5"
     data-gw-room-row=${r.person}
   >
     ${face(c, r.person, "h-9 w-9")}
     <span class="min-w-0 flex-1">
-      <span class="block truncate text-sm font-bold">${name}</span>
+      <span class="flex min-w-0 items-center gap-1.5">
+        <span class="truncate text-sm font-bold">${name}</span>
+        ${r.press === true
+          ? html`<span class=${TODO} data-gw-room-press
+              >${translateText("gw.ui.dept_todo_asks")}</span
+            >`
+          : nothing}
+        ${r.free === true
+          ? html`<span class=${CHIP} data-gw-room-free
+              >${translateText("gw.ui.dept.room_free")}</span
+            >`
+          : nothing}
+      </span>
       <span class="${MUTED} block truncate"
         >${r.office === null
           ? nothing
-          : html`${deptName(c, r.office)} · `}${what}</span
+          : html`${deptName(c, r.office)} · `}${roomWhat(c, r)}</span
       >
-      ${want === undefined
-        ? nothing
-        : html`<span class="${MUTED} block truncate"
-            >${translateText("gw.ui.dept.want", { what: want })}</span
-          >`}
+      ${wants.map(
+        (w) =>
+          html`<span class="${MUTED} block truncate" data-gw-room-want
+            >${translateText("gw.ui.dept.want", { what: w })}</span
+          >`,
+      )}
     </span>
     ${shut
       ? nothing
       : html`<span class="flex shrink-0 flex-col gap-1">
-          <button
-            class="${BTN} ${SMALL} text-center"
-            data-gw-room-meet=${r.person}
-            ?disabled=${!afford}
-            @click=${() => meet(c, r.person, r.office, r.petition, r.topic)}
-          >
-            ${translateText("gw.ui.dept.meet")}
-          </button>
+          ${call !== undefined
+            ? html`<button
+                class="${BTN} ${SMALL} text-center"
+                data-gw-room-call=${r.person}
+                ?disabled=${!afford}
+                @click=${() => {
+                  c.send({ kind: "call", card: call });
+                  c.ui.summoned = Date.now();
+                  c.redraw();
+                }}
+              >
+                ${translateText("gw.ui.dept.room_call_go")}
+              </button>`
+            : topic !== undefined
+              ? html`<button
+                  class="${BTN} ${SMALL} text-center"
+                  data-gw-room-meet=${r.person}
+                  ?disabled=${!afford}
+                  @click=${() => meet(c, r.person, topic)}
+                >
+                  ${translateText("gw.ui.dept.meet")}
+                </button>`
+              : nothing}
           <button
             class="${BTN} ${SMALL} text-center"
             data-gw-room-away=${r.person}
@@ -548,17 +784,23 @@ export function signWord(card: GwCardView, option: string): string {
   );
 }
 
-/** 다른 부서에 맡긴다 and 묵혀 둔다, under the options of a department's paper. */
+/**
+ * 다른 부서에 맡긴다 and 묵혀 둔다, under the options of a department's paper
+ * or an answer (ww196).
+ */
 export function deptVerdicts(
   c: GwCtx,
   card: GwCardView,
   close: () => void,
 ): TemplateResult | typeof nothing {
-  const d = card.dept;
-  if (d === undefined) return nothing;
+  // ww196: an answer goes elsewhere or is shelved too; other papers don't.
+  const office =
+    card.dept?.office ??
+    (card.paper?.form === "answer" ? card.paper.office : undefined);
+  if (office === undefined) return nothing;
   const open = c.ui.passOpen === card.uid;
   const others = (c.seat.depts ?? []).filter(
-    (x) => x.office !== d.office && x.head !== null,
+    (x) => x.office !== office && x.head !== null,
   );
   return html`<div class="space-y-1" data-gw-dept-verdicts>
     <div class="flex flex-wrap gap-1">
@@ -604,99 +846,5 @@ export function deptVerdicts(
           )}
         </div>`
       : nothing}
-  </div>`;
-}
-
-/** Gifts the ruler can give this person now: one each a chapter. */
-export function giftButtons(
-  c: GwCtx,
-  person: string,
-): TemplateResult | typeof nothing {
-  const rows = (c.seat.levers ?? []).filter((l) => l.people.includes(person));
-  if (rows.length === 0) return nothing;
-  return html`<div class="space-y-1" data-gw-gifts>
-    <div class=${MUTED}>${translateText("gw.ui.dept.gifts")}</div>
-    ${rows.map((l) => {
-      const text = c.pack?.depts?.levers?.[l.row];
-      return html`<div class="space-y-0.5">
-        <button
-          class="${BTN} w-full"
-          data-gw-gift=${l.row}
-          @click=${() => c.send({ kind: "gift", row: l.row, person })}
-        >
-          ${text?.name ?? translateText(`gw.ui.dept.lever.${l.lever}`)}
-        </button>
-        ${text?.note === undefined
-          ? nothing
-          : html`<p class="${MUTED} pl-1">${rich(c, text.note)}</p>`}
-      </div>`;
-    })}
-  </div>`;
-}
-
-/**
- * A head's briefing, in the talk's column: his face, a line in his voice, then
- * each paper he laid on the desk as its desk card. `box` draws one.
- */
-export function briefingView(
-  c: GwCtx,
-  box: (card: GwCardView) => TemplateResult,
-): TemplateResult | typeof nothing {
-  const who = c.ui.briefing ?? null;
-  if (who === null) return nothing;
-  // ww193 merge: the rival's counter-paper comes in with the head it answers.
-  const papers = c.seat.desk.filter(
-    (x) =>
-      x.dept?.by === who ||
-      (x.dept?.counter === true && x.dept.rival?.by === who),
-  );
-  const office =
-    papers.find((x) => !x.dept!.counter)?.dept?.office ??
-    c.seat.people.find((p) => p.id === who)?.office ??
-    null;
-  const d = (c.seat.depts ?? []).find((x) => x.office === office);
-  const asked = papers.some((x) => x.dept?.row !== null);
-  const topic = papers.find((x) => x.dept?.topic !== null)?.dept?.topic ?? null;
-  const said = deptVoice(c, d, asked ? "bring" : "initiative", topic);
-  const name = personName(c.pack, who);
-  const leave = () => {
-    c.ui.briefing = null;
-    c.redraw();
-  };
-  return html`<div
-    data-gw-briefing=${who}
-    class="pointer-events-auto fixed inset-0 z-[999] overflow-y-auto bg-gradient-to-b from-black/65 via-black/75 to-black/90 text-white"
-    @click=${(e: Event) => e.target === e.currentTarget && leave()}
-  >
-    <div
-      class="mx-auto flex min-h-full max-w-xl flex-col justify-center gap-4 px-4 pb-8 pt-14"
-    >
-      <header class="flex items-center gap-4" data-gw-plate>
-        ${face(c, who, "h-16 w-16")}
-        <div class="min-w-0">
-          <h2 class="text-xl font-bold leading-tight" data-gw-who>${name}</h2>
-          <div class="text-sm text-white/70">
-            ${office === null ? nothing : deptName(c, office)}
-          </div>
-        </div>
-      </header>
-      ${said === null
-        ? nothing
-        : html`<p
-            class="border-l-2 border-amber-200/40 pl-3 text-[16px] leading-8 text-white/90"
-            data-gw-brief-says
-          >
-            ${rich(c, said)}
-          </p>`}
-      ${papers.length === 0
-        ? html`<p class=${MUTED} data-gw-brief-empty>
-            ${translateText("gw.ui.dept.brief_empty")}
-          </p>`
-        : papers.map((p) => box(p))}
-      ${giftButtons(c, who)}
-      <button class="${BTN} self-center" data-gw-brief-leave @click=${leave}>
-        ${translateText("gw.ui.dept.brief_leave")}
-      </button>
-    </div>
   </div>`;
 }

@@ -155,6 +155,8 @@ export function paperCards(seat: GwSeatView): GwCardView[] {
 }
 
 export function isReadOnly(c: GwCardView): boolean {
+  // ww196: a department's or an honours paper asks a word, but 부서 소식.
+  if (c.paper !== undefined) return c.paper.form === "news";
   return c.options.length === 0 && c.node === null;
 }
 
@@ -176,7 +178,8 @@ export function tabBadge(seat: GwSeatView, tab: GwTab, seenWires = 0): number {
     case "desk":
       return seat.desk.length;
     case "people":
-      // ww193: who waits in the audience room, where there is one.
+      // ww196: the 할 일 markers (not `idle`); ww193: who waits in the room.
+      if (seat.todo !== undefined) return seat.todo;
       return seat.room === undefined ? seat.audiences : seat.room.length;
     case "schedule":
       return (seat.acts ?? []).length === 0
