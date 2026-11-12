@@ -6851,6 +6851,8 @@ export const DEU_PEOPLE_SCENES: readonly GwScene[] = [
   },
   {
     id: "deu_v_conrad_cry",
+    // ww187: Conrad cries over Lemberg lost: in Russian hands.
+    assumes: { held: { lemberg: "foe" } },
     nation: ["DEU"],
     kind: "talk",
     when: all(

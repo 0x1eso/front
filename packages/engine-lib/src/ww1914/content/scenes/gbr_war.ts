@@ -264,7 +264,8 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     once: false,
     cooldown: 3,
     variants: [
-      v("won", all(world({ is: "score", min: 40 }), during("18b"))),
+      // ww187: by the war's state, not the calendar.
+      v("won", all(world({ is: "score", min: 40 }), war)),
       v("kit_lives", all(holds("war", "gbr_kitchener"), during("17a", "18b"))),
       v("thin", gaugeAt("shells", 1)),
       v("trench", { kind: "trench", theatre: "west", min: 2 }),
@@ -445,7 +446,15 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
         gauge: "morale",
         max: 2,
       }),
-      v("no_ground", world({ is: "front", theatre: "west", to: "hindenburg" })),
+      v(
+        "no_ground",
+        world({
+          is: "front",
+          theatre: "west",
+          from: "rhine",
+          to: "hindenburg",
+        }),
+      ),
       v("lg", flag("f_pm_lg")),
       v("base"),
     ],
@@ -769,7 +778,7 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
       any(
         all(
           world({ is: "battle", theatre: "west", of: ["break", "advance"] }),
-          world({ is: "front", theatre: "west", from: "somme" }),
+          world({ is: "front", theatre: "west", from: "somme", to: "paris" }),
         ),
         world({ is: "out", tag: "RUS" }),
       ),
@@ -1103,7 +1112,12 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     when: all(
       war,
       world({ is: "war_months", own: true, min: 5, max: 23 }),
-      world({ is: "front", theatre: "straits", from: "narrows" }),
+      world({
+        is: "front",
+        theatre: "straits",
+        from: "narrows",
+        to: "constantinople",
+      }),
     ),
     cast: { foreign: holder("foreign"), navy: holder("navy") },
     salience: 8,
@@ -1227,7 +1241,10 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     salience: 7,
     tags: ["war", "foreign"],
     variants: [
-      v("serbia_falls", world({ is: "front", theatre: "balkan", from: "nis" })),
+      v(
+        "serbia_falls",
+        world({ is: "front", theatre: "balkan", from: "nis", to: "salonika" }),
+      ),
       v("greek_door", memory("k_lg_balkans")),
       v("base"),
     ],
@@ -1376,7 +1393,10 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     salience: 7,
     tags: ["war"],
     variants: [
-      v("sea_lost", world({ is: "front", theatre: "sea", from: "channel" })),
+      v(
+        "sea_lost",
+        world({ is: "front", theatre: "sea", from: "channel", to: "atlantic" }),
+      ),
       // ww180: the coast's direction-finding stations heard the fleet put out.
       v("warned", world({ is: "naval", can: "warned" })),
       v("room40", memory("k_hall_room40")),
@@ -1610,7 +1630,12 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     variants: [
       v(
         "gaza_past",
-        world({ is: "front", theatre: "palestine", from: "jerusalem" }),
+        world({
+          is: "front",
+          theatre: "palestine",
+          from: "jerusalem",
+          to: "damascus",
+        }),
       ),
       v("base"),
     ],

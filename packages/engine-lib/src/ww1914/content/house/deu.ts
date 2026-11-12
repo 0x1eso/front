@@ -10,6 +10,7 @@ import type {
 import {
   all,
   any,
+  assuming,
   flag,
   not,
   reason,
@@ -1303,20 +1304,24 @@ export const DEU_HOUSE_SCENES: readonly GwScene[] = [
     ],
     [{ id: "hungry", when: low("bread", 0) }, { id: "base" }],
   ),
-  step("deu_f_centre_3", "deu_centre", [
-    opt("majority_room", [
-      cool("deu_centre", 3),
-      inst("countersign", -1),
-      inst("army", -1),
-      r("hf_centre_room"),
+  // ww187: a motion in the Reichstag: it sits.
+  assuming(
+    step("deu_f_centre_3", "deu_centre", [
+      opt("majority_room", [
+        cool("deu_centre", 3),
+        inst("countersign", -1),
+        inst("army", -1),
+        r("hf_centre_room"),
+      ]),
+      opt("split_centre", [
+        heat("deu_centre", 1),
+        cool("deu_cons", 1),
+        r("hf_centre_split"),
+      ]),
+      opt("let_motion", [inst("reichstag", -1), r("hf_centre_motion")]),
     ]),
-    opt("split_centre", [
-      heat("deu_centre", 1),
-      cool("deu_cons", 1),
-      r("hf_centre_split"),
-    ]),
-    opt("let_motion", [inst("reichstag", -1), r("hf_centre_motion")]),
-  ]),
+    { sits: ["reichstag"] },
+  ),
   // Progressives.
   step("deu_f_progress_2", "deu_progress", [
     opt("franchise_hint", [

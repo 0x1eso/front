@@ -917,6 +917,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
             is: "front",
             theatre: "balkan",
             from: "belgrade",
+            to: "salonika",
           },
         },
       },
@@ -1060,6 +1061,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
             is: "front",
             theatre: "balkan",
             from: "belgrade",
+            to: "salonika",
           },
         },
       ],
@@ -1878,6 +1880,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
                 is: "front",
                 theatre: "balkan",
                 from: "nis",
+                to: "salonika",
               },
             },
           ],
@@ -3052,7 +3055,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
           of: [
             {
               kind: "world",
-              of: { is: "front", theatre: "italy", from: "piave" },
+              of: { is: "front", theatre: "italy", from: "piave", to: "adige" },
             },
             { kind: "seen", scene: "auh_w_caporetto" },
           ],
@@ -7452,7 +7455,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
           of: [
             {
               kind: "world",
-              of: { is: "front", theatre: "italy", from: "piave" },
+              of: { is: "front", theatre: "italy", from: "piave", to: "adige" },
             },
             { kind: "seen", scene: "auh_w_caporetto" },
           ],

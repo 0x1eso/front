@@ -327,6 +327,11 @@ export const GW_LINES: Readonly<Record<GwTheatre, readonly string[]>> = {
   persia: ["baghdad_road", "kermanshah", "hamadan", "tabriz"],
 };
 
+/** ww187: a theatre's first and last lines, the two ends a band can take. */
+export const gwFirstLine = (t: GwTheatre): string => GW_LINES[t][0];
+export const gwLastLine = (t: GwTheatre): string =>
+  GW_LINES[t][GW_LINES[t].length - 1];
+
 /** The side whose advance moves a theatre's line up. */
 export const GW_FRONT_UP: Readonly<Record<GwTheatre, GwSide>> = {
   west: "central",

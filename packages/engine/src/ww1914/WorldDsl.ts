@@ -114,8 +114,8 @@ export function worldHolds(ctx: SceneCtx, c: GwWorldCond): boolean {
     case "front": {
       const t = s.theatres.find((x) => x.id === c.theatre)!;
       const lines = GW_LINES[c.theatre];
-      const from = c.from === undefined ? 0 : lines.indexOf(c.from);
-      const to = c.to === undefined ? lines.length - 1 : lines.indexOf(c.to);
+      const from = lines.indexOf(c.from);
+      const to = lines.indexOf(c.to);
       return t.since !== null && t.line >= from && t.line <= to;
     }
     case "open":

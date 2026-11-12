@@ -72,7 +72,7 @@ const SITTING =
   "표결|신임|불신임|의사일정|수정안|질의|가결|부결|등원|개회|다수당|연설대|본회의|회기 중|투표";
 /** A match with these words tells of the house closed: no claim it sits. */
 const CLOSED =
-  /닫|휴회|정회|해산|열지 않|열리지 않|정지|소집하지|문을 걸|폐지|선거/;
+  /닫|휴회|정회|해산|열지 않|열리지 않|정지|소집하지|문을 걸|폐지|선거|없어|없다/;
 
 /** People a game can take away: needs `active` with the id. */
 export const LINT_PEOPLE: Readonly<Record<string, string>> = {

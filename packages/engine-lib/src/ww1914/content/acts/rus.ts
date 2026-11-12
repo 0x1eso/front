@@ -67,7 +67,10 @@ const VISITS: GwAct[] = [
   visit("rus_a_v_northwest", inWar, [see("force", "east")]),
   visit(
     "rus_a_v_galicia",
-    all(inWar, world({ is: "front", theatre: "east", to: "east_prussia" })),
+    all(
+      inWar,
+      world({ is: "front", theatre: "east", from: "oder", to: "east_prussia" }),
+    ),
     [see("morale")],
   ),
   visit(
@@ -533,7 +536,7 @@ export const RUS_AIMS: readonly GwAim[] = [
     "rus_aim_serbia",
     all(
       not(world({ is: "out", tag: "SRB" })),
-      world({ is: "front", theatre: "east", to: "east_prussia" }),
+      world({ is: "front", theatre: "east", from: "oder", to: "east_prussia" }),
     ),
     ["rus_serbia_stands", "rus_galicia_held"],
     { dropped: [inst("stavka", -1)] },
@@ -542,7 +545,12 @@ export const RUS_AIMS: readonly GwAim[] = [
     "rus_aim_tsargrad",
     any(
       { kind: "chose", scene: "rus_h_straits_note" },
-      world({ is: "front", theatre: "straits", from: "narrows" }),
+      world({
+        is: "front",
+        theatre: "straits",
+        from: "narrows",
+        to: "constantinople",
+      }),
     ),
     ["rus_straits_paper", "rus_army_is_mine"],
     { dropped: [inst("duma", -1)] },

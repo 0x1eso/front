@@ -1487,7 +1487,7 @@ export const GBR_CRISIS_SCENES: readonly GwScene[] = [
       ),
       inWar,
       any(
-        world({ is: "front", theatre: "west", from: "aisne" }),
+        world({ is: "front", theatre: "west", from: "aisne", to: "paris" }),
         flag("f_bef_antwerp"),
       ),
     ),

@@ -1,13 +1,15 @@
-import type {
-  GwGauge,
-  GwInstitution,
-  GwIssue,
-  GwOffice,
-  GwSecret,
-  GwStage,
-  GwTemperament,
-  GwTheatre,
-  GwTopic,
+import {
+  type GwGauge,
+  type GwInstitution,
+  type GwIssue,
+  type GwOffice,
+  type GwSecret,
+  type GwStage,
+  type GwTemperament,
+  type GwTheatre,
+  type GwTopic,
+  gwFirstLine,
+  gwLastLine,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import {
@@ -105,7 +107,8 @@ const russiaBroke = world({
 });
 /** The enemy is asking. */
 const askedPeace = any(isOut("DEU"), world({ is: "armistice" }));
-const franceFalling = flag("w_france_falling");
+/** ww187: France is falling now, not only once (WorldFlags.flagNow). */
+const franceFalling = world({ is: "flag_now", flag: "w_france_falling" });
 /** The table would carry it. */
 const votes = (issue: GwIssue): GwCond => world({ is: "votes", issue, min: 0 });
 const exists = (id: GwSecret): GwCond => ({ kind: "secret", id });
@@ -136,7 +139,12 @@ const score = (min?: number, max?: number): GwCond =>
   world({ is: "score", min, max });
 const casualties = (min: number): GwCond => world({ is: "casualties", min });
 const front = (theatre: GwTheatre, from?: string, to?: string): GwCond =>
-  world({ is: "front", theatre, from, to });
+  world({
+    is: "front",
+    theatre,
+    from: from ?? gwFirstLine(theatre),
+    to: to ?? gwLastLine(theatre),
+  });
 const trenchMin = (theatre: GwTheatre, min: number): GwCond => ({
   kind: "trench",
   theatre,

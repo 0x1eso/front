@@ -26,12 +26,17 @@ export const GW_MANDATES: Readonly<
     {
       id: "deu_paris_by_winter",
       group: "war",
-      met: world({ is: "front", theatre: "west", from: "aisne" }),
+      met: world({ is: "front", theatre: "west", from: "aisne", to: "paris" }),
     },
     {
       id: "deu_east_prussia_holds",
       group: "war",
-      met: world({ is: "front", theatre: "east", from: "east_prussia" }),
+      met: world({
+        is: "front",
+        theatre: "east",
+        from: "east_prussia",
+        to: "kiev",
+      }),
     },
     {
       id: "deu_keep_britain_out",
@@ -121,14 +126,24 @@ export const GW_MANDATES: Readonly<
     {
       id: "rus_galicia_held",
       group: "war",
-      met: world({ is: "front", theatre: "east", to: "east_prussia" }),
+      met: world({
+        is: "front",
+        theatre: "east",
+        from: "oder",
+        to: "east_prussia",
+      }),
     },
     {
       id: "rus_straits_paper",
       group: "war",
       met: any(
         { kind: "chose", scene: "rus_h_straits_note" },
-        world({ is: "front", theatre: "straits", from: "narrows" }),
+        world({
+          is: "front",
+          theatre: "straits",
+          from: "narrows",
+          to: "constantinople",
+        }),
       ),
     },
     { id: "rus_no_great_war", group: "war", met: not(atWar) },
@@ -186,12 +201,22 @@ export const GW_MANDATES: Readonly<
     {
       id: "auh_serbia_punished",
       group: "war",
-      met: world({ is: "front", theatre: "balkan", from: "belgrade" }),
+      met: world({
+        is: "front",
+        theatre: "balkan",
+        from: "belgrade",
+        to: "salonika",
+      }),
     },
     {
       id: "auh_galicia_held",
       group: "war",
-      met: world({ is: "front", theatre: "east", from: "east_prussia" }),
+      met: world({
+        is: "front",
+        theatre: "east",
+        from: "east_prussia",
+        to: "kiev",
+      }),
     },
     {
       id: "auh_no_third_front",
@@ -253,14 +278,19 @@ export const GW_MANDATES: Readonly<
       group: "war",
       // Never invaded, nothing to restore: a run of peace doesn't fail this.
       met: any(
-        world({ is: "front", theatre: "west", to: "liege" }),
+        world({ is: "front", theatre: "west", from: "rhine", to: "liege" }),
         not(world({ is: "entered", tag: "BEL" })),
       ),
     },
     {
       id: "gbr_sea_kept",
       group: "war",
-      met: world({ is: "front", theatre: "sea", to: "north_sea" }),
+      met: world({
+        is: "front",
+        theatre: "sea",
+        from: "blockade",
+        to: "north_sea",
+      }),
     },
     {
       id: "gbr_america_in",
@@ -317,18 +347,20 @@ export const GW_MANDATES: Readonly<
       group: "war",
       met: any(
         world({ is: "peace_side", of: ["won"] }),
-        world({ is: "front", theatre: "west", to: "rhine" }),
+        world({ is: "front", theatre: "west", from: "rhine", to: "rhine" }),
       ),
     },
     {
       id: "fra_rhine",
       group: "war",
-      met: world({ is: "front", theatre: "west", to: "rhine" }),
+      met: world({ is: "front", theatre: "west", from: "rhine", to: "rhine" }),
     },
     {
       id: "fra_paris_held",
       group: "war",
-      met: not(world({ is: "front", theatre: "west", from: "paris" })),
+      met: not(
+        world({ is: "front", theatre: "west", from: "paris", to: "paris" }),
+      ),
     },
     {
       id: "fra_britain_in",

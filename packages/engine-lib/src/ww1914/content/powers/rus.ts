@@ -72,7 +72,12 @@ const blocAt = (
 // A risk that came true, or the pick taken, shows as a reason line: the
 // content check doesn't see a memory a power row writes, so the cards don't
 // read one.
-const retreat = world({ is: "front", theatre: "east", from: "vistula" });
+const retreat = world({
+  is: "front",
+  theatre: "east",
+  from: "vistula",
+  to: "kiev",
+});
 const shellsLow: GwCond = { kind: "gauge", gauge: "shells", max: 0 };
 /** The Duma was abolished by the row beyond the law below. */
 const abolished = flag("f_rus_duma_abolished");

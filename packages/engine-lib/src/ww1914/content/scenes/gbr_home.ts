@@ -84,7 +84,12 @@ const revolution = world({
 /** The House grows short. */
 const commonsLow: GwCond = { kind: "inst", inst: "commons", max: -1 };
 const manLow: GwCond = world({ is: "manpower", max: 55 });
-const westBack: GwCond = world({ is: "front", theatre: "west", from: "somme" });
+const westBack: GwCond = world({
+  is: "front",
+  theatre: "west",
+  from: "somme",
+  to: "paris",
+});
 const bigLoss: GwCond = world({ is: "casualties", min: 300 });
 const unrestAt = (min: number): GwCond => world({ is: "unrest", min });
 const seen = (scene: string): GwCond => ({ kind: "seen", scene });

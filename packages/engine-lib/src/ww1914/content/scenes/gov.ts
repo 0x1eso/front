@@ -3,9 +3,11 @@ import type {
   GwOffice,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
+import type { GwChamber } from "@openfront/engine-api/ww1914/GwHouse";
 import {
   all,
   any,
+  assuming,
   candid,
   flag,
   GwCastRule,
@@ -1639,10 +1641,26 @@ const RUS_SCENES: GwScene[] = [
   ),
 ];
 
+/**
+ * ww187: the papers of a threat made in a chamber assume it sits (GovTable
+ * `sits` rests the row itself); one called before a dissolution doesn't come.
+ */
+const SITS_FOR: readonly [string, GwChamber][] = [
+  ["gov_gbr_table_", "commons"],
+  ["gov_deu_chancellor_", "reichstag"],
+  ["gov_deu_parliament_", "reichstag"],
+  ["gov_rus_duma_", "duma"],
+  ["gov_fra_chamber_", "chambre"],
+];
+const sitting = (x: GwScene): GwScene => {
+  const hit = SITS_FOR.find(([pre]) => x.id.startsWith(pre));
+  return hit === undefined ? x : assuming(x, { sits: [hit[1]] });
+};
+
 export const GOV_SCENES: GwScene[] = [
   ...GBR_SCENES,
   ...DEU_SCENES,
   ...AUH_SCENES,
   ...RUS_SCENES,
   ...GOV_FRA_SCENES,
-];
+].map(sitting);

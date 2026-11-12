@@ -1802,6 +1802,8 @@ export const DEU_CRISIS_SCENES: readonly GwScene[] = [
   },
   {
     id: "deu_t_tsch_galicia",
+    // ww187: the news from Lemberg is its fall: in Russian hands.
+    assumes: { held: { lemberg: "foe" } },
     nation: ["DEU"],
     kind: "talk",
     when: {

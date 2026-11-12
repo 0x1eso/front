@@ -177,6 +177,8 @@ const SCENES: readonly GwScene[] = [
     ],
   }),
   decision("deu_w_peace_alsace", {
+    // ww187: the Reichstag's no-confidence vote is Zabern's, December 1913.
+    assumes: { past: true },
     when: all(peaceMonths(2, 2), peace),
     cast: { interior: holder("interior"), war: holder("war") },
     salience: 6,

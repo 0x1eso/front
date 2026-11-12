@@ -1225,7 +1225,10 @@ const RAW: Loose[] = [
       kind: "all",
       of: [
         { kind: "world", of: { is: "war_months", min: 27, max: 35 } },
-        { kind: "world", of: { is: "front", theatre: "east", from: "warsaw" } },
+        {
+          kind: "world",
+          of: { is: "front", theatre: "east", from: "warsaw", to: "kiev" },
+        },
         { kind: "not", of: { kind: "seen", scene: "rus_h_poland_charter" } },
       ],
     },

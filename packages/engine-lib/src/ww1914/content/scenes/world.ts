@@ -98,6 +98,8 @@ export const WORLD_SCENES: readonly GwScene[] = [
   },
   {
     id: "gw_credits",
+    // ww187: the loan is voted in the Reichstag (AuthorityTable waits for it).
+    assumes: { sits: ["reichstag"] },
     nation: ["DEU"],
     kind: "proposal",
     when: onlyCalled,

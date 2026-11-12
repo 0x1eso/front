@@ -185,7 +185,10 @@ const VISIT_SCENES: GwScene[] = [
     [
       v(
         "close",
-        all(war, world({ is: "front", theatre: "west", from: "aisne" })),
+        all(
+          war,
+          world({ is: "front", theatre: "west", from: "aisne", to: "paris" }),
+        ),
       ),
       v("burned", all(war, from("1914-10"))),
       v("base"),

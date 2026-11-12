@@ -74,7 +74,12 @@ const trusted = world({ is: "regime", of: ["crown"] });
 /** The Duma sits (gov.ts sets it). */
 const sitting = flag("f_gov_rus_session");
 /** The east has fallen back from the Vistula. */
-const retreat = world({ is: "front", theatre: "east", from: "vistula" });
+const retreat = world({
+  is: "front",
+  theatre: "east",
+  from: "vistula",
+  to: "kiev",
+});
 const blocAt = (
   bloc: "army" | "court" | "parliament" | "business" | "workers",
   o: { min?: number; max?: number },

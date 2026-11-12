@@ -1,4 +1,3 @@
-gw_credits brief house:DEU
 gw_f_bratianu_maps text.entente_r1 line:west
 gw_f_sonnino_bill nodes.open.says.hard_vienna line:italy
 gw_home_gbr_4 brief house:GBR

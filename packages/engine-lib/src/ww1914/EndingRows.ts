@@ -199,7 +199,12 @@ export const GW_ENDING_ROWS: Readonly<
       when: all(
         regime("tsar", "crown"),
         any(
-          world({ is: "front", theatre: "straits", from: "constantinople" }),
+          world({
+            is: "front",
+            theatre: "straits",
+            from: "constantinople",
+            to: "constantinople",
+          }),
           flag("f_rus_bosporus_landed"),
         ),
       ),
@@ -247,7 +252,7 @@ export const GW_ENDING_ROWS: Readonly<
       of: ANY_WAR,
       when: all(
         flag("f_gov_bordeaux"),
-        world({ is: "front", theatre: "west", from: "marne" }),
+        world({ is: "front", theatre: "west", from: "marne", to: "paris" }),
       ),
     },
     {
@@ -260,7 +265,7 @@ export const GW_ENDING_ROWS: Readonly<
     {
       id: "fra_end_rhine",
       of: ["victory_peace"],
-      when: world({ is: "front", theatre: "west", to: "rhine" }),
+      when: world({ is: "front", theatre: "west", from: "rhine", to: "rhine" }),
     },
     { id: "fra_end_tiger", of: ["victory_peace"], when: regime("fra_tiger") },
     {

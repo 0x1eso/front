@@ -3537,6 +3537,7 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
             is: "front",
             theatre: "east",
             from: "riga",
+            to: "kiev",
           },
         },
       },

@@ -1,10 +1,11 @@
-import type {
-  GwGauge,
-  GwInstitution,
-  GwOffice,
-  GwSecret,
-  GwTemperament,
-  GwTheatre,
+import {
+  type GwGauge,
+  type GwInstitution,
+  type GwOffice,
+  type GwSecret,
+  type GwTemperament,
+  type GwTheatre,
+  gwLastLine,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import {
@@ -109,7 +110,7 @@ const uboatMax = (max: number): GwCond => world({ is: "uboat", max });
 const scoreMin = (min: number): GwCond => world({ is: "score", min });
 const scoreMax = (max: number): GwCond => world({ is: "score", max });
 const eastAt = (from: string): GwCond =>
-  world({ is: "front", theatre: "east", from });
+  world({ is: "front", theatre: "east", from, to: gwLastLine("east") });
 const holds = (office: GwOffice, person: string): GwCond => ({
   kind: "holder",
   office,

@@ -296,7 +296,15 @@ const VISIT_SCENES: GwScene[] = [
     {},
     [
       v("before", peace),
-      v("taken", world({ is: "front", theatre: "balkan", from: "belgrade" })),
+      v(
+        "taken",
+        world({
+          is: "front",
+          theatre: "balkan",
+          from: "belgrade",
+          to: "salonika",
+        }),
+      ),
       base,
     ],
     { tags: ["war"] },

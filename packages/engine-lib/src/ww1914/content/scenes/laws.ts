@@ -3,8 +3,9 @@ import type {
   GwNode,
   GwOption,
   GwScene,
+  GwVariant,
 } from "@openfront/engine-api/ww1914/SceneDsl";
-import { flag } from "@openfront/engine-api/ww1914/SceneDsl";
+import { all, flag, not } from "@openfront/engine-api/ww1914/SceneDsl";
 import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
 import { GW_LAW_HOME, GwLawRow, lawTermTell } from "../../LawRows";
 import { AUH_LAWS } from "../laws/auh";
@@ -16,6 +17,7 @@ import {
   GW_HOUSE_LAWS,
   houseBill,
   houseMayNotSit,
+  houseShutChamber,
   NOT_HOUSE_BROUGHT,
 } from "./house";
 
@@ -33,6 +35,12 @@ export const GW_LAWS: readonly GwLawRow[] = [
 const onlyCalled = flag("gw_world_called_only");
 
 const act = (e: Parameters<typeof doWorld>[0]): GwEffect => doWorld(e);
+
+/** ww187: the shut day's tag: the chamber it waits on (the others then assume it sits). */
+function shutTag(row: GwLawRow): Pick<GwVariant, "assumes"> {
+  const c = houseShutChamber(row);
+  return c === null ? {} : { assumes: { shut: [c] } };
+}
 
 /** The card of the drafting: each option is a text of the bill. */
 function draftScene(row: GwLawRow, house: boolean): GwScene {
@@ -122,6 +130,20 @@ function dayScene(row: GwLawRow, house: boolean, mayNotSit: boolean): GwScene {
     tags: ["home"],
     when: onlyCalled,
     variants: [
+      // ww187: a chamber it needs is shut (dissolved, prorogued, abolished):
+      // no vote today, only the way round or the wait.
+      ...(house && mayNotSit
+        ? [
+            {
+              id: "shut",
+              when: all(
+                not(world({ is: "house_sits", id: law })),
+                world({ is: "law", id: law, of: ["vote"] }),
+              ),
+              ...shutTag(row),
+            },
+          ]
+        : []),
       // A house bill's day reads the whip's word, right or wrong, not the count.
       {
         id: "short",

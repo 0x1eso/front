@@ -661,7 +661,7 @@ export const GBR_AIMS: readonly GwAim[] = [
   aim(
     "gbr_aim_belgium",
     any(
-      world({ is: "front", theatre: "west", to: "liege" }),
+      world({ is: "front", theatre: "west", from: "rhine", to: "liege" }),
       not(world({ is: "entered", tag: "BEL" })),
     ),
     ["gbr_belgium_restored", "gbr_sea_kept", "gbr_america_in"],
@@ -675,11 +675,14 @@ export const GBR_AIMS: readonly GwAim[] = [
   ),
   aim(
     "gbr_aim_sea",
-    all(world({ is: "front", theatre: "sea", to: "north_sea" }), {
-      kind: "gauge",
-      gauge: "money",
-      min: 1,
-    }),
+    all(
+      world({ is: "front", theatre: "sea", from: "blockade", to: "north_sea" }),
+      {
+        kind: "gauge",
+        gauge: "money",
+        min: 1,
+      },
+    ),
     ["gbr_sea_kept", "gbr_money_left", "gbr_bread"],
     [inst("opposition", 1)],
   ),

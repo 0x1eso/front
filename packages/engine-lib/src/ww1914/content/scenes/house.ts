@@ -1,6 +1,7 @@
 // Great War 1914: the house's tables and the talks made from them (ww158). A
 // later country adds its file's exports here, one line each. A house comes
 // into play only once its country has factions.
+import type { GwChamber } from "@openfront/engine-api/ww1914/GwHouse";
 import type {
   GwCastRule,
   GwNode,
@@ -312,6 +313,8 @@ function resultCard(tag: GwScene["nation"][number]): GwScene {
     id: houseIds.result(tag),
     nation: [tag],
     kind: "wire",
+    // ww187: it tells of the vote just held, laid as it ends.
+    assumes: { past: true },
     silent: true,
     scheduledOnly: true,
     cast: {},
@@ -409,6 +412,19 @@ export function houseMayNotSit(row: GwLawRow): boolean {
   );
   // ww187: one chamber that can be shut (a dissolution) is enough to wait on.
   return meets.some((c) => c.sits !== undefined);
+}
+
+/** ww187: the first chamber the bill meets that can be shut, if any. */
+export function houseShutChamber(row: GwLawRow): GwChamber | null {
+  const bill = houseBill(row.id);
+  const house = GW_HOUSE_CONTENT.houses?.find((h) => h.tag === row.tag);
+  if (bill === null || house === undefined) return null;
+  const meets = house.chambers.filter((c) =>
+    bill.houses === undefined
+      ? c.optional !== true
+      : bill.houses.includes(c.id),
+  );
+  return meets.find((c) => c.sits !== undefined)?.id ?? null;
 }
 
 export const NOT_HOUSE_BROUGHT = (law: string) =>

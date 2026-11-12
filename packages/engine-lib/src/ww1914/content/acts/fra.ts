@@ -1,3 +1,4 @@
+import { gwFirstLine } from "@openfront/engine-api/ww1914/GreatWarTypes";
 // France's schedule (원수의 일정) and aims (국가 목표); shapes in GwActs.ts.
 // Text in resources/ww1914/ko/FRA.acts.json. Their scenes are in scenes/fra_act.ts.
 // Lane W8 (ww166-format.md).
@@ -32,7 +33,7 @@ const from = (min: string): GwCond => world({ is: "date", from: min });
 const chapters = (min: number): GwCond => ({ kind: "chapter", min });
 const active = (person: string): GwCond => ({ kind: "person_active", person });
 const westNotPast = (line: string): GwCond =>
-  world({ is: "front", theatre: "west", to: line });
+  world({ is: "front", theatre: "west", from: gwFirstLine("west"), to: line });
 const inspect = (
   fact: "force" | "shells" | "morale",
   tag: "FRA" | "DEU",
@@ -721,7 +722,12 @@ export const FRA_AIMS: readonly GwAim[] = [
   aim(
     "fra_aim_levant",
     any(
-      world({ is: "front", theatre: "palestine", from: "damascus" }),
+      world({
+        is: "front",
+        theatre: "palestine",
+        from: "damascus",
+        to: "damascus",
+      }),
       all(won, world({ is: "entered", tag: "OTT" })),
     ),
     ["fra_britain_in", "fra_money_left", "fra_small_list"],

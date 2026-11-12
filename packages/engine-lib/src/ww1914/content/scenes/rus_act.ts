@@ -233,7 +233,10 @@ const VISIT_SCENES: GwScene[] = [
     {},
     ["war"],
     [
-      v("ahead", world({ is: "front", theatre: "caucasus", from: "erzurum" })),
+      v(
+        "ahead",
+        world({ is: "front", theatre: "caucasus", from: "erzurum", to: "van" }),
+      ),
       v("base"),
     ],
   ),
@@ -928,7 +931,7 @@ const AIM_SCENES: GwScene[] = [
     all(
       aim("rus_aim_serbia"),
       inWar,
-      world({ is: "front", theatre: "balkan", from: "nis" }),
+      world({ is: "front", theatre: "balkan", from: "nis", to: "salonika" }),
     ),
     { fm: { office: "foreign" }, cos: { office: "chief_of_staff" } },
     ["war", "foreign"],
@@ -1287,7 +1290,7 @@ const BIG_SCENES: GwScene[] = [
     all(
       inWar,
       world({ is: "war_months", own: true, max: 10 }),
-      world({ is: "front", theatre: "east", to: "east_prussia" }),
+      world({ is: "front", theatre: "east", from: "oder", to: "east_prussia" }),
       high("morale", 3),
       world({
         is: "battle",
@@ -1371,8 +1374,8 @@ const BIG_SCENES: GwScene[] = [
       inWar,
       world({ is: "war_months", own: true, min: 9, max: 23 }),
       any(
-        world({ is: "front", theatre: "east", from: "warsaw" }),
-        flag("w_warsaw_lost"),
+        world({ is: "front", theatre: "east", from: "warsaw", to: "kiev" }),
+        world({ is: "flag_now", flag: "w_warsaw_lost" }),
       ),
       not(headed),
       not({ kind: "seen", scene: "rus_w_command" }),

@@ -52,7 +52,12 @@ const own = (min?: number, max?: number): GwCond =>
   });
 const month = (...of: number[]): GwCond => world({ is: "month", of });
 /** The Germans are in northern France. */
-const north = world({ is: "front", theatre: "west", from: "hindenburg" });
+const north = world({
+  is: "front",
+  theatre: "west",
+  from: "hindenburg",
+  to: "paris",
+});
 const seen = (scene: string): GwCond => ({ kind: "seen", scene });
 const m = (key: string): GwCond => memory(`m_fra_${key}`);
 /** The war is over, or nearly: an armistice, or France's war past four years. */
@@ -196,7 +201,7 @@ const HENRIETTE: readonly GwScene[] = [
     // The Germans near Paris, before the government has gone to Bordeaux.
     all(
       war,
-      world({ is: "front", theatre: "west", from: "somme" }),
+      world({ is: "front", theatre: "west", from: "somme", to: "paris" }),
       not(seen("fra_big_bordeaux")),
     ),
     5,

@@ -58,7 +58,12 @@ const trenches = world({
   of: ["trenches", "material", "depth", "storm"],
 });
 /** The Germans stand inside France's north: the mines and mills behind them. */
-const northLost = world({ is: "front", theatre: "west", from: "hindenburg" });
+const northLost = world({
+  is: "front",
+  theatre: "west",
+  from: "hindenburg",
+  to: "paris",
+});
 const uboats = world({ is: "uboat", min: 1 });
 const workersAt = (max: number): GwCond => ({
   kind: "bloc",

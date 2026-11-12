@@ -433,11 +433,12 @@ describe("diplomacy L0: the digests that never move", () => {
   });
 
   // Re-pinned with the ww179 merge (secret war in peace, heat, project
-  // effects, occupation of every place): the Great War's own rules moved it,
-  // not the diplomacy.
+  // effects, occupation of every place) and ww187 (scenes by state, a house
+  // shut till its election): the Great War's own rules moved it, not the
+  // diplomacy.
   test("the Great War pin is unchanged", () => {
     expect(read("ww1914/GreatWarSnapshot.test.ts")).toContain(
-      'const GW_DIGEST = "1b7b51da6632d4a7";',
+      'const GW_DIGEST = "c7c036981571fe63";',
     );
   });
 });

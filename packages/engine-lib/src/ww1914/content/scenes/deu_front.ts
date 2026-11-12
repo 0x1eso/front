@@ -1,9 +1,10 @@
-import type {
-  GwGauge,
-  GwStage,
-  GwTech,
-  GwTemperament,
-  GwTheatre,
+import {
+  type GwGauge,
+  type GwStage,
+  type GwTech,
+  type GwTemperament,
+  type GwTheatre,
+  gwLastLine,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import {
@@ -101,8 +102,9 @@ const SPRING_PLANNING: GwCond = world({
   is: "month",
   of: [11, 12, 1, 2, 3, 4],
 });
-const front = (theatre: GwTheatre, from: string): GwCond =>
-  world({ is: "front", theatre, from });
+/** ww187: at `from` or past it, up to `to` (the theatre's last line if absent). */
+const front = (theatre: GwTheatre, from: string, to?: string): GwCond =>
+  world({ is: "front", theatre, from, to: to ?? gwLastLine(theatre) });
 const low = (g: GwGauge, max: number): GwCond => ({
   kind: "gauge",
   gauge: g,
@@ -166,6 +168,20 @@ const appointChief = (w: GwWho): GwEffect => ({
 });
 
 // ---- Shapes ----
+
+/** ww187: Paris in our hands. */
+const PARIS_OURS: GwCond = world({ is: "held", place: "paris", by: "us" });
+/** ww187: our great offensive in the west, prepared or running. */
+const OUR_WEST_OFFENSIVE: GwCond = world({
+  is: "offensive",
+  side: "ours",
+  theatre: ["west"],
+});
+/** ww187: how deep the west's trenches are dug. */
+const TRENCH = (min: number, max?: number): GwCond =>
+  max === undefined
+    ? { kind: "trench", theatre: "west", min }
+    : { kind: "trench", theatre: "west", min, max };
 
 const v = (id: string, when?: GwCond): GwVariant =>
   when === undefined ? { id } : { id, when };
@@ -325,16 +341,32 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
     tags: ["war"],
     once: false,
     cooldown: 1,
+    // ww187: the month's paper reads the front, the trenches and the land
+    // held, not the calendar.
     variants: [
       v("lost", first(score(-25))),
-      v("storm", all(date("1918-01", "1918-12"), scoreUp(-24), war)),
-      v("pair", all(pair3, date("1916-09", "1917-12"))),
-      v("depth", all(date("1917-01", "1917-12"), war)),
-      v("material", all(date("1916-01", "1916-12"), war)),
+      // Paris is ours: the paper is a garrison's.
+      {
+        ...v("paris", all(PARIS_OURS, war, war)),
+        assumes: { held: { paris: "us" } },
+      },
+      // The west line is back at the border.
+      {
+        ...v("back", all(front("west", "rhine", "liege"), war, war)),
+        assumes: { line: { west: ["rhine", "liege"] } },
+      },
+      // Our own great offensive in the west is on: the storm divisions.
+      {
+        ...v("storm", all(OUR_WEST_OFFENSIVE, scoreUp(-24), war)),
+        assumes: { fights: ["USA"] },
+      },
+      v("pair", pair3),
+      v("depth", all(TRENCH(2), war)),
+      v("material", all(TRENCH(1, 1), war)),
       v(
         "returned",
         all(
-          date("1915-01", "1915-06"),
+          own(0, 10),
           known(
             "m_returned_aug",
             "m_returned_sep",
@@ -395,7 +427,11 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
     variants: [
       v("chief_east", first(chiefIs("deu_hindenburg"))),
       v("pair", all(known("m_east_pair", "m_pair_sent"), war)),
-      v("east_plan", all(east1, war)),
+      // ww187: "beyond the Vistula" reads the east line short of Warsaw.
+      {
+        ...v("east_plan", all(east1, war)),
+        assumes: { line: { east: ["east_prussia", "warsaw"] } },
+      },
       v("base"),
     ],
     fallback: "back_chief",
@@ -912,6 +948,8 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
   scene({
     id: "deu_f_somme_doctrine",
     kind: "proposal",
+    // ww187: the British guns on the Somme: the west line near it.
+    assumes: { line: { west: ["hindenburg", "aisne"] }, war: ["GBR"] },
     when: all(
       war,
       atWar("GBR"),
@@ -1456,7 +1494,16 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
     salience: 8,
     tags: ["war", "tension_up"],
     variants: [
-      v("near", all(front("west", "marne"), war, war)),
+      // ww187: at the Marne, Paris not yet taken, the Americans in, and the
+      // Marne stop of four years ago a fact of this game.
+      {
+        ...v("near", all(front("west", "marne", "paris"), war, war)),
+        assumes: {
+          held: { paris: "foe" },
+          fights: ["USA"],
+          now: ["w_marne_stopped"],
+        },
+      },
       v("one_blow", all(flag("f_spring_one_blow"), war)),
       v("base"),
     ],
@@ -1648,6 +1695,8 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
   scene({
     id: "deu_f_paris_in_range",
     kind: "crisis",
+    // ww187: the city still stands before the army; held, deu_f_paris_held.
+    assumes: { held: { paris: "foe" } },
     when: all(
       front("west", "marne"),
       atWar("FRA"),
@@ -1693,6 +1742,48 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
           reason("f_paris_offer"),
         ],
         memory("k_kuhl_paris"),
+      ),
+    ],
+  }),
+  // ww187: Paris taken. The city is ours now: a parade, a garrison, or the
+  // peace it could buy.
+  scene({
+    id: "deu_f_paris_held",
+    kind: "crisis",
+    assumes: { held: { paris: "us" }, war: ["FRA"] },
+    when: all(PARIS_OURS, atWar("FRA")),
+    cast: { cos: holder("chief_of_staff"), chancellor: holder("chancellor") },
+    salience: 9,
+    tags: ["war", "tension_down"],
+    variants: [v("base")],
+    fallback: "garrison",
+    options: [
+      o(
+        "parade",
+        ["authority:+1", "morale:+1", "army:+1"],
+        [
+          authority(1),
+          gauge("morale", 1),
+          army(1),
+          ally("FRA", -1),
+          reason("f_paris_parade"),
+        ],
+      ),
+      o(
+        "garrison",
+        ["manpower:-2"],
+        [men(-2), force("west", 1), reason("f_paris_garrison")],
+      ),
+      o(
+        "peace_push",
+        ["army:-1", "authority:+1"],
+        [
+          army(-1),
+          authority(1),
+          ally("FRA", 1),
+          doWorld({ do: "talks" }),
+          reason("f_paris_peace"),
+        ],
       ),
     ],
   }),

@@ -245,7 +245,7 @@ const NEWS: readonly GwScene[] = [
   report("gw_n_caporetto", {
     nation: except("AUH"),
     when: all(
-      w({ is: "front", theatre: "italy", from: "piave" }),
+      w({ is: "front", theatre: "italy", from: "piave", to: "adige" }),
       world({ is: "war_months", min: 17, max: 51 }),
     ),
     salience: 6,
@@ -255,7 +255,12 @@ const NEWS: readonly GwScene[] = [
   report("gw_n_jerusalem", {
     nation: [...GW_TAGS],
     when: all(
-      w({ is: "front", theatre: "palestine", from: "jerusalem" }),
+      w({
+        is: "front",
+        theatre: "palestine",
+        from: "jerusalem",
+        to: "damascus",
+      }),
       world({ is: "war_months", min: 17, max: 51 }),
     ),
     salience: 5,
@@ -269,7 +274,7 @@ const NEWS: readonly GwScene[] = [
     when: all(
       any(
         w({ is: "battle", theatre: "west", of: BATTLE_ANY, by: "central" }),
-        flag("w_france_falling"),
+        w({ is: "flag_now", flag: "w_france_falling" }),
         all(w({ is: "out", tag: "RUS" }), flag("w_america_in")),
       ),
       w({ is: "entered", tag: "GBR", side: "entente" }),

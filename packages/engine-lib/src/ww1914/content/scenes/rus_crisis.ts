@@ -2694,7 +2694,12 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
                 { kind: "world", of: { is: "war_months", min: 5, max: 29 } },
                 {
                   kind: "world",
-                  of: { is: "front", theatre: "east", from: "vistula" },
+                  of: {
+                    is: "front",
+                    theatre: "east",
+                    from: "vistula",
+                    to: "kiev",
+                  },
                 },
                 atDesk,
               ],
@@ -4504,7 +4509,12 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
                 { kind: "world", of: { is: "war_months", min: 5, max: 17 } },
                 {
                   kind: "world",
-                  of: { is: "front", theatre: "east", from: "vistula" },
+                  of: {
+                    is: "front",
+                    theatre: "east",
+                    from: "vistula",
+                    to: "kiev",
+                  },
                 },
                 {
                   kind: "holder",

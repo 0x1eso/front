@@ -222,7 +222,10 @@ export const AUH_PROJECTS: readonly GwProjectRow[] = [
     // The Austro-Polish solution, after Warsaw fell in August 1915.
     id: "auh_pj_poland",
     tag: "AUH",
-    opens: all(atWar, world({ is: "front", theatre: "east", from: "warsaw" })),
+    opens: all(
+      atWar,
+      world({ is: "front", theatre: "east", from: "warsaw", to: "kiev" }),
+    ),
     lead: holder("foreign"),
     odds: 40,
     aims: ["auh_aim_nations", "auh_aim_own"],

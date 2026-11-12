@@ -141,8 +141,11 @@ export type GwWorldCond =
   | { is: "entered"; tag: GwTag; side?: GwSide }
   /** A country has left the war. */
   | { is: "out"; tag: GwTag }
-  /** A theatre is at or past a named line (`to`: not past it). */
-  | { is: "front"; theatre: GwTheatre; from?: string; to?: string }
+  /**
+   * A theatre's line stands in a band, both ends included (ww187: both ends
+   * are named; gwFirstLine / gwLastLine for an open end).
+   */
+  | { is: "front"; theatre: GwTheatre; from: string; to: string }
   | { is: "open"; theatre: GwTheatre }
   /** The theatre's last result; `by`: who attacked (seat: the seat's side). */
   | {
@@ -659,11 +662,7 @@ export const GwWorldCondSchema = z.union([
   is("war", {}),
   is("entered", { tag, side: z.enum(GW_SIDES).optional() }),
   is("out", { tag }),
-  is("front", {
-    theatre,
-    from: GwIdSchema.optional(),
-    to: GwIdSchema.optional(),
-  }),
+  is("front", { theatre, from: GwIdSchema, to: GwIdSchema }),
   is("open", { theatre }),
   is("battle", {
     theatre,

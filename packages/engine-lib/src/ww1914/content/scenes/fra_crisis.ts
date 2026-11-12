@@ -1,8 +1,9 @@
-import type {
-  GwInstitution,
-  GwOffice,
-  GwOpening,
-  GwTemperament,
+import {
+  type GwInstitution,
+  type GwOffice,
+  type GwOpening,
+  type GwTemperament,
+  gwLastLine,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import {
@@ -148,7 +149,7 @@ const mob = (tag: GwTag, min: number): GwCond => ({
 });
 const westFrom = (line: string): GwCond => ({
   kind: "world",
-  of: { is: "front", theatre: "west", from: line },
+  of: { is: "front", theatre: "west", from: line, to: gwLastLine("west") },
 });
 const heard = (key: string): GwCond => memory(key);
 /** Chapters since France came into the war. */
@@ -1194,6 +1195,8 @@ export const FRA_CRISIS_SCENES: readonly GwScene[] = [
     ),
     [v("messimy", holds("war", "fra_messimy")), base],
     {
+      // ww187: a governor to hold Paris: it is still French.
+      assumes: { held: { paris: "owner" } },
       stage: LATE,
       fallback: "name_gallieni",
       options: [

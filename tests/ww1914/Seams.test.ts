@@ -215,11 +215,13 @@ describe("scenes name lines", () => {
       "fx_envoy: name the line with world `front`, not a number",
     ]);
     expect(
-      by(world({ is: "front", theatre: "west", from: "ardennes" })),
+      by(
+        world({ is: "front", theatre: "west", from: "ardennes", to: "paris" }),
+      ),
     ).toEqual(["fx_envoy: west has no line ardennes"]);
-    expect(by(world({ is: "front", theatre: "west", from: "marne" }))).toEqual(
-      [],
-    );
+    expect(
+      by(world({ is: "front", theatre: "west", from: "marne", to: "paris" })),
+    ).toEqual([]);
   });
 });
 

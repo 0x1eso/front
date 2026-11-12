@@ -37,9 +37,13 @@ const strings = (o: unknown, at: string): [string, string][] =>
 function bodiesOf(id: string, pack: Record<string, unknown>): Body[] {
   const s = scenes.get(id);
   const top = s?.assumes === undefined ? [] : [s.assumes];
+  // A scene with a body for its house shut assumes it sits in the others.
+  const shut = s?.variants.find((x) => x.assumes?.shut !== undefined);
+  const sits: GwAssumes[] =
+    shut === undefined ? [] : [{ sits: shut.assumes!.shut }];
   const variant = (v: string) => {
     const a = s?.variants.find((x) => x.id === v)?.assumes;
-    return a === undefined ? top : [...top, a];
+    return a === undefined ? [...top, ...sits] : [...top, a];
   };
   const says = (node: string, v: string) => {
     const a = s?.nodes?.[node]?.says.find((x) => x.id === v)?.assumes;

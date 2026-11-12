@@ -167,11 +167,21 @@ export const DEU_ACT_SCENES: readonly GwScene[] = [
     variants: [
       {
         id: "far",
-        when: world({ is: "front", theatre: "east", from: "warsaw" }),
+        when: world({
+          is: "front",
+          theatre: "east",
+          from: "warsaw",
+          to: "kiev",
+        }),
       },
       {
         id: "home",
-        when: world({ is: "front", theatre: "east", to: "east_prussia" }),
+        when: world({
+          is: "front",
+          theatre: "east",
+          from: "oder",
+          to: "east_prussia",
+        }),
       },
       { id: "base" },
     ],
@@ -261,7 +271,12 @@ export const DEU_ACT_SCENES: readonly GwScene[] = [
         id: "overrun",
         when: all(
           atWar("RUS"),
-          world({ is: "front", theatre: "east", to: "east_prussia" }),
+          world({
+            is: "front",
+            theatre: "east",
+            from: "oder",
+            to: "east_prussia",
+          }),
         ),
       },
       { id: "after", when: war },
@@ -1134,7 +1149,14 @@ export const DEU_STORY_SCENES: readonly GwScene[] = [
     nodes: {
       n1: {
         alone: true,
-        says: [said("east", flag("f_east_first")), said()],
+        says: [
+          // ww187: "the front near the Vistula": the east line there.
+          {
+            ...said("east", flag("f_east_first")),
+            assumes: { line: { east: ["east_prussia", "warsaw"] } },
+          },
+          said(),
+        ],
         replies: [ask("hear", "n2")],
       },
       n2: {
@@ -1866,7 +1888,12 @@ export const DEU_STORY_SCENES: readonly GwScene[] = [
         { id: "peace", when: not(nickyWar) },
         {
           id: "lost",
-          when: world({ is: "front", theatre: "east", from: "warsaw" }),
+          when: world({
+            is: "front",
+            theatre: "east",
+            from: "warsaw",
+            to: "kiev",
+          }),
         },
         { id: "base" },
       ],
@@ -1991,7 +2018,10 @@ export const DEU_STORY_SCENES: readonly GwScene[] = [
     ],
   }),
   press("deu_m_east_poles", "deu_aim_east", {
-    when: all(war, world({ is: "front", theatre: "east", from: "warsaw" })),
+    when: all(
+      war,
+      world({ is: "front", theatre: "east", from: "warsaw", to: "kiev" }),
+    ),
     tags: ["foreign", "war"],
     options: [
       opt(

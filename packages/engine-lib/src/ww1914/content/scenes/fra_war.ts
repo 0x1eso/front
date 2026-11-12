@@ -39,7 +39,6 @@ import {
   trustOf,
 } from "@openfront/engine-api/ww1914/SceneDsl";
 import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
-import { period } from "./period";
 
 /**
  * France, the war share (plan ww166-plan-fra-scenes.md §6, §9 W2, §10 W2,
@@ -57,8 +56,6 @@ const cos = role("cos");
 
 const CRISIS_ON: GwStage[] = ["crisis", "y1914", "war"];
 const Y14_ON: GwStage[] = ["y1914", "war"];
-
-const during = period;
 
 // ---- Conditions ----
 
@@ -407,6 +404,9 @@ const reveal = (
 
 // ---- The desk ----
 
+/** ww187: Paris in the enemy's hands. */
+const PARIS_TAKEN: GwCond = world({ is: "held", place: "paris", by: "foe" });
+
 const DESK: GwScene[] = [
   // The campaign's accounts, every three chapters: the same form on purpose.
   scene({
@@ -419,12 +419,21 @@ const DESK: GwScene[] = [
     tags: ["war"],
     once: false,
     cooldown: 3,
+    // ww187: the paper reads the front and Paris, not the calendar.
     variants: [
-      v("won", all(world({ is: "score", min: 40 }), during("18b"))),
+      {
+        ...v("paris_lost", all(PARIS_TAKEN, war, war)),
+        assumes: { held: { paris: "foe" } },
+      },
+      v("won", all(world({ is: "score", min: 40 }), war)),
       v("free", joffreFree),
       v("tiger", tiger),
       v("thin", gaugeAt("shells", 1)),
-      v("trench", trench(2)),
+      // "ten occupied departments": the line inside France.
+      {
+        ...v("trench", trench(2)),
+        assumes: { line: { west: ["hindenburg", "paris"] } },
+      },
       v("first", world({ is: "war_age", max: 2 })),
       v("base"),
     ],
@@ -566,7 +575,7 @@ const DESK: GwScene[] = [
     all(
       war,
       world({ is: "tech", id: "gas_heavy", tag: "DEU" }),
-      world({ is: "front", theatre: "west", from: "liege" }),
+      world({ is: "front", theatre: "west", from: "liege", to: "paris" }),
       world({ is: "in_war", min: 4 }),
     ),
     [v("british", fighting("GBR")), v("base")],
@@ -627,7 +636,10 @@ const DESK: GwScene[] = [
     salience: 8,
     tags: ["war", "foreign"],
     variants: [
-      v("serbia_falls", world({ is: "front", theatre: "balkan", from: "nis" })),
+      v(
+        "serbia_falls",
+        world({ is: "front", theatre: "balkan", from: "nis", to: "salonika" }),
+      ),
       v("orient_said", flag("f_orient_chosen")),
       v("base"),
     ],
@@ -959,7 +971,7 @@ const DESK: GwScene[] = [
       world({ is: "war_months", own: true, min: 35, max: 47 }),
       fighting("ITA"),
       any(
-        world({ is: "front", theatre: "italy", from: "piave" }),
+        world({ is: "front", theatre: "italy", from: "piave", to: "adige" }),
         world({ is: "battle", theatre: "italy", of: ["break"], by: "foe" }),
       ),
     ),
@@ -1003,7 +1015,7 @@ const DESK: GwScene[] = [
     // The long gun: the Germans in the north with the guns of the storm.
     when: all(
       war,
-      world({ is: "front", theatre: "west", from: "hindenburg" }),
+      world({ is: "front", theatre: "west", from: "hindenburg", to: "paris" }),
       any(
         world({ is: "tech", id: "predicted_fire", tag: "DEU" }),
         world({ is: "era", of: ["storm"] }),
@@ -1061,7 +1073,7 @@ const DESK: GwScene[] = [
       war,
       world({ is: "war_months", own: true, min: 41 }),
       seen("fra_w_doullens"),
-      world({ is: "front", theatre: "west", from: "aisne" }),
+      world({ is: "front", theatre: "west", from: "aisne", to: "paris" }),
     ),
     cast: { cos: holder("chief_of_staff"), pm: holder("chancellor") },
     salience: 8,
@@ -1099,7 +1111,7 @@ const DESK: GwScene[] = [
     all(
       war,
       westFwd,
-      world({ is: "front", theatre: "west", from: "hindenburg" }),
+      world({ is: "front", theatre: "west", from: "hindenburg", to: "paris" }),
       any(
         world({ is: "entered", tag: "USA", side: "entente" }),
         world({ is: "era", of: ["storm"] }),

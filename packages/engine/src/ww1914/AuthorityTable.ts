@@ -292,7 +292,7 @@ const russianRules: GwInstRule[] = [
     rule: "call",
     scene: "gw_rus_command",
     once: true,
-    when: world({ is: "front", theatre: "east", from: "warsaw" }),
+    when: world({ is: "front", theatre: "east", from: "warsaw", to: "kiev" }),
   },
   {
     rule: "call",

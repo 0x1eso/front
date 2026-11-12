@@ -36,7 +36,7 @@ const forward: GwCond = {
   kind: "not",
   of: {
     kind: "world",
-    of: { is: "front", theatre: "east", from: "vistula" },
+    of: { is: "front", theatre: "east", from: "vistula", to: "kiev" },
   },
 };
 
@@ -58,6 +58,21 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     tags: ["war"],
     cooldown: 2,
     variants: [
+      // ww187: the east line far back: the paper of a retreat, by the front.
+      {
+        id: "retreat",
+        when: {
+          kind: "all",
+          of: [
+            {
+              kind: "world",
+              of: { is: "front", theatre: "east", from: "warsaw", to: "kiev" },
+            },
+            { kind: "world", of: { is: "war" } },
+          ],
+        },
+        assumes: { line: { east: ["warsaw", "kiev"] } },
+      },
       {
         id: "storm",
         when: { kind: "world", of: { is: "era", of: ["storm"] } },
@@ -516,9 +531,17 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
               of: [
                 {
                   kind: "world",
-                  of: { is: "front", theatre: "east", from: "warsaw" },
+                  of: {
+                    is: "front",
+                    theatre: "east",
+                    from: "warsaw",
+                    to: "kiev",
+                  },
                 },
-                { kind: "flag", flag: "w_warsaw_lost" },
+                {
+                  kind: "world",
+                  of: { is: "flag_now", flag: "w_warsaw_lost" },
+                },
               ],
             },
           ],
@@ -531,7 +554,10 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     tags: ["war", "tension_up"],
     once: true,
     variants: [
-      { id: "fallen", when: { kind: "flag", flag: "w_warsaw_lost" } },
+      {
+        id: "fallen",
+        when: { kind: "world", of: { is: "flag_now", flag: "w_warsaw_lost" } },
+      },
       { id: "cmd", when: { kind: "world", of: { is: "command" } } },
       { id: "shells", when: { kind: "gauge", gauge: "shells", max: 0 } },
       { id: "base" },
@@ -593,7 +619,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
         { kind: "world", of: { is: "war_months", own: true, min: 10 } },
         {
           kind: "world",
-          of: { is: "front", theatre: "east", from: "vistula" },
+          of: { is: "front", theatre: "east", from: "vistula", to: "kiev" },
         },
       ],
     },
@@ -619,7 +645,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
             { kind: "world", of: { is: "war" } },
             {
               kind: "world",
-              of: { is: "front", theatre: "east", from: "warsaw" },
+              of: { is: "front", theatre: "east", from: "warsaw", to: "kiev" },
             },
             { kind: "not", of: { kind: "world", of: { is: "command" } } },
             { kind: "not", of: { kind: "seen", scene: "rus_h_keys" } },
@@ -638,7 +664,10 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     tags: ["people"],
     once: true,
     variants: [
-      { id: "fallen", when: { kind: "flag", flag: "w_warsaw_lost" } },
+      {
+        id: "fallen",
+        when: { kind: "world", of: { is: "flag_now", flag: "w_warsaw_lost" } },
+      },
       { id: "no_shells", when: { kind: "gauge", gauge: "shells", max: 0 } },
       {
         id: "ministers_low",
@@ -765,7 +794,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
         },
         {
           kind: "world",
-          of: { is: "front", theatre: "east", from: "vistula" },
+          of: { is: "front", theatre: "east", from: "vistula", to: "kiev" },
         },
       ],
     },
@@ -1586,7 +1615,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     stage: ["crisis", "y1914", "war"],
     when: {
       kind: "world",
-      of: { is: "front", theatre: "caucasus", from: "erzurum" },
+      of: { is: "front", theatre: "caucasus", from: "erzurum", to: "van" },
     },
     cast: {},
     salience: 6,
@@ -1701,7 +1730,12 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
         id: "allied_gone",
         when: {
           kind: "world",
-          of: { is: "front", theatre: "straits", to: "dardanelles" },
+          of: {
+            is: "front",
+            theatre: "straits",
+            from: "dardanelles",
+            to: "dardanelles",
+          },
         },
       },
       { id: "base" },
@@ -1754,7 +1788,12 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
           of: [
             {
               kind: "world",
-              of: { is: "front", theatre: "straits", from: "narrows" },
+              of: {
+                is: "front",
+                theatre: "straits",
+                from: "narrows",
+                to: "constantinople",
+              },
             },
             { kind: "world", of: { is: "out", tag: "OTT" } },
           ],
@@ -1777,7 +1816,12 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
         id: "allies_near",
         when: {
           kind: "world",
-          of: { is: "front", theatre: "straits", from: "narrows" },
+          of: {
+            is: "front",
+            theatre: "straits",
+            from: "narrows",
+            to: "constantinople",
+          },
         },
       },
       { id: "base" },
@@ -1832,7 +1876,10 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
       kind: "all",
       of: [
         { kind: "world", of: { is: "war" } },
-        { kind: "world", of: { is: "front", theatre: "east", to: "oder" } },
+        {
+          kind: "world",
+          of: { is: "front", theatre: "east", from: "oder", to: "oder" },
+        },
         { kind: "not", of: { kind: "seen", scene: "rus_w_gorlice" } },
         {
           kind: "world",
@@ -1912,7 +1959,10 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
       kind: "all",
       of: [
         { kind: "world", of: { is: "war" } },
-        { kind: "world", of: { is: "front", theatre: "east", from: "riga" } },
+        {
+          kind: "world",
+          of: { is: "front", theatre: "east", from: "riga", to: "kiev" },
+        },
         { kind: "world", of: { is: "era", of: ["material", "depth"] } },
       ],
     },
@@ -1927,7 +1977,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
         id: "fallen",
         when: {
           kind: "world",
-          of: { is: "front", theatre: "east", from: "dvina" },
+          of: { is: "front", theatre: "east", from: "dvina", to: "kiev" },
         },
       },
       { id: "base" },
@@ -2156,7 +2206,12 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
                   of: [
                     {
                       kind: "world",
-                      of: { is: "front", theatre: "east", from: "vistula" },
+                      of: {
+                        is: "front",
+                        theatre: "east",
+                        from: "vistula",
+                        to: "kiev",
+                      },
                     },
                     {
                       kind: "world",
@@ -4737,7 +4792,12 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
                 { kind: "world", of: { is: "war_months", min: 4, max: 18 } },
                 {
                   kind: "world",
-                  of: { is: "front", theatre: "east", from: "vistula" },
+                  of: {
+                    is: "front",
+                    theatre: "east",
+                    from: "vistula",
+                    to: "kiev",
+                  },
                 },
               ],
             },
@@ -5076,7 +5136,12 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
                 { kind: "world", of: { is: "war_months", min: 5, max: 18 } },
                 {
                   kind: "world",
-                  of: { is: "front", theatre: "east", from: "warsaw" },
+                  of: {
+                    is: "front",
+                    theatre: "east",
+                    from: "warsaw",
+                    to: "kiev",
+                  },
                 },
               ],
             },

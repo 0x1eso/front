@@ -2241,7 +2241,7 @@ const BILINSKI: readonly GwScene[] = [
       { kind: "world", of: { is: "war_months", min: 11, max: 29 } },
       {
         kind: "world",
-        of: { is: "front", theatre: "east", from: "vistula" },
+        of: { is: "front", theatre: "east", from: "vistula", to: "kiev" },
       },
     ),
     {

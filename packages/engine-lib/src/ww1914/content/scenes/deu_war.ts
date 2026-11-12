@@ -144,6 +144,8 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     variants: [
       {
         id: "stopped",
+        // ww187: trenches north of the Aisne: the west line there.
+        assumes: { line: { west: ["somme", "marne"] } },
         when: {
           kind: "flag",
           flag: "w_marne_stopped",
@@ -158,6 +160,8 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
       },
       {
         id: "east",
+        // ww187: the depth of the Vistula: the east line short of Warsaw.
+        assumes: { line: { east: ["east_prussia", "warsaw"] } },
         when: {
           kind: "flag",
           flag: "f_east_first",
@@ -165,6 +169,8 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
       },
       {
         id: "near",
+        // ww187: the forts of Paris ahead: Paris not ours yet.
+        assumes: { held: { paris: "foe" } },
         when: {
           kind: "all",
           of: [
@@ -174,6 +180,7 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
                 is: "front",
                 theatre: "west",
                 from: "somme",
+                to: "paris",
               },
             },
             {
@@ -293,6 +300,7 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
                 is: "front",
                 theatre: "west",
                 from: "liege",
+                to: "paris",
               },
             },
             {
@@ -878,6 +886,7 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
                 is: "front",
                 theatre: "west",
                 from: "liege",
+                to: "paris",
               },
             },
           ],
@@ -1319,6 +1328,7 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
             is: "front",
             theatre: "west",
             from: "somme",
+            to: "paris",
           },
         },
       },
@@ -1749,6 +1759,7 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
             is: "front",
             theatre: "east",
             from: "vistula",
+            to: "kiev",
           },
         },
       },
@@ -2407,6 +2418,12 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
   },
   {
     id: "deu_w_ypres_boys",
+    // ww187: "이프르를 친다": Ypres still the enemy's, the British in.
+    assumes: {
+      held: { ypres: "foe" },
+      line: { west: ["hindenburg", "marne"] },
+      war: ["GBR"],
+    },
     nation: ["DEU"],
     kind: "dispute",
     when: {
@@ -2943,6 +2960,8 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
   },
   {
     id: "deu_w_east_west",
+    // ww187: corps "from Ypres": the west line in Flanders and France.
+    assumes: { line: { west: ["hindenburg", "marne"] } },
     nation: ["DEU"],
     kind: "dispute",
     when: {
@@ -3091,6 +3110,9 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
   },
   {
     id: "deu_w_conrad_help",
+    // ww187: "렘베르크가 떨어졌다": Lemberg in Russian hands; the old
+    // Emperor still reigns.
+    assumes: { held: { lemberg: "foe" }, active: ["auh_franz_joseph"] },
     nation: ["DEU"],
     kind: "proposal",
     when: {
@@ -4596,6 +4618,7 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
             is: "front",
             theatre: "west",
             from: "hindenburg",
+            to: "paris",
           },
         },
       },

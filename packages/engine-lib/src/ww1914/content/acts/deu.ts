@@ -659,7 +659,7 @@ export const DEU_AIMS: readonly GwAim[] = [
     met: all(
       any(
         world({ is: "peace_side", of: ["won"] }),
-        world({ is: "front", theatre: "west", from: "marne" }),
+        world({ is: "front", theatre: "west", from: "marne", to: "paris" }),
       ),
       empire,
     ),

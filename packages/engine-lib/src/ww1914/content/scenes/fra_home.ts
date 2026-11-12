@@ -114,8 +114,18 @@ const revolution = world({
   of: ["provisional", "rep"],
 });
 /** The north is held by the enemy. */
-const westBack = world({ is: "front", theatre: "west", from: "hindenburg" });
-const deepBack = world({ is: "front", theatre: "west", from: "somme" });
+const westBack = world({
+  is: "front",
+  theatre: "west",
+  from: "hindenburg",
+  to: "paris",
+});
+const deepBack = world({
+  is: "front",
+  theatre: "west",
+  from: "somme",
+  to: "paris",
+});
 const manLow = world({ is: "manpower", max: 55 });
 const unrestAt = (min: number) => world({ is: "unrest", min });
 const promiseOpen = (person: string, key: string): GwCond => ({
@@ -1263,7 +1273,7 @@ export const FRA_HOME_SCENES: readonly GwScene[] = [
     stage: AFTER,
     when: all(
       world({ is: "armistice" }),
-      world({ is: "front", theatre: "west", to: "liege" }),
+      world({ is: "front", theatre: "west", from: "rhine", to: "liege" }),
       world({ is: "war_months", min: 50 }),
     ),
     cast: { chancellor: holder("chancellor") },

@@ -261,8 +261,13 @@ function withTwins(s: GwScene): GwScene {
   const twins = TWINS[s.id];
   if (twins === undefined) return s;
   const made: GwVariant[] = twins.map(([id, like]) => {
-    const when = s.variants.find((v) => v.id === like)?.when;
-    return when === undefined ? { id } : { id, when };
+    const twin = s.variants.find((v) => v.id === like);
+    // ww187: a twin body assumes what its first does.
+    return {
+      id,
+      ...(twin?.when === undefined ? {} : { when: twin.when }),
+      ...(twin?.assumes === undefined ? {} : { assumes: twin.assumes }),
+    };
   });
   const last = s.variants.length - 1;
   return {

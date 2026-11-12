@@ -474,7 +474,12 @@ export const AUH_AIMS: readonly GwAim[] = [
     id: "auh_aim_serbia",
     nation: NATION,
     met: all(
-      world({ is: "front", theatre: "balkan", from: "belgrade" }),
+      world({
+        is: "front",
+        theatre: "balkan",
+        from: "belgrade",
+        to: "salonika",
+      }),
       notLost,
     ),
     tasks: ["auh_serbia_punished", "auh_galicia_held", "auh_romania_stays_out"],
