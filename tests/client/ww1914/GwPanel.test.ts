@@ -1111,6 +1111,10 @@ describe("departments at work (ww193)", () => {
     expect(
       brief.querySelector("[data-gw-card] [data-gw-dept-chip=foreign]"),
     ).not.toBeNull();
+    // ww194: the paper names the work it answers.
+    expect(
+      brief.querySelector("[data-gw-card] [data-gw-dept-work]")!.textContent,
+    ).toBe("gw.country.ROU 문제를 맡긴다");
     await tap(panel, "[data-gw-briefing] [data-gw-open='1']");
     const reader = panel.querySelector("[data-gw-reader]")!;
     expect(reader.querySelector("[data-gw-dept-line]")).not.toBeNull();
