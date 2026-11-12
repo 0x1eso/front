@@ -21,7 +21,15 @@ import {
 } from "@openfront/engine-api/ww1914/SceneDsl";
 import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
 
-export { FRA_ACT_SCENES } from "../scenes/fra_act";
+import type { GwScene } from "@openfront/engine-api/ww1914/SceneDsl";
+import { FRA_CEREMONY_SCENES } from "../depts/fra";
+import { FRA_ACT_SCENES as SCHEDULE_SCENES } from "../scenes/fra_act";
+
+/** The schedule's scenes, with ww193's ceremonies (written in depts/fra.ts). */
+export const FRA_ACT_SCENES: readonly GwScene[] = [
+  ...SCHEDULE_SCENES,
+  ...FRA_CEREMONY_SCENES,
+];
 
 const NATION: GwAct["nation"] = ["FRA"];
 const war = world({ is: "war" });
@@ -678,12 +686,93 @@ const INTRIGUES: GwAct[] = [
   },
 ];
 
+// ---- 의식 (ww193): the order's grand master, the review, the Invalides ----
+
+const paris = world({ is: "held", place: "paris", by: "us" });
+
+const CEREMONIES: GwAct[] = [
+  {
+    // #1, #12: the President pins the Légion on men, flags and cities.
+    id: "fra_a_c_investiture",
+    nation: NATION,
+    kind: "ceremony",
+    when: all(war, world({ is: "war_months", own: true, min: 3 })),
+    cooldown: 6,
+    scene: "fra_a_c_investiture_r",
+    wait: 0,
+    effects: [opinion("army", 1)],
+    fields: [
+      {
+        id: "where",
+        options: [
+          { id: "front", effects: [gauge("morale", 1)] },
+          {
+            id: "city",
+            when: world({ is: "war_months", own: true, min: 18 }),
+            effects: [opinion("press", 1), calmed],
+          },
+          { id: "elysee", when: paris, effects: [inst("countersign", 1)] },
+        ],
+      },
+    ],
+  },
+  {
+    id: "fra_a_c_review",
+    nation: NATION,
+    kind: "ceremony",
+    when: all(war, paris),
+    cooldown: 8,
+    scene: "fra_a_c_review_r",
+    wait: 0,
+    effects: [opinion("press", 1)],
+    fields: [
+      {
+        id: "who",
+        options: [
+          { id: "own", effects: [opinion("army", 1)] },
+          {
+            id: "allies",
+            when: any(
+              world({ is: "entered", tag: "GBR", side: "entente" }),
+              world({ is: "entered", tag: "USA", side: "entente" }),
+            ),
+            effects: [
+              maybe(
+                world({ is: "entered", tag: "USA", side: "entente" }),
+                trust("USA", 1),
+              ),
+              maybe(
+                world({ is: "entered", tag: "GBR", side: "entente" }),
+                trust("GBR", 1),
+              ),
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "fra_a_c_invalides",
+    nation: NATION,
+    kind: "ceremony",
+    when: all(war, paris, world({ is: "war_months", own: true, min: 10 })),
+    cooldown: 10,
+    scene: "fra_a_c_invalides_r",
+    wait: 0,
+    effects: [gauge("morale", 1), opinion("parliament", 1), calmed],
+  },
+];
+
+/** ww193: the far visits are trips (two of the time, the room shut). */
+const TRIPS = new Set(["fra_a_thann", "fra_a_dunkirk"]);
+
 export const FRA_ACTS: readonly GwAct[] = [
-  ...VISITS,
+  ...VISITS.map((a) => (TRIPS.has(a.id) ? { ...a, trip: true } : a)),
   ...LETTERS,
   ...ORDERS,
   ...SPEECHES,
   ...INTRIGUES,
+  ...CEREMONIES,
 ];
 
 // ---- 국가 목표: what the President could say France is fighting for ----
