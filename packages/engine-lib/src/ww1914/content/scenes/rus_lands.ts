@@ -5,6 +5,7 @@
 // ./land_events. Text, and the memoir lines on the new endings, in
 // resources/ww1914/ko/RUS.lands.json.
 import type { GwSide } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import type { GwAssumes } from "@openfront/engine-api/ww1914/GwAssumes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import type {
   GwCastRule,
@@ -127,6 +128,14 @@ function wire(
     variants,
   };
 }
+
+/** ww187: a proposal whose every body takes `a` for granted. */
+const assumed =
+  (a: GwAssumes) =>
+  (...args: Parameters<typeof proposal>): GwScene => ({
+    ...proposal(...args),
+    assumes: a,
+  });
 
 function proposal(
   id: string,
@@ -297,7 +306,8 @@ const OURS: GwScene[] = [
       ]),
     ],
   ),
-  proposal(
+  // ww187: "Constantinople is in our hands": it is, now.
+  assumed({ held: { constantinople: "us" } })(
     "rus_ld_ours_tsargrad",
     8,
     tookCapital("OTT", 1),
@@ -454,7 +464,8 @@ const THEIRS: GwScene[] = [
     v("base"),
   ]),
   wire("rus_ld_theirs_bucharest", 6, capitalFell("AUH", "ROU", 1), COS, [
-    v("ally", withUs("ROU")),
+    // ww187: "Bucharest has fallen": the enemy holds it.
+    { ...v("ally", withUs("ROU")), assumes: { held: { bucharest: "foe" } } },
     v("base"),
   ]),
   proposal(

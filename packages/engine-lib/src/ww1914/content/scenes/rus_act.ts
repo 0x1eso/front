@@ -381,7 +381,11 @@ const LETTER_SCENES: GwScene[] = [
         "hague_hard",
         all(picked("subject", "hague"), character(willy, "hardline")),
       ),
-      v("hague", picked("subject", "hague")),
+      // ww187: the letter names Franz Joseph as he is now.
+      {
+        ...v("hague", picked("subject", "hague")),
+        assumes: { active: ["auh_franz_joseph"] },
+      },
       v("fits", fits("kaiser")),
       v("hard", character(willy, "hardline")),
       v("base"),
@@ -958,7 +962,14 @@ const AIM_SCENES: GwScene[] = [
     ),
     { fm: { office: "foreign" }, cos: { office: "chief_of_staff" } },
     ["war", "foreign"],
-    [v("thin", low("shells", 1)), v("base")],
+    [
+      // ww187: "the straits are still Turkish water", the race not yet run.
+      {
+        ...v("thin", low("shells", 1)),
+        assumes: { line: { straits: ["dardanelles", "narrows"] } },
+      },
+      v("base"),
+    ],
     [
       o(
         "take_corps",
@@ -1425,7 +1436,8 @@ const BIG_SCENES: GwScene[] = [
       },
     },
     [{ scene: "rus_b_august_after" }],
-    { essential: true },
+    // ww187: "Warsaw has fallen": the enemy holds it now.
+    { essential: true, assumes: { held: { warsaw: "foe" } } },
   ),
   silent("rus_b_august_after"),
 
@@ -1962,7 +1974,10 @@ const THREAD_SCENES: GwScene[] = [
     "DEU",
     all(reign, { kind: "chapter", min: 1, max: 3 }),
     [
-      v("hard", all(shot, hardKaiser)),
+      {
+        ...v("hard", all(shot, hardKaiser)),
+        assumes: { active: ["auh_franz_joseph"] },
+      },
       v("sly", slyKaiser),
       v("wary", all(shot, wary)),
       v("base"),
@@ -2095,7 +2110,11 @@ const THREAD_SCENES: GwScene[] = [
       world({ is: "entered", tag: "GBR" }),
     ),
     [
-      v("shells", low("shells", 1)),
+      // ww187: George will speak to Kitchener: Kitchener still about.
+      {
+        ...v("shells", low("shells", 1)),
+        assumes: { active: ["gbr_kitchener"] },
+      },
       v("straits", { kind: "chose", scene: "rus_h_straits_note" }),
       v("base"),
     ],
@@ -2148,10 +2167,17 @@ const OPENING_SCENES: GwScene[] = [
     {
       n1: {
         alone: true,
+        // ww187: the day's wire from Sarajevo, as the opening has it: `past`.
         says: says(
-          v("lived", { kind: "opening", of: ["sarajevo_survived"] }),
-          v("missed", { kind: "opening", of: ["sarajevo_failed"] }),
-          v("base"),
+          {
+            ...v("lived", { kind: "opening", of: ["sarajevo_survived"] }),
+            assumes: { past: true },
+          },
+          {
+            ...v("missed", { kind: "opening", of: ["sarajevo_failed"] }),
+            assumes: { past: true },
+          },
+          { ...v("base"), assumes: { past: true } },
         ),
         replies: [ask("call_fm", "n2")],
       },
@@ -2217,7 +2243,11 @@ const OPENING_SCENES: GwScene[] = [
     ],
   ),
   silent("rus_o_first_warned"),
-  silent("rus_o_first_counselled"),
+  // ww187: the wire goes to a Serbian Belgrade.
+  {
+    ...silent("rus_o_first_counselled"),
+    assumes: { held: { belgrade: "owner" } },
+  },
   silent("rus_o_first_waited"),
   {
     id: "rus_o_answer",

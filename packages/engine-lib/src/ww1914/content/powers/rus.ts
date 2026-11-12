@@ -1006,10 +1006,19 @@ export const RUS_POWER_SCENES: readonly GwScene[] = [
   card("rus_pw_separate_r", ["war"]),
   card("rus_pw_command_r", ["war"]),
   card("rus_pw_command_give_r", ["war"]),
-  card("rus_pw_recruits_r", ["home"]),
+  // ww187: a deputy writes his question, or there is no Duma to write in.
+  card(
+    "rus_pw_recruits_r",
+    ["home"],
+    [
+      { id: "gone", when: abolished, assumes: { shut: ["duma"] } },
+      { id: "base" },
+    ],
+  ),
   card("rus_pw_deport_r", ["home"]),
   card("rus_pw_duma_close_r", ["home"]),
-  card("rus_pw_duma_open_r", ["home"]),
+  // ww187: opened only where it is not abolished: it sits.
+  { ...card("rus_pw_duma_open_r", ["home"]), assumes: { sits: ["duma"] } },
   card("rus_pw_confidence_r", ["home"]),
   card("rus_pw_favourite_r", ["people"]),
   card("rus_pw_troops_r", ["home"]),
@@ -1035,5 +1044,13 @@ export const RUS_POWER_SCENES: readonly GwScene[] = [
   card("rus_pw_abolish_duma_bad", ["home"]),
   card("rus_pw_restore_duma_r", ["home"]),
   card("rus_pw_field_courts_r", ["home"]),
-  card("rus_pw_field_courts_bad", ["home"]),
+  // ww187: the Duma's questions, or no Duma left to ask them.
+  card(
+    "rus_pw_field_courts_bad",
+    ["home"],
+    [
+      { id: "gone", when: abolished, assumes: { shut: ["duma"] } },
+      { id: "base" },
+    ],
+  ),
 ];

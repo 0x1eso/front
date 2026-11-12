@@ -403,6 +403,8 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
   {
     id: "rus_h_friend_comes",
     nation: ["RUS"],
+    // ww187: Rasputin comes or is named as living: about.
+    assumes: { active: ["rus_rasputin"] },
     kind: "audience",
     stage: ["crisis", "y1914", "war"],
     when: {
@@ -586,6 +588,8 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
   {
     id: "rus_h_friend_file",
     nation: ["RUS"],
+    // ww187: Rasputin comes or is named as living: about.
+    assumes: { active: ["rus_rasputin"] },
     kind: "proposal",
     stage: ["crisis", "y1914", "war"],
     when: {
@@ -869,9 +873,14 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
       },
       {
         id: "wire_friend",
+        // ww187: only a living friend can be wired.
         when: {
-          kind: "memory",
-          key: "k_alex_friend",
+          kind: "all",
+          of: [
+            { kind: "memory", key: "k_alex_friend" },
+            { kind: "person_active", person: "rus_rasputin" },
+            { kind: "not", of: { kind: "seen", scene: "rus_r_friend_dead" } },
+          ],
         },
         tell: ["court:+2", "duma:-1", "trust:+1", "heir"],
         effects: [
@@ -1289,6 +1298,8 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
             to: "kiev",
           },
         },
+        // ww187: pushed back "to before Riga": Riga still ours.
+        assumes: { held: { riga: "us" } },
       },
       {
         id: "base",
@@ -2251,9 +2262,15 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
     tags: ["foreign", "tension_up"],
     once: true,
     variants: [
+      // ww187: the British fleet shells the Dardanelles: Britain in the war,
+      // the straits line not yet past Gallipoli.
       {
         id: "gallipoli2",
         when: { kind: "world", of: { is: "open", theatre: "straits" } },
+        assumes: {
+          line: { straits: ["dardanelles", "gallipoli"] },
+          fights: ["GBR"],
+        },
       },
       {
         id: "gallipoli",
@@ -2263,6 +2280,10 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
             is: "open",
             theatre: "straits",
           },
+        },
+        assumes: {
+          line: { straits: ["dardanelles", "gallipoli"] },
+          fights: ["GBR"],
         },
       },
       {
@@ -2511,6 +2532,8 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
   {
     id: "rus_h_friend_exile",
     nation: ["RUS"],
+    // ww187: Rasputin comes or is named as living: about.
+    assumes: { active: ["rus_rasputin"] },
     kind: "crisis",
     stage: ["crisis", "y1914", "war"],
     when: {
@@ -3769,6 +3792,8 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
   {
     id: "rus_h_peace_duma",
     nation: ["RUS"],
+    // ww187: a question from the Duma tribune: the Duma is there.
+    assumes: { sits: ["duma"] },
     kind: "proposal",
     stage: ["crisis", "y1914", "war"],
     when: {
@@ -3957,6 +3982,8 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
           scene: "rus_c_council",
           pick: "let_go",
         },
+        // ww187: the Belgrade given up years ago: a memory.
+        assumes: { past: true },
       },
       { id: "straits2", when: { kind: "pressure", topic: "straits", min: 5 } },
       {
@@ -5773,6 +5800,8 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
   {
     id: "rus_t_alex_after",
     nation: ["RUS"],
+    // ww187: after Rasputin has gone: he is only remembered.
+    assumes: { past: true },
     kind: "talk",
     when: {
       kind: "all",
@@ -6042,6 +6071,8 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
   {
     id: "rus_t_ras_wire",
     nation: ["RUS"],
+    // ww187: Rasputin comes or is named as living: about.
+    assumes: { active: ["rus_rasputin"] },
     kind: "talk",
     when: {
       kind: "all",
@@ -6353,6 +6384,8 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
   {
     id: "rus_t_ras_boy",
     nation: ["RUS"],
+    // ww187: Rasputin comes or is named as living: about.
+    assumes: { active: ["rus_rasputin"] },
     kind: "talk",
     when: {
       kind: "all",
@@ -6716,6 +6749,8 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
   {
     id: "rus_t_ras_war",
     nation: ["RUS"],
+    // ww187: Rasputin comes or is named as living: about.
+    assumes: { active: ["rus_rasputin"] },
     kind: "talk",
     when: {
       kind: "all",
@@ -7004,6 +7039,8 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
   {
     id: "rus_t_ras_minister",
     nation: ["RUS"],
+    // ww187: Rasputin comes or is named as living: about.
+    assumes: { active: ["rus_rasputin"] },
     kind: "talk",
     when: {
       kind: "all",
@@ -7315,6 +7352,8 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
   {
     id: "rus_t_ras_bread",
     nation: ["RUS"],
+    // ww187: Rasputin comes or is named as living: about.
+    assumes: { active: ["rus_rasputin"] },
     kind: "talk",
     when: {
       kind: "all",
@@ -7548,6 +7587,8 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
   {
     id: "rus_t_ras_leave",
     nation: ["RUS"],
+    // ww187: Rasputin comes or is named as living: about.
+    assumes: { active: ["rus_rasputin"] },
     kind: "talk",
     when: {
       kind: "all",

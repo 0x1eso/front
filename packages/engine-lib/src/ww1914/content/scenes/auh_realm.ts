@@ -1322,6 +1322,8 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
   {
     id: "auh_h_poland_crown",
     nation: ["AUH"],
+    // ww187: "when Warsaw fell": ours now, the line past the Vistula.
+    assumes: { line: { east: ["vistula", "kiev"] }, held: { warsaw: "us" } },
     kind: "crisis",
     stage: ["war"],
     when: {
@@ -2873,6 +2875,8 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
   {
     id: "auh_h_serbia_rule",
     nation: ["AUH"],
+    // ww187: a border "as far as Belgrade": Belgrade is ours.
+    assumes: { held: { belgrade: "us" } },
     kind: "proposal",
     stage: ["war"],
     when: {
@@ -3196,6 +3200,8 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
   {
     id: "auh_h_sturgkh_shot",
     nation: ["AUH"],
+    // ww187: the news of Stürgkh shot: told as it happened.
+    assumes: { past: true },
     kind: "report",
     stage: ["war"],
     when: {

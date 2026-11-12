@@ -13,6 +13,7 @@ import type {
   GwOffResult,
   GwTheatre,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import type { GwAssumes } from "@openfront/engine-api/ww1914/GwAssumes";
 import {
   all,
   GwCastRule,
@@ -57,6 +58,9 @@ const foe = (p: OffAsk, ...more: GwCond[]) => off("foe", p, ...more);
 
 const v = (id: string, when: GwCond): GwVariant => ({ id, when });
 const base: GwVariant = { id: "base" };
+/** ww187: the Italian line on the Isonzo, or on the Piave. */
+const ISONZO: GwAssumes = { line: { italy: ["isonzo", "isonzo"] } };
+const PIAVE: GwAssumes = { line: { italy: ["piave", "piave"] } };
 
 const winter = world({ is: "month", of: [12, 1, 2, 3] });
 const early = world({ is: "era", of: ["movement", "trenches"] });
@@ -103,9 +107,10 @@ const opt = (id: string, tell: string[], effects: GwEffect[]): GwOption => ({
 export const AUH_OFFENSIVE_SCENES: readonly GwScene[] = [
   // The plan laid out, the chapter after the seat signed it (round 0).
   report("auh_w_off_prep", [
-    v("tyrol", ours({ t: ITALY, m: ["long"] })),
-    v("isonzo", ours({ t: ITALY, m: ["surprise"] })),
-    v("piave", ours({ t: ITALY, m: ["broad"] })),
+    // ww187: each plan names the river the line stands on.
+    { ...v("tyrol", ours({ t: ITALY, m: ["long"] })), assumes: ISONZO },
+    { ...v("isonzo", ours({ t: ITALY, m: ["surprise"] })), assumes: ISONZO },
+    { ...v("piave", ours({ t: ITALY, m: ["broad"] })), assumes: PIAVE },
     v("carpathians", ours({ t: EAST }, winter, early)),
     v("gorlice", ours({ t: EAST, m: ["long"] })),
     v("east_broad", ours({ t: EAST, m: ["broad"] })),

@@ -9,6 +9,7 @@ import type {
   GwInstitution,
   GwSide,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import type { GwAssumes } from "@openfront/engine-api/ww1914/GwAssumes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import type { GwBloc } from "@openfront/engine-api/ww1914/GwPress";
 import type {
@@ -111,6 +112,12 @@ const opt = (id: string, ...effects: GwEffect[]): GwOption => ({
 
 type Variants = readonly (readonly [string, GwCond?])[];
 
+/** ww187: one body of the scene takes `a` for granted. */
+const tagBody = (s: GwScene, id: string, a: GwAssumes): GwScene => ({
+  ...s,
+  variants: s.variants.map((v) => (v.id === id ? { ...v, assumes: a } : v)),
+});
+
 const variantsOf = (vs: Variants): GwScene["variants"] =>
   vs.map(([id, when]) => (when === undefined ? { id } : { id, when }));
 
@@ -151,27 +158,31 @@ const proposal = (
 // ---- Occupation, ours ----
 
 const OURS: readonly GwScene[] = [
-  proposal(
-    "auh_ld_occ_belgrade",
-    8,
-    tookCapital("SRB", 1),
-    { fm: FM, hun: HUN },
-    [["out", knockedOut("SRB", EVER)], ["base"]],
-    [
-      opt(
-        "army_rule",
-        opinion("army", 1),
-        inst("hungary", -1),
-        reason("auhld_belgrade_army"),
-      ),
-      opt(
-        "commissar",
-        inst("hungary", 1),
-        opinion("army", -1),
-        reason("auhld_belgrade_commissar"),
-      ),
-    ],
-  ),
+  {
+    ...proposal(
+      "auh_ld_occ_belgrade",
+      8,
+      tookCapital("SRB", 1),
+      { fm: FM, hun: HUN },
+      [["out", knockedOut("SRB", EVER)], ["base"]],
+      [
+        opt(
+          "army_rule",
+          opinion("army", 1),
+          inst("hungary", -1),
+          reason("auhld_belgrade_army"),
+        ),
+        opt(
+          "commissar",
+          inst("hungary", 1),
+          opinion("army", -1),
+          reason("auhld_belgrade_commissar"),
+        ),
+      ],
+    ),
+    // ww187: "Belgrade is in our hands": it is, now.
+    assumes: { held: { belgrade: "us" } },
+  },
   wire(
     "auh_ld_occ_serbia_land",
     7,
@@ -200,27 +211,31 @@ const OURS: readonly GwScene[] = [
       ),
     ],
   ),
-  proposal(
-    "auh_ld_occ_bucharest",
-    8,
-    tookCapital("ROU", 1),
-    { fm: FM, fin: FIN },
-    [["deu", deuHolds("ROU")], ["out", knockedOut("ROU", EVER)], ["base"]],
-    [
-      opt(
-        "grain_home",
-        gauge("bread", 1),
-        trust("DEU", -1),
-        reason("auhld_bucharest_home"),
-      ),
-      opt(
-        "share",
-        trust("DEU", 1),
-        inst("berlin", 1),
-        reason("auhld_bucharest_share"),
-      ),
-    ],
-  ),
+  {
+    ...proposal(
+      "auh_ld_occ_bucharest",
+      8,
+      tookCapital("ROU", 1),
+      { fm: FM, fin: FIN },
+      [["deu", deuHolds("ROU")], ["out", knockedOut("ROU", EVER)], ["base"]],
+      [
+        opt(
+          "grain_home",
+          gauge("bread", 1),
+          trust("DEU", -1),
+          reason("auhld_bucharest_home"),
+        ),
+        opt(
+          "share",
+          trust("DEU", 1),
+          inst("berlin", 1),
+          reason("auhld_bucharest_share"),
+        ),
+      ],
+    ),
+    // ww187: "Bucharest is in our hands": it is, now.
+    assumes: { held: { bucharest: "us" } },
+  },
   wire(
     "auh_ld_occ_wallachia",
     7,
@@ -249,27 +264,31 @@ const OURS: readonly GwScene[] = [
       ),
     ],
   ),
-  proposal(
-    "auh_ld_occ_friuli",
-    8,
-    tookLand("ITA", 1),
-    { cos: COS, war: WAR },
-    [["out", knockedOut("ITA", EVER)], ["base"]],
-    [
-      opt(
-        "requisition",
-        gauge("bread", 1),
-        trust("ITA", -1),
-        reason("auhld_friuli_take"),
-      ),
-      opt(
-        "leave_harvest",
-        gauge("bread", -1),
-        trust("ITA", 1),
-        reason("auhld_friuli_leave"),
-      ),
-    ],
-  ),
+  {
+    ...proposal(
+      "auh_ld_occ_friuli",
+      8,
+      tookLand("ITA", 1),
+      { cos: COS, war: WAR },
+      [["out", knockedOut("ITA", EVER)], ["base"]],
+      [
+        opt(
+          "requisition",
+          gauge("bread", 1),
+          trust("ITA", -1),
+          reason("auhld_friuli_take"),
+        ),
+        opt(
+          "leave_harvest",
+          gauge("bread", -1),
+          trust("ITA", 1),
+          reason("auhld_friuli_leave"),
+        ),
+      ],
+    ),
+    // ww187: past the Isonzo and in Udine: both hold now.
+    assumes: { held: { udine: "us" }, line: { italy: ["piave", "adige"] } },
+  },
   proposal(
     "auh_ld_occ_berlin_asks",
     7,
@@ -323,27 +342,31 @@ const THEIRS: readonly GwScene[] = [
       ),
     ],
   ),
-  proposal(
-    "auh_ld_lost_isonzo",
-    7,
-    lostLand("ITA", 1),
-    { cos: COS, pm: PM },
-    [["base"]],
-    [
-      opt(
-        "evacuate",
-        gauge("money", -1),
-        gauge("morale", 1),
-        reason("auhld_isonzo_evacuate"),
-      ),
-      opt(
-        "hold",
-        opinion("army", 1),
-        gauge("shells", -1),
-        reason("auhld_isonzo_hold"),
-      ),
-    ],
-  ),
+  {
+    ...proposal(
+      "auh_ld_lost_isonzo",
+      7,
+      lostLand("ITA", 1),
+      { cos: COS, pm: PM },
+      [["base"]],
+      [
+        opt(
+          "evacuate",
+          gauge("money", -1),
+          gauge("morale", 1),
+          reason("auhld_isonzo_evacuate"),
+        ),
+        opt(
+          "hold",
+          opinion("army", 1),
+          gauge("shells", -1),
+          reason("auhld_isonzo_hold"),
+        ),
+      ],
+    ),
+    // ww187: "beyond the Isonzo": the Italians are across it.
+    assumes: { line: { italy: ["trentino", "trentino"] } },
+  },
   wire("auh_ld_lost_srb", 7, lostLand("SRB", 1), { hun: HUN }, [
     ["rus", atWar("RUS")],
     ["base"],
@@ -369,31 +392,43 @@ const THEIRS: readonly GwScene[] = [
       ),
     ],
   ),
-  proposal(
-    "auh_ld_lost_vienna",
-    8,
-    lostCapital(1),
-    { pm: PM, hun: HUN },
-    [["rus", capitalTo("RUS")], ["ita", capitalTo("ITA")], ["base"]],
-    [
-      opt(
-        "budapest",
-        inst("hungary", 1),
-        inst("nations", -1),
-        reason("auhld_vienna_budapest"),
-      ),
-      opt(
-        "olmutz",
-        opinion("court", 1),
-        inst("hungary", -1),
-        reason("auhld_vienna_olmutz"),
-      ),
-    ],
+  tagBody(
+    proposal(
+      "auh_ld_lost_vienna",
+      8,
+      lostCapital(1),
+      { pm: PM, hun: HUN },
+      [["rus", capitalTo("RUS")], ["ita", capitalTo("ITA")], ["base"]],
+      [
+        opt(
+          "budapest",
+          inst("hungary", 1),
+          inst("nations", -1),
+          reason("auhld_vienna_budapest"),
+        ),
+        opt(
+          "olmutz",
+          opinion("court", 1),
+          inst("hungary", -1),
+          reason("auhld_vienna_olmutz"),
+        ),
+      ],
+    ),
+    "rus",
+    // ww187: 1848 at Olmütz, told as history.
+    { past: true },
   ),
-  wire("auh_ld_fell_bucharest", 7, capitalFell("DEU", "ROU", 1), { fm: FM }, [
-    ["ours_too", holdOf("ROU")],
-    ["base"],
-  ]),
+  {
+    ...wire(
+      "auh_ld_fell_bucharest",
+      7,
+      capitalFell("DEU", "ROU", 1),
+      { fm: FM },
+      [["ours_too", holdOf("ROU")], ["base"]],
+    ),
+    // ww187: "Bucharest has fallen" to our ally: it holds it now.
+    assumes: { held: { bucharest: "us" } },
+  },
   wire("auh_ld_fell_belgrade", 7, capitalFell("DEU", "SRB", 1), { fm: FM }, [
     ["ours_too", holdOf("SRB")],
     ["base"],
