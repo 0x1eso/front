@@ -8,6 +8,7 @@ import { GW_PACK_SHARES } from "@openfront/shared/ww1914/GwPackLoader";
 import fs from "node:fs";
 import path from "node:path";
 import { afterEach, describe, expect, test, vi } from "vitest";
+import { shelfTotals } from "../../../src/client/hud/ww1914/GwModel";
 import { GwPanel } from "../../../src/client/hud/ww1914/GwPanel";
 import { reportText, unknownText } from "../../../src/client/hud/ww1914/GwText";
 import { tickerLines } from "../../../src/client/hud/ww1914/GwTicker";
@@ -136,8 +137,9 @@ describe("the memoir on the world's data", () => {
     expect(JSON.parse(localStorage.getItem("gw1914.shelf")!).runs.length).toBe(
       1,
     );
+    // ww193: the count follows the endings the pack has, not a fixed number.
     expect(panel.querySelector("[data-gw-shelf]")!.textContent).toContain(
-      "결말 1/12",
+      `결말 1/${shelfTotals(0, "DEU").endings}`,
     );
   });
 });
@@ -154,7 +156,8 @@ describe("the people tab on real data", () => {
     panel.querySelector<HTMLButtonElement>("[data-gw-tab=people]")!.click();
     await panel.updateComplete;
     expect(panel.querySelector("[data-gw-vacant]")).toBeNull();
-    const row = panel.querySelector("[data-gw-person=deu_jagow]")!;
+    // ww193: a head is his department's row (사람 › 부서).
+    const row = panel.querySelector("[data-gw-dept=foreign]")!;
     row.querySelector("button")!.click();
     await panel.updateComplete;
     const button = () =>
@@ -198,14 +201,28 @@ describe("the people tab on real data", () => {
       const { panel } = await mount(d);
       panel.querySelector<HTMLButtonElement>("[data-gw-tab=people]")!.click();
       await panel.updateComplete;
+      // ww193: a department's head is his department's row (사람 › 부서).
+      const heads = new Map(
+        (d.seats[0].depts ?? []).flatMap((x) =>
+          x.head === null ? [] : [[x.head, x.office] as const],
+        ),
+      );
       for (const p of d.seats[0].people) {
-        const row = () => panel.querySelector(`[data-gw-person=${p.id}]`)!;
+        const office = heads.get(p.id);
+        const row = () =>
+          panel.querySelector(
+            office === undefined
+              ? `[data-gw-person=${p.id}]`
+              : `[data-gw-dept=${office}]`,
+          )!;
         const badge = row().querySelector("[data-gw-topic-count]");
         // Only a number: never which talks, nor how they would go.
         const shown = badge === null ? 0 : Number(badge.textContent!.trim());
         expect(badge?.textContent?.trim() ?? "0").toMatch(/^\d+$/);
-        expect(row().hasAttribute("data-gw-no-topics")).toBe(shown === 0);
-        expect(row().className.includes("opacity-60")).toBe(shown === 0);
+        if (office === undefined) {
+          expect(row().hasAttribute("data-gw-no-topics")).toBe(shown === 0);
+          expect(row().className.includes("opacity-60")).toBe(shown === 0);
+        }
         row().querySelector("button")!.click();
         await panel.updateComplete;
         expect(row().querySelectorAll("[data-gw-topic]").length).toBe(shown);

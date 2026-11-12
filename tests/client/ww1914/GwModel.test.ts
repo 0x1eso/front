@@ -105,6 +105,7 @@ describe("GwModel", () => {
   test("the head of the desk leaves out what comes every month", () => {
     const c = {
       data: { chapter: 5 },
+      ui: { notes: [] },
       pack: { reasons: { a: "A", b: "B" } },
       seat: {
         log: [
