@@ -13,6 +13,7 @@ import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
 import { GW_TABLE_SESSIONS } from "@openfront/engine-lib/ww1914/TableRows";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
+import { GW_AFTER_CHAPTERS } from "./Aftermath";
 import { warMonths } from "./Eras";
 import { warScore } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
@@ -196,12 +197,27 @@ function enemyLead(gw: GreatWar, side: GwSide): GwNationState | null {
   return tag === undefined ? null : gw.nation(tag);
 }
 
+/** Who leads `side` now; null when its leaders are gone. */
+export function sideLead(gw: GreatWar, side: GwSide): GwNationState | null {
+  const tag = leadersLeft(gw, side)[0];
+  return tag === undefined ? null : gw.nation(tag);
+}
+
 /** Would the other side stop as things stand? Valued, never rolled. */
 export function talksAccepted(gw: GreatWar, seat: GwSeatState): boolean {
   const n = gw.nation(seat.tag);
   if (n === null || n.side === null) return false;
   const foe = enemyLead(gw, n.side);
   if (foe === null) return true;
+  return judgesTalks(gw, foe);
+}
+
+/**
+ * Would a side's lead stop as things stand (ww190: a mediator asks it too)?
+ * Nobody stops while winning unless he has been shown the bill.
+ */
+export function judgesTalks(gw: GreatWar, foe: GwNationState): boolean {
+  if (foe.side === null) return false;
   if (warMonths(gw) < TALKS_MONTHS) return false;
   const theirs = warScore(gw, foe.side!);
   const tired =
@@ -213,7 +229,6 @@ export function talksAccepted(gw: GreatWar, seat: GwSeatState): boolean {
   const stubborn = { hardline: 3, principled: 2, opportunist: 1, cautious: 1 }[
     foe.ai
   ];
-  // Nobody stops while winning unless he has been shown the bill.
   return theirs <= LEVEL_SCORE && tired >= stubborn;
 }
 
@@ -277,14 +292,18 @@ export function skipToConference(gw: GreatWar): void {
   // A bilateral table still sitting signs before the conference takes its place.
   if (s.table !== null && s.table.pair !== undefined) closeTable(gw);
   s.closingDay = s.day + chapterOf(gw).spanDays;
-  s.conferenceLeft = CONFERENCE_CHAPTERS;
+  s.conferenceLeft = CONFERENCE_CHAPTERS + GW_AFTER_CHAPTERS;
   s.chapter = last - 1;
   s.table = tableStart(gw);
   // The war's papers stop with it; the jump mustn't bring them all at once.
   for (const seat of s.seats) {
     seat.scheduled = seat.scheduled.filter((q) => {
       const stage = gwContent().scenes.find((x) => x.id === q.scene)?.stage;
-      return stage === undefined || stage.includes("conference");
+      return (
+        stage === undefined ||
+        stage.includes("conference") ||
+        stage.includes("aftermath")
+      );
     });
   }
 }
@@ -293,7 +312,13 @@ export function skipToConference(gw: GreatWar): void {
 export function chaptersPlayed(gw: GreatWar): number {
   const s = gw.s;
   if (s.armistice === null || s.closingDay === null) return s.chapter + 1;
-  return s.armistice.chapter + 2 + CONFERENCE_CHAPTERS - s.conferenceLeft;
+  const peace = CONFERENCE_CHAPTERS + GW_AFTER_CHAPTERS;
+  return s.armistice.chapter + 2 + peace - s.conferenceLeft;
+}
+
+/** Months of the conference still to sit (ww190: the aftermath follows them). */
+export function sessionsLeft(gw: GreatWar): number {
+  return Math.max(0, gw.s.conferenceLeft - GW_AFTER_CHAPTERS);
 }
 
 /** A chapter of the peace ends: the next opens a month on, in the same row. */

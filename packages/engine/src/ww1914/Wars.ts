@@ -23,6 +23,7 @@ import { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { warMonths } from "./Eras";
 import type { GreatWar } from "./GreatWar";
+import { bondOf } from "./PeaceYears";
 import { armyCommander } from "./People";
 import { partnerOut } from "./Strain";
 import {
@@ -556,6 +557,8 @@ export function honourPct(gw: GreatWar, row: GwStartTreaty): number {
   let pct = row.pct + HONOUR_BY_AI[n.ai];
   if (n.unrest >= 2) pct -= 20;
   if (row.kind === "protector" && s.temp >= 6) pct += 10;
+  // ww190: the bond between the two, ten a step either way.
+  pct += 10 * (bondOf(gw, row.by, row.for) ?? 0);
   return pct;
 }
 

@@ -12,6 +12,7 @@ import { aiResearch, pairScore, pressOdds, warScore } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { aiOffensive } from "./Offensives";
 import { peaceStep } from "./Peace";
+import { bondOf } from "./PeaceYears";
 import { AMERICA_BAR, americaCan } from "./Sea";
 import { believedStrain } from "./Spies";
 import {
@@ -163,7 +164,9 @@ function britainStep(gw: GreatWar): void {
   const west = s.theatres.find((t) => t.id === "west")!;
   const add = belgium ? 40 + n.lean * 20 : 6 + n.lean * 4;
   const france = west.line >= 4 ? 25 : 0;
-  n.readiness = clampTo(n.readiness + add + france, 0, 100);
+  // ww190: the Entente's bond, five a step either way.
+  const entente = 5 * (bondOf(gw, "FRA", "GBR") ?? 0);
+  n.readiness = clampTo(n.readiness + add + france + entente, 0, 100);
   if (s.secrets.includes("anglo_russian_naval_talks")) n.readiness += 5;
   const bar = belgium ? 40 : n.ai === "principled" ? 90 : 70;
   if (n.readiness < bar) return;

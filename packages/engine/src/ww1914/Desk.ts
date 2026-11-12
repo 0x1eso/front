@@ -93,15 +93,46 @@ export function bodyId(scene: string, variant: string): string {
 
 /** ww190 §2: the most times a drawn scene is dealt in a game, by default. */
 export const GW_REPEAT_MAX = 5;
-/** Papers whose id starts with one of these have no cap: budget, law, house. */
-export const GW_REPEAT_FREE: readonly string[] = ["budget_", "law_", "house_"];
+/**
+ * Papers whose id starts with one of these have no cap: the budget's
+ * meetings and lines, the bills, the house's debates and votes.
+ */
+export const GW_REPEAT_FREE: readonly string[] = [
+  "gw_bm_",
+  "gw_bc_",
+  "gw_bt_",
+  "gw_bl_",
+  "gw_law_",
+  "gw_lv_",
+  "gw_lt_",
+  "gw_lf_",
+  "gw_ld_",
+  "gw_lb_",
+  "gw_fv_",
+  "gw_lr_",
+  "gw_ls_",
+];
 
 /** Times `scene` was dealt to the seat this game: one body in `shown` a deal. */
 export function timesDealt(seat: GwSeatState, scene: string): number {
+  if (seat.seen[scene] === undefined) return 0;
   const head = `${scene}.`;
   let n = 0;
   for (const b of seat.shown) if (b.startsWith(head)) n++;
   return n;
+}
+
+/**
+ * The most times the desk draws `scene` in a game: its own `max`, else
+ * GW_REPEAT_MAX, else none for the accounts, the quiet card, the schedule's
+ * acts and the house's papers. Scheduled cards aren't drawn, so never capped.
+ */
+export function repeatCap(scene: GwScene): number {
+  if (scene.max !== undefined) return scene.max;
+  if (scene.kind === "ledger" || scene.quiet === true) return Infinity;
+  if (scene.byAct === true) return Infinity;
+  if (GW_REPEAT_FREE.some((p) => scene.id.startsWith(p))) return Infinity;
+  return GW_REPEAT_MAX;
 }
 
 interface Recent {
@@ -237,6 +268,7 @@ function drawable(gw: GreatWar, seat: GwSeatState, scene: GwScene): boolean {
     return false;
   }
   if (!inStage(gw, scene) || !repeatable(gw, seat, scene)) return false;
+  if (timesDealt(seat, scene.id) >= repeatCap(scene)) return false;
   return !spentTalk(gw, seat, scene);
 }
 

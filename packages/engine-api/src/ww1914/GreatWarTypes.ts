@@ -1864,13 +1864,18 @@ export type GwRefusalAnswer = (typeof GW_REFUSAL_ANSWERS)[number];
 export const GW_SEA_ZONES = ["north", "black", "adriatic", "med"] as const;
 export type GwSeaZone = (typeof GW_SEA_ZONES)[number];
 
-/** An accord between two countries; `broken`: the chapter it ended, else null. */
+/**
+ * An accord between two countries: `chapter` it was made (or offered, while
+ * `offered`); `broken`: the chapter it ended, else null.
+ */
 export const GwAccordSchema = z.object({
   kind: z.enum(GW_ACCORD_KINDS),
   a: z.enum(GW_TAGS),
   b: z.enum(GW_TAGS),
   chapter: z.number().int(),
   broken: z.number().int().nullable(),
+  /** Offered by `a` to `b` and not answered yet; absent once it is. */
+  offered: z.boolean().optional(),
 });
 export type GwAccord = z.infer<typeof GwAccordSchema>;
 

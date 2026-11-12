@@ -134,6 +134,19 @@ export function playOutBig(
   if (late) seat.log.push({ key: "proxy_signed", chapter: gw.s.chapter });
 }
 
+/** ww190: the plain broken-promise card comes at most once in this many chapters. */
+const GW_PROMISE_EVERY = 4;
+
+/** The plain card came, or is on its way, within GW_PROMISE_EVERY chapters. */
+function promiseSoon(gw: GreatWar, seat: GwSeatState): boolean {
+  const c = gw.s.chapter;
+  const last = seat.seen[GW_PROMISE_SCENE];
+  if (last !== undefined && c - last < GW_PROMISE_EVERY) return true;
+  return seat.scheduled.some(
+    (q) => q.scene === GW_PROMISE_SCENE && q.chapter > c - GW_PROMISE_EVERY,
+  );
+}
+
 /** A promise past due: they lose trust in the seat, and they come back. */
 function breakPromise(gw: GreatWar, seat: GwSeatState, x: GwPromise): void {
   x.broken = true;
@@ -145,6 +158,7 @@ function breakPromise(gw: GreatWar, seat: GwSeatState, x: GwPromise): void {
     { kind: "reason", key: "promise_broken", who: w },
   ]);
   const back = x.back ?? GW_PROMISE_SCENE;
+  if (back === GW_PROMISE_SCENE && promiseSoon(gw, seat)) return;
   if (sceneOf(back) !== null) {
     seat.scheduled.push({ scene: back, chapter: gw.s.chapter, who: x.who });
   }

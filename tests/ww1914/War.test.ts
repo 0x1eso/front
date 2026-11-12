@@ -7,6 +7,7 @@ import {
 } from "@openfront/engine-lib/ww1914/content/Content";
 import { GW_ENDING_ROWS } from "@openfront/engine-lib/ww1914/EndingRows";
 import type { GameRunner } from "@openfront/engine/GameRunner";
+import { GW_AFTER_CHAPTERS } from "@openfront/engine/ww1914/Aftermath";
 import { voteCount } from "@openfront/engine/ww1914/Authority";
 import { GW_AUTHORITY } from "@openfront/engine/ww1914/AuthorityTable";
 import { advanceChapter } from "@openfront/engine/ww1914/Chapters";
@@ -389,7 +390,8 @@ describe("how it stops", () => {
     expect(desks[0]).toContain("gw_e_armistice_wire");
     expect(desks[0]).toContain("gw_e_conference_seat");
     expect(desks[0]).not.toContain("gw_e_borders");
-    for (let i = 0; i < 3; i++) {
+    // ww190: the sessions, then the aftermath's months, then the closing one.
+    for (let i = 0; i < 3 + GW_AFTER_CHAPTERS; i++) {
       expect(gw.s.ended).toBeNull();
       const before = gw.s.day;
       pass(gw, runner, 1);
@@ -398,7 +400,7 @@ describe("how it stops", () => {
     }
     // The table's business comes after the seat at it, on desks of its own.
     expect(desks[1].concat(desks[2])).toContain("gw_e_borders");
-    expect(desks[3]).toContain("gw_e_memoir_frame");
+    expect(desks[3 + GW_AFTER_CHAPTERS]).toContain("gw_e_memoir_frame");
     pass(gw, runner, 1);
     expect(gw.s.ended).toBe("armistice_conference");
     expect(seat.memoir).not.toBeNull();
@@ -467,10 +469,10 @@ describe("how it stops", () => {
     pass(gw, runner, 2);
     const at = gw.s.chapter;
     armistice(gw, "central_lost", "DEU");
-    pass(gw, runner, 5);
+    pass(gw, runner, 5 + GW_AFTER_CHAPTERS);
     expect(gw.s.ended).toBe("armistice_conference");
     expect(gw.s.chapter).toBe(gwChapters("full").length - 1);
-    expect(seat.memoir?.chapter).toBe(at + 4);
+    expect(seat.memoir?.chapter).toBe(at + 4 + GW_AFTER_CHAPTERS);
   });
 
   test("every country's rows name an ending with a mandate list beside it", () => {

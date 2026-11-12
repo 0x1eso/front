@@ -24,6 +24,7 @@ import { GW_CAPITALS } from "@openfront/engine-lib/ww1914/PlaceRules";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
 import { daysFromCivil } from "@openfront/engine-lib/ww1936/Calendar";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
+import { playingOn, waitsToPlayOn } from "./Aftermath";
 import { aimRecord } from "./Aims";
 import { warScore } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
@@ -123,6 +124,8 @@ export function endingStep(gw: GreatWar): void {
   if (s.ended !== null || s.armistice !== null) return;
   for (const seat of s.seats) {
     if (seat.memoir !== null || gw.nation(seat.tag)?.out !== true) continue;
+    // ww190: after its own peace a seat may play on (Aftermath.ts).
+    if (waitsToPlayOn(gw, seat)) continue;
     closeSeat(gw, seat, outEnding(gw, seat));
   }
   // Peace past hope of war: two years on, the long peace has been had.
@@ -136,7 +139,7 @@ export function endingStep(gw: GreatWar): void {
  * a peace of two that left it nothing to fight), beaten in a war of its own,
  * or beaten with its coalition's war going on.
  */
-function outEnding(gw: GreatWar, seat: GwSeatState): GwEnding {
+export function outEnding(gw: GreatWar, seat: GwSeatState): GwEnding {
   const n = gw.nation(seat.tag);
   if (n === null) return "deadline";
   if (seat.flags.includes(SEPARATE_PEACE)) return "separate_peace";
@@ -486,7 +489,12 @@ function generalOf(gw: GreatWar, seat: GwSeatState): GwEnding {
 export function closeGame(gw: GreatWar): void {
   closeTable(gw);
   for (const seat of gw.s.seats) {
-    seat.memoir ??= memoirOf(gw, seat);
+    // ww190: a seat that played on after its own peace keeps that ending.
+    seat.memoir ??= memoirOf(
+      gw,
+      seat,
+      playingOn(seat) ? "separate_peace" : undefined,
+    );
   }
   gw.s.deadlineTick = null;
 }

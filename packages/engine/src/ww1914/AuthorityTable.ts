@@ -262,7 +262,8 @@ const austrianRules: GwInstRule[] = [
     every: 3,
     key: "morale_regiments",
   },
-  { rule: "call", scene: "gw_auh_quota", every: 6, first: true },
+  // ww190: every nine months, not six, so the quota isn't a monthly chore.
+  { rule: "call", scene: "gw_auh_quota", every: 9, first: true },
   ...asked,
 ];
 

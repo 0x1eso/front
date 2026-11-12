@@ -16,6 +16,7 @@ import { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import type { GwPlace } from "@openfront/engine-api/ww1914/GwPlaces";
 import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
+import { GW_AFTER_CHAPTERS } from "./Aftermath";
 import { moveMoney } from "./Budget";
 import type { GreatWar } from "./GreatWar";
 import { GW_SEAT_PERSON } from "./Tables";
@@ -67,7 +68,9 @@ export function lastOf<T>(list: readonly T[]): T | undefined {
 
 /** The stage the game is at: the table's, unless the peace is being made. */
 export function stageOf(gw: GreatWar): GwStage {
-  if (gw.s.conferenceLeft > 0) return "conference";
+  // ww190: the conference's sessions, then GW_AFTER_CHAPTERS of the aftermath.
+  if (gw.s.conferenceLeft > GW_AFTER_CHAPTERS) return "conference";
+  if (gw.s.conferenceLeft > 0) return "aftermath";
   return gwChapters(gw.s.calendar)[gw.s.chapter].stage;
 }
 

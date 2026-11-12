@@ -15,6 +15,7 @@ import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import type { GreatWar } from "./GreatWar";
 import { ladderTargets, sendNote } from "./Ladder";
 import { notedLately } from "./PairWar";
+import { armsRace, bondOf, bondPartners } from "./PeaceYears";
 import { GW_MOBILISE, GW_NOTE_FLAGS, GW_PLAN_FLAGS } from "./Tables";
 import { GW_GREAT, openWar } from "./Wars";
 import {
@@ -217,13 +218,28 @@ export function openFirstCrisis(gw: GreatWar): void {
   s.chain = { topic: "balkan", step: 0, hold: 0, short: false };
 }
 
+/**
+ * ww190: the question that sparks is the one under most pressure; a tie is
+ * the seed's.
+ */
+function hottestTopic(gw: GreatWar): GwTopic {
+  const s = gw.s;
+  const top = Math.max(...SPARK_TOPICS.map((t) => s.pressure[t]));
+  const tied = SPARK_TOPICS.filter((t) => s.pressure[t] === top);
+  return tied[wwRoll(s.seed, P_SPARK, s.chains.length, 2) % tied.length];
+}
+
+/** ww190: an accord broken on a question brings its waiting spark a chapter on. */
+export function sparkSooner(gw: GreatWar, topic: GwTopic): void {
+  const sp = gw.s.spark;
+  if (sp === null || sp.topic !== topic) return;
+  sp.chapter = Math.max(gw.s.chapter + 1, sp.chapter - 1);
+}
+
 /** A spark two to eight months on (design §2.6); `from` is the first chapter. */
 function setSpark(gw: GreatWar, from: number): void {
   const s = gw.s;
   const n = s.chains.length;
-  const topics = SPARK_TOPICS;
-  const hottest = [...topics].sort((a, b) => s.pressure[b] - s.pressure[a]);
-  const pick = wwRoll(s.seed, P_SPARK, n);
   // The world stays restless, but calm after calm lets the gap grow (ww176).
   let calm = 0;
   for (let i = n - 1; i >= 0 && s.chains[i].outcome !== "war"; i--) calm++;
@@ -233,7 +249,7 @@ function setSpark(gw: GreatWar, from: number): void {
       ? 0
       : Math.min(CALM_GAP_MAX, Math.max(0, calm - 1));
   s.spark = {
-    topic: pick % 2 === 0 ? hottest[0] : topics[pick % 3],
+    topic: hottestTopic(gw),
     chapter: from + later + (wwRoll(s.seed, P_SPARK, n, 1) % 4),
   };
 }
@@ -417,6 +433,14 @@ function sparkNote(gw: GreatWar, topic: GwTopic): void {
   const great = ([a, b]: readonly [GwTag, GwTag]) =>
     GW_GREAT.includes(a) && GW_GREAT.includes(b) ? 0 : 1;
   if (s.temp >= EDGE_AT) pairs.sort((x, y) => great(x) - great(y));
+  // ww190: before that order, two racing each other in arms, then a sender
+  // that has fallen out with its own ally.
+  const first = ([a, b]: readonly [GwTag, GwTag]) => {
+    if (armsRace(gw, a, b)) return 0;
+    const cracked = bondPartners(a).some((p) => (bondOf(gw, a, p) ?? 0) <= -1);
+    return cracked ? 1 : 2;
+  };
+  pairs.sort((x, y) => first(x) - first(y));
   const pair =
     pairs.find(([from]) => !ruledBySeat(gw, from)) ?? pairs[0] ?? null;
   if (pair === null) return closeChain(gw, "compromise");
@@ -518,7 +542,9 @@ export function crisisStep(gw: GreatWar): void {
   }
   const next = s.chapter + 1;
   if (s.spark !== null && s.spark.chapter <= next) {
-    light(gw, s.spark.topic, s.opening !== "sarajevo_delayed");
+    const short = s.opening !== "sarajevo_delayed";
+    // ww190: a later spark lights on the question hottest when it comes.
+    light(gw, short ? hottestTopic(gw) : s.spark.topic, short);
     return;
   }
   const over = SPARK_TOPICS.find((t) => s.pressure[t] >= SPARK_AT);

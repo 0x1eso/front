@@ -190,6 +190,8 @@ describe("the crisis ladder", () => {
       });
     }
     gw.s.temp = 0;
+    // ww190: a later spark lights on the question under most pressure.
+    gw.s.pressure = { ...gw.s.pressure, balkan: 0, straits: 0, colonial: 1 };
     gw.s.spark = { topic: "colonial", chapter: gw.s.chapter };
     crisisStep(gw);
     expect(gw.s.chain).toMatchObject({ topic: "colonial", short: true });

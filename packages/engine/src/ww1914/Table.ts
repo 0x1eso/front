@@ -48,6 +48,7 @@ import {
   landLine,
   monthsHeld,
 } from "./Occupation";
+import { sessionsLeft } from "./Peace";
 import { promiseCost } from "./Spies";
 import { weariness } from "./Terms";
 import {
@@ -203,9 +204,8 @@ export function openSession(gw: GreatWar, ticks: number): void {
   const t = gw.s.table;
   if (t === null || t.closed) return;
   // A bilateral table is one month, whatever the calendar (ww172).
-  if (t.pair === undefined && gw.s.conferenceLeft === 0) return;
-  t.session =
-    t.pair === undefined ? GW_TABLE_SESSIONS - gw.s.conferenceLeft : 0;
+  if (t.pair === undefined && sessionsLeft(gw) === 0) return;
+  t.session = t.pair === undefined ? GW_TABLE_SESSIONS - sessionsLeft(gw) : 0;
   t.round = 0;
   t.at = 0;
   t.done = t.order.length === 0;
@@ -743,9 +743,9 @@ export function tableStep(gw: GreatWar): void {
     closeTable(gw);
     return;
   }
-  if (gw.s.conferenceLeft === 0) return;
+  if (sessionsLeft(gw) === 0) return;
   runOut(gw);
-  if (gw.s.conferenceLeft === 1) closeTable(gw);
+  if (sessionsLeft(gw) === 1) closeTable(gw);
 }
 
 /** Both of a bilateral table's countries, or neither: what it covers. */

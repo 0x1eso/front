@@ -1,5 +1,6 @@
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import type { GameRunner } from "@openfront/engine/GameRunner";
+import { GW_AFTER_CHAPTERS } from "@openfront/engine/ww1914/Aftermath";
 import { aimMet } from "@openfront/engine/ww1914/Aims";
 import { blocNow } from "@openfront/engine/ww1914/Blocs";
 import { advanceChapter } from "@openfront/engine/ww1914/Chapters";
@@ -140,7 +141,8 @@ describe("the table", () => {
     expect(t.order[0]).toBe("FRA");
     expect(t.order).toContain("DEU");
     expect(t.lines[0].word).toBe("open");
-    expect(gw.s.conferenceLeft).toBe(3);
+    // ww190: the aftermath's months come after the sessions.
+    expect(gw.s.conferenceLeft).toBe(3 + GW_AFTER_CHAPTERS);
   });
 
   test("nobody awaited: the table talks by itself, at reading speed", async () => {
@@ -244,7 +246,7 @@ describe("the table", () => {
   test("whatever the seats leave, the month ends and the treaty signs", async () => {
     const { runner, gw, seat } = await war("DEU", "GWT8");
     armistice(gw, "central_lost", "DEU");
-    pass(gw, runner, 5);
+    pass(gw, runner, 5 + GW_AFTER_CHAPTERS);
     expect(gw.s.table!.closed).toBe(true);
     expect(gw.s.table!.claims.every((c) => c.state !== "open")).toBe(true);
     expect(seat.memoir?.map?.role).toBe("lost");
