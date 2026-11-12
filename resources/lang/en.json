@@ -5934,6 +5934,14 @@
       "wrong_report": "A report on {country} was wrong and nobody put it right."
     },
     "vassal": {
+      "RUS_AUH": "Russian Austria-Hungary",
+      "RUS_BGR": "Principality of Bulgaria (Russian protectorate)",
+      "RUS_DEU": "Russian Germany",
+      "RUS_GRC": "Kingdom of Greece (Russian protectorate)",
+      "RUS_ITA": "Russian Italy",
+      "RUS_OTT": "Ottoman Empire under Russian protection",
+      "RUS_ROU": "Romania under Russian protection",
+      "RUS_SWE": "Russian Sweden",
       "any": "{by}'s {of}"
     },
     "wire": {
