@@ -24,6 +24,13 @@ import type {
 } from "./GreatWarTypes";
 import type { GwActKind } from "./GwActs";
 import type { GwTag } from "./GwCountries";
+import type {
+  GwCardDeptView,
+  GwDeptView,
+  GwLeverView,
+  GwRoomRowView,
+  GwTimeView,
+} from "./GwDepts";
 import type { GwOrderBlock } from "./GwOrders";
 import type { GwPlace } from "./GwPlaces";
 import type { GwPowerView } from "./GwPowers";
@@ -105,6 +112,8 @@ export interface GwCardView {
    * traffic: what it read of their resolve (gw.ui.decrypt_word.<word>).
    */
   decrypt?: { tag: GwTag; word: number; stamp: GwStamp };
+  /** ww193: a department brings it: who, his option, the rival's. */
+  dept?: GwCardDeptView;
 }
 
 /** A field of a schedule entry: pick `count` from what it holds. */
@@ -299,6 +308,11 @@ export interface GwSeatView {
   acts?: readonly GwActView[];
   /** The 통치 tab: the powers this seat holds now (ww169). */
   powers?: readonly GwPowerView[];
+  /** ww193: 사람 › 부서, the audience room, the time pool, the gifts. */
+  depts?: readonly GwDeptView[];
+  room?: readonly GwRoomRowView[];
+  time?: GwTimeView;
+  levers?: readonly GwLeverView[];
   /** Null where the country has no list: its three tasks stand. */
   aims?: GwAimsView | null;
   /** The land painted as the war's aim. */

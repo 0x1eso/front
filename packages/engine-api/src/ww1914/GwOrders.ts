@@ -229,6 +229,33 @@ export const GwOrderSchema = z.discriminatedUnion("kind", [
     branch: z.enum(GW_SERVICE_BRANCHES),
     share: zb.uint({ max: GW_SERVICE_SHARE_MAX }),
   }),
+  /**
+   * ww193: work for a department (GwDepts `GwTaskRow`). Free right after its
+   * head's briefing this chapter, else a written order at one of the time.
+   * `topic`: the picked country or front, null for a row with its own.
+   */
+  z.object({
+    kind: z.literal("task"),
+    office: z.enum(GW_OFFICES),
+    row: Id,
+    topic: zb
+      .string({ min: 1, max: 48, regex: /^[A-Za-z][A-Za-z0-9_]*$/ })
+      .nullable(),
+  }),
+  /** ww193: the head comes in and lays all he brings on the desk (1 of time). */
+  z.object({ kind: z.literal("brief"), office: z.enum(GW_OFFICES) }),
+  /** ww193: 다른 부서에 맡긴다: the paper's work restarts in `office`. */
+  z.object({
+    kind: z.literal("pass_on"),
+    card: Card,
+    office: z.enum(GW_OFFICES),
+  }),
+  /** ww193: 묵혀 둔다: the paper is set aside, nothing taken. */
+  z.object({ kind: z.literal("shelve"), card: Card }),
+  /** ww193: a gift (GwLeverRow) to someone met this chapter. */
+  z.object({ kind: z.literal("gift"), row: Id, person: Id }),
+  /** ww193: 돌려보낸다: a head or petitioner leaves the room unheard. */
+  z.object({ kind: z.literal("turn_away"), person: Id }),
 ]);
 export type GwOrder = z.infer<typeof GwOrderSchema>;
 
@@ -291,5 +318,13 @@ export const GW_ORDER_BLOCKS = [
   "no_signer",
   "no_beyond",
   "sounded",
+  // ww193: departments and the audience room.
+  "no_dept",
+  "dept_busy",
+  "no_task",
+  "room_shut",
+  "no_gift",
+  "gift_given",
+  "nothing_ready",
 ] as const;
 export type GwOrderBlock = (typeof GW_ORDER_BLOCKS)[number];

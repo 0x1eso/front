@@ -16,6 +16,7 @@ export const GW_ACT_KINDS = [
   "order", // 칙령과 지시: an inquiry, an envoy, a meeting
   "speech", // 연설: where, and on what
   "intrigue", // 뒷공작: a rumour, two ministers, an agent
+  "ceremony", // ww193 의식: investiture, state funeral, review, service
 ] as const;
 export type GwActKind = (typeof GW_ACT_KINDS)[number];
 
@@ -64,6 +65,12 @@ export const GwActSchema = z
     when: GwCondSchema.optional(),
     /** Taken at most once a game. */
     once: z.boolean().optional(),
+    /**
+     * ww193: a trip. It costs two of the time pool and takes the ruler away:
+     * the audience room is shut that chapter, the trays come to the desk by
+     * wire, and the staff (or the front's commander) briefs for free.
+     */
+    trip: z.boolean().optional(),
     /** Chapters before it can be taken again; absent: GW_ACT_COOLDOWN. */
     cooldown: z.number().int().min(0).optional(),
     /** The scene that plays: `scheduledOnly`, any kind. */

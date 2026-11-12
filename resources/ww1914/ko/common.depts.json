@@ -1,0 +1,82 @@
+{
+  "version": 1,
+  "scenes": {
+    "gw_dept_plan": {
+      "title": "부서의 안",
+      "brief": "부서가 맡긴 일을 마치고 올린 서류입니다.",
+      "text": {
+        "base": "{head}이(가) 맡긴 일에 대해 안을 짜 왔다. 길게 쓴 것은 아니지만, 무엇을 할 수 있고 무엇이 걸리는지 적혀 있다."
+      },
+      "opt": {
+        "publish": "내용을 알린다",
+        "bury": "서랍에 넣어 둔다"
+      }
+    },
+    "gw_dept_study": {
+      "title": "부서의 조사 보고",
+      "brief": "부서가 맡긴 일을 마치고 올린 서류입니다.",
+      "text": {
+        "base": "{head}이(가) 맡긴 조사를 마치고 보고서를 올렸다. 숫자보다 사정이 더 많이 적혀 있다."
+      },
+      "opt": {
+        "publish": "내용을 알린다",
+        "bury": "서랍에 넣어 둔다"
+      }
+    },
+    "gw_dept_terms": {
+      "title": "부서가 마련한 조건",
+      "brief": "부서가 맡긴 일을 마치고 올린 서류입니다.",
+      "text": {
+        "base": "{head}이(가) 맡긴 일의 조건을 마련해 왔다. 어디까지 내줄 수 있고 무엇을 받아야 하는지 적혀 있다."
+      },
+      "opt": {
+        "publish": "내용을 알린다",
+        "bury": "서랍에 넣어 둔다"
+      }
+    },
+    "gw_dept_bill": {
+      "title": "부서의 법안 초안",
+      "brief": "부서가 맡긴 일을 마치고 올린 서류입니다.",
+      "text": {
+        "base": "{head}이(가) 법안 초안을 써 왔다. 조문은 짧고, 반대가 어디서 나올지가 함께 적혀 있다."
+      },
+      "opt": {
+        "publish": "내용을 알린다",
+        "bury": "서랍에 넣어 둔다"
+      }
+    },
+    "gw_dept_report": {
+      "title": "부서의 보고",
+      "brief": "부서가 맡긴 일을 마치고 올린 서류입니다.",
+      "text": {
+        "base": "{head}이(가) 맡긴 일에 대해 보고했다. 들은 것과 본 것이 섞여 있다."
+      },
+      "opt": {
+        "publish": "내용을 알린다",
+        "bury": "서랍에 넣어 둔다"
+      }
+    }
+  },
+  "people": {},
+  "depts": {
+    "names": {
+      "chancellor": "총리실",
+      "foreign": "외무부",
+      "chief_of_staff": "참모본부",
+      "war": "전쟁부",
+      "navy": "해군부",
+      "interior": "내무부",
+      "finance": "재무부",
+      "court": "궁내부",
+      "hun_pm": "헝가리 총리실",
+      "munitions": "군수부",
+      "sea_lord": "해군 참모부",
+      "ireland": "아일랜드 담당부",
+      "supreme_commander": "최고사령부",
+      "agriculture": "농업부",
+      "intelligence": "정보부"
+    },
+    "topics": {},
+    "voices": {}
+  }
+}

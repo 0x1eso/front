@@ -8,6 +8,7 @@
 // src/client/Josa.ts: {cos}이(가).
 import { z } from "zod";
 import { GwIdSchema } from "./GreatWarTypes";
+import { GwDeptPackSchema, mergeGwDeptPacks } from "./GwDepts";
 import { gwSceneEffects } from "./SceneCheck";
 import type { GwScene } from "./SceneDsl";
 
@@ -329,6 +330,8 @@ export const GwPackSchema = z
     heads: z.record(GwIdSchema, GwHeadPackSchema).optional(),
     /** Power id -> its words on the 통치 tab (ww169). */
     powers: z.record(GwIdSchema, GwPowerPackSchema).optional(),
+    /** ww193: the departments' names, tasks, wants, levers and voices. */
+    depts: GwDeptPackSchema.optional(),
   })
   .strict();
 export type GwPack = z.infer<typeof GwPackSchema>;
@@ -375,6 +378,7 @@ export function mergeGwPacks(packs: readonly GwPack[]): GwPack {
     Object.assign(out.asks!, p.asks);
     Object.assign(out.heads!, p.heads);
     Object.assign(out.powers!, p.powers);
+    out.depts = mergeGwDeptPacks(out.depts, p.depts);
     if (p.press !== undefined) out.press = p.press;
     if (p.table !== undefined) out.table = { ...out.table, ...p.table };
   }
@@ -457,6 +461,9 @@ export function gwPackOverlaps(packs: readonly GwPack[]): string[] {
       ...Object.keys(p.asks ?? {}).map((x) => `ask ${x}`),
       ...Object.keys(p.heads ?? {}).map((x) => `head ${x}`),
       ...Object.keys(p.powers ?? {}).map((x) => `power ${x}`),
+      ...Object.keys(p.depts?.tasks ?? {}).map((x) => `task ${x}`),
+      ...Object.keys(p.depts?.wants ?? {}).map((x) => `want ${x}`),
+      ...Object.keys(p.depts?.levers ?? {}).map((x) => `lever ${x}`),
     ];
     for (const id of ids) {
       if (seen.has(id)) out.add(id);

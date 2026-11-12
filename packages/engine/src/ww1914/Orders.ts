@@ -28,6 +28,14 @@ import {
 import { budgetOrder } from "./Budget";
 import { setClaims } from "./Claims";
 import { fieldOrder, raiseFooting } from "./Craft";
+import {
+  briefDept,
+  giveGift,
+  giveTask,
+  passOn,
+  shelvePaper,
+  turnAway,
+} from "./Departments";
 import { inStage, makeCard, placeCard, repeatable, sceneWear } from "./Desk";
 import { proposalsFor } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
@@ -269,6 +277,18 @@ export function applyGwOrder(
     case "service":
       // ww180: a standing word on the service's money and men.
       return serviceOrder(gw, seat, o.branch, o.share);
+    case "task":
+      return giveTask(gw, seat, o.office, o.row, o.topic);
+    case "brief":
+      return briefDept(gw, seat, o.office);
+    case "pass_on":
+      return passOn(gw, seat, o.card, o.office);
+    case "shelve":
+      return shelvePaper(gw, seat, o.card);
+    case "gift":
+      return giveGift(gw, seat, o.row, o.person);
+    case "turn_away":
+      return turnAway(gw, seat, o.person);
   }
 }
 

@@ -1,5 +1,6 @@
 import type { GwPersonDef } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwAct, GwAim } from "@openfront/engine-api/ww1914/GwActs";
+import type { GwDeptContent } from "@openfront/engine-api/ww1914/GwDepts";
 import type { GwEcho, GwScene } from "@openfront/engine-api/ww1914/SceneDsl";
 import type {
   GwFootingRow,
@@ -10,6 +11,7 @@ import type {
 import type { GwHouseContent } from "../HouseRows";
 import type { GwPowerContent } from "../PowerRows";
 import { withRuler } from "../RulerRows";
+import { joinDepts } from "../TaskRows";
 import { AUH_ACT_SCENES, AUH_ACTS, AUH_AIMS } from "./acts/auh";
 import {
   AGENT_ACTS,
@@ -24,6 +26,12 @@ import { GBR_ACT_SCENES, GBR_ACTS, GBR_AIMS } from "./acts/gbr";
 import { NAVAL_ACT_SCENES, NAVAL_ACTS } from "./acts/naval";
 import { RUS_ACT_SCENES, RUS_ACTS, RUS_AIMS } from "./acts/rus";
 import { GW_CAPITAL_SCENES } from "./capital";
+import { AUH_DEPT_SCENES, AUH_DEPTS } from "./depts/auh";
+import { COMMON_DEPT_SCENES, COMMON_DEPTS } from "./depts/common";
+import { DEU_DEPT_SCENES, DEU_DEPTS } from "./depts/deu";
+import { FRA_DEPT_SCENES, FRA_DEPTS } from "./depts/fra";
+import { GBR_DEPT_SCENES, GBR_DEPTS } from "./depts/gbr";
+import { RUS_DEPT_SCENES, RUS_DEPTS } from "./depts/rus";
 import { GW_LADDER_POWERS, GW_LADDER_SCENES } from "./ladder";
 import { GW_PEOPLE } from "./people";
 import { AUH_PEOPLE } from "./people_auh";
@@ -191,6 +199,8 @@ export interface GwContent extends GwHouseContent, GwPowerContent {
   readonly projects?: readonly GwProjectRow[];
   readonly footing?: readonly GwFootingRow[];
   readonly shortages?: readonly GwShortageRow[];
+  /** ww193: the departments' rows (content/depts); fixtures may have none. */
+  readonly depts?: GwDeptContent;
 }
 
 /** Where the main story remembers the prologues. */
@@ -208,6 +218,13 @@ export const GW_CONTENT: GwContent = {
     withCommonBodies(
       [
         ...COMMON_SCENES,
+        // ww193: the departments' fallback reports and the seats' new papers.
+        ...COMMON_DEPT_SCENES,
+        ...DEU_DEPT_SCENES,
+        ...GBR_DEPT_SCENES,
+        ...FRA_DEPT_SCENES,
+        ...RUS_DEPT_SCENES,
+        ...AUH_DEPT_SCENES,
         ...DEU_SCENES,
         ...[
           ...DEU_CRISIS_SCENES,
@@ -404,6 +421,14 @@ export const GW_CONTENT: GwContent = {
   projects: GW_PROJECTS,
   footing: GW_FOOTING,
   shortages: GW_SHORTAGE_ROWS,
+  depts: joinDepts([
+    COMMON_DEPTS,
+    DEU_DEPTS,
+    GBR_DEPTS,
+    FRA_DEPTS,
+    RUS_DEPTS,
+    AUH_DEPTS,
+  ]),
   ...GW_HOUSE_CONTENT,
   powers: [
     ...DEU_POWERS,

@@ -53,6 +53,7 @@ export const GW_PACK_SHARES: Readonly<
     "rule",
     "homefront",
     "after",
+    "depts",
   ],
   GBR: [
     "crisis",
@@ -80,6 +81,7 @@ export const GW_PACK_SHARES: Readonly<
     "rule",
     "homefront",
     "after",
+    "depts",
   ],
   AUH: [
     "crisis",
@@ -107,6 +109,7 @@ export const GW_PACK_SHARES: Readonly<
     "rule",
     "homefront",
     "after",
+    "depts",
     "colonies",
     "agents",
   ],
@@ -136,6 +139,7 @@ export const GW_PACK_SHARES: Readonly<
     "rule",
     "homefront",
     "after",
+    "depts",
     "colonies",
     "agents",
   ],
@@ -165,6 +169,7 @@ export const GW_PACK_SHARES: Readonly<
     "rule",
     "homefront",
     "after",
+    "depts",
     "colonies",
     "president",
   ],
@@ -194,6 +199,7 @@ export const GW_COMMON_SHARES: readonly string[] = [
   "rule",
   "homefront",
   "after",
+  "depts",
 ];
 /**
  * Casts in files of their own. Every seat loads them: a scene can cast another

@@ -7,6 +7,10 @@ import {
   GwPersonDefSchema,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { GW_TAGS, gwCountry } from "@openfront/engine-api/ww1914/GwCountries";
+import {
+  gwDeptPackProblems,
+  gwDeptProblems,
+} from "@openfront/engine-api/ww1914/GwDepts";
 import { GwOrderIntentSchema } from "@openfront/engine-api/ww1914/GwOrders";
 import {
   GwPackSchema,
@@ -166,6 +170,21 @@ describe("content", () => {
       const pack = await loadGwPack(tag, async (p) => json(p));
       const rows = (GW_CONTENT.powers ?? []).filter((p) => p.tag === tag);
       expect(gwPowerPackProblems(rows, pack, why)).toEqual([]);
+    }
+  });
+
+  test("every department row holds together and has its words (ww193)", async () => {
+    const scenes = new Map(GW_CONTENT.scenes.map((s) => [s.id, s]));
+    const depts = GW_CONTENT.depts ?? {};
+    expect(gwDeptProblems(depts, scenes)).toEqual([]);
+    for (const tag of SEATS) {
+      const pack = await loadGwPack(tag, async (p) => json(p));
+      const own = {
+        tasks: (depts.tasks ?? []).filter((t) => t.nation.includes(tag)),
+        wants: (depts.wants ?? []).filter((t) => t.nation.includes(tag)),
+        levers: (depts.levers ?? []).filter((t) => t.nation.includes(tag)),
+      };
+      expect(gwDeptPackProblems(own, pack.depts)).toEqual([]);
     }
   });
 

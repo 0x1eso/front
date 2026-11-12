@@ -924,6 +924,51 @@ export const GW_TERM_REFUSALS = [
 ] as const;
 export type GwTermRefusal = (typeof GW_TERM_REFUSALS)[number];
 
+// ---- ww193: departments at work (GwDepts.ts has the rows and the views) ----
+
+/** What a department did with, or was told of, a paper. APPEND ONLY. */
+export const GW_VERDICTS = [
+  "accept", // 받아들인다: the department's option
+  "overrule", // 다른 안으로 정한다
+  "send_back", // 다시 써 오시오
+  "pass_on", // 다른 부서에 맡긴다
+  "shelve", // 묵혀 둔다
+  "acted", // unheard two chapters: the department took its own option (대행)
+] as const;
+export type GwVerdict = (typeof GW_VERDICTS)[number];
+
+/** A department's mark on a paper it brings. */
+export const GwCardDeptSchema = z.object({
+  office: z.enum(GW_OFFICES),
+  /** The head who brings it. */
+  by: GwIdSchema,
+  /** The task row it answers; null: the department's own initiative. */
+  row: GwIdSchema.nullable(),
+  /** The task's topic: a tag, a theatre or a subject id; null none. */
+  topic: z.string().nullable(),
+  /** Chapter it reached the in-tray: two unheard chapters and it is acted on. */
+  ready: z.number().int(),
+  /** Memory keys his competence opened on this paper (band 3 all, 2 the first). */
+  keys: z.array(GwIdSchema),
+  /** His competence band in the department's field, 1..3: the confidence. */
+  band: z.number().int(),
+  /** The department's option; null when it has none open (a report). */
+  option: GwIdSchema.nullable(),
+  /** The rival department's head and option, when he comes too. */
+  rival: z
+    .object({
+      office: z.enum(GW_OFFICES),
+      by: GwIdSchema,
+      option: GwIdSchema.nullable(),
+    })
+    .nullable(),
+  /** This is the rival's counter-paper (a dispute), brought beside the head's. */
+  counter: z.boolean(),
+  /** Laid on the desk by a briefing, or by wire while the ruler is away. */
+  heard: z.boolean(),
+});
+export type GwCardDept = z.infer<typeof GwCardDeptSchema>;
+
 export const GwCardSchema = z.object({
   uid: z.number().int(),
   scene: GwIdSchema,
@@ -952,8 +997,66 @@ export const GwCardSchema = z.object({
    * asked at. The chapter's clock waits while it runs. Absent otherwise.
    */
   ask: z.object({ from: z.number().int(), at: z.number().int() }).optional(),
+  /** ww193: a department's paper (GwDepts.ts): who brings it, his option. */
+  dept: GwCardDeptSchema.optional(),
 });
 export type GwCard = z.infer<typeof GwCardSchema>;
+
+/** Work a department is doing: one at a time. */
+export const GwDeptTaskSchema = z.object({
+  office: z.enum(GW_OFFICES),
+  /** The task row; null: a paper passed on from another department. */
+  row: GwIdSchema.nullable(),
+  topic: z.string().nullable(),
+  /** A paper passed on: this scene comes back, not the row's list. */
+  scene: GwIdSchema.nullable(),
+  from: z.number().int(),
+  /** The chapter the work is done: it reaches the tray when that one opens. */
+  due: z.number().int(),
+  by: GwIdSchema,
+});
+export type GwDeptTask = z.infer<typeof GwDeptTaskSchema>;
+
+export const GwDeptStateSchema = z.object({
+  tasks: z.array(GwDeptTaskSchema),
+  /** Papers ready and not yet heard, each with its `dept` mark, in order. */
+  tray: z.array(GwCardSchema),
+  /** Offices briefed this chapter: a task given there is free. */
+  heard: z.array(z.enum(GW_OFFICES)),
+  /** People given a gift this chapter: one each. */
+  gifts: z.array(GwIdSchema),
+  /** Petitioners in the audience room this chapter, and those turned away. */
+  waiting: z.array(GwIdSchema),
+  /** Time carried from last chapter, 0..1. */
+  carry: z.number().int(),
+  /** The chapter the ruler is on a trip; -1 at home. */
+  away: z.number().int(),
+  /** Work done, newest last: what came of it. */
+  past: z.array(
+    z.object({
+      office: z.enum(GW_OFFICES),
+      row: GwIdSchema.nullable(),
+      topic: z.string().nullable(),
+      scene: GwIdSchema,
+      chapter: z.number().int(),
+      verdict: z.enum(GW_VERDICTS),
+    }),
+  ),
+});
+export type GwDeptState = z.infer<typeof GwDeptStateSchema>;
+
+export function gwDeptStart(): GwDeptState {
+  return {
+    tasks: [],
+    tray: [],
+    heard: [],
+    gifts: [],
+    waiting: [],
+    carry: 0,
+    away: -1,
+    past: [],
+  };
+}
 
 export const GwPromiseSchema = z.object({
   key: GwIdSchema,
@@ -1364,6 +1467,8 @@ export const GwSeatStateSchema = z.object({
   dissolved: z.number().int().optional(),
   /** ww190: the chapter its own peace was made, while it plays on (Aftermath.ts). */
   leftAt: z.number().int().optional(),
+  /** ww193: the departments' work, trays and the room (Departments.ts); absent until any. */
+  depts: GwDeptStateSchema.optional(),
 });
 export type GwSeatState = z.infer<typeof GwSeatStateSchema>;
 
