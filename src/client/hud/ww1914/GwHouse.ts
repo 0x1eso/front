@@ -11,6 +11,7 @@ import type {
 import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
 import type { GwCtx } from "./GwCtx";
+import { timeLeft } from "./GwDept";
 import { BTN, CHIP, HEAD, MUTED } from "./GwStyle";
 import { personName } from "./GwText";
 
@@ -47,7 +48,7 @@ function callButton(
   return html`<button
     class="${BTN} shrink-0"
     data-gw-house-call=${f.id}
-    ?disabled=${c.seat.audiences <= 0 && h.calls <= 0}
+    ?disabled=${timeLeft(c) <= 0 && h.calls <= 0}
     @click=${() => {
       c.send({ kind: "summon", person: who, topic });
       c.ui.summoned = Date.now();

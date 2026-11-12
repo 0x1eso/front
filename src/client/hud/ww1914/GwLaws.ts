@@ -2,6 +2,7 @@ import type { GwLawView } from "@openfront/engine-api/ww1914/GwLaw";
 import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
 import type { GwCtx } from "./GwCtx";
+import { timeLeft } from "./GwDept";
 import { instName } from "./GwOffice";
 import { BTN, BTN_ON, HEAD, MUTED } from "./GwStyle";
 import { personName } from "./GwText";
@@ -99,7 +100,7 @@ function call(c: GwCtx, v: GwLawView): TemplateResult | typeof nothing {
   return html`<button
     class="${BTN} w-full"
     data-gw-law-talk=${v.id}
-    ?disabled=${c.seat.audiences <= 0}
+    ?disabled=${timeLeft(c) <= 0}
     @click=${() => {
       c.send({ kind: "summon", person: t.person, topic: t.topic });
       c.ui.summoned = Date.now();
