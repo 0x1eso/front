@@ -97,7 +97,9 @@ export const AUH_SOCIETY: GwSocietyContent = {
       faction: "auh_hun_sd",
       tag: "AUH",
       from: "auh_c_workers",
-      when: any(isLaw("auh_franchise"), warAge(30)),
+      // ww211: or in peace, once Tisza's house guard shuts the Diet's door
+      // on the street (the suffrage strike of 23 May 1912, F: memory).
+      when: any(isLaw("auh_franchise"), warAge(30), isLaw("auh_house_rules")),
     },
     // The Ukrainian deputies of Galicia (31 in 1911: en.wikipedia 1911
     // Cisleithanian election, checked 2026-11-13), one club in the war (F).
@@ -113,7 +115,14 @@ export const AUH_SOCIETY: GwSocietyContent = {
       faction: "auh_romanians",
       tag: "AUH",
       from: "auh_c_south",
-      when: any(not(world({ is: "neutral", tag: "ROU" })), warAge(24)),
+      // ww211: in peace, once the school law or the commissioner's rule in
+      // Croatia stirs the south (the game's reading).
+      when: any(
+        not(world({ is: "neutral", tag: "ROU" })),
+        warAge(24),
+        isLaw("auh_schools"),
+        isLaw("auh_croatia_charter"),
+      ),
     },
     // Károlyi's party (July 1916: en.wikipedia Mihály Károlyi). The split
     // row stays; this is the state's way: Magyars hot and no voice for peace.

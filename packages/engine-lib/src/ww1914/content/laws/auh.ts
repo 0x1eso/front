@@ -11,7 +11,7 @@ import {
 } from "@openfront/engine-api/ww1914/SceneDsl";
 import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
 import type { GwLawDraft, GwLawRow } from "../../LawRows";
-import { leaderOf } from "../house/kit";
+import { heat, leaderOf } from "../house/kit";
 import {
   draft,
   either,
@@ -352,11 +352,20 @@ const AUH_WAR_LAWS: readonly GwLawRow[] = [
   row({
     id: "auh_reichsrat",
     chapter: "franchise",
-    opens: allOf(war, since("1916-11")),
+    // ww211: in peace too, once the July weeks are past: Stürgkh prorogued
+    // it on 16 March 1914 over Bohemia's deadlock (1914-1918-online,
+    // "Governments, Parliaments and Parties (Austria)", checked 2026-11-13),
+    // and nothing but the crown's word kept it shut.
+    opens: any(
+      allOf(war, since("1916-11")),
+      allOf({ kind: "not", of: war }, world({ is: "peace_months", min: 1 })),
+    ),
     lean: -1,
     decree: false,
     body: "council",
     cast: vienna,
+    // ww211: the peace years' card: no hospital beds in the corridors.
+    variants: [{ id: "peace", when: { kind: "not", of: war } }],
     draft: [
       draft("open_with_oath", 1, ["nations:-1"], [inst("nations", -1)]),
       draft(
@@ -371,12 +380,27 @@ const AUH_WAR_LAWS: readonly GwLawRow[] = [
         ["nations:+2", "army:-2"],
         [inst("nations", 2), inst("army", -2), setFlag("f_auh_amnesty")],
       ),
+      // ww211: in peace, called back with new standing orders against the
+      // obstruction that closed it (the house can then cut a speech short).
+      draft(
+        "standing_orders",
+        0,
+        ["council:+1"],
+        [inst("council", 1), heat("auh_czech", 1)],
+        { kind: "not", of: war },
+      ),
     ],
     passed: [
       inst("nations", 1),
       gauge("order", 1),
       inst("council", -1),
       setFlag("f_auh_sign_austria"),
+      // ww211: the court and the army wanted it shut; in peace they say so.
+      {
+        kind: "maybe",
+        when: { kind: "not", of: war },
+        then: [heat("auh_court", 1), heat("auh_aok", 1)],
+      },
     ],
     passedTell: ["nations:+1", "order:+1", "council:-1"],
     term: [],
@@ -917,6 +941,306 @@ const AUH_PEACE_LAWS: readonly GwLawRow[] = [
   }),
 ];
 
+// ---- ww211: the peace years' politics, 1912-14 ----
+// Facts (checked 2026-11-13 unless F):
+// - Bohemia: the Annenpatente of 26 July 1913 suspended the Diet; Thun's and
+//   Stürgkh's talks between the Czech and German parties broke down for good
+//   at the end of February 1914; one more try in June 1914 (bohemia-online,
+//   a Czech-German study; 1914-1918-online). Moravia had its compromise of
+//   1905 with national registers (F: memory).
+// - Galicia: the Polish and Ukrainian delegations signed on 24 January 1914;
+//   the Diet passed the new electoral order on 14 February 1914, giving the
+//   Ukrainians about 27% of its seats; the war stopped it (zaxid.net;
+//   Kuzmany, ZfO). The Ukrainian university in Lemberg was the other old
+//   demand (searches name it; what the deal said of it, F).
+// - Croatia: the Sabor dissolved January 1912, the constitution suspended
+//   and Cuvaj royal commissioner from early April 1912; Skerlecz ban from
+//   27 November 1913, elections 16-17 December 1913, won by the Croat-Serb
+//   Coalition (en.wikipedia Slavko Cuvaj, 1913 Croatian election).
+// - Budapest: Tisza, Speaker, had the police carry out the obstructing
+//   deputies on 4 June 1912 and the army bill passed; Kovács shot at him on
+//   7 June 1912; the standing orders were then made harder (en.wikipedia
+//   Gyula Kovács; Papers Past 1913). The count of deputies removed differs
+//   by source (F).
+// - The Balkan winter: the 1912-13 measures cost about 309 million crowns,
+//   partly on a loan raised in New York in December 1912 (austria-forum, the
+//   HGM book; one source, F).
+// - Bosnia: Potiorek's emergency of early May 1913 dissolved the Serb and
+//   socialist societies and suspended the Sabor and the civil courts; it was
+//   lifted within weeks (Britannica Potiorek; Press, 6 May 1913).
+/** Peace, and the July weeks behind: the crisis closed without a war. */
+const afterJuly: GwCond = allOf(
+  peaceTime,
+  world({ is: "peace_months", min: 0 }),
+);
+
+const AUH_PEACE_1914: readonly GwLawRow[] = [
+  row({
+    id: "auh_czech_german",
+    chapter: "local",
+    peace: true,
+    opens: afterJuly,
+    lean: -1,
+    decree: true,
+    body: "council",
+    cast: vienna,
+    draft: [
+      draft("moravian_way", 1, ["nations:+1"], [inst("nations", 1)]),
+      draft(
+        "bilingual_offices",
+        -1,
+        ["nations:+1"],
+        [inst("nations", 1), heat("auh_germans", 1)],
+      ),
+      draft(
+        "closed_districts",
+        0,
+        ["nations:-1"],
+        [inst("nations", -1), heat("auh_czech", 1)],
+      ),
+    ],
+    passed: [gauge("order", 1)],
+    passedTell: ["order:+1"],
+    term: [{ gauge: "order", delta: 1, every: 12, offset: 6 }],
+    repeal: {
+      authority: 15,
+      tell: ["nations:-1", "order:-1"],
+      effects: [inst("nations", -1), gauge("order", -1)],
+    },
+    talk: lawTalk("auh_czech_german", {
+      who: either(person("auh_kramar"), leaderOf("auh_czech")),
+      ask: "frank",
+      push: "warm",
+      tell: ["nations:+1"],
+      price: [inst("nations", 1)],
+      wins: 1,
+      tempers: ["arrogant"],
+    }),
+  }),
+  row({
+    id: "auh_galicia_vote",
+    chapter: "local",
+    peace: true,
+    opens: afterJuly,
+    lean: 0,
+    decree: true,
+    body: "council",
+    cast: vienna,
+    draft: [
+      draft("ruthenian_share", 0, ["nations:+1"], [inst("nations", 1)]),
+      draft(
+        "polish_hold",
+        1,
+        ["nations:-1"],
+        [
+          inst("nations", -1),
+          doWorld({ do: "community", id: "auh_c_north", delta: 1 }),
+        ],
+      ),
+      draft(
+        "with_university",
+        -1,
+        ["nations:+2", "money:-1"],
+        [inst("nations", 2), gauge("money", -1), heat("auh_poles", 1)],
+      ),
+    ],
+    passed: [gauge("order", 1)],
+    passedTell: ["order:+1"],
+    term: [],
+    repeal: {
+      authority: 15,
+      tell: ["nations:-1"],
+      effects: [inst("nations", -1)],
+    },
+    talk: lawTalk("auh_galicia_vote", {
+      who: either(person("auh_bilinski"), leaderOf("auh_poles")),
+      ask: "frank",
+      push: "cold",
+      tell: ["nations:-1"],
+      price: [inst("nations", -1)],
+      wins: 1,
+    }),
+  }),
+  row({
+    id: "auh_croatia_charter",
+    chapter: "local",
+    peace: true,
+    opens: afterJuly,
+    lean: 0,
+    decree: false,
+    cast: hun,
+    draft: [
+      draft("ban_and_sabor", 1, ["nations:+1"], [inst("nations", 1)]),
+      draft(
+        "commissioner",
+        0,
+        ["hungary:+1", "nations:-1"],
+        [
+          inst("hungary", 1),
+          inst("nations", -1),
+          doWorld({ do: "community", id: "auh_c_south", delta: 1 }),
+        ],
+      ),
+      draft(
+        "coalition_terms",
+        -1,
+        ["nations:+2", "hungary:-1"],
+        [inst("nations", 2), inst("hungary", -1)],
+      ),
+    ],
+    passed: [],
+    passedTell: [],
+    term: [{ gauge: "order", delta: 1, every: 14, offset: 4 }],
+    repeal: {
+      authority: 15,
+      tell: ["nations:-1"],
+      effects: [inst("nations", -1)],
+    },
+    talk: lawTalk("auh_croatia_charter", {
+      who: held("hun_pm"),
+      ask: "frank",
+      push: "cold",
+      tell: ["hungary:+1"],
+      price: [inst("hungary", 1)],
+      wins: 1,
+      tempers: ["stubborn"],
+    }),
+  }),
+  row({
+    id: "auh_house_rules",
+    chapter: "franchise",
+    peace: true,
+    opens: afterJuly,
+    lean: 0,
+    decree: false,
+    cast: hun,
+    draft: [
+      draft(
+        "house_guard",
+        1,
+        ["hungary:+1", "order:+1"],
+        [
+          inst("hungary", 1),
+          gauge("order", 1),
+          heat("auh_indep", 1),
+          heat("auh_karolyi", 1),
+        ],
+      ),
+      draft("closure", 0, ["hungary:+1"], [inst("hungary", 1)]),
+      draft(
+        "minority_rights",
+        -1,
+        ["hungary:-1"],
+        [inst("hungary", -1), heat("auh_work", 1)],
+      ),
+    ],
+    passed: [],
+    passedTell: [],
+    term: [],
+    repeal: {
+      authority: 10,
+      tell: ["hungary:-1"],
+      effects: [inst("hungary", -1)],
+    },
+    talk: lawTalk("auh_house_rules", {
+      who: either(person("auh_tisza"), held("hun_pm")),
+      ask: "frank",
+      push: "cold",
+      tell: ["hungary:+1"],
+      price: [inst("hungary", 1)],
+      wins: 2,
+      tempers: ["stubborn"],
+    }),
+  }),
+  row({
+    id: "auh_balkan_credits",
+    chapter: "tax",
+    peace: true,
+    opens: afterJuly,
+    lean: 0,
+    decree: true,
+    body: "council",
+    cast: { chancellor: held("chancellor"), finance: held("finance") },
+    draft: [
+      draft("foreign_loan", 1, ["money:+1"], [gauge("money", 1)]),
+      draft(
+        "surtax",
+        -1,
+        ["money:+1", "council:-1"],
+        [gauge("money", 1), inst("council", -1)],
+      ),
+      draft(
+        "quota_share",
+        0,
+        ["money:+1", "hungary:-1"],
+        [gauge("money", 1), inst("hungary", -1)],
+      ),
+    ],
+    passed: [],
+    passedTell: [],
+    term: [{ gauge: "money", delta: 1, every: 12, offset: 3 }],
+    repeal: {
+      authority: 10,
+      tell: ["money:-1"],
+      effects: [gauge("money", -1)],
+    },
+    talk: lawTalk("auh_balkan_credits", {
+      who: held("finance"),
+      ask: "frank",
+      push: "cold",
+      tell: ["money:-1"],
+      price: [gauge("money", -1)],
+      wins: 1,
+    }),
+  }),
+  row({
+    id: "auh_bosnia_emergency",
+    chapter: "local",
+    peace: true,
+    opens: afterJuly,
+    lean: 0,
+    decree: true,
+    body: "council",
+    cast: { finance: either(person("auh_bilinski"), held("finance")) },
+    draft: [
+      draft(
+        "emergency",
+        1,
+        ["order:+1", "nations:-1"],
+        [
+          gauge("order", 1),
+          inst("nations", -1),
+          doWorld({ do: "community", id: "auh_c_south", delta: 1 }),
+        ],
+      ),
+      draft("societies_only", 0, ["order:+1"], [gauge("order", 1)]),
+      draft(
+        "lift",
+        -1,
+        ["nations:+1", "army:-1"],
+        [inst("nations", 1), inst("army", -1)],
+      ),
+    ],
+    passed: [],
+    passedTell: [],
+    term: [{ gauge: "order", delta: 1, every: 12, offset: 2 }],
+    repeal: {
+      authority: 10,
+      tell: ["order:-1"],
+      effects: [gauge("order", -1)],
+    },
+    talk: lawTalk("auh_bosnia_emergency", {
+      who: either(person("auh_potiorek"), person("auh_bilinski")),
+      ask: "cold",
+      push: "frank",
+      tell: ["army:+1"],
+      price: [inst("army", 1)],
+      wins: 1,
+      tempers: ["arrogant"],
+    }),
+  }),
+];
+
 // ---- ww207 (W-AUH): the factions' exclusive laws (their trees' nodes) ----
 // In the book only once the node is open (content/utopia/auh.ts). Facts:
 // Naumann's "Mitteleuropa" (1915) and the customs talks with Berlin; the
@@ -1222,6 +1546,7 @@ export const AUH_LAW_AXES: Readonly<
     open_with_oath: { rule: 1, dual: -1 },
     open_plainly: { rule: 1 },
     with_amnesty: { rule: 1, dual: 1 },
+    standing_orders: { rule: 1, dual: -1 },
   },
   auh_franchise: {
     soldiers_vote: { rule: 1 },
@@ -1277,6 +1602,37 @@ export const AUH_LAW_AXES: Readonly<
     magyar_hours: { dual: -1 },
     mother_tongue: { dual: 1 },
     state_schools: { rule: 1 },
+  },
+  // ww211: the peace years' bills.
+  auh_czech_german: {
+    moravian_way: { dual: 1, rule: 1 },
+    bilingual_offices: { dual: 1 },
+    closed_districts: { dual: -1 },
+  },
+  auh_galicia_vote: {
+    ruthenian_share: { dual: 1, class: 1 },
+    polish_hold: { dual: -1, class: -1 },
+    with_university: { dual: 1, rule: 1 },
+  },
+  auh_croatia_charter: {
+    ban_and_sabor: { rule: 1 },
+    commissioner: { rule: -1, dual: -1 },
+    coalition_terms: { dual: 1, rule: 1 },
+  },
+  auh_house_rules: {
+    house_guard: { rule: -1, dual: -1 },
+    closure: { rule: -1 },
+    minority_rights: { rule: 1, class: 1 },
+  },
+  auh_balkan_credits: {
+    foreign_loan: { class: -1 },
+    surtax: { class: 1 },
+    quota_share: { dual: -1 },
+  },
+  auh_bosnia_emergency: {
+    emergency: { rule: -1, dual: -1 },
+    societies_only: { rule: -1 },
+    lift: { rule: 1, dual: 1 },
   },
   auh_x_magyar_army: {
     magyar_command: { dual: -1 },
@@ -1356,5 +1712,6 @@ export function withAuhAxes(rows: readonly GwLawRow[]): GwLawRow[] {
 export const AUH_LAWS: readonly GwLawRow[] = withAuhAxes([
   ...AUH_WAR_LAWS,
   ...AUH_PEACE_LAWS,
+  ...AUH_PEACE_1914,
   ...AUH_EXCLUSIVE_LAWS,
 ]);

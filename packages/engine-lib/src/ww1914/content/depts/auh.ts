@@ -36,6 +36,7 @@ import {
   setFlag,
 } from "@openfront/engine-api/ww1914/SceneDsl";
 import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
+import { REICHSRAT_OPEN } from "../house/houses";
 import {
   atWar,
   berlinAt,
@@ -713,6 +714,15 @@ const ANSWERS: GwAnswerRow[] = [
     ],
     [
       c("usual", ["calm", "wait"], [], { wait: true }),
+      // ww211: the Balkan winter's bill, and the recruits (1912).
+      c("balkan_bill", ["cheap", "calm"], [], {
+        when: peace,
+        needs: [{ kind: "bill", law: "auh_balkan_credits" }],
+      }),
+      c("recruits", ["bold", "firm"], [opinion("army", 1)], {
+        when: peace,
+        needs: [{ kind: "bill", law: "auh_army_bill" }],
+      }),
       c("more_from_pest", ["firm"], [gauge("money", 1), inst("hungary", -1)]),
       c("concede", ["gentle", "cheap"], [inst("hungary", 1), inst("army", -1)]),
     ],
@@ -755,6 +765,11 @@ const ANSWERS: GwAnswerRow[] = [
         { needs: [{ kind: "bill", law: "auh_franchise" }] },
       ),
       c("veterans", ["calm"], [opinion("army", 1), inst("hungary", -1)]),
+      // ww211: Tisza's answer to the obstruction (June 1912).
+      c("house_rules", ["firm"], [inst("hungary", 1)], {
+        when: peace,
+        needs: [{ kind: "bill", law: "auh_house_rules" }],
+      }),
       c(
         "leave",
         ["wait", "firm", "cheap"],
@@ -776,6 +791,16 @@ const ANSWERS: GwAnswerRow[] = [
       f("after_war", 2, { wrong: true }),
     ],
     [
+      // ww211: in peace, the talks Thun and Stürgkh ran (1912-14), and the
+      // house Stürgkh shut over them (16 March 1914).
+      c("compromise", ["calm", "gentle"], [inst("nations", 1)], {
+        when: peace,
+        needs: [{ kind: "bill", law: "auh_czech_german" }],
+      }),
+      c("recall", ["bold"], [opinion("parliament", 1)], {
+        when: all(peace, not(REICHSRAT_OPEN)),
+        needs: [{ kind: "bill", law: "auh_reichsrat" }],
+      }),
       c(
         "army_rule",
         ["firm"],
@@ -803,6 +828,11 @@ const ANSWERS: GwAnswerRow[] = [
       f("all_loyal", 1, { wrong: true }),
     ],
     [
+      // ww211: the Galician compromise of January 1914.
+      c("electoral_deal", ["calm", "gentle"], [inst("nations", 1)], {
+        when: peace,
+        needs: [{ kind: "bill", law: "auh_galicia_vote" }],
+      }),
       c(
         "apart",
         ["bold", "gentle"],
@@ -825,6 +855,16 @@ const ANSWERS: GwAnswerRow[] = [
       f("hate_belgrade", 1, { wrong: true }),
     ],
     [
+      // ww211: in peace, Croatia's suspended constitution and Bosnia's
+      // emergency (1912-13).
+      c("charter", ["calm", "gentle"], [inst("nations", 1)], {
+        when: peace,
+        needs: [{ kind: "bill", law: "auh_croatia_charter" }],
+      }),
+      c("bosnia_order", ["firm"], [gauge("order", 1)], {
+        when: peace,
+        needs: [{ kind: "bill", law: "auh_bosnia_emergency" }],
+      }),
       c("third_crown", ["bold"], [inst("nations", 1), inst("hungary", -2)]),
       c("hear", ["gentle", "calm"], [inst("nations", 1)]),
       c("refuse", ["firm", "wait"], [inst("nations", -1), inst("hungary", 1)]),

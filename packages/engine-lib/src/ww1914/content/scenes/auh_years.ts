@@ -31,6 +31,8 @@ import {
 } from "@openfront/engine-api/ww1914/SceneDsl";
 import type { GwWorldCond } from "@openfront/engine-api/ww1914/WorldDsl";
 import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
+import { REICHSRAT_OPEN } from "../house/houses";
+import { cool, heat, isLaw, startLaw, temper } from "../house/kit";
 
 // ---- The kit ----
 
@@ -197,6 +199,9 @@ const pressureIs = (topic: GwTopic, min: number, max?: number): GwCond => ({
 const courted = (side: GwSide, min: number): GwCond =>
   w({ is: "courted", side, min });
 
+const axis = (a: "rule" | "class" | "dual", delta: number): GwEffect =>
+  doWorld({ do: "axis", axis: a, delta });
+
 // ---- The peace years (ww190 §1) ----
 
 const ARMS: readonly GwScene[] = [
@@ -231,7 +236,14 @@ const ARMS: readonly GwScene[] = [
     vs: [["behind", race("RUS")], ["base"]],
     picks: [
       pick("budget", arms("army", 5), inst("hungary", -1)),
-      pick("bill", inst("army", 1), remember("k_auh_y_bill_waits")),
+      // ww211: the bill itself goes to both houses (Budapest passed its
+      // recruits on 4 June 1912, Tisza in the chair).
+      pick(
+        "bill",
+        inst("army", 1),
+        remember("k_auh_y_bill_waits"),
+        startLaw("auh_army_bill", "seat"),
+      ),
       pick("later", inst("army", -1)),
     ],
     cooldown: 6,
@@ -474,8 +486,17 @@ const HOME: readonly GwScene[] = [
         gauge("order", 1),
         inst("nations", -1),
         inst("council", 1),
+        // ww211: the society feels it (one notch).
+        axis("rule", -1),
       ),
-      pick("talks", inst("nations", 1), gauge("money", -1)),
+      // ww211: the talks are the compromise bill (1912-14).
+      pick(
+        "talks",
+        inst("nations", 1),
+        gauge("money", -1),
+        startLaw("auh_czech_german", "seat"),
+        axis("dual", 1),
+      ),
     ],
     cooldown: 3,
   }),
@@ -494,6 +515,192 @@ const HOME: readonly GwScene[] = [
     ],
     tags: ["home", "tension_down"],
     once: true,
+  }),
+];
+
+// ---- ww211: the peace years' politics (1912-14), called by the state ----
+// Facts: content/laws/auh.ts (ww211 block). The Belvedere: Franz
+// Ferdinand's advisers met at his Upper Belvedere, a shadow government in
+// the court's eyes; Brosch, head of his military chancery, wrote the
+// succession programme (1911); Karl later took Clam-Martinic and Czernin
+// from that circle (habsburger.net; a Hungarian study, checked 2026-11-13).
+// Popovici's "United States of Greater Austria" (1906) is F: memory.
+
+const affinity = (id: string, delta: number): GwEffect =>
+  doWorld({ do: "affinity", id, delta });
+const community = (id: string, delta: number): GwEffect =>
+  doWorld({ do: "community", id, delta });
+const moving = (law: string): GwCond =>
+  w({ is: "law", id: law, of: ["persuade", "vote"] });
+const ffLives: GwCond = {
+  kind: "opening",
+  of: ["sarajevo_survived", "sarajevo_failed", "no_sarajevo"],
+};
+
+const POLITICS: readonly GwScene[] = [
+  card({
+    id: "auh_y_house_shut",
+    when: all(peaceFor(3), not(REICHSRAT_OPEN)),
+    cast: { pm: PM },
+    vs: [["czechs", temper("auh_czech", 2)], ["base"]],
+    picks: [
+      pick(
+        "recall",
+        startLaw("auh_reichsrat", "seat"),
+        axis("rule", 2),
+        axis("class", 1),
+      ),
+      pick(
+        "par14",
+        inst("council", 1),
+        heat("auh_sd", 1),
+        heat("auh_germans", 1),
+        axis("rule", -2),
+        axis("class", -1),
+      ),
+    ],
+    cooldown: 8,
+    max: 2,
+  }),
+  card({
+    id: "auh_y_obstruction",
+    when: all(peaceFor(1), REICHSRAT_OPEN, not(isLaw("auh_czech_german"))),
+    cast: { pm: PM },
+    vs: [["hot", temper("auh_czech", 2)], ["base"]],
+    picks: [
+      pick(
+        "compromise",
+        startLaw("auh_czech_german", "seat"),
+        axis("dual", 2),
+        axis("rule", 1),
+      ),
+      pick(
+        "sit_through",
+        gauge("order", -1),
+        heat("auh_czech", 1),
+        axis("rule", 2),
+      ),
+      pick(
+        "by_decree",
+        inst("council", 1),
+        heat("auh_czech", 2),
+        heat("auh_slavs", 1),
+        axis("rule", -3),
+      ),
+    ],
+    salience: 7,
+    cooldown: 6,
+    max: 2,
+  }),
+  card({
+    id: "auh_y_diet_obstruction",
+    when: all(
+      peaceFor(2),
+      not(isLaw("auh_house_rules")),
+      any(
+        moving("auh_army_bill"),
+        temper("auh_indep", 1),
+        w({ is: "peace_months", min: 6 }),
+      ),
+    ),
+    cast: { hun: HUN },
+    vs: [["army_bill", moving("auh_army_bill")], ["base"]],
+    picks: [
+      pick("rules", startLaw("auh_house_rules", "seat"), axis("rule", -2)),
+      pick(
+        "police",
+        inst("hungary", 1),
+        heat("auh_indep", 2),
+        heat("auh_karolyi", 1),
+        axis("rule", -3),
+        axis("class", -2),
+      ),
+      pick(
+        "bargain",
+        inst("hungary", -1),
+        cool("auh_indep", 1),
+        axis("rule", 2),
+        axis("class", 2),
+      ),
+    ],
+    salience: 7,
+    cooldown: 8,
+    max: 2,
+  }),
+  card({
+    id: "auh_y_belvedere",
+    when: peaceFor(4),
+    cast: { pm: PM },
+    vs: [["heir_lives", ffLives], ["base"]],
+    picks: [
+      pick(
+        "trial",
+        affinity("auh_slavs", 10),
+        heat("auh_work", 1),
+        axis("dual", 3),
+      ),
+      pick(
+        "federal",
+        affinity("auh_csoc", 10),
+        heat("auh_germans", 1),
+        axis("dual", 2),
+        axis("rule", -1),
+      ),
+      pick("seal", inst("hungary", 1), cool("auh_work", 1), axis("dual", -2)),
+    ],
+    once: true,
+  }),
+  card({
+    id: "auh_y_galicia_diet",
+    when: all(peaceFor(2), not(isLaw("auh_galicia_vote"))),
+    cast: { pm: PM },
+    vs: [["hot", pressureIs("poland", 16)], ["base"]],
+    picks: [
+      pick(
+        "deal",
+        startLaw("auh_galicia_vote", "seat"),
+        axis("dual", 2),
+        axis("class", 2),
+      ),
+      pick(
+        "poles_way",
+        community("auh_c_north", 1),
+        cool("auh_poles", 1),
+        axis("dual", -2),
+        axis("class", -2),
+      ),
+      pick("wait", gauge("order", -1)),
+    ],
+    cooldown: 8,
+    max: 2,
+  }),
+  card({
+    id: "auh_y_bosnia",
+    when: all(
+      peaceFor(1),
+      pressureIs("balkan", 8),
+      not(isLaw("auh_bosnia_emergency")),
+    ),
+    cast: { fin: FIN, cos: COS },
+    vs: [["hot", pressureIs("balkan", 14)], ["base"]],
+    picks: [
+      pick(
+        "grant",
+        startLaw("auh_bosnia_emergency", "seat"),
+        axis("rule", -2),
+        axis("dual", -1),
+      ),
+      pick(
+        "refuse",
+        opinion("army", -1),
+        trust("SRB", 1),
+        axis("rule", 1),
+        axis("dual", 1),
+      ),
+    ],
+    tags: ["home", "foreign"],
+    cooldown: 8,
+    max: 2,
   }),
 ];
 
@@ -637,5 +844,6 @@ export const AUH_YEARS_SCENES: readonly GwScene[] = [
   ...ALLIANCE,
   ...INCIDENTS,
   ...HOME,
+  ...POLITICS,
   ...NEUTRAL,
 ];

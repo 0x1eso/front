@@ -30,12 +30,14 @@ import type { GwLawRow } from "../../LawRows";
 import { withAuhAxes } from "../laws/auh";
 import {
   draft,
+  either,
   gauge,
   held,
   inst,
   isText,
   lawTalk,
   office,
+  person,
   since,
   war,
 } from "../laws/kit";
@@ -202,11 +204,13 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
       { at: 3, scene: "auh_f_germans_2" },
       { at: 6, scene: "auh_f_germans_3" },
     ],
-    bills: ["auh_oktroi"],
+    // ww211: in peace, the German Bohemians' own answer: their districts.
+    bills: ["auh_oktroi", "auh_czech_german"],
     amends: {
       auh_press: "surveillance_office",
       auh_factories: "military_direction",
       auh_rents: "soldiers_families",
+      auh_czech_german: "closed_districts",
     },
     wants: [
       {
@@ -351,7 +355,13 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
       { at: 3, scene: "auh_f_czech_2" },
       { at: 7, scene: "auh_f_czech_3" },
     ],
-    amends: { auh_press: "civil_censors", auh_landsturm: "harvest_leave" },
+    // ww211: the Czech side of the Bohemian talks (1912-14).
+    bills: ["auh_czech_german"],
+    amends: {
+      auh_press: "civil_censors",
+      auh_landsturm: "harvest_leave",
+      auh_czech_german: "bilingual_offices",
+    },
     wants: [
       {
         id: "amnesty",
@@ -424,8 +434,13 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
       { at: 3, scene: "auh_f_poles_2" },
       { at: 6, scene: "auh_f_poles_3" },
     ],
-    bills: ["auh_galicia"],
-    amends: { auh_landsturm: "to_forty_five", auh_press: "front_zone" },
+    // ww211: in peace, the Galician compromise on their own terms.
+    bills: ["auh_galicia", "auh_galicia_vote"],
+    amends: {
+      auh_landsturm: "to_forty_five",
+      auh_press: "front_zone",
+      auh_galicia_vote: "polish_hold",
+    },
     wants: [
       {
         id: "galicia_next",
@@ -644,10 +659,14 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
       { at: 8, scene: "auh_f_work_2" },
       { at: 12, scene: "auh_f_work_3" },
     ],
+    // ww211: the Croatian question settled Budapest's way (his order in the
+    // Diet comes by the obstruction scene and the department).
+    bills: ["auh_croatia_charter"],
     amends: {
       auh_food: "hungarian_price",
       auh_transylvania: "schools",
       auh_franchise: "soldiers_vote",
+      auh_croatia_charter: "ban_and_sabor",
     },
     wants: [
       {
@@ -722,7 +741,11 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
       { at: 6, scene: "auh_f_indep_3" },
     ],
     bills: ["auh_franchise"],
-    amends: { auh_landsturm: "harvest_leave", auh_franchise: "universal" },
+    amends: {
+      auh_landsturm: "harvest_leave",
+      auh_franchise: "universal",
+      auh_house_rules: "minority_rights",
+    },
     wants: [
       {
         id: "franchise_next",
@@ -1462,6 +1485,144 @@ export const AUH_BILLS: readonly GwBillRow[] = [
       state_schools: { auh_hun_sd: 1, auh_const: 0 },
     },
     creed: ["auh_romanians"],
+  },
+  // ---- ww211: the peace years' bills (content/laws/auh.ts) ----
+  // Vienna's go to the council or §14 while the Reichsrat is shut; once it
+  // sits they are argued there. The Czech-German compromise: the Germans
+  // want their districts closed, the Czechs one land in two tongues.
+  {
+    law: "auh_czech_german",
+    houses: VIENNA,
+    around: true,
+    stance: {
+      auh_germans: -1,
+      auh_csoc: 0,
+      auh_czech: 1,
+      auh_poles: 0,
+      auh_slavs: 1,
+      auh_sd: 1,
+    },
+    texts: {
+      bilingual_offices: { auh_germans: -1, auh_csoc: -1, auh_sd: 0 },
+      closed_districts: {
+        auh_germans: 1,
+        auh_csoc: 1,
+        auh_czech: -1,
+        auh_slavs: -1,
+      },
+    },
+  },
+  // Galicia's electoral order (January-February 1914): the Poles gave the
+  // Ukrainians a quarter of the Diet, and dreaded the university.
+  {
+    law: "auh_galicia_vote",
+    houses: VIENNA,
+    around: true,
+    stance: {
+      auh_germans: 0,
+      auh_csoc: 0,
+      auh_czech: 1,
+      auh_poles: 0,
+      auh_slavs: 1,
+      auh_sd: 1,
+      auh_ukr: 1,
+    },
+    texts: {
+      polish_hold: { auh_poles: 1, auh_ukr: -1, auh_sd: -1, auh_czech: 0 },
+      with_university: { auh_poles: -1, auh_germans: -1, auh_ukr: 1 },
+    },
+  },
+  // Croatia's constitution, suspended under Cuvaj (1912-13).
+  {
+    law: "auh_croatia_charter",
+    houses: BUDAPEST,
+    sponsor: held("hun_pm"),
+    stance: {
+      auh_work: 1,
+      auh_indep: 0,
+      auh_karolyi: 1,
+      auh_const: 1,
+      auh_suffrage: 1,
+      auh_romanians: 1,
+    },
+    texts: {
+      commissioner: {
+        auh_indep: 1,
+        auh_karolyi: -1,
+        auh_suffrage: -1,
+        auh_romanians: -1,
+      },
+      coalition_terms: { auh_work: -1, auh_indep: -1, auh_const: 0 },
+    },
+  },
+  // The Diet's standing orders after June 1912: Tisza's house guard.
+  {
+    law: "auh_house_rules",
+    houses: BUDAPEST,
+    sponsor: either(person("auh_tisza"), held("hun_pm")),
+    stance: {
+      auh_work: 1,
+      auh_indep: -1,
+      auh_karolyi: -1,
+      auh_const: -1,
+      auh_suffrage: -1,
+      auh_hun_sd: -1,
+    },
+    texts: {
+      closure: { auh_const: 0, auh_suffrage: 0 },
+      minority_rights: {
+        auh_work: -1,
+        auh_indep: 1,
+        auh_karolyi: 1,
+        auh_const: 1,
+        auh_suffrage: 1,
+      },
+    },
+    creed: ["auh_indep"],
+  },
+  // The Balkan winter's bill: who pays the call-ups.
+  {
+    law: "auh_balkan_credits",
+    houses: VIENNA,
+    around: true,
+    money: true,
+    stance: {
+      auh_germans: 1,
+      auh_csoc: 1,
+      auh_czech: -1,
+      auh_poles: 1,
+      auh_slavs: -1,
+      auh_sd: -1,
+    },
+    texts: {
+      surtax: { auh_sd: 1, auh_germans: -1, auh_poles: -1, auh_csoc: 0 },
+      quota_share: { auh_czech: 0 },
+    },
+  },
+  // Potiorek's emergency in Bosnia (May 1913).
+  {
+    law: "auh_bosnia_emergency",
+    houses: VIENNA,
+    around: true,
+    stance: {
+      auh_germans: 1,
+      auh_csoc: 1,
+      auh_czech: -1,
+      auh_poles: 0,
+      auh_slavs: -1,
+      auh_sd: -1,
+    },
+    texts: {
+      societies_only: { auh_poles: 1, auh_czech: 0 },
+      lift: {
+        auh_germans: -1,
+        auh_csoc: -1,
+        auh_czech: 1,
+        auh_slavs: 1,
+        auh_sd: 1,
+      },
+    },
+    creed: ["auh_slavs"],
   },
 ];
 
