@@ -366,7 +366,7 @@ export interface GwPowerContent {
  * card may read the pick or the risk that came out.
  */
 export function powerCalledScenes(rows: GwPowerContent): string[] {
-  const out = new Set<string>([GW_POWER_SOUND]);
+  const out = new Set<string>([GW_POWER_SOUND, GW_RALLY_SCENE]);
   const lists: (readonly GwEffect[] | undefined)[] = [];
   for (const p of rows.powers ?? []) {
     if (p.scene) out.add(p.scene);
@@ -400,6 +400,8 @@ export function powerCalledScenes(rows: GwPowerContent): string[] {
 
 /** The talk a signer is sounded out in: content/powers/common.ts. */
 export const GW_POWER_SOUND = "gw_pw_sound";
+/** ww208 merge: the rally card a faction's rally lays (Utopia.stir, FP2). */
+export const GW_RALLY_SCENE = "gw_rally";
 
 /** Effects that end a seat at once: never in a power but through `ends`. */
 const FATAL_WORLD: readonly GwWorldEffect["do"][] = [

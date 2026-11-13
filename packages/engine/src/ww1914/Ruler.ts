@@ -26,7 +26,7 @@ import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { closeSeat } from "./Endings";
 import type { GreatWar } from "./GreatWar";
 import { regimeRow, succeed, successionOf } from "./Regimes";
-import { utopiaWaits } from "./Utopia";
+import { isHead, utopiaWaits } from "./Utopia";
 import { chapterOf, clampTo, reason, turn } from "./World";
 
 const P_START = idHash("gw_ruler_start");
@@ -90,7 +90,7 @@ export function rulerRow(gw: GreatWar, seat: GwSeatState): GwRulerRow | null {
   }
   if (form?.removes === true) return null;
   const row = rows.find(
-    (r) => r.head !== true && sits(r) && flagged(r),
+    (r) => r.head !== true && !isHead(r.id) && sits(r) && flagged(r),
   );
   return row ?? null;
 }

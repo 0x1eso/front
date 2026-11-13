@@ -846,7 +846,13 @@ export type GwWorldEffect =
   | { do: "election"; chamber: GwChamber; cause: "dissolved" | "regime" }
   // ---- ww207: the utopias (Utopia.ts, S2) ----
   /** A faction's affinity. */
-  | { do: "affinity"; id: string; delta: number };
+  | { do: "affinity"; id: string; delta: number }
+  /** ww208 merge: the reward the player picked on a rally card (FP2). */
+  | { do: "rally_reward"; reward: GwRallyReward };
+
+/** What a faction's rally is turned to: its own support, order, morale. */
+export const GW_RALLY_REWARDS = ["support", "order", "morale"] as const;
+export type GwRallyReward = (typeof GW_RALLY_REWARDS)[number];
 
 const int = z.number().int();
 const yearMonth = z.string().regex(/^19[0-9]{2}-[01][0-9]$/);
@@ -1298,6 +1304,7 @@ export const GwWorldEffectSchema = z.union([
     cause: z.enum(["dissolved", "regime"]),
   }),
   act("affinity", { id: GwIdSchema, delta: int }),
+  act("rally_reward", { reward: z.enum(GW_RALLY_REWARDS) }),
 ]) as unknown as z.ZodType<GwWorldEffect>;
 
 // ---- Authoring helpers ----

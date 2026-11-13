@@ -171,6 +171,13 @@ export const GwCommunityStateSchema = z.object({
   step: int,
   /** Its rally or protest came this chapter; -9 never. */
   stirred: int,
+  /** ww208 merge: the ideal a realised utopia gave it; absent: its row's. */
+  ideal: z
+    .object({
+      axis: z.enum(GW_AXES),
+      side: z.union([z.literal(-1), z.literal(1)]),
+    })
+    .optional(),
 });
 export type GwCommunityState = z.infer<typeof GwCommunityStateSchema>;
 
@@ -215,6 +222,8 @@ export const GwSocietyStateSchema = z.object({
   utopia: GwUtopiaStateSchema.nullable(),
   /** ww208 (S1): the axes at the last society step (the view's trend). */
   was: GwAxesSchema.optional(),
+  /** ww208 merge: the faction whose rally card waits for its reward. */
+  rally: Id.optional(),
 });
 export type GwSocietyState = z.infer<typeof GwSocietyStateSchema>;
 

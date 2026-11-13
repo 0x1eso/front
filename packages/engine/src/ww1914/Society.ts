@@ -75,7 +75,9 @@ import type {
   GwFactionRow,
 } from "@openfront/engine-lib/ww1914/HouseRows";
 import type { GwLawRow } from "@openfront/engine-lib/ww1914/LawRows";
+import { GW_LAWS } from "@openfront/engine-lib/ww1914/content/scenes/laws";
 import {
+  communityIdeal,
   genericFactionId,
   GW_COMMUNITY_STEPS,
   GW_GENERIC_KINDS,
@@ -333,7 +335,9 @@ function communitiesOf(
 ): GwCommunityState[] {
   return (seat.society?.communities ?? []).filter((c) => {
     const row = communityRow(c.id);
-    return row !== null && ideals[row.ideal.axis] === row.ideal.side;
+    if (row === null) return false;
+    const ideal = communityIdeal(row, c);
+    return ideals[ideal.axis] === ideal.side;
   });
 }
 
@@ -384,7 +388,8 @@ function communitiesStep(
   for (const c of soc.communities) {
     const row = communityRow(c.id);
     if (row === null) continue;
-    const lean = row.ideal.side * axisStep(n, row.ideal.axis);
+    const ideal = communityIdeal(row, c);
+    const lean = ideal.side * axisStep(n, ideal.axis);
     if (months > 0) heatCommunity(c, lean < 0 ? -lean * months : -months);
     if (grow > 0 && lean >= 2) {
       c.size = Math.min(GW_COMMUNITY_SIZE_MAX, c.size + 1);
@@ -501,7 +506,7 @@ function hotBirth(
   for (const k of hot) {
     const row = communityRow(k.id);
     if (row === null) continue;
-    const { axis, side } = row.ideal;
+    const { axis, side } = communityIdeal(row, k);
     const voiced = (seat.house?.factions ?? []).some(
       (f) => f.status === "in" && idealsOf(f.id)[axis] === side,
     );
@@ -592,8 +597,8 @@ function splitsAndMerges(gw: GreatWar, seat: GwSeatState): void {
       const radical =
         st.step >= 3 && row.radical !== undefined && st.leader === row.radical;
       const leans = communitiesOf(seat, row.ideals ?? {}).map((c) => {
-        const r = communityRow(c.id)!;
-        return r.ideal.side * axisStep(n, r.ideal.axis);
+        const ideal = communityIdeal(communityRow(c.id)!, c);
+        return ideal.side * axisStep(n, ideal.axis);
       });
       const torn = leans.some((l) => l >= 2) && leans.some((l) => l <= -2);
       if ((radical || torn) && splitFaction(gw, seat, row)) continue;
@@ -877,7 +882,11 @@ function postponed(gw: GreatWar, seat: GwSeatState, c: GwChamberRow): boolean {
   const n = gw.nation(seat.tag);
   const law = c.elect?.postpone;
   if (n === null || law === undefined || n.atWar.length === 0) return false;
-  return n.laws.some((x) => x.id === law && x.stage === "force");
+  if (n.laws.some((x) => x.id === law && x.stage === "force")) return true;
+  // The bill's flag counts too: GBR's f_gbr_parliament_extended is also set by
+  // the power gbr_pw_extend and two government scenes.
+  const flag = GW_LAWS.find((r) => r.id === law)?.flag;
+  return flag !== undefined && seat.flags.includes(flag);
 }
 
 function chamberOpen(gw: GreatWar, seat: GwSeatState, c: GwChamberRow) {
@@ -1263,17 +1272,15 @@ export function societyView(
     communities: (seat.society?.communities ?? []).flatMap((k) => {
       const row = communityRow(k.id);
       if (row === null) return [];
+      const ideal = communityIdeal(row, k);
       const draw = h.factions
-        .filter(
-          (f) =>
-            sitting(f) && idealsOf(f.id)[row.ideal.axis] === row.ideal.side,
-        )
+        .filter((f) => sitting(f) && idealsOf(f.id)[ideal.axis] === ideal.side)
         .sort((a, b) => supportOf(b) - supportOf(a))
         .map((f) => f.id);
       return [
         {
           id: k.id,
-          ideal: row.ideal,
+          ideal,
           size: k.size,
           trust: k.trust,
           temper: k.step,

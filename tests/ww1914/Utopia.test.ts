@@ -22,6 +22,7 @@ import { factionOf, houseStep } from "@openfront/engine/ww1914/House";
 import { applyGwOrder } from "@openfront/engine/ww1914/Orders";
 import { changeRegime } from "@openfront/engine/ww1914/Regimes";
 import { rulerStep } from "@openfront/engine/ww1914/Ruler";
+import { societyStep } from "@openfront/engine/ww1914/Society";
 import {
   abilityView,
   treeView,
@@ -67,10 +68,19 @@ const ability: GwPowerRow = {
 function fixture(): void {
   useGwContent({
     ...GW_CONTENT,
-    factions: (GW_CONTENT.factions ?? []).map((f) =>
-      ideals[f.id] === undefined ? f : { ...f, ideals: ideals[f.id] },
-    ),
-    powers: [...(GW_CONTENT.powers ?? []), ability],
+    // ww208 merge: the SPD's own ability row (W-DEU) gives way to the test's.
+    factions: (GW_CONTENT.factions ?? []).map((f) => {
+      if (ideals[f.id] === undefined) return f;
+      const { ability: _own, ...rest } = f;
+      void _own;
+      return { ...rest, ideals: ideals[f.id] };
+    }),
+    powers: [
+      ...(GW_CONTENT.powers ?? []).filter(
+        (p) => p.ability?.faction !== "deu_spd",
+      ),
+      ability,
+    ],
     utopia: {
       templates: [
         {
@@ -213,6 +223,7 @@ describe("ww208 S2 utopias", () => {
     const n = gw.nation("DEU")!;
     const cons = factionOf(seat, "deu_cons")!;
     cons.step = 3;
+    societyStep(gw);
     ripe(gw);
     expect(treeView(gw, seat, "deu_spd")?.ready).toBe(true);
     expect(
@@ -223,6 +234,13 @@ describe("ww208 S2 utopias", () => {
     expect(n.gauges.order).toBe(5);
     expect(cons.status).toBe("gone");
     expect(seat.house!.factions.every((f) => f.step === 0)).toBe(true);
+    // ww208 merge: every community takes the winner's ideals.
+    const spdIdeals = ideals.deu_spd!;
+    expect(seat.society!.communities.length).toBeGreaterThan(0);
+    for (const c of seat.society!.communities) {
+      expect(c.ideal, c.id).toBeDefined();
+      expect(spdIdeals[c.ideal!.axis], c.id).toBe(c.ideal!.side);
+    }
     moveGauge(gw, "DEU", "order", -2, "order_hunger");
     expect(n.gauges.order).toBe(5);
     // The card waits: the Kaiser's end waits with it.

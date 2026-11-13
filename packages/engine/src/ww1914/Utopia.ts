@@ -26,12 +26,14 @@ import {
   GW_TRUST_MAX,
   gwSocietyStart,
   type GwAxis,
+  type GwAxisSide,
   type GwIdeals,
   type GwStripFactionView,
   type GwTreeTemplate,
 } from "@openfront/engine-api/ww1914/GwSociety";
 import type { GwEffect } from "@openfront/engine-api/ww1914/SceneDsl";
 import type {
+  GwRallyReward,
   GwWorldCond,
   GwWorldEffect,
 } from "@openfront/engine-api/ww1914/WorldDsl";
@@ -42,9 +44,13 @@ import {
   GW_ABILITY_COOLDOWN,
   GW_ABILITY_TRUST,
   GW_ABILITY_TURNS,
+  GW_RALLY_SCENE,
   type GwPowerRow,
 } from "@openfront/engine-lib/ww1914/PowerRows";
-import { genericFactionId } from "@openfront/engine-lib/ww1914/SocietyRows";
+import {
+  communityIdeal,
+  genericFactionId,
+} from "@openfront/engine-lib/ww1914/SocietyRows";
 import { headRow } from "@openfront/engine-lib/ww1914/RulerRows";
 import {
   GW_AFFINITY_AXIS,
@@ -68,7 +74,11 @@ export type UtopiaCond = Extract<
   { is: "affinity" | "node" | "utopia" }
 >;
 
-export type UtopiaEffect = Extract<GwWorldEffect, { do: "affinity" }>;
+export type UtopiaEffect = Extract<
+  GwWorldEffect,
+  { do: "affinity" | "rally_reward" }
+>;
+
 
 /** The ending of a seat that stops at its realised utopia (decision 1B). */
 export const GW_UTOPIA_ENDING: GwEnding = "utopia_realised";
@@ -314,7 +324,8 @@ function overHalf(seat: GwSeatState, ideals: GwIdeals): boolean {
     const st = seat.society?.communities.find((x) => x.id === c.id);
     const size = st?.size ?? c.size;
     all += size;
-    if ((ideals[c.ideal.axis] ?? 0) === c.ideal.side) ours += size;
+    const ideal = communityIdeal(c, st);
+    if ((ideals[ideal.axis] ?? 0) === ideal.side) ours += size;
   }
   return all === 0 || ours * 2 > all;
 }
@@ -327,12 +338,23 @@ const opposes = (a: GwIdeals, b: GwIdeals): boolean =>
 
 /** Society takes the faction's values: tempers 0, rival parties gone into it. */
 function absorb(gw: GreatWar, seat: GwSeatState, f: GwFactionState): void {
+  const ideals = idealsOf(f.id);
+  // FP2: every community takes the winner's ideals. One that shares its axis
+  // takes the winner's side on it; the rest take the winner's first ideal.
+  const sides = axesOf(seat.tag).flatMap((axis) => {
+    const side = ideals[axis] ?? 0;
+    return side === 0 ? [] : [{ axis, side: side as GwAxisSide }];
+  });
+  const rowsHere = gwContent().society?.communities ?? [];
   for (const c of seat.society?.communities ?? []) {
     c.heat = 0;
     c.step = 0;
     c.trust = Math.max(c.trust, 1);
+    const row = rowsHere.find((r) => r.id === c.id) ?? null;
+    if (row === null || sides.length === 0) continue;
+    const axis = communityIdeal(row, c).axis;
+    c.ideal = sides.find((x) => x.axis === axis) ?? sides[0];
   }
-  const ideals = idealsOf(f.id);
   const ownRow = factionRow(f.id);
   const seats: Record<string, number> =
     ownRow === null ? {} : { ...seatsNow(seat, ownRow) };
@@ -568,11 +590,24 @@ function stir(gw: GreatWar, seat: GwSeatState, f: GwFactionState): void {
   if (f.step < 2 || (gw.s.chapter + hash(f.id)) % STIR_EVERY !== 0) return;
   const trust = trustOf(f);
   if (trust >= 1 && f.step === 2) {
+    f.heat = Math.max(0, f.heat - 1);
+    reason(gw, seat, "utopia_rally", whoOf(f));
+    // The player picks the reward on a card; with one already waiting, the
+    // rally only grows the party, as before.
+    const soc = (seat.society ??= gwSocietyStart());
+    const scene = soc.rally === undefined ? sceneOf(GW_RALLY_SCENE) : null;
+    const card =
+      scene === null
+        ? null
+        : makeCard(gw, seat, scene, "summon", whoOf(f) ?? null);
+    if (card !== null) {
+      soc.rally = f.id;
+      placeCard(gw, seat, card);
+      return;
+    }
     runEffects(ctxOf(gw, seat), [
       { kind: "world", of: { do: "support", id: f.id, delta: 1 } },
     ]);
-    f.heat = Math.max(0, f.heat - 1);
-    reason(gw, seat, "utopia_rally", whoOf(f));
   } else if (trust <= -1) {
     moveGauge(gw, seat.tag, "order", -1, "utopia_protest");
     reason(gw, seat, "utopia_protest", whoOf(f));
@@ -587,10 +622,11 @@ function stirCommunities(gw: GreatWar, seat: GwSeatState): void {
     if (st.step < 2 || c - st.stirred < STIR_EVERY) continue;
     const row = rows.find((r) => r.id === st.id);
     if (row === undefined) continue;
+    const ideal = communityIdeal(row, st);
     if (st.trust >= 1 && st.step === 2) {
       st.stirred = c;
       const parties = (seat.house?.factions ?? []).filter(
-        (f) => standing(f) && idealsOf(f.id)[row.ideal.axis] === row.ideal.side,
+        (f) => standing(f) && idealsOf(f.id)[ideal.axis] === ideal.side,
       );
       runEffects(
         ctxOf(gw, seat),
@@ -676,8 +712,27 @@ export function utopiaHolds(ctx: SceneCtx, c: UtopiaCond): boolean {
 
 /** The utopias' world effects. */
 export function utopiaDo(ctx: SceneCtx, e: UtopiaEffect): void {
+  if (e.do === "rally_reward") {
+    rallyReward(ctx, e.reward);
+    return;
+  }
   const f = factionOf(ctx.seat, e.id);
   if (f !== null) addAffinity(f, e.delta);
+}
+
+/** The rally card's pick: the party grows, or its crowd is turned to order or morale. */
+function rallyReward(ctx: SceneCtx, reward: GwRallyReward): void {
+  const { gw, seat } = ctx;
+  const soc = seat.society;
+  const id = soc?.rally;
+  if (soc === undefined || id === undefined) return;
+  delete soc.rally;
+  if (reward === "support") {
+    runEffects(ctx, [{ kind: "world", of: { do: "support", id, delta: 1 } }]);
+    factionTrust(seat, id, 1);
+  } else {
+    moveGauge(gw, seat.tag, reward, 1, "utopia_rally");
+  }
 }
 
 // ---- Views ----

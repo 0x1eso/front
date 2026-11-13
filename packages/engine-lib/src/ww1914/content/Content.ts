@@ -11,7 +11,7 @@ import type {
   GwShortageRow,
 } from "../CraftRows";
 import type { GwHouseContent } from "../HouseRows";
-import type { GwPowerContent } from "../PowerRows";
+import type { GwPowerContent, GwPowerRow } from "../PowerRows";
 import { withRuler } from "../RulerRows";
 import type { GwSocietyContent } from "../SocietyRows";
 import { joinDepts } from "../TaskRows";
@@ -61,6 +61,7 @@ import { DEU_POWER_SCENES, DEU_POWERS, DEU_REACTORS } from "./powers/deu";
 import { FRA_POWER_SCENES, FRA_POWERS, FRA_REACTORS } from "./powers/fra";
 import { GBR_POWER_SCENES, GBR_POWERS, GBR_REACTORS } from "./powers/gbr";
 import { RUS_POWER_SCENES, RUS_POWERS, RUS_REACTORS } from "./powers/rus";
+import { GW_RALLY_SCENES, templateAbilityRows } from "./powers/templates";
 import { AUH_STORY_SCENES } from "./scenes/auh_act";
 import { AUH_AFTER_SCENES } from "./scenes/auh_after";
 import { AUH_AGENTS_SCENES } from "./scenes/auh_agents";
@@ -237,6 +238,15 @@ export const GW_ECHOES: readonly GwEcho[] = [
 ];
 
 /** All content. A new country's file adds one line here. */
+/** The seats' own power rows (the template abilities skip the parties named). */
+const SEAT_POWERS: readonly GwPowerRow[] = [
+  ...DEU_POWERS,
+  ...GBR_POWERS,
+  ...AUH_POWERS,
+  ...RUS_POWERS,
+  ...FRA_POWERS,
+];
+
 export const GW_CONTENT: GwContent = {
   scenes: withEchoes(
     withCommonBodies(
@@ -326,6 +336,7 @@ export const GW_CONTENT: GwContent = {
           ...FRA_ACT_SCENES,
         ].map((s) => ({ ...s, byAct: true })),
         ...COMMON_POWER_SCENES,
+        ...GW_RALLY_SCENES,
         ...DEU_POWER_SCENES,
         ...GBR_POWER_SCENES,
         ...AUH_POWER_SCENES,
@@ -472,11 +483,12 @@ export const GW_CONTENT: GwContent = {
   society: GW_SOCIETY,
   utopia: GW_UTOPIA,
   powers: [
-    ...DEU_POWERS,
-    ...GBR_POWERS,
-    ...AUH_POWERS,
-    ...RUS_POWERS,
-    ...FRA_POWERS,
+    ...SEAT_POWERS,
+    // ww208 merge: born and generic parties' template abilities.
+    ...templateAbilityRows(
+      { ...GW_HOUSE_CONTENT, society: GW_SOCIETY, utopia: GW_UTOPIA },
+      SEAT_POWERS,
+    ),
     ...GW_LADDER_POWERS,
     // The person's own end, last in its group.
     ...COMMON_POWERS,

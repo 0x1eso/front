@@ -745,6 +745,7 @@ export function worldEffect(ctx: SceneCtx, e: GwWorldEffect): void {
       societyDo(ctx, e);
       return;
     case "affinity":
+    case "rally_reward":
       utopiaDo(ctx, e);
       return;
   }
