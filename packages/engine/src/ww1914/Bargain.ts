@@ -36,6 +36,7 @@ import {
   GW_TABLE_AIMS,
   GW_TABLE_HEART,
 } from "@openfront/engine-lib/ww1914/TableRows";
+import { settleSweep } from "./Departments";
 import { aiPartnerWord, markOf, record } from "./Fate";
 import type { GreatWar } from "./GreatWar";
 import { holderOf, moveLand } from "./Land";
@@ -440,6 +441,8 @@ export function walkOut(gw: GreatWar, beaten: GwTag): void {
   news(gw, "table_walked", beaten, foes[0] ?? null);
   t.done = true;
   t.closed = true;
+  // ww216: no treaty, and no settlement paper after the table either.
+  for (const seat of gw.s.seats) settleSweep(gw, seat);
   const row = rowOf(gw, t);
   if (row !== null) row.signed = gw.s.chapter;
   resumeWar(gw, beaten, foes, "table_walked_war");

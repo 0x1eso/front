@@ -53,7 +53,7 @@ import {
   talkView,
 } from "./Bargain";
 import { claimsHeld } from "./Claims";
-import { giveSettle } from "./Departments";
+import { giveSettle, settleSweep } from "./Departments";
 import {
   aiFate,
   aiPartnerWord,
@@ -1091,6 +1091,8 @@ export function closeTable(gw: GreatWar, canPress = false): void {
   if (t.closed) return;
   if (canPress && pressedOn(gw, t)) return;
   t.closed = true;
+  // ww216: the table decided: no settlement paper comes after it.
+  for (const seat of gw.s.seats) settleSweep(gw, seat);
   // ww205: the places a whole proposal fixed go as their fates say, now.
   for (const c of t.claims) {
     if (c.round === undefined) continue;

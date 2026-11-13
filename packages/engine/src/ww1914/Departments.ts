@@ -69,6 +69,7 @@ import {
 } from "@openfront/engine-lib/ww1914/AnswerSlots";
 import { gwMemoryKeys } from "@openfront/engine-lib/ww1914/AskIndex";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
+import { gwSignPaperIds } from "@openfront/engine-lib/ww1914/FateRows";
 import {
   bandStamp,
   campsOpposed,
@@ -109,7 +110,7 @@ import {
   placeCard,
   repeatable,
 } from "./Desk";
-import { settlePlan } from "./Fate";
+import { atTable, settlePlan, tableBeaten } from "./Fate";
 import { ownFronts } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { billRow, countPaper, countSlots, houseCounter } from "./House";
@@ -856,6 +857,82 @@ export function giveSettle(gw: GreatWar, seat: GwSeatState, of: string): void {
 }
 
 /**
+ * ww216: a beaten country's draft is for the table that sits for it, before
+ * and while it sits: an open table, the seat in a chair, `of` its beaten.
+ */
+function settleLive(
+  gw: GreatWar,
+  seat: GwSeatState,
+  of: string | null,
+): boolean {
+  return (
+    of !== null &&
+    isGwTag(of) &&
+    atTable(gw, seat.tag) &&
+    tableBeaten(gw).includes(of)
+  );
+}
+
+/** ww216: the note that a beaten country's draft is withdrawn (no choices). */
+function settleNote(
+  gw: GreatWar,
+  seat: GwSeatState,
+  office: GwOffice,
+  by: string,
+  topic: string | null,
+): void {
+  layPaper(
+    seat,
+    paperCard(
+      gw,
+      { form: "stall", office, by, type: "settle", topic, reason: "moot" },
+      by,
+    ),
+  );
+}
+
+/**
+ * ww216: once the table for a beaten country has risen (signed, or the
+ * beaten walked out), its settlement papers are done with: the draft still
+ * at work and an answer still on the desk or in the tray are withdrawn, one
+ * note each, and a treaty card still to come or unsigned goes. No choice of
+ * a fate comes after the table decided it. Run when a table closes and as
+ * each chapter opens (a save from before ww216).
+ */
+export function settleSweep(gw: GreatWar, seat: GwSeatState): void {
+  const d = seat.depts;
+  if (d !== undefined) {
+    for (const t of [...d.tasks]) {
+      if (t.type !== "settle" || settleLive(gw, seat, t.topic)) continue;
+      d.tasks = d.tasks.filter((x) => x !== t);
+      dropPapers(seat, t.office, ["question"]);
+      settleNote(gw, seat, t.office, t.by, t.topic);
+      writePast(gw, seat, { ...t, scene: "gw_paper_stall" }, "withdraw");
+    }
+    const stale = (c: GwCard): boolean =>
+      c.paper?.form === "answer" &&
+      c.paper.type === "settle" &&
+      !settleLive(gw, seat, c.paper.topic);
+    const gone = [...seat.desk.filter(stale), ...d.tray.filter(stale)];
+    d.tray = d.tray.filter((c) => !stale(c));
+    for (const c of gone) {
+      const p = c.paper as AnswerPaper;
+      removeCard(seat, c.uid);
+      settleNote(gw, seat, p.office, p.by, p.topic);
+      writePast(gw, seat, { ...p, scene: c.scene }, "withdraw");
+    }
+  }
+  // The treaty card is the signing of a table the seat sits at as a victor.
+  const beaten = tableBeaten(gw);
+  const signs = atTable(gw, seat.tag) && beaten.length > 0;
+  if (signs && !beaten.includes(seat.tag)) return;
+  const sign = new Set(gwSignPaperIds(seat.tag));
+  seat.scheduled = seat.scheduled.filter((q) => !sign.has(q.scene));
+  seat.desk = seat.desk.filter((c) => !sign.has(c.scene));
+  if (d !== undefined) d.tray = d.tray.filter((c) => !sign.has(c.scene));
+}
+
+/**
  * ww203: 집계를 맡긴다: the house's counting office counts a bill on the
  * agenda, free and past the one-task rule; the paper comes as the next
  * chapter opens (House.countPaper writes it faction by faction).
@@ -895,10 +972,7 @@ function moot(gw: GreatWar, seat: GwSeatState, t: GwDeptTask): boolean {
     return st === undefined || (st.stage !== "persuade" && st.stage !== "vote");
   }
   // ww199: a beaten country's fate is moot once no table sits for it.
-  if (t.type === "settle") {
-    const tb = gw.s.table;
-    return tb === null || tb.closed || !tb.order.includes(seat.tag);
-  }
+  if (t.type === "settle") return !settleLive(gw, seat, t.topic);
   const n = gw.s.nations.find((x) => x.tag === t.topic);
   if (n !== undefined) return n.out;
   const th = gw.s.theatres.find((x) => x.id === t.topic);
@@ -1337,8 +1411,14 @@ function takeCourse(
   if (c === undefined || row === null) return;
   const ctx: SceneCtx = { gw, seat, cast: { head: c.who }, topic: p.topic };
   runEffects(ctx, row.effects);
-  // ww199: a settle course paints its plan on the beaten country.
-  if (row.settle !== undefined && p.topic !== null && isGwTag(p.topic)) {
+  // ww199: a settle course paints its plan on the beaten country, only while
+  // its table sits (ww216).
+  if (
+    row.settle !== undefined &&
+    p.topic !== null &&
+    isGwTag(p.topic) &&
+    settleLive(gw, seat, p.topic)
+  ) {
     settlePlan(gw, seat, p.topic, row.settle);
   }
   // ww197: a front course marks the chief's next war paper (§3 `front`).
@@ -1780,6 +1860,7 @@ export function openDepts(gw: GreatWar, seat: GwSeatState): void {
     if (c.dept !== undefined) c.dept.heard = true;
     seat.desk.push(c);
   }
+  settleSweep(gw, seat);
   workTasks(gw, seat);
   d.waiting = petitioners(gw, seat);
 }
