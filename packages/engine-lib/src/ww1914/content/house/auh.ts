@@ -27,6 +27,7 @@ import type {
   GwWeakRow,
 } from "../../HouseRows";
 import type { GwLawRow } from "../../LawRows";
+import { withAuhAxes } from "../laws/auh";
 import {
   draft,
   gauge,
@@ -157,6 +158,7 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
   {
     id: "auh_germans",
     tag: "AUH",
+    ideals: { rule: -1, class: 0, dual: -1 },
     bloc: "press",
     start: "in",
     strength: 3,
@@ -216,6 +218,9 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
   {
     id: "auh_csoc",
     tag: "AUH",
+    ideals: { rule: -1, class: -1, dual: 1 },
+    trust: 1,
+    ability: "auh_pw_ab_city",
     bloc: "court",
     start: "in",
     strength: 2,
@@ -268,6 +273,9 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
   {
     id: "auh_czech",
     tag: "AUH",
+    ideals: { rule: 1, class: 0, dual: 1 },
+    trust: -1,
+    ability: "auh_pw_ab_czech",
     plot: "auh_pl_nations",
     bloc: "parliament",
     start: "in",
@@ -343,6 +351,9 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
   {
     id: "auh_poles",
     tag: "AUH",
+    ideals: { rule: 0, class: -1, dual: 1 },
+    trust: 1,
+    ability: "auh_pw_ab_legions",
     bloc: "parliament",
     start: "in",
     strength: 2,
@@ -399,6 +410,8 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
   {
     id: "auh_slavs",
     tag: "AUH",
+    ideals: { rule: -1, class: 0, dual: 1 },
+    trust: -1,
     bloc: "parliament",
     start: "in",
     strength: 1,
@@ -442,6 +455,8 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
   {
     id: "auh_sd",
     tag: "AUH",
+    ideals: { rule: 1, class: 1, dual: 1 },
+    ability: "auh_pw_ab_unions",
     bloc: "workers",
     start: "in",
     strength: 3,
@@ -518,6 +533,9 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
   {
     id: "auh_work",
     tag: "AUH",
+    ideals: { rule: -1, class: -1, dual: -1 },
+    trust: 1,
+    ability: "auh_pw_ab_grain",
     bloc: "business",
     start: "in",
     strength: 4,
@@ -587,6 +605,9 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
   {
     id: "auh_indep",
     tag: "AUH",
+    ideals: { rule: 1, class: 0, dual: -1 },
+    trust: -1,
+    template: "nation",
     bloc: "parliament",
     start: "in",
     strength: 2,
@@ -662,6 +683,8 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
   {
     id: "auh_karolyi",
     tag: "AUH",
+    ideals: { rule: 1, class: 1, dual: -1 },
+    trust: -2,
     plot: "auh_pl_magyar",
     bloc: "parliament",
     start: "out",
@@ -720,6 +743,8 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
   {
     id: "auh_const",
     tag: "AUH",
+    ideals: { rule: 1, class: -1, dual: -1 },
+    template: "parliament",
     bloc: "parliament",
     start: "in",
     strength: 1,
@@ -770,6 +795,8 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
   {
     id: "auh_suffrage",
     tag: "AUH",
+    ideals: { rule: 1, class: 0, dual: -1 },
+    template: "parliament",
     bloc: "parliament",
     start: "out",
     strength: 2,
@@ -799,6 +826,7 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
   {
     id: "auh_aok",
     tag: "AUH",
+    ideals: { rule: -1, class: -1, dual: 0 },
     plot: "auh_pl_army",
     bloc: "army",
     start: "in",
@@ -845,6 +873,9 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
   {
     id: "auh_court",
     tag: "AUH",
+    ideals: { rule: -1, class: -1, dual: -1 },
+    trust: 2,
+    template: "crown_army",
     plot: "auh_pl_army",
     bloc: "court",
     start: "in",
@@ -865,6 +896,80 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
     steps: [
       { at: 3, scene: "auh_f_court_2" },
       { at: 6, scene: "auh_f_court_3" },
+    ],
+  },
+  // ---- ww207: born by state (content/society/auh.ts births) ----
+  // They take seats at the next election and only a voice before it.
+  {
+    id: "auh_sd_left",
+    tag: "AUH",
+    ideals: { rule: 1, class: 1, dual: 1 },
+    trust: -2,
+    template: "labour",
+    bloc: "workers",
+    start: "out",
+    strength: 1,
+    seats: {},
+    leaders: [{ person: "auh_i_fadler" }],
+    feeds: [
+      {
+        when: lately("auh_k_jan_strike", "call_troops", 6),
+        key: "troops_called",
+        by: 2,
+      },
+      { when: low("bread", 0), key: "bread" },
+    ],
+    cools: [{ when: flag("f_auh_workers_council"), key: "council_heard" }],
+  },
+  {
+    id: "auh_hun_sd",
+    tag: "AUH",
+    ideals: { rule: 1, class: 1, dual: 0 },
+    trust: -1,
+    template: "labour",
+    bloc: "workers",
+    start: "out",
+    strength: 1,
+    seats: {},
+    leaders: [{ person: "auh_i_garami" }],
+    feeds: [{ when: low("bread", 0), key: "bread" }],
+    cools: [{ when: isLaw("auh_franchise"), key: "franchise", by: 2 }],
+  },
+  {
+    id: "auh_ukr",
+    tag: "AUH",
+    ideals: { rule: 0, class: 1, dual: 1 },
+    trust: -1,
+    template: "nation",
+    bloc: "parliament",
+    start: "out",
+    strength: 1,
+    seats: {},
+    leaders: [{ person: "auh_i_petrushevych" }],
+    feeds: [{ when: isLaw("auh_galicia"), key: "galicia" }],
+    cools: [{ when: REICHSRAT_OPEN, key: "house_open" }],
+  },
+  {
+    id: "auh_romanians",
+    tag: "AUH",
+    ideals: { rule: 1, class: -1, dual: 1 },
+    trust: -2,
+    template: "nation",
+    bloc: "parliament",
+    start: "out",
+    strength: 1,
+    seats: {},
+    leaders: [{ person: "auh_i_vaida" }],
+    feeds: [
+      { when: instAt("hungary", { min: 3 }), key: "magyar_hold" },
+      { when: isText("auh_transylvania", "schools"), key: "schools_only" },
+    ],
+    cools: [
+      {
+        when: isText("auh_transylvania", "language_and_seats"),
+        key: "language",
+        by: 2,
+      },
     ],
   },
 ];
@@ -1150,6 +1255,122 @@ export const AUH_BILLS: readonly GwBillRow[] = [
       with_allies: { auh_work: 0, auh_indep: 1 },
     },
   },
+  // ---- ww207 (W-AUH): the peace bills and the postponement ----
+  // Budapest extends its own term (1915); Vienna's half follows the Diet.
+  {
+    law: "auh_postpone",
+    houses: BUDAPEST,
+    sponsor: held("hun_pm"),
+    stance: {
+      auh_work: 1,
+      auh_indep: -1,
+      auh_karolyi: -1,
+      auh_const: 0,
+      auh_suffrage: -1,
+      auh_hun_sd: -1,
+    },
+    texts: {
+      year_by_year: { auh_indep: 0, auh_const: 1 },
+      with_soldiers_vote: { auh_work: 0, auh_indep: 1, auh_karolyi: 0 },
+    },
+  },
+  // The Reichsrat was prorogued in March 1914: the council or §14 in peace.
+  {
+    law: "auh_bohemia",
+    houses: VIENNA,
+    around: true,
+    stance: {
+      auh_germans: 0,
+      auh_csoc: 1,
+      auh_czech: -1,
+      auh_poles: 0,
+      auh_slavs: 0,
+      auh_sd: 0,
+    },
+    texts: {
+      compromise: { auh_czech: 1, auh_germans: -1, auh_sd: 1 },
+      german_districts: { auh_germans: 1, auh_czech: -1, auh_csoc: 0 },
+    },
+    creed: ["auh_czech"],
+  },
+  {
+    law: "auh_croatia",
+    houses: BUDAPEST,
+    sponsor: held("hun_pm"),
+    stance: {
+      auh_work: 1,
+      auh_indep: 0,
+      auh_karolyi: 0,
+      auh_const: 1,
+      auh_suffrage: 0,
+      auh_romanians: -1,
+    },
+    texts: {
+      railway_croatian: { auh_work: 0, auh_indep: -1, auh_romanians: 1 },
+      dalmatia_joined: { auh_work: -1, auh_const: -1, auh_indep: -1 },
+    },
+  },
+  {
+    law: "auh_insurance",
+    houses: VIENNA,
+    around: true,
+    stance: {
+      auh_germans: 0,
+      auh_csoc: 0,
+      auh_czech: 1,
+      auh_poles: -1,
+      auh_slavs: 0,
+      auh_sd: 1,
+      auh_ukr: 1,
+    },
+    texts: {
+      small_masters: { auh_csoc: 1, auh_sd: 0, auh_poles: 0 },
+      sickness_only: { auh_sd: -1, auh_germans: 1, auh_poles: 1 },
+    },
+  },
+  {
+    law: "auh_income_tax",
+    houses: VIENNA,
+    around: true,
+    money: true,
+    stance: {
+      auh_germans: -1,
+      auh_csoc: 0,
+      auh_czech: 0,
+      auh_poles: -1,
+      auh_slavs: 0,
+      auh_sd: 1,
+    },
+    texts: {
+      consumption: { auh_sd: -1, auh_germans: 1, auh_csoc: 1, auh_poles: 1 },
+      estates: { auh_poles: -1, auh_czech: 1, auh_csoc: 1 },
+    },
+  },
+  {
+    law: "auh_schools",
+    houses: BUDAPEST,
+    sponsor: held("hun_pm"),
+    stance: {
+      auh_work: 1,
+      auh_indep: 1,
+      auh_karolyi: 0,
+      auh_const: 1,
+      auh_suffrage: 1,
+      auh_romanians: -1,
+      auh_hun_sd: 0,
+    },
+    texts: {
+      mother_tongue: {
+        auh_work: -1,
+        auh_indep: -1,
+        auh_karolyi: 1,
+        auh_romanians: 1,
+        auh_hun_sd: 1,
+      },
+      state_schools: { auh_hun_sd: 1, auh_const: 0 },
+    },
+    creed: ["auh_romanians"],
+  },
 ];
 
 /** A talk with no prices shown: the house's rule. */
@@ -1166,7 +1387,7 @@ function noTell(t: GwLawRow["talk"]): GwLawRow["talk"] {
 const vienna = { chancellor: held("chancellor") };
 
 /** The factions' own bills: rows like content/laws/auh.ts, with no tells. */
-export const AUH_HOUSE_LAWS: readonly GwLawRow[] = [
+export const AUH_HOUSE_LAWS: readonly GwLawRow[] = withAuhAxes([
   // The Social Democrats' rent bill: in history a decree under paragraph 14,
   // 26 January 1917 (univie.ac.at exposé; austria-forum Mietrecht).
   row({
@@ -1259,7 +1480,7 @@ export const AUH_HOUSE_LAWS: readonly GwLawRow[] = [
       }),
     ),
   }),
-];
+]);
 
 // ---- Scenes written by hand: tempers 2 and 3, the split and the join ----
 

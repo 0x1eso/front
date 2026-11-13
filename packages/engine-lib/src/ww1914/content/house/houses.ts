@@ -146,8 +146,17 @@ export const AUH_HOUSE: GwHouseRow = {
       sits: REICHSRAT_OPEN,
       // ww203: 516 seats (1911).
       size: 516,
-      // ww207 (F, W-AUH checks): elected June 1911, a six-year term.
-      elect: { rule: "two_round", due: "1917-06", term: 6, franchise: "equal" },
+      // ww207 (W-AUH): elected June-July 1911 for six years, by equal manhood
+      // suffrage in single seats with run-offs (en.wikipedia 1911 Cisleithanian
+      // election; parlament.gv.at, checked 2026-11-13). No election came in
+      // the war; the bill that carries it past its term is auh_postpone (F).
+      elect: {
+        rule: "two_round",
+        due: "1917-06",
+        term: 6,
+        franchise: "equal",
+        postpone: "auh_postpone",
+      },
     },
     {
       id: "budapest",
@@ -157,8 +166,16 @@ export const AUH_HOUSE: GwHouseRow = {
       starts: true,
       // ww203: 413 seats (1910).
       size: 413,
-      // ww207 (F, W-AUH checks): elected June 1910, a five-year term, the narrow census.
-      elect: { rule: "curia", due: "1915-06", term: 5, franchise: "estates" },
+      // ww207 (W-AUH): elected 1910 for five years on the narrow census; its
+      // mandate was extended in 1915 (1914-1918-online, Hungary's parliaments,
+      // checked 2026-11-13): auh_postpone.
+      elect: {
+        rule: "curia",
+        due: "1915-06",
+        term: 5,
+        franchise: "estates",
+        postpone: "auh_postpone",
+      },
     },
   ],
   // Tisza counts for himself, and says so.
