@@ -102,5 +102,7 @@ export const GwEconStateSchema = z.object({
   dry: int.nullable(),
   /** Chapter its industry mobilised (the shell crisis); null not yet. */
   mobilised: int.nullable(),
+  /** Chapter its bread last fell to 1 or less at war; absent while above. */
+  lean: int.optional(),
 });
 export type GwEconState = z.infer<typeof GwEconStateSchema>;

@@ -428,10 +428,33 @@ function mobDelay(gw: GreatWar, n: GwNationState): number {
   return Math.max(4, Math.min(8, m));
 }
 
+/** Months bread must stay at 1 or less before a country counts as hungry. */
+export const HUNGRY_MONTHS = 6;
+
+/**
+ * Hunger that makes a war's lead think of stopping (ww201 merge): bread gone,
+ * or bread low for half a year. A lean month or two after a bad harvest is not
+ * enough. By state: how long it has been short, never the date.
+ */
+export function hungry(gw: GreatWar, n: GwNationState): boolean {
+  if (n.gauges.bread === 0) return true;
+  const lean = n.econ?.lean;
+  return (
+    n.gauges.bread <= 1 &&
+    lean !== undefined &&
+    monthsFrom(gw, lean) >= HUNGRY_MONTHS
+  );
+}
+
 /** The shell crisis by state (decision 3): dry once, mobilised months later. */
 export function econCrisis(gw: GreatWar, n: GwNationState): void {
-  if (!econAtWar(gw, n)) return;
+  if (!econAtWar(gw, n)) {
+    if (n.econ?.lean !== undefined) delete n.econ.lean;
+    return;
+  }
   const e = econState(n);
+  if (n.gauges.bread > 1) delete e.lean;
+  else e.lean ??= gw.s.chapter;
   if (e.dry === null && n.gauges.shells === 0) e.dry = gw.s.chapter;
   if (
     e.dry !== null &&

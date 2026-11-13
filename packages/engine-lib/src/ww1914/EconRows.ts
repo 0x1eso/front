@@ -225,8 +225,8 @@ export const GW_ECON_ROWS: Readonly<Partial<Record<GwTag, GwEconRow>>> = {
     eaters: 620,
     imports: 260,
     labour: 160,
-    trade: 30,
-    guns: 100,
+    trade: 50,
+    guns: 90,
   },
   GBR: {
     shells: 480,
@@ -242,7 +242,7 @@ export const GW_ECON_ROWS: Readonly<Partial<Record<GwTag, GwEconRow>>> = {
     shells: 700,
     mob: 70,
     farms: 760,
-    eaters: 600,
+    eaters: 570,
     imports: 120,
     labour: 160,
     trade: 10,
@@ -251,11 +251,11 @@ export const GW_ECON_ROWS: Readonly<Partial<Record<GwTag, GwEconRow>>> = {
   RUS: {
     shells: 400,
     mob: 100,
-    farms: 800,
+    farms: 740,
     eaters: 560,
     imports: 0,
     labour: 140,
-    rail: { loss: 120, from: 12 },
+    rail: { loss: 90, from: 12 },
     trade: 0,
     guns: 70,
   },
@@ -263,7 +263,7 @@ export const GW_ECON_ROWS: Readonly<Partial<Record<GwTag, GwEconRow>>> = {
     shells: 420,
     mob: 50,
     farms: 760,
-    eaters: 440,
+    eaters: 540,
     imports: 40,
     labour: 140,
     trade: 0,
@@ -362,7 +362,7 @@ export const GW_ECON = {
   /** And for each worth of its own 1914 land lost. */
   landLost: 2,
   /** Percent of the fields' yield Aug-Oct, Nov-Jan, Feb-Jul (a year's 100). */
-  seasonPct: [180, 110, 55],
+  seasonPct: [150, 110, 70],
   /** Bad harvest: percent of the roll; good from `goodFrom`. */
   badPct: 22,
   badYield: 60,

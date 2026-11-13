@@ -4,12 +4,17 @@
 import type { GwPlace } from "@openfront/engine-api/ww1914/GwPlaces";
 import type { GwTableClaim } from "@openfront/engine-api/ww1914/GwTable";
 import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
+import { GW_ECON } from "@openfront/engine-lib/ww1914/EconRows";
 import { civilFromDays } from "@openfront/engine-lib/ww1936/Calendar";
+import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { createGameRunner } from "@openfront/engine/GameRunner";
 import { budgetStep } from "@openfront/engine/ww1914/Budget";
 import {
+  econCrisis,
   econForget,
   econTerms,
+  hungry,
+  HUNGRY_MONTHS,
   peaceLevel,
   sumOf,
   type GwEconTerms,
@@ -50,6 +55,12 @@ function chaptersOf(gw: GreatWar, year: number, from = 1, to = 12): number[] {
     .map((x) => x.i);
 }
 
+/** Chapter `i` is at least HUNGRY_MONTHS after the chapter now. */
+function hungryAfter(gw: GreatWar, i: number): boolean {
+  const days = gwChapters(gw.s.calendar);
+  return days[i].day - days[gw.s.chapter].day >= HUNGRY_MONTHS * 30;
+}
+
 const has = (t: GwEconTerms, g: keyof GwEconTerms, key: string) =>
   t[g].find(([k]) => k === key)?.[1] ?? 0;
 
@@ -78,6 +89,13 @@ describe("the production step (ww201)", () => {
     const deu = gw.nation("DEU")!;
     const rus = gw.nation("RUS")!;
     gw.s.blockade = 9;
+    // A middling year for Russia: a bad harvest is its own case.
+    while (
+      wwRoll(gw.s.seed, idHash("gw_harvest"), 1915, 0) % 100 <
+      GW_ECON.badPct
+    ) {
+      gw.s.seed++;
+    }
     const year = chaptersOf(gw, 1915);
     at(gw, year[0]);
     // The blockade is in the terms, by name.
@@ -175,5 +193,30 @@ describe("the production step (ww201)", () => {
     // Above its level nothing fills it more, and nothing drains it either.
     expect(deu.gauges.bread).toBe(3);
     expect(deu.econ!.why.shells).toBe("");
+  });
+
+  test("hunger counts toward talks only at no bread, or low bread held half a year (ww201 merge)", async () => {
+    const gw = await world("GWECON5");
+    openGeneral(gw, "DEU", "FRA", "test");
+    const fra = gw.nation("FRA")!;
+    const year = chaptersOf(gw, 1915);
+    at(gw, year[0]);
+    fra.gauges.bread = 1;
+    econCrisis(gw, fra);
+    expect(hungry(gw, fra)).toBe(false);
+    // Still low half a year on: now it counts.
+    const later = year.find((i) => i > year[0] && hungryAfter(gw, i))!;
+    at(gw, later);
+    econCrisis(gw, fra);
+    expect(hungry(gw, fra)).toBe(true);
+    // A good month starts the count again.
+    fra.gauges.bread = 2;
+    econCrisis(gw, fra);
+    fra.gauges.bread = 1;
+    econCrisis(gw, fra);
+    expect(hungry(gw, fra)).toBe(false);
+    // No bread at all counts at once.
+    fra.gauges.bread = 0;
+    expect(hungry(gw, fra)).toBe(true);
   });
 });

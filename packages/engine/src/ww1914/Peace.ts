@@ -14,6 +14,7 @@ import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
 import { GW_TABLE_SESSIONS } from "@openfront/engine-lib/ww1914/TableRows";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { GW_AFTER_CHAPTERS } from "./Aftermath";
+import { hungry } from "./Economy";
 import { warMonths } from "./Eras";
 import { warScore } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
@@ -228,7 +229,7 @@ export function judgesTalks(gw: GreatWar, foe: GwNationState): boolean {
   const tired =
     (foe.gauges.morale <= 2 ? 1 : 0) +
     (foe.gauges.order <= 2 ? 1 : 0) +
-    (foe.gauges.bread <= 1 ? 1 : 0) +
+    (hungry(gw, foe) ? 1 : 0) +
     (foe.unrest >= 1 ? 1 : 0) +
     (warMonths(gw) >= SPENT_MONTHS ? 1 : 0);
   const stubborn = { hardline: 3, principled: 2, opportunist: 1, cautious: 1 }[
