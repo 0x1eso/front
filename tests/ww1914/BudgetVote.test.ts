@@ -13,14 +13,22 @@ import type { GwCond } from "@openfront/engine-api/ww1914/SceneDsl";
 import { budgetNorm } from "@openfront/engine-lib/ww1914/BudgetRules";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
 import type { GwFactionRow } from "@openfront/engine-lib/ww1914/HouseRows";
-import { moneyIds } from "@openfront/engine-lib/ww1914/MoneyRows";
+import {
+  GW_SPLIT_PRESSURE,
+  moneyIds,
+} from "@openfront/engine-lib/ww1914/MoneyRows";
 import { budgetStep } from "@openfront/engine/ww1914/Budget";
 import { govHeat } from "@openfront/engine/ww1914/Government";
 import type { GreatWar } from "@openfront/engine/ww1914/GreatWar";
-import { factionRow, houseStep } from "@openfront/engine/ww1914/House";
+import {
+  factionOf,
+  factionRow,
+  houseStep,
+} from "@openfront/engine/ww1914/House";
 import { moneyStep } from "@openfront/engine/ww1914/MoneyBills";
 import { applyGwOrder } from "@openfront/engine/ww1914/Orders";
 import { holds } from "@openfront/engine/ww1914/SceneRun";
+import { societyStep } from "@openfront/engine/ww1914/Society";
 import { describe, expect, test } from "vitest";
 import { HUMAN, step, wwRunnerCapture } from "../ww1936/util";
 
@@ -212,7 +220,7 @@ describe("the money bills", () => {
       const scene = gwContent().scenes.find((x) => x.id === "deu_h_spd_split")!;
       const ctx = { gw, seat, cast: {} };
       n.budget.credits = { n: 1, due: gw.s.chapter, stopTo: -1, lost: 0 };
-      for (const k of [2, 3]) {
+      for (const k of [2, 3, 4]) {
         f.heat = 1;
         f.step = 1;
         n.budget.credits.due = gw.s.chapter;
@@ -227,9 +235,13 @@ describe("the money bills", () => {
         expect(defy.person).toBe("deu_liebknecht");
         expect(defy.wing).toBe(true);
         expect(f.defied).toBe(k - 1);
-        expect(holds(ctx, scene.when as GwCond)).toBe(k === 3);
+        expect(holds(ctx, scene.when as GwCond)).toBe(k >= 3);
       }
-      expect(f.split).toBe(2);
+      // The third: split pressure enough, the left goes its own way.
+      expect(f.split).toBe(GW_SPLIT_PRESSURE);
+      societyStep(gw);
+      expect(factionOf(seat, "deu_uspd")?.status).toBe("in");
+      expect(f.split).toBe(0);
     } finally {
       spd.wing = had;
     }

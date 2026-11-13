@@ -99,6 +99,7 @@ import {
   joinFactions,
   seatsNow,
   splitFaction,
+  wingSplit,
 } from "./House";
 import { holds, sceneOf, type SceneCtx } from "./SceneRun";
 import { abilityView, treeView } from "./Utopia";
@@ -603,6 +604,11 @@ function splitsAndMerges(gw: GreatWar, seat: GwSeatState): void {
         st.split = 0;
         continue;
       }
+    }
+    // ww209: no split row to carry it: the wing goes its own way.
+    if ((st.split ?? 0) >= GW_SPLIT_PRESSURE && wingSplit(gw, seat, row)) {
+      st.split = 0;
+      continue;
     }
     if (row.joins !== undefined && smallAlike(seat, row)) {
       joinFactions(gw, seat, row);

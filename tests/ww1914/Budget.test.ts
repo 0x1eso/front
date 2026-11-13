@@ -22,6 +22,7 @@ import {
   gwChapters,
 } from "@openfront/engine-lib/ww1914/Calendars";
 import { GW_CONTENT } from "@openfront/engine-lib/ww1914/content/Content";
+import { moneyIds } from "@openfront/engine-lib/ww1914/MoneyRows";
 import {
   createGameRunnerFromSnapshot,
   GameRunner,
@@ -75,6 +76,24 @@ const pass = (gw: GreatWar, r: GameRunner, chapters: number) => {
   for (let i = 0; i < chapters && gw.s.ended === null; i++) {
     advanceChapter(gw, r.game.ticks(), false);
   }
+};
+
+/**
+ * ww209: the budget is a bill in the house. The seat's plan goes onto the
+ * pinned place (`budget` unforced, as `budget_put`); the call votes it.
+ */
+const callBudget = (gw: GreatWar, seat: GreatWar["s"]["seats"][number]) => {
+  seat.house!.sat = {};
+  return applyGwOrder(gw, seat, {
+    kind: "bill_vote",
+    law: moneyIds.budget(seat.tag as GwTag),
+    confidence: false,
+  });
+};
+
+/** Every faction out of the house: nobody votes the budget, it fails. */
+const emptyHouse = (seat: GreatWar["s"]["seats"][number]) => {
+  for (const f of seat.house!.factions) f.status = "out";
 };
 
 /** Runs chapters until `tag`'s meeting stands open. */
@@ -205,7 +224,7 @@ describe("the meeting", () => {
     expect(b.meeting ?? b.lastChapter).toBeGreaterThanOrEqual(at - 1);
   });
 
-  test("signing puts the plan in force and takes the card away", async () => {
+  test("putting the plan takes the card away; the house votes it into force", async () => {
     const { runner, gw, seat, n } = await war();
     toMeeting(gw, runner, "DEU");
     const d = n.budget.draft!;
@@ -217,6 +236,10 @@ describe("the meeting", () => {
       force: false,
     });
     expect(block).toBeNull();
+    expect(seat.desk.some((c) => c.scene.startsWith("gw_bm_"))).toBe(false);
+    expect(n.budget.put?.shares).toEqual(shares);
+    expect(n.budget.meeting).not.toBeNull();
+    expect(callBudget(gw, seat)).toBeNull();
     expect(n.budget.plan.shares).toEqual(shares);
     expect(n.budget.meeting).toBeNull();
     expect(n.budget.last).toBe("signed");
@@ -242,10 +265,12 @@ describe("the meeting", () => {
     toMeeting(gw, runner, "DEU");
     n.inst.reichstag = -5;
     n.budget.warPlan = true;
+    emptyHouse(seat);
     const was = n.budget.plan;
     const d = n.budget.draft!;
     const bill = { kind: "budget" as const, ...d, force: false };
     expect(applyGwOrder(gw, seat, bill)).toBeNull();
+    expect(callBudget(gw, seat)).toBeNull();
     expect(n.budget.refused).toBe(true);
     expect(n.budget.plan).toEqual(was);
     n.authority = 10;
@@ -265,6 +290,7 @@ describe("the meeting", () => {
     n.inst.reichstag = -5;
     const bill = { kind: "budget" as const, ...n.budget.draft!, force: false };
     expect(applyGwOrder(gw, seat, bill)).toBeNull();
+    expect(callBudget(gw, seat)).toBeNull();
     expect(n.budget.last).toBe("signed");
     expect(n.budget.warPlan).toBe(true);
   });
@@ -274,6 +300,7 @@ describe("the meeting", () => {
     toMeeting(gw, runner, "DEU");
     n.inst.reichstag = -5;
     n.budget.warPlan = true;
+    emptyHouse(seat);
     const was = n.budget.plan;
     applyGwOrder(gw, seat, {
       kind: "budget",
@@ -281,20 +308,22 @@ describe("the meeting", () => {
       force: false,
     });
     seat.desk = [];
-    pass(gw, runner, 1);
+    // ww209: the deadline's vote, lost for good.
+    for (let i = 0; i < 4 && n.budget.meeting !== null; i++) {
+      pass(gw, runner, 1);
+    }
     expect(n.budget.last).toBe("refused");
     expect(n.budget.plan).toEqual(was);
     expect(n.budget.meeting).toBeNull();
     expect(seat.log.some((l) => l.key === "budget_runs_on")).toBe(true);
   });
 
-  test("the Tsar signs over the Duma, at the Duma's price", async () => {
+  test("the Tsar's budget goes round the Duma by Article 87, at the Duma's price", async () => {
     const { runner, gw, seat, n } = await war("RUS", "GWB3");
     toMeeting(gw, runner, "RUS");
     n.regime = "tsar";
     n.inst.duma = -4;
     n.budget.warPlan = true;
-    const auth = n.authority;
     expect(
       applyGwOrder(gw, seat, {
         kind: "budget",
@@ -302,9 +331,19 @@ describe("the meeting", () => {
         force: false,
       }),
     ).toBeNull();
-    expect(n.budget.last).toBe("alone");
+    // The Duma in recess: the way round is open.
+    seat.flags = seat.flags.filter((f) => f !== "f_gov_rus_session");
+    n.authority = 60;
+    expect(
+      applyGwOrder(gw, seat, {
+        kind: "bill_round",
+        law: moneyIds.budget("RUS"),
+      }),
+    ).toBeNull();
+    expect(n.budget.last).toBe("forced");
+    expect(n.budget.meeting).toBeNull();
     expect(n.inst.duma).toBeLessThan(-4);
-    expect(n.authority).toBeLessThan(auth);
+    expect(n.authority).toBeLessThan(60);
   });
 
   test("Hungary's consent is the common budget's door", async () => {
@@ -318,25 +357,34 @@ describe("the meeting", () => {
       ...n.budget.draft!,
       force: false,
     });
+    // Tisza's party turned against it: Budapest's consent is refused.
+    seat.house!.factions.find((f) => f.id === "auh_work")!.step = 2;
+    expect(callBudget(gw, seat)).toBeNull();
     expect(n.budget.refused).toBe(true);
   });
 
-  test("hands off: the draft is signed by proxy, with the stamp", async () => {
+  test("hands off: the house votes the draft at the deadline, by proxy", async () => {
     const { runner, gw, seat, n } = await war();
     toMeeting(gw, runner, "DEU");
     const d = n.budget.draft!;
     seat.desk = [];
-    pass(gw, runner, 1);
+    for (let i = 0; i < 4 && n.budget.meeting !== null; i++) {
+      pass(gw, runner, 1);
+    }
     expect(n.budget.last).toBe("proxy");
     expect(n.budget.plan.shares).toEqual(d.shares);
     expect(seat.log.some((l) => l.key === "budget_proxy")).toBe(true);
   });
 
-  test("a card the timer signs is a proxy too", async () => {
+  test("a card the timer signs puts the draft; the deadline votes it", async () => {
     const { runner, gw, seat, n } = await war();
     toMeeting(gw, runner, "DEU");
     expect(seat.desk.some((c) => c.scene.startsWith("gw_bm_"))).toBe(true);
     advanceChapter(gw, runner.game.ticks(), true);
+    expect(n.budget.put).not.toBeNull();
+    for (let i = 0; i < 4 && n.budget.meeting !== null; i++) {
+      advanceChapter(gw, runner.game.ticks(), true);
+    }
     expect(n.budget.last).toBe("proxy");
     expect(seat.choices.some((c) => c.proxy)).toBe(true);
   });
@@ -472,7 +520,8 @@ describe("a save", () => {
     step(runner, 1, bill);
     step(copy, 1, bill);
     expect(gwOf(copy).hash()).toBe(gw.hash());
-    expect(gwOf(copy).nation("DEU")!.budget.meeting).toBeNull();
+    // ww209: the plan is put to the house, on both.
+    expect(gwOf(copy).nation("DEU")!.budget.put).not.toBeNull();
   });
 });
 

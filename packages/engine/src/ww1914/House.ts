@@ -565,6 +565,65 @@ export function splitFaction(
 }
 
 /**
+ * ww209: the row's wing goes its own way (split pressure, no `splits` row
+ * that can carry it): into its `into` row, brought in if it waits, else the
+ * sitting faction nearest its ideals; it takes its share of the seats. False
+ * when the faction has no wing or nowhere to go.
+ */
+export function wingSplit(
+  gw: GreatWar,
+  seat: GwSeatState,
+  row: GwFactionRow,
+): boolean {
+  const st = factionOf(seat, row.id);
+  const wing = row.wing;
+  if (st?.status !== "in" || wing === undefined) return false;
+  const accord = (id: string): number => {
+    const ideals = factionRow(id)?.ideals ?? {};
+    let n = 0;
+    for (const [k, v] of Object.entries(wing.ideals)) {
+      n += (v ?? 0) * (ideals[k as keyof typeof ideals] ?? 0);
+    }
+    return n;
+  };
+  const near = factionRows(seat.tag)
+    .filter((f) => f.id !== row.id && factionOf(seat, f.id)?.status === "in")
+    .map((f) => f.id)
+    .sort((a, b) => accord(b) - accord(a) || (a < b ? -1 : 1))[0];
+  const id =
+    wing.into ?? (near !== undefined && accord(near) > 0 ? near : null);
+  const into = id === null ? null : factionOf(seat, id);
+  if (into === null || (into.status !== "out" && into.status !== "in")) {
+    return false;
+  }
+  const share = clampTo(wing.share, 1, 9);
+  const from = seatsNow(seat, row);
+  const take: Seats = {};
+  for (const [c, k] of Object.entries(from) as [GwChamber, number][]) {
+    take[c] = Math.floor(((k ?? 0) * share) / 10);
+  }
+  const { left, moved } = takeSeats(from, take);
+  st.seats = left;
+  if (into.status === "out") {
+    into.status = "in";
+    into.since = gw.s.chapter;
+    into.seats = moved;
+    into.leader = factionLeader(gw, seat, into.id);
+  } else {
+    into.seats = poolSeats([seatsNow(seat, factionRow(into.id)!), moved]);
+  }
+  growBy(st, -1, "split");
+  reason(gw, seat, "house_split", whoOf(into));
+  seat.house!.story = {
+    kind: "split",
+    faction: into.id,
+    chapter: gw.s.chapter,
+  };
+  news(gw, "house_split", seat.tag);
+  return true;
+}
+
+/**
  * The row's join now (ww208: the society calls it by state too): the sitting
  * members pool their seats into the new faction. False when it can't.
  */

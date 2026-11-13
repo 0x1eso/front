@@ -621,7 +621,15 @@ export function moneyPassed(
   if (m.kind === "budget") {
     const plan = planOf(n);
     if (how === "voted") thank(gw, seat, st);
-    adopt(gw, n, plan, how === "decreed" ? "forced" : "signed");
+    // At the deadline the house voted it by itself: a proxy's budget.
+    const b = n.budget;
+    const late = b.meeting !== null && gw.s.chapter >= b.meeting;
+    adopt(
+      gw,
+      n,
+      plan,
+      how === "decreed" ? "forced" : late ? "proxy" : "signed",
+    );
     seat.desk = seat.desk.filter((c) => !MEETING.test(c.scene));
   } else {
     const cr = n.budget.credits;

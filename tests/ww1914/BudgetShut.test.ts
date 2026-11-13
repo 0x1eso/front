@@ -12,6 +12,7 @@ import {
   submitBudget,
 } from "@openfront/engine/ww1914/Budget";
 import type { GreatWar } from "@openfront/engine/ww1914/GreatWar";
+import { moneyStep } from "@openfront/engine/ww1914/MoneyBills";
 import { describe, expect, test } from "vitest";
 import { realMap } from "./realMap";
 import { startOf } from "./sim/GwSim";
@@ -50,6 +51,7 @@ describe("the budget and a shut house", () => {
     expect(said(gw, "budget_signed")).toBe(false);
     // Due now, it waits a chapter more rather than passing by proxy.
     budgetStep(gw);
+    moneyStep(gw);
     expect(n.budget.meeting).toBe(gw.s.chapter + 1);
     expect(n.budget.last).not.toBe("proxy");
     // After the election the house sits and votes again.

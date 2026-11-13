@@ -29,6 +29,7 @@ import {
   GwBudgetView,
   GwLenderView,
 } from "@openfront/engine-api/ww1914/GwBudget";
+import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import type { GwOrderBlock } from "@openfront/engine-api/ww1914/GwOrders";
 import {
   budgetBody,
@@ -59,6 +60,7 @@ import {
   GW_OWNER_OFF,
   GW_PURSE_IDEALS,
   GW_TAX_AXIS,
+  moneyIds,
   moneyRowOf,
   type GwLineOwner,
 } from "@openfront/engine-lib/ww1914/MoneyRows";
@@ -422,6 +424,8 @@ const PRICES_WORKERS = 1500;
 function whoPays(gw: GreatWar, n: GwNationState, plan: GwBudgetPlan): void {
   const tax = plan.tax ?? "consumption";
   const raised = plan.mix[0] > 100;
+  // A country nobody plays keeps its axes: its budgets are the plain rule.
+  if (seatsOf(gw, n.tag).length === 0) return;
   if (raised) moveAxis(n, "class", GW_TAX_AXIS[tax]);
   const content = gwContent();
   for (const seat of seatsOf(gw, n.tag)) {
@@ -488,6 +492,9 @@ export function closeMeeting(
   b.put = null;
   b.tries = 0;
   b.last = how;
+  // ww209: the budget's bill leaves its pinned place, however it closed.
+  const bill = n.laws.find((x) => x.id === moneyIds.budget(n.tag as GwTag));
+  if (bill !== undefined && bill.stage !== "force") bill.stage = "idle";
   b.lastChapter = gw.s.chapter;
 }
 
