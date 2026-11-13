@@ -237,12 +237,37 @@ export function tableSeats(n: number): Layout {
   return { pts, r: round(Math.min(step * 0.32, 3)) };
 }
 
+/**
+ * ww204: a state voting as one (Prussia's 17) sits as one block at the head
+ * of the table, its seats packed together: `n` points, `cols` to a row.
+ */
+export function stateBlockSeats(
+  n: number,
+  cols = 6,
+): { x: number; y: number }[] {
+  const step = 6.6;
+  const rows = Math.ceil(n / cols);
+  const pts: { x: number; y: number }[] = [];
+  for (let i = 0; i < n; i++) {
+    const row = Math.floor(i / cols);
+    const inRow = Math.min(cols, n - row * cols);
+    const col = i - row * cols;
+    pts.push({
+      x: round(100 + (col - (inRow - 1) / 2) * step),
+      y: round(55 + (row - (rows - 1) / 2) * step),
+    });
+  }
+  return pts;
+}
+
 /** Left to right as a house seats them; a faction's blocks side by side. */
 function seating(
   blocks: readonly GwBallotBlock[],
   blocOf: (faction: string) => string | null,
 ): number[] {
   const rank = (b: GwBallotBlock): number => {
+    // A state voting as one takes its place first (the table's head).
+    if (b.state !== undefined) return -1;
     if (b.faction === null) return BLOC_SEATING.length;
     const bloc = blocOf(b.faction);
     const i = bloc === null ? -1 : BLOC_SEATING.indexOf(bloc);
@@ -265,8 +290,16 @@ export function votePlan(
   const size = Math.max(ch.size, filled, 1);
   const shape = CHAMBER_SHAPE[ch.chamber];
   const bench = shape === "benches" ? benchSeats(size) : null;
+  const statesN =
+    shape === "table"
+      ? blocks.reduce((a, b) => a + (b.state === undefined ? 0 : b.seats), 0)
+      : 0;
+  const ring = shape === "table" ? tableSeats(size - statesN) : null;
   const layout =
-    bench ?? (shape === "table" ? tableSeats(size) : arcSeats(size));
+    bench ??
+    (ring !== null
+      ? { pts: [...stateBlockSeats(statesN), ...ring.pts], r: ring.r }
+      : arcSeats(size));
   const times = slots(blocks, scale);
   const dots: GwVoteDot[] = [];
   let seat = 0;

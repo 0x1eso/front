@@ -53,7 +53,7 @@ import { crownPick, fatePaint, treatySign } from "./Fate";
 import { proposalsFor } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { answerPetition, holdHonours } from "./Honours";
-import { housePress, lobbyCall } from "./House";
+import { houseLobbyGrain, housePress, housePrice, lobbyCall } from "./House";
 import {
   lawCall,
   lawOrder,
@@ -344,8 +344,12 @@ export function applyGwOrder(
     case "bill_lobby": {
       const call = lobbyCall(gw, seat, o.law, o.faction);
       if (typeof call === "string") return call;
-      return summon(gw, seat, call.person, call.topic);
+      const block = summon(gw, seat, call.person, call.topic);
+      if (block === null) houseLobbyGrain(gw, seat, o.faction);
+      return block;
     }
+    case "bill_price":
+      return housePrice(gw, seat, o.law, o.faction, o.want);
     case "bill_press":
       return housePress(gw, seat, o.law, o.faction, o.how);
     case "bill_count":

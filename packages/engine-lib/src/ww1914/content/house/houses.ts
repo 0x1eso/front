@@ -35,6 +35,8 @@ export const DEU_HOUSE: GwHouseRow = {
       size: 61,
       need: { block: 14 },
       rest: "for",
+      // ww204: Prussia's 17 votes cast as one block.
+      states: [{ id: "prussia", seats: 17 }],
     },
   ],
   whip: either(
@@ -202,6 +204,8 @@ export const RUS_HOUSE: GwHouseRow = {
     skips: ["duma", "council"],
     // ww203: the decree faces the house when it sits again.
     faces: true,
+    // ww204: and the parliament bloc takes it ill, a step.
+    bloc: "parliament",
     heats: [
       { faction: "rus_nobles", by: 1 },
       { faction: "rus_kadets", by: 1 },
@@ -212,6 +216,14 @@ export const RUS_HOUSE: GwHouseRow = {
   // What the Duma and the State Council pass goes to the Tsar to sign.
   signs: true,
   counter: ["interior", "chancellor"],
+  // ww204: bargaining with the Duma's men goes against the Tsar's grain; the
+  // court's and the Stavka's men he sees gladly.
+  lobbyGrain: {
+    ruler: "nicholas",
+    chamber: "duma",
+    free: ["court", "army"],
+    key: "nicholas_duma_lobby",
+  },
 };
 
 /**

@@ -34,6 +34,7 @@ import {
   type GwLawState,
   type GwLobbyView,
   type GwPressHow,
+  type GwPriceKind,
 } from "@openfront/engine-api/ww1914/GwLaw";
 import type { GwOrderBlock } from "@openfront/engine-api/ww1914/GwOrders";
 import type { GwCond } from "@openfront/engine-api/ww1914/SceneDsl";
@@ -65,6 +66,7 @@ import {
   GwSide,
   GwWant,
   houseIds,
+  wantKind,
 } from "@openfront/engine-lib/ww1914/HouseRows";
 import type { GwLawRow } from "@openfront/engine-lib/ww1914/LawRows";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
@@ -73,6 +75,7 @@ import { blocNow } from "./Blocs";
 import { makeCard, placeCard } from "./Desk";
 import { hasFile, pressWithFile } from "./Dossier";
 import type { GreatWar } from "./GreatWar";
+import { moveOpinion } from "./Press";
 import { moveRuler } from "./Ruler";
 import { castOf, holds, runEffects, SceneCtx, sceneOf } from "./SceneRun";
 import {
@@ -642,6 +645,7 @@ function countIn(
       block,
       score,
       refused,
+      ...(c.states === undefined ? {} : { states: c.states }),
     },
     ballotFactions(gw, seat, bill, st, c.id, confidence),
   );
@@ -1108,6 +1112,8 @@ function vote(
   const chambers = new Set(
     chambersOf(houseRow(seat.tag)!, bill).map((c) => c.id),
   );
+  // ww203 §6: passed, the blocs of those for and against move a step.
+  const blocs = new Map<GwFactionRow["bloc"], number>();
   for (const row of factionRows(seat.tag)) {
     const sitsHere = Object.entries(seatsNow(seat, row)).some(
       ([c, k]) => (k ?? 0) > 0 && chambers.has(c as GwChamber),
@@ -1116,6 +1122,9 @@ function vote(
     const f = factionOf(seat, row.id);
     if (f?.status !== "in") continue;
     const { side, broke } = sideOf(gw, seat, bill, st, row.id);
+    if (pass && side !== 0) {
+      blocs.set(row.bloc, (blocs.get(row.bloc) ?? 0) + side);
+    }
     const who = whoOf(f);
     if (st.warm.includes(row.id) && side > 0) {
       reason(gw, seat, "house_warmed", who);
@@ -1140,6 +1149,9 @@ function vote(
       f.deals = f.deals.filter((d) => d !== k);
       reason(gw, seat, "house_broke_word", who);
     }
+  }
+  for (const [bloc, sum] of blocs) {
+    if (sum !== 0) moveOpinion(seat, bloc, Math.sign(sum));
   }
   const scene = sceneOf(houseIds.result(seat.tag));
   const card = scene === null ? null : makeCard(gw, seat, scene, "scheduled");
@@ -1183,6 +1195,7 @@ export function houseRound(
     );
   }
   for (const h of around.heats) heatBy(gw, seat, h.faction, h.by);
+  if (around.bloc !== undefined) moveOpinion(seat, around.bloc, -1);
   if (seat.house !== undefined) seat.house.around++;
   reason(gw, seat, `house_round_${around.id}`);
   const left = houseCounts(gw, seat, st.id, table, around.skips);
@@ -1478,7 +1491,11 @@ type HouseCond = Extract<
   }
 >;
 
-/** ww203: the prices the leader names now for the moving bill, up to three. */
+/**
+ * ww203: the prices the leader names now for the moving bill, up to three.
+ * ww204: a concession needs his own text for this bill (`amendable`), whatever
+ * the row's `when` says.
+ */
 function wantsNow(ctx: SceneCtx, id: string): GwWant[] {
   const m = movingBill(ctx.gw, ctx.seat);
   const row = factionRow(id);
@@ -1486,7 +1503,25 @@ function wantsNow(ctx: SceneCtx, id: string): GwWant[] {
   const free = { ...ctx, cast: {} };
   return (row.wants ?? [])
     .filter((w) => w.when === undefined || holds(free, w.when))
+    .filter(
+      (w) =>
+        wantKind(w) !== "concession" ||
+        houseHolds(free, { is: "amendable", id }),
+    )
     .slice(0, GW_PRICES_MAX);
+}
+
+/** ww204: `fn` with the talks about `law` (the lobbied bill), focus restored. */
+function withFocus<T>(seat: GwSeatState, law: string, fn: () => T): T {
+  const h = seat.house;
+  if (h === undefined) return fn();
+  const was = h.focus;
+  h.focus = law;
+  try {
+    return fn();
+  } finally {
+    h.focus = was;
+  }
 }
 
 /** The price named `want` (absent: his first) for the moving bill, if any. */
@@ -1680,8 +1715,29 @@ function takeDeal(ctx: SceneCtx, id: string, want?: string): void {
   }
   m.st.deals.push(id);
   f.heat = Math.max(0, f.heat - 1);
+  const kind = wantKind(w);
+  // ww204: a concession is his text for the bill; his bill next joins the
+  // agenda now if there is room (else the promise waits on it).
+  if (kind === "concession") houseEffect(ctx, { do: "amend", id });
+  if (kind === "next") bringNext(gw, seat, id, w);
   runEffects(ctx, w.effects ?? []);
   reason(gw, seat, "house_deal", who ?? undefined);
+}
+
+/** ww204: the faction's own bill the `next` price names, onto the agenda. */
+function bringNext(
+  gw: GreatWar,
+  seat: GwSeatState,
+  id: string,
+  w: GwWant,
+): void {
+  const bills = factionRow(id)?.bills ?? [];
+  const keep = w.keep === undefined ? "" : JSON.stringify(w.keep);
+  const named = bills.filter((b) => keep.includes(`"${b}"`));
+  const law = (named.length > 0 ? named : bills).find((b) =>
+    opensNow(gw, seat, b),
+  );
+  if (law !== undefined) houseBring(gw, seat, law, "faction", id);
 }
 
 // ---- ww203: lobbying ----
@@ -1753,8 +1809,76 @@ export function lobbyViews(
         sceneOf(topic) !== null &&
         !seat.desk.some((c) => c.scene === topic),
       press: pressHows(seat, m, row.id, f.leader),
+      prices: pricesOf(gw, seat, law, row.id),
     };
   });
+}
+
+/** ww204: summoned on this bill (his talk on the desk, the talks about it). */
+function summoned(seat: GwSeatState, law: string, faction: string): boolean {
+  const topic = houseIds.lobby(faction);
+  return seat.house?.focus === law && seat.desk.some((c) => c.scene === topic);
+}
+
+/** ww204: the prices the summoned leader names on this bill; null: not summoned. */
+function pricesOf(
+  gw: GreatWar,
+  seat: GwSeatState,
+  law: string,
+  faction: string,
+): { id: string; kind: GwPriceKind }[] | null {
+  if (!summoned(seat, law, faction)) return null;
+  return withFocus(seat, law, () =>
+    wantsNow(ctxOf(gw, seat), faction).map((w) => ({
+      id: w.id,
+      kind: wantKind(w),
+    })),
+  );
+}
+
+/**
+ * ww204: 들어준다 / 그냥 돌려보낸다 from the lobby list: the summoned leader's
+ * price `want` taken (null: none), and his talk ends.
+ */
+export function housePrice(
+  gw: GreatWar,
+  seat: GwSeatState,
+  law: string,
+  faction: string,
+  want: string | null,
+): GwOrderBlock | null {
+  const m = agendaBill(gw, seat, law);
+  if (m === null) return "no_law";
+  if (!summoned(seat, law, faction)) return "no_topic";
+  const ctx = ctxOf(gw, seat);
+  if (want !== null) {
+    const ok = wantsNow(ctx, faction).some((w) => w.id === want);
+    if (!ok) return "no_topic";
+    takeDeal(ctx, faction, want);
+  }
+  const topic = houseIds.lobby(faction);
+  seat.desk = seat.desk.filter((c) => c.scene !== topic);
+  return null;
+}
+
+/**
+ * ww204: summoning this leader went against the ruler's grain (the Tsar and
+ * the Duma's men): a nerve, once a chapter.
+ */
+export function houseLobbyGrain(
+  gw: GreatWar,
+  seat: GwSeatState,
+  faction: string,
+): void {
+  const g = houseRow(seat.tag)?.lobbyGrain;
+  const row = factionRow(faction);
+  if (g === undefined || row === null || seat.ruler.id !== g.ruler) return;
+  if (g.free.includes(row.bloc)) return;
+  if ((seatsNow(seat, row)[g.chamber] ?? 0) <= 0) return;
+  const today = seat.ruler.lines.some(
+    (l) => l.key === g.key && l.chapter === gw.s.chapter,
+  );
+  if (!today) moveRuler(gw, seat, "nerve", -1, g.key);
 }
 
 /**
@@ -1876,6 +2000,7 @@ export function rowCount(
             c.kind === "consent" &&
             c.consent !== undefined &&
             sideIn(c.consent) <= 0,
+          ...(c.states === undefined ? {} : { states: c.states }),
         },
         factionRows(seat.tag)
           .filter((f) => f.start === "in")

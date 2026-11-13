@@ -98,7 +98,8 @@ export function lawTalk(law: string, t: LawTalk): GwLawRow["talk"] {
     ...(t.tempers ?? []).map((m) => ({ id: m, when: moody(who, m) })),
     { id: "base" },
   ];
-  const sour = world({ is: "law_count", id: law, max: -3 });
+  // ww204: the count is the margin in tenths of the votes cast: -2 is lost wide.
+  const sour = world({ is: "law_count", id: law, max: -2 });
   const nodes: Record<string, GwNode> = {
     open: {
       says: opening,

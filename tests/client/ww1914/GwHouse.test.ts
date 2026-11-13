@@ -131,6 +131,7 @@ const agenda = (over: Partial<GwAgendaView> = {}): GwAgendaView => ({
       shut: null,
       call: true,
       press: ["file", "threat"],
+      prices: [],
     },
     {
       faction: "deu_cons",
@@ -142,6 +143,7 @@ const agenda = (over: Partial<GwAgendaView> = {}): GwAgendaView => ({
       shut: "creed",
       call: false,
       press: [],
+      prices: null,
     },
   ],
   ...over,
@@ -252,6 +254,86 @@ describe("the house on the screens: the law book (ww203), the factions", () => {
     });
     q("[data-gw-agenda-count=deu_aux]").click();
     expect(sent[3]).toEqual({ kind: "bill_count", law: "deu_aux" });
+    // ww204: summoned, he asks nothing that can be given: he is sent off.
+    expect(root.querySelector("[data-gw-lobby-prices=deu_cons]")).toBeNull();
+    expect(root.querySelector("[data-gw-lobby-no-price]")).not.toBeNull();
+    q("[data-gw-price-leave=deu_spd]").click();
+    expect(sent[4]).toEqual({
+      kind: "bill_price",
+      law: "deu_aux",
+      faction: "deu_spd",
+      want: null,
+    });
+  });
+
+  test("a summoned leader's prices show by kind, in his words, and one is taken", () => {
+    const base = agenda().lobby[0];
+    const { root, sent, q } = bookCtx(
+      {
+        articles: [],
+        agenda: [
+          agenda({
+            lobby: [
+              {
+                ...base,
+                deal: false,
+                prices: [
+                  { id: "spd_peace", kind: "promise" },
+                  { id: "spd_post", kind: "post" },
+                ],
+              },
+            ],
+          }),
+        ],
+        max: 3,
+        calls: 1,
+      },
+      house({}),
+    );
+    q("[data-gw-agenda-lobby=deu_aux]").click();
+    const box = root.querySelector("[data-gw-lobby-prices=deu_spd]");
+    expect(box?.textContent).toContain("gw.lobby.price.promise");
+    expect(box?.textContent).toContain("gw.lobby.price.post");
+    q("[data-gw-price-take=spd_post]").click();
+    expect(sent).toEqual([
+      {
+        kind: "bill_price",
+        law: "deu_aux",
+        faction: "deu_spd",
+        want: "spd_post",
+      },
+    ]);
+  });
+
+  test("the Bundesrat seats Prussia's 17 together at the head of the table", () => {
+    const ch: GwBallotChamber = {
+      chamber: "bundesrat",
+      size: 61,
+      block: 14,
+      blocks: [
+        { faction: "deu_south", cast: "for", seats: 17, beat: "firm" },
+        {
+          faction: null,
+          cast: "for",
+          seats: 17,
+          beat: "firm",
+          state: "prussia",
+        },
+        { faction: null, cast: "for", seats: 27, beat: "firm" },
+      ],
+      pass: true,
+      delay: false,
+    };
+    const plan = votePlan(ch, () => null);
+    const prussia = plan.dots.filter((d) => d.block === 1);
+    expect(prussia.length).toBe(17);
+    const xs = prussia.map((d) => d.x);
+    const ys = prussia.map((d) => d.y);
+    // One packed block inside the table, not spread round its edge.
+    expect(Math.max(...xs) - Math.min(...xs)).toBeLessThan(40);
+    expect(Math.max(...ys) - Math.min(...ys)).toBeLessThan(20);
+    expect(Math.min(...ys)).toBeGreaterThan(30);
+    expect(plan.dots.length).toBe(61);
   });
 
   test("a ballot plays its beats in order and stamps where the line is crossed", () => {

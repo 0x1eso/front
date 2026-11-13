@@ -257,6 +257,13 @@ export interface GwLobbyView {
   call: boolean;
   /** Ways to press him now (`bill_press`). */
   press: readonly GwPressHow[];
+  /**
+   * ww204: summoned on this bill (his talk is on the desk): the prices he
+   * names now, first first, up to three (`bill_price`); empty: none he can
+   * be given. Null: not summoned. Text gw.lobby.price.<kind>, his words the
+   * talk's `price` says.<id>.
+   */
+  prices: readonly { id: string; kind: GwPriceKind }[] | null;
 }
 
 /** A bill on the agenda (의사일정). */

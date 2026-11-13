@@ -22,8 +22,16 @@ import {
 import { govHeat } from "@openfront/engine/ww1914/Government";
 import { GW_GOV } from "@openfront/engine/ww1914/GovTable";
 import type { GreatWar } from "@openfront/engine/ww1914/GreatWar";
-import { factionOf, houseStep } from "@openfront/engine/ww1914/House";
-import { lawDraftable, lawStep } from "@openfront/engine/ww1914/Laws";
+import {
+  factionOf,
+  houseStep,
+  lobbyViews,
+} from "@openfront/engine/ww1914/House";
+import {
+  lawAiStep,
+  lawDraftable,
+  lawStep,
+} from "@openfront/engine/ww1914/Laws";
 import { applyGwOrder } from "@openfront/engine/ww1914/Orders";
 import { describe, expect, test } from "vitest";
 import { HUMAN, step, wwRunnerCapture } from "../ww1936/util";
@@ -239,7 +247,10 @@ describe("Article 87", () => {
     const law = "rus_press";
     seat.flags = seat.flags.filter((f) => f !== "f_gov_rus_session");
     onAgenda(gw, n, seat, law);
+    const liked = seat.press.opinion.parliament;
     expect(applyGwOrder(gw, seat, { kind: "bill_round", law })).toBe(null);
+    // ww204: the parliament bloc takes Art. 87 ill, a step.
+    expect(seat.press.opinion.parliament).toBe(Math.max(-3, liked - 1));
     const st = n.laws.find((x) => x.id === law)!;
     expect([st.stage, st.how, st.faces]).toEqual(["force", "decreed", -2]);
     // The Duma sits again: the decree goes on the agenda to be confirmed.
@@ -254,5 +265,119 @@ describe("Article 87", () => {
     seat.house!.sat = {};
     expect(vote(gw, seat, law)).toBe(null);
     expect([st.stage, st.how, st.kept]).toEqual(["idle", "repealed", null]);
+  });
+});
+
+describe("ww204: prices, the Tsar's grain, replacing, Prussia, AI laws", () => {
+  test("a summoned leader names his prices; a concession takes his text and ends the talk", async () => {
+    const { gw, n, seat } = await atWar("GBR");
+    const law = "gbr_conscription";
+    const st = onAgenda(gw, n, seat, law);
+    st.text = "all_men";
+    seat.house!.calls = 2;
+    const view = () =>
+      lobbyViews(gw, seat, law).find((l) => l.faction === "gbr_liberals")!;
+    expect(view().prices).toBe(null);
+    expect(
+      applyGwOrder(gw, seat, {
+        kind: "bill_lobby",
+        law,
+        faction: "gbr_liberals",
+      }),
+    ).toBe(null);
+    const prices = view().prices!;
+    expect(prices.length).toBeGreaterThan(0);
+    expect(prices.length).toBeLessThanOrEqual(3);
+    const own = prices.find((p) => p.kind === "concession")!;
+    expect(own.id).toBe("own_text");
+    expect(
+      applyGwOrder(gw, seat, {
+        kind: "bill_price",
+        law,
+        faction: "gbr_liberals",
+        want: own.id,
+      }),
+    ).toBe(null);
+    expect(st.text).toBe("conscience");
+    expect(st.deals).toContain("gbr_liberals");
+    expect(seat.desk.some((c) => c.scene === "gw_lb_gbr_liberals")).toBe(false);
+    expect(view().prices).toBe(null);
+  });
+
+  test("lobbying the Duma costs the Tsar a nerve once a chapter; the court's men cost none", async () => {
+    const { gw, n, seat } = await atWar("RUS");
+    const law = "rus_press";
+    onAgenda(gw, n, seat, law);
+    seat.house!.calls = 2;
+    seat.ruler.nerve = 3;
+    const lobby = (faction: string) =>
+      applyGwOrder(gw, seat, { kind: "bill_lobby", law, faction });
+    expect(lobby("rus_rights")).toBe(null);
+    expect(seat.ruler.nerve).toBe(3);
+    expect(lobby("rus_kadets")).toBe(null);
+    expect(seat.ruler.nerve).toBe(2);
+    expect(lobby("rus_octob")).toBe(null);
+    expect(seat.ruler.nerve).toBe(2);
+  });
+
+  test("a bill replacing the law in force passes as itself; Prussia casts as one", async () => {
+    const { gw, n, seat } = await atWar("DEU");
+    const law = "deu_bread_cards";
+    const row = GW_LAWS.find((r) => r.id === law)!;
+    expect(row.draft.length).toBeGreaterThan(1);
+    n.inst.reichstag = 5;
+    const st = onAgenda(gw, n, seat, law);
+    st.stage = "force";
+    st.how = "voted";
+    st.kept = null;
+    // The other bill of the article, replacing it; every faction for it.
+    expect(applyGwOrder(gw, seat, { kind: "bill_submit", law })).toBe(null);
+    expect(st.kept).toBe(row.draft[0].id);
+    st.stage = "persuade";
+    st.text = row.draft[1].id;
+    st.deals = seat.house!.factions.map((f) => f.id);
+    const runs = () => seat.memory.filter((m) => m.key === `law_${law}`).length;
+    const before = runs();
+    expect(vote(gw, seat, law)).toBe(null);
+    expect([st.stage, st.text, st.kept]).toEqual([
+      "force",
+      row.draft[1].id,
+      null,
+    ]);
+    expect(runs()).toBe(before + 1);
+    const council = seat.house!.last!.ballot!.chambers.find(
+      (c) => c.chamber === "bundesrat",
+    )!;
+    const prussia = council.blocks.find((b) => b.state === "prussia")!;
+    expect([prussia.cast, prussia.seats]).toEqual(["for", 17]);
+  });
+
+  test("an AI country's law works on it: its passing effects run", async () => {
+    const { gw } = await atWar("DEU");
+    const s = gw.s;
+    s.chapter = Math.ceil((s.chapter + 1) / 6) * 6;
+    const others = s.nations.filter(
+      (x) => !x.out && x.tag !== "DEU" && GW_LAWS.some((r) => r.tag === x.tag),
+    );
+    // At war, as they would be by now: their war articles open.
+    for (const x of others) x.atWar = [x.tag === "AUH" ? "RUS" : "DEU"];
+    const before = others.map((x) => JSON.stringify([x.gauges, x.inst]));
+    const had = others.map(
+      (x) => x.laws.filter((l) => l.stage === "force").length,
+    );
+    lawAiStep(gw);
+    let moved = 0;
+    others.forEach((x, i) => {
+      const now = x.laws.filter((l) => l.stage === "force");
+      if (now.length === had[i]) return;
+      const passed = GW_LAWS.find((r) => r.id === now[now.length - 1].id)!;
+      const works = passed.passed.some(
+        (e) => e.kind === "gauge" || e.kind === "inst",
+      );
+      if (!works) return;
+      expect(JSON.stringify([x.gauges, x.inst])).not.toBe(before[i]);
+      moved++;
+    });
+    expect(moved).toBeGreaterThan(0);
   });
 });

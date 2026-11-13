@@ -34,6 +34,8 @@ export interface BallotChamberIn {
   score: number;
   /** A consent chamber whose consenting faction isn't for: it fails. */
   refused: boolean;
+  /** ww204: states among the `rest` seats that cast as one block, first. */
+  states?: readonly { readonly id: string; readonly seats: number }[];
 }
 
 export interface BallotResult {
@@ -98,9 +100,15 @@ export function castChamber(
       }
     }
   }
-  const rest = c.size === null ? 0 : Math.max(0, c.size - held);
-  if (rest > 0)
-    firm.push(block(null, c.rest === "for" ? "for" : "away", rest, "firm"));
+  let rest = c.size === null ? 0 : Math.max(0, c.size - held);
+  const restCast = c.rest === "for" ? "for" : "away";
+  for (const st of c.states ?? []) {
+    const seats = Math.min(st.seats, rest);
+    if (seats <= 0) continue;
+    rest -= seats;
+    firm.push({ ...block(null, restCast, seats, "firm"), state: st.id });
+  }
+  if (rest > 0) firm.push(block(null, restCast, rest, "firm"));
   // The government's friends first, then those against, then the empty benches.
   const order = { for: 0, against: 1, away: 2 } as const;
   firm.sort((a, b) => order[a.cast] - order[b.cast]);

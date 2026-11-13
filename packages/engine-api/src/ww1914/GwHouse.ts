@@ -197,6 +197,8 @@ export const GwBallotBlockSchema = z.object({
   cast: z.enum(GW_BALLOT_CASTS),
   seats: int,
   beat: z.enum(GW_BALLOT_BEATS),
+  /** ww204: a state voting as one (the Bundesrat's Prussia); absent: none. */
+  state: Id.optional(),
 });
 export type GwBallotBlock = z.infer<typeof GwBallotBlockSchema>;
 

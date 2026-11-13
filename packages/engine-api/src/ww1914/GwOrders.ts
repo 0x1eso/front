@@ -352,6 +352,16 @@ export const GwOrderSchema = z.discriminatedUnion("kind", [
   }),
   /** The counting office counts this bill (task type `count`). */
   z.object({ kind: z.literal("bill_count"), law: Id }),
+  /**
+   * ww204: the summoned leader's price on this bill: `want` 들어준다 (one of
+   * the lobby view's `prices`), null 그냥 돌려보낸다. Either ends his talk.
+   */
+  z.object({
+    kind: z.literal("bill_price"),
+    law: Id,
+    faction: Id,
+    want: Id.nullable(),
+  }),
 ]);
 export type GwOrder = z.infer<typeof GwOrderSchema>;
 

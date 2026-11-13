@@ -1256,7 +1256,7 @@ function quietTalk(law: string, w: GwLawRow["talk"]["who"]): GwLawRow["talk"] {
     find: {
       says: [
         { id: "straight", when: { kind: "candid", who } },
-        { id: "far", when: world({ is: "law_count", id: law, max: -3 }) },
+        { id: "far", when: world({ is: "law_count", id: law, max: -2 }) },
         { id: "base" },
       ],
       replies: [

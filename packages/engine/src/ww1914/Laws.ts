@@ -235,14 +235,15 @@ function enact(
   how: "voted" | "decreed",
 ) {
   const { gw, seat } = ctx;
-  // A bill replacing the law in force, or a decree the house now confirms:
-  // the law stands, with no second round of its passing.
-  const again = st.kept !== null;
+  // A decree the house now confirms: the law stands, with no second round of
+  // its passing. ww204: a bill replacing the law in force passes as itself:
+  // its passing effects run again, on its own text.
+  const confirmed = st.kept !== null && st.faces >= 0;
   st.kept = null;
   st.faces = how === "decreed" && houseRoundFaces(gw, seat) ? -2 : -1;
   toStage(gw, st, "force");
   st.how = how;
-  if (again) {
+  if (confirmed) {
     reason(gw, seat, `law_in_${row.id}`);
     news(gw, "law_passed", row.tag);
     return;
@@ -954,8 +955,25 @@ export function lawAiStep(gw: GreatWar): void {
     st.how = how;
     st.after = true;
     toStage(gw, st, "force");
+    aiPassed(gw, ghost, row);
     news(gw, how === "voted" ? "law_passed" : "law_decreed", n.tag);
   }
+}
+
+/**
+ * ww204: an AI country's law works on the country as the seat's would: the
+ * passing effects that touch the nation (gauges, weights, manpower and
+ * readiness); what only a seat keeps (flags, promises, people) has no one.
+ */
+const AI_EFFECTS: ReadonlySet<string> = new Set(["gauge", "inst"]);
+const AI_WORLD: ReadonlySet<string> = new Set(["manpower", "readiness"]);
+
+function aiPassed(gw: GreatWar, ghost: GwSeatState, row: GwLawRow): void {
+  const effects = row.passed.filter(
+    (e) =>
+      AI_EFFECTS.has(e.kind) || (e.kind === "world" && AI_WORLD.has(e.of.do)),
+  );
+  runEffects({ gw, seat: ghost, cast: {} }, effects);
 }
 
 function aiPick(

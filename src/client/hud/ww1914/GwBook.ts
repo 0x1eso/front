@@ -364,6 +364,64 @@ function seatsLine(l: GwLobbyView): string {
     .join(" · ");
 }
 
+/** His words for a price: the lobby talk's `price` line for it. */
+function priceSays(c: GwCtx, faction: string, want: string): string | null {
+  const node = c.pack?.scenes[`gw_lb_${faction}`]?.nodes?.["price"];
+  return node?.says[want] ?? null;
+}
+
+/**
+ * ww204: the summoned leader's prices on this bill, each in his words with
+ * 들어준다; 그냥 돌려보낸다 ends the audience. No result shows before the pick.
+ */
+function pricesBox(c: GwCtx, g: GwAgendaView, l: GwLobbyView): TemplateResult {
+  const send = (want: string | null) => {
+    c.send({ kind: "bill_price", law: g.law, faction: l.faction, want });
+    c.redraw();
+  };
+  return html`<div
+    class="space-y-1 rounded border border-amber-300/30 bg-amber-300/5 p-2"
+    data-gw-lobby-prices=${l.faction}
+  >
+    <p class="text-xs font-bold text-amber-200">
+      ${translateText("gw.lobby.price_label")}
+    </p>
+    ${(l.prices ?? []).length === 0
+      ? html`<p class="${MUTED} italic" data-gw-lobby-no-price>
+          ${translateText("gw.lobby.no_price")}
+        </p>`
+      : (l.prices ?? []).map((p) => {
+          const says = priceSays(c, l.faction, p.id);
+          return html`<div class="flex items-start gap-2" data-gw-price=${p.id}>
+            <div class="min-w-0 flex-1 text-sm text-white">
+              <span class=${CHIP}
+                >${translateText(`gw.lobby.price.${p.kind}`)}</span
+              >
+              ${says === null
+                ? nothing
+                : html`<span class="text-white/85">${says}</span>`}
+            </div>
+            <button
+              class="${BTN} ${SMALL} shrink-0"
+              data-gw-price-take=${p.id}
+              @click=${() => send(p.id)}
+            >
+              ${translateText("gw.lobby.take")}
+            </button>
+          </div>`;
+        })}
+    <div class="flex justify-end">
+      <button
+        class="${BTN} ${SMALL}"
+        data-gw-price-leave=${l.faction}
+        @click=${() => send(null)}
+      >
+        ${translateText("gw.lobby.leave")}
+      </button>
+    </div>
+  </div>`;
+}
+
 function lobbyLine(
   c: GwCtx,
   g: GwAgendaView,
@@ -427,6 +485,7 @@ function lobbyLine(
             </button>`}
       </div>
     </div>
+    ${l.prices === null ? nothing : pricesBox(c, g, l)}
     ${pressing
       ? html`<div class="flex flex-wrap gap-1 pl-2" data-gw-lobby-hows>
           ${l.press.map(

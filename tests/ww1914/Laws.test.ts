@@ -93,15 +93,16 @@ function next(gw: GreatWar): void {
 }
 
 describe("the rows", () => {
-  test("eight to twelve bills a nation, each with its three scenes", () => {
+  test("eight to sixteen bills a nation, each with its three scenes", () => {
     for (const tag of NATIONS) {
       // The factions' own bills (ww158) are the house files', not these.
       const rows = GW_LAWS.filter(
         (r) => r.tag === tag && !GW_HOUSE_LAWS.includes(r),
       );
       expect(rows.length).toBeGreaterThanOrEqual(8);
-      // ww203: the law book's new articles (W lanes, marked +).
-      expect(rows.length).toBeLessThanOrEqual(12);
+      // ww203: the law book's new articles (W lanes, marked +); ww204 merge:
+      // the five lanes' rows together, DEU and RUS 16.
+      expect(rows.length).toBeLessThanOrEqual(16);
     }
     const ids = new Set(GW_CONTENT.scenes.map((s) => s.id));
     for (const r of GW_LAWS) {

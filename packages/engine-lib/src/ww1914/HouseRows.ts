@@ -58,6 +58,11 @@ export interface GwChamberRow {
   readonly need?: "half" | { readonly block: number };
   /** ww203: seats no faction holds stay away (absent), or vote for (Prussia's). */
   readonly rest?: "away" | "for";
+  /**
+   * ww204: states among those seats that vote as one block, first in the
+   * ballot (the Bundesrat's Prussia, 17); the vote scene draws each as one.
+   */
+  readonly states?: readonly { readonly id: string; readonly seats: number }[];
 }
 
 /** The way round the house, where the constitution has one. */
@@ -85,6 +90,8 @@ export interface GwAroundRow {
    * §14).
    */
   readonly faces?: boolean;
+  /** ww204: a bloc it costs a step of support (Art. 87: the parliament). */
+  readonly bloc?: GwBloc;
   /** Factions it heats, and by how much. */
   readonly heats: readonly { readonly faction: string; readonly by: number }[];
 }
@@ -109,6 +116,18 @@ export interface GwHouseRow {
   readonly fall?: string;
   /** ww203: the office that counts a bill (task `count`), first with a head. */
   readonly counter?: readonly GwOffice[];
+  /**
+   * ww204: lobbying this chamber goes against the ruler's grain (the Tsar and
+   * the Duma): summoning a leader who sits in it costs him a nerve, once a
+   * chapter, unless the faction is of a `free` bloc (court, army). `key`:
+   * the reason line.
+   */
+  readonly lobbyGrain?: {
+    readonly ruler: string;
+    readonly chamber: GwChamber;
+    readonly free: readonly GwBloc[];
+    readonly key: string;
+  };
 }
 
 /** A line that moves a faction's strength, every `every` months while it holds. */
@@ -126,6 +145,11 @@ export interface GwTemperLine {
   readonly key: string;
   /** Heat a month; 1 if absent. */
   readonly by?: number;
+}
+
+/** ww204: a price's kind: its own, else `promise` with a `keep`, else `money`. */
+export function wantKind(w: GwWant): GwPriceKind {
+  return w.kind ?? (w.keep !== undefined ? "promise" : "money");
 }
 
 /** What a leader asks for a bill: his price. */
