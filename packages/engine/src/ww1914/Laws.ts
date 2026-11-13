@@ -86,6 +86,7 @@ import { moveCensor } from "./Press";
 import { castOf, holds, runEffects, SceneCtx, sceneOf } from "./SceneRun";
 import { blankSeat } from "./SeatStart";
 import { lawAxes } from "./Society";
+import { exclusiveShut, utopiaLawPassed } from "./Utopia";
 import {
   clampTo,
   everyMonths,
@@ -254,6 +255,8 @@ function enact(
   runEffects(ctx, row.passed);
   // ww208: the text's push on the country's axes; its own factions gain.
   lawAxes(gw, seat, row, st.text);
+  // ww207: the factions' trust and affinity (Utopia.ts).
+  utopiaLawPassed(ctx, row, st.text, st.by);
   reason(gw, seat, `law_in_${row.id}`);
   seat.memory.push({
     key: `law_${row.id}`,
@@ -525,6 +528,8 @@ export function lawWithdraw(gw: GreatWar, seat: GwSeatState, id: string): void {
 
 function openNow(gw: GreatWar, seat: GwSeatState, row: GwLawRow): boolean {
   if (row.peace === true && !inPeace(gw, row.tag)) return false;
+  // ww207: a faction's exclusive law waits for its node (Utopia.ts).
+  if (exclusiveShut(seat, row)) return false;
   return holds({ gw, seat, cast: {} }, row.opens);
 }
 

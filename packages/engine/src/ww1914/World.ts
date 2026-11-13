@@ -106,6 +106,11 @@ export function seatPerson(seat: GwSeatState): string | null {
   return row?.person ?? null;
 }
 
+/** ww207: a seat of the country has realised a utopia: 불온 stays empty. */
+export function utopiaCalm(gw: GreatWar, tag: GwTag): boolean {
+  return seatsOf(gw, tag).some((s) => (s.society?.utopia ?? null) !== null);
+}
+
 /** A person's country people, those still in play, the seat itself left out. */
 export function ownPeople(gw: GreatWar, tag: GwTag): GwPersonState[] {
   const ids = new Set(
@@ -219,6 +224,8 @@ export function moveGauge(
 ): void {
   const n = gw.nation(tag);
   if (n === null || delta === 0) return;
+  // ww207: a realised utopia keeps order at the top for good (Utopia.ts).
+  if (gauge === "order" && delta < 0 && utopiaCalm(gw, tag)) return;
   if (gauge === "money") {
     moveMoney(gw, n, delta, key);
     return;

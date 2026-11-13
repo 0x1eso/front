@@ -63,6 +63,7 @@ import {
   sceneOf,
 } from "./SceneRun";
 import { spendTime, timeLeft } from "./Time";
+import { abilityEffects, abilityUsed, abilityWhy } from "./Utopia";
 import {
   clampTo,
   defOf,
@@ -102,6 +103,8 @@ function rested(gw: GreatWar, seat: GwSeatState, row: GwPowerRow): boolean {
     .slice(-1)[0];
   if (last === undefined) return true;
   if (row.once === true) return false;
+  // ww207: an ability's cooling is its faction's (Utopia.abilityWhy).
+  if (row.ability !== undefined) return true;
   return gw.s.chapter - last.chapter > (row.cooldown ?? GW_POWER_COOLDOWN);
 }
 
@@ -120,6 +123,8 @@ function signerOf(gw: GreatWar, seat: GwSeatState, row: GwPowerRow) {
 function gateWhy(ctx: SceneCtx, row: GwPowerRow): string | null {
   const { gw, seat } = ctx;
   if (!rested(gw, seat, row)) return "used";
+  const ability = abilityWhy(gw, seat, row);
+  if (ability !== null) return ability;
   for (const g of row.opens ?? []) if (!holds(ctx, g.when)) return g.why;
   if ((row.authority ?? 0) > (gw.nation(seat.tag)?.authority ?? 0)) {
     return "no_authority";
@@ -162,6 +167,18 @@ function lastSounded(gw: GreatWar, seat: GwSeatState, row: GwPowerRow) {
 function formOpen(ctx: SceneCtx, row: GwPowerRow): boolean {
   const form = row.beyond === undefined ? null : powerRow(row.beyond);
   return form !== null && gateWhy(ctx, form) === null;
+}
+
+/** ww207: why the row is greyed now (gw.power.why.<key>); null when it isn't. */
+export function powerWhy(
+  gw: GreatWar,
+  seat: GwSeatState,
+  id: string,
+): string | null {
+  const row = powerRow(id);
+  const ctx: SceneCtx = { gw, seat, cast: {} };
+  if (row === null || !listed(ctx, row)) return "no_target";
+  return gateWhy(ctx, row);
 }
 
 /** The tab: every power listed now, in content order. */
@@ -551,7 +568,9 @@ function goThrough(
     n.authority = Math.max(0, n.authority - row.authority);
   }
   if (row.slot === true) spendTime(seat, 1, "acts");
-  runEffects(ctx, row.effects);
+  // ww207: a faction's ability: its strong form, its trust spent, its cooling.
+  runEffects(ctx, abilityEffects(seat, row));
+  abilityUsed(gw, seat, row);
   for (const o of chosen) runEffects(ctx, o.effects ?? []);
   react(ctx, [...row.tags, ...chosen.flatMap((o) => o.tags ?? [])], row.id);
   for (const h of row.heats ?? []) heatThreat(gw, seat, h);

@@ -75,6 +75,13 @@ const GW_TURNS: readonly string[] = [
   "regime_ff_throne",
   "regime_austria_republic",
   "regime_crown_remnant",
+  "regime_deu_parl",
+  "regime_deu_soviet",
+  "regime_gbr_labour",
+  "regime_auh_federal_crown",
+  "regime_auh_trial",
+  "regime_rus_soviet",
+  "regime_fra_crown",
   "ruler_death",
   "ruler_removed",
 ];

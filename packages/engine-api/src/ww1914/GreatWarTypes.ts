@@ -1421,6 +1421,8 @@ export const GW_ENDINGS = [
   "auh_e_fj_federation",
   "auh_e_karl_federation",
   "auh_e_ff_federation",
+  // ww207 (decision 1B): a realised utopia, and the player chose to end there.
+  "utopia_realised",
 ] as const;
 export type GwEnding = (typeof GW_ENDINGS)[number];
 
