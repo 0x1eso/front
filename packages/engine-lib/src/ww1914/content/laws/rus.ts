@@ -40,6 +40,7 @@ const mix = (source: "taxes" | "loans", delta: number) =>
 export const RUS_LAWS: readonly GwLawRow[] = [
   row({
     id: "rus_press",
+    chapter: "censorship",
     opens: allOf(war, crowned),
     lean: 0,
     decree: true,
@@ -79,6 +80,7 @@ export const RUS_LAWS: readonly GwLawRow[] = [
   }),
   row({
     id: "rus_dry",
+    chapter: "food",
     opens: allOf(war, crowned, until("1915-12")),
     lean: 1,
     decree: true,
@@ -122,6 +124,7 @@ export const RUS_LAWS: readonly GwLawRow[] = [
   }),
   row({
     id: "rus_ratniki",
+    chapter: "conscription",
     opens: allOf(war, crowned, since("1915-05")),
     lean: -1,
     decree: true,
@@ -178,6 +181,7 @@ export const RUS_LAWS: readonly GwLawRow[] = [
   }),
   row({
     id: "rus_councils",
+    chapter: "labour",
     opens: allOf(war, crowned, since("1915-05")),
     lean: 1,
     decree: true,
@@ -227,6 +231,7 @@ export const RUS_LAWS: readonly GwLawRow[] = [
   }),
   row({
     id: "rus_factories",
+    chapter: "labour",
     opens: allOf(war, crowned, since("1915-09")),
     lean: -2,
     decree: true,
@@ -269,6 +274,7 @@ export const RUS_LAWS: readonly GwLawRow[] = [
   }),
   row({
     id: "rus_grain",
+    chapter: "food",
     opens: allOf(war, since("1916-06"), low("bread", 2)),
     lean: 0,
     decree: true,
@@ -306,6 +312,7 @@ export const RUS_LAWS: readonly GwLawRow[] = [
   }),
   row({
     id: "rus_poland",
+    chapter: "nations",
     opens: allOf(war, crowned, since("1915-01")),
     lean: 0,
     decree: true,
@@ -348,6 +355,7 @@ export const RUS_LAWS: readonly GwLawRow[] = [
   }),
   row({
     id: "rus_finland",
+    chapter: "nations",
     opens: allOf(war, crowned, since("1915-08")),
     lean: 0,
     decree: true,
@@ -381,6 +389,7 @@ export const RUS_LAWS: readonly GwLawRow[] = [
   }),
   row({
     id: "rus_pale",
+    chapter: "nations",
     opens: allOf(war, crowned, since("1915-08")),
     lean: 0,
     decree: true,
@@ -420,6 +429,7 @@ export const RUS_LAWS: readonly GwLawRow[] = [
     // (larger peacetime army and artillery, finished by 1917). A peace bill:
     // its drafts tilt the budget to the army and say who pays.
     id: "rus_great_programme",
+    chapter: "arms",
     opens: allOf(peaceYears, crowned),
     lean: 1,
     decree: true,
@@ -453,6 +463,98 @@ export const RUS_LAWS: readonly GwLawRow[] = [
       push: "frank",
       tell: ["duma:+1"],
       price: [inst("duma", 1)],
+      wins: 1,
+    }),
+  }),
+  // + check (ww203): the war's taxes. Bark's income tax passed the Duma and
+  // the State Council (signed 6 April 1916, levied from 1917); a war-profits
+  // tax followed on 13 May 1916. Three bills: borrow only, the income tax,
+  // a tax on war profits.
+  row({
+    id: "rus_war_tax",
+    chapter: "war_finance",
+    opens: allOf(war, crowned, since("1915-02")),
+    lean: 0,
+    decree: true,
+    cast: { fin: held("finance") },
+    draft: [
+      draft("loans_only", 1, ["loans_ask:+1"], [mix("loans", 10)]),
+      draft(
+        "income_tax",
+        0,
+        ["tax_rate:+1", "duma:+1", "court:-1"],
+        [mix("taxes", 10), inst("duma", 1), inst("court", -1)],
+      ),
+      draft(
+        "war_profits",
+        1,
+        ["money:+1", "shells:-1"],
+        [gauge("money", 1), gauge("shells", -1)],
+      ),
+    ],
+    passed: [gauge("money", 1)],
+    passedTell: ["money:+1"],
+    term: [{ gauge: "money", delta: 1, every: 8, offset: 2 }],
+    repeal: {
+      authority: 10,
+      tell: ["money:-1"],
+      effects: [gauge("money", -1)],
+    },
+    talk: lawTalk("rus_war_tax", {
+      who: either(person("rus_bark"), held("finance")),
+      ask: "frank",
+      push: "cold",
+      tell: ["money:-1"],
+      price: [gauge("money", -1)],
+      wins: 1,
+    }),
+  }),
+  // + check (ww203): who rules the army's zone. The Field Regulations of
+  // 16 July 1914 gave the front provinces to the generals; in the retreat of
+  // 1915 Stavka drove whole peoples east and the Council of Ministers fought
+  // it. Three bills: the generals rule, the civil governors answer to the
+  // Interior, the army keeps the zone but expels no one without the Council.
+  row({
+    id: "rus_army_zone",
+    chapter: "siege",
+    opens: allOf(war, crowned, since("1915-06")),
+    lean: 0,
+    decree: true,
+    cast: { interior: held("interior"), cos: held("chief_of_staff") },
+    draft: [
+      draft(
+        "stavka_rules",
+        1,
+        ["stavka:+1", "ministers:-1"],
+        [inst("stavka", 1), inst("ministers", -1)],
+      ),
+      draft(
+        "civil_governors",
+        0,
+        ["ministers:+1", "stavka:-1"],
+        [inst("ministers", 1), inst("stavka", -1)],
+      ),
+      draft(
+        "no_expulsions",
+        1,
+        ["duma:+1", "stavka:-1"],
+        [inst("duma", 1), inst("stavka", -1)],
+      ),
+    ],
+    passed: [gauge("order", 1)],
+    passedTell: ["order:+1"],
+    term: [{ gauge: "order", delta: 1, every: 9, offset: 3 }],
+    repeal: {
+      authority: 15,
+      tell: ["order:-1"],
+      effects: [gauge("order", -1)],
+    },
+    talk: lawTalk("rus_army_zone", {
+      who: either(person("rus_krivoshein"), held("chancellor")),
+      ask: "frank",
+      push: "cold",
+      tell: ["stavka:-1"],
+      price: [inst("stavka", -1)],
       wins: 1,
     }),
   }),
