@@ -1,13 +1,15 @@
 // Great War 1914: the vote scene (ww203 §5), the one new visual. An overlay in
 // the HUD's dark glass: the chamber's seats as dots in its shape, cast block
 // by block as the engine's ballot record says (the government's friends, then
-// the waverers, then the lobbied), the tally under it, and the stamp the
-// moment the line is crossed. A second chamber plays shorter. Skippable;
+// the waverers, then the lobbied), the tally under it, and (ww215) after a
+// pause the chair's declaration in the house's own form, a calm line under
+// the final count. A second chamber plays shorter. Skippable;
 // reduced motion shows the end at once; on a phone the chamber sits on top.
 import type {
   GwBallot,
   GwBallotBlock,
   GwBallotCast,
+  GwBallotChamber,
 } from "@openfront/engine-api/ww1914/GwHouse";
 import { moneyBillOf } from "@openfront/engine-lib/ww1914/MoneyRows";
 import { html, nothing, svg, TemplateResult } from "lit";
@@ -49,7 +51,7 @@ const castWord = (cast: GwBallotCast): string =>
 /** A chamber after the first plays at this pace. */
 const SHORTER = 0.6;
 /** The pause between two chambers, ms. */
-const GAP = 600;
+const GAP = 1000;
 
 function reducedMotion(): boolean {
   return (
@@ -184,14 +186,20 @@ const KEYFRAMES = html`<style>
       transform: none;
     }
   }
-  @keyframes gwvstamp {
+  @keyframes gwvsay {
     from {
       opacity: 0;
-      transform: rotate(-8deg) scale(1.8);
     }
     to {
       opacity: 1;
-      transform: rotate(-8deg) scale(1);
+    }
+  }
+  @keyframes gwvrule {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: scaleX(1);
     }
   }
   @media (prefers-reduced-motion: reduce) {
@@ -219,6 +227,8 @@ function castLook(d: GwVoteDot): { fill: string; stroke: string } {
 }
 
 const ms = (n: number): string => `${Math.round(n)}ms`;
+/** A waverer's grey pulse, one way, ms. */
+const PULSE = 600;
 
 function dotAnimated(d: GwVoteDot, r: number, sw: number) {
   if (d.cast === null) {
@@ -230,16 +240,16 @@ function dotAnimated(d: GwVoteDot, r: number, sw: number) {
   const anim: string[] = [];
   if (d.waver) {
     // Grey and pulsing until it decides.
-    const n = Math.max(1, Math.floor(d.at / 350));
-    anim.push(`gwvpulse 350ms ease-in-out 0ms ${n} alternate`);
+    const n = Math.max(1, Math.floor(d.at / PULSE));
+    anim.push(`gwvpulse ${PULSE}ms ease-in-out 0ms ${n} alternate`);
   }
-  if (d.from !== null) anim.push(`gwvpromise 200ms ${ms(d.from)} both`);
+  if (d.from !== null) anim.push(`gwvpromise 350ms ${ms(d.from)} both`);
   anim.push(
-    `gwvcast 250ms ${ms(d.at)} ${d.from === null ? "both" : "forwards"}`,
+    `gwvcast 450ms ${ms(d.at)} ${d.from === null ? "both" : "forwards"}`,
   );
   let walk = "";
   if (d.to !== null) {
-    anim.push(`gwvwalk 600ms ease-in-out ${ms(d.at)} forwards`);
+    anim.push(`gwvwalk 1000ms ease-in-out ${ms(d.at)} forwards`);
     walk = `--dx:${d.to.x - d.x}px;--dy:${d.to.y - d.y}px;`;
   }
   const style =
@@ -260,7 +270,7 @@ function dotStill(d: GwVoteDot, r: number, sw: number) {
 /** The room's lines: a hemicycle, the benches and lobbies, the table. */
 function outline(plan: GwVotePlan, animated: boolean) {
   const style = animated
-    ? "stroke-dasharray:400;animation:gwvdraw 500ms ease-out both"
+    ? "stroke-dasharray:400;animation:gwvdraw 900ms ease-out both"
     : "";
   if (plan.shape === "benches") {
     const label = (x: number, key: string) =>
@@ -288,31 +298,50 @@ function outline(plan: GwVotePlan, animated: boolean) {
     stroke-width="0.4" style=${style} />`;
 }
 
-function stampWord(plan: GwVotePlan): string {
-  return translateText(
-    `gw.vote.stamp.${plan.pass ? "pass" : plan.delay ? "delay" : "fail"}`,
-  );
+/** How the chair ends it: carried, thrown out, or (the Lords) put off. */
+function outcome(plan: GwVotePlan): "pass" | "fail" | "delay" {
+  return plan.pass ? "pass" : plan.delay ? "delay" : "fail";
 }
 
-function stamp(plan: GwVotePlan, animated: boolean): TemplateResult {
-  const color = plan.pass
-    ? "border-amber-300 text-amber-300"
-    : "border-red-400 text-red-400";
-  const style = animated
-    ? `animation:gwvstamp 350ms cubic-bezier(.2,1.4,.4,1) ${ms(plan.stampAt)} both`
-    : "transform:rotate(-8deg)";
+/**
+ * ww215: the chair's declaration, in the house's own form (the Reichstag's
+ * bell, the Commons' tellers and "the Ayes have it", the Chambre's "a
+ * adopté"), set as a calm line under the final count. The Lords putting a
+ * bill off say it as they throw it out; the note under it says what it means.
+ */
+function declaration(
+  ch: GwBallotChamber,
+  plan: GwVotePlan,
+  animated: boolean,
+): TemplateResult {
+  const n = tallyAt(plan, Infinity);
+  const key = `gw.vote.say.${ch.chamber}`;
+  const words = translateText(`${key}.${plan.pass ? "pass" : "fail"}`, {
+    for: n.for,
+    against: n.against,
+    away: n.away,
+    voters: n.for + n.against,
+    need: plan.need,
+  });
+  const at = ms(plan.sayAt);
+  const rule = plan.pass ? "bg-amber-300/60" : "bg-red-300/60";
   return html`<div
-    class="pointer-events-none absolute inset-0 flex justify-center ${plan.shape ===
-    "arc"
-      ? "items-end pb-[6%]"
-      : "items-center"}"
+    class="space-y-1 pt-1 text-center"
+    data-gw-vote-say=${outcome(plan)}
+    style=${animated ? `animation:gwvsay 1200ms ease-out ${at} both` : ""}
   >
-    <span
-      class="${color} rounded-sm border-[3px] bg-slate-950/70 px-3 py-0.5 text-2xl font-black tracking-[0.3em] sm:text-3xl"
-      data-gw-vote-stamp=${plan.pass ? "pass" : plan.delay ? "delay" : "fail"}
-      style=${style}
-      >${stampWord(plan)}</span
+    <div
+      class="mx-auto h-px w-2/3 ${rule}"
+      style=${animated ? `animation:gwvrule 1400ms ease-out ${at} both` : ""}
+    ></div>
+    <p class="text-xs break-keep text-white/55 italic">
+      ${translateText(`${key}.act`)}
+    </p>
+    <p
+      class="font-serif text-sm leading-snug break-keep text-white sm:text-base"
     >
+      ${words}
+    </p>
   </div>`;
 }
 
@@ -359,16 +388,16 @@ function logLine(
           ? translateText("gw.vote.beat.betray_by", { name })
           : translateText(`gw.vote.beat.${b.beat}`);
   return html`<li
-    class="flex items-baseline gap-1.5 text-xs"
+    class="flex flex-wrap items-baseline gap-x-1.5 text-xs break-keep"
     data-gw-vote-line=${b.beat}
-    style=${animated ? `animation:gwvfade 300ms ${ms(at)} both` : ""}
+    style=${animated ? `animation:gwvfade 500ms ${ms(at)} both` : ""}
   >
     <span
       class="inline-block h-2 w-2 shrink-0 rounded-full"
       style="background:${CAST_COLOR[b.cast]}"
     ></span>
-    <span class="text-white/85">${blockName(c, b)}</span>
-    <span class="text-white/55"
+    <span class="whitespace-nowrap text-white/85">${blockName(c, b)}</span>
+    <span class="whitespace-nowrap text-white/55"
       >${translateText("gw.lobby.seats", { n: b.seats })} ${cast}</span
     >
     ${beat === null
@@ -412,16 +441,21 @@ function tallyBox(
     </div>
     <div class="relative h-2.5 overflow-hidden rounded bg-white/10">
       <div
-        class="absolute inset-y-0 left-0 transition-[width] duration-100"
+        class="absolute inset-y-0 left-0 transition-[width] duration-300"
         style="width:${pct(n.for)};background:${CAST_COLOR.for}"
       ></div>
       <div
-        class="absolute inset-y-0 right-0 transition-[width] duration-100"
+        class="absolute inset-y-0 right-0 transition-[width] duration-300"
         style="width:${pct(n.against)};background:${CAST_COLOR.against}"
       ></div>
       <div class="absolute inset-y-0 left-1/2 w-px bg-white"></div>
     </div>
-    <p class=${MUTED} data-gw-vote-need>
+    <p
+      class=${plan.crossAt !== null && t >= plan.crossAt
+        ? "text-xs text-amber-200/90"
+        : MUTED}
+      data-gw-vote-need
+    >
       ${translateText("gw.vote.line", { n: plan.need })}${block > 0
         ? ` · ${translateText("gw.vote.block_line", { n: block })}`
         : ""}
@@ -471,10 +505,10 @@ function chamberView(
             animated ? dotAnimated(d, plan.r, sw) : dotStill(d, plan.r, sw),
           )}
         </svg>
-        ${stamp(plan, animated)}
       </div>
       ${tallyBox(c, plan, t ?? Infinity, ch.block, animated)}
     </div>
+    ${declaration(ch, plan, animated)}
     ${ch.delay
       ? html`<p class="text-sm text-amber-100/90">
           ${translateText("gw.agenda.why.lords")}

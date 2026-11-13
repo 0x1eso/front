@@ -7451,12 +7451,59 @@
       "lobby_against": "No lobby",
       "lobby_for": "Aye lobby",
       "others": "Other seats",
-      "skip": "Skip",
-      "stamp": {
-        "delay": "Put off",
-        "fail": "Defeated",
-        "pass": "Passed"
+      "say": {
+        "budapest": {
+          "act": "The Speaker rises.",
+          "fail": "“{for} for, {against} against. I pronounce the decision: the House does not accept it.”",
+          "pass": "“{for} for, {against} against. I pronounce the decision: the House accepts it.”"
+        },
+        "bundesrat": {
+          "act": "The Chancellor, in the chair, reads out the states' votes.",
+          "fail": "“{for} votes for, {against} against. The Bundesrat withholds its consent.”",
+          "pass": "“{for} votes for, {against} against. The Bundesrat resolves to give its consent.”"
+        },
+        "chambre": {
+          "act": "The President reads the result of the count.",
+          "fail": "“Voting, {voters}; absolute majority, {need}; for, {for}; against, {against}. The Chamber has not adopted.”",
+          "pass": "“Voting, {voters}; absolute majority, {need}; for, {for}; against, {against}. The Chamber has adopted.”"
+        },
+        "commons": {
+          "act": "The four tellers line up before the Chair, and the winning side's teller reads the numbers.",
+          "fail": "“The Ayes to the right, {for}; the Noes to the left, {against}.” — “The Noes have it, the Noes have it.”",
+          "pass": "“The Ayes to the right, {for}; the Noes to the left, {against}.” — “The Ayes have it, the Ayes have it.”"
+        },
+        "council": {
+          "act": "The President of the Council announces the result.",
+          "fail": "“{for} for, {against} against. The State Council does not accept it.”",
+          "pass": "“{for} for, {against} against. The State Council accepts it.”"
+        },
+        "duma": {
+          "act": "The Chairman rings his bell for quiet.",
+          "fail": "“{for} for, {against} against, {away} abstaining. The bill is rejected.”",
+          "pass": "“{for} for, {against} against, {away} abstaining. The bill is adopted.”"
+        },
+        "lords": {
+          "act": "The Lord Chancellor reads the numbers from the Woolsack.",
+          "fail": "“Contents, {for}; Not-contents, {against}. The Not-contents have it.”",
+          "pass": "“Contents, {for}; Not-contents, {against}. The Contents have it.”"
+        },
+        "reichsrat": {
+          "act": "The President rings and looks over the benches.",
+          "fail": "“{for} for, {against} against. The motion has not found a majority.”",
+          "pass": "“{for} for, {against} against. The motion is carried by a majority.”"
+        },
+        "reichstag": {
+          "act": "The President rings his bell.",
+          "fail": "“{for} for, {against} against. The motion is rejected.”",
+          "pass": "“{for} for, {against} against. The motion is carried.”"
+        },
+        "senat": {
+          "act": "The President reads the result of the count.",
+          "fail": "“Voting, {voters}; absolute majority, {need}; for, {for}; against, {against}. The Senate has not adopted.”",
+          "pass": "“Voting, {voters}; absolute majority, {need}; for, {for}; against, {against}. The Senate has adopted.”"
+        }
       },
+      "skip": "Skip",
       "tally": "{for} for · {against} against · {away} absent",
       "title": "Vote in the {chamber}",
       "wing_of": "Part of {faction}"

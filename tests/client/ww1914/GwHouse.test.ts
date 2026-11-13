@@ -1,8 +1,9 @@
 import type { GwBudgetView } from "@openfront/engine-api/ww1914/GwBudget";
-import type {
-  GwBallot,
-  GwBallotChamber,
-  GwHouseView,
+import {
+  GW_CHAMBERS,
+  type GwBallot,
+  type GwBallotChamber,
+  type GwHouseView,
 } from "@openfront/engine-api/ww1914/GwHouse";
 import type {
   GwAgendaView,
@@ -17,7 +18,9 @@ import type {
   GwSeatView,
 } from "@openfront/engine-api/ww1914/GwView";
 import { budgetRow } from "@openfront/engine-lib/ww1914/BudgetRules";
+import fs from "fs";
 import { html, render, TemplateResult } from "lit";
+import path from "path";
 import { describe, expect, test } from "vitest";
 import { headlineText } from "../../../src/client/hud/ww1914/GwBlocs";
 import { bookSection, textName } from "../../../src/client/hud/ww1914/GwBook";
@@ -394,7 +397,7 @@ describe("the house on the screens: the law book (ww203), the factions", () => {
     expect(plan.dots.length).toBe(61);
   });
 
-  test("a ballot plays its beats in order and stamps where the line is crossed", () => {
+  test("a ballot plays its beats in order, slowly, and the chair declares it after the count", () => {
     const ch: GwBallotChamber = {
       chamber: "reichstag",
       size: 397,
@@ -436,9 +439,22 @@ describe("the house on the screens: the law book (ww203), the factions", () => {
     expect(plan.present).toBe(366);
     expect(plan.need).toBe(184);
     const centre = plan.lines[5].at;
-    expect(plan.stampAt).toBeGreaterThanOrEqual(centre);
-    expect(plan.stampAt).toBeLessThan(plan.lines[6].at + 1);
-    expect(tallyAt(plan, plan.stampAt).for).toBe(184);
+    expect(plan.crossAt).not.toBeNull();
+    expect(plan.crossAt!).toBeGreaterThanOrEqual(centre);
+    expect(plan.crossAt!).toBeLessThan(plan.lines[6].at + 1);
+    expect(tallyAt(plan, plan.crossAt!).for).toBe(184);
+    // ww215: a count, not a flicker. The firm benches take 4.5 s and this
+    // chamber about 13.5 s (under 6 s in the first cut); the chair speaks
+    // only after the last seat and a hush, and the line is held to be read.
+    const last = Math.max(
+      ...plan.dots.filter((d) => d.at !== Infinity).map((d) => d.at),
+    );
+    expect(plan.lines[3].at - plan.lines[0].at).toBe(4500);
+    expect(plan.sayAt - last).toBe(1500);
+    expect(tallyAt(plan, plan.sayAt)).toEqual(tallyAt(plan, Infinity));
+    expect(plan.end - plan.sayAt).toBe(2600);
+    expect(plan.end).toBeGreaterThan(12_000);
+    expect(plan.end).toBeLessThan(16_000);
     expect(tallyAt(plan, Infinity)).toEqual({
       for: 241,
       against: 125,
@@ -463,6 +479,19 @@ describe("the house on the screens: the law book (ww203), the factions", () => {
     expect(v.offer({ ...ballot, uid: 5 }, () => null)).toBe(true);
     expect(v.offer({ ...ballot, uid: 5 }, () => null)).toBe(false);
     expect(v.at()).toEqual({ k: 0, t: 0 });
+    // The declaration, not a stamp: the house's own words under the count,
+    // fading in when the chair speaks.
+    const { c } = bookCtx(undefined, house());
+    const scene = document.createElement("div");
+    render(voteOverlay(c, v), scene);
+    expect(scene.querySelector("[data-gw-vote-stamp]")).toBeNull();
+    const say = scene.querySelector<HTMLElement>('[data-gw-vote-say="pass"]')!;
+    expect(say.textContent).toContain("gw.vote.say.reichstag.act");
+    expect(say.textContent).toContain("gw.vote.say.reichstag.pass");
+    expect(say.getAttribute("style")).toContain(`${plan.sayAt}ms`);
+    now = plan.end - 1;
+    expect(v.tick()).toBe(true);
+    expect(v.still).toBe(false);
     now = 60_000;
     expect(v.tick()).toBe(true);
     expect(v.still).toBe(true);
@@ -727,5 +756,22 @@ describe("the house on the screens: the law book (ww203), the factions", () => {
     expect(
       promiseText(pack, { ...p, key: "house_deu_spd_deu_nothing" } as never),
     ).toBe("에베르트의 무리가 찬성하는 대신.");
+  });
+
+  test("ww215: every house has its chair's words, both ways, in en and ko", () => {
+    const vars = (t: string) => [...t.matchAll(/\{(\w+)\}/g)].map((m) => m[1]);
+    for (const l of ["en", "ko"]) {
+      const say = JSON.parse(
+        fs.readFileSync(path.join("resources/lang", `${l}.json`), "utf8"),
+      ).gw.vote.say;
+      for (const ch of GW_CHAMBERS) {
+        const s = say[ch];
+        expect(typeof s?.act, `${l} ${ch}`).toBe("string");
+        // Pass and fail give the same numbers; every house names the count.
+        expect(vars(s.pass).sort(), `${l} ${ch}`).toEqual(vars(s.fail).sort());
+        expect(vars(s.pass), `${l} ${ch}`).toContain("for");
+        expect(vars(s.pass), `${l} ${ch}`).toContain("against");
+      }
+    }
   });
 });
