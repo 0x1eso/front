@@ -441,10 +441,11 @@ describe("diplomacy L0: the digests that never move", () => {
   // shut till its election; the ww187 merge: the lanes' state gates and
   // ww188's capitulation; ww190: the peace years, the aftermath, the home
   // front; ww196: answers, honours at their occasions, the person at the
-  // desk; ww201: the production step): the Great War's own rules moved it, not the diplomacy.
+  // desk; ww201: the production step; ww204: the law book, the house by
+  // real seats): the Great War's own rules moved it, not the diplomacy.
   test("the Great War pin is unchanged", () => {
     expect(read("ww1914/GreatWarSnapshot.test.ts")).toContain(
-      'const GW_DIGEST = "fe676c0cef0c8b0c";',
+      'const GW_DIGEST = "c7b764442d7488de";',
     );
   });
 });
