@@ -58,6 +58,7 @@ import { paintCells, tableCells, togglePlace } from "./GwTableModel";
 import { activeTalk, syncTranscripts, talkView } from "./GwTalk";
 import { installTapTip } from "./GwTapTip";
 import { ticker, tickerLines } from "./GwTicker";
+import { GwVote, voteOverlay } from "./GwVote";
 
 /** The ticker moves to its next line this often, ms. */
 const TICKER_MS = 7000;
@@ -131,6 +132,8 @@ export class GwPanel extends LitElement implements Controller {
   /** The paint over it: the war aims and the table. */
   private painted: GwMapPaint | null = null;
   private replay: GwReplay | null = null;
+  /** ww203: the vote scene, each ballot played once. */
+  private readonly vote = new GwVote();
   /** The fronts and the date as the last chapter stood: what a replay starts from. */
   private lastFronts: readonly GwFrontView[] = [];
   private lastDate = "";
@@ -225,7 +228,13 @@ export class GwPanel extends LitElement implements Controller {
     this.eventBus.on(TouchEvent, tap);
     this.eventBus.on(ContextMenuEvent, tap);
     window.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") this.replay?.skip();
+      if (e.key !== "Escape") return;
+      this.replay?.skip();
+      if (this.vote.active) {
+        if (this.vote.still) this.vote.close();
+        else this.vote.skip();
+        this.requestUpdate();
+      }
     });
   }
 
@@ -322,6 +331,7 @@ export class GwPanel extends LitElement implements Controller {
       dirty = true;
     }
     if (this.keepYearsOpen()) dirty = true;
+    if (this.vote.tick()) dirty = true;
     setMapBusy(this.mapCells() !== null);
     this.map?.beat();
     if (this.replay?.active !== true) this.map?.drawHeld();
@@ -388,6 +398,11 @@ export class GwPanel extends LitElement implements Controller {
       }
     }
     this.followTable(seat);
+    const house = seat.world.house ?? null;
+    this.vote.offer(
+      house?.ballot ?? null,
+      (f) => house?.factions.find((x) => x.id === f)?.bloc ?? null,
+    );
     this.lastFronts = seat.world.fronts;
     this.lastDate = data.date;
     if (seat.prologue?.done === false) ui.pastDue = true;
@@ -645,7 +660,8 @@ export class GwPanel extends LitElement implements Controller {
         ? nothing
         : placeSheet(c, ui.spot)}
       ${talk === null ? nothing : talkView(c, talk.t, talk.card)} ${dictCard(c)}
-      ${ui.finale && data.finale !== null ? finaleView(c) : nothing}`;
+      ${ui.finale && data.finale !== null ? finaleView(c) : nothing}
+      ${voteOverlay(c, this.vote)}`;
   }
 
   private holderName(smallID: number): string | null {

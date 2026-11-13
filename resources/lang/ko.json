@@ -17896,11 +17896,8 @@
       }
     },
     "law": {
-      "title": "법안과 법",
-      "take": "기초를 명한다",
       "repeal": "폐지한다",
       "repeal_sure": "한 번 더 누르면 폐지한다",
-      "call": "{name} 부르기",
       "stops": "막을 수 있는 곳: {body}",
       "stops_two": "막을 수 있는 곳: {body}, 그 뒤에 {second}",
       "stage": {
@@ -17918,7 +17915,6 @@
         "scene": "시행 중, 이미 정함",
         "none": "시행 중"
       },
-      "none_yet": "아직 낼 수 있는 법안이 없다. 나라 형편이 바뀌면 새 법안이 올라온다.",
       "outlook": {
         "easy": "넉넉히 넘는다",
         "tight": "빠듯하게 넘는다",
@@ -18475,8 +18471,6 @@
       }
     },
     "house": {
-      "title": "의회",
-      "none": "의회에 걸린 법안이 없다. 법안은 이 탭의 「법안과 법」에서 낸다.",
       "stage": {
         "draft": "기초 중",
         "persuade": "의회에서 논의 중",
@@ -18503,7 +18497,6 @@
         "chambre": "하원",
         "senat": "상원"
       },
-      "whip_line": "{name}의 셈: \"{word}\"",
       "whip": {
         "wide": "넉넉합니다",
         "likely": "될 듯합니다",
@@ -18512,7 +18505,6 @@
         "hopeless": "어림없습니다"
       },
       "record": "이제까지의 셈: 맞음 {right}, 틀림 {wrong}",
-      "calls": "이 법안의 사람들을 따로 부를 기회: {n}",
       "said": {
         "for": "찬성 쪽이라 한다",
         "away": "빠질 거라 한다",
@@ -18618,7 +18610,42 @@
       },
       "pace_note": "한 장의 시간은 {min}~{max}초입니다. 모두 준비되면 더 일찍 넘어갑니다.",
       "pace_note_none": "한 장에 시간 제한이 없습니다. 모두 준비되면 넘어가고, 방장이 「이번 장 마치기」로 닫을 수도 있습니다.",
-      "table_note": "{length}: {n}장, {time}. 진행 속도: {pace}."
+      "table_note": "{length}: {n}장, {time}. 진행 속도: {pace}.",
+      "title": "설득",
+      "hint": "우두머리를 불러 값을 듣거나 압박한다. 정파마다 적힌 집계는 틀릴 수 있다.",
+      "seats": "{n}석",
+      "seats_in": "{chamber} {n}석",
+      "word": {
+        "for": "찬성",
+        "against": "반대",
+        "waver": "흔들림",
+        "unknown": "모름"
+      },
+      "summon": "부른다",
+      "calls": "이번 장에 남은 부름: {n}",
+      "calls_none": "남은 부름이 없다. 지금 부르면 시간이 든다.",
+      "press_label": "압박",
+      "press": {
+        "file": "그의 약점 문서를 내민다",
+        "word": "직접 말로 누른다",
+        "threat": "해산하겠다고 으름장을 놓는다"
+      },
+      "price_label": "그가 바라는 것",
+      "price": {
+        "promise": "약속",
+        "post": "그의 사람에게 자리",
+        "concession": "안을 고쳐 달라",
+        "money": "그의 사람들에게 돈",
+        "next": "다음은 그의 법안"
+      },
+      "take": "들어준다",
+      "leave": "그냥 돌려보낸다",
+      "no_price": "그가 바라는 것 가운데 지금 줄 수 있는 것이 없다.",
+      "shut": {
+        "broken": "그에게 한 약속이 깨진 채다. 만나려 하지 않는다.",
+        "creed": "그의 신념에 어긋나는 안이다. 말도 꺼내지 않는다.",
+        "held": "약점이 잡혀 자리를 비운다."
+      }
     },
     "treaty": {
       "break": "이 조약을 깬다",
@@ -19312,6 +19339,106 @@
       "skoropadsky": "파블로 스코로파드스키",
       "urach": "우라흐 공작 빌헬름",
       "wied": "비트 공 빌헬름"
+    },
+    "book": {
+      "title": "법전",
+      "hint": "한 조항에 걸린 안들은 서로 하나만 설 수 있다. 새 안이 통과하면 시행 중인 안을 대신한다.",
+      "war_finance": "전시 재정",
+      "conscription": "징병·동원",
+      "labour": "노동",
+      "food": "식량·배급",
+      "censorship": "검열",
+      "siege": "계엄",
+      "franchise": "선거권·헌정",
+      "nations": "민족·종교",
+      "war_aims": "전쟁 목표",
+      "arms": "군비",
+      "other": "그 밖의 조항",
+      "in_force": "시행 중: {text}",
+      "none_in_force": "시행 중인 안 없음",
+      "bills": "안: {list}",
+      "open": "열림",
+      "shut": "아직 열리지 않음",
+      "moving": "의사일정에 오름",
+      "locked": "{n}장까지 다시 낼 수 없음",
+      "submit": "제출",
+      "replace": "다른 안으로 바꾼다",
+      "pick_bill": "어느 안을 내겠소?",
+      "why": {
+        "full": "의사일정에 이미 법안 셋이 올라 있다.",
+        "locked": "얼마 전 이 조항의 안이 부결되었다.",
+        "shelved": "얼마 전 거둬들인 조항이다.",
+        "moving": "이 조항의 안이 이미 의사일정에 올라 있다.",
+        "closed": "나라 형편이 아직 이 조항을 부르지 않는다."
+      }
+    },
+    "agenda": {
+      "title": "의사일정 ({n}/{max})",
+      "empty": "의사일정에 오른 법안이 없다. 법전에서 안을 낸다.",
+      "mine": "내 법안",
+      "faction_bill": "{faction} 법안",
+      "age": "{n}장째",
+      "replaces": "바꿀 안: {text}",
+      "auto": "{n}장에 저절로 표결에 오른다",
+      "paper": "집계: {word}({conf})",
+      "paper_none": "집계 없음",
+      "paper_at": "{n}장에 센 것",
+      "tally": {
+        "easy": "넉넉함",
+        "tight": "아슬아슬",
+        "short": "모자람",
+        "blocked": "막힘"
+      },
+      "count": "{office}에 집계를 맡긴다",
+      "counting": "{office}에서 표를 세는 중",
+      "call": "표결에 부친다",
+      "confidence": "신임을 건다",
+      "confidence_hint": "정부 쪽 정파에서 이탈표가 나오지 않는다. 대신 지면 내각이 바로 흔들린다.",
+      "round": "의회를 돌아간다",
+      "withdraw": "철회",
+      "withdraw_sure": "한 번 더 누르면 철회한다",
+      "why": {
+        "draft": "아직 기초 중이다.",
+        "recess": "그 원은 이번 장에 이미 표결했다.",
+        "lords": "상원이 미뤄 두었다.",
+        "no_sitting": "거쳐야 할 원이 열려 있지 않다.",
+        "sign": "통과했다. 재가를 기다린다."
+      }
+    },
+    "vote": {
+      "title": "{chamber} 표결",
+      "how": {
+        "vote": "표결",
+        "confidence": "신임 표결",
+        "round": "남은 원의 표결"
+      },
+      "for": "찬성",
+      "against": "반대",
+      "away": "기권",
+      "tally": "찬성 {for} · 반대 {against} · 기권 {away}",
+      "line": "과반 {n}",
+      "block_line": "반대 {n}표면 부결",
+      "others": "그 밖의 의석",
+      "lobby_for": "찬성 로비",
+      "lobby_against": "반대 로비",
+      "stamp": {
+        "pass": "가결",
+        "fail": "부결",
+        "delay": "보류"
+      },
+      "beat": {
+        "waver": "흔들리던 표",
+        "swing": "약속대로",
+        "betray": "배신",
+        "betray_by": "배신: {name}"
+      },
+      "frame": {
+        "report": "{name}이(가) 표결 결과를 아뢴다",
+        "bench": "앞줄 의석에서 지켜본다",
+        "told": "{name}이(가) 표결 결과를 전해 왔다"
+      },
+      "skip": "건너뛰기",
+      "close": "계속"
     }
   },
   "imjin": {

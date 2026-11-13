@@ -1,28 +1,19 @@
-// Great War 1914: the house and its factions on the screens (ww158). The country
-// tab's "의회" box (the moving bill, the whip's word, the factions of its house,
-// the calls), the factions under their blocs on the 정국 tab, the band's chip
-// while one is out. Words only: no count, no hidden side.
+// Great War 1914: the house's factions on the screens (ww158): under their blocs
+// on the 정국 tab, the band's chip while one is out. The bills and the lobby are
+// the 통치 tab's book (GwBook, ww203). Words only: no count, no hidden side.
 import type {
-  GwBillFactionView,
-  GwBillView,
   GwFactionView,
   GwHouseView,
 } from "@openfront/engine-api/ww1914/GwHouse";
 import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
 import type { GwCtx } from "./GwCtx";
-import { timeLeft } from "./GwDept";
-import { BTN, CHIP, HEAD, MUTED } from "./GwStyle";
+import { CHIP, MUTED } from "./GwStyle";
 import { personName } from "./GwText";
-
-const BOX = "space-y-1.5 rounded border border-white/15 bg-black/35 p-2.5";
 
 export function factionName(c: GwCtx, id: string): string {
   return c.pack?.factions?.[id]?.name ?? id;
 }
-
-const billName = (c: GwCtx, id: string): string =>
-  c.pack?.scenes[`gw_law_${id}`]?.title ?? id;
 
 const houseOf = (c: GwCtx): GwHouseView | null => c.seat.world.house ?? null;
 
@@ -30,151 +21,6 @@ const houseOf = (c: GwCtx): GwHouseView | null => c.seat.world.house ?? null;
 function whyLine(c: GwCtx, f: GwFactionView): string | null {
   if (f.why === null) return null;
   return c.pack?.factions?.[f.id]?.why?.[f.why] ?? null;
-}
-
-function saidWord(said: number): string {
-  const k = said > 0 ? "for" : said < 0 ? "against" : "away";
-  return translateText(`gw.house.said.${k}`);
-}
-
-function callButton(
-  c: GwCtx,
-  h: GwHouseView,
-  f: GwBillFactionView,
-): TemplateResult | typeof nothing {
-  if (f.call === null || f.leader === null) return nothing;
-  const who = f.leader;
-  const topic = f.call;
-  return html`<button
-    class="${BTN} shrink-0"
-    data-gw-house-call=${f.id}
-    ?disabled=${timeLeft(c) <= 0 && h.calls <= 0}
-    @click=${() => {
-      c.send({ kind: "summon", person: who, topic });
-      c.ui.summoned = Date.now();
-    }}
-  >
-    ${translateText("gw.law.call", { name: personName(c.pack, who) })}
-  </button>`;
-}
-
-function factionLine(
-  c: GwCtx,
-  h: GwHouseView,
-  f: GwBillFactionView,
-): TemplateResult {
-  return html`<div
-    class="flex items-center gap-2"
-    data-gw-house-faction=${f.id}
-  >
-    <div class="min-w-0 flex-1">
-      <div class="text-sm text-white">
-        ${factionName(c, f.id)}${f.deal
-          ? html` <span class=${CHIP} data-gw-house-deal
-              >${translateText("gw.house.deal")}</span
-            >`
-          : nothing}
-      </div>
-      <p class=${MUTED}>
-        ${[
-          f.leader === null ? null : personName(c.pack, f.leader),
-          f.said === null ? null : saidWord(f.said),
-        ]
-          .filter((x) => x !== null)
-          .join(" · ")}
-      </p>
-    </div>
-    ${callButton(c, h, f)}
-  </div>`;
-}
-
-function billBox(c: GwCtx, h: GwHouseView, b: GwBillView): TemplateResult {
-  const chambers = b.chambers
-    .map((x) => translateText(`gw.house.chamber.${x}`))
-    .join(", ");
-  return html`<div class="space-y-1" data-gw-house-bill=${b.law}>
-    <div class="flex justify-between gap-2 text-sm">
-      <span class="font-bold">${billName(c, b.law)}</span>
-      <span class="shrink-0 text-white/70"
-        >${translateText(`gw.house.stage.${b.stage}`)}</span
-      >
-    </div>
-    <p class=${MUTED}>
-      ${translateText(`gw.house.origin.${b.origin}`)}${b.sponsor === null
-        ? ""
-        : ` · ${translateText("gw.house.sponsor", {
-            name: personName(c.pack, b.sponsor),
-          })}`}
-    </p>
-    <p class=${MUTED}>
-      ${translateText("gw.house.chambers", { list: chambers })}
-    </p>
-    ${b.whip === null
-      ? nothing
-      : html`<p
-          class="text-sm text-amber-100/90"
-          data-gw-house-whip=${b.whip.word}
-        >
-          ${translateText("gw.house.whip_line", {
-            name:
-              b.whip.person === null ? "" : personName(c.pack, b.whip.person),
-            word: translateText(`gw.house.whip.${b.whip.word}`),
-          })}
-        </p>`}
-    ${b.delayTo === null
-      ? nothing
-      : html`<p class=${MUTED}>
-          ${translateText("gw.house.delay", { n: b.delayTo + 1 })}
-        </p>`}
-    ${b.stage === "draft"
-      ? nothing
-      : html`<p class=${MUTED} data-gw-house-calls>
-          ${translateText("gw.house.calls", { n: h.calls })}
-        </p>`}
-    ${b.factions.map((f) => factionLine(c, h, f))}
-  </div>`;
-}
-
-/** What doesn't sit now, and whether every bill goes the way round (ww171). */
-function sittingLines(h: GwHouseView): TemplateResult | typeof nothing {
-  if (h.closed.length === 0 && !h.gone) return nothing;
-  const list = h.closed
-    .map((x) => translateText(`gw.house.chamber.${x}`))
-    .join(", ");
-  return html`${h.gone && h.around !== null
-    ? html`<p class="text-sm text-amber-100/90" data-gw-house-gone>
-        ${translateText(`gw.house.gone.${h.around}`)}
-      </p>`
-    : nothing}${h.closed.length === 0
-    ? nothing
-    : html`<p class=${MUTED} data-gw-house-closed>
-        ${translateText("gw.house.closed", { list })}
-      </p>`}`;
-}
-
-/** The country tab's "의회" box: only the moving bill's house, folded short. */
-export function houseSection(c: GwCtx): TemplateResult | typeof nothing {
-  const h = houseOf(c);
-  if (h === null) return nothing;
-  return html`<section class=${BOX} data-gw-house>
-    <h3 class=${HEAD}>${translateText("gw.house.title")}</h3>
-    ${sittingLines(h)}
-    ${h.bill === null
-      ? html`<p class=${MUTED}>${translateText("gw.house.none")}</p>`
-      : billBox(c, h, h.bill)}
-    ${h.record.right + h.record.wrong === 0
-      ? nothing
-      : html`<p
-          class=${MUTED}
-          data-gw-house-record
-          title=${translateText("gw.house.record_hint")}
-        >
-          ${translateText("gw.house.record", {
-            right: h.record.right,
-            wrong: h.record.wrong,
-          })}
-        </p>`}
-  </section>`;
 }
 
 function trendWord(t: number): string {
