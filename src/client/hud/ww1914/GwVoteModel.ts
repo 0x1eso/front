@@ -76,8 +76,12 @@ export interface GwVotePlan {
 
 // ---- Times (ms; the second chamber plays the same, shorter) ----
 const OUTLINE = 500;
-/** firm, waver, the lobbied (swing and betray). */
-const PHASE = [2500, 1500, 1000] as const;
+/**
+ * firm, waver, the lobbied (swing and betray), then a wing defying its line:
+ * the party has cast, and its men who stand up against it come last, alone,
+ * so the log can name them ("리프크네히트, 반대").
+ */
+const PHASE = [2500, 1500, 1000, 900] as const;
 /** A block's seats fill over this share of its slot. */
 const FILL = 0.7;
 /** A broken promise flips this far into its slot. */
@@ -89,8 +93,7 @@ const PHASE_OF: Readonly<Record<GwBallotBlock["beat"], number>> = {
   waver: 1,
   swing: 2,
   betray: 2,
-  // ww209: a wing defying its line comes with the lobbied (U1 may move it).
-  defy: 2,
+  defy: 3,
 };
 
 /** When each block begins, and how long its slot is. */

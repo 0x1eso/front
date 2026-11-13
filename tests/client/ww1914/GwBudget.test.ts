@@ -129,25 +129,53 @@ describe("the ledger", () => {
     expect(q(root, '[data-gw-drift="shells"]')).toBeNull();
     expect(q(root, '[data-gw-budget-note="outlay"]')).not.toBeNull();
     expect(q(root, "[data-gw-budget-interest]")).not.toBeNull();
-    expect(q(root, '[data-gw-budget-pass="yes"]')).not.toBeNull();
+    // ww209: no pass or fail before the house counts it; who votes, in words.
+    expect(q(root, "[data-gw-budget-pass]")).toBeNull();
+    expect(q(root, "[data-gw-budget-body]")!.textContent).not.toMatch(/-4/);
+    // Where it parts from the minister's draft: nowhere yet.
+    expect(q(root, "[data-gw-differ]")).toBeNull();
   });
 
-  test("a step moves the proposal; off 100 it can't be signed", () => {
-    const { c, root, sent } = ctx(view());
+  test("a step moves the proposal; off 100 it can't be put to the house", () => {
+    const { c, root, sent } = ctx(
+      view({
+        taxes: ["consumption", "income", "property"],
+        marks: [
+          {
+            id: "deu_eastprussia",
+            line: "relief",
+            points: 2,
+            faction: null,
+            community: null,
+          },
+        ],
+      }),
+    );
     q(root, '[data-gw-step="army:5"]')!.click();
     expect(sharesLeft(planOf(c))).toBe(-5);
     expect(q(root, "[data-gw-budget-left]")).not.toBeNull();
-    expect(q(root, "[data-gw-budget-sign]")!.disabled).toBe(true);
+    expect(q(root, "[data-gw-budget-put]")!.disabled).toBe(true);
     q(root, '[data-gw-step="relief:-5"]')!.click();
     expect(sharesLeft(planOf(c))).toBe(0);
-    q(root, "[data-gw-budget-sign]")!.click();
-    expect(sent[0]).toMatchObject({ kind: "budget", force: false });
+    // Who pays, and an earmark cut: words of where it parts from the draft.
+    q(root, '[data-gw-tax="property"]')!.click();
+    q(root, '[data-gw-mark-toggle="deu_eastprussia"]')!.click();
+    const differs = [...root.querySelectorAll("[data-gw-differ]")].map(
+      (e) => (e as HTMLElement).dataset.gwDiffer,
+    );
+    expect(differs).toEqual(["army", "relief", "tax", "marks"]);
+    q(root, "[data-gw-budget-put]")!.click();
+    expect(sent[0]).toMatchObject({
+      kind: "budget_put",
+      credits: false,
+      tax: "property",
+      marks: [],
+    });
     expect(c.ui.budgetOpen).toBe(false);
   });
 
-  test("what would be refused offers force, priced in authority", () => {
+  test("the way round stays: force, priced in authority", () => {
     const { root, sent } = ctx(view(), { reichstag: -5 });
-    expect(q(root, '[data-gw-budget-pass="no"]')).not.toBeNull();
     const force = q(root, "[data-gw-budget-force]")!;
     expect(force.disabled).toBe(false);
     force.click();
@@ -155,8 +183,19 @@ describe("the ledger", () => {
   });
 
   test("with no meeting it reads and can't be changed", () => {
-    const { root } = ctx(view({ meeting: false, draft: null }));
+    const { root, sent } = ctx(
+      view({
+        meeting: false,
+        draft: null,
+        credits: { n: 3, by: "vote", due: 24, law: null, stopTo: 22 },
+      }),
+    );
     expect(q(root, "[data-gw-budget-sign]")).toBeNull();
+    expect(q(root, "[data-gw-budget-put]")).toBeNull();
+    // War credits come apart from the yearly meeting, and can be put now.
+    expect(q(root, '[data-gw-credits-line="stopped"]')).not.toBeNull();
+    q(root, "[data-gw-credits-put]")!.click();
+    expect(sent[0]).toMatchObject({ kind: "budget_put", credits: true });
     expect(q(root, "[data-gw-step]")).toBeNull();
     expect(q(root, "[data-gw-budget-next]")).not.toBeNull();
     // Once a plan runs, what its shares did to the gauges shows.

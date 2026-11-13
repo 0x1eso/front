@@ -3,6 +3,7 @@ import { translateText } from "../../Utils";
 import type { GwCtx } from "./GwCtx";
 import { diarySection } from "./GwDiary";
 import { rich } from "./GwDict";
+import { dealsBox } from "./GwLobbyDeals";
 import { keyDecisions, promisesInOrder } from "./GwModel";
 import { CHIP, HEAD, MUTED } from "./GwStyle";
 import {
@@ -129,6 +130,7 @@ function dossier(c: GwCtx): TemplateResult | typeof nothing {
  */
 export function notebookTab(c: GwCtx): TemplateResult {
   return html`<div class="space-y-3" data-gw-notebook>
-    ${diarySection(c)} ${promises(c)} ${dossier(c)} ${decisions(c)}
+    ${diarySection(c)} ${promises(c)} ${dealsBox(c)} ${dossier(c)}
+    ${decisions(c)}
   </div>`;
 }
