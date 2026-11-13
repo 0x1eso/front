@@ -231,9 +231,9 @@ export const GW_FATE_TERM_DAYS: Readonly<Record<GwFateTerm, number>> = {
 
 /** A new state's loyalty at founding, and the most. */
 export const GW_CLIENT_LOYALTY = 2;
-/** Months between two drifts of loyalty; of bread from a granary; of legions. */
+/** Months between two drifts of loyalty and of legions (ww201: a granary's
+ * bread is the production step's tribute, engine/ww1914/Economy.ts). */
 export const GW_CLIENT_DRIFT_MONTHS = 6;
-export const GW_CLIENT_BREAD_MONTHS = 3;
 /** A founder's side losing this badly turns its states (warScore). */
 export const GW_CLIENT_LOSING = -30;
 /** Months a beaten country holds a grudge for land annexed (10 years). */

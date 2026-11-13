@@ -17,11 +17,6 @@ import {
   GW_THEATRES,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
-import {
-  GW_ECON_GAUGES,
-  gwTrendOf,
-  gwTrendWord,
-} from "@openfront/engine-api/ww1914/GwEcon";
 import type {
   GwAnswerSlot,
   GwConfidence,
@@ -29,6 +24,11 @@ import type {
   GwSlots,
   GwTaskType,
 } from "@openfront/engine-api/ww1914/GwDepts";
+import {
+  GW_ECON_GAUGES,
+  gwTrendOf,
+  gwTrendWord,
+} from "@openfront/engine-api/ww1914/GwEcon";
 import { gwContent } from "./content/Content";
 import { GW_RULERS } from "./RulerRows";
 

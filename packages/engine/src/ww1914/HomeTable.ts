@@ -116,14 +116,6 @@ export const GW_HOME: Readonly<Partial<Record<GwTag, GwHomeRow>>> = {
     strains: [
       { gauge: "order", delta: -1, every: 8, from: 14, key: "order_nations" },
       {
-        gauge: "bread",
-        delta: -1,
-        every: 9,
-        from: 12,
-        key: "bread_two_halves",
-        unless: { inst: "hungary", min: 2 },
-      },
-      {
         gauge: "morale",
         delta: -1,
         every: 8,
@@ -143,23 +135,7 @@ export const GW_HOME: Readonly<Partial<Record<GwTag, GwHomeRow>>> = {
     },
     concedes: 40,
     strains: [
-      { gauge: "bread", delta: -1, every: 7, from: 12, key: "bread_rail" },
       { gauge: "order", delta: -1, every: 6, from: 14, key: "order_capital" },
-      {
-        gauge: "shells",
-        delta: -1,
-        every: 8,
-        from: 6,
-        key: "shells_no_factories",
-      },
-      {
-        gauge: "bread",
-        delta: -1,
-        every: 12,
-        from: 18,
-        key: "bread_rail",
-        thread: "rus_rail",
-      },
     ],
   },
   FRA: {
@@ -197,7 +173,6 @@ export const GW_HOME: Readonly<Partial<Record<GwTag, GwHomeRow>>> = {
     concedes: 75,
     strains: [
       { gauge: "order", delta: -1, every: 10, from: 24, key: "order_weary" },
-      { gauge: "bread", delta: -1, every: 12, from: 18, key: "bread_rail" },
     ],
   },
   BGR: {

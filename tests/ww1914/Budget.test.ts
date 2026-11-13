@@ -359,7 +359,8 @@ describe("no dead ends", () => {
     const was = n.budget.prices;
     budgetStep(gw);
     expect(gw.s.ended).toBeNull();
-    expect(n.budget.treasury).toBe(0);
+    // ww201: only what the land and trade bring in, under a step.
+    expect(n.budget.treasury).toBeLessThan(budgetRow("DEU").step);
     expect(n.budget.prices).toBeGreaterThan(was);
     expect(n.gauges.money).toBe(0);
     expect(seat.log.some((l) => l.key === "budget_shortfall")).toBe(true);
@@ -405,7 +406,12 @@ describe("no dead ends", () => {
     };
     budgetStep(gw);
     expect(n.gauges.shells).toBe(2);
-    expect(seat.lines.some((l) => l.key === "budget_army")).toBe(true);
+    // ww201: the reason is the largest cause, the plan's or the works'.
+    const why = n.econ!.why.shells;
+    expect(["budget_army", "econ_industry"]).toContain(why);
+    expect(seat.lines.some((l) => l.gauge === "shells" && l.key === why)).toBe(
+      true,
+    );
   });
 
   test("a lender owed enough comes to collect", async () => {

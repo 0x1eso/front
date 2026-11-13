@@ -6,7 +6,6 @@ import { z } from "zod";
 import { GwBudgetStateSchema } from "./GwBudget";
 import { GW_TAGS, GwTag as GwTagName } from "./GwCountries";
 import { GwCraftStateSchema } from "./GwCraft";
-import { GwEconStateSchema } from "./GwEcon";
 import {
   GW_ANSWER_REDOS,
   GW_ANSWER_SLOTS,
@@ -18,6 +17,7 @@ import {
   GW_STALL_REASONS,
   GW_TASK_TYPES,
 } from "./GwDeptWords";
+import { GwEconStateSchema } from "./GwEcon";
 import {
   GW_CLIENTS,
   GwClientStateSchema,

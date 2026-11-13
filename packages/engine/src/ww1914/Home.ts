@@ -1,10 +1,6 @@
-import {
-  GwNationState,
-  GwSide,
-} from "@openfront/engine-api/ww1914/GreatWarTypes";
+import { GwNationState } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
-import { civilFromDays } from "@openfront/engine-lib/ww1936/Calendar";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { playingOn } from "./Aftermath";
 import { authorityStep } from "./Authority";
@@ -28,7 +24,6 @@ import {
   stageOf,
 } from "./World";
 
-const P_HARVEST = idHash("gw_harvest");
 const P_CONCEDE = idHash("gw_concede");
 
 /** Chapters of order at the bottom for each rung (design §4.6). */
@@ -64,10 +59,6 @@ function shells(gw: GreatWar, n: GwNationState): void {
   if (a?.posture === "offensive" && a.scale === "major") {
     moveGauge(gw, n.tag, "shells", -1, "shells_spent");
   }
-  // War factories come slowly, and only with money behind them.
-  if (everyMonths(gw, n.gauges.money > 0 ? 2 : 4)) {
-    moveGauge(gw, n.tag, "shells", 1, "shells_made");
-  }
   if (
     n.tag === "DEU" &&
     gw.s.secrets.includes("deu_shell_stock_thin") &&
@@ -85,21 +76,11 @@ function shells(gw: GreatWar, n: GwNationState): void {
   }
 }
 
-/** Sides the year's harvest failed for; the seed's, one bad year or two a war. */
-function badHarvest(gw: GreatWar, year: number, side: GwSide | null): boolean {
-  const i = side === "central" ? 1 : 0;
-  return wwRoll(gw.s.seed, P_HARVEST, year, i) % 100 < 22;
-}
-
+/**
+ * The sea's hunger. ww201: the factories, the harvest and the blockade's and
+ * U-boats' grain are the production step's terms now (Economy.ts).
+ */
 function bread(gw: GreatWar, n: GwNationState): void {
-  const s = gw.s;
-  const date = civilFromDays(s.day);
-  const harvest = date.month === 9 || (date.month === 10 && monthsOf(gw) > 1);
-  if (harvest) {
-    const bad = badHarvest(gw, date.year, n.side);
-    if (!bad) moveGauge(gw, n.tag, "bread", 1, "bread_harvest");
-    else moveGauge(gw, n.tag, "bread", -1, "bread_bad_harvest");
-  }
   seaFor(gw, n);
 }
 

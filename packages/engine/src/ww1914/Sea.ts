@@ -172,26 +172,13 @@ export function seaStep(gw: GreatWar, warScoreCentral: number): void {
   americaStep(gw, warScoreCentral);
 }
 
-/** What the sea does to one country's bread. */
+/**
+ * What the sea does to one country's order. ww201: its grain and copper are
+ * the production step's terms (Economy.ts: imports, blockade, U-boats).
+ */
 export function seaFor(gw: GreatWar, n: GwNationState): void {
   const s = gw.s;
-  if (n.side === "central" && gw.nation("GBR")?.side === "entente") {
-    if (s.blockade >= 2) {
-      const every = Math.max(3, 9 - (s.blockade >> 1));
-      if (everyMonths(gw, every)) {
-        moveGauge(gw, n.tag, "bread", -1, "bread_blockade");
-      }
-    }
-    if (s.blockade >= 7 && everyMonths(gw, 6, 2)) {
-      moveGauge(gw, n.tag, "shells", -1, "shells_blockade");
-    }
-  }
-  if (n.tag === "GBR" && s.shipping >= 3) {
-    if (everyMonths(gw, s.shipping >= 7 ? 2 : 4)) {
-      moveGauge(gw, n.tag, "bread", -1, "bread_uboats");
-    }
-    if (s.shipping >= 9 && everyMonths(gw, 3)) {
-      moveGauge(gw, n.tag, "order", -1, "order_hunger");
-    }
+  if (n.tag === "GBR" && s.shipping >= 9 && everyMonths(gw, 3)) {
+    moveGauge(gw, n.tag, "order", -1, "order_hunger");
   }
 }
