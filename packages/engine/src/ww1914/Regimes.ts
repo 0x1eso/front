@@ -33,6 +33,16 @@ export interface GwRegimeRow {
   readonly flag?: string;
   /** Old ministers it lets go; the office goes to the next in line. */
   readonly retires?: readonly string[];
+  /**
+   * ww207 (S2): a utopia's form that keeps the person at the desk, whatever
+   * his ruler row's `regimes` say (Wilhelm in a parliamentary monarchy).
+   */
+  readonly keeps?: boolean;
+  /**
+   * ww207 (S2): a utopia's form that has no place for the person, whatever
+   * his row says; only the tree's new head sits in it (decision 1B).
+   */
+  readonly removes?: boolean;
 }
 
 const form = (
@@ -56,12 +66,18 @@ export const GW_REGIMES: Readonly<
   DEU: [
     form("empire", "republic"),
     form("republic", null, { seeksPeace: true, unrest: 2 }),
+    // ww207: the utopias' forms. A parliamentary monarchy keeps Wilhelm; a
+    // council republic has no place for him.
+    form("deu_parl", "republic", { unrest: 0, floor: {}, keeps: true }),
+    form("deu_soviet", null, { unrest: 0, floor: {}, removes: true }),
   ],
   GBR: [
     form("liberal", "coalition"),
     form("coalition", "war_cabinet", { flag: "f_coalition" }),
     form("war_cabinet", "national"),
     form("national", null),
+    // ww207: a Labour government (Henderson's, the head of Labour's utopia).
+    form("gbr_labour", null, { unrest: 0, floor: {}, removes: true }),
   ],
   AUH: [
     form("dual_monarchy", "federation"),
@@ -80,6 +96,9 @@ export const GW_REGIMES: Readonly<
     form("federation", null, { unrest: 2 }),
     form("austria_republic", null, { unrest: 1 }),
     form("crown_remnant", null, { unrest: 1 }),
+    // ww207: the utopias' forms. Both keep whoever reigns.
+    form("auh_federal_crown", null, { unrest: 0, floor: {}, keeps: true }),
+    form("auh_trial", null, { unrest: 0, floor: {}, keeps: true }),
   ],
   RUS: [
     form("tsar", "provisional"),
@@ -95,6 +114,8 @@ export const GW_REGIMES: Readonly<
       ],
       retires: ["rus_fredericks"],
     }),
+    // ww207: the Bolsheviks' utopia; no place for the Tsar.
+    form("rus_soviet", null, { unrest: 0, floor: {}, removes: true }),
   ],
   // France (ww166): the President stays whatever the form. `fra_union` is the
   // sacred union a scene declares, `fra_tiger` Clemenceau's government (the
@@ -113,6 +134,8 @@ export const GW_REGIMES: Readonly<
       appoint: [["fra_clemenceau", "chancellor"]],
     }),
     form("fra_defeat", null, { seeksPeace: true, unrest: 2 }),
+    // ww207: Action française's utopia, the crown restored; the President goes.
+    form("fra_crown", null, { unrest: 0, floor: {}, removes: true }),
   ],
 };
 

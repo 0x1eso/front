@@ -85,6 +85,7 @@ import { heatThreat } from "./Powers";
 import { moveCensor } from "./Press";
 import { castOf, holds, runEffects, SceneCtx, sceneOf } from "./SceneRun";
 import { blankSeat } from "./SeatStart";
+import { exclusiveShut, utopiaLawPassed } from "./Utopia";
 import {
   clampTo,
   everyMonths,
@@ -251,6 +252,8 @@ function enact(
   st.after = false;
   setFlags(gw, row, true);
   runEffects(ctx, row.passed);
+  // ww207: the factions' trust and affinity (Utopia.ts).
+  utopiaLawPassed(ctx, row, st.text, st.by);
   reason(gw, seat, `law_in_${row.id}`);
   seat.memory.push({
     key: `law_${row.id}`,
@@ -521,6 +524,8 @@ export function lawWithdraw(gw: GreatWar, seat: GwSeatState, id: string): void {
 }
 
 function openNow(gw: GreatWar, seat: GwSeatState, row: GwLawRow): boolean {
+  // ww207: a faction's exclusive law waits for its node (Utopia.ts).
+  if (exclusiveShut(seat, row)) return false;
   return holds({ gw, seat, cast: {} }, row.opens);
 }
 

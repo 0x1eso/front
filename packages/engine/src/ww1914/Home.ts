@@ -22,6 +22,7 @@ import {
   reason,
   seatsOf,
   stageOf,
+  utopiaCalm,
 } from "./World";
 
 const P_CONCEDE = idHash("gw_concede");
@@ -160,6 +161,12 @@ export function ladderRung(
 
 /** The ladder: each rung has its turn and its offer of a way down. */
 function ladder(gw: GreatWar, n: GwNationState): void {
+  // ww207: a realised utopia stops the ladder (Utopia.ts).
+  if (utopiaCalm(gw, n.tag)) {
+    n.lowOrder = 0;
+    n.unrest = 0;
+    return;
+  }
   const bottom = n.gauges.order === 0;
   n.lowOrder = bottom ? n.lowOrder + 1 : Math.max(0, n.lowOrder - 1);
   const rung = ladderRung(n.lowOrder, warMonths(gw), GW_HOME[n.tag]?.topFrom);

@@ -15336,7 +15336,8 @@
       "rus_end_deposed": "폐위",
       "auh_e_fj_federation": "늙은 황제의 마지막 서명",
       "auh_e_karl_federation": "에카르트자우로 가는 길",
-      "auh_e_ff_federation": "코노피슈테로"
+      "auh_e_ff_federation": "코노피슈테로",
+      "utopia_realised": "바라던 나라"
     },
     "fact": {
       "force": {
@@ -15688,7 +15689,8 @@
       "econ_trade": "관세와 해운으로 돈이 들어오고 있다.",
       "econ_tribute": "우리에게 기대는 나라가 공물을 보내오고 있다.",
       "econ_tribute_paid": "우리를 거느린 나라에 공물을 바치고 있다.",
-      "econ_peace": "평화가 이어져 창고가 늘 차 있던 만큼 다시 찬다."
+      "econ_peace": "평화가 이어져 창고가 늘 차 있던 만큼 다시 찬다.",
+      "utopia_protest": "항의 시위"
     },
     "mandate": {
       "deu_bread_for_the_winter": "겨울 빵을 남기기",
@@ -15963,7 +15965,15 @@
       "fate_unratified": "{a}이(가) 서명한 조약을 끝내 비준하지 않았다.",
       "econ_mobilised": "{a}은(는) 포탄이 바닥난 뒤 공업을 전시 체제로 돌렸다.",
       "table_walked": "{a}이(가) {b}과(와)의 강화 회의장을 박차고 나갔다.",
-      "table_walked_war": "{a}이(가) 다시 전쟁에 들어갔다."
+      "table_walked_war": "{a}이(가) 다시 전쟁에 들어갔다.",
+      "regime_deu_parl": "{a}: 의회 군주국.",
+      "regime_deu_soviet": "{a}: 평의회 공화국.",
+      "regime_gbr_labour": "{a}: 노동당 정부.",
+      "regime_auh_federal_crown": "{a}: 연방 군주국.",
+      "regime_auh_trial": "{a}: 삼원 군주국.",
+      "regime_rus_soviet": "{a}: 소비에트 러시아.",
+      "regime_fra_crown": "{a}: 왕정 복고.",
+      "utopia_realised": "{a}: 한 정당이 그리던 나라가 이루어졌다."
     },
     "odds": {
       "0": "될 일이 아닙니다.",
@@ -16444,7 +16454,22 @@
       "honour_passed": "{who}은(는) 서훈 명단에서 빠진 것을 잊지 않는다.",
       "honours_acted": "서훈식 없이 명단이 {who}의 이름으로 대신 처리되었다.",
       "honours_held": "서훈식을 직접 열었다. 사람들이 그 모습을 보았다.",
-      "petition_refused": "{who}이(가) 올린 서훈 상신이 거절되었다."
+      "petition_refused": "{who}이(가) 올린 서훈 상신이 거절되었다.",
+      "regime_deu_parl": "정체가 바뀌었다: 의회 군주국.",
+      "regime_deu_soviet": "정체가 바뀌었다: 평의회 공화국.",
+      "regime_gbr_labour": "정체가 바뀌었다: 노동당 정부.",
+      "regime_auh_federal_crown": "정체가 바뀌었다: 연방 군주국.",
+      "regime_auh_trial": "정체가 바뀌었다: 삼원 군주국.",
+      "regime_rus_soviet": "정체가 바뀌었다: 소비에트 러시아.",
+      "regime_fra_crown": "정체가 바뀌었다: 왕정 복고.",
+      "utopia_node": "{who}의 당이 바라는 나라로 한 걸음 나아갔다.",
+      "utopia_realised": "{who}의 당이 바라던 나라가 왔다. 거리가 조용해졌다.",
+      "utopia_absorbed": "{who}의 당이 사라졌다. 그 사람들은 새 나라 쪽으로 건너갔다.",
+      "utopia_turned": "{who}의 당이 제 힘을 우리에게 돌렸다.",
+      "utopia_rally": "{who}의 당이 우리 편에서 집회를 열었다.",
+      "utopia_protest": "{who}의 당이 우리에 맞서 거리로 나왔다.",
+      "utopia_c_rally": "한 계층이 자기네 당 뒤에 모였다.",
+      "utopia_c_protest": "한 계층이 항의 행진을 벌였다."
     },
     "result": {
       "advance": "전진",
@@ -16735,7 +16760,14 @@
       "ladder_backed_down": "보낸 통첩이 거두어졌다.",
       "pair_war_began": "{country}과(와)의 전쟁이 시작됐다.",
       "pair_peace_made": "{country}과(와) 강화했다.",
-      "pair_table_signed": "{country}과(와) 둘만의 조약을 맺었다."
+      "pair_table_signed": "{country}과(와) 둘만의 조약을 맺었다.",
+      "regime_deu_parl": "{country}의 정체가 바뀌었다: 의회 군주국.",
+      "regime_deu_soviet": "{country}의 정체가 바뀌었다: 평의회 공화국.",
+      "regime_gbr_labour": "{country}의 정체가 바뀌었다: 노동당 정부.",
+      "regime_auh_federal_crown": "{country}의 정체가 바뀌었다: 연방 군주국.",
+      "regime_auh_trial": "{country}의 정체가 바뀌었다: 삼원 군주국.",
+      "regime_rus_soviet": "{country}의 정체가 바뀌었다: 소비에트 러시아.",
+      "regime_fra_crown": "{country}의 정체가 바뀌었다: 왕정 복고."
     },
     "ui": {
       "alloc_now": "지금 따르는 안: {main}, {posture}, {scale}",
@@ -17753,7 +17785,14 @@
       "fra_republic": "제3공화국",
       "fra_union": "신성 연합",
       "fra_tiger": "클레망소 정부",
-      "fra_defeat": "강화를 청하는 프랑스"
+      "fra_defeat": "강화를 청하는 프랑스",
+      "deu_parl": "의회 군주국",
+      "deu_soviet": "평의회 공화국",
+      "gbr_labour": "노동당 정부",
+      "auh_federal_crown": "연방 군주국",
+      "auh_trial": "삼원 군주국",
+      "rus_soviet": "소비에트 러시아",
+      "fra_crown": "왕정 복고"
     },
     "issue": {
       "entry": "참전",
@@ -18781,6 +18820,10 @@
       "sound": "{who}의 의견을 먼저 듣는다",
       "target": "누구에게, 어디에",
       "why": {
+        "ability_gone": "그 당은 이제 없다.",
+        "ability_temper": "지금은 부탁하기엔 너무 성나 있다.",
+        "ability_trust": "도와줄 만큼 우리를 믿지 않는다.",
+        "ability_turned": "등을 돌렸다. 도와주지 않는다.",
         "no_authority": "지금 권위로는 거기까지 닿지 않는다.",
         "no_signer": "서명할 자리가 비어 있다.",
         "no_slot": "이번 장의 일정이 다 찼다.",
@@ -18810,7 +18853,8 @@
       "pair_war_won": "{country}과(와)의 전쟁에서 앞선 채 강화했다.",
       "pair_war_lost": "{country}과(와)의 전쟁에서 졌다.",
       "occupation_held": "전쟁은 계속되고, {country}의 땅이 우리 손에 있다.",
-      "under_occupation": "전쟁은 계속되고, {country}이(가) 우리 수도를 쥐고 있다."
+      "under_occupation": "전쟁은 계속되고, {country}이(가) 우리 수도를 쥐고 있다.",
+      "utopia_realised": "한 정당이 그리던 나라가 이루어졌고, 당신은 거기서 멈췄다."
     },
     "intel": {
       "intro": "정보부가 아는 것을 한곳에 모았다. 보고는 틀릴 수 있으니, 누가 알려 왔고 얼마나 확실한지 함께 본다.",

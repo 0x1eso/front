@@ -78,6 +78,7 @@ import { hasFile, pressWithFile } from "./Dossier";
 import type { GreatWar } from "./GreatWar";
 import { moveOpinion } from "./Press";
 import { castOf, holds, runEffects, SceneCtx, sceneOf } from "./SceneRun";
+import { exclusiveShut, factionTrust } from "./Utopia";
 import {
   clampTo,
   everyMonths,
@@ -427,11 +428,13 @@ function settleDeals(gw: GreatWar, seat: GwSeatState, st: GwFactionState) {
     if (p === undefined) return false;
     if (p.kept) {
       st.heat = Math.max(0, st.heat - 2);
+      factionTrust(seat, st.id, 1);
       reason(gw, seat, "house_deal_kept", whoOf(st));
       return false;
     }
     if (p.broken) {
       st.heat += 2;
+      factionTrust(seat, st.id, -2);
       return false;
     }
     return true;
@@ -1321,6 +1324,7 @@ function opensNow(gw: GreatWar, seat: GwSeatState, law: string): boolean {
   const st = n.laws.find((x) => x.id === law);
   if (st !== undefined && st.stage !== "idle") return false;
   if (st !== undefined && gw.s.chapter - st.since < 4) return false;
+  if (exclusiveShut(seat, row)) return false;
   return holds(ctxOf(gw, seat), row.opens);
 }
 

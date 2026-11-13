@@ -24,7 +24,8 @@ import { civilFromDays } from "@openfront/engine-lib/ww1936/Calendar";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { closeSeat } from "./Endings";
 import type { GreatWar } from "./GreatWar";
-import { succeed, successionOf } from "./Regimes";
+import { regimeRow, succeed, successionOf } from "./Regimes";
+import { isHead, utopiaWaits } from "./Utopia";
 import { chapterOf, clampTo, reason, turn } from "./World";
 
 const P_START = idHash("gw_ruler_start");
@@ -53,9 +54,24 @@ const NEAR_BOTTOM = 1;
 
 /** The row that fits the seat now, or null where nobody has one. */
 export function rulerRow(gw: GreatWar, seat: GwSeatState): GwRulerRow | null {
-  const regime = gw.nation(seat.tag)?.regime ?? "";
-  const row = (GW_RULERS[seat.tag] ?? []).find(
+  const n = gw.nation(seat.tag);
+  const regime = n?.regime ?? "";
+  const rows = GW_RULERS[seat.tag] ?? [];
+  // ww207 (decision 1B): the player chose to play on as the utopia's head.
+  const u = seat.society?.utopia ?? null;
+  if (u?.choice === "play" && u.head !== null) {
+    const head = rows.find((r) => r.id === u.head);
+    if (head !== undefined) return head;
+  }
+  const form = n === null ? null : regimeRow(n);
+  if (form?.keeps === true) {
+    const kept = rows.find((r) => r.id === seat.ruler.id);
+    if (kept !== undefined) return kept;
+  }
+  if (form?.removes === true) return null;
+  const row = rows.find(
     (r) =>
+      !isHead(r.id) &&
       (r.regimes === undefined || r.regimes.includes(regime)) &&
       (r.flag === undefined || seat.flags.includes(r.flag)),
   );
@@ -347,6 +363,8 @@ export function rulerStep(gw: GreatWar): void {
     if (seat.memoir !== null || gw.s.ended !== null) continue;
     const row = rulerRow(gw, seat);
     if (row === null && seat.ruler.id !== null) {
+      // ww207 (1B): the utopia's card asks first: end here, or play on.
+      if (utopiaWaits(seat)) continue;
       personEnds(gw, seat);
       continue;
     }
