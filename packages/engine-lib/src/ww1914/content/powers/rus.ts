@@ -917,6 +917,103 @@ export const RUS_POWERS: readonly GwPowerRow[] = [
     },
     scene: "rus_pw_field_courts_r",
   },
+  // ---- 정당 (ww207): the factions' abilities, asked at 호의 or better ----
+  {
+    // Guchkov's War Industries Committees (from the summer of 1915): the
+    // merchants and the Octobrists turn private works to shells. Turned, the
+    // committees become the opposition's headquarters.
+    id: "rus_pw_ab_octob",
+    tag: "RUS",
+    group: "factions",
+    kind: "custom",
+    shows: all(reigns, war),
+    tags: ["ability"],
+    effects: [
+      gauge("shells", 1),
+      opinion("business", 1),
+      reason("rus_pw_ab_octob_done"),
+    ],
+    ability: {
+      faction: "rus_octob",
+      strong: [
+        gauge("shells", 2),
+        opinion("business", 1),
+        reason("rus_pw_ab_octob_done"),
+      ],
+      turned: {
+        effects: [
+          inst("court", -1),
+          opinion("business", -1),
+          reason("rus_pw_ab_octob_turned"),
+        ],
+      },
+    },
+  },
+  {
+    // The All-Russian Zemstvo Union (Prince Lvov, August 1914): hospitals,
+    // trains for the wounded, relief. Turned: Milyukov's speech of 1 November
+    // 1916, "stupidity or treason?".
+    id: "rus_pw_ab_kadets",
+    tag: "RUS",
+    group: "factions",
+    kind: "custom",
+    shows: reigns,
+    tags: ["ability"],
+    effects: [
+      gauge("morale", 1),
+      inst("duma", 1),
+      reason("rus_pw_ab_kadets_done"),
+    ],
+    ability: {
+      faction: "rus_kadets",
+      strong: [
+        gauge("morale", 1),
+        gauge("bread", 1),
+        inst("duma", 1),
+        reason("rus_pw_ab_kadets_done"),
+      ],
+      turned: {
+        effects: [
+          inst("court", -2),
+          gauge("order", -1),
+          opinion("parliament", -1),
+          reason("rus_pw_ab_kadets_turned"),
+        ],
+      },
+    },
+  },
+  {
+    // The Rights' street: icons, flags and the anthem before the Winter
+    // Palace. Turned: the court plot (Purishkevich and Yusupov, December
+    // 1916) against the Tsar's own circle.
+    id: "rus_pw_ab_rights",
+    tag: "RUS",
+    group: "factions",
+    kind: "custom",
+    shows: reigns,
+    tags: ["ability"],
+    effects: [
+      gauge("order", 1),
+      opinion("court", 1),
+      reason("rus_pw_ab_rights_done"),
+    ],
+    ability: {
+      faction: "rus_rights",
+      strong: [
+        gauge("order", 1),
+        gauge("morale", 1),
+        opinion("court", 1),
+        reason("rus_pw_ab_rights_done"),
+      ],
+      turned: {
+        effects: [
+          inst("court", -1),
+          gauge("order", -1),
+          reason("rus_pw_ab_rights_turned"),
+        ],
+      },
+    },
+  },
 ];
 
 /** RUS's own reactors, on top of GW_REACTORS (`nation: "RUS"`). */
