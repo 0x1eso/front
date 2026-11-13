@@ -121,6 +121,33 @@ const peaceTaken: GwCond = any(
   flag("f_resolution_taken"),
   isLaw("deu_peace_res"),
 );
+// ---- ww209 (W-DEU): money bills ----
+const peace: GwCond = not(war);
+/** The year's budget is on the agenda. */
+const budgetOpen: GwCond = world({ is: "money", bill: "budget", now: "open" });
+/** The SPD has split: the minority sits as its own party. */
+const uspdIn: GwCond = world({ is: "faction", id: "deu_uspd", of: ["in"] });
+/**
+ * ww209: a line for his people in the budget (지역에 돈을 준다): named while
+ * the budget is before the house and the earmark isn't in it; kept once the
+ * budget running carries it.
+ */
+const markFor = (
+  id: string,
+  when?: GwCond,
+): Pick<GwWant, "kind" | "when" | "keep" | "earmark" | "chapters"> => {
+  const on = world({ is: "earmark", id });
+  return {
+    kind: "money",
+    earmark: id,
+    when:
+      when === undefined
+        ? all(budgetOpen, not(on))
+        : all(budgetOpen, not(on), when),
+    keep: on,
+    chapters: 6,
+  };
+};
 
 // ---- Factions ----
 
@@ -168,7 +195,14 @@ export const DEU_FACTIONS: readonly GwFactionRow[] = [
       deu_censor: "generals_keep",
       deu_war_aims: "east_and_west",
     },
+    // ww209: every war credit; a tax on estates and inheritance, never (they
+    // brought Bülow down over the inheritance tax in 1909).
+    purse: [
+      { when: war, bill: "credits", side: 1 },
+      { taxes: { property: -1 } },
+    ],
     wants: [
+      { id: "east_prussia", ...markFor("deu_east_prussia", war) },
       { id: "aims_next", ...nextOf("deu_war_aims"), chapters: 10 },
       {
         id: "cons_text",
@@ -233,7 +267,13 @@ export const DEU_FACTIONS: readonly GwFactionRow[] = [
       deu_three_class: "plural_vote",
       deu_take_back: "committee",
     },
+    // ww209: every war credit; the navy over the norm (the Navy Laws' party).
+    purse: [
+      { when: war, bill: "credits", side: 1, lines: { navy: 1 } },
+      { lines: { navy: 1 } },
+    ],
     wants: [
+      { id: "uboat_yards", ...markFor("deu_uboat_yards", war) },
       {
         id: "industry_heard",
         kind: "promise",
@@ -258,6 +298,8 @@ export const DEU_FACTIONS: readonly GwFactionRow[] = [
         when: not(isLaw("deu_war_aims")),
         keep: isLaw("deu_war_aims"),
         chapters: 10,
+        // ww209: the aims now, not after the war.
+        terms: ["session", "half"],
       },
       {
         id: "loan_terms",
@@ -265,6 +307,8 @@ export const DEU_FACTIONS: readonly GwFactionRow[] = [
         effects: [gauge("money", -1)],
         keep: paid,
       },
+      // ww209: Stresemann's vote now, his bill to be named later.
+      { id: "natlib_favour", kind: "favour" },
     ],
   },
   {
@@ -319,7 +363,11 @@ export const DEU_FACTIONS: readonly GwFactionRow[] = [
       deu_food_office: "food_dictator",
       deu_jesuits: "whole_law",
     },
+    // ww209: not fixed on the money: the house's swing. Its works line (the
+    // towns, the farm credit); a war profits tax (the majority's 1916 tax).
+    purse: [{ lines: { works: 1 }, taxes: { profits: 1 } }],
     wants: [
+      { id: "farm_credit", ...markFor("deu_farm_credit") },
       {
         id: "centre_text",
         kind: "concession",
@@ -331,6 +379,7 @@ export const DEU_FACTIONS: readonly GwFactionRow[] = [
         when: not(peaceTaken),
         keep: peaceTaken,
         chapters: 8,
+        terms: ["session", "half"],
       },
       { id: "jesuits_next", ...nextOf("deu_jesuits"), chapters: 10 },
       // The majority took Hertling, a Centre man, in November 1917.
@@ -345,6 +394,8 @@ export const DEU_FACTIONS: readonly GwFactionRow[] = [
         effects: [gauge("money", -1)],
         keep: paid,
       },
+      // ww209: Erzberger trades: his votes now, a favour owed him later.
+      { id: "erzberger_favour", kind: "favour" },
     ],
   },
   {
@@ -392,6 +443,12 @@ export const DEU_FACTIONS: readonly GwFactionRow[] = [
       deu_censor: "reichstag_reads",
       deu_parl_gov: "answer",
     },
+    // ww209: every war credit; a direct tax on property (with the 1913
+    // Wehrbeitrag's majority).
+    purse: [
+      { when: war, bill: "credits", side: 1 },
+      { taxes: { property: 1 } },
+    ],
     wants: [
       {
         id: "franchise_word",
@@ -474,7 +531,43 @@ export const DEU_FACTIONS: readonly GwFactionRow[] = [
       deu_three_class: "equal_vote",
       deu_censor: "reichstag_reads",
     },
+    // ww209: "Diesem System keinen Mann und keinen Groschen" (Wilhelm
+    // Liebknecht, 1887): no Reich budget in peace. From 4 Aug 1914 the
+    // majority voted every credit (78:14 in the caucus); its left is the wing.
+    purse: [
+      { when: peace, bill: "budget", side: -1 },
+      { when: war, bill: "credits", side: 1 },
+    ],
+    // ww209: the minority, Haase's. It read the party's yes on 4 Aug 1914
+    // against its own vote in the caucus; on 21 Dec 1915 about 20 voted no in
+    // the house (the FES chronicle: 19 of the caucus's 45 noes); Haase and 17
+    // more voted against the emergency budget on 24 Mar 1916 and were put out
+    // of the group (the Arbeitsgemeinschaft, later the USPD).
+    wing: {
+      person: "deu_haase",
+      ideals: { rule: 1, class: 1, force: 1 },
+      share: 2,
+      when: not(uspdIn),
+      into: "deu_uspd",
+      wants: [
+        {
+          id: "haase_peace",
+          kind: "promise",
+          when: not(peaceTaken),
+          keep: peaceTaken,
+          chapters: 8,
+          terms: ["session", "half"],
+        },
+        {
+          id: "haase_meetings",
+          kind: "promise",
+          effects: [{ kind: "censor", delta: -1 }, heat("deu_ohl", 1)],
+          keep: paid,
+        },
+      ],
+    },
     wants: [
+      { id: "war_families", ...markFor("deu_war_families", war) },
       {
         id: "spd_text",
         kind: "concession",
@@ -487,6 +580,9 @@ export const DEU_FACTIONS: readonly GwFactionRow[] = [
         when: not(isLaw("deu_three_class")),
         keep: any(flag("f_franchise_word"), isLaw("deu_three_class")),
         chapters: 10,
+        // ww209: the Easter Message's "after the war" (Apr 1917) was not
+        // enough for the party.
+        terms: ["session", "half"],
       },
       // The unions trusted Groener at the War Office, 1916-17 (memory).
       { id: "groener_war", ...postFor("war", "deu_groener"), chapters: 6 },
@@ -558,6 +654,11 @@ export const DEU_FACTIONS: readonly GwFactionRow[] = [
     ],
     bills: ["deu_peace_res"],
     amends: { deu_peace_res: "no_annex" },
+    // ww209: no credit and no war budget, ever (from the Notetat of 1916).
+    purse: [
+      { bill: "credits", side: -1 },
+      { when: war, bill: "budget", side: -1 },
+    ],
     wants: [
       { id: "peace_text", ...nextOf("deu_peace_res"), chapters: 8 },
       {
@@ -650,6 +751,7 @@ export const DEU_FACTIONS: readonly GwFactionRow[] = [
     bills: ["deu_alsace"],
     amends: { deu_alsace: "federal_state" },
     wants: [
+      { id: "alsace_front", ...markFor("deu_alsace_front", war) },
       { id: "alsace_next", ...nextOf("deu_alsace"), chapters: 10 },
       {
         id: "minor_text",
@@ -668,6 +770,7 @@ export const DEU_FACTIONS: readonly GwFactionRow[] = [
         when: not(flag("f_poland_kingdom")),
         keep: flag("f_poland_kingdom"),
         chapters: 12,
+        terms: ["half", "war_end"],
       },
     ],
   },
@@ -776,7 +879,14 @@ export const DEU_FACTIONS: readonly GwFactionRow[] = [
       deu_alsace: "share_out",
       deu_bread_cards: "city_cards",
     },
+    // ww209: the states' share over the norm; the Bundesrat gave every war
+    // credit with the chancellor.
+    purse: [
+      { when: war, bill: "credits", side: 1, lines: { national: 1 } },
+      { lines: { national: 1 } },
+    ],
     wants: [
+      { id: "states_share", ...markFor("deu_states_share") },
       {
         id: "south_text",
         kind: "concession",
@@ -799,6 +909,7 @@ export const DEU_FACTIONS: readonly GwFactionRow[] = [
         kind: "promise",
         keep: world({ is: "armistice" }),
         chapters: 24,
+        terms: ["war_end"],
       },
     ],
   },
@@ -846,6 +957,11 @@ export const DEU_FACTIONS: readonly GwFactionRow[] = [
     camps: ["hard"],
     bills: ["deu_war_aims"],
     amends: { deu_war_aims: "east_and_west", deu_three_class: "plural_vote" },
+    // ww209: every war credit, the navy over the norm (Tirpitz's party).
+    purse: [
+      { bill: "credits", side: 1, lines: { navy: 1 } },
+      { lines: { navy: 1 } },
+    ],
     wants: [
       { id: "aims_next", ...nextOf("deu_war_aims"), chapters: 8 },
       {
