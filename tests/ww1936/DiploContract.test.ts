@@ -442,10 +442,11 @@ describe("diplomacy L0: the digests that never move", () => {
   // ww188's capitulation; ww190: the peace years, the aftermath, the home
   // front; ww196: answers, honours at their occasions, the person at the
   // desk; ww201: the production step; ww204: the law book, the house by
-  // real seats): the Great War's own rules moved it, not the diplomacy.
+  // real seats; ww206: the nerve gone): the Great War's own rules moved it,
+  // not the diplomacy.
   test("the Great War pin is unchanged", () => {
     expect(read("ww1914/GreatWarSnapshot.test.ts")).toContain(
-      'const GW_DIGEST = "c7b764442d7488de";',
+      'const GW_DIGEST = "bf0616b1e810f29c";',
     );
   });
 });
