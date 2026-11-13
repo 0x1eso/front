@@ -4,7 +4,10 @@ import type {
   GreatWarData,
   GwCardView,
 } from "@openfront/engine-api/ww1914/GwView";
-import type { GwWorldView } from "@openfront/engine-api/ww1914/GwWorldView";
+import type {
+  GwGaugeView,
+  GwWorldView,
+} from "@openfront/engine-api/ww1914/GwWorldView";
 import { EventBus } from "@openfront/shared/EventBus";
 import fs from "node:fs";
 import path from "node:path";
@@ -973,6 +976,100 @@ describe("the screens", () => {
     const chip = panel.querySelector("[data-gw-authority]")!;
     expect(chip.textContent!.trim()).toBe("gw.ui.authority");
     expect(chip.getAttribute("title")).toBe("gw.ui.authority_hint");
+  });
+
+  // ww201: the production step in words: a trend beside each gauge it feeds,
+  // its largest cause, and the 지금 line for what it moved at the turn.
+  test("the production step shows as a trend word and a 지금 line", async () => {
+    const g = (
+      gauge: "shells" | "bread" | "money" | "morale",
+      value: number,
+      over: Partial<GwGaugeView> = {},
+    ): GwGaugeView => ({
+      gauge,
+      value,
+      word: value,
+      lines: [],
+      trend: 0,
+      why: null,
+      step: null,
+      ...over,
+    });
+    const d = data([], {
+      side: "central",
+      gauges: [
+        g("shells", 2, {
+          trend: 1,
+          why: "econ_industry",
+          step: { delta: 1, key: "econ_industry" },
+          lines: [{ key: "econ_industry", delta: 1 }],
+        }),
+        g("bread", 1, {
+          trend: -2,
+          why: "bread_blockade",
+          step: { delta: -2, key: "bread_blockade" },
+        }),
+        g("money", 3, { trend: 1, why: "econ_trade" }),
+        g("morale", 3),
+      ],
+    });
+    const { panel } = await mount(d);
+    // The 지금 box, on the desk a phone sees: one line a moved gauge, the
+    // seat's own words for its cause (DEU.econ.json) before the common ones.
+    expect(nowText(panel)).toEqual([
+      "gw.ui.now.war_none",
+      "gw.ui.now.step.shells.up",
+      "gw.ui.now.step.bread.down_big",
+      "gw.ui.now.crisis",
+      "gw.ui.now.wait_none",
+    ]);
+    const pack = GwPackSchema.parse({
+      version: 1,
+      scenes: {},
+      people: {},
+      reasons: { econ_industry: "크루프가 납품한다." },
+    });
+    const lines = nowLines(d, d.seats[0], pack);
+    expect(lines[1].params.why).toBe("크루프가 납품한다.");
+    // Tests run without a language: a key with no text reads as itself.
+    expect(lines[2].params.why).toBe("bread_blockade");
+    // The band's hover: the hint, the trend and its cause, then the lines;
+    // a cause the lines already give is not said twice.
+    const title = (k: string) =>
+      panel
+        .querySelector(`[data-gw-band-gauge=${k}]`)!
+        .getAttribute("title")!
+        .split("\n");
+    expect(title("shells")).toEqual([
+      "gw.ui.gauge_hint.shells",
+      "gw.ui.trend_is",
+      "gw.ui.gauge_why",
+      "▲ econ_industry",
+    ]);
+    expect(title("bread")).toEqual([
+      "gw.ui.gauge_hint.bread",
+      "gw.ui.trend_is",
+      "gw.ui.trend_why",
+    ]);
+    // The country tab: the word beside each gauge the step feeds; at the top
+    // and still rising there is no room; morale has none.
+    panel.querySelector<HTMLButtonElement>("[data-gw-tab=country]")!.click();
+    await panel.updateComplete;
+    const trend = (k: string) =>
+      panel
+        .querySelector(`[data-gw-gauge=${k}] [data-gw-trend]`)
+        ?.getAttribute("data-gw-trend") ?? null;
+    expect(["shells", "bread", "money", "morale"].map(trend)).toEqual([
+      "rising",
+      "falling_fast",
+      "full",
+      null,
+    ]);
+    expect(
+      panel
+        .querySelector("[data-gw-gauge=bread] [data-gw-trend-why]")!
+        .getAttribute("data-gw-trend-why"),
+    ).toBe("bread_blockade");
   });
 });
 

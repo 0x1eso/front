@@ -7,6 +7,10 @@ import type {
   GwAnswerRow,
   GwDeptContent,
 } from "@openfront/engine-api/ww1914/GwDepts";
+import {
+  answerSlots,
+  slotsHold,
+} from "@openfront/engine-lib/ww1914/AnswerSlots";
 import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
 import {
   GW_CONTENT,
@@ -283,5 +287,39 @@ describe("department answers (ww196)", () => {
       applyGwOrder(gw, st, { kind: "gift", row: "t_eagle", person: who }),
     ).toBe("gone");
     expect(leverViews()).toEqual([]);
+  });
+});
+
+// ww201: once the production step has run, the heads of arms, food and money
+// say where it takes their gauge (the common rows' trend findings).
+describe("the production step in the heads' answers (ww201)", () => {
+  test("the trend slots fill from the step and pick the row's findings", async () => {
+    const { runner } = await gwRunner({ greatWar1914Calendar: "full" });
+    const gw = runner.game.greatWar()!;
+    const st = gw.s.seats[0];
+    const n = gw.s.nations.find((x) => x.tag === st.tag)!;
+    const holds = (row: string, type: "arms" | "bread" | "money") =>
+      GW_CONTENT.depts!.answers!.find((r) => r.id === row)!
+        .findings.filter((f) =>
+          slotsHold(f.slots, answerSlots(gw.s, st, type, null)),
+        )
+        .map((f) => f.id)
+        .filter((id) => /_(rising|full|steady|falling)/.test(id));
+    // Before the step runs there is no trend to tell.
+    delete n.econ;
+    expect(holds("c_arms", "arms")).toEqual([]);
+    n.gauges.shells = 1;
+    n.gauges.money = 3;
+    n.econ = {
+      rate: { shells: -400, bread: 0, money: 120 },
+      why: { shells: "econ_fronts", bread: "", money: "econ_trade" },
+      moved: [],
+      dry: null,
+      mobilised: null,
+    };
+    expect(holds("c_arms", "arms")).toEqual(["shells_falling_fast"]);
+    expect(holds("c_bread", "bread")).toEqual(["bread_steady"]);
+    expect(holds("c_money", "money")).toEqual(["money_full"]);
+    expect(holds("c_budget", "money")).toEqual(["money_full"]);
   });
 });

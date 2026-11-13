@@ -36,6 +36,16 @@ export function textOrNull(
   return t === key ? null : t;
 }
 
+/**
+ * A gauge's reason line (`gw.line.<key>`). ww201: the production step's own
+ * causes (`econ_*`) take the seat's own wording from its pack first, so each
+ * country names its own works, fields and ports.
+ */
+export function gaugeLineText(pack: GwPack | null, key: string): string {
+  const own = key.startsWith("econ_") ? pack?.reasons?.[key] : undefined;
+  return own ?? textOrNull(`gw.line.${key}`) ?? pack?.reasons?.[key] ?? key;
+}
+
 /** A person's name; the id when the pack has no row. */
 export function personName(pack: GwPack | null, id: string): string {
   return pack?.people[id]?.name ?? id;

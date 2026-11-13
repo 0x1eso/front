@@ -3644,6 +3644,20 @@
       "capital_fell": "The capital fell.",
       "casualty_lists": "The casualty lists were long.",
       "demob_done": "The men came home.",
+      "econ_eaters": "The towns and the army are eating the stores.",
+      "econ_farms": "The fields are bringing in grain.",
+      "econ_fronts": "Every front is firing off shells.",
+      "econ_held": "Works and mines on the land we hold are working for us.",
+      "econ_imports": "Grain is coming in by sea.",
+      "econ_industry": "The country's works are turning out shells.",
+      "econ_labour": "The farmhands are in the army.",
+      "econ_land": "Taxes are coming in from the land we gained.",
+      "econ_land_lost": "The land we lost pays us no taxes.",
+      "econ_mobilised": "All industry has gone over to war work.",
+      "econ_peace": "In peace the stores fill back up to their usual level.",
+      "econ_trade": "Customs and shipping are bringing money in.",
+      "econ_tribute": "A state that depends on us is sending its tribute.",
+      "econ_tribute_paid": "We are paying tribute to the power over us.",
       "flu_wave_1": "The influenza.",
       "flu_wave_2": "The influenza came back.",
       "flu_wave_3": "The influenza came a third time.",
@@ -3880,6 +3894,7 @@
       "crisis_humiliation": "Vienna backed down.",
       "crisis_war": "The powers are at war.",
       "demob_done": "{a} sends its armies home.",
+      "econ_mobilised": "{a} ran out of shells and has put its industry on a war footing.",
       "entered_war": "{a} has entered the war.",
       "era_depth": "The war enters a new period: Defence in depth.",
       "era_material": "The war enters a new period: The battle of material.",
@@ -5661,6 +5676,26 @@
         "prop_hush": "the censor is keeping bad news out of the papers, and it may all come out later",
         "prop_leaflets": "leaflets are falling on {countries}",
         "prop_papers": "we pay papers in {countries}",
+        "step": {
+          "bread": {
+            "down": "Bread went down a notch: {why}",
+            "down_big": "Bread went down sharply: {why}",
+            "up": "Bread went up a notch: {why}",
+            "up_big": "Bread went up sharply: {why}"
+          },
+          "money": {
+            "down": "The treasury got a notch worse: {why}",
+            "down_big": "The treasury got much worse: {why}",
+            "up": "The treasury got a notch better: {why}",
+            "up_big": "The treasury got much better: {why}"
+          },
+          "shells": {
+            "down": "Shells went down a notch: {why}",
+            "down_big": "Shells went down sharply: {why}",
+            "up": "Shells went up a notch: {why}",
+            "up_big": "Shells went up sharply: {why}"
+          }
+        },
         "temp_means": {
           "0": "Words can still settle it.",
           "1": "The notes are getting sharper.",
@@ -6021,6 +6056,16 @@
         "4": "Deep trench system",
         "5": "A wall of wire and guns"
       },
+      "trend": {
+        "falling": "falling slowly",
+        "falling_fast": "falling fast",
+        "full": "no room to store more",
+        "rising": "rising slowly",
+        "rising_fast": "rising fast",
+        "steady": "holding"
+      },
+      "trend_is": "Heading: {word}",
+      "trend_why": "Mostly because: {why}",
       "trust": {
         "0": "Turned away",
         "1": "Distrust",
