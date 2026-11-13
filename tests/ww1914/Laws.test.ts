@@ -106,7 +106,8 @@ describe("the rows", () => {
       expect(rows.length).toBeGreaterThanOrEqual(8);
       // ww203: the law book's new articles (W lanes, marked +); ww204 merge:
       // the five lanes' rows together, DEU and RUS 16. ww207: the peace
-      // chapters and the franchise (W-RUS 18).
+      // chapters and the franchise (W-RUS 18). ww208 merge: AUH 19, FRA and RUS
+      // 18, GBR 17, DEU 16 (exclusive node laws aside).
       expect(rows.length).toBeLessThanOrEqual(20);
     }
     const ids = new Set(GW_CONTENT.scenes.map((s) => s.id));
@@ -157,10 +158,10 @@ describe("the rows", () => {
       const scenes = GW_CONTENT.scenes.filter((s) => ids.has(s.id));
       expect(gwPackProblems(scenes, pack)).toEqual([]);
       for (const r of rows) {
-        expect(pack.reasons?.[`law_in_${r.id}`]).toBeDefined();
-        expect(pack.reasons?.[`law_out_${r.id}`]).toBeDefined();
+        expect(pack.reasons?.[`law_in_${r.id}`], r.id).toBeDefined();
+        expect(pack.reasons?.[`law_out_${r.id}`], r.id).toBeDefined();
         if (r.term.some((t) => t.gauge !== "manpower")) {
-          expect(pack.reasons?.[`law_line_${r.id}`]).toBeDefined();
+          expect(pack.reasons?.[`law_line_${r.id}`], r.id).toBeDefined();
         }
       }
     }
