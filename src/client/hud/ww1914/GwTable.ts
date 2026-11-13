@@ -793,7 +793,7 @@ function moveRow(
               </button>`,
           )}
         </div>`}
-    ${now.move === "push" ? pushCost(x) : nothing}
+    ${picks[x.id]?.move === "push" ? pushCost(x) : nothing}
     ${now.move !== "trade"
       ? nothing
       : html`<p class=${MUTED}>${translateText("gw.bargain.trade_pick")}</p>
