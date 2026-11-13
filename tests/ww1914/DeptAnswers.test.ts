@@ -6,6 +6,7 @@ import {
 import type {
   GwAnswerRow,
   GwDeptContent,
+  GwSlots,
 } from "@openfront/engine-api/ww1914/GwDepts";
 import {
   answerSlots,
@@ -30,6 +31,8 @@ import type { GreatWar } from "@openfront/engine/ww1914/GreatWar";
 import { openHonours } from "@openfront/engine/ww1914/Honours";
 import { applyGwOrder } from "@openfront/engine/ww1914/Orders";
 import { timeLeft } from "@openfront/engine/ww1914/Time";
+import fs from "node:fs";
+import path from "node:path";
 import { afterEach, describe, expect, test } from "vitest";
 import { gwRunner } from "./util";
 
@@ -321,5 +324,54 @@ describe("the production step in the heads' answers (ww201)", () => {
     expect(holds("c_bread", "bread")).toEqual(["bread_steady"]);
     expect(holds("c_money", "money")).toEqual(["money_full"]);
     expect(holds("c_budget", "money")).toEqual(["money_full"]);
+  });
+});
+
+// ww203: the count paper on a bill (task `count`, given by `bill_count`).
+describe("the count paper (ww203)", () => {
+  const row = GW_CONTENT.depts!.answers!.find((r) => r.id === "c_count")!;
+  const word = (value: string) => ({ kind: "word" as const, value });
+  const ids = (xs: readonly { id: string; slots?: object }[], s: GwSlots) =>
+    xs
+      .filter((x) => slotsHold(x.slots as never, s))
+      .map((x) => x.id)
+      .sort();
+
+  test("the tally picks the findings and courses; every one has its words", () => {
+    expect(row.nation).toHaveLength(5);
+    const easy: GwSlots = { bill: word("deu_peace_res"), tally: word("easy") };
+    expect(ids(row.findings, easy)).toEqual(["easy", "whips"]);
+    expect(ids(row.courses, easy)).toEqual(["vote", "wait"]);
+    const short: GwSlots = {
+      ...easy,
+      tally: word("short"),
+      swing: word("deu_centre,deu_natlib"),
+    };
+    expect(ids(row.courses, short)).toEqual([
+      "amend",
+      "vote",
+      "wait",
+      "withdraw",
+      "work",
+    ]);
+    const ko = JSON.parse(
+      fs.readFileSync(
+        path.join(__dirname, "../../resources/ww1914/ko/common.depts.json"),
+        "utf8",
+      ),
+    ).depts;
+    expect(ko.types.count.name).toContain("{topic}");
+    const t = ko.answers.c_count;
+    for (const f of row.findings) expect(t.findings[f.id]).toBeTruthy();
+    for (const f of row.findings.filter((x) => x.wrong)) {
+      expect(t.hindsight[f.id]).toBeTruthy();
+    }
+    for (const c of row.courses) {
+      expect(Object.keys(t.courses[c.id]).sort()).toEqual([
+        "against",
+        "for",
+        "name",
+      ]);
+    }
   });
 });

@@ -52,7 +52,8 @@ export function topicWord(c: GwCtx, topic: string | null): string {
   if ((GW_THEATRES as readonly string[]).includes(topic)) {
     return translateText(`gw.theatre.${topic}`);
   }
-  return topic;
+  // ww203: a count task's topic is a bill (law id).
+  return c.pack?.scenes[`gw_law_${topic}`]?.title ?? topic;
 }
 
 /**
