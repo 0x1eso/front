@@ -28,6 +28,7 @@ import {
 } from "./Budget";
 import { craftEffect, craftHolds } from "./Craft";
 import { closeChain } from "./Crises";
+import { dealDo, dealHolds } from "./Deals";
 import { fileEffect, fileHolds } from "./Dossier";
 import { closeSeat, SEPARATE_PEACE } from "./Endings";
 import { eraOf, hasTech } from "./Eras";
@@ -57,6 +58,7 @@ import {
   lawTopic,
   lawWithdraw,
 } from "./Laws";
+import { moneyDo, moneyHolds } from "./MoneyBills";
 import { navalEffect, navalHolds } from "./NavalIntel";
 import { landHolds } from "./Occupation";
 import {
@@ -391,6 +393,15 @@ export function worldHolds(ctx: SceneCtx, c: GwWorldCond): boolean {
     case "node":
     case "utopia":
       return utopiaHolds(ctx, c);
+    // ww209
+    case "money":
+    case "tax_kind":
+    case "earmark":
+    case "defy":
+    case "split_pressure":
+      return moneyHolds(ctx, c);
+    case "ledger":
+      return dealHolds(ctx, c);
   }
 }
 
@@ -746,6 +757,14 @@ export function worldEffect(ctx: SceneCtx, e: GwWorldEffect): void {
       return;
     case "affinity":
       utopiaDo(ctx, e);
+      return;
+    // ww209
+    case "earmark":
+    case "split_pressure":
+      moneyDo(ctx, e);
+      return;
+    case "ledger":
+      dealDo(ctx, e);
       return;
   }
 }

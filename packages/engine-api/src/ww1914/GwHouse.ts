@@ -4,6 +4,7 @@
 // the count, the whip, ways round) and the S2 files (plots, the dossier,
 // allies' asks). See /home/eser/dev/ww158-format.md. Lists are APPEND ONLY.
 import { z } from "zod";
+import { GwDealSchema, type GwDealView } from "./GwDeals";
 
 /** The chambers a bill can meet. Text: gw.house.chamber.<id>. */
 export const GW_CHAMBERS = [
@@ -160,6 +161,13 @@ export const GwFactionStateSchema = z.object({
   polled: int.optional(),
   /** ww208 (S1): the chapter it was last promoted or condemned. */
   judgedAt: int.optional(),
+  // ---- ww209 (S1 the vote, S2 the lobby); absent: none ----
+  /** Times its wing has voted openly against its line (beat `defy`). */
+  defied: int.optional(),
+  /** Split pressure from `defy` and `peel`: ww208's split check reads it. */
+  split: int.optional(),
+  /** Chapters its wing was met apart (`bill_peel`), newest last. */
+  peels: z.array(int).optional(),
 });
 export type GwFactionState = z.infer<typeof GwFactionStateSchema>;
 
@@ -211,9 +219,16 @@ export type GwBallotCast = (typeof GW_BALLOT_CASTS)[number];
 /**
  * A block's beat in the vote scene: `firm` cast with its faction, `waver`
  * a waverer deciding, `swing` a lobbied faction keeping its word (약속대로),
- * `betray` one breaking it (배신).
+ * `betray` one breaking it (배신). ww209: `defy`, a wing voting openly
+ * against its own party's line, its man named in the log ("리프크네히트, 반대").
  */
-export const GW_BALLOT_BEATS = ["firm", "waver", "swing", "betray"] as const;
+export const GW_BALLOT_BEATS = [
+  "firm",
+  "waver",
+  "swing",
+  "betray",
+  "defy",
+] as const;
 export type GwBallotBeat = (typeof GW_BALLOT_BEATS)[number];
 
 export const GwBallotBlockSchema = z.object({
@@ -224,6 +239,10 @@ export const GwBallotBlockSchema = z.object({
   beat: z.enum(GW_BALLOT_BEATS),
   /** ww204: a state voting as one (the Bundesrat's Prussia); absent: none. */
   state: Id.optional(),
+  /** ww209: the man the log names: the defying wing's, the peeled wing's. */
+  person: Id.optional(),
+  /** ww209: the faction's wing voting apart (`defy`, or peeled `swing`). */
+  wing: z.boolean().optional(),
 });
 export type GwBallotBlock = z.infer<typeof GwBallotBlockSchema>;
 
@@ -288,6 +307,10 @@ export const GwHouseStateSchema = z.object({
   focus: Id.nullable().default(null),
   /** Chamber -> the chapter it last voted: one vote a chamber a chapter. */
   sat: z.record(z.string(), int).default({}),
+  // ---- ww209 (S2): the ledger, 약속과 빚; absent: empty ----
+  deals2: z.array(GwDealSchema).optional(),
+  /** The next ledger row's uid. */
+  nextDeal: int.optional(),
   // ---- S2 ----
   files: z.array(GwFileSchema),
   nextFile: int,
@@ -409,4 +432,6 @@ export interface GwAskView {
 export interface GwDossierView {
   files: readonly GwFileView[];
   asks: readonly GwAskView[];
+  /** ww209 (S2): the 약속과 빚 box: the ledger, newest first; absent: empty. */
+  deals?: readonly GwDealView[];
 }

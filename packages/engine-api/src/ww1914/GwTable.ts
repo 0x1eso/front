@@ -110,7 +110,21 @@ export type GwTableWhy = (typeof GW_TABLE_WHYS)[number];
  * insist, step down (annex → occupy → vassal → return), ask for another place
  * in its stead, or let it go. APPEND ONLY (wire).
  */
-export const GW_BARGAIN_MOVES = ["insist", "down", "trade", "drop"] as const;
+export const GW_BARGAIN_MOVES = [
+  "insist",
+  "down",
+  "trade",
+  "drop",
+  // ww209 (S2), all read off the state as answerOf is:
+  "counter", // take the beaten's own counter-fate for the place (claim `counter`)
+  "ransom", // money instead of the place, through the Treaties transfer
+  "promise_leave", // the place left to the beaten on a promise to evacuate by a date
+  "promise_vote", // a plebiscite by a date decides the place
+  "ultimatum", // accept within the round or the advance resumes (18 Feb 1918)
+  "favour_neutral", // the place given up for the beaten's neutrality to come
+  "favour_trade", // the place given up for trade terms
+  "split", // a separate table with the place's breakaway state (the Bread Peace)
+] as const;
 export type GwBargainMove = (typeof GW_BARGAIN_MOVES)[number];
 
 /** ww205: how the beaten bears the talks, in words: 차분함 / 굳어 감 / 박차고 나갈 듯. */
@@ -155,6 +169,19 @@ export const GwTableClaimSchema = z.object({
   why: z.enum(GW_TABLE_WHYS).optional(),
   /** ww205: times the claimant insisted on it. */
   insisted: z.number().int().optional(),
+  // ---- ww209 (S2); absent: none ----
+  /** The beaten's own fate for the refused place (`table_counter`, or its AI). */
+  counter: z
+    .object({ fate: z.enum(GW_FATES), term: z.enum(GW_FATE_TERMS).optional() })
+    .optional(),
+  /** Its last move (GW_BARGAIN_MOVES) by the claimant. */
+  move: z.enum(GW_BARGAIN_MOVES).optional(),
+  /** `ransom`: steps of money asked in its place. */
+  ransom: z.number().int().optional(),
+  /** `promise_*`: the chapter it falls due; broken: trust -2, revanche. */
+  due: z.number().int().optional(),
+  /** `ultimatum`: the round by which it must be taken. */
+  ultimatum: z.number().int().optional(),
 });
 export type GwTableClaim = z.infer<typeof GwTableClaimSchema>;
 
@@ -247,6 +274,12 @@ export interface GwTableClaimView {
   round?: number;
   why?: GwTableWhy;
   insisted?: number;
+  /** ww209: the beaten's counter, the claimant's last move, its terms. */
+  counter?: { fate: GwFate; term?: GwFateTerm };
+  move?: GwBargainMove;
+  ransom?: number;
+  due?: number;
+  ultimatum?: number;
 }
 
 /** What the seat has to do at the table now. */
@@ -273,9 +306,17 @@ export type GwTableDue =
       places: readonly GwPlace[];
       round: number;
       last: boolean;
+      /** ww209 (S2): claim id -> the moves open on it; absent: the old four. */
+      moves?: Readonly<Record<number, readonly GwBargainMove[]>>;
     }
   /** ww205: the seat is the beaten: yes or no to each of `claims`. */
-  | { kind: "answer"; claims: readonly number[]; walk: boolean }
+  | {
+      kind: "answer";
+      claims: readonly number[];
+      walk: boolean;
+      /** ww209 (S2): claim id -> fates the beaten may name instead (`table_counter`). */
+      counters?: Readonly<Record<number, readonly GwFate[]>>;
+    }
   | null;
 
 /** What the screens read; the same for every seat but `due` and `role`. */

@@ -2,6 +2,14 @@
 // country keeps and what a seat reads. The rows are engine-lib/ww1914/LawRows,
 // the running of them engine/ww1914/Laws. Lists are APPEND ONLY.
 import { z } from "zod";
+import type { GwMoneyBill, GwMoneyFail } from "./GwBudget";
+import type {
+  GwCounterKind,
+  GwCounterView,
+  GwDealTerm,
+  GwThreatKind,
+  GwWingView,
+} from "./GwDeals";
 import { GW_CONFIDENCE, type GwConfidence } from "./GwDeptWords";
 import { GW_LAW_ORIGINS, type GwChamber, type GwLawOrigin } from "./GwHouse";
 
@@ -193,6 +201,7 @@ export const GW_PRICE_KINDS = [
   "concession", // his amendment replaces the bill's text
   "money", // a budget line for his people, paid now
   "next", // his faction's own bill joins the agenda
+  "favour", // ww209: a favour later: the seat owes him (ledger `owed`)
 ] as const;
 export type GwPriceKind = (typeof GW_PRICE_KINDS)[number];
 
@@ -269,7 +278,30 @@ export interface GwLobbyView {
    * be given. Null: not summoned. Text gw.lobby.price.<kind>, his words the
    * talk's `price` says.<id>.
    */
-  prices: readonly { id: string; kind: GwPriceKind }[] | null;
+  prices:
+    | readonly {
+        id: string;
+        kind: GwPriceKind;
+        /** ww209: a promise price's deadlines open (`bill_term`); absent: none. */
+        terms?: readonly GwDealTerm[];
+      }[]
+    | null;
+  // ---- ww209 (S2 fills; absent: none) ----
+  /** Counter kinds he will hear now (`bill_counter`); empty once one is made. */
+  counters?: readonly GwCounterKind[];
+  /** His answer to the seat's counter on this bill; null none made. */
+  counter?: GwCounterView | null;
+  /** Threats the seat can make on him now (`bill_threat`). */
+  threats?: readonly GwThreatKind[];
+  /**
+   * 빚으로 남긴다 (`can`: pay his price now, no vote asked) and 빚을 받는다
+   * (`owes`: he owes the seat a favour it can call in on this bill).
+   */
+  favour?: { can: boolean; owes: boolean };
+  /** Word got round his bloc: he takes only prices paid now. */
+  paidOnly?: boolean;
+  /** His faction's wing, met apart; null with none. */
+  wing?: GwWingView | null;
 }
 
 /** A bill on the agenda (의사일정). */
@@ -305,6 +337,11 @@ export interface GwAgendaView {
   withdraw: boolean;
   delayTo: number | null;
   lobby: readonly GwLobbyView[];
+  /**
+   * ww209: a money bill's pinned row: which, its number (credits), the year
+   * it is for (1916년 예산), and what losing it does. Absent: a plain bill.
+   */
+  money?: { kind: GwMoneyBill; n: number; year: number; fail: GwMoneyFail };
 }
 
 /** The 법전 and 의사일정 of the 통치 tab's house group. */
@@ -315,4 +352,6 @@ export interface GwBookView {
   max: number;
   /** Free lobby calls left this chapter. */
   calls: number;
+  /** ww209 (S1): the money bills, pinned above the agenda; absent: none. */
+  pinned?: readonly GwAgendaView[];
 }

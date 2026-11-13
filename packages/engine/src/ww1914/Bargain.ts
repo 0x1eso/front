@@ -11,7 +11,11 @@
 // The general conference keeps its claim-by-claim talk (Table.ts).
 import type { GwSeatState } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
-import type { GwFateMark } from "@openfront/engine-api/ww1914/GwFate";
+import type {
+  GwFate,
+  GwFateMark,
+  GwFateTerm,
+} from "@openfront/engine-api/ww1914/GwFate";
 import type { GwOrderBlock } from "@openfront/engine-api/ww1914/GwOrders";
 import {
   GW_PLACE_KEYS,
@@ -566,6 +570,22 @@ export function tableBargain(
   t.next = gw.mg.ticks() + 45;
   gw.touch();
   return null;
+}
+
+/**
+ * ww209 (S2): applies `table_counter`: the beaten seat names its own fate for
+ * refused places. S0's stub refuses.
+ */
+export function tableCounter(
+  _gw: GreatWar,
+  _seat: GwSeatState,
+  _counters: readonly {
+    claim: number;
+    fate: GwFate;
+    term: GwFateTerm | null;
+  }[],
+): GwOrderBlock | null {
+  return "table_no";
 }
 
 /** Applies `table_answer`: the beaten seat says yes or no, or walks out. */

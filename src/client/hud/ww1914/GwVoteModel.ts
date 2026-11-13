@@ -89,6 +89,8 @@ const PHASE_OF: Readonly<Record<GwBallotBlock["beat"], number>> = {
   waver: 1,
   swing: 2,
   betray: 2,
+  // ww209: a wing defying its line comes with the lobbied (U1 may move it).
+  defy: 2,
 };
 
 /** When each block begins, and how long its slot is. */

@@ -9,6 +9,7 @@ import { budgetStep } from "./Budget";
 import { capitulationStep } from "./Capitulation";
 import { craftStep } from "./Craft";
 import { crisisStep, stampMobilisation } from "./Crises";
+import { dealStep } from "./Deals";
 import { carriedTime, closeDepts, markDesk, openDepts } from "./Departments";
 import { dealDesk } from "./Desk";
 import { personaStep } from "./Diary";
@@ -26,6 +27,7 @@ import { intelStep } from "./Intel";
 import { ladderStep } from "./Ladder";
 import { frontLandStep } from "./Land";
 import { lawStep } from "./Laws";
+import { moneyStep } from "./MoneyBills";
 import { occupationStep } from "./Occupation";
 import { warStep } from "./PairWar";
 import { nextConferenceChapter, skipToConference } from "./Peace";
@@ -68,9 +70,13 @@ export const GW_CHAPTER_STEPS: readonly ((gw: GreatWar) => void)[] = [
   fateStep,
   (gw) => seaStep(gw, warScore(gw, "central")),
   budgetStep,
+  // ww209: the money bills (S1).
+  moneyStep,
   electionStep,
   lawStep,
   houseStep,
+  // ww209: the ledger (S2).
+  dealStep,
   // ww207: the society (S1), then the utopias (S2).
   societyStep,
   utopiaStep,

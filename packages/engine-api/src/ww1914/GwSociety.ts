@@ -8,6 +8,7 @@
 import { z } from "zod";
 import type { GwTag } from "./GwCountries";
 import type { GwChamber, GwFactionStatus } from "./GwHouse";
+import type { GwCountWord } from "./GwLaw";
 
 // ---- Axes ----
 
@@ -311,6 +312,11 @@ export interface GwStripFactionView {
   /** 지지한다 / 규탄한다 are offered (orders faction_promote / condemn). */
   promote: boolean;
   condemn: boolean;
+  /**
+   * ww209 (S1): its word on the money bill on the agenda (찬성 / 반대 /
+   * 흔들림 / 모름), from the count paper; absent or null: no money bill.
+   */
+  purse?: GwCountWord | null;
 }
 
 /** The election card on the hemicycle, and when the next one is due. */

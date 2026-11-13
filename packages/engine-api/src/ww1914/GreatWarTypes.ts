@@ -6,6 +6,7 @@ import { z } from "zod";
 import { GwBudgetStateSchema } from "./GwBudget";
 import { GW_TAGS, GwTag as GwTagName } from "./GwCountries";
 import { GwCraftStateSchema } from "./GwCraft";
+import { GW_DEAL_TERMS } from "./GwDeals";
 import {
   GW_ANSWER_REDOS,
   GW_ANSWER_SLOTS,
@@ -1256,6 +1257,10 @@ export const GwPromiseSchema = z.object({
   keep: z.string().nullable(),
   /** The scene they come back with; null for the common one. */
   back: GwIdSchema.nullable(),
+  /** ww209 (S2): the deadline picked (`bill_term`); absent: the price's own. */
+  term: z.enum(GW_DEAL_TERMS).optional(),
+  /** ww209 (S2): the faction the promise was made to; absent: by `key`. */
+  faction: GwIdSchema.optional(),
 });
 export type GwPromise = z.infer<typeof GwPromiseSchema>;
 

@@ -44,6 +44,50 @@ export const GW_BUDGET_HOWS = [
 ] as const;
 export type GwBudgetHow = (typeof GW_BUDGET_HOWS)[number];
 
+/**
+ * ww209: who the taxes fall on, the plan's `tax` (absent: consumption, the
+ * old indirect duties). Text gw.budget.tax.<id>.
+ */
+export const GW_TAX_KINDS = [
+  "consumption", // 소비세: everyone, the poor most
+  "income", // 소득세
+  "property", // 재산세·상속세 (the 1913 Wehrbeitrag's kind)
+  "profits", // 전시 이득세
+] as const;
+export type GwTaxKind = (typeof GW_TAX_KINDS)[number];
+
+/**
+ * ww209: the money bills, each a special article of the war_finance chapter
+ * with its own pinned place on the agenda (not counted in GW_AGENDA_MAX):
+ * the yearly budget (`<tag>_budget`) and the war credits (`<tag>_credits_<n>`,
+ * engine-lib MoneyRows `moneyIds`). Text gw.money.bill.<id>.
+ */
+export const GW_MONEY_BILLS = ["budget", "credits"] as const;
+export type GwMoneyBill = (typeof GW_MONEY_BILLS)[number];
+
+/**
+ * ww209: how a country's war credits come: voted by the house; by supreme
+ * command, nothing to vote (RUS); by provisional decree while the house is
+ * shut (AUH §14). Text gw.money.by.<id>.
+ */
+export const GW_CREDITS_BY = ["vote", "command", "decree"] as const;
+export type GwCreditsBy = (typeof GW_CREDITS_BY)[number];
+
+/**
+ * ww209: what a money bill lost twice (or past its deadline) does. `runs_on`:
+ * last year's budget runs on (DEU, RUS). `confidence`: the government's fall
+ * row takes a step at once (GBR, FRA). `unpaid`: the consenting half pays
+ * nothing in, its share's effect fails (Budapest). Failed credits always stop
+ * borrowing for their period, the gap printed. Text gw.money.fail.<id>.
+ */
+export const GW_MONEY_FAILS = ["runs_on", "confidence", "unpaid"] as const;
+export type GwMoneyFail = (typeof GW_MONEY_FAILS)[number];
+
+/** ww209: chapters from the meeting by which the budget must pass. */
+export const GW_MONEY_DEADLINE = 2;
+/** ww209: a money bill goes back to the lobby once; the next loss is final. */
+export const GW_MONEY_TRIES = 2;
+
 /** The tax rate, percent of June 1914's. */
 export const GW_TAX_MIN = 70;
 export const GW_TAX_MAX = 220;
@@ -57,6 +101,13 @@ export const GwBudgetPlanSchema = z.object({
   shares: z.array(int),
   /** GW_BUDGET_SOURCES order: the tax rate, then percents of the outlay. */
   mix: z.array(int),
+  /** ww209: who the taxes fall on; absent: consumption. */
+  tax: z.enum(GW_TAX_KINDS).optional(),
+  /**
+   * ww209: earmarks in it (engine-lib MoneyRows `GwEarmarkRow` ids): points
+   * of a line set aside for a community or region. Absent: none.
+   */
+  marks: z.array(z.string()).optional(),
 });
 export type GwBudgetPlan = z.infer<typeof GwBudgetPlanSchema>;
 
@@ -101,6 +152,24 @@ export const GwBudgetStateSchema = z.object({
   /** Chapter of the last bankruptcy crisis; -99 none. */
   crisis: int,
   notes: z.array(GwBudgetNoteSchema),
+  // ---- ww209 (S1); absent: none yet ----
+  /** The plan put to the house (`budget_put`), while its bill is on the agenda. */
+  put: GwBudgetPlanSchema.nullable().optional(),
+  /** Votes the budget has lost this meeting (GW_MONEY_TRIES). */
+  tries: int.optional(),
+  /** The war credits: absent until the first are due. */
+  credits: z
+    .object({
+      /** Credits voted or granted so far: the next bill is `n + 1`. */
+      n: int,
+      /** The chapter the next credits come due. */
+      due: int,
+      /** Borrowing (bonds and loans) stopped until this chapter; -1 not. */
+      stopTo: int,
+      /** Credits refused so far. */
+      lost: int,
+    })
+    .optional(),
 });
 export type GwBudgetState = z.infer<typeof GwBudgetStateSchema>;
 
@@ -170,4 +239,38 @@ export interface GwBudgetView {
    * or null when it was sent home or abolished. Absent or null: it sits.
    */
   shut?: { until: string | null } | null;
+  // ---- ww209 (S1 fills; absent: before) ----
+  /** The tax kind of the plan, and those the seat may pick now. */
+  tax?: GwTaxKind;
+  taxes?: readonly GwTaxKind[];
+  /** Earmarks in the draft (small lines under their line). */
+  marks?: readonly GwEarmarkView[];
+  /** The budget's bill on the agenda (the pinned row), if put. */
+  bill?: { law: string; stage: "persuade" | "vote" | "sign" } | null;
+  /** The war credits; null with none (peace, or a country with no rhythm). */
+  credits?: GwCreditsView | null;
+}
+
+/** ww209: an earmark under its line: text pack money.mark.<id>. */
+export interface GwEarmarkView {
+  id: string;
+  line: GwBudgetLine;
+  /** Points of the line (information; the line chip shows words). */
+  points: number;
+  /** Whose: the faction it was promised to, the community it feeds. */
+  faction: string | null;
+  community: string | null;
+}
+
+/** ww209: the war credits as the ledger and the pinned row read them. */
+export interface GwCreditsView {
+  /** The next credits' number (제n차 전쟁 공채). */
+  n: number;
+  by: GwCreditsBy;
+  /** The chapter they come due. */
+  due: number;
+  /** Their bill on the agenda; null not yet. */
+  law: string | null;
+  /** Borrowing is stopped now (credits refused): until this chapter. */
+  stopTo: number | null;
 }

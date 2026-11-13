@@ -11,6 +11,7 @@ import type {
   GwShortageRow,
 } from "../CraftRows";
 import type { GwHouseContent } from "../HouseRows";
+import type { GwMoneyContent } from "../MoneyRows";
 import type { GwPowerContent } from "../PowerRows";
 import { withRuler } from "../RulerRows";
 import type { GwSocietyContent } from "../SocietyRows";
@@ -37,6 +38,7 @@ import { FRA_DEPT_SCENES, FRA_DEPTS } from "./depts/fra";
 import { GBR_DEPT_SCENES, GBR_DEPTS } from "./depts/gbr";
 import { RUS_DEPT_SCENES, RUS_DEPTS } from "./depts/rus";
 import { GW_LADDER_POWERS, GW_LADDER_SCENES } from "./ladder";
+import { GW_MONEY } from "./money";
 import { GW_PEOPLE } from "./people";
 import { AUH_PEOPLE } from "./people_auh";
 import { GW_PEOPLE_COMMON } from "./people_common";
@@ -225,6 +227,8 @@ export interface GwContent extends GwHouseContent, GwPowerContent {
   readonly society?: GwSocietyContent;
   /** ww207: the tree templates and the factions' trees (content/utopia). */
   readonly utopia?: GwUtopiaContent;
+  /** ww209: the money bills' rows and earmarks (content/money). */
+  readonly money?: GwMoneyContent;
 }
 
 /** Where the main story remembers the prologues. */
@@ -471,6 +475,7 @@ export const GW_CONTENT: GwContent = {
   ...GW_HOUSE_CONTENT,
   society: GW_SOCIETY,
   utopia: GW_UTOPIA,
+  money: GW_MONEY,
   powers: [
     ...DEU_POWERS,
     ...GBR_POWERS,

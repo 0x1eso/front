@@ -76,9 +76,13 @@ import {
   GW_BUDGET_ITEMS,
   GW_BUDGET_LINES,
   GW_BUDGET_SOURCES,
+  GW_MONEY_BILLS,
+  GW_TAX_KINDS,
   GwBudgetItem,
   GwBudgetLine,
   GwBudgetSource,
+  type GwMoneyBill,
+  type GwTaxKind,
 } from "./GwBudget";
 import { GW_TAGS, GwTag } from "./GwCountries";
 import {
@@ -93,6 +97,12 @@ import {
   GwProjectStep,
   GwShortage,
 } from "./GwCraft";
+import {
+  GW_DEAL_FATES,
+  GW_DEAL_KINDS,
+  type GwDealFate,
+  type GwDealKind,
+} from "./GwDeals";
 import {
   GW_FATES,
   GW_SETTLE_PLANS,
@@ -586,7 +596,29 @@ export type GwWorldCond =
   /** That node of the faction's tree is open. */
   | { is: "node"; id: string; node: string }
   /** A utopia has been realised: that faction's if `id`, else any. */
-  | { is: "utopia"; id?: string };
+  | { is: "utopia"; id?: string }
+  // ---- ww209: the money bills (MoneyBills.ts, S1) ----
+  /**
+   * The seat's money bill of that kind: `open` on the agenda, `passed` or
+   * `failed` its last vote (this meeting, these credits), `stopped`
+   * borrowing stopped by refused credits now.
+   */
+  | {
+      is: "money";
+      bill: GwMoneyBill;
+      now: "open" | "passed" | "failed" | "stopped";
+    }
+  /** The plan running now taxes that kind. */
+  | { is: "tax_kind"; tax: GwTaxKind }
+  /** That earmark is in the plan running now. */
+  | { is: "earmark"; id: string }
+  /** Times a faction's wing has defied its line. */
+  | ({ is: "defy"; id: string } & Range)
+  /** A faction's split pressure. */
+  | ({ is: "split_pressure"; id: string } & Range)
+  // ---- ww209: the ledger (Deals.ts, S2) ----
+  /** A ledger row of that kind with that faction, of that fate (absent: open). */
+  | { is: "ledger"; kind: GwDealKind; id?: string; fate?: GwDealFate };
 
 export type GwWorldEffect =
   /** Germany's plan for the war to come. */
@@ -846,7 +878,15 @@ export type GwWorldEffect =
   | { do: "election"; chamber: GwChamber; cause: "dissolved" | "regime" }
   // ---- ww207: the utopias (Utopia.ts, S2) ----
   /** A faction's affinity. */
-  | { do: "affinity"; id: string; delta: number };
+  | { do: "affinity"; id: string; delta: number }
+  // ---- ww209: the money bills (MoneyBills.ts, S1) ----
+  /** An earmark into the plan running and the drafts to come (`on` false: cut). */
+  | { do: "earmark"; id: string; on: boolean }
+  /** A faction's split pressure. */
+  | { do: "split_pressure"; id: string; delta: number }
+  // ---- ww209: the ledger (Deals.ts, S2) ----
+  /** A ledger row with the faction: he owes a favour, or the seat owes him one. */
+  | { do: "ledger"; kind: "owe" | "owed"; id: string };
 
 const int = z.number().int();
 const yearMonth = z.string().regex(/^19[0-9]{2}-[01][0-9]$/);
@@ -1144,6 +1184,20 @@ export const GwWorldCondSchema = z.union([
   is("affinity", { id: GwIdSchema, ...range }),
   is("node", { id: GwIdSchema, node: GwIdSchema }),
   is("utopia", { id: GwIdSchema.optional() }),
+  // ww209
+  is("money", {
+    bill: z.enum(GW_MONEY_BILLS),
+    now: z.enum(["open", "passed", "failed", "stopped"]),
+  }),
+  is("tax_kind", { tax: z.enum(GW_TAX_KINDS) }),
+  is("earmark", { id: GwIdSchema }),
+  is("defy", { id: GwIdSchema, ...range }),
+  is("split_pressure", { id: GwIdSchema, ...range }),
+  is("ledger", {
+    kind: z.enum(GW_DEAL_KINDS),
+    id: GwIdSchema.optional(),
+    fate: z.enum(GW_DEAL_FATES).optional(),
+  }),
 ]) as unknown as z.ZodType<GwWorldCond>;
 
 export const GwWorldEffectSchema = z.union([
@@ -1298,6 +1352,10 @@ export const GwWorldEffectSchema = z.union([
     cause: z.enum(["dissolved", "regime"]),
   }),
   act("affinity", { id: GwIdSchema, delta: int }),
+  // ww209
+  act("earmark", { id: GwIdSchema, on: z.boolean() }),
+  act("split_pressure", { id: GwIdSchema, delta: int }),
+  act("ledger", { kind: z.enum(["owe", "owed"]), id: GwIdSchema }),
 ]) as unknown as z.ZodType<GwWorldEffect>;
 
 // ---- Authoring helpers ----

@@ -34,12 +34,14 @@ import { agentsView } from "./Agents";
 import { tasksShown } from "./Aims";
 import { budgetView } from "./Budget";
 import { craftView } from "./Craft";
+import { dealsDossierView } from "./Deals";
 import { dossierView } from "./Dossier";
 import { eraOf, researchView } from "./Eras";
 import { ownFronts, proposalsFor } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { houseView } from "./House";
 import { lawBookView, lawsAhead, lawViews } from "./Laws";
+import { moneyBookView, moneyBudgetView, moneyStripView } from "./MoneyBills";
 import { seaView } from "./NavalIntel";
 import { prepView } from "./Offensives";
 import {
@@ -374,7 +376,7 @@ export function worldView(gw: GreatWar, seat: GwSeatState): GwWorldView {
     countries: countries(gw),
     news: s.news.slice(-NEWS_SHOWN),
     memoir: seat.memoir,
-    budget: budgetView(gw, seat),
+    budget: moneyBudgetView(gw, seat, budgetView(gw, seat)),
     laws,
     ...(laws.length === 0 && lawsAhead(gw, seat)
       ? { lawsAhead: true as const }
@@ -382,8 +384,8 @@ export function worldView(gw: GreatWar, seat: GwSeatState): GwWorldView {
     press: pressView(gw, seat),
     craft: craftView(gw, seat),
     house: houseView(gw, seat),
-    book: lawBookView(gw, seat),
-    dossier: dossierView(gw, seat),
+    book: moneyBookView(gw, seat, lawBookView(gw, seat)),
+    dossier: dealsDossierView(gw, seat, dossierView(gw, seat)),
     ...societyOf(gw, seat),
   };
 }
@@ -393,6 +395,6 @@ function societyOf(
   gw: GreatWar,
   seat: GwSeatState,
 ): { society?: GwSocietyView } {
-  const society = societyView(gw, seat);
+  const society = moneyStripView(gw, seat, societyView(gw, seat));
   return society === undefined ? {} : { society };
 }

@@ -18,7 +18,9 @@ import {
   GW_THEATRES,
   GW_TREATY_CLAUSES_MAX,
 } from "./GreatWarTypes";
+import { GW_TAX_KINDS } from "./GwBudget";
 import { GW_TAGS } from "./GwCountries";
+import { GW_COUNTER_KINDS, GW_DEAL_TERMS, GW_THREAT_KINDS } from "./GwDeals";
 import {
   GW_ANSWER_REDOS,
   GW_PETITION_ANSWERS,
@@ -405,6 +407,87 @@ export const GwOrderSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("utopia_realise"), faction: Id }),
   /** The utopia's card (decision 1B): end here, or play on as the new head. */
   z.object({ kind: z.literal("utopia_choice"), play: z.boolean() }),
+  // ---- ww209: the money bills (S1) and bargaining (S2) ----
+  /**
+   * 의사일정에 올린다: the ledger's plan goes to the house as the year's budget
+   * (its pinned place). `credits`: instead put the coming period's credits
+   * (the mix's bonds, loans and printing) to the vote now; for RUS, to the
+   * Duma though nothing obliges it. `marks`: earmark row ids. The old
+   * `budget` order stays the way round (`force`).
+   */
+  z.object({
+    kind: z.literal("budget_put"),
+    credits: z.boolean(),
+    shares: z.array(zb.uint({ max: 100 })).max(8),
+    mix: z.array(zb.uint({ max: 300 })).max(8),
+    tax: z.enum(GW_TAX_KINDS),
+    marks: z.array(Id).max(8),
+  }),
+  /**
+   * 내 조건을 내놓는다: one counter per call to the summoned leader. `pick`:
+   * the earmark row (`region`), the rival's law (`against`), the office
+   * (`post`), else null. His answer shows on the lobby row.
+   */
+  z.object({
+    kind: z.literal("bill_counter"),
+    law: Id,
+    faction: Id,
+    counter: z.enum(GW_COUNTER_KINDS),
+    pick: Id.nullable(),
+  }),
+  /** 기한을 정한다: his promise price `want` taken, due by `term`. */
+  z.object({
+    kind: z.literal("bill_term"),
+    law: Id,
+    faction: Id,
+    want: Id,
+    term: z.enum(GW_DEAL_TERMS),
+  }),
+  /**
+   * 빚으로 남긴다 (`call` false): his price `want` paid now, no vote asked; he
+   * owes the seat. 빚을 받는다 (`call` true, `want` null): the favour he owes
+   * called in on this bill.
+   */
+  z.object({
+    kind: z.literal("bill_favour"),
+    law: Id,
+    faction: Id,
+    want: Id.nullable(),
+    call: z.boolean(),
+  }),
+  /** 위협한다: what the seat will do if his faction votes against. */
+  z.object({
+    kind: z.literal("bill_threat"),
+    law: Id,
+    faction: Id,
+    threat: z.enum(GW_THREAT_KINDS),
+  }),
+  /**
+   * 온건파를 따로 만난다: `want` null summons the faction's wing man on this
+   * bill (a call, as bill_lobby); a `want` of his then takes his price.
+   */
+  z.object({
+    kind: z.literal("bill_peel"),
+    law: Id,
+    faction: Id,
+    want: Id.nullable(),
+  }),
+  /**
+   * ww209: the beaten seat names its own fate for refused places instead of
+   * a plain no (the table's `counter`), then answers as table_answer.
+   */
+  z.object({
+    kind: z.literal("table_counter"),
+    counters: z
+      .array(
+        z.object({
+          claim: zb.uint({ max: 10_000 }),
+          fate: z.enum(GW_FATES),
+          term: z.enum(GW_FATE_TERMS).nullable(),
+        }),
+      )
+      .max(64),
+  }),
 ]);
 export type GwOrder = z.infer<typeof GwOrderSchema>;
 
@@ -499,5 +582,13 @@ export const GW_ORDER_BLOCKS = [
   "node_shut", // the tier before isn't open, or its gate doesn't hold
   "faction_cool", // promoted or condemned lately: not again yet
   "no_utopia", // the utopia isn't ready, or there's nothing to choose
+  // ww209
+  "no_credits", // no credits are due, or they need no vote
+  "no_counter", // he has heard a counter on this call, or won't hear that one
+  "no_term", // that price has no deadline to set
+  "no_favour", // nothing owed to call in, or nothing to owe
+  "no_threat", // threats are void on his bloc, or there's nothing to threaten
+  "no_wing", // his faction has no wing to meet, or it was met
+  "paid_only", // word has got round: he takes only what is paid now
 ] as const;
 export type GwOrderBlock = (typeof GW_ORDER_BLOCKS)[number];

@@ -25,10 +25,22 @@ import {
   spentTalk,
   summonPrice,
 } from "./AskFirst";
-import { tableAnswer, tableBargain, tablePropose } from "./Bargain";
+import {
+  tableAnswer,
+  tableBargain,
+  tableCounter,
+  tablePropose,
+} from "./Bargain";
 import { budgetOrder } from "./Budget";
 import { setClaims } from "./Claims";
 import { fieldOrder, raiseFooting } from "./Craft";
+import {
+  billCounter,
+  billFavour,
+  billPeel,
+  billTerm,
+  billThreat,
+} from "./Deals";
 import {
   answerPaper,
   briefDept,
@@ -62,6 +74,7 @@ import {
   lawSubmit,
   lawWithdrawOrder,
 } from "./Laws";
+import { budgetPut } from "./MoneyBills";
 import { GW_OFFENSIVE_PAPERS, signOffensivePaper } from "./Offensives";
 import {
   candidatesFor,
@@ -369,6 +382,26 @@ export function applyGwOrder(
       return realiseUtopia(gw, seat, o.faction);
     case "utopia_choice":
       return utopiaChoice(gw, seat, o.play);
+    // ww209: the money bills (S1) and bargaining (S2).
+    case "budget_put":
+      return budgetPut(
+        gw,
+        seat,
+        { shares: o.shares, mix: o.mix, tax: o.tax, marks: o.marks },
+        o.credits,
+      );
+    case "bill_counter":
+      return billCounter(gw, seat, o.law, o.faction, o.counter, o.pick);
+    case "bill_term":
+      return billTerm(gw, seat, o.law, o.faction, o.want, o.term);
+    case "bill_favour":
+      return billFavour(gw, seat, o.law, o.faction, o.want, o.call);
+    case "bill_threat":
+      return billThreat(gw, seat, o.law, o.faction, o.threat);
+    case "bill_peel":
+      return billPeel(gw, seat, o.law, o.faction, o.want);
+    case "table_counter":
+      return tableCounter(gw, seat, o.counters);
   }
 }
 

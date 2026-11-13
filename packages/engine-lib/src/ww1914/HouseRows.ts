@@ -8,7 +8,13 @@ import type {
   GwInstitution,
   GwOffice,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import type {
+  GwBudgetLine,
+  GwMoneyBill,
+  GwTaxKind,
+} from "@openfront/engine-api/ww1914/GwBudget";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
+import type { GwDealTerm } from "@openfront/engine-api/ww1914/GwDeals";
 import type {
   GwAround,
   GwAskKind,
@@ -167,6 +173,10 @@ export interface GwWant {
   readonly effects?: readonly GwEffect[];
   /** The scene he comes back with if it is broken; the common one if absent. */
   readonly back?: string;
+  /** ww209: deadlines he takes on this promise (`bill_term`); absent: all three. */
+  readonly terms?: readonly GwDealTerm[];
+  /** ww209: an earmark row this price pays (kind `money`): its region's line. */
+  readonly earmark?: string;
 }
 
 export interface GwFactionRow {
@@ -242,6 +252,53 @@ export interface GwFactionRow {
   readonly template?: GwTreeTemplate;
   /** Its ability: a power row with `ability` naming this faction. */
   readonly ability?: string;
+  // ---- ww209 (W lanes fill; S1 counts, S2 bargains) ----
+  /**
+   * Its purse on money bills, over what its `ideals` give (MoneyRows
+   * `GW_PURSE_IDEALS`): the first row that holds is read. The SPD's peacetime
+   * "not one man, not one penny" is `{ when: peace, bill: "budget", side: -1 }`.
+   */
+  readonly purse?: readonly GwPurseRow[];
+  /** Its wing: the part that can defy its line, or be met apart and peeled. */
+  readonly wing?: GwWingRow;
+}
+
+/** ww209: a faction's stance on money bills, over its ideals. */
+export interface GwPurseRow {
+  /** It holds now; absent: always. */
+  readonly when?: GwCond;
+  /** Which money bill; absent: both. */
+  readonly bill?: GwMoneyBill;
+  /** A fixed side, whatever the plan (credits for, the budget against). */
+  readonly side?: GwSide;
+  /** +1 wants the line over the norm, -1 under it; absent: from ideals. */
+  readonly lines?: Readonly<Partial<Record<GwBudgetLine, GwSide>>>;
+  /** +1 for a tax of that kind, -1 against; absent: from ideals. */
+  readonly taxes?: Readonly<Partial<Record<GwTaxKind, GwSide>>>;
+}
+
+/**
+ * ww209: a faction's wing (design §2.2, §3 peel): Liebknecht's left in the
+ * SPD, the ILP in Labour, the SFIO's minority, the Kadets' left. `defies`:
+ * it votes openly against the line once hot enough (seats = temper tenths of
+ * `share`). `peels`: its man can be met apart with a smaller price.
+ */
+export interface GwWingRow {
+  /** Its man: the log names him, the peel talk summons him. */
+  readonly person: string;
+  readonly ideals: GwIdeals;
+  /** Its share of the faction's seats, in tenths (1..9). */
+  readonly share: number;
+  /** It stands now; absent: always. */
+  readonly when?: GwCond;
+  /** It can defy the line; absent: true. */
+  readonly defies?: boolean;
+  /** It can be peeled; absent: true. */
+  readonly peels?: boolean;
+  /** The faction it splits into (an `out` row); absent: the nearest by ideals. */
+  readonly into?: string;
+  /** Its smaller prices when met apart; absent: the faction's, cheapest first. */
+  readonly wants?: readonly GwWant[];
 }
 
 /** What the house makes of a bill: kept apart from the law row, by law id. */
