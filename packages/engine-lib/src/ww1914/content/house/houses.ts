@@ -263,7 +263,15 @@ export const FRA_HOUSE: GwHouseRow = {
       // législature, the groups' table); the unattached stay away.
       size: 602,
       // ww207 (F, W-FRA checks): elected April-May 1914, a four-year term.
-      elect: { rule: "two_round", due: "1918-04", term: 4 },
+      // W-FRA: the 1914 Chamber, elected 26 April and 10 May 1914, sat
+      // to the election of 16 November 1919 (checked); how its term was
+      // carried is not found, so the war's postponement is a bill.
+      elect: {
+        rule: "two_round",
+        due: "1918-04",
+        term: 4,
+        postpone: "fra_law_postpone",
+      },
     },
     // ww203: 300 seats; the 1912 groups (no renewal in the war), about ten
     // unattached away.
