@@ -136,7 +136,7 @@ function questionLine(c: GwCtx, p: Paper<"question">): string {
 }
 
 function stallLine(c: GwCtx, p: Paper<"stall">): string {
-  return stallText(c, p.reason, p.by, p.topic);
+  return stallText(c, p.reason, p.by, p.topic, p.type);
 }
 
 function newsLine(c: GwCtx, l: Paper<"news">["lines"][number]): string {

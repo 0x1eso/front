@@ -6251,6 +6251,7 @@
         "room_shut": "You are away: nobody is received this chapter, and the departments send their papers by wire.",
         "room_title": "Audience room",
         "room_waits": "Waiting",
+        "settle_closed": "The peace table over {topic} has risen: this draft of its fate is no longer needed and is withdrawn.",
         "shelve": "Shelve it",
         "soon": "soon",
         "staffed": "{who} works beside him.",

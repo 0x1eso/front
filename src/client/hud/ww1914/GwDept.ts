@@ -386,7 +386,16 @@ export function stallText(
   reason: GwStallReason,
   by: string,
   topic: string | null,
+  type: GwTaskType | null = null,
 ): string {
+  // ww216: a beaten country's draft withdrawn once its table has risen.
+  if (type === "settle" && reason === "moot") {
+    return applyJosa(
+      translateText("gw.ui.dept.settle_closed", {
+        topic: topicWord(c, topic),
+      }),
+    );
+  }
   const own = c.pack?.depts?.stalls?.[reason];
   if (own === undefined) {
     return translateText(`gw.ui.dept.stall_line.${reason}`);
