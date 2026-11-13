@@ -1,3 +1,4 @@
+import type { GwAxisPush } from "@openfront/engine-api/ww1914/GwSociety";
 import {
   any,
   byName,
@@ -39,6 +40,29 @@ const peaceYears = (months: number): GwLawRow["opens"] => ({
     { kind: "not", of: world({ is: "war_months", min: 0 }) },
   ],
 });
+/**
+ * ww207: each text's axis push laid on the rows; a text the table leaves out
+ * keeps none.
+ */
+export function withAxes(
+  rows: readonly GwLawRow[],
+  table: Readonly<Record<string, Readonly<Record<string, GwAxisPush>>>>,
+): GwLawRow[] {
+  return rows.map((r) => {
+    const t = table[r.id];
+    if (t === undefined) return r;
+    return {
+      ...r,
+      draft: r.draft.map((d) =>
+        t[d.id] === undefined ? d : { ...d, axes: t[d.id] },
+      ),
+    };
+  });
+}
+
+/** ww207: peace is not(war): the crisis weeks, the peace years, neutrality, after the armistice. */
+const notWar: GwLawRow["opens"] = { kind: "not", of: war };
+
 /** What a text of the bill brings once it is law. */
 const onText = (
   law: string,
@@ -60,7 +84,7 @@ const opinion = (bloc: "business" | "workers", delta: number) =>
  * the economy past it, by the powers it was given on 4 August; what touches the
  * constitution or the vote, it can't.
  */
-export const DEU_LAWS: readonly GwLawRow[] = [
+const DEU_LAW_ROWS: readonly GwLawRow[] = [
   row({
     id: "deu_censor",
     chapter: "censorship",
@@ -329,8 +353,11 @@ export const DEU_LAWS: readonly GwLawRow[] = [
   }),
   row({
     id: "deu_jesuits",
-    chapter: "nations",
-    opens: allOf(war, since("1916-06")),
+    // ww207: a schools-and-church article, open in peace too (the law of 4
+    // July 1872; its §2 went on 8 March 1904, the rest on 19 April 1917).
+    chapter: "schools",
+    opens: any(notWar, allOf(war, since("1916-06"))),
+    peace: true,
     lean: 0,
     decree: false,
     cast: { chancellor: held("chancellor") },
@@ -359,9 +386,10 @@ export const DEU_LAWS: readonly GwLawRow[] = [
   row({
     id: "deu_three_class",
     chapter: "franchise",
+    // ww207: in peace too, once the reform is asked for (Bethmann's 1910
+    // bill died in the Prussian house).
     opens: allOf(
-      war,
-      since("1916-06"),
+      any(notWar, allOf(war, since("1916-06"))),
       any(
         flag("f_franchise_word"),
         flag("f_franchise_draft"),
@@ -370,6 +398,7 @@ export const DEU_LAWS: readonly GwLawRow[] = [
         world({ is: "unrest", min: 1 }),
       ),
     ),
+    peace: true,
     lean: -3,
     decree: false,
     cast: home,
@@ -588,4 +617,281 @@ export const DEU_LAWS: readonly GwLawRow[] = [
       wins: 1,
     }),
   }),
+
+  // ---- ww207: the peace articles (peace: true; open while not at war) ----
+  // The army bill of 1913 was paid by the Wehrbeitrag (law of 3 July 1913: a
+  // levy once, on fortunes over 10,000 marks at 0.15 to 1.5 percent, about
+  // a billion marks) and a Reich tax on the growth of property; most of the
+  // SPD group voted for the tax bills, against the army bill.
+  row({
+    id: "deu_defence_levy",
+    chapter: "tax",
+    opens: notWar,
+    peace: true,
+    lean: 0,
+    decree: false,
+    cast: { finance: held("finance"), chancellor: held("chancellor") },
+    draft: [
+      draft("property_levy", 0, [], [inst("reichstag", 1)]),
+      draft("consumption", 1, []),
+      draft("states_pay", 1, []),
+    ],
+    passed: [
+      onText(
+        "deu_defence_levy",
+        "property_levy",
+        gauge("money", 2),
+        opinion("business", -1),
+        opinion("workers", 1),
+      ),
+      onText(
+        "deu_defence_levy",
+        "consumption",
+        gauge("money", 1),
+        opinion("workers", -1),
+      ),
+      onText("deu_defence_levy", "states_pay", gauge("money", 1)),
+    ],
+    passedTell: [],
+    term: [{ gauge: "money", delta: 1, every: 12, offset: 6 }],
+    repeal: { authority: 15, tell: [], effects: [gauge("money", -1)] },
+    talk: lawTalk("deu_defence_levy", {
+      who: either(person("deu_erzberger"), held("finance")),
+      ask: "frank",
+      push: "cold",
+      tell: [],
+      price: [inst("reichstag", 1)],
+      wins: 1,
+      tempers: ["cunning"],
+    }),
+  }),
+  // The grain duties of the 1902 tariff (law of 25 December 1902; rye 5
+  // marks), in force with the trade treaties of 1906. Their renewal was the
+  // next great fight (the treaties' end, 1917: not checked).
+  row({
+    id: "deu_grain_tariff",
+    chapter: "land",
+    opens: notWar,
+    peace: true,
+    lean: 0,
+    decree: false,
+    cast: home,
+    draft: [
+      draft("keep_duties", 1, []),
+      draft("raise_duties", 0, []),
+      draft("cut_duties", -1, []),
+    ],
+    passed: [
+      onText("deu_grain_tariff", "keep_duties", opinion("business", 1)),
+      onText(
+        "deu_grain_tariff",
+        "raise_duties",
+        opinion("workers", -1),
+        gauge("money", 1),
+      ),
+      onText(
+        "deu_grain_tariff",
+        "cut_duties",
+        opinion("workers", 1),
+        gauge("bread", 1),
+      ),
+    ],
+    passedTell: [],
+    term: [
+      { gauge: "bread", delta: -1, every: 12, text: ["raise_duties"] },
+      { gauge: "bread", delta: 1, every: 12, text: ["cut_duties"] },
+    ],
+    repeal: { authority: 15, tell: [], effects: [opinion("business", -1)] },
+    talk: lawTalk("deu_grain_tariff", {
+      who: either(held("interior"), held("chancellor")),
+      ask: "cold",
+      push: "threat",
+      tell: [],
+      price: [opinion("workers", -1)],
+      wins: 1,
+    }),
+  }),
+  // The strike-breakers' law the right asked for: the Kartell der schaffenden
+  // Stände (industry, the small masters and the Agrarian League, Leipzig,
+  // 24 August 1913) wanted pickets banned; the Reichstag's majority refused
+  // it up to 1914. Labour chambers were the other side's answer (a bill went
+  // through the Reichstag in December 1910 and no further: not checked).
+  row({
+    id: "deu_pickets",
+    chapter: "social",
+    opens: notWar,
+    peace: true,
+    lean: -1,
+    decree: false,
+    cast: home,
+    draft: [
+      draft("ban_pickets", -1, [], [inst("army", 1)]),
+      draft("joint_chambers", 1, []),
+      draft("labour_chambers", 0, [], [inst("reichstag", 1)]),
+    ],
+    passed: [
+      onText(
+        "deu_pickets",
+        "ban_pickets",
+        gauge("order", 1),
+        opinion("workers", -2),
+        opinion("business", 1),
+      ),
+      onText("deu_pickets", "joint_chambers", opinion("workers", 1)),
+      onText(
+        "deu_pickets",
+        "labour_chambers",
+        opinion("workers", 1),
+        opinion("business", -1),
+      ),
+    ],
+    passedTell: [],
+    term: [
+      { gauge: "order", delta: 1, every: 12, text: ["joint_chambers"] },
+      { gauge: "morale", delta: -1, every: 12, text: ["ban_pickets"] },
+    ],
+    repeal: { authority: 15, tell: [], effects: [opinion("workers", -1)] },
+    talk: lawTalk("deu_pickets", {
+      who: either(person("deu_ebert"), held("interior")),
+      ask: "frank",
+      push: "cold",
+      tell: [],
+      price: [opinion("business", -1)],
+      wins: 1,
+    }),
+  }),
+  // Zabern: a lieutenant's insults, then the garrison's arrests (November
+  // 1913); the Reichstag's vote of no confidence, 293 to 54 (4 December
+  // 1913), which Bethmann ignored. A new order on the army's use of arms
+  // followed in March 1914 (the date not checked).
+  row({
+    id: "deu_zabern",
+    chapter: "local",
+    opens: notWar,
+    peace: true,
+    lean: -1,
+    decree: false,
+    cast: { chancellor: held("chancellor"), war: held("war") },
+    draft: [
+      draft("civil_request", 1, [], [inst("army", -1)]),
+      draft("crown_command", 0, [], [inst("army", 1), inst("reichstag", -1)]),
+      draft(
+        "reichsland_rights",
+        -1,
+        [],
+        [inst("army", -1), inst("reichstag", 1)],
+      ),
+    ],
+    passed: [
+      onText("deu_zabern", "civil_request", gauge("order", 1)),
+      onText("deu_zabern", "crown_command", opinion("workers", -1)),
+      onText("deu_zabern", "reichsland_rights", {
+        kind: "pressure",
+        topic: "alsace",
+        delta: -1,
+      }),
+    ],
+    passedTell: [],
+    term: [],
+    repeal: { authority: 20, tell: [], effects: [inst("army", 1)] },
+    talk: lawTalk("deu_zabern", {
+      who: either(held("war"), held("chancellor")),
+      ask: "cold",
+      push: "threat",
+      tell: [],
+      price: [inst("army", 1)],
+      wins: 1,
+      tempers: ["arrogant"],
+    }),
+  }),
 ];
+
+/**
+ * ww207: what each text moves when it passes, in notches (one a bill): rule
+ * 왕권 -/의회 +, class 재산 -/노동 +, force 무력 -/협조 +.
+ */
+const DEU_LAW_AXES: Readonly<Record<string, Record<string, GwAxisPush>>> = {
+  deu_censor: {
+    generals_keep: { rule: -1, force: -1 },
+    one_office: { rule: -1 },
+    reichstag_reads: { rule: 1 },
+  },
+  deu_bread_cards: {
+    city_cards: { class: 1 },
+    reich_grain: { class: 1, rule: -1 },
+    war_bread: { force: -1 },
+  },
+  deu_food_office: {
+    food_dictator: { class: 1 },
+    states_keep: { class: -1 },
+    army_seat: { rule: -1, force: -1 },
+  },
+  deu_strike_ban: {
+    corps_commanders: { class: -1, rule: -1 },
+    arbitration: { class: 1 },
+    courts_only: { class: -1 },
+  },
+  deu_aux: {
+    army_text: { class: -1, force: -1 },
+    unions_text: { class: 1 },
+  },
+  deu_unions: {
+    youth_clause: { class: 1 },
+    paragraph_153: { class: 1, rule: 1 },
+    words_only: { class: 1 },
+  },
+  deu_jesuits: {
+    whole_law: { force: 1, rule: 1 },
+    houses_only: { force: 1 },
+  },
+  deu_three_class: {
+    plural_vote: { rule: 1 },
+    equal_vote: { rule: 1, class: 1 },
+    after_the_peace: { rule: -1 },
+  },
+  deu_alsace: {
+    federal_state: { rule: 1, force: 1 },
+    share_out: { force: -1 },
+    to_prussia: { rule: -1, force: -1 },
+  },
+  deu_army_bill: {
+    cadres: { force: -1 },
+    corps: { force: -1, class: -1 },
+    full_service: { force: -1, rule: -1 },
+  },
+  deu_war_tax: {
+    loans_only: { class: -1 },
+    war_profits: { class: 1 },
+    property_tax: { class: 1, rule: 1 },
+  },
+  deu_siege: {
+    corps_commanders: { rule: -1 },
+    civil_review: { rule: 1 },
+  },
+  deu_defence_levy: {
+    property_levy: { class: 1 },
+    consumption: { class: -1 },
+    states_pay: { rule: -1 },
+  },
+  deu_grain_tariff: {
+    keep_duties: { class: -1 },
+    raise_duties: { class: -1, force: -1 },
+    cut_duties: { class: 1 },
+  },
+  deu_pickets: {
+    ban_pickets: { class: -1, rule: -1 },
+    joint_chambers: { class: 1 },
+    labour_chambers: { class: 1, rule: 1 },
+  },
+  deu_zabern: {
+    civil_request: { rule: 1 },
+    crown_command: { rule: -1, force: -1 },
+    reichsland_rights: { rule: 1, force: 1 },
+  },
+};
+
+/** Germany's bills, each text with its axis push. */
+export const DEU_LAWS: readonly GwLawRow[] = withAxes(
+  DEU_LAW_ROWS,
+  DEU_LAW_AXES,
+);

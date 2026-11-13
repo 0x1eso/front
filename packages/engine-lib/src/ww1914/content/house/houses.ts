@@ -24,8 +24,16 @@ export const DEU_HOUSE: GwHouseRow = {
       sits: not(DISSOLVED),
       // ww203: 397 seats (the 1912 election).
       size: 397,
-      // ww207 (F, W-DEU checks): two rounds; the 1912 house's term ends early 1917.
-      elect: { rule: "two_round", due: "1917-01", term: 5 },
+      // ww207 (W-DEU, checked): elected 12 January 1912 (run-offs to the
+      // 25th), two rounds, a five-year term (Art. 24 since 1888): due January
+      // 1917. Stretched in the war by the laws of 16 Oct 1916, 23 Jul 1917
+      // and 18 Jul 1918 (deu_postpone).
+      elect: {
+        rule: "two_round",
+        due: "1917-01",
+        term: 5,
+        postpone: "deu_postpone",
+      },
     },
     // The states' door: only bills that name it (Reich food, the states' rights).
     // ww203: 61 votes; Prussia's 17 and the small states' vote as the

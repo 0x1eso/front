@@ -432,16 +432,18 @@ describe("a bill's way", () => {
 });
 
 describe("the box before a bill opens (w159)", () => {
-  test("no war, no bill open, but the seat is told bills will come", async () => {
+  test("no war: only the peace articles are open (ww207)", async () => {
     const { runner } = await gwRunner({ greatWar1914Calendar: "full" });
     const gw = runner.game.greatWar()!;
-    // Past October 1914 with no war: every German bill waits on the war.
+    // Past October 1914 with no war: the war's bills wait; the peace rows
+    // (ww207) are open, so the box saying bills will come stays away.
     gw.s.dayShift = 150;
     gw.s.day += 150;
     expect(gw.s.warChapter).toBe(null);
     const w = seat(runner).world;
-    expect(w.laws).toEqual([]);
-    expect(w.lawsAhead).toBe(true);
+    expect(w.laws.length).toBeGreaterThan(0);
+    expect(w.laws.filter((x) => rowOf(x.id).peace !== true)).toEqual([]);
+    expect(w.lawsAhead).toBeUndefined();
   });
 
   test("at war, the house's bills and the plain ones show, with no such word", async () => {

@@ -164,6 +164,31 @@ const at = (tag: GwTag, effects: GwEffect[]) => ({
   effects,
 });
 
+/**
+ * ww207: a faction's ability on the 정당 group: its result card `<id>_r`,
+ * the turned card `<id>_t`.
+ */
+function ability(
+  id: string,
+  faction: string,
+  o: { effects: GwEffect[]; strong: GwEffect[]; turned: GwEffect[] },
+): GwPowerRow {
+  return {
+    id,
+    tag: "DEU",
+    group: "factions",
+    kind: "custom",
+    tags: ["ability"],
+    effects: o.effects,
+    scene: `${id}_r`,
+    ability: {
+      faction,
+      strong: o.strong,
+      turned: { effects: o.turned, scene: `${id}_t` },
+    },
+  };
+}
+
 export const DEU_POWERS: readonly GwPowerRow[] = [
   // ---- 전쟁과 평화 ----
   {
@@ -1105,6 +1130,55 @@ export const DEU_POWERS: readonly GwPowerRow[] = [
     },
     scene: "deu_pw_dissolve_b_r",
   },
+
+  // ---- ww207 정당: the factions' abilities (S2 runs `ability`) ----
+  // Asked at trust 호의 or better and temper 1 or less; turned against the
+  // seat at temper 3. Flavour: the Free Trade Unions (Legien's General
+  // Commission) kept the plants working under the Burgfrieden, and the
+  // January 1918 strike was their turned face; the Centre's Volksverein ran
+  // the Catholic south's meetings; heavy industry's Centralverband; the
+  // Agrarian League (Bund der Landwirte, some 330,000 members) and the
+  // grain; the left-liberal Berlin and Frankfurt papers; the Pan-German and
+  // Fatherland Party press against Bethmann.
+  ability("deu_pw_ab_spd", "deu_spd", {
+    effects: [gauge("shells", 1), gauge("order", 1)],
+    strong: [gauge("shells", 1), gauge("order", 1), gauge("morale", 1)],
+    turned: [gauge("shells", -2), gauge("order", -1), heat("deu_uspd", 1)],
+  }),
+  ability("deu_pw_ab_centre", "deu_centre", {
+    effects: [gauge("morale", 1), heat("deu_south", -1)],
+    strong: [gauge("morale", 1), heat("deu_south", -2), inst("reichstag", 1)],
+    turned: [
+      heat("deu_south", 2),
+      { kind: "opinion", bloc: "parliament", delta: -1 },
+    ],
+  }),
+  ability("deu_pw_ab_natlib", "deu_natlib", {
+    effects: [gauge("money", 1)],
+    strong: [gauge("money", 2)],
+    turned: [
+      gauge("money", -2),
+      { kind: "opinion", bloc: "business", delta: -1 },
+    ],
+  }),
+  ability("deu_pw_ab_cons", "deu_cons", {
+    effects: [gauge("bread", 1)],
+    strong: [gauge("bread", 2)],
+    turned: [gauge("bread", -2), heat("deu_spd", 1)],
+  }),
+  ability("deu_pw_ab_progress", "deu_progress", {
+    effects: [gauge("morale", 1), { kind: "opinion", bloc: "press", delta: 1 }],
+    strong: [gauge("morale", 2), { kind: "opinion", bloc: "press", delta: 1 }],
+    turned: [
+      officeTrust("chancellor", -1),
+      { kind: "opinion", bloc: "press", delta: -1 },
+    ],
+  }),
+  ability("deu_pw_ab_fatherland", "deu_fatherland", {
+    effects: [gauge("morale", 1), { kind: "opinion", bloc: "army", delta: 1 }],
+    strong: [gauge("morale", 2), { kind: "opinion", bloc: "army", delta: 1 }],
+    turned: [officeTrust("chancellor", -2), heat("deu_spd", 1)],
+  }),
 ];
 
 /** DEU's own reactors, on top of GW_REACTORS (`nation: "DEU"`). */
@@ -1290,4 +1364,17 @@ export const DEU_POWER_SCENES: readonly GwScene[] = [
   card("deu_pw_ohl_b_bad"),
   card("deu_pw_dissolve_b_r", [{ id: "war", when: war }, { id: "base" }]),
   card("deu_pw_dissolve_b_bad"),
+  // ww207: the factions' abilities, asked and turned.
+  card("deu_pw_ab_spd_r"),
+  card("deu_pw_ab_spd_t"),
+  card("deu_pw_ab_centre_r"),
+  card("deu_pw_ab_centre_t"),
+  card("deu_pw_ab_natlib_r"),
+  card("deu_pw_ab_natlib_t"),
+  card("deu_pw_ab_cons_r"),
+  card("deu_pw_ab_cons_t"),
+  card("deu_pw_ab_progress_r"),
+  card("deu_pw_ab_progress_t"),
+  card("deu_pw_ab_fatherland_r"),
+  card("deu_pw_ab_fatherland_t"),
 ];
