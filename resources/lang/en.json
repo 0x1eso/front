@@ -2239,10 +2239,18 @@
         "tense": "hardening"
       },
       "move": {
+        "counter": "Take their own terms: {fate}",
         "down": "Step down: {fate}",
         "drop": "Withdraw it",
+        "favour_neutral": "Give it up for their neutrality",
+        "favour_trade": "Give it up for trade terms",
         "insist": "Insist",
-        "trade": "Ask for another place"
+        "promise_leave": "Promise to withdraw by a date",
+        "promise_vote": "Promise a plebiscite by a date",
+        "ransom": "Money instead of the land",
+        "split": "A separate treaty with the breakaway state",
+        "trade": "Ask for another place",
+        "ultimatum": "Ultimatum: accept now, or the advance resumes"
       },
       "no": "Refuse",
       "painted": "{n} of {total} provinces painted",
@@ -2493,7 +2501,20 @@
       "spending": "Spending",
       "state": "The state of the money",
       "submit": "Send it to be passed",
+      "tax": {
+        "consumption": "Consumption taxes",
+        "income": "Income tax",
+        "profits": "War profits tax",
+        "property": "Property and death duties"
+      },
+      "tax_label": "Who pays",
       "tax_note": "Order {pts} a year",
+      "tax_who": {
+        "consumption": "Everyone pays it at the shop, and the poor pay most.",
+        "income": "Paid on what one earns: salaried men and the well-off.",
+        "profits": "Paid by the firms that grew rich on war orders.",
+        "property": "Paid on land and wealth held or left behind: landowners and old money."
+      },
       "title": "National budget",
       "treasury_end": "Treasury at year's end",
       "unit": {
@@ -2736,6 +2757,72 @@
       "skoropadsky": "Pavlo Skoropadsky",
       "urach": "Wilhelm, Duke of Urach",
       "wied": "Prince Wilhelm of Wied"
+    },
+    "deal": {
+      "answer": {
+        "more": "Yes, and {price} besides.",
+        "refuse": "He refuses.",
+        "take": "He takes it."
+      },
+      "counter": {
+        "against": "My vote against a rival's bill",
+        "favour": "A favour I will owe him",
+        "next": "A law for a law: his bill next",
+        "post": "A post for his man",
+        "region": "Money for his region",
+        "text": "Change the bill's wording"
+      },
+      "due": {
+        "later": "Time left",
+        "none": "No deadline",
+        "now": "Due now",
+        "soon": "Due soon",
+        "war_end": "When the war ends"
+      },
+      "fate": {
+        "bluffed": "Called as a bluff",
+        "broken": "Broken",
+        "called": "Called in",
+        "carried": "Carried out",
+        "kept": "Kept",
+        "lapsed": "Came to nothing",
+        "open": "Still standing",
+        "refused": "Refused when called"
+      },
+      "kind": {
+        "owe": "He owes me",
+        "owed": "I owe him",
+        "peel": "His moderates met apart",
+        "threat": "A threat",
+        "vote": "A law for a law"
+      },
+      "says": {
+        "counter_more": "Good. But that alone is not enough; add one thing more.",
+        "counter_refuse": "That won't bring my people round.",
+        "counter_take": "That will do. I will tell my people so.",
+        "threat_condemn": "Condemn us? Think what the street will say.",
+        "threat_dissolve": "Dissolve us? We shall see who smiles after the election.",
+        "threat_file": "Bring out your papers, then. After that, we are finished.",
+        "threat_post": "You think one post holds us on a leash?",
+        "threat_region": "You hold my people's bread hostage. They won't forget it."
+      },
+      "term": {
+        "half": "Within half a year",
+        "session": "Within this session",
+        "war_end": "When the war is over"
+      },
+      "threat": {
+        "condemn": "Condemn his party",
+        "dissolve": "Dissolve the house",
+        "file": "Bring out his file",
+        "post": "Take his man's post",
+        "region": "Cut his region's money"
+      },
+      "wing": {
+        "hello": "The party's leaders don't know I'm here. Let's be brief.",
+        "leave": "Then this meeting never happened.",
+        "take": "A few of us will vote with you this time, whatever the party says."
+      }
     },
     "diplo": {
       "clause_add": "Add a clause",
@@ -3977,6 +4064,7 @@
       "press_label": "Press",
       "price": {
         "concession": "A change to the bill",
+        "favour": "A favour later",
         "money": "Money for his people",
         "next": "His bill next",
         "post": "A post for his man",
@@ -4103,6 +4191,33 @@
       "retaken": "{place} retaken",
       "terms": "Send terms",
       "to_map": "Show on the map"
+    },
+    "money": {
+      "bill": {
+        "budget": "Budget",
+        "credits": "War credits"
+      },
+      "by": {
+        "command": "Granted by supreme command; the house does not vote them.",
+        "decree": "Granted by provisional decree while the house is shut.",
+        "vote": "The house votes them."
+      },
+      "due": {
+        "later": "Not due yet",
+        "now": "Due this chapter",
+        "soon": "Due soon"
+      },
+      "fail": {
+        "confidence": "Money is a matter of confidence: losing it shakes the government at once.",
+        "runs_on": "If it is lost, last year's budget runs on.",
+        "unpaid": "If it is refused, that half pays nothing in."
+      },
+      "mark_plain": "Set aside from {line}",
+      "name": {
+        "budget": "The {year} budget",
+        "credits": "War credits, No. {n}"
+      },
+      "stopped": "The war credits were refused: no bonds or loans for now, and the bank prints the gap."
     },
     "news": {
       "accord_broken": "The accord between {a} and {b} is broken.",
@@ -7215,6 +7330,8 @@
       "beat": {
         "betray": "Betrayed",
         "betray_by": "Betrayed: {name}",
+        "defy": "Openly against",
+        "defy_by": "{name}, against",
         "swing": "As promised",
         "waver": "The waverers decide"
       },
