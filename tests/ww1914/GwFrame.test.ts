@@ -91,6 +91,8 @@ describe("common share: frame", () => {
       "pair_war_won",
       "separate_peace",
       "under_occupation",
+      // ww208 1B: the utopia's own end (S2).
+      "utopia_realised",
       "victory_peace",
     ]);
   });
