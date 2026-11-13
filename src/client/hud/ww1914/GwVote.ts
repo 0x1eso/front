@@ -334,8 +334,12 @@ function declaration(
       class="mx-auto h-px w-2/3 ${rule}"
       style=${animated ? `animation:gwvrule 1400ms ease-out ${at} both` : ""}
     ></div>
-    <p class="text-xs text-white/55 italic">${translateText(`${key}.act`)}</p>
-    <p class="font-serif text-sm leading-snug text-white sm:text-base">
+    <p class="text-xs break-keep text-white/55 italic">
+      ${translateText(`${key}.act`)}
+    </p>
+    <p
+      class="font-serif text-sm leading-snug break-keep text-white sm:text-base"
+    >
       ${words}
     </p>
   </div>`;
@@ -384,7 +388,7 @@ function logLine(
           ? translateText("gw.vote.beat.betray_by", { name })
           : translateText(`gw.vote.beat.${b.beat}`);
   return html`<li
-    class="flex items-baseline gap-1.5 text-xs"
+    class="flex flex-wrap items-baseline gap-x-1.5 text-xs break-keep"
     data-gw-vote-line=${b.beat}
     style=${animated ? `animation:gwvfade 500ms ${ms(at)} both` : ""}
   >
@@ -392,8 +396,8 @@ function logLine(
       class="inline-block h-2 w-2 shrink-0 rounded-full"
       style="background:${CAST_COLOR[b.cast]}"
     ></span>
-    <span class="text-white/85">${blockName(c, b)}</span>
-    <span class="text-white/55"
+    <span class="whitespace-nowrap text-white/85">${blockName(c, b)}</span>
+    <span class="whitespace-nowrap text-white/55"
       >${translateText("gw.lobby.seats", { n: b.seats })} ${cast}</span
     >
     ${beat === null
