@@ -12,10 +12,13 @@ test("a Germany nobody plays doesn't ask in the first thirty months", async () =
     const s = await warShape(id, "RUS");
     expect(s.ending.startsWith("deu_")).toBe(false);
     expect(s.out.DEU === undefined || s.out.DEU >= "1917-01").toBe(true);
-    if (s.endMonth < "1917-01" && s.armistice === null) {
+    if (s.endMonth < "1917-01" && s.armistice === null && s.out.RUS) {
       expect(s.out.RUS).toBe(s.endMonth);
       // Russia goes by itself: collapsed, or (ww190 tune) beaten in the field.
       expect(["nation_collapsed", "nation_beaten"]).toContain(s.outWhy.RUS);
+    } else if (s.endMonth < "1917-01" && s.armistice === null) {
+      // Or the seat's own end at home (ww201: aw-RUS-6 at Pskov, 1916).
+      expect(s.ending.startsWith("rus_")).toBe(true);
     } else if (s.endMonth < "1917-01") {
       // Or Russia wins it at the straits (aw-RUS-10 takes Constantinople
       // in 1916, since before ww187): the seat's own win, not Germany asking.

@@ -225,8 +225,8 @@ export const GW_ECON_ROWS: Readonly<Partial<Record<GwTag, GwEconRow>>> = {
     eaters: 620,
     imports: 260,
     labour: 160,
-    trade: 50,
-    guns: 90,
+    trade: 30,
+    guns: 100,
   },
   GBR: {
     shells: 480,
