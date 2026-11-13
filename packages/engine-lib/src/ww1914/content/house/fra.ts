@@ -75,6 +75,7 @@ import {
   beatPlot,
   cool,
   coolPlot,
+  faction,
   heat,
   heatPlot,
   isLaw,
@@ -723,6 +724,16 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
         kind: "concession",
         when: world({ is: "amendable", id: "fra_radicals" }),
       },
+      // ww209: the party of the comités owes and is owed; the farms and the
+      // schools are its mayors' (content/money/fra.ts).
+      { id: "rad_favour", kind: "favour" },
+      { id: "farm_hands", kind: "money", when: war, earmark: "fra_farm_hands" },
+      {
+        id: "teachers",
+        kind: "money",
+        when: not(war),
+        earmark: "fra_teachers",
+      },
     ],
     amends: amend({
       [PROPORTIONAL]: "after_war",
@@ -743,6 +754,20 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
       // Approximate (ww204 M): Caillaux's following, no roll call found.
       seats: { chambre: 40 },
       scene: "fra_hs_caillaux",
+    },
+    // ww209: the income tax is the Radicals' own (Caillaux's law of 15 July
+    // 1914), whatever their small owners think of property; the war profits
+    // tax of 1 July 1916 too.
+    purse: [{ taxes: { income: 1, profits: 1 } }],
+    // ww209: Caillaux's men in the party before they leave it (the split
+    // above): they never voted against the credits, but can be met apart.
+    wing: {
+      person: "fra_caillaux",
+      ideals: { rule: 1, class: 1, church: 0 },
+      share: 2,
+      when: faction("fra_caillaux", { of: ["out"] }),
+      defies: false,
+      into: "fra_caillaux",
     },
   },
   {
@@ -788,6 +813,7 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
         kind: "promise",
         keep: war,
         chapters: 2,
+        terms: ["session"],
         effects: [heat("fra_tiger", 2), heat("fra_af", 1)],
       },
       {
@@ -805,6 +831,10 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
       [W5.labour]: "shop_delegates",
       [WAR_AIMS]: "no_annexation",
     }),
+    // ww209: a negotiated peace's men: fewer guns, more bread, the rich pay.
+    purse: [
+      { lines: { army: -1, relief: 1 }, taxes: { income: 1, profits: 1 } },
+    ],
   },
   {
     id: "fra_repsoc",
@@ -863,6 +893,8 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
         kind: "concession",
         when: world({ is: "amendable", id: "fra_repsoc" }),
       },
+      // ww209: Briand's way: a vote now, a debt to call later.
+      { id: "rs_favour", kind: "favour" },
     ],
     amends: amend({
       [PROPORTIONAL]: "majority_bonus",
@@ -924,11 +956,14 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
         keep: war,
         chapters: 2,
         effects: [inst("army", -1)],
+        // The courts are the war's: it won't wait for the peace.
+        terms: ["session", "half"],
       },
       {
         id: "canteens",
         kind: "money",
         effects: [gauge("money", -1), gauge("morale", 1)],
+        earmark: "fra_canteens",
       },
       {
         id: "allowances_next",
@@ -963,6 +998,29 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
       // Approximate (ww204 M): the SFIO minority's deputies, not counted.
       seats: { chambre: 30 },
       scene: "fra_hs_minority",
+    },
+    // ww209: the unity charter of 1905 bound the group to refuse "l'ensemble
+    // du budget" (marxists.org, principes SFIO 1905): in peace it votes
+    // against every budget. On 4 August 1914 it voted the war credits, and
+    // the majority went on voting them; only a party past bearing it stops.
+    purse: [
+      { when: not(war), bill: "budget", side: -1 },
+      {
+        when: all(war, not(temper("fra_sfio", 3))),
+        bill: "credits",
+        side: 1,
+      },
+    ],
+    // ww209: Longuet's minority inside the party, from the Haute-Vienne's
+    // motion of 1915 to the split above. Defying: the first socialist no
+    // votes on the credits were Brizon, Raffin-Dugens and Blanc, 24 June 1916
+    // (fr.wikipedia Pierre Brizon); the log names the minority's man.
+    wing: {
+      person: "fra_longuet",
+      ideals: { rule: 0, class: 1, church: 1 },
+      share: 3,
+      when: all(since("1915-05"), faction("fra_minority", { of: ["out"] })),
+      into: "fra_minority",
     },
   },
   {
@@ -1011,6 +1069,7 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
         kind: "promise",
         keep: war,
         chapters: 2,
+        terms: ["session"],
         effects: [heat("fra_af", 1), heat("fra_tiger", 1)],
       },
       {
@@ -1028,6 +1087,15 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
       [W5.labour]: "shop_delegates",
       [WAR_AIMS]: "no_annexation",
     }),
+    // ww209: most of the minority still voted the credits (448:4 in
+    // September 1916); a minority past bearing it votes no.
+    purse: [
+      {
+        when: all(war, temper("fra_minority", 3)),
+        bill: "credits",
+        side: -1,
+      },
+    ],
   },
   {
     id: "fra_left_rep",
@@ -1065,6 +1133,13 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
         id: "loan_terms",
         kind: "money",
         effects: [gauge("money", -1)],
+      },
+      // ww209: the invaded departments' rebuilding (content/money/fra.ts).
+      {
+        id: "war_damages",
+        kind: "money",
+        when: since("1914-12"),
+        earmark: "fra_war_damages",
       },
       {
         id: "proportional_next",
@@ -1138,6 +1213,9 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
         chapters: 2,
         effects: [heat("fra_sfio", 1)],
       },
+      // ww209: the invaded east and north (content/money/fra.ts); Louis Marin
+      // of Meurthe-et-Moselle sat with this group (his refugee work F).
+      { id: "refugees", kind: "money", when: war, earmark: "fra_refugees" },
       {
         id: "fr_text",
         kind: "concession",
@@ -1153,6 +1231,8 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
       [W5.labour]: "strike_ban",
       [WAR_AIMS]: "rhine_guard",
     }),
+    // ww209: the three years' and the fleet's party.
+    purse: [{ lines: { army: 1, navy: 1 } }],
   },
   {
     id: "fra_catholics",
@@ -1200,6 +1280,7 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
         id: "orphans",
         kind: "money",
         effects: [gauge("money", -1), gauge("morale", 1)],
+        earmark: "fra_war_wards",
       },
       {
         id: "cath_text",
@@ -1213,6 +1294,8 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
       [W5.allowances]: "with_children",
       [W5.warProfits]: "contracts_only",
     }),
+    // ww209: the Catholic right fought the income tax (its bill row's -1).
+    purse: [{ taxes: { income: -1, property: -1 } }],
   },
   {
     id: "fra_af",
@@ -1296,6 +1379,7 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
         kind: "promise",
         keep: war,
         chapters: 2,
+        terms: ["session", "half"],
         effects: [{ kind: "censor", delta: -1 }],
       },
       {
@@ -1311,6 +1395,8 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
       [W5.dalbiez]: "factory_lists",
       [W5.supply]: "penalties_only",
     }),
+    // ww209: "je fais la guerre": the guns first.
+    purse: [{ lines: { army: 1 } }],
   },
   {
     id: "fra_gqg",
