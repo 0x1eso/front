@@ -104,7 +104,8 @@ export const GBR_FACTIONS: readonly GwFactionRow[] = [
     start: "in",
     strength: 3,
     // ww203: the Liberals' 271 (Dec 1910, with 9 Lib-Labs) less Simon's 34;
-    // Liberal peers about 95 of some 620 (the share not checked).
+    // Liberal peers about 95 of some 620: approximate (ww204 M: no party
+    // count of the 1914 Lords found; the Liberal peers peaked near 120).
     seats: { commons: 237, lords: 95 },
     leaders: [{ person: "gbr_asquith", when: lg }, { person: "gbr_mckenna" }],
     grows: [
@@ -374,6 +375,8 @@ export const GBR_FACTIONS: readonly GwFactionRow[] = [
       ),
       into: "gbr_uwc",
       takes: 1,
+      // Approximate (ww204 M): 150 members on paper (March 1916), seventy at
+      // its meeting of 13 April 1916; the seventy who acted together.
       seats: { commons: 70 },
       scene: "gbr_f_uwc",
     },
@@ -708,7 +711,8 @@ export const GBR_FACTIONS: readonly GwFactionRow[] = [
     bloc: "court",
     start: "in",
     strength: 2,
-    // ww203: the Unionist peers, some 500 of about 620 (not checked).
+    // ww203: the Unionist peers, some 500 of about 620: approximate (ww204 M:
+    // no party count of the 1914 Lords found).
     seats: { lords: 500 },
     leaders: [
       { person: "gbr_i_lansdowne", when: not(lg) },
@@ -796,9 +800,11 @@ export const GBR_BILLS: readonly GwBillRow[] = [
   {
     law: "gbr_dora",
     // ww203: the ILP holds a free press and a jury as articles of faith.
+    // ww204 (T): the Liberal benches waver on the regulations (Simon, the
+    // jury, the press).
     creed: ["gbr_ilp"],
     stance: {
-      gbr_liberals: 1,
+      gbr_liberals: 0,
       gbr_rebels: -1,
       gbr_lg: 1,
       gbr_unionists: 1,
@@ -835,9 +841,10 @@ export const GBR_BILLS: readonly GwBillRow[] = [
   {
     law: "gbr_munitions",
     around: true,
+    // ww204 (T): the Liberal benches waver on tying men to their works.
     sponsor: either(office("munitions"), office("finance")),
     stance: {
-      gbr_liberals: 1,
+      gbr_liberals: 0,
       gbr_rebels: -1,
       gbr_lg: 1,
       gbr_unionists: 1,
@@ -855,8 +862,10 @@ export const GBR_BILLS: readonly GwBillRow[] = [
   },
   {
     law: "gbr_register",
+    // ww204 (T): the Liberal benches took the Register for the first step to
+    // conscription: they waver.
     stance: {
-      gbr_liberals: 1,
+      gbr_liberals: 0,
       gbr_rebels: -1,
       gbr_lg: 1,
       gbr_unionists: 1,

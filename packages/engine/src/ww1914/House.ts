@@ -50,6 +50,7 @@ import {
   GW_ASK_STRENGTH,
   GW_BRING_STRENGTH,
   GW_BROKEN_SHUT,
+  GW_DEAL_STEP,
   GW_HOUSE_CALLS,
   GW_IGNORED_FADE,
   GW_IGNORED_LIMIT,
@@ -555,11 +556,20 @@ function sideOf(
   const turned = f.step === 2 || blocNow(gw, seat, row.bloc) <= -3;
   if (turned) return { side: -1, broke: deal };
   if (deal && brokenTo(gw, seat, id)) return { side: -1, broke: true };
-  if (deal) return { side: 1, broke: false };
   const text = st.text === null ? undefined : bill.texts?.[st.text]?.[id];
-  const side = text ?? bill.stance[id] ?? 0;
+  const base = text ?? bill.stance[id] ?? 0;
+  // ww204 (T): a price brings a faction GW_DEAL_STEP sides over: one against
+  // wavers, one wavering is for.
+  if (deal) {
+    return { side: Math.min(1, base + GW_DEAL_STEP) as GwSide, broke: false };
+  }
+  const side = base;
   // The sponsor's camp: a faction that would stay away comes in for him.
   if (side === 0 && st.warm.includes(id)) return { side: 1, broke: false };
+  // ww204: on some bills the undecided don't waver, they stay away.
+  if (side === 0 && bill.abstain === true) {
+    return { side: 0, broke: false, away: true };
+  }
   return { side, broke: false };
 }
 

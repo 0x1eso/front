@@ -1057,6 +1057,11 @@ export const DEU_BILLS: readonly GwBillRow[] = [
     law: "deu_peace_res",
     by: "deu_centre",
     resolution: true,
+    // ww204 (T): 19 July 1917, 216 to 126 (de.wikipedia; Britannica 212):
+    // SPD, Centre and Progressives for; Conservatives and National Liberals
+    // against; the USPD abstained (FES chronicle). The small groups' votes
+    // are not recorded in the sources found: they stay away (approximate).
+    abstain: true,
     stance: {
       deu_cons: -1,
       deu_natlib: -1,
@@ -1064,7 +1069,7 @@ export const DEU_BILLS: readonly GwBillRow[] = [
       deu_progress: 1,
       deu_spd: 1,
       deu_uspd: 0,
-      deu_minor: 1,
+      deu_minor: 0,
       deu_fatherland: -1,
     },
     texts: {

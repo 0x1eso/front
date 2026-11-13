@@ -533,7 +533,7 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
       },
     ],
     feeds: [
-      { when: instAt("hungary", { max: -3 }), key: "hungary_slighted" },
+      { when: instAt("hungary", { max: -4 }), key: "hungary_slighted" },
       { when: isText("auh_food", "common_committee"), key: "grain_taken" },
       { when: flag("f_auh_oath_delayed"), key: "oath_delayed" },
       { when: isLaw("auh_franchise"), key: "franchise" },
@@ -542,9 +542,10 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
       { when: flag("f_auh_sworn"), key: "crowned" },
       { when: instAt("hungary", { min: 3 }), key: "hungary_heard" },
     ],
+    // ww204 (T): Tisza's majority was slow to turn on the Crown: 8 and 12.
     steps: [
-      { at: 4, scene: "auh_f_work_2" },
-      { at: 8, scene: "auh_f_work_3" },
+      { at: 8, scene: "auh_f_work_2" },
+      { at: 12, scene: "auh_f_work_3" },
     ],
     amends: {
       auh_food: "hungarian_price",
@@ -636,6 +637,7 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
       when: all(warAge(20), any(temper("auh_indep", 2), score({ max: -10 }))),
       into: "auh_karolyi",
       takes: 1,
+      // Approximate (ww204 M): about 20, from one source.
       seats: { budapest: 20 },
       scene: "auh_f_karolyi_split",
     },
@@ -721,6 +723,7 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
     bloc: "parliament",
     start: "in",
     strength: 1,
+    // Approximate (ww204 M): Andrássy's Constitution Party after 1913.
     seats: { budapest: 20 },
     leaders: [{ person: "auh_andrassy" }],
     grows: [
@@ -732,7 +735,7 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
       },
     ],
     feeds: [
-      { when: instAt("hungary", { max: -3 }), key: "hungary_slighted" },
+      { when: instAt("hungary", { max: -4 }), key: "hungary_slighted" },
       { when: turned("parliament"), key: "parliament_turned" },
     ],
     cools: [

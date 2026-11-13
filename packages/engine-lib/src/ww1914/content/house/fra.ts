@@ -305,7 +305,8 @@ const sides = (
 const ALL_BILLS: readonly GwBillRow[] = [
   {
     law: W5.siege,
-    stance: sides(1, 0, 1, 0, -1, 1, 1, 1, 1),
+    // ww204 (T): the Radicals resented the soldiers' courts: they waver.
+    stance: sides(0, 0, 1, 0, -1, 1, 1, 1, 1),
     texts: {
       whole_country: { fra_radicals: 0, fra_repsoc: 0, fra_sfio: -1 },
       civil_courts: {
@@ -320,7 +321,9 @@ const ALL_BILLS: readonly GwBillRow[] = [
     law: W5.threeYears,
     // Jaurès's party fought the three years; it is against its creed.
     creed: ["fra_sfio"],
-    stance: sides(0, -1, 0, -1, -1, 1, 1, 1, 1),
+    // ww204 (T): the Radicals fought the three years in 1913 (Caillaux's
+    // Pau congress); only a shorter term brings them.
+    stance: sides(-1, -1, 0, -1, -1, 1, 1, 1, 1),
     texts: {
       thirty_months: {
         fra_radicals: 1,
@@ -354,7 +357,8 @@ const ALL_BILLS: readonly GwBillRow[] = [
   },
   {
     law: W5.dalbiez,
-    stance: sides(1, 0, 1, 1, 0, 1, 0, 0, 1),
+    // ww204 (T): the centre-right waver on combing the depots against the GQG.
+    stance: sides(1, 0, 1, 1, 0, 0, 0, 0, 1),
     texts: {
       young_first: { fra_sfio: -1, fra_left_rep: 0, fra_fed_rep: 1 },
       factory_lists: { fra_fed_rep: -1, fra_minority: -1 },
@@ -378,7 +382,9 @@ const ALL_BILLS: readonly GwBillRow[] = [
   {
     law: W5.rents,
     around: true,
-    stance: sides(1, 1, 1, 1, 1, 0, -1, 0, 0),
+    // ww204 (T): the Radicals divided on the moratorium (the law came only in
+    // March 1918): they waver; the centre-right stood by the landlords.
+    stance: sides(0, 1, 1, 1, 1, -1, -1, 0, 0),
     texts: {
       all_small_rents: { fra_left_rep: -1, fra_catholics: -1 },
       rent_boards: { fra_fed_rep: 0, fra_left_rep: 1 },
@@ -388,7 +394,8 @@ const ALL_BILLS: readonly GwBillRow[] = [
     law: W5.allowances,
     money: true,
     around: true,
-    stance: sides(1, 1, 1, 1, 1, 1, 0, 1, 0),
+    // ww204 (T): the centre-right waver on the allowances' cost.
+    stance: sides(1, 1, 1, 1, 1, 0, 0, 1, 0),
     texts: {
       every_family: { fra_fed_rep: -1 },
       with_children: { fra_fed_rep: 1, fra_catholics: 1 },
@@ -414,7 +421,9 @@ const ALL_BILLS: readonly GwBillRow[] = [
   },
   {
     law: W5.supply,
-    stance: sides(1, 0, 1, 1, 0, 0, -1, 0, 1),
+    // ww204 (T): the Radicals waver on the supply decrees; the liberal
+    // centre-right is against fixing prices.
+    stance: sides(0, 0, 1, 1, 0, -1, -1, 0, 1),
     texts: {
       bread_cards: { fra_radicals: 0, fra_tiger: 0 },
       chamber_reviews: { fra_fed_rep: 0, fra_minority: 1, fra_caillaux: 1 },
@@ -481,7 +490,8 @@ const ALL_BILLS: readonly GwBillRow[] = [
     // works quiet; the socialists want the men a voice.
     law: W5.labour,
     around: true,
-    stance: sides(1, 0, 1, 0, -1, 1, 1, 1, 1),
+    // ww204 (T): the Radicals waver on a strike ban.
+    stance: sides(0, 0, 1, 0, -1, 1, 1, 1, 1),
     texts: {
       wage_boards: {
         fra_caillaux: 1,
@@ -614,6 +624,7 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
       ),
       into: "fra_caillaux",
       takes: 1,
+      // Approximate (ww204 M): Caillaux's following, no roll call found.
       seats: { chambre: 40 },
       scene: "fra_hs_caillaux",
     },
@@ -824,6 +835,7 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
       ),
       into: "fra_minority",
       takes: 1,
+      // Approximate (ww204 M): the SFIO minority's deputies, not counted.
       seats: { chambre: 30 },
       scene: "fra_hs_minority",
     },
@@ -1098,6 +1110,7 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
     bloc: "press",
     start: "in",
     strength: 2,
+    // Approximate (ww204 M): Clemenceau's friends in the Senate.
     seats: { senat: 20 },
     leaders: [
       { person: "fra_clemenceau", when: not(tiger) },

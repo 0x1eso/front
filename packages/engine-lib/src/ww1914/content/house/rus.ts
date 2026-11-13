@@ -187,7 +187,8 @@ export const RUS_FACTIONS: readonly GwFactionRow[] = [
       ),
       into: "rus_pnat",
       takes: 1,
-      // The Centre and the Progressive Nationalists (about 38, not checked).
+      // The Centre 32 and the Progressive Nationalists about 38: approximate
+      // (ww204 M: the bloc's 236 is checked, the group's own size is not).
       seats: { duma: 70 },
       scene: "rus_f_pnat",
     },
@@ -233,7 +234,8 @@ export const RUS_FACTIONS: readonly GwFactionRow[] = [
     bloc: "business",
     start: "in",
     strength: 2,
-    // The Duma's 98; the Council's Centre (about 50).
+    // The Duma's 98; the Council's Centre about 50: approximate (ww204 M:
+    // the 1917 figure; 1915 not found).
     seats: { duma: 98, council: 50 },
     leaders: [{ person: "rus_guchkov" }, { person: "rus_rodzianko" }],
     grows: [

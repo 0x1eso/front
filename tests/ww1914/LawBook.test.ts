@@ -138,13 +138,14 @@ describe("the vote by real seats", () => {
     const { gw, n, seat } = await atWar("DEU");
     n.inst.reichstag = 0;
     const law = "deu_peace_res";
-    // 1912 seats; the right and the National Liberals against.
+    // 1912 seats, the USPD's 18 split from the SPD (March 1916).
     seats(seat, "reichstag", {
       deu_cons: 75,
       deu_natlib: 45,
       deu_centre: 90,
       deu_progress: 41,
-      deu_spd: 110,
+      deu_spd: 92,
+      deu_uspd: 18,
       deu_minor: 33,
     });
     onAgenda(gw, n, seat, law);
@@ -156,7 +157,11 @@ describe("the vote by real seats", () => {
       b.chambers[0].blocks
         .filter((x) => x.cast === cast)
         .reduce((k, x) => k + x.seats, 0);
-    expect([sum("for"), sum("against")]).toEqual([274, 120]);
+    // ww204 (T): 19 July 1917, 216 to 126 (de.wikipedia): within ten seats;
+    // the USPD abstained.
+    expect([sum("for"), sum("against")]).toEqual([223, 120]);
+    expect(Math.abs(sum("for") - 216)).toBeLessThanOrEqual(10);
+    expect(Math.abs(sum("against") - 126)).toBeLessThanOrEqual(10);
     expect(b.chambers[0].size).toBe(397);
     // The government's friends cast first.
     expect(b.chambers[0].blocks[0].cast).toBe("for");
@@ -173,7 +178,7 @@ describe("the vote by real seats", () => {
     expect([away.cast, away.seats]).toEqual(["away", 45]);
     factionOf(seat, "deu_natlib")!.held = -1;
 
-    // The Centre turned against: 184 to 210, it fails.
+    // The Centre turned against: 133 to 210, it fails.
     onAgenda(gw, n, seat, law);
     factionOf(seat, "deu_centre")!.step = 2;
     expect(vote(gw, seat, law)).toBe(null);

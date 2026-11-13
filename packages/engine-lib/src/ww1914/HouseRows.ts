@@ -265,6 +265,11 @@ export interface GwBillRow {
   readonly by?: string;
   /** No term, only effects: a resolution (the peace resolution). */
   readonly resolution?: boolean;
+  /**
+   * ww204: a faction neither for nor against stays away instead of wavering
+   * (the USPD on the 1917 Peace Resolution).
+   */
+  readonly abstain?: boolean;
 }
 
 // ---- S2 shapes: plots, the dossier, allies ----
@@ -398,6 +403,11 @@ export const GW_WHIP_SPREAD: readonly number[] = [2, 1, 0];
 
 /** Bills on the agenda at once, faction bills included (owner's pick 3B). */
 export const GW_AGENDA_MAX = 3;
+/**
+ * ww204 (T): sides a taken price moves the faction towards for: 1, one against
+ * wavers and one wavering is for (2: any faction is for, as before).
+ */
+export const GW_DEAL_STEP = 1;
 /** Prices a leader names at most. */
 export const GW_PRICES_MAX = 3;
 /** Chapters a faction's own bill waits before it comes to the vote by itself. */
@@ -424,12 +434,24 @@ export const GW_REBEL_TENTHS: readonly number[] = [0, 1, 0, 0, 0];
 export const GW_WIDE_SHARE = 0.2;
 
 /**
- * Waverers' share for, in tenths of their seats: 5 + the score (chamber mood
- * + lean + talk support + the cabinet's camps), clamped 0..10. Nothing rolled.
+ * ww204 (T): the most the score moves the waverers either way, in tenths: a
+ * waverer is never certain.
+ */
+export const GW_WAVER_SWING = 3;
+
+/**
+ * Waverers' share for, in tenths of their seats: GW_WAVER_EVEN + the score (chamber mood
+ * + lean + talk support + the cabinet's camps), the score held to
+ * ±GW_WAVER_SWING. Nothing rolled.
  */
 export function waverTenths(score: number): number {
-  return Math.max(0, Math.min(10, 5 + score));
+  return (
+    GW_WAVER_EVEN + Math.max(-GW_WAVER_SWING, Math.min(GW_WAVER_SWING, score))
+  );
 }
+
+/** ww204 (T): the waverers' share for at a score of 0, in tenths. */
+export const GW_WAVER_EVEN = 4;
 
 /** Scene ids the house makes. */
 export const houseIds = {
