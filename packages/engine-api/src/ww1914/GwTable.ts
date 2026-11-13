@@ -76,8 +76,46 @@ export const GW_TABLE_LINES = [
   "over",
   "hold",
   "close",
+  // ww205: a whole proposal laid down; the beaten walks out of the room.
+  "propose",
+  "walk",
 ] as const;
 export type GwTableLineKind = (typeof GW_TABLE_LINES)[number];
+
+/**
+ * ww205: why the beaten said yes or no to a place of a proposal, in its own
+ * words (`gw.bargain.why.<TAG>.<id>`, else `gw.bargain.why.<id>`). Read off
+ * the state, never rolled. APPEND ONLY (wire).
+ */
+export const GW_TABLE_WHYS = [
+  // no
+  "capital", // 수도라서 절대 안 된다
+  "heart", // the heart of the country
+  "allies", // its allies still fight
+  "army", // its army still stands
+  "much", // too much asked already
+  "to_ally", // not to that ally
+  "again", // insisting changes nothing
+  // yes
+  "soft", // as military government (or a vassal, a state) it can be borne
+  "held", // the claimant's army stands there already
+  "beaten", // it lost the war
+  "return", // given back
+  "tired", // it can't go on
+] as const;
+export type GwTableWhy = (typeof GW_TABLE_WHYS)[number];
+
+/**
+ * ww205: what the claimant does with a refused place before proposing again:
+ * insist, step down (annex → occupy → vassal → return), ask for another place
+ * in its stead, or let it go. APPEND ONLY (wire).
+ */
+export const GW_BARGAIN_MOVES = ["insist", "down", "trade", "drop"] as const;
+export type GwBargainMove = (typeof GW_BARGAIN_MOVES)[number];
+
+/** ww205: how the beaten bears the talks, in words: 차분함 / 굳어 감 / 박차고 나갈 듯. */
+export const GW_TABLE_MOODS = ["calm", "tense", "breaking"] as const;
+export type GwTableMood = (typeof GW_TABLE_MOODS)[number];
 
 const Tag = z.enum(GW_TAGS);
 const Trade = z.enum(GW_TABLE_TRADES);
@@ -108,6 +146,15 @@ export const GwTableClaimSchema = z.object({
   term: z.enum(GW_FATE_TERMS).optional(),
   /** ww199: the partner of the claimant's side whose word it waits for, or took. */
   partner: Tag.optional(),
+  /**
+   * ww205: part of a whole proposal (a table of one beaten country): the
+   * round it was last put in. Absent: the old claim by claim.
+   */
+  round: z.number().int().optional(),
+  /** ww205: why the beaten said its last yes or no. */
+  why: z.enum(GW_TABLE_WHYS).optional(),
+  /** ww205: times the claimant insisted on it. */
+  insisted: z.number().int().optional(),
 });
 export type GwTableClaim = z.infer<typeof GwTableClaimSchema>;
 
@@ -162,6 +209,20 @@ export const GwTableStateSchema = z.object({
    */
   sign: z.partialRecord(Tag, z.enum(GW_SIGN_HOWS)).optional(),
   extra: z.number().int().optional(),
+  /**
+   * ww205: a table of one beaten country runs as whole proposals: each
+   * victor in turn lays down every place at once, the beaten answers place
+   * by place, and they bargain over what was refused for a few rounds.
+   * `rounds`: proposals each victor has made. `strain`: how hard the beaten
+   * has been pushed. `walked`: it left the room (the war goes on).
+   */
+  talk: z
+    .object({
+      rounds: z.partialRecord(Tag, z.number().int()),
+      strain: z.partialRecord(Tag, z.number().int()),
+      walked: z.array(Tag),
+    })
+    .optional(),
 });
 export type GwTableState = z.infer<typeof GwTableStateSchema>;
 
@@ -182,6 +243,10 @@ export interface GwTableClaimView {
   client?: GwClient;
   term?: GwFateTerm;
   partner?: GwTag;
+  /** ww205: a proposal's place: its round, the beaten's reason, insistence. */
+  round?: number;
+  why?: GwTableWhy;
+  insisted?: number;
 }
 
 /** What the seat has to do at the table now. */
@@ -195,6 +260,22 @@ export type GwTableDue =
       words: readonly GwTableWord[];
       trades: readonly GwTableTrade[];
     }
+  /** ww205: lay down the whole proposal: `places` is all it may ask for. */
+  | { kind: "propose"; places: readonly GwPlace[] }
+  /**
+   * ww205: the beaten refused `claims`: a move for each, then propose again.
+   * `places`: what could be asked in a refused place's stead. `last`: the
+   * answers to come are the last.
+   */
+  | {
+      kind: "bargain";
+      claims: readonly number[];
+      places: readonly GwPlace[];
+      round: number;
+      last: boolean;
+    }
+  /** ww205: the seat is the beaten: yes or no to each of `claims`. */
+  | { kind: "answer"; claims: readonly number[]; walk: boolean }
   | null;
 
 /** What the screens read; the same for every seat but `due` and `role`. */
@@ -227,6 +308,19 @@ export interface GwTableView {
   sign?: { ways: readonly GwSignHow[]; signed: GwSignHow | null } | null;
   /** ww199: the fates the seat painted, by place (the turn box's defaults). */
   fates?: Readonly<Partial<Record<GwPlace, GwFateMark>>>;
+  /**
+   * ww205: a table of whole proposals: the round, how many there may be,
+   * whose proposal is on the table, the beaten's mood in words, and who
+   * walked out.
+   */
+  talk?: {
+    round: number;
+    rounds: number;
+    claimant: GwTag | null;
+    beaten: GwTag | null;
+    mood: GwTableMood;
+    walked: readonly GwTag[];
+  } | null;
 }
 
 /** The seat's painted land (war aims). */

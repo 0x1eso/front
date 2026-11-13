@@ -26,7 +26,7 @@ import {
 } from "./GwDeptWords";
 import { GW_CLIENTS, GW_FATE_TERMS, GW_FATES, GW_SIGN_HOWS } from "./GwFate";
 import { GW_SERVICE_BRANCHES, GW_SERVICE_SHARE_MAX } from "./GwSpies";
-import { GW_TABLE_TRADES, GW_TABLE_WORDS } from "./GwTable";
+import { GW_BARGAIN_MOVES, GW_TABLE_TRADES, GW_TABLE_WORDS } from "./GwTable";
 
 const Id = zb.string({ min: 1, max: 48, regex: /^[a-z][a-z0-9_]*$/ });
 const Card = zb.uint({ max: 100_000_000 });
@@ -324,6 +324,38 @@ export const GwOrderSchema = z.discriminatedUnion("kind", [
    * GwClientRow, or "regency" (섭정회의에 맡긴다).
    */
   z.object({ kind: z.literal("crown"), client: z.enum(GW_CLIENTS), pick: Id }),
+  /**
+   * ww205: the seat lays down its whole proposal at a table of one beaten
+   * country: every place it painted a fate on, and its own land back.
+   */
+  z.object({ kind: z.literal("table_propose") }),
+  /**
+   * ww205: the seat's move on each refused place, then the proposal goes in
+   * again. `place`: what is asked in its stead, with `trade`.
+   */
+  z.object({
+    kind: z.literal("table_bargain"),
+    moves: z
+      .array(
+        z.object({
+          claim: zb.uint({ max: 10_000 }),
+          move: z.enum(GW_BARGAIN_MOVES),
+          place: Id.nullable(),
+        }),
+      )
+      .max(64),
+  }),
+  /**
+   * ww205: the beaten seat's yes or no to each place proposed; `walk`: it
+   * leaves the room instead, and the war goes on.
+   */
+  z.object({
+    kind: z.literal("table_answer"),
+    answers: z
+      .array(z.object({ claim: zb.uint({ max: 10_000 }), yes: z.boolean() }))
+      .max(64),
+    walk: z.boolean(),
+  }),
 ]);
 export type GwOrder = z.infer<typeof GwOrderSchema>;
 

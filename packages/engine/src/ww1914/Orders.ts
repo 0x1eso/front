@@ -25,6 +25,7 @@ import {
   spentTalk,
   summonPrice,
 } from "./AskFirst";
+import { tableAnswer, tableBargain, tablePropose } from "./Bargain";
 import { budgetOrder } from "./Budget";
 import { setClaims } from "./Claims";
 import { fieldOrder, raiseFooting } from "./Craft";
@@ -334,6 +335,12 @@ export function applyGwOrder(
       return treatySign(gw, seat, o.how);
     case "crown":
       return crownPick(gw, seat, o.client, o.pick);
+    case "table_propose":
+      return tablePropose(gw, seat);
+    case "table_bargain":
+      return tableBargain(gw, seat, o.moves);
+    case "table_answer":
+      return tableAnswer(gw, seat, o.answers, o.walk);
   }
 }
 

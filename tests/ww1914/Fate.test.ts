@@ -14,6 +14,11 @@ import {
   gwSignPaperIds,
 } from "@openfront/engine-lib/ww1914/FateRows";
 import { createGameRunner } from "@openfront/engine/GameRunner";
+import {
+  stepTalk,
+  tableBargain,
+  tablePropose,
+} from "@openfront/engine/ww1914/Bargain";
 import { capitulate } from "@openfront/engine/ww1914/Capitulation";
 import {
   applyClaim,
@@ -49,6 +54,42 @@ async function world(id: string): Promise<GreatWar> {
   gw.s.chain = null;
   gw.s.spark = null;
   return gw;
+}
+
+/**
+ * ww205: Romania gives up to a Germany the seat plays; its table waits for
+ * the seat's whole proposal, painted: Bucharest annexed, the rest held.
+ */
+async function romaniaAtTheTable(id: string) {
+  const start = startOf(id, "full", []);
+  const runner = await createGameRunner(start, undefined, realMap(), () => {});
+  for (let t = 0; t < 2; t++) {
+    runner.addTurn({ turnNumber: t, intents: [] });
+    runner.executeNextTick();
+  }
+  const gw = runner.game.greatWar()!;
+  gw.s.chain = null;
+  gw.s.spark = null;
+  openGeneral(gw, "DEU", "FRA", "test");
+  enter(gw, "AUH", "central", "test");
+  enter(gw, "ROU", "entente", "test");
+  for (const p of ["bucharest", "ploesti", "iasi"] as const) {
+    moveLand(gw, p, "DEU", null, "occupation");
+  }
+  capitulate(gw, "ROU");
+  const seat = gw.s.seats.find((x) => x.tag === "DEU")!;
+  pairTableStep(gw);
+  seat.fates = {
+    bucharest: { fate: "annex" },
+    iasi: { fate: "occupy", term: "short" },
+    ploesti: { fate: "occupy", term: "long" },
+  };
+  expect(tablePropose(gw, seat)).toBeNull();
+  // Nobody else waits on the seat: the beaten answers.
+  stepTalk(gw, false);
+  const t = gw.s.table!;
+  const at = (p: GwPlace) => t.claims.find((c) => c.place === p)!;
+  return { gw, seat, t, at };
 }
 
 /** The player that owns a tile of `place`, by tag. */
@@ -255,5 +296,67 @@ describe("a beaten country's fate (ww199)", () => {
     expect(laySettlePaper(gw, seat, gwSignPaperIds("DEU"))).toBe(true);
     expect(laySettlePaper(gw, seat, gwSignPaperIds("DEU"))).toBe(true);
     expect(seat.scheduled.map((q) => q.scene)).toEqual(["deu_settle_sign"]);
+  });
+
+  test("ww205: a whole proposal gets an answer for every place, and the capital is refused", async () => {
+    const { t, at } = await romaniaAtTheTable("GWTALK1");
+    const mine = t.claims.filter((c) => c.by === "DEU");
+    expect(mine.map((c) => c.place).sort()).toEqual([
+      "bucharest",
+      "iasi",
+      "ploesti",
+    ]);
+    for (const c of mine) {
+      expect(c.round).toBe(1);
+      expect(c.why).toBeDefined();
+    }
+    expect(at("bucharest")).toMatchObject({
+      state: "open",
+      step: "refused",
+      why: "capital",
+    });
+    // The softer fates are taken as they are.
+    expect(at("iasi").state).toBe("agreed");
+    expect(t.lines.some((l) => l.word === "propose" && l.who === "DEU")).toBe(
+      true,
+    );
+  });
+
+  test("ww205: stepping down from annexing the refused capital gets it accepted", async () => {
+    const { gw, seat, t, at } = await romaniaAtTheTable("GWTALK2");
+    // A hard government, but a broken people: it bears a military one.
+    expect(gw.nation("ROU")!.ai).toBe("hardline");
+    gw.nation("ROU")!.gauges.morale = 2;
+    const id = at("bucharest").id;
+    expect(
+      tableBargain(gw, seat, [{ claim: id, move: "down", place: null }]),
+    ).toBeNull();
+    expect(at("bucharest")).toMatchObject({ fate: "occupy", round: 2 });
+    stepTalk(gw, false);
+    expect(at("bucharest").state).toBe("agreed");
+    // Fixed, not yet moved: the treaty applies it when signed.
+    expect(t.closed).toBe(false);
+  });
+
+  test("ww205: insisting past what the beaten bears makes it walk out, and the war goes on", async () => {
+    const { gw, seat, t, at } = await romaniaAtTheTable("GWTALK3");
+    gw.nation("ROU")!.ai = "hardline";
+    const id = at("bucharest").id;
+    for (let i = 0; i < 3 && !t.closed; i++) {
+      expect(
+        tableBargain(gw, seat, [{ claim: id, move: "insist", place: null }]),
+      ).toBeNull();
+      stepTalk(gw, false);
+    }
+    expect(t.closed).toBe(true);
+    expect(gw.s.walkedOut).toEqual(["ROU"]);
+    expect(t.lines.some((l) => l.word === "walk" && l.who === "ROU")).toBe(
+      true,
+    );
+    expect(gw.nation("ROU")!.out).toBe(false);
+    expect(atWarWith(gw, "DEU", "ROU")).toBe(true);
+    // No treaty: nothing agreed moved, and Germany still holds what it held.
+    expect(holderOf(gw, "iasi")).toBe("DEU");
+    expect((gw.s.fates ?? []).some((f) => f.of === "ROU")).toBe(false);
   });
 });
