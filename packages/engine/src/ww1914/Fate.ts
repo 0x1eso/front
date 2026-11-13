@@ -50,7 +50,6 @@ import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
 import {
   GW_AI_FATES,
   GW_ANNEX_RESIST_MONTHS,
-  GW_CLIENT_BREAD_MONTHS,
   GW_CLIENT_DRIFT_MONTHS,
   GW_CLIENT_LOSING,
   GW_CLIENT_LOYALTY,
@@ -1183,9 +1182,7 @@ function stateStep(gw: GreatWar, n: GwNationState): void {
     const f = gw.nation(k.by);
     if (f !== null) f.manpower = clampTo(f.manpower + 1, 0, 100);
   }
-  if (row.grain === true && at(GW_CLIENT_BREAD_MONTHS)) {
-    moveGauge(gw, k.by, "bread", 1, "fate_tribute");
-  }
+  // ww201: its grain reaches the founder as tribute (Economy.ts).
   if (row.grain === true && at(12)) {
     k.loyalty = clampTo(k.loyalty - 1, 0, GW_LOYALTY_MAX);
   }
@@ -1212,10 +1209,8 @@ function stateStep(gw: GreatWar, n: GwNationState): void {
 function vassalStep(gw: GreatWar, n: GwNationState): void {
   const v = n.vassal!;
   const at = (m: number) => beatSince(gw, v.since, m);
+  // ww201: the tribute itself is the production step's (Economy.ts).
   if (at(GW_VASSAL_TRIBUTE_MONTHS)) {
-    moveGauge(gw, v.by, "money", 1, "fate_tribute");
-    moveGauge(gw, v.by, "bread", 1, "fate_tribute");
-    moveGauge(gw, n.tag, "money", -1, "fate_tribute");
     if (v.loyalty <= 1) v.resist = clampTo(v.resist + 1, 0, 3);
     if (losing(gw, v.by)) v.loyalty = clampTo(v.loyalty - 1, 0, GW_LOYALTY_MAX);
     if (v.resist >= 3) {
@@ -1271,17 +1266,7 @@ function rowsAfter(gw: GreatWar): void {
       if (r.resist >= 2 && beatSince(gw, r.since, 6)) {
         moveGauge(gw, r.by, "order", -1, "rule_resistance");
       }
-      if (beatSince(gw, r.since, 12)) {
-        const rich = (s.fates ?? []).some(
-          (x) =>
-            x.fate === "annex" &&
-            x.by === r.by &&
-            x.of === r.of &&
-            (GW_TABLE_PORTS.includes(x.place) ||
-              GW_TABLE_CAPITALS.includes(x.place)),
-        );
-        if (rich) moveGauge(gw, r.by, "money", 1, "fate_annex");
-      }
+      // ww201: annexed land's taxes are the production step's (Economy.ts).
     } else if (r.until !== undefined && r.since !== s.chapter) {
       // A term's government runs here, through the armistice (design §2.2).
       ruleMonth(gw, r);

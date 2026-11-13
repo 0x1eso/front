@@ -309,10 +309,7 @@ function openAndClose(gw: GreatWar): void {
 /** One row's month: what hard rule brings, and what it stirs. */
 export function ruleMonth(gw: GreatWar, r: GwRuleRow): void {
   const at = (k: number) => beatSince(gw, r.since, k);
-  if (r.hard >= 1 && at(Math.max(1, 6 - 2 * r.hard))) {
-    moveGauge(gw, r.by, "bread", 1, "rule_requisition");
-  }
-  if (r.hard >= 2 && at(6)) moveGauge(gw, r.by, "money", 1, "rule_levy");
+  // ww201: requisition and levies are the production step's terms (Economy).
   if (r.hard >= 3 && at(6)) moveMen(gw, r.by, 2, "rule_labour");
   if (r.resist < RESIST_MAX && at(6 - r.hard)) {
     r.resist++;

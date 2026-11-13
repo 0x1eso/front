@@ -58,6 +58,7 @@ import {
   formatIsoDate,
 } from "@openfront/engine-lib/ww1936/Calendar";
 import { dissolvedNow, GW_ELECTION_DAYS } from "./Assumes";
+import { econCrisis, econRecord, econTerms, sumOf, whyOf } from "./Economy";
 import type { GreatWar } from "./GreatWar";
 import { chamberSits, houseRow } from "./House";
 import { officeHolder } from "./People";
@@ -533,6 +534,8 @@ function seaRepair(gw: GreatWar, n: GwNationState, dir: number): void {
 /** One chapter's slice of the year. */
 function flow(gw: GreatWar, n: GwNationState): void {
   const b = n.budget;
+  econCrisis(gw, n);
+  const econ = econTerms(gw, n);
   const days = chapterOf(gw).spanDays;
   const basis = basisOf(gw, n);
   const y = budgetYear(basis, b.plan);
@@ -570,11 +573,36 @@ function flow(gw: GreatWar, n: GwNationState): void {
   note(n, "prices", "print", fromPrint);
   note(n, "prices", "shortfall", fromShort);
   note(n, "prices", "war", fromWar);
+  // ww201: the production step's money goes into the treasury.
+  const step = moneyStep(n.tag, b.prices);
+  const made = Math.trunc((sumOf(econ.money) * step * days) / 36000);
+  const kept = b.treasury;
+  b.treasury = Math.max(0, kept + made);
+  note(n, "treasury", "econ", b.treasury - kept);
   for (const d of GW_BUDGET_DRIFTS) {
-    b.drift[d] += y.drift[d] * days;
-    applyDrift(gw, n, d, y.why[d]);
+    const g = d === "shells" || d === "bread" ? d : null;
+    const terms = g === null ? [] : econ[g];
+    const net = y.drift[d] + sumOf(terms);
+    const why =
+      g === null
+        ? y.why[d]
+        : whyOf(terms, net, [y.why[d] || "budget_works", y.drift[d]]);
+    b.drift[d] += net * days;
+    const was = g === null ? 0 : n.gauges[g];
+    applyDrift(gw, n, d, why);
+    if (g !== null) {
+      const key = why === "" ? "budget_works" : why;
+      econRecord(gw, n, g, net, why, n.gauges[g] - was, key);
+    }
   }
-  syncMoney(gw, n, y.balance < 0 ? "money_war_costs" : "money_budget_up");
+  const balance = Math.trunc((y.balance * 100) / step);
+  const net = balance + sumOf(econ.money);
+  const budgetKey = y.balance < 0 ? "money_war_costs" : "money_budget_up";
+  const why = whyOf(econ.money, net, [budgetKey, balance]);
+  const was = n.gauges.money;
+  const key = why === "" ? budgetKey : why;
+  syncMoney(gw, n, key);
+  econRecord(gw, n, "money", net, why, n.gauges.money - was, key);
 }
 
 /** Shares what was borrowed among the open lenders, by what each will give. */

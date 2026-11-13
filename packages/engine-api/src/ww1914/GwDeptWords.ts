@@ -135,6 +135,10 @@ export const GW_ANSWER_SLOTS = [
   "spend", // ample / thrift
   "reach", // sound / terms / sign
   "sent", // the person sent: a person id
+  // ww201: where the production step takes each gauge (GW_TREND_WORDS).
+  "shells_trend",
+  "bread_trend",
+  "money_trend",
 ] as const;
 export type GwAnswerSlot = (typeof GW_ANSWER_SLOTS)[number];
 

@@ -24,6 +24,11 @@ import type {
   GwSlots,
   GwTaskType,
 } from "@openfront/engine-api/ww1914/GwDepts";
+import {
+  GW_ECON_GAUGES,
+  gwTrendOf,
+  gwTrendWord,
+} from "@openfront/engine-api/ww1914/GwEcon";
 import { gwContent } from "./content/Content";
 import { GW_RULERS } from "./RulerRows";
 
@@ -158,6 +163,15 @@ function homeSlots(s: GreatWarState, seat: GwSeatState): GwSlots {
     ),
     strikes: word(n.unrest >= 2 ? "high" : n.unrest >= 1 ? "middling" : "low"),
   };
+  // ww201: where the production step takes each gauge, once it has run.
+  if (n.econ !== undefined) {
+    for (const k of GW_ECON_GAUGES) {
+      const trend = gwTrendOf(n.econ.rate[k] ?? 0);
+      out[`${k}_trend`] = word(
+        gwTrendWord(trend, n.gauges[k] ?? 0, GW_GAUGE_MAX[k]),
+      );
+    }
+  }
   const agitators = gwContent()
     .people.filter(
       (d) =>

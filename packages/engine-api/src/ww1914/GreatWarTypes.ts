@@ -17,6 +17,7 @@ import {
   GW_STALL_REASONS,
   GW_TASK_TYPES,
 } from "./GwDeptWords";
+import { GwEconStateSchema } from "./GwEcon";
 import {
   GW_CLIENTS,
   GwClientStateSchema,
@@ -792,6 +793,8 @@ export const GwNationStateSchema = z.object({
   client: GwClientStateSchema.optional(),
   /** ww199: a vassal of a victor (Fate.ts); absent for any other. */
   vassal: GwVassalStateSchema.optional(),
+  /** ww201: the production step's trends (Economy.ts); absent until it runs. */
+  econ: GwEconStateSchema.optional(),
 });
 export type GwNationState = z.infer<typeof GwNationStateSchema>;
 

@@ -6,6 +6,7 @@ import {
 } from "@openfront/engine-api/ww1914/GwPlaces";
 import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
 import { createGameRunner } from "@openfront/engine/GameRunner";
+import { econForget, econTerms } from "@openfront/engine/ww1914/Economy";
 import type { GreatWar } from "@openfront/engine/ww1914/GreatWar";
 import { moveLand } from "@openfront/engine/ww1914/Land";
 import {
@@ -79,11 +80,14 @@ describe("ruling occupied land", () => {
     ruleDo(gw, seat, { do: "rule", of: "FRA", hard: 5, policy: "civil" });
     expect(r).toMatchObject({ policy: "civil", hard: 3 });
     const n = gw.nation("DEU")!;
-    n.gauges.bread = 0;
     const men = n.manpower;
+    // ww201: the land's grain feeds the ruler through the production step,
+    // more the harder it is ruled.
+    econForget();
+    const fed = econTerms(gw, n).bread.find(([k]) => k === "rule_requisition");
+    expect(fed?.[1] ?? 0).toBeGreaterThan(0);
     // Hard rule stirs a step every three months.
     months(gw, 9);
-    expect(n.gauges.bread).toBeGreaterThan(0);
     expect(n.manpower).toBeGreaterThanOrEqual(men + 2 - 1);
     expect(resistOf(gw, "DEU", "FRA")).toBe(3);
     expect(gw.s.news.some((x) => x.key === "occupied_rising")).toBe(true);
