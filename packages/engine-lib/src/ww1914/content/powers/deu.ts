@@ -102,6 +102,8 @@ const DEU_BILLS = [
   "deu_take_back",
   "deu_parl_gov",
   "deu_war_aims",
+  "deu_war_tax",
+  "deu_siege",
 ];
 const gauge = (
   g: "shells" | "bread" | "money" | "morale" | "order",
