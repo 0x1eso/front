@@ -335,7 +335,7 @@ describe("the money bills", () => {
     const about = (c: (typeof seat.desk)[number]) =>
       c.scene === "gw_mp_credits" ||
       c.scene === "gw_credits" ||
-      c.paper?.topic === law ||
+      (c.paper !== undefined && "topic" in c.paper && c.paper.topic === law) ||
       (c.paper?.form === "news" && c.paper.lines.some((l) => l.topic === law));
     expect(seat.desk.filter(about).map((c) => c.scene)).toEqual([
       "gw_mp_credits",
