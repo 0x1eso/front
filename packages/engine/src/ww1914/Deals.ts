@@ -397,7 +397,8 @@ function counterOpen(
       const leader = leaderOf(gw, seat, faction);
       if (leader === null) return false;
       const now = gw.person(leader)?.office ?? null;
-      if (pick === null) return officeWanted(faction) !== null;
+      // The seat names the office (one the cabinet holds); null: his own ask.
+      if (pick === null) return true;
       return (GW_OFFICES as readonly string[]).includes(pick) && pick !== now;
     }
     case "region": {
@@ -748,7 +749,10 @@ export function billCounter(
     (c) => c.card === card.uid && c.faction === faction,
   );
   if (made) return "no_counter";
-  const needs = counter === "region" || counter === "against";
+  const needs =
+    counter === "region" ||
+    counter === "against" ||
+    (counter === "post" && officeWanted(faction) === null);
   if (needs && pick === null) return "no_counter";
   if (!counterOpen(gw, seat, m, faction, counter, pick)) return "no_counter";
   houseFocus(seat, law);

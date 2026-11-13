@@ -90,6 +90,7 @@ import {
 import { makeCard, placeCard } from "./Desk";
 import { hasFile, pressWithFile } from "./Dossier";
 import type { GreatWar } from "./GreatWar";
+import { moneyDo } from "./MoneyBills";
 import { moveOpinion } from "./Press";
 import { castOf, holds, runEffects, SceneCtx, sceneOf } from "./SceneRun";
 import { exclusiveShut, factionTrust } from "./Utopia";
@@ -1865,6 +1866,10 @@ export function takeDeal(
   }
   if (bill) m.st.deals.push(id);
   if (wantKind(w) === "favour") owedFavour(gw, seat, id, m.st.id);
+  // ww210: money for his region: the earmark into the plan (MoneyBills).
+  if (w.earmark !== undefined) {
+    moneyDo(ctx, { do: "earmark", id: w.earmark, on: true });
+  }
   f.heat = Math.max(0, f.heat - 1);
   const kind = wantKind(w);
   // ww204: a concession is his text for the bill; his bill next joins the
