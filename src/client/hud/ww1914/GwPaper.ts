@@ -30,6 +30,7 @@ import {
 } from "./GwDept";
 import { rich } from "./GwDict";
 import { officeTitle } from "./GwOffice";
+import { factionName } from "./GwSocietyWords";
 import { BTN, BTN_ON, CHIP, MUTED } from "./GwStyle";
 import { country, frontLine, personName } from "./GwText";
 
@@ -60,9 +61,11 @@ export function slotWord(c: GwCtx, v: GwSlotValue): string {
         }
         case "word":
           // ww203: a count's `bill` is a law id and its `swing` faction ids.
+          // ww207: a poll's `hot` names communities.
           return (
             c.pack?.depts?.words?.[x] ??
-            c.pack?.factions?.[x]?.name ??
+            factionName(c.pack, x) ??
+            c.pack?.communities?.[x]?.name ??
             c.pack?.scenes[`gw_law_${x}`]?.title ??
             x
           );

@@ -952,6 +952,49 @@ const COUNT: GwAnswerRow = {
   ],
 };
 
+// ---- ww207: 민심 동향 (the `poll` task) ----
+//
+// The interior office reads the communities. The engine (S1) fills `winner`
+// (the faction that would win an election now), `rising` and `falling`
+// (faction ids), `hot` (the communities at temper 2+) and `due` (the chamber
+// whose election comes next). A weak head may swear nobody is up in arms.
+
+/**
+ * 공통: 민심 동향. Courses: 들끓는 쪽의 말을 들어 준다 and 집회에 경찰을 붙인다
+ * when a community is hot; 결과를 신문에 흘린다; 덮어 둔다.
+ */
+const POLL: GwAnswerRow = {
+  id: "c_poll",
+  nation: SEATS,
+  type: "poll",
+  findings: [
+    f("winner", 3, on({ winner: ANY })),
+    f("hot", 3, on({ hot: ANY })),
+    f("rising", 2, on({ rising: ANY })),
+    f("falling", 2, on({ falling: ANY })),
+    f("due", 2, on({ due: ANY })),
+    f("bread", 1),
+    f("all_quiet", 2, { wrong: true, ...on({ hot: ANY }) }),
+  ],
+  courses: [
+    c("heed", ["gentle"], [gauge("money", -1), act({ do: "calm" })], {
+      slots: { hot: ANY },
+      needs: [money("little")],
+    }),
+    c(
+      "police",
+      ["firm"],
+      [gauge("order", 1), opinion("workers", -1), opinion("press", -1)],
+      { slots: { hot: ANY } },
+    ),
+    c("papers", ["bold"], [opinion("press", 1), remember("c_poll_papers")], {
+      slots: { winner: ANY },
+    }),
+    c("keep", ["calm", "cheap"], [remember("c_poll_keep")]),
+    waitCourse("c_poll_wait"),
+  ],
+};
+
 /**
  * A course by law, at war: the seat's own bill (lawDraftCard) in place of the
  * common course of that id. Text `depts.answers.c_<type>_law_<tag>`.
@@ -1089,6 +1132,7 @@ export const COMMON_ANSWERS: readonly GwAnswerRow[] = [
   MEN_COLONIES,
   ...SETTLE_ROWS,
   COUNT,
+  POLL,
 ];
 
 export const COMMON_DEPTS: GwDeptContent = {

@@ -4140,6 +4140,11 @@
       "crisis_war": "The powers are at war.",
       "demob_done": "{a} sends its armies home.",
       "econ_mobilised": "{a} ran out of shells and has put its industry on a war footing.",
+      "election_by": "A few seats changed hands at by-elections in {a}.",
+      "election_dissolved": "{a}'s parliament was dissolved and a new one elected.",
+      "election_due": "{a} has held a general election.",
+      "election_postponed": "{a} has put off its election for the war.",
+      "election_regime": "{a}'s new government has held an election.",
       "entered_war": "{a} has entered the war.",
       "era_depth": "The war enters a new period: Defence in depth.",
       "era_material": "The war enters a new period: The battle of material.",
@@ -4229,6 +4234,9 @@
       "pair_peace_refused": "{a} refused {b}'s offer of peace.",
       "pair_table_open": "{a} and {b} sit down to settle the land between them.",
       "pair_table_signed": "{a} and {b} sign their treaty.",
+      "party_born": "A new party has formed in {a}.",
+      "party_condemned": "{a}'s government has come down on a party.",
+      "party_gone": "A party in {a} has disappeared.",
       "prisoners_exchanged": "{a} and {b} exchanged prisoners through Switzerland.",
       "prisoners_home": "{a}'s prisoners are coming home.",
       "prisoners_reprisal": "{a} made {b}'s prisoners pay in reprisal.",
@@ -4322,7 +4330,7 @@
       "unrest_2": "Riots in {a}.",
       "unrest_3": "The army of {a} is restless.",
       "unrest_4": "Revolution in {a}.",
-      "utopia_realised": "{a}: a party's idea of the country has come true.",
+      "utopia_realised": "In {a}, a party's vision of the country has come true.",
       "war_declared": "{a} is at war.",
       "war_pair": "{a} declared war on {b}."
     },
@@ -5006,6 +5014,307 @@
       "rus_rail_ahead": "Russia's railways were ahead of schedule.",
       "srb_officers_plot": "Serbian officers knew of the plot.",
       "usa_credit_cliff": "New York's money is about to stop."
+    },
+    "society": {
+      "axis": {
+        "church": {
+          "FRA": {
+            "minus": "The Church",
+            "name": "Church and lay state",
+            "plus": "The lay state"
+          }
+        },
+        "class": {
+          "AUH": {
+            "minus": "Property",
+            "name": "Property and labour",
+            "plus": "Labour"
+          },
+          "DEU": {
+            "minus": "Property",
+            "name": "Property and labour",
+            "plus": "Labour"
+          },
+          "FRA": {
+            "minus": "Property",
+            "name": "Property and labour",
+            "plus": "Labour"
+          },
+          "GBR": {
+            "minus": "Property",
+            "name": "Property and labour",
+            "plus": "Labour"
+          },
+          "RUS": {
+            "minus": "Landlords and capital",
+            "name": "Landlords and capital, peasants and workers",
+            "plus": "Peasants and workers"
+          }
+        },
+        "dual": {
+          "AUH": {
+            "minus": "Dualism",
+            "name": "Dualism and the nations",
+            "plus": "The nations"
+          }
+        },
+        "force": {
+          "DEU": {
+            "minus": "Force",
+            "name": "Force and accommodation",
+            "plus": "Accommodation"
+          }
+        },
+        "nations": {
+          "RUS": {
+            "minus": "One Russia",
+            "name": "One Russia and the nations",
+            "plus": "The nations"
+          }
+        },
+        "rule": {
+          "AUH": {
+            "minus": "Decree",
+            "name": "Decree and parliament",
+            "plus": "Parliament"
+          },
+          "DEU": {
+            "minus": "The Crown",
+            "name": "Crown and parliament",
+            "plus": "Parliament"
+          },
+          "FRA": {
+            "minus": "Authority",
+            "name": "Authority and the Republic",
+            "plus": "The Republic"
+          },
+          "GBR": {
+            "minus": "Control",
+            "name": "Control and liberty",
+            "plus": "Liberty"
+          },
+          "RUS": {
+            "minus": "Autocracy",
+            "name": "Autocracy and the Duma",
+            "plus": "The Duma"
+          }
+        },
+        "union": {
+          "GBR": {
+            "minus": "The Union",
+            "name": "Union and Home Rule",
+            "plus": "Home Rule"
+          }
+        }
+      },
+      "election": {
+        "cause": {
+          "by": "By-election",
+          "dissolved": "Election after a dissolution",
+          "due": "General election",
+          "regime": "The new government's election"
+        },
+        "due": {
+          "far": "The next election is a long way off",
+          "near": "An election is not far off",
+          "none": "No election is set",
+          "soon": "An election is close"
+        },
+        "entered": "{faction} entered the house for the first time.",
+        "gained": "{faction} won seats.",
+        "held": "{faction} held its seats.",
+        "lost": "{faction} lost seats.",
+        "out": "{faction} was pushed out of the house.",
+        "rule": {
+          "curia": "Weighted by curiae",
+          "fptp": "First past the post",
+          "two_round": "Two rounds"
+        }
+      },
+      "franchise": {
+        "curia": "Vote by curiae",
+        "equal": "Equal universal suffrage",
+        "estates": "Vote by estates",
+        "wide": "A wide franchise"
+      },
+      "generic_nationalist": "{community} national party",
+      "gone": "Gone",
+      "lean": {
+        "church": {
+          "FRA": {
+            "0": "The Church stands again in the schools and the homes.",
+            "1": "Leaning to the Church: the orders are coming back.",
+            "2": "Leaning a little to the Church.",
+            "3": "Church and lay state leave each other alone.",
+            "4": "Leaning a little to the lay state.",
+            "5": "Leaning to the lay state: the schools belong to the teachers.",
+            "6": "The Church is left inside its churches."
+          }
+        },
+        "class": {
+          "AUH": {
+            "0": "The nobles and the gentry have their way; the workers keep their heads down.",
+            "1": "Leaning to property: the great estates feed the country, they say.",
+            "2": "Leaning a little to property.",
+            "3": "Property and labour stand face to face.",
+            "4": "Leaning a little to labour.",
+            "5": "Leaning to labour: the workers of Vienna and Budapest carry weight.",
+            "6": "Labour's word has become law, and the nobles are afraid."
+          },
+          "DEU": {
+            "0": "Owners and landlords have their way; the unions keep their heads down.",
+            "1": "Leaning to property: taxes sit lightly on those who own.",
+            "2": "Leaning a little to property.",
+            "3": "Property and labour stand face to face.",
+            "4": "Leaning a little to labour.",
+            "5": "Leaning to labour: the unions' words get into the bills.",
+            "6": "Labour's word has become law, and the owners are afraid."
+          },
+          "FRA": {
+            "0": "The rentiers and landowners have their way; the CGT keeps its head down.",
+            "1": "Leaning to property: an income tax is far off.",
+            "2": "Leaning a little to property.",
+            "3": "Property and labour stand face to face.",
+            "4": "Leaning a little to labour.",
+            "5": "Leaning to labour: the CGT's words get into the bills.",
+            "6": "Labour's word has become law, and the owners are afraid."
+          },
+          "GBR": {
+            "0": "The landlords and the City have their way; the unions keep their heads down.",
+            "1": "Leaning to property: those with land and money carry weight.",
+            "2": "Leaning a little to property.",
+            "3": "Property and labour stand face to face.",
+            "4": "Leaning a little to labour.",
+            "5": "Leaning to labour: the trade unionists' votes carry weight.",
+            "6": "Labour's word has become law, and the landlords and the City are afraid."
+          },
+          "RUS": {
+            "0": "A country of landlords and factory owners: the peasants have lost the land, the workers their voice.",
+            "1": "Leaning to landlords and capital: the land stays with those who own it.",
+            "2": "Leaning a little to landlords and capital.",
+            "3": "Landlord and peasant, capital and labour stand face to face.",
+            "4": "Leaning a little to peasants and workers.",
+            "5": "Leaning to peasants and workers: dividing the land is said openly.",
+            "6": "Land to those who till it, works to those who work them: the whole country says so."
+          }
+        },
+        "dual": {
+          "AUH": {
+            "0": "Vienna and Budapest share out everything; the other peoples are only guests.",
+            "1": "Leaning to Dualism: the Magyars and the Germans carry weight.",
+            "2": "Leaning a little to Dualism.",
+            "3": "Dualism and the peoples' demands stand face to face.",
+            "4": "Leaning a little to the nations.",
+            "5": "Leaning to the nations: the Czechs and the South Slavs carry weight.",
+            "6": "Every people rules its own land; Dualism is a thing of the past."
+          }
+        },
+        "force": {
+          "DEU": {
+            "0": "Only what the sword takes counts, says the whole country.",
+            "1": "Leaning to force: the calls for annexation are loud.",
+            "2": "Leaning a little to force.",
+            "3": "The country weighs force against accommodation.",
+            "4": "Leaning a little to accommodation.",
+            "5": "Leaning to accommodation: more want to settle with the neighbours by talk.",
+            "6": "A peace without annexations is what the country wants."
+          }
+        },
+        "nations": {
+          "RUS": {
+            "0": "One Russia, one tongue, one Church; the other peoples keep their heads down.",
+            "1": "Leaning to One Russia: even the border schools teach only in Russian.",
+            "2": "Leaning a little to One Russia.",
+            "3": "The empire and its peoples watch each other.",
+            "4": "Leaning a little to the nations.",
+            "5": "Leaning to the nations: Poland and Finland speak for themselves.",
+            "6": "Every people of the empire has its own diet and its own schools."
+          }
+        },
+        "rule": {
+          "AUH": {
+            "0": "The Emperor's decree is the law; parliament might as well not be there.",
+            "1": "Leaning to decree: emergency decrees stand in for parliament.",
+            "2": "Leaning a little to decree.",
+            "3": "Decree and parliament hold each other in check.",
+            "4": "Leaning a little to parliament.",
+            "5": "Leaning to parliament: ministers come to the house and answer.",
+            "6": "Parliament governs; the Emperor only sits above it."
+          },
+          "DEU": {
+            "0": "The Kaiser's will and the army's are the country's will.",
+            "1": "Leaning to the Crown: parliament talks, but does not decide.",
+            "2": "Leaning a little to the Crown.",
+            "3": "Crown and parliament hold each other in check.",
+            "4": "Leaning a little to parliament.",
+            "5": "Leaning to parliament: the chancellor minds the house.",
+            "6": "Parliament makes and unmakes chancellors."
+          },
+          "FRA": {
+            "0": "A strong hand holds the country; the Chamber only applauds.",
+            "1": "Leaning to authority: the generals and the leagues speak loudly.",
+            "2": "Leaning a little to authority.",
+            "3": "Authority and the Republic hold each other in check.",
+            "4": "Leaning a little to the Republic.",
+            "5": "Leaning to the Republic: the Chamber holds the cabinet.",
+            "6": "The Republic's principles stand above everything."
+          },
+          "GBR": {
+            "0": "The state holds men, works and papers in its hands.",
+            "1": "Leaning to control: government orders reach far.",
+            "2": "Leaning a little to control.",
+            "3": "Control and liberty are evenly matched.",
+            "4": "Leaning a little to liberty.",
+            "5": "Leaning to liberty: much is left alone by the state.",
+            "6": "The old Liberal state: the state keeps out of people's lives."
+          },
+          "RUS": {
+            "0": "Nothing but the Tsar's will; the Duma is a name.",
+            "1": "Leaning to autocracy: the ministers look only to the court.",
+            "2": "Leaning a little to autocracy.",
+            "3": "Autocracy and the Duma hold each other in check.",
+            "4": "Leaning a little to the Duma.",
+            "5": "Leaning to the Duma: it summons ministers and questions them.",
+            "6": "The Duma makes the ministers; the Tsar only signs."
+          }
+        },
+        "union": {
+          "GBR": {
+            "0": "One Union, one Empire, not an inch to divide: that view has won.",
+            "1": "Leaning to the Union: Ulster and the Church carry weight.",
+            "2": "Leaning a little to the Union.",
+            "3": "Union and Home Rule are evenly matched.",
+            "4": "Leaning a little to Home Rule.",
+            "5": "Leaning to Home Rule: a parliament in Dublin is the common view.",
+            "6": "Ireland and the dominions settling their own affairs is taken for granted."
+          }
+        }
+      },
+      "new": "New party",
+      "size": {
+        "1": "A handful",
+        "2": "A small group",
+        "3": "A sizeable body",
+        "4": "A large body",
+        "5": "Half the country"
+      },
+      "support": {
+        "faint": "A few follow it",
+        "fair": "A fair following",
+        "none": "No following",
+        "small": "A small following",
+        "strong": "A wide following",
+        "sweeping": "Sweeping the country"
+      },
+      "trust": {
+        "cold": "Cold",
+        "distrust": "Distrustful",
+        "hostile": "Hostile",
+        "loyal": "Loyal",
+        "neutral": "Neutral",
+        "trust": "Trusting",
+        "warm": "Friendly"
+      }
     },
     "source": {
       "agents": "Agents",
@@ -6404,6 +6713,359 @@
       "person": "{person} had it in him: {value} of 3.",
       "source": "{source} was worth {value} of 3.",
       "wrong_report": "A report on {country} was wrong and nobody put it right."
+    },
+    "utopia": {
+      "institution": {
+        "censor_office": "Censor's office",
+        "chamber_commerce": "Chamber of commerce",
+        "church_press": "The Church's paper",
+        "constituent": "Constituent assembly",
+        "factory_councils": "Works councils",
+        "faithful_union": "Union of the faithful",
+        "imperial_council": "Imperial council",
+        "inquiry": "Committee of inquiry",
+        "labour_office": "Labour office",
+        "mediation_office": "Mediation office",
+        "military_cabinet": "Military cabinet",
+        "moral_watch": "Office for morals",
+        "national_council": "National council",
+        "national_government": "A people's own government",
+        "national_guard": "National guard",
+        "overseas_bank": "Overseas bank",
+        "party_press": "The party paper",
+        "peace_congress": "International peace congress",
+        "peace_society": "Peace society",
+        "staff_rule": "Rule of the general staff",
+        "workers_councils": "Workers' councils"
+      },
+      "kind": {
+        "ability": "Means",
+        "institution": "Institution",
+        "law": "Law",
+        "perk": "Benefit"
+      },
+      "node": {
+        "church": {
+          "b1": {
+            "name": "The orders come home",
+            "note": "The orders once driven out come back to teach and nurse."
+          },
+          "b2": {
+            "name": "The Church's hand",
+            "note": "What this party can do for you grows stronger."
+          },
+          "b3": {
+            "name": "The Church's paper",
+            "note": "The Church puts out a daily paper."
+          },
+          "m1": {
+            "name": "Church schools protected",
+            "note": "The law shields the schools the Church runs."
+          },
+          "m2": {
+            "name": "A union of the faithful",
+            "note": "In every parish the faithful organise and act together."
+          },
+          "m3": {
+            "name": "The Church's relief",
+            "note": "The parishes hand out bread to hungry homes."
+          },
+          "x1": {
+            "name": "A state church",
+            "note": "The state takes one Church as its own."
+          },
+          "x2": {
+            "name": "Watch over morals",
+            "note": "Theatres, papers and streets are policed for morals."
+          },
+          "x3": {
+            "name": "The Church's blessing",
+            "note": "The Church blesses every great act of the state."
+          }
+        },
+        "crown_army": {
+          "b1": {
+            "name": "Powers of siege",
+            "note": "The army's commanders may rule meetings, papers and streets."
+          },
+          "b2": {
+            "name": "The army's hand",
+            "note": "What this party can do for you grows stronger."
+          },
+          "b3": {
+            "name": "A censor's office",
+            "note": "An office reads papers, books and letters and strikes out what it will."
+          },
+          "m1": {
+            "name": "The army's money for years ahead",
+            "note": "The army's budget is fixed for years at once, beyond the house's yearly reach."
+          },
+          "m2": {
+            "name": "The military cabinet",
+            "note": "Officers' posts and the army's affairs go straight to the monarch, past the ministers."
+          },
+          "m3": {
+            "name": "The officers' loyalty",
+            "note": "The officers count the monarch and this party as one side."
+          },
+          "x1": {
+            "name": "Parliament suspended",
+            "note": "Parliament is sent home with no date set; the country is ruled by decree."
+          },
+          "x2": {
+            "name": "The general staff governs",
+            "note": "The general staff takes over the works, the railways and the food."
+          },
+          "x3": {
+            "name": "Military order",
+            "note": "Army discipline is laid on the streets and the works."
+          }
+        },
+        "labour": {
+          "b1": {
+            "name": "Workers' insurance",
+            "note": "The state looks after workers who are hurt, ill or old."
+          },
+          "b2": {
+            "name": "The unions' hand",
+            "note": "What this party can do for you grows stronger."
+          },
+          "b3": {
+            "name": "Works councils",
+            "note": "Every works has a council the workers elect."
+          },
+          "m1": {
+            "name": "The eight-hour day",
+            "note": "The working day is set at eight hours."
+          },
+          "m2": {
+            "name": "A labour office",
+            "note": "A ministry is set up for the workers' affairs."
+          },
+          "m3": {
+            "name": "Unions recognised",
+            "note": "Employers sit down with the unions to settle wages."
+          },
+          "x1": {
+            "name": "Mines and great works to the nation",
+            "note": "The state takes over the mines and the great works and runs them."
+          },
+          "x2": {
+            "name": "Workers' councils",
+            "note": "In every town a workers' council sits beside the authorities."
+          },
+          "x3": {
+            "name": "Production in workers' hands",
+            "note": "The works councils decide what is made and how much."
+          }
+        },
+        "market_empire": {
+          "b1": {
+            "name": "Imperial preference",
+            "note": "Tariffs fall between the home country and its lands overseas, and rise against the rest."
+          },
+          "b2": {
+            "name": "Business's hand",
+            "note": "What this party can do for you grows stronger."
+          },
+          "b3": {
+            "name": "An overseas bank",
+            "note": "A bank puts money into railways and mines overseas."
+          },
+          "m1": {
+            "name": "Trade first",
+            "note": "The state puts ports, shipping and exports first."
+          },
+          "m2": {
+            "name": "A chamber of commerce",
+            "note": "Merchants and manufacturers speak to the state with one voice."
+          },
+          "m3": {
+            "name": "Cheap money",
+            "note": "The banks lend at low interest."
+          },
+          "x1": {
+            "name": "Freedom of contract",
+            "note": "Strikes are stopped; wages and hours are left to contract."
+          },
+          "x2": {
+            "name": "An imperial council",
+            "note": "Envoys of the home country and the lands overseas sit together to run the empire."
+          },
+          "x3": {
+            "name": "The world's bank",
+            "note": "The world's money passes through this country."
+          }
+        },
+        "nation": {
+          "b1": {
+            "name": "A provincial diet",
+            "note": "The people's land gets a diet of its own."
+          },
+          "b2": {
+            "name": "The people's hand",
+            "note": "What this party can do for you grows stronger."
+          },
+          "b3": {
+            "name": "A national guard",
+            "note": "A guard of volunteers keeps the homeland by its own hand."
+          },
+          "m1": {
+            "name": "Schools in our own tongue",
+            "note": "Children are taught in their people's own language."
+          },
+          "m2": {
+            "name": "A national council",
+            "note": "The people's leaders meet and speak with one voice."
+          },
+          "m3": {
+            "name": "Our own banks and co-operatives",
+            "note": "The people run their own banks and co-operatives."
+          },
+          "x1": {
+            "name": "A charter of self-rule",
+            "note": "The law says the people govern their own land."
+          },
+          "x2": {
+            "name": "A government of our own",
+            "note": "The people have their own ministers and their own offices."
+          },
+          "x3": {
+            "name": "Our own flag",
+            "note": "The people's flag flies over offices and schools."
+          }
+        },
+        "parliament": {
+          "b1": {
+            "name": "Ministers answer to the house",
+            "note": "A minister the house does not trust goes."
+          },
+          "b2": {
+            "name": "The house's hand",
+            "note": "What this party can do for you grows stronger."
+          },
+          "b3": {
+            "name": "The party paper",
+            "note": "The party puts out a daily paper and spreads its word."
+          },
+          "m1": {
+            "name": "The budget line by line",
+            "note": "Parliament goes through the budget item by item and changes it."
+          },
+          "m2": {
+            "name": "A committee of inquiry",
+            "note": "Parliament calls the ministries and the army to answer for their work."
+          },
+          "m3": {
+            "name": "Pay for members",
+            "note": "Members are paid, so that a poor man can sit too."
+          },
+          "x1": {
+            "name": "Parliament makes the government",
+            "note": "The majority forms the government; the monarch only signs."
+          },
+          "x2": {
+            "name": "A constituent assembly",
+            "note": "An assembly meets to draw up the country anew."
+          },
+          "x3": {
+            "name": "One man, one vote",
+            "note": "Every man casts one vote, whatever he owns or was born to."
+          }
+        },
+        "peace": {
+          "b1": {
+            "name": "Open diplomacy",
+            "note": "Secret treaties are published, and new ones go before parliament."
+          },
+          "b2": {
+            "name": "The peace party's hand",
+            "note": "What this party can do for you grows stronger."
+          },
+          "b3": {
+            "name": "A mediation office",
+            "note": "A way to talk with the other side is kept open through the neutrals."
+          },
+          "m1": {
+            "name": "Arbitration treaties",
+            "note": "Neighbours agree to take quarrels to arbitration, not to war."
+          },
+          "m2": {
+            "name": "A peace society",
+            "note": "Those who want peace meet, speak and write."
+          },
+          "m3": {
+            "name": "Leave for the soldiers",
+            "note": "The soldiers go home on leave by turns."
+          },
+          "x1": {
+            "name": "Peace without annexations",
+            "note": "The country declares it will end the war taking no one's land."
+          },
+          "x2": {
+            "name": "An international peace congress",
+            "note": "People of many countries are called to a congress on peace."
+          },
+          "x3": {
+            "name": "The army goes home",
+            "note": "Conscription is cut and the soldiers are sent home."
+          }
+        }
+      },
+      "template": {
+        "church": {
+          "name": "Church",
+          "note": "The road where the Church stands again in schools, homes and the state.",
+          "utopia": "A country kept by its faith"
+        },
+        "crown_army": {
+          "name": "Crown and army",
+          "note": "The road where the army's money, courts and orders stand above parliament.",
+          "utopia": "A country of throne and sword"
+        },
+        "labour": {
+          "name": "Labour",
+          "note": "The road from wages and hours to the works themselves in workers' hands.",
+          "utopia": "A country of working people"
+        },
+        "market_empire": {
+          "name": "Market and empire",
+          "note": "The road that fattens the country on money, trade and lands overseas.",
+          "utopia": "A country of trade and empire"
+        },
+        "nation": {
+          "name": "Nation",
+          "note": "The road from schools in its own tongue to a government of its own.",
+          "utopia": "A people with a country of its own"
+        },
+        "parliament": {
+          "name": "Parliament",
+          "note": "The road where parliament holds the laws, the purse and the ministers.",
+          "utopia": "A country its parliament governs"
+        },
+        "peace": {
+          "name": "Peace",
+          "note": "The road from arbitration and open diplomacy to a peace without annexations.",
+          "utopia": "A country without war"
+        }
+      },
+      "tier": {
+        "bold": "Bold",
+        "extreme": "Extreme",
+        "moderate": "Moderate"
+      },
+      "why": {
+        "affinity": "The country has not come near enough to its ideas yet.",
+        "axes": "The country does not yet stand on its ideas.",
+        "communities": "Its people are not yet half the country.",
+        "gate": "The state of things does not allow it now.",
+        "gone": "This party is gone.",
+        "laws": "Its laws are not yet in force.",
+        "nodes": "There is still work undone.",
+        "realised": "Another party's country already stands.",
+        "state": "The times do not allow that country yet.",
+        "tier": "The step before must come first."
+      }
     },
     "vassal": {
       "AUH_ALB": "Principality of Albania (Austrian protectorate)",
