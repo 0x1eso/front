@@ -118,6 +118,12 @@ const HELD_CAPITAL_SHARE = 40;
 const ALLIES_HOLD_MONTHS = 6;
 /** Each month fighting on with the capital lost, on the odds. */
 const PRESSURE_PER_MONTH = 4;
+/**
+ * ww217: with its capital gone and less than this share of its home places
+ * left, a country that gives up has given up fully: at its table it may
+ * protest, not refuse.
+ */
+const FULL_SHARE = 25;
 
 const gov = (gw: GreatWar, tag: GwTag): GwGovSeat | null =>
   gw.s.govSeats?.find((g) => g.tag === tag) ?? null;
@@ -191,6 +197,33 @@ export function capitulationOdds(gw: GreatWar, tag: GwTag): number {
   if (!field) odds += 15;
   if (allies) odds = Math.floor(odds / 2);
   return Math.max(0, Math.min(100, odds));
+}
+
+/**
+ * ww217: how deep the defeat of a country giving up now goes. Full: its
+ * capital lost and little home land left, or a certain capitulation, or a
+ * forced one (its government fell for refusing, and the next one signs).
+ * Otherwise it sued with an army still in being, allies still fighting, or
+ * a government holding out in a refuge: a conditional peace.
+ */
+export function fullCapitulation(
+  gw: GreatWar,
+  tag: GwTag,
+  forced: boolean,
+): boolean {
+  if (forced) return true;
+  if (!hasLandGraph(gw)) return false;
+  if (capitulationOdds(gw, tag) >= 100) return true;
+  return capitalHolder(gw, tag) !== null && homeShare(gw, tag) < FULL_SHARE;
+}
+
+/** ww217: the tables just queued for `tag`'s defeat carry its depth. */
+function markFull(gw: GreatWar, tag: GwTag): void {
+  for (const r of gw.s.pairTables ?? []) {
+    if (r.opened !== null || r.signed !== null || r.winner === null) continue;
+    if (r.winner === tag || (r.a !== tag && r.b !== tag)) continue;
+    r.full = true;
+  }
 }
 
 /** Where the government goes now: a place it holds, or null abroad. */
@@ -278,9 +311,12 @@ export function capitulate(
   gw: GreatWar,
   tag: GwTag,
   why = "nation_capitulated",
+  forced = false,
 ): void {
   const n = gw.nation(tag);
   if (n === null || n.out || n.atWar.length === 0) return;
+  // ww217: read before it leaves the war (the odds read a country at war).
+  const full = fullCapitulation(gw, tag, forced);
   // Its partners on each front over its own soil, before it goes.
   const mates = new Map<GwTheatre, { end: GwSide; tags: GwTag[] }>();
   for (const t of gw.s.theatres) {
@@ -318,6 +354,7 @@ export function capitulate(
     for (const foe of [...n.atWar]) pairPeace(gw, tag, foe, tag, why);
     n.out = true;
   }
+  if (full) markFull(gw, tag);
   if (gw.s.armistice !== null) return;
   // A partner holds the front on with ground of its own there; with none
   // holding any, they all go home and the front closes.
@@ -379,7 +416,8 @@ function seatAnswers(gw: GreatWar): void {
     const g = gov(gw, seat.tag);
     if (give) {
       if (refused) news(gw, "gov_fell_capitulation", seat.tag);
-      capitulate(gw, seat.tag);
+      // ww217: a successor that signs after its government fell signs fully.
+      capitulate(gw, seat.tag, "nation_capitulated", refused);
     } else if (fight && g !== null) {
       g.fightOn = true;
     }

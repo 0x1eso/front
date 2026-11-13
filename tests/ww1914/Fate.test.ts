@@ -19,6 +19,7 @@ import {
   tableBargain,
   tablePropose,
   talkDue,
+  talkView,
 } from "@openfront/engine/ww1914/Bargain";
 import { capitulate } from "@openfront/engine/ww1914/Capitulation";
 import { openDepts } from "@openfront/engine/ww1914/Departments";
@@ -30,10 +31,12 @@ import {
   foundOnRule,
   laySettlePaper,
   realmViews,
+  revancheOf,
 } from "@openfront/engine/ww1914/Fate";
 import type { GreatWar } from "@openfront/engine/ww1914/GreatWar";
 import { holderOf, moveLand } from "@openfront/engine/ww1914/Land";
 import { outMidWar } from "@openfront/engine/ww1914/Peace";
+import { resistOf } from "@openfront/engine/ww1914/Rule";
 import { closeTable, pairTableStep } from "@openfront/engine/ww1914/Table";
 import {
   atWarWith,
@@ -62,7 +65,13 @@ async function world(id: string): Promise<GreatWar> {
  * ww205: Romania gives up to a Germany the seat plays; its table waits for
  * the seat's whole proposal, painted: Bucharest annexed, the rest held.
  */
-async function romaniaAtTheTable(id: string) {
+async function romaniaAtTheTable(
+  id: string,
+  opts: {
+    all?: boolean;
+    fates?: GwSeatState["fates"];
+  } = {},
+) {
   const start = startOf(id, "full", []);
   const runner = await createGameRunner(start, undefined, realMap(), () => {});
   for (let t = 0; t < 2; t++) {
@@ -75,13 +84,15 @@ async function romaniaAtTheTable(id: string) {
   openGeneral(gw, "DEU", "FRA", "test");
   enter(gw, "AUH", "central", "test");
   enter(gw, "ROU", "entente", "test");
-  for (const p of ["bucharest", "ploesti", "iasi"] as const) {
+  // ww217: `all`: every Romanian place held, so it gives up fully.
+  const held = opts.all === true ? (["craiova", "constanta"] as const) : [];
+  for (const p of ["bucharest", "ploesti", "iasi", ...held] as const) {
     moveLand(gw, p, "DEU", null, "occupation");
   }
   capitulate(gw, "ROU");
   const seat = gw.s.seats.find((x) => x.tag === "DEU")!;
   pairTableStep(gw);
-  seat.fates = {
+  seat.fates = opts.fates ?? {
     bucharest: { fate: "annex" },
     iasi: { fate: "occupy", term: "short" },
     ploesti: { fate: "occupy", term: "long" },
@@ -436,5 +447,131 @@ describe("a beaten country's fate (ww199)", () => {
       offer: "reparations",
     });
     expect(t.bill.ROU).toBe(3);
+  });
+  test("ww217: a fully capitulated loser only protests; a protest blocks nothing, and pushing it through costs more over time", async () => {
+    // Its capital and every place held: Romania gives up fully.
+    const { gw, seat, t, at } = await romaniaAtTheTable("GWFULL1", {
+      all: true,
+      fates: {
+        bucharest: { fate: "occupy", term: "long" },
+        ploesti: { fate: "annex" },
+        iasi: { fate: "annex" },
+        craiova: { fate: "annex" },
+        constanta: { fate: "annex" },
+      },
+    });
+    expect(t.talk!.full).toBe(true);
+    expect(talkView(gw)).toMatchObject({ full: true, mood: "bowed" });
+    expect(at("bucharest").state).toBe("agreed");
+    const protested = ["constanta", "craiova", "iasi", "ploesti"] as const;
+    for (const p of protested) {
+      expect(at(p)).toMatchObject({ state: "open", step: "refused" });
+      expect(at(p).protest).toBe(true);
+      // Its reasons are its own, never an army or allies it no longer has.
+      expect(["army", "allies"]).not.toContain(at(p).why);
+    }
+    expect(t.lines.some((l) => l.word === "protest" && l.who === "ROU")).toBe(
+      true,
+    );
+    // No veto to insist against: push it through, or ease the place.
+    const due = talkDue(gw, seat);
+    expect(due?.kind).toBe("bargain");
+    expect(due?.kind === "bargain" && due.moves?.[at("iasi").id]).toEqual([
+      "push",
+      "down",
+      "drop",
+    ]);
+    expect(
+      tableBargain(gw, seat, [
+        { claim: at("iasi").id, move: "insist", place: null },
+      ]),
+    ).toBe("table_no");
+    expect(
+      tableBargain(gw, seat, [
+        { claim: at("iasi").id, move: "push", place: null },
+        { claim: at("ploesti").id, move: "push", place: null },
+        { claim: at("constanta").id, move: "push", place: null },
+        { claim: at("craiova").id, move: "down", place: null },
+      ]),
+    ).toBeNull();
+    for (const p of ["iasi", "ploesti", "constanta"] as const) {
+      expect(at(p)).toMatchObject({ state: "imposed", move: "push" });
+    }
+    // However hard it was pushed, it never walks out.
+    t.talk!.strain.ROU = 99;
+    stepTalk(gw, false);
+    expect(t.talk!.walked).toEqual([]);
+    expect(at("craiova").fate).toBe("occupy");
+    closeTable(gw);
+    expect(t.closed).toBe(true);
+    expect(gw.s.walkedOut ?? []).toEqual([]);
+    expect(holderOf(gw, "iasi")).toBe("DEU");
+    expect((gw.s.fates ?? []).find((f) => f.place === "iasi")?.fate).toBe(
+      "annex",
+    );
+    const rows = gw.s.protests ?? [];
+    expect(rows.map((r) => r.place).sort()).toEqual(
+      expect.arrayContaining(["constanta", "iasi", "ploesti"]),
+    );
+    expect(rows.every((r) => r.by === "DEU" && r.of === "ROU")).toBe(true);
+    // The costs build over the months that follow, then stop.
+    const neutral = gw.s.nations.find(
+      (n) => n.side === null && !n.out && n.tag !== "USA",
+    )!;
+    const usa = gw.nation("USA")!;
+    const before = {
+      ready: usa.readiness,
+      trust: neutral.trust.DEU ?? 0,
+      revanche: revancheOf(gw, "ROU", "DEU"),
+      resist: resistOf(gw, "DEU", "ROU"),
+    };
+    for (let i = 0; i < 24; i++) {
+      gw.s.chapter++;
+      fateStep(gw);
+    }
+    expect(rows.every((r) => r.weight === 3)).toBe(true);
+    expect(usa.readiness).toBeGreaterThan(before.ready);
+    expect(neutral.trust.DEU ?? 0).toBeLessThan(before.trust);
+    expect(revancheOf(gw, "ROU", "DEU")).toBeGreaterThan(before.revanche);
+    expect(resistOf(gw, "DEU", "ROU")).toBeGreaterThan(before.resist);
+    expect(seat.log.some((l) => l.key === "table_protest_builds")).toBe(true);
+  });
+
+  test("ww217: a conditional loser can still refuse and walk out; the war resumes and the next terms are harsher", async () => {
+    const { gw, seat, t, at } = await romaniaAtTheTable("GWCOND1");
+    // Its army and allies still in being: a conditional peace, with a veto.
+    expect(t.talk!.full).toBeUndefined();
+    const first = Object.fromEntries(
+      t.claims.filter((c) => c.by === "DEU").map((c) => [c.place, c.fate]),
+    );
+    expect(first).toMatchObject({ iasi: "occupy", ploesti: "occupy" });
+    expect(at("bucharest")).toMatchObject({ step: "refused", why: "capital" });
+    expect(at("bucharest").protest).toBeUndefined();
+    const id = at("bucharest").id;
+    for (let i = 0; i < 3 && !t.closed; i++) {
+      tableBargain(gw, seat, [{ claim: id, move: "insist", place: null }]);
+      stepTalk(gw, false);
+    }
+    expect(t.closed).toBe(true);
+    expect(gw.s.walkedOut).toEqual(["ROU"]);
+    expect(atWarWith(gw, "DEU", "ROU")).toBe(true);
+    expect(gw.nation("ROU")!.out).toBe(false);
+    // The seat's terms come back a step harsher; the capital still unannexed.
+    expect(seat.fates).toMatchObject({
+      iasi: { fate: "occupy", term: "long" },
+      ploesti: { fate: "annex" },
+      bucharest: { fate: "annex" },
+    });
+    // It gives up again; the next table starts from the harder terms.
+    capitulate(gw, "ROU");
+    pairTableStep(gw);
+    const t2 = gw.s.table!;
+    expect(t2).not.toBe(t);
+    expect(t2.talk!.full).toBeUndefined();
+    expect(tablePropose(gw, seat)).toBeNull();
+    const next = (p: GwPlace) =>
+      t2.claims.find((c) => c.by === "DEU" && c.place === p)!;
+    expect(next("iasi")).toMatchObject({ fate: "occupy", term: "long" });
+    expect(next("ploesti").fate).toBe("annex");
   });
 });

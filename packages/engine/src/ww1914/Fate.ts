@@ -352,6 +352,12 @@ export function revancheOf(gw: GreatWar, tag: GwTag, toward?: GwTag): number {
     if (r.fate === "annex" || r.fate === "state" || r.fate === "vassal") n++;
     else if (r.fate === "return") n--;
   }
+  // ww217: protests pushed through at its table sink in over time.
+  for (const r of gw.s.protests ?? []) {
+    if (r.of !== tag || (toward !== undefined && r.by !== toward)) continue;
+    if (monthsFrom(gw, r.chapter) >= GW_REVANCHE_MONTHS) continue;
+    n += r.weight >= PROTEST_MAX ? 2 : r.weight >= 1 ? 1 : 0;
+  }
   return Math.max(0, n);
 }
 
@@ -1287,9 +1293,95 @@ function grudges(gw: GreatWar): void {
   }
 }
 
+// ---- ww217: protests pushed through ----
+
+/** A pushed protest's weight at most: three steps, then it has sunk in. */
+const PROTEST_MAX = 3;
+/** Months between two steps of a pushed protest. */
+const PROTEST_EVERY = 3;
+/** America's readiness each place's step adds while it leans against `by`. */
+const PROTEST_OUTRAGE = 3;
+
+/**
+ * ww217: the signing of a table where a fully beaten country protested
+ * places that went all the same: each is remembered, and its costs build
+ * from here (protestStep).
+ */
+export function protestsSigned(
+  gw: GreatWar,
+  claims: readonly GwTableClaim[],
+): void {
+  const told = new Set<string>();
+  for (const c of claims) {
+    if (c.protest !== true || c.move !== "push") continue;
+    if (c.state !== "agreed" && c.state !== "imposed") continue;
+    (gw.s.protests ??= []).push({
+      by: c.by,
+      of: c.against,
+      place: c.place,
+      chapter: gw.s.chapter,
+      weight: 0,
+    });
+    const k = `${c.by}:${c.against}`;
+    if (told.has(k)) continue;
+    told.add(k);
+    news(gw, "table_protest_pushed", c.by, c.against, null, c.place);
+    tell(gw, c.by, "table_protest_pushed");
+    tell(gw, c.against, "table_protest_signed");
+  }
+}
+
+/** A neutral America over a pushed protest: readier against `by`, or turning from it. */
+function protestOutrage(gw: GreatWar, by: GwTag, count: number): void {
+  const usa = gw.nation("USA");
+  const side = gw.nation(by)?.side ?? null;
+  if (usa === null || side === null || !usNeutral(gw)) return;
+  const against = usa.lean >= 0 ? "central" : "entente";
+  if (side === against) {
+    usa.readiness = clampTo(usa.readiness + PROTEST_OUTRAGE * count, 0, 100);
+  } else {
+    usa.lean = clampTo(usa.lean + (side === "central" ? 1 : -1), -1, 1);
+  }
+}
+
+/**
+ * ww217, each chapter: a pushed protest builds every three months, three
+ * times: the neutrals think less of the victor and America leans against
+ * it, the beaten's revanche deepens (revancheOf), and the people of the
+ * land it rules resist harder.
+ */
+export function protestStep(gw: GreatWar): void {
+  const rows = gw.s.protests;
+  if (rows === undefined) return;
+  const grew = new Map<string, { by: GwTag; of: GwTag; n: number }>();
+  for (const r of rows) {
+    if (r.weight >= PROTEST_MAX) continue;
+    if (!beatSince(gw, r.chapter, PROTEST_EVERY)) continue;
+    r.weight++;
+    const k = `${r.by}:${r.of}`;
+    const g = grew.get(k) ?? { by: r.by, of: r.of, n: 0 };
+    g.n++;
+    grew.set(k, g);
+  }
+  for (const { by, of, n } of grew.values()) {
+    for (const x of gw.s.nations) {
+      if (x.side !== null || x.out || x.tag === by || x.tag === of) continue;
+      trustMove(gw, x.tag, by, -1);
+    }
+    protestOutrage(gw, by, n);
+    const rule = ruleOf(gw, by, of);
+    if (rule !== null) rule.resist = clampTo(rule.resist + 1, 0, 3);
+    news(gw, "table_protest_builds", of, by);
+    tell(gw, by, "table_protest_builds");
+    tell(gw, of, "table_protest_remembered");
+  }
+  if (grew.size > 0) gw.touch();
+}
+
 /** Chapter step, after the rule step: the years after. */
 export function fateStep(gw: GreatWar): void {
   const s = gw.s;
+  protestStep(gw);
   if (
     s.fates === undefined &&
     !s.nations.some((n) => n.client !== undefined || n.vassal !== undefined)

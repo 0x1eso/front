@@ -62,6 +62,7 @@ import {
   crownsAfter,
   laySettlePaper,
   markOf,
+  protestsSigned,
   recordOf,
   signWays,
   undoForLosers,
@@ -1098,6 +1099,8 @@ export function closeTable(gw: GreatWar, canPress = false): void {
     if (c.round === undefined) continue;
     if (c.state === "agreed" || c.state === "imposed") applyClaim(gw, c);
   }
+  // ww217: the protests pushed through are remembered, and begin to cost.
+  protestsSigned(gw, t.claims);
   // ww199: vassals take shape now, once all of a country's claims are in.
   applyVassals(gw, t.claims);
   if (t.pair === undefined) {
@@ -1209,7 +1212,8 @@ function openPairTable(gw: GreatWar, row: GwPairTable): void {
     },
   };
   // ww205: one beaten country: whole proposals, answers, rounds.
-  if (row.winner !== null) startTalk(s.table);
+  // ww217: a full capitulation's table: protests, no veto, no walk-out.
+  if (row.winner !== null) startTalk(s.table, row.full === true);
   news(gw, "pair_table_open", row.a, row.b);
   tableOpened(gw);
   for (const [me, them] of [

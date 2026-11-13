@@ -124,9 +124,57 @@ type Talk = NonNullable<GwTableState["talk"]>;
 const tableOf = (gw: GreatWar) => gw.s.table!;
 const talkOf = (gw: GreatWar): Talk => tableOf(gw).talk!;
 
-/** A table of one beaten country starts its talk. */
-export function startTalk(t: GwTableState): void {
-  t.talk = { rounds: {}, strain: {}, walked: [] };
+/**
+ * A table of one beaten country starts its talk. ww217: `full`, it
+ * capitulated fully: it protests, it can't refuse or walk out.
+ */
+export function startTalk(t: GwTableState, full = false): void {
+  t.talk = { rounds: {}, strain: {}, walked: [], ...(full ? { full } : {}) };
+}
+
+/** ww217: the beaten at this talk capitulated fully: it has no veto. */
+const fullTalk = (t: GwTableState): boolean => t.talk?.full === true;
+
+/**
+ * ww217: a protest can be pushed over unless it guards a capital from being
+ * annexed, given away or made a state: that stays out of any treaty.
+ */
+function pushable(c: GwTableClaim): boolean {
+  const fate = c.fate ?? "annex";
+  const capital = GW_CAPITALS[GW_PLACES[c.place].owner] === c.place;
+  return !(
+    capital &&
+    (fate === "annex" || fate === "ally" || fate === "state")
+  );
+}
+
+/** ww217: the victor pushes the place through over the protest. */
+function pushThrough(gw: GreatWar, c: GwTableClaim): void {
+  c.move = "push";
+  give(gw, c, "imposed");
+}
+
+/**
+ * A place still refused when the talk is over. ww217: a fully beaten
+ * country's protest doesn't hold it: the place goes as last proposed.
+ */
+function endRefused(gw: GreatWar, c: GwTableClaim): void {
+  if (fullTalk(tableOf(gw)) && c.protest === true && pushable(c)) {
+    pushThrough(gw, c);
+  } else {
+    refuseFinal(gw, c);
+  }
+}
+
+/** A claim takes `mark` as its fate. */
+function setMark(c: GwTableClaim, mark: GwFateMark): void {
+  c.fate = mark.fate;
+  if (mark.for !== undefined) c.for = mark.for;
+  else delete c.for;
+  if (mark.client !== undefined) c.client = mark.client;
+  else delete c.client;
+  if (mark.term !== undefined) c.term = mark.term;
+  else delete c.term;
 }
 
 /** The beaten at a talk; null where nobody is. */
@@ -180,6 +228,22 @@ function propose(gw: GreatWar, by: GwTag): void {
       put(gw, by, p, againstOf(gw, by, p)!, 1);
     }
     return;
+  }
+  // ww217: the terms it had when this country walked out come back first,
+  // as its character hardened them (walkOut).
+  const beaten = beatenOf(t);
+  const harsh = (gw.s.harsh ?? []).filter(
+    (r) => r.by === by && r.of === beaten,
+  );
+  if (harsh.length > 0) {
+    const open = askable(gw, by);
+    for (const r of harsh) {
+      if (!open.includes(r.place)) continue;
+      const c = put(gw, by, r.place, againstOf(gw, by, r.place)!, 1);
+      if (c.state === "open") setMark(c, r.mark);
+    }
+    gw.s.harsh = gw.s.harsh!.filter((r) => !harsh.includes(r));
+    if (gw.s.harsh.length === 0) delete gw.s.harsh;
   }
   // A government nobody plays: what it wants, as much as its character asks.
   for (let guard = 0; guard < 64; guard++) {
@@ -258,9 +322,11 @@ export function answerOf(
     return { yes: false, why: "heart" };
   }
   if (fate === "ally") return { yes: false, why: "to_ally" };
-  if (allies) return { yes: false, why: "allies" };
+  // ww217: fully beaten, it has no army or allies to name: it protests.
+  const bowed = fullTalk(tableOf(gw));
+  if (allies && !bowed) return { yes: false, why: "allies" };
   if (claimsMade(tableOf(gw), c.by) >= MUCH) return { yes: false, why: "much" };
-  return { yes: false, why: "army" };
+  return { yes: false, why: bowed ? "unjust" : "army" };
 }
 
 /**
@@ -377,8 +443,14 @@ function answerAll(
     if (a.why === undefined) delete c.why;
     else c.why = a.why;
     if (a.yes) {
+      delete c.protest;
       if (c.move !== undefined && TRADES.includes(c.move)) settleTrade(gw, c);
       else give(gw, c, "agreed");
+    } else if (fullTalk(t)) {
+      // ww217: a fully beaten country protests; the protest blocks nothing.
+      c.step = "refused";
+      c.protest = true;
+      say(t, "protest", c.against, c.id);
     } else {
       c.step = "refused";
       say(t, "no", c.against, c.id);
@@ -398,7 +470,7 @@ function answerAll(
     }
   }
   if ((t.talk!.rounds[by] ?? 0) < roundsOf(t)) return;
-  for (const c of openOf(t, by)) if (c.step === "refused") refuseFinal(gw, c);
+  for (const c of openOf(t, by)) if (c.step === "refused") endRefused(gw, c);
 }
 
 /** How much strain the beaten bears before it walks out. */
@@ -417,6 +489,7 @@ function canWalk(gw: GreatWar, tag: GwTag): boolean {
   return (
     gw.s.armistice === null &&
     tableOf(gw).pair !== undefined &&
+    !fullTalk(tableOf(gw)) &&
     !(gw.s.walkedOut ?? []).includes(tag)
   );
 }
@@ -431,6 +504,7 @@ export function walkOut(gw: GreatWar, beaten: GwTag): void {
   talk.walked.push(beaten);
   (gw.s.walkedOut ??= []).push(beaten);
   say(t, "walk", beaten, -1);
+  harden(gw, t, beaten);
   for (const c of t.claims) {
     if (c.against !== beaten) continue;
     if (c.state === "open" || c.state === "agreed" || c.state === "imposed") {
@@ -452,6 +526,88 @@ export function walkOut(gw: GreatWar, beaten: GwTag): void {
     }
   }
   gw.touch();
+}
+
+/**
+ * ww217: one step harsher (the step down undone): return → vassal →
+ * occupy long → annex; a short occupation becomes a long one. A capital is
+ * never annexed, and a state or an ally's gift stays as it is.
+ */
+export function harsherMark(place: GwPlace, m: GwFateMark): GwFateMark {
+  const capital = GW_CAPITALS[GW_PLACES[place].owner] === place;
+  switch (m.fate) {
+    case "return":
+      return { fate: "vassal" };
+    case "vassal":
+      return { fate: "occupy", term: "long" };
+    case "occupy":
+      if (m.term !== "long") return { fate: "occupy", term: "long" };
+      return capital ? m : { fate: "annex" };
+    default:
+      return m;
+  }
+}
+
+/** ww217: characters that come back to the table asking more (Brest). */
+const HARDENS: Readonly<Record<string, boolean>> = {
+  hardline: true,
+  opportunist: true,
+  principled: false,
+  cautious: false,
+};
+
+/**
+ * ww217: the beaten walks out: what each victor had on the table seeds its
+ * next proposal to it, harder. A seat's painted fates step up (it may
+ * repaint them); a government nobody plays keeps its terms, harder by its
+ * character, for its next proposal (`s.harsh`).
+ */
+function harden(gw: GreatWar, t: GwTableState, beaten: GwTag): void {
+  for (const by of t.order) {
+    if (by === beaten) continue;
+    const on = t.claims.filter(
+      (c) =>
+        c.by === by &&
+        c.against === beaten &&
+        c.round !== undefined &&
+        GW_PLACES[c.place].owner !== by &&
+        (c.state === "open" || c.state === "agreed" || c.state === "imposed"),
+    );
+    if (on.length === 0) continue;
+    const mark = (c: GwTableClaim): GwFateMark => {
+      const m: GwFateMark = { fate: c.fate ?? "annex" };
+      if (c.for !== undefined) m.for = c.for;
+      if (c.client !== undefined) m.client = c.client;
+      if (c.term !== undefined) m.term = c.term;
+      return m;
+    };
+    if (hasSeat(gw, by)) {
+      for (const seat of seatsOf(gw, by)) {
+        const fates = (seat.fates ??= {});
+        for (const c of on) {
+          fates[c.place] = harsherMark(
+            c.place,
+            markOf(seat, c.place) ?? mark(c),
+          );
+        }
+      }
+      continue;
+    }
+    const hard = HARDENS[gw.nation(by)?.ai ?? "cautious"] === true;
+    const rows = (gw.s.harsh ?? []).filter(
+      (r) => !(r.by === by && r.of === beaten),
+    );
+    for (const c of on) {
+      const m = mark(c);
+      rows.push({
+        by,
+        of: beaten,
+        place: c.place,
+        mark: hard ? harsherMark(c.place, m) : m,
+      });
+    }
+    gw.s.harsh = rows;
+  }
 }
 
 const STEP_DOWN: Readonly<Record<string, GwFateMark>> = {
@@ -506,12 +662,24 @@ function bargain(
   const talk = t.talk!;
   const round = (talk.rounds[by] ?? 1) + 1;
   const beaten = beatenOf(t);
+  // ww217: over a fully beaten country's protests a place goes unless eased.
+  const full = fullTalk(t);
   let strain = 0;
   let again = 0;
   for (const c of openOf(t, by)) {
     if (c.step !== "refused") continue;
-    const m = moves.get(c.id) ?? { move: "insist", place: null };
+    const m = moves.get(c.id) ?? {
+      move: full ? "push" : "insist",
+      place: null,
+    };
     switch (m.move) {
+      case "push":
+        if (full && pushable(c)) {
+          pushThrough(gw, c);
+          continue;
+        }
+        stepDown(c);
+        break;
       case "insist":
         c.insisted = (c.insisted ?? 0) + 1;
         strain += STRAIN_INSIST;
@@ -528,13 +696,7 @@ function bargain(
         const mark = tradeMark(gw, by, place, c);
         const n = put(gw, by, place, againstOf(gw, by, place)!, round);
         if (n.state === "open") {
-          n.fate = mark.fate;
-          if (mark.for !== undefined) n.for = mark.for;
-          else delete n.for;
-          if (mark.client !== undefined) n.client = mark.client;
-          else delete n.client;
-          if (mark.term !== undefined) n.term = mark.term;
-          else delete n.term;
+          setMark(n, mark);
           again++;
         }
         continue;
@@ -619,6 +781,7 @@ function aiMove(
   const n = gw.nation(by);
   const fate = c.fate ?? "annex";
   if (n === null || fate === "return") return "drop";
+  if (fullTalk(tableOf(gw))) return aiPush(gw, by, c);
   // ww210: the beaten named its own fate: all but a hard man take it.
   if (c.counter !== undefined && n.ai !== "hardline") return "counter";
   switch (n.ai) {
@@ -633,6 +796,28 @@ function aiMove(
       return "down";
     case "principled":
       return fate === "annex" ? "down" : "drop";
+    case "cautious":
+      return (c.round ?? 1) >= 2 ? "drop" : "down";
+  }
+}
+
+/**
+ * ww217: over a fully beaten country's protest, by character: a hard man
+ * pushes every place through, an opportunist what it wants or holds, a
+ * principled one all but an annexation, a cautious one eases, then lets go.
+ */
+function aiPush(gw: GreatWar, by: GwTag, c: GwTableClaim): GwBargainMove {
+  const fate = c.fate ?? "annex";
+  const can = pushable(c);
+  const wanted =
+    (GW_TABLE_AIMS[by] ?? []).includes(c.place) || holderOf(gw, c.place) === by;
+  switch (gw.nation(by)?.ai ?? "cautious") {
+    case "hardline":
+      return can ? "push" : "down";
+    case "opportunist":
+      return can && wanted ? "push" : "down";
+    case "principled":
+      return can && fate !== "annex" && fate !== "ally" ? "push" : "down";
     case "cautious":
       return (c.round ?? 1) >= 2 ? "drop" : "down";
   }
@@ -678,7 +863,7 @@ export function stepTalk(gw: GreatWar, force: boolean): boolean {
   }
   if (hasSeat(gw, x)) {
     if (!force) return false;
-    for (const c of mine) if (c.step === "refused") refuseFinal(gw, c);
+    for (const c of mine) if (c.step === "refused") endRefused(gw, c);
     return true;
   }
   const moves = new Map<number, GwBargainPick>();
@@ -860,6 +1045,16 @@ export function talkDue(gw: GreatWar, seat: GwSeatState): GwTableDue {
   if (mine.some((c) => c.step === "partner")) return null;
   const asked = mine.filter((c) => c.step === "asked");
   if (asked.length === 0) return null;
+  // ww217: fully beaten: it accepts or protests, it names no fate of its own.
+  if (fullTalk(t)) {
+    return {
+      kind: "answer",
+      claims: asked.map((c) => c.id),
+      walk: false,
+      counters: {},
+      protest: true,
+    };
+  }
   return {
     kind: "answer",
     claims: asked.map((c) => c.id),
@@ -874,6 +1069,10 @@ export function talkDue(gw: GreatWar, seat: GwSeatState): GwTableDue {
 
 /** ww210: the moves open on a refused place, read off the state. */
 function movesFor(gw: GreatWar, c: GwTableClaim): GwBargainMove[] {
+  // ww217: over a protest there is no veto to insist against: push or ease.
+  if (fullTalk(tableOf(gw))) {
+    return pushable(c) ? ["push", "down", "drop"] : ["down", "drop"];
+  }
   const out: GwBargainMove[] = ["insist", "down", "trade", "drop"];
   if (c.counter !== undefined) out.push("counter");
   out.push("ransom");
@@ -971,6 +1170,7 @@ export function talkSpeaker(gw: GreatWar): GwTag | null {
 /** The beaten's mood in words, from the strain against what it bears. */
 function moodOf(gw: GreatWar, beaten: GwTag | null): GwTableMood {
   if (beaten === null) return "calm";
+  if (fullTalk(tableOf(gw))) return "bowed";
   const strain = talkOf(gw).strain[beaten] ?? 0;
   const limit = walkLimit(gw, beaten);
   if (strain * 2 <= limit) return "calm";
@@ -990,5 +1190,6 @@ export function talkView(gw: GreatWar): NonNullable<GwTableView["talk"]> {
     beaten,
     mood: moodOf(gw, beaten),
     walked: talk.walked,
+    ...(talk.full === true ? { full: true } : {}),
   };
 }

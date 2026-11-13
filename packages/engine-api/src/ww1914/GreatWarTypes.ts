@@ -2239,6 +2239,12 @@ export const GwPairTableSchema = z.object({
    * side that holds its land or fought it on a front. They sit with `a`.
    */
   with: z.array(z.enum(GW_TAGS)).optional(),
+  /**
+   * ww217: the beaten (not `winner`) capitulated fully (capital lost and little home land left, a
+   * certain or a forced capitulation): at its table it protests, it has no
+   * veto and no walk-out. Absent: a conditional peace.
+   */
+  full: z.boolean().optional(),
 });
 export type GwPairTable = z.infer<typeof GwPairTableSchema>;
 
@@ -2458,5 +2464,37 @@ export const GreatWarStateSchema = z.object({
    * (Brest, February 1918), in order; each does it once.
    */
   walkedOut: z.array(z.enum(GW_TAGS)).optional(),
+  /**
+   * ww217: protests of a fully beaten country that a victor pushed through
+   * at its table, one row a place. Each builds over time (`weight` 0..3, a
+   * step every three months): neutral opinion and America's readiness, the
+   * beaten's revanche, resistance in the place.
+   */
+  protests: z
+    .array(
+      z.object({
+        by: z.enum(GW_TAGS),
+        of: z.enum(GW_TAGS),
+        place: GwPlaceSchema,
+        chapter: z.number().int(),
+        weight: z.number().int(),
+      }),
+    )
+    .optional(),
+  /**
+   * ww217: the terms a government nobody plays had on the table when a
+   * country walked out of it (Brest), already made harsher by its
+   * character: its next proposal to that country starts from them.
+   */
+  harsh: z
+    .array(
+      z.object({
+        by: z.enum(GW_TAGS),
+        of: z.enum(GW_TAGS),
+        place: GwPlaceSchema,
+        mark: GwFateMarkSchema,
+      }),
+    )
+    .optional(),
 });
 export type GreatWarState = z.infer<typeof GreatWarStateSchema>;

@@ -79,6 +79,8 @@ export const GW_TABLE_LINES = [
   // ww205: a whole proposal laid down; the beaten walks out of the room.
   "propose",
   "walk",
+  // ww217: a fully beaten country protests a place; it doesn't block.
+  "protest",
 ] as const;
 export type GwTableLineKind = (typeof GW_TABLE_LINES)[number];
 
@@ -102,6 +104,8 @@ export const GW_TABLE_WHYS = [
   "beaten", // it lost the war
   "return", // given back
   "tired", // it can't go on
+  // ww217: a fully beaten country's protest, when no other reason fits
+  "unjust", // 부당하다, 세상에 호소한다
 ] as const;
 export type GwTableWhy = (typeof GW_TABLE_WHYS)[number];
 
@@ -124,11 +128,20 @@ export const GW_BARGAIN_MOVES = [
   "favour_neutral", // the place given up for the beaten's neutrality to come
   "favour_trade", // the place given up for trade terms
   "split", // a separate table with the place's breakaway state (the Bread Peace)
+  // ww217: over a fully beaten country's protest (it has no veto): the place
+  // goes as asked, and the protest's costs build after the signing.
+  "push",
 ] as const;
 export type GwBargainMove = (typeof GW_BARGAIN_MOVES)[number];
 
 /** ww205: how the beaten bears the talks, in words: 차분함 / 굳어 감 / 박차고 나갈 듯. */
-export const GW_TABLE_MOODS = ["calm", "tense", "breaking"] as const;
+export const GW_TABLE_MOODS = [
+  "calm",
+  "tense",
+  "breaking",
+  // ww217: fully beaten: it protests, it can't refuse or walk out.
+  "bowed",
+] as const;
 export type GwTableMood = (typeof GW_TABLE_MOODS)[number];
 
 const Tag = z.enum(GW_TAGS);
@@ -182,6 +195,12 @@ export const GwTableClaimSchema = z.object({
   due: z.number().int().optional(),
   /** `ultimatum`: the round by which it must be taken. */
   ultimatum: z.number().int().optional(),
+  /**
+   * ww217: a fully beaten country protested it (its "no" at a table where it
+   * has no veto). It blocks nothing; pushed through (`move: "push"`), its
+   * costs build after the signing (`s.protests`).
+   */
+  protest: z.boolean().optional(),
 });
 export type GwTableClaim = z.infer<typeof GwTableClaimSchema>;
 
@@ -248,6 +267,13 @@ export const GwTableStateSchema = z.object({
       rounds: z.partialRecord(Tag, z.number().int()),
       strain: z.partialRecord(Tag, z.number().int()),
       walked: z.array(Tag),
+      /**
+       * ww217: the beaten capitulated fully (capital lost and little home
+       * land left, a certain capitulation, or a forced one): it accepts or
+       * protests each place, a protest blocks nothing, and it can't walk
+       * out. Absent: a conditional peace, refusals and walk-out as ww205.
+       */
+      full: z.boolean().optional(),
     })
     .optional(),
 });
@@ -280,6 +306,8 @@ export interface GwTableClaimView {
   ransom?: number;
   due?: number;
   ultimatum?: number;
+  /** ww217: protested by a fully beaten country (blocks nothing). */
+  protest?: boolean;
 }
 
 /** What the seat has to do at the table now. */
@@ -316,6 +344,8 @@ export type GwTableDue =
       walk: boolean;
       /** ww209 (S2): claim id -> fates the beaten may name instead (`table_counter`). */
       counters?: Readonly<Record<number, readonly GwFate[]>>;
+      /** ww217: fully beaten: its "no" is a protest (받아들인다 / 항의한다). */
+      protest?: boolean;
     }
   | null;
 
@@ -361,6 +391,8 @@ export interface GwTableView {
     beaten: GwTag | null;
     mood: GwTableMood;
     walked: readonly GwTag[];
+    /** ww217: the beaten capitulated fully: it protests, it has no veto. */
+    full?: boolean;
   } | null;
 }
 
