@@ -1,4 +1,7 @@
-import { GwPackSchema } from "@openfront/engine-api/ww1914/GwPack";
+import {
+  GwPackSchema,
+  mergeGwPacks,
+} from "@openfront/engine-api/ww1914/GwPack";
 import { GW_RULER_SIDES } from "@openfront/engine-api/ww1914/GwRuler";
 import { GW_CONTENT } from "@openfront/engine-lib/ww1914/content/Content";
 import {
@@ -321,7 +324,12 @@ describe("the rows", () => {
   test.each(SEATS)(
     "%s: the card's words and reason lines are all written",
     async (tag) => {
-      const own = GwPackSchema.parse(res(`ww1914/ko/${tag}.ruler.json`));
+      // ww208 1B: a head's card is in the seat's head share.
+      const own = mergeGwPacks(
+        ["ruler", "head"].map((x) =>
+          GwPackSchema.parse(res(`ww1914/ko/${tag}.${x}.json`)),
+        ),
+      );
       for (const row of GW_RULERS[tag]!) {
         const w = own.rulers?.[row.id];
         expect(w, row.id).toBeDefined();

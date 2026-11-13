@@ -58,6 +58,8 @@ export const GW_PACK_SHARES: Readonly<
     "settle",
     // ww201: the seat's own words for the production step's causes.
     "econ",
+    // ww208 1B: the head a utopia brings (lane P).
+    "head",
   ],
   GBR: [
     "crisis",
@@ -89,6 +91,8 @@ export const GW_PACK_SHARES: Readonly<
     "persona",
     "settle",
     "econ",
+    // ww208 1B: the head a utopia brings (lane P).
+    "head",
   ],
   AUH: [
     "crisis",
@@ -122,6 +126,8 @@ export const GW_PACK_SHARES: Readonly<
     "colonies",
     "agents",
     "econ",
+    // ww208 1B: the head a utopia brings (lane P).
+    "head",
   ],
   RUS: [
     "crisis",
@@ -155,6 +161,8 @@ export const GW_PACK_SHARES: Readonly<
     "colonies",
     "agents",
     "econ",
+    // ww208 1B: the head a utopia brings (lane P).
+    "head",
   ],
   FRA: [
     "crisis",
@@ -188,6 +196,8 @@ export const GW_PACK_SHARES: Readonly<
     "colonies",
     "president",
     "econ",
+    // ww208 1B: the head a utopia brings (lane P).
+    "head",
   ],
 };
 
@@ -218,6 +228,8 @@ export const GW_COMMON_SHARES: readonly string[] = [
   "depts",
   "persona",
   "settle",
+  // ww208 1B: the heads' card warnings (lane P).
+  "head",
 ];
 /**
  * Casts in files of their own. Every seat loads them: a scene can cast another

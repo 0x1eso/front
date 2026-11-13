@@ -1421,6 +1421,29 @@ export const GW_ENDINGS = [
   "auh_e_fj_federation",
   "auh_e_karl_federation",
   "auh_e_ff_federation",
+  // ww208 1B: the heads a utopia brings. `won`: the player ended at the
+  // utopia's card; `death`, `out`: the head's own ends (RulerRows head()).
+  "deu_head_ebert_won",
+  "deu_head_ebert_death",
+  "deu_head_ebert_out",
+  "gbr_head_henderson_won",
+  "gbr_head_henderson_death",
+  "gbr_head_henderson_out",
+  "auh_head_lammasch_won",
+  "auh_head_lammasch_death",
+  "auh_head_lammasch_out",
+  "auh_head_renner_won",
+  "auh_head_renner_death",
+  "auh_head_renner_out",
+  "rus_head_lvov_won",
+  "rus_head_lvov_death",
+  "rus_head_lvov_out",
+  "rus_head_kerensky_won",
+  "rus_head_kerensky_death",
+  "rus_head_kerensky_out",
+  "fra_head_orleans_won",
+  "fra_head_orleans_death",
+  "fra_head_orleans_out",
 ] as const;
 export type GwEnding = (typeof GW_ENDINGS)[number];
 

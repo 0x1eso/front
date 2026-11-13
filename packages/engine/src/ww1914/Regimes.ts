@@ -131,8 +131,10 @@ export function institutionsOf(regime: string): GwNationState["inst"] {
 
 /** A paper of the old order: a threat that ended, a ruler's life that did. */
 function oldOrder(tag: GwTag, to: string, scene: string): boolean {
+  // A head (ww208 1B) is no seat of the old order's person.
   const seated = (GW_RULERS[tag] ?? []).some(
-    (r) => r.regimes === undefined || r.regimes.includes(to),
+    (r) =>
+      r.head !== true && (r.regimes === undefined || r.regimes.includes(to)),
   );
   if (!seated && scene.includes("_life_")) return true;
   return GW_GOV.some(

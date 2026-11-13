@@ -19,6 +19,7 @@ import type {
 } from "@openfront/engine-api/ww1914/GwPersona";
 import type { GwCond, GwScene } from "@openfront/engine-api/ww1914/SceneDsl";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
+import { headRow } from "@openfront/engine-lib/ww1914/RulerRows";
 import { GW_PROUD } from "@openfront/engine-lib/ww1914/TaskRows";
 import {
   civilFromDays,
@@ -66,6 +67,8 @@ export function personaRowHolds(
 ): boolean {
   if (!r.nation.includes(seat.tag)) return false;
   if (r.ruler !== undefined && seat.ruler.id !== r.ruler) return false;
+  // ww208 1B: a seat's own rows are its first person's, not a head's.
+  if (r.ruler === undefined && headRow(seat.ruler.id) !== null) return false;
   const day = todayIso(gw);
   if (r.from !== undefined && day < r.from) return false;
   if (r.until !== undefined && day >= r.until) return false;

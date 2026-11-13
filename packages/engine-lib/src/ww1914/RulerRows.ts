@@ -7,7 +7,11 @@
 // doesn't change.
 import type { GwEnding } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
-import type { GwRulerSide } from "@openfront/engine-api/ww1914/GwRuler";
+import type { GwAddress } from "@openfront/engine-api/ww1914/GwPersona";
+import type {
+  GwRulerEnd,
+  GwRulerSide,
+} from "@openfront/engine-api/ww1914/GwRuler";
 import {
   all,
   GwCond,
@@ -48,6 +52,20 @@ export interface GwRulerRow {
   readonly doctors: string | null;
   readonly shaken: string | null;
   readonly broken: string | null;
+  /**
+   * ww208, decision 1B: a head the seat plays on as, after a utopia the
+   * player carried through removed the person (`seat.society.utopia.head`,
+   * choice `play`). Never a first card; while a seat plays a head, only that
+   * row fits. Its persona rows carry `ruler`: the seat's own rows (no
+   * `ruler`) are the first person's.
+   */
+  readonly head?: true;
+  /** A head: the winning ending when the player ends at the card instead. */
+  readonly won?: GwEnding;
+  /** His own endings by health and by reputation; absent: `<tag>_r_<how>`. */
+  readonly gone?: Readonly<Partial<Record<GwRulerEnd, GwEnding>>>;
+  /** How he is addressed, where not the seat's (GW_RULER_ADDRESS). */
+  readonly address?: GwAddress;
 }
 
 const side = (
@@ -56,6 +74,39 @@ const side = (
   conscience: number,
   reputation: number,
 ) => ({ health, family, conscience, reputation });
+
+/** The three warnings every head shares: content/scenes/ruler_heads.ts. */
+export const GW_HEAD_SCENES = {
+  doctors: "gw_life_head_doctors",
+  shaken: "gw_life_head_shaken",
+  broken: "gw_life_head_broken",
+} as const;
+
+type HeadRest = Pick<GwRulerRow, "id" | "born" | "start" | "agesEvery"> &
+  Partial<GwRulerRow>;
+
+/**
+ * ww208, decision 1B: a head (Ebert, Lvov, Kerensky, Lammasch, Renner,
+ * Henderson, the Duke of Orléans). His endings are `<tag>_head_<id>_won`
+ * (the player ended at the card), `_death`, `_out` (removed, or a form he has
+ * no place in). Text: `<TAG>.head.json`.
+ */
+const head = (tag: string, r: HeadRest): GwRulerRow => {
+  const e = (x: string) => `${tag}_head_${r.id}_${x}` as GwEnding;
+  return {
+    head: true,
+    won: e("won"),
+    gone: { death: e("death"), removed: e("out") },
+    ends: { "*": e("out") },
+    seenEvery: null,
+    tollEvery: 700,
+    mortal: true,
+    removable: true,
+    familyTakesTime: false,
+    ...GW_HEAD_SCENES,
+    ...r,
+  };
+};
 
 export const GW_RULERS: Readonly<
   Partial<Record<GwTag, readonly GwRulerRow[]>>
@@ -77,6 +128,17 @@ export const GW_RULERS: Readonly<
       shaken: "deu_life_shaken",
       broken: "deu_life_broken",
     },
+    // ww208 1B: the SPD's republic. Saddler, party chairman with Haase
+    // from 20 Sep 1913; chancellor 9 Nov 1918, president 11 Feb 1919.
+    head("deu", {
+      id: "ebert",
+      person: "deu_ebert",
+      regimes: ["republic"],
+      address: "president",
+      born: "1871-02-04",
+      start: side(4, 3, 4, 3),
+      agesEvery: 20,
+    }),
   ],
   GBR: [
     {
@@ -110,6 +172,15 @@ export const GW_RULERS: Readonly<
       shaken: "gbr_life_shaken",
       broken: "gbr_life_broken",
     },
+    // ww208 1B: a Labour government. Iron moulder, Wesleyan local preacher,
+    // leader 1908-10 and 1914-17; his son David killed in 1916.
+    head("gbr", {
+      id: "henderson",
+      person: "gbr_henderson",
+      born: "1863-09-13",
+      start: side(4, 3, 4, 3),
+      agesEvery: 18,
+    }),
   ],
   AUH: [
     {
@@ -162,6 +233,29 @@ export const GW_RULERS: Readonly<
       shaken: "auh_life_shaken",
       broken: "auh_life_broken",
     },
+    // ww208 1B: the peoples' federation without the crown. Lammasch: the
+    // Hague arbitrator, last imperial premier 27 Oct-11 Nov 1918.
+    head("auh", {
+      id: "lammasch",
+      person: "auh_lammasch",
+      regimes: ["federation"],
+      address: "premier",
+      born: "1853-05-21",
+      start: side(3, 4, 4, 3),
+      agesEvery: 10,
+      tollEvery: 500,
+    }),
+    // Renner: the Reichsrat's librarian, "Synopticus", national personal
+    // autonomy; chancellor of German-Austria from 30 Oct 1918.
+    head("auh", {
+      id: "renner",
+      regimes: ["austria_republic", "federation"],
+      address: "premier",
+      born: "1870-12-14",
+      start: side(4, 4, 3, 3),
+      agesEvery: 22,
+      tollEvery: 500,
+    }),
   ],
   RUS: [
     {
@@ -185,6 +279,30 @@ export const GW_RULERS: Readonly<
       shaken: "rus_life_shaken",
       broken: "rus_life_broken",
     },
+    // ww208 1B: the Duma's republic (Lvov, Zemstvo Union chief, premier
+    // 15 Mar-20 Jul 1917) and the peasants' (Kerensky, the Trudovik
+    // lawyer, premier 21 Jul-7 Nov 1917).
+    head("rus", {
+      id: "lvov",
+      person: "rus_lvov",
+      regimes: ["provisional", "rep"],
+      address: "premier",
+      born: "1861-11-02",
+      start: side(3, 3, 4, 3),
+      agesEvery: 14,
+      tollEvery: 750,
+    }),
+    head("rus", {
+      id: "kerensky",
+      person: "rus_kerensky",
+      regimes: ["provisional", "rep"],
+      address: "premier",
+      born: "1881-05-04",
+      start: side(3, 3, 3, 4),
+      agesEvery: 24,
+      seenEvery: 4,
+      tollEvery: 750,
+    }),
   ],
   // France: the President, for the whole game. He goes to the front often
   // (seenEvery). Plan §1 allows three losses only: the Élysée row, the
@@ -206,8 +324,26 @@ export const GW_RULERS: Readonly<
       shaken: "fra_life_shaken",
       broken: "fra_life_broken",
     },
+    // ww208 1B: Action française's crown. Philippe, Duke of Orléans, born
+    // at Twickenham 6 Feb 1869, in exile by the 1886 law; Belgium from 1912.
+    head("fra", {
+      id: "orleans",
+      address: "majesty",
+      born: "1869-02-06",
+      start: side(4, 2, 3, 2),
+      agesEvery: 18,
+      seenEvery: 6,
+      tollEvery: 500,
+    }),
   ],
 };
+
+/** A head's row (decision 1B) by id; null when the id is no head. */
+export function headRow(id: string | null): GwRulerRow | null {
+  if (id === null) return null;
+  const rows = Object.values(GW_RULERS).flat();
+  return rows.find((r) => r.head === true && r.id === id) ?? null;
+}
 
 /** Every scene the rule calls. */
 export function gwRulerScenes(): string[] {
