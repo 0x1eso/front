@@ -10,6 +10,7 @@ import type { GreatWar } from "./GreatWar";
 import { chamberSits, houseRow } from "./House";
 import { holderOf } from "./Land";
 import type { SceneCtx } from "./SceneRun";
+import { dissolutionElection } from "./Society";
 import { atWarWith } from "./Wars";
 import { reason } from "./World";
 
@@ -66,5 +67,7 @@ export function electionStep(gw: GreatWar): void {
     if (seat.dissolved === undefined || dissolvedNow(gw, seat)) continue;
     delete seat.dissolved;
     reason(gw, seat, "house_elected");
+    // ww208: the new house is the voters': seats follow support.
+    dissolutionElection(gw, seat);
   }
 }

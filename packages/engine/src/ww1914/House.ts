@@ -44,6 +44,7 @@ import type {
 } from "@openfront/engine-api/ww1914/WorldDsl";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
 import { GW_LAWS } from "@openfront/engine-lib/ww1914/content/scenes/laws";
+import { genericFactionRows } from "@openfront/engine-lib/ww1914/GenericParties";
 import {
   GW_AGENDA_MAX,
   GW_ASK_GAP,
@@ -105,12 +106,27 @@ export function houseRow(tag: string): GwHouseRow | null {
   return gwContent().houses?.find((h) => h.tag === tag) ?? null;
 }
 
-function factionRows(tag: string): GwFactionRow[] {
-  return (gwContent().factions ?? []).filter((f) => f.tag === tag);
+/** ww208: the content's faction rows, and the generic parties' (S1). */
+const ALL_ROWS = new WeakMap<object, readonly GwFactionRow[]>();
+function allFactionRows(): readonly GwFactionRow[] {
+  const c = gwContent();
+  const hit = ALL_ROWS.get(c);
+  if (hit !== undefined) return hit;
+  const generic = genericFactionRows(c);
+  const all =
+    generic.length === 0
+      ? (c.factions ?? [])
+      : [...(c.factions ?? []), ...generic];
+  ALL_ROWS.set(c, all);
+  return all;
+}
+
+export function factionRows(tag: string): GwFactionRow[] {
+  return allFactionRows().filter((f) => f.tag === tag);
 }
 
 export function factionRow(id: string): GwFactionRow | null {
-  return (gwContent().factions ?? []).find((f) => f.id === id) ?? null;
+  return allFactionRows().find((f) => f.id === id) ?? null;
 }
 
 const lawRow = (id: string): GwLawRow | null =>
@@ -165,6 +181,18 @@ function moveSeats(from: Seats, take: number): { left: Seats; moved: Seats } {
   for (const [c, k] of Object.entries(from) as [GwChamber, number][]) {
     const m = Math.min(take, k ?? 0);
     left[c] = (k ?? 0) - m;
+    if (m > 0) moved[c] = m;
+  }
+  return { left, moved };
+}
+
+/** ww208: the row's named seats per chamber, at most what it has (splits `seats`). */
+function takeSeats(from: Seats, take: Seats): { left: Seats; moved: Seats } {
+  const left: Seats = { ...from };
+  const moved: Seats = {};
+  for (const [c, k] of Object.entries(take) as [GwChamber, number][]) {
+    const m = Math.min(k ?? 0, from[c] ?? 0);
+    left[c] = (from[c] ?? 0) - m;
     if (m > 0) moved[c] = m;
   }
   return { left, moved };
@@ -315,6 +343,14 @@ function stepsOf(row: GwFactionRow) {
   return row.plot === undefined ? steps.slice(0, 2) : steps.slice(0, 3);
 }
 
+/** ww208: the least heat that makes temper `t` for this row. */
+export function heatForTemper(row: GwFactionRow, t: number): number {
+  if (t <= 0) return 0;
+  if (t === 1) return 1;
+  const s = stepsOf(row)[t - 2];
+  return s === undefined ? heatCap(row) : s.at;
+}
+
 function stepOf(row: GwFactionRow, heat: number): number {
   if (heat <= 0) return 0;
   const passed = stepsOf(row).filter((s) => heat >= s.at).length;
@@ -353,7 +389,7 @@ function settleStep(
   }
 }
 
-function heatBy(
+export function heatBy(
   gw: GreatWar,
   seat: GwSeatState,
   id: string,
@@ -441,64 +477,19 @@ function settleDeals(gw: GreatWar, seat: GwSeatState, st: GwFactionState) {
 /** Splits and joins, by state, never by date. */
 function splitsAndJoins(gw: GreatWar, seat: GwSeatState): void {
   const ctx = ctxOf(gw, seat);
-  const house = seat.house!;
   for (const row of factionRows(seat.tag)) {
     const st = factionOf(seat, row.id);
     if (st === null) continue;
     const sp = row.splits;
-    if (sp !== undefined && st.status === "in") {
-      const into = factionOf(seat, sp.into);
-      if (into?.status === "out" && holds(ctx, sp.when)) {
-        into.status = "in";
-        into.since = gw.s.chapter;
-        into.strength = clampTo(sp.takes, 1, GW_FACTION_STRENGTH_MAX);
-        growBy(st, -sp.takes, "split");
-        // The seats go with them: the house gains no voice by a split. A
-        // faction whose row has no seats sits out (Sinn Féin, Spartacus): it
-        // takes none, and the parent keeps its voice.
-        if (sitsIn(sp.into)) {
-          const { left, moved } = moveSeats(seatsNow(seat, row), sp.takes);
-          st.seats = left;
-          into.seats = moved;
-        }
-        into.leader = factionLeader(gw, seat, sp.into);
-        if (sp.scene !== undefined) call(seat, sp.scene, gw.s.chapter + 1);
-        reason(gw, seat, "house_split", whoOf(into));
-        house.story = {
-          kind: "split",
-          faction: sp.into,
-          chapter: gw.s.chapter,
-        };
-        news(gw, "house_split", seat.tag);
-      }
+    if (sp !== undefined && st.status === "in" && holds(ctx, sp.when)) {
+      splitFaction(gw, seat, row);
     }
     const jn = row.joins;
     if (jn === undefined) continue;
     const into = factionOf(seat, jn.into);
     if (into === null) continue;
-    const members = [row.id, ...jn.with]
-      .map((id) => factionOf(seat, id))
-      .filter((x): x is GwFactionState => x !== null);
     if (into.status === "out" && st.status === "in" && holds(ctx, jn.when)) {
-      const sitting = members.filter((m) => m.status === "in");
-      const sum = sitting.reduce((n, m) => n + m.strength, 0);
-      // Their seats are pooled; each keeps its own to take back if they part.
-      into.seats = poolSeats(
-        sitting.map((m) => seatsNow(seat, factionRow(m.id)!)),
-      );
-      for (const m of members) {
-        if (m.status !== "in") continue;
-        m.status = "merged";
-        m.since = gw.s.chapter;
-      }
-      into.status = "in";
-      into.since = gw.s.chapter;
-      into.strength = clampTo(sum, 1, GW_FACTION_STRENGTH_MAX);
-      into.leader = factionLeader(gw, seat, jn.into);
-      if (jn.scene !== undefined) call(seat, jn.scene, gw.s.chapter + 1);
-      reason(gw, seat, "house_joined", whoOf(into));
-      house.story = { kind: "joined", faction: jn.into, chapter: gw.s.chapter };
-      news(gw, "house_joined", seat.tag);
+      joinFactions(gw, seat, row);
     } else if (
       into.status === "in" &&
       jn.parts !== undefined &&
@@ -507,14 +498,97 @@ function splitsAndJoins(gw: GreatWar, seat: GwSeatState): void {
       into.status = "out";
       into.since = gw.s.chapter;
       into.seats = null;
-      for (const m of members) {
-        if (m.status !== "merged") continue;
+      for (const id of [row.id, ...jn.with]) {
+        const m = factionOf(seat, id);
+        if (m?.status !== "merged") continue;
         m.status = "in";
         m.since = gw.s.chapter;
       }
       reason(gw, seat, "house_parted");
     }
   }
+}
+
+/**
+ * The row's split now (ww208: the society calls it by state too): its new
+ * faction goes `in` with its leader, taking strength and seats. False when
+ * the row has no split or its new faction isn't waiting.
+ */
+export function splitFaction(
+  gw: GreatWar,
+  seat: GwSeatState,
+  row: GwFactionRow,
+): boolean {
+  const st = factionOf(seat, row.id);
+  const sp = row.splits;
+  if (st?.status !== "in" || sp === undefined) return false;
+  const into = factionOf(seat, sp.into);
+  if (into?.status !== "out") return false;
+  into.status = "in";
+  into.since = gw.s.chapter;
+  into.strength = clampTo(sp.takes, 1, GW_FACTION_STRENGTH_MAX);
+  growBy(st, -sp.takes, "split");
+  // The seats go with them: the house gains no voice by a split. A
+  // faction whose row has no seats sits out (Sinn Féin, Spartacus): it
+  // takes none, and the parent keeps its voice.
+  if (sitsIn(sp.into)) {
+    const { left, moved } =
+      sp.seats === undefined
+        ? moveSeats(seatsNow(seat, row), sp.takes)
+        : takeSeats(seatsNow(seat, row), sp.seats);
+    st.seats = left;
+    into.seats = moved;
+  }
+  into.leader = factionLeader(gw, seat, sp.into);
+  if (sp.scene !== undefined) call(seat, sp.scene, gw.s.chapter + 1);
+  reason(gw, seat, "house_split", whoOf(into));
+  seat.house!.story = {
+    kind: "split",
+    faction: sp.into,
+    chapter: gw.s.chapter,
+  };
+  news(gw, "house_split", seat.tag);
+  return true;
+}
+
+/**
+ * The row's join now (ww208: the society calls it by state too): the sitting
+ * members pool their seats into the new faction. False when it can't.
+ */
+export function joinFactions(
+  gw: GreatWar,
+  seat: GwSeatState,
+  row: GwFactionRow,
+): boolean {
+  const st = factionOf(seat, row.id);
+  const jn = row.joins;
+  if (st?.status !== "in" || jn === undefined) return false;
+  const into = factionOf(seat, jn.into);
+  if (into?.status !== "out") return false;
+  const members = [row.id, ...jn.with]
+    .map((id) => factionOf(seat, id))
+    .filter((x): x is GwFactionState => x !== null);
+  const sitting = members.filter((m) => m.status === "in");
+  const sum = sitting.reduce((n, m) => n + m.strength, 0);
+  // Their seats are pooled; each keeps its own to take back if they part.
+  into.seats = poolSeats(sitting.map((m) => seatsNow(seat, factionRow(m.id)!)));
+  for (const m of sitting) {
+    m.status = "merged";
+    m.since = gw.s.chapter;
+  }
+  into.status = "in";
+  into.since = gw.s.chapter;
+  into.strength = clampTo(sum, 1, GW_FACTION_STRENGTH_MAX);
+  into.leader = factionLeader(gw, seat, jn.into);
+  if (jn.scene !== undefined) call(seat, jn.scene, gw.s.chapter + 1);
+  reason(gw, seat, "house_joined", whoOf(into));
+  seat.house!.story = {
+    kind: "joined",
+    faction: jn.into,
+    chapter: gw.s.chapter,
+  };
+  news(gw, "house_joined", seat.tag);
+  return true;
 }
 
 // ---- The count ----
@@ -1321,6 +1395,8 @@ function opensNow(gw: GreatWar, seat: GwSeatState, law: string): boolean {
   const st = n.laws.find((x) => x.id === law);
   if (st !== undefined && st.stage !== "idle") return false;
   if (st !== undefined && gw.s.chapter - st.since < 4) return false;
+  // ww208: a peace row opens only while the country is not at war.
+  if (row.peace === true && n.atWar.length > 0) return false;
   return holds(ctxOf(gw, seat), row.opens);
 }
 
@@ -1433,13 +1509,33 @@ function ensureHouse(gw: GreatWar, seat: GwSeatState): GwHouseState | null {
   if (rows.length === 0) return null;
   seat.house ??= gwHouseStart();
   const h = seat.house;
+  // ww208: a generic party has no state until it is born (ensureFaction).
+  const generic = genericFactionRows(gwContent());
   for (const row of rows) {
+    if (generic.includes(row)) continue;
     if (h.factions.some((f) => f.id === row.id)) continue;
     const st = factionStart(gw, row);
     h.factions.push(st);
     st.leader = leaderNow(gw, seat, row, st);
   }
   return h;
+}
+
+/** ww208: a faction's state, made as its row starts if it has none (a generic party's birth). */
+export function ensureFaction(
+  gw: GreatWar,
+  seat: GwSeatState,
+  id: string,
+): GwFactionState | null {
+  const had = factionOf(seat, id);
+  if (had !== null) return had;
+  const row = factionRow(id);
+  if (row === null || row.tag !== seat.tag || seat.house === undefined) {
+    return null;
+  }
+  const st = factionStart(gw, row);
+  seat.house.factions.push(st);
+  return st;
 }
 
 /** Chapter step, after the laws: factions move, the whip speaks, leaders ask. */

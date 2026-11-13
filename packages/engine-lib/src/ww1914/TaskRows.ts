@@ -74,6 +74,8 @@ export const GW_TASK_OFFICES: Readonly<
     arms: ["war"],
     men: ["war"],
     intel: ["intelligence"],
+    // ww208: the communities and the next election (S1).
+    poll: ["interior"],
   },
   GBR: {
     envoy: ["foreign"],
@@ -85,6 +87,8 @@ export const GW_TASK_OFFICES: Readonly<
     arms: ["munitions", "war"],
     men: ["war"],
     intel: ["intelligence"],
+    // ww208: the communities and the next election (S1).
+    poll: ["interior"],
   },
   FRA: {
     envoy: ["foreign"],
@@ -96,6 +100,8 @@ export const GW_TASK_OFFICES: Readonly<
     arms: ["munitions", "war"],
     men: ["war"],
     intel: ["intelligence"],
+    // ww208: the communities and the next election (S1).
+    poll: ["interior"],
   },
   RUS: {
     envoy: ["foreign"],
@@ -107,6 +113,8 @@ export const GW_TASK_OFFICES: Readonly<
     arms: ["war"],
     men: ["war"],
     intel: ["intelligence"],
+    // ww208: the communities and the next election (S1).
+    poll: ["interior"],
   },
   AUH: {
     envoy: ["foreign"],
@@ -118,6 +126,8 @@ export const GW_TASK_OFFICES: Readonly<
     arms: ["war"],
     men: ["war"],
     intel: ["intelligence"],
+    // ww208: the communities and the next election (S1).
+    poll: ["chancellor"],
   },
 };
 

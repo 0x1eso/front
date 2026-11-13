@@ -132,6 +132,7 @@ import {
   sceneOf,
   takeOption,
 } from "./SceneRun";
+import { pollSlots } from "./Society";
 import { inOpening } from "./Story";
 import { spendTime, timeLeft } from "./Time";
 import { moveGauge, ownPeople, reasonOf, seatPerson, stageOf } from "./World";
@@ -628,6 +629,12 @@ function offersFor(gw: GreatWar, seat: GwSeatState, office: GwOffice): Offer[] {
       out.push({ key: type, row: null, type });
     }
   }
+  // ww208: the poll is every seat's, offered to its interior office.
+  if (!rows.some((r) => r.type === "poll")) {
+    if (typeOffice(gw, seat, "poll") === office) {
+      out.push({ key: "poll", row: null, type: "poll" });
+    }
+  }
   for (const row of rows) {
     if (!GW_COMMON_TASK_TYPES.includes(row.type!)) {
       out.push({ key: row.id, row, type: row.type! });
@@ -719,6 +726,7 @@ function topicWorks(
   if (rows.length === 0) return false;
   const ctx: SceneCtx = { gw, seat, cast: { head: head.id }, topic };
   const slots = answerSlots(gw.s, seat, type, topic);
+  if (type === "poll") Object.assign(slots, pollSlots(gw, seat));
   const can = (x: GwFindingRow | GwCourseRow) =>
     (x.when === undefined || holds(ctx, x.when)) &&
     slotsHold(
@@ -1170,6 +1178,7 @@ function taskSlots(gw: GreatWar, seat: GwSeatState, t: GwDeptTask): GwSlots {
   if (t.type === "count" && t.topic !== null) {
     Object.assign(slots, countSlots(gw, seat, t.topic));
   }
+  if (t.type === "poll") Object.assign(slots, pollSlots(gw, seat));
   return slots;
 }
 

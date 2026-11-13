@@ -74,7 +74,22 @@
     "house_press_file": "{who}의 서류를 꺼냈다. 그는 표결에 나오지 않는다.",
     "house_press_word": "내 뜻을 직접 전했다. {who}의 무리가 따르기로 했다.",
     "house_press_word_no": "내 뜻을 직접 전했으나 {who}의 무리는 움직이지 않았다. 반감만 샀다.",
-    "house_press_threat": "해산을 입에 올렸다. {who}의 무리가 물러섰고, 의회 전체가 술렁인다."
+    "house_press_threat": "해산을 입에 올렸다. {who}의 무리가 물러섰고, 의회 전체가 술렁인다.",
+    "society_born": "새 정당이 생겼다. {who}이(가) 앞에 섰다.",
+    "society_merged": "작은 두 정당이 하나로 합쳤다. {who}이(가) 이끈다.",
+    "society_election_due": "임기가 끝나 총선거를 치렀다. 의석이 지지를 따라 다시 나뉘었다.",
+    "society_election_dissolved": "해산 뒤 총선거를 치렀다. 의석이 지지를 따라 다시 나뉘었다.",
+    "society_election_regime": "새 체제가 총선거를 불렀다. 의석이 지지를 따라 다시 나뉘었다.",
+    "society_gone": "지지를 모두 잃고 의석도 없는 정당이 사라졌다. {who}은(는) 이제 당 없는 사람이다.",
+    "society_by": "보궐선거에서 {who}의 당이 몇 석을 새로 얻었다.",
+    "society_promoted": "{who}의 당을 공개적으로 지지했다. 그 당이 힘을 얻고, 맞서는 쪽은 불쾌해했다.",
+    "society_condemned": "{who}의 당을 규탄했다. 그 당의 지지가 줄고, 그 뒤의 사람들이 들끓는다.",
+    "society_born_plain": "새 정당이 생겼다. 아직 이끄는 사람이 뚜렷하지 않다.",
+    "society_merged_plain": "작은 두 정당이 하나로 합쳤다.",
+    "society_by_plain": "보궐선거에서 한 정당이 몇 석을 새로 얻었다.",
+    "society_promoted_plain": "한 정당을 공개적으로 지지했다. 그 당이 힘을 얻고, 맞서는 쪽은 불쾌해했다.",
+    "society_condemned_plain": "한 정당을 규탄했다. 그 당의 지지가 줄고, 그 뒤의 사람들이 들끓는다.",
+    "society_gone_plain": "지지를 모두 잃고 의석도 없는 정당이 사라졌다."
   },
   "heads": {
     "house_split": {

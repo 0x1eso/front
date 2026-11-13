@@ -213,6 +213,8 @@ export const GwSocietyStateSchema = z.object({
   byAt: int,
   /** A realised utopia; null none yet. */
   utopia: GwUtopiaStateSchema.nullable(),
+  /** ww208 (S1): the axes at the last society step (the view's trend). */
+  was: GwAxesSchema.optional(),
 });
 export type GwSocietyState = z.infer<typeof GwSocietyStateSchema>;
 

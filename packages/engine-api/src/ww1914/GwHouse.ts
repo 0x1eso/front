@@ -156,6 +156,10 @@ export const GwFactionStateSchema = z.object({
   ableAt: int.optional(),
   /** The chapter it was born (a birth row or a generic party); absent: a row's start. */
   born: int.optional(),
+  /** ww208 (S1): its support at the last general election; absent: its start. */
+  polled: int.optional(),
+  /** ww208 (S1): the chapter it was last promoted or condemned. */
+  judgedAt: int.optional(),
 });
 export type GwFactionState = z.infer<typeof GwFactionStateSchema>;
 

@@ -85,6 +85,7 @@ import { heatThreat } from "./Powers";
 import { moveCensor } from "./Press";
 import { castOf, holds, runEffects, SceneCtx, sceneOf } from "./SceneRun";
 import { blankSeat } from "./SeatStart";
+import { lawAxes } from "./Society";
 import {
   clampTo,
   everyMonths,
@@ -251,6 +252,8 @@ function enact(
   st.after = false;
   setFlags(gw, row, true);
   runEffects(ctx, row.passed);
+  // ww208: the text's push on the country's axes; its own factions gain.
+  lawAxes(gw, seat, row, st.text);
   reason(gw, seat, `law_in_${row.id}`);
   seat.memory.push({
     key: `law_${row.id}`,
@@ -521,7 +524,16 @@ export function lawWithdraw(gw: GreatWar, seat: GwSeatState, id: string): void {
 }
 
 function openNow(gw: GreatWar, seat: GwSeatState, row: GwLawRow): boolean {
+  if (row.peace === true && !inPeace(gw, row.tag)) return false;
   return holds({ gw, seat, cast: {} }, row.opens);
+}
+
+/**
+ * ww208: peace is not being at war: the crisis weeks, the peace years,
+ * neutrality, after the armistice. A `peace` row opens only then.
+ */
+function inPeace(gw: GreatWar, tag: string): boolean {
+  return (gw.s.nations.find((n) => n.tag === tag)?.atWar.length ?? 0) === 0;
 }
 
 /** Withdrawn or repealed lately (a failed bill locks instead). */
@@ -735,7 +747,8 @@ function openSettled(gw: GreatWar, seat: GwSeatState, row: GwLawRow): boolean {
 
 /** What a law does on its months. */
 function work(gw: GreatWar, n: GwNationState, st: GwLawState, row: GwLawRow) {
-  if (gw.s.armistice !== null) return;
+  // ww208: a peace row's terms work after the armistice too.
+  if (gw.s.armistice !== null && row.peace !== true) return;
   for (const t of row.term) {
     if (t.text !== undefined && !t.text.includes(st.text ?? "")) continue;
     if (!everyMonths(gw, t.every, t.offset ?? 0)) continue;
@@ -956,6 +969,7 @@ export function lawAiStep(gw: GreatWar): void {
     st.after = true;
     toStage(gw, st, "force");
     aiPassed(gw, ghost, row);
+    lawAxes(gw, null, row, text);
     news(gw, how === "voted" ? "law_passed" : "law_decreed", n.tag);
   }
 }
@@ -994,6 +1008,7 @@ function aiPick(
     if (st !== null && (st.stage !== "idle" || st.how === "repealed")) {
       return false;
     }
+    if (r.peace === true && !inPeace(gw, r.tag)) return false;
     return holds({ gw, seat: ghost, cast: {} }, r.opens);
   });
   open.sort((a, b) => wants.indexOf(a.chapter!) - wants.indexOf(b.chapter!));
