@@ -12,7 +12,7 @@ import { dealDesk } from "@openfront/engine/ww1914/Desk";
 import { govLive } from "@openfront/engine/ww1914/Government";
 import { GW_GOV } from "@openfront/engine/ww1914/GovTable";
 import type { GreatWar } from "@openfront/engine/ww1914/GreatWar";
-import { lawStep } from "@openfront/engine/ww1914/Laws";
+import { lawBookView } from "@openfront/engine/ww1914/Laws";
 import {
   pickVariant,
   runEffects,
@@ -103,20 +103,18 @@ describe("a dissolved house (ww187)", () => {
     seat.scheduled = [{ scene: "gov_deu_chancellor_2", chapter: gw.s.chapter }];
     dealDesk(gw, seat);
     expect(seat.desk.map((c) => c.scene)).not.toContain("gov_deu_chancellor_2");
-    // A bill at its vote gets no day: there is nobody to vote.
+    // A bill on the agenda can't be called: there is nobody to vote.
     billAtVote(gw, "deu_peace_res");
-    seat.scheduled = [];
-    lawStep(gw);
-    expect(seat.scheduled.map((q) => q.scene)).not.toContain(
-      "gw_lv_deu_peace_res",
-    );
+    const callWhy = () =>
+      lawBookView(gw, seat)!.agenda.find((x) => x.law === "deu_peace_res")!
+        .callWhy;
+    expect(callWhy()).toBe("no_sitting");
 
-    // The election: the house sits again and the day comes.
+    // The election: the house sits again and the call opens.
     gw.s.day += GW_ELECTION_DAYS;
     expect(sitsNow(ctx, "reichstag")).toBe(true);
     expect(govLive(ctx, chancellor)).toBe(true);
-    lawStep(gw);
-    expect(seat.scheduled.map((q) => q.scene)).toContain("gw_lv_deu_peace_res");
+    expect(callWhy()).toBe(null);
   }, 120_000);
 });
 
