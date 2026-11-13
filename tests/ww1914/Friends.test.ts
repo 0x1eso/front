@@ -5,6 +5,7 @@ import {
 } from "@openfront/engine-api/game/GameTypes";
 import { GameUpdateType } from "@openfront/engine-api/game/GameUpdates";
 import type { GameConfig } from "@openfront/engine-api/Schemas";
+import { GW_MONEY_DEADLINE } from "@openfront/engine-api/ww1914/GwBudget";
 import { gwCraftStart } from "@openfront/engine-api/ww1914/GwCraft";
 import type { GwOrder } from "@openfront/engine-api/ww1914/GwOrders";
 import { GwOrderSchema } from "@openfront/engine-api/ww1914/GwOrders";
@@ -436,7 +437,10 @@ describe("proxy and regency", () => {
     const { runner: r } = await friends({ greatWar1914Pace: "short" });
     const gw = gwOf(r);
     const year = gwChapters("friends").findIndex((c) => c.budget === 1915);
-    for (let i = 0; i < 40 && gw.s.chapter <= year + 1; i++) timeOut(r);
+    // ww210: a budget voted as a bill meets its deadline GW_MONEY_DEADLINE
+    // chapters past the meeting.
+    for (let i = 0; i < 40 && gw.s.chapter <= year + 2 + GW_MONEY_DEADLINE; i++)
+      timeOut(r);
     expect(gw.s.ended).toBe(null);
     for (const tag of ["DEU", "RUS", "GBR"]) {
       expect(seatOf(r, tag).regent).toBe(true);

@@ -135,11 +135,12 @@ describe("the heads a utopia brings (ww208 1B)", () => {
       expect(t.regime, t.head).toBeDefined();
       named.add(t.head);
     }
-    // Lammasch waits for a tree that takes the peace path without Karl.
+    // ww210 merge: the war's peace party takes Lammasch's path without Karl.
     expect([...named].sort()).toEqual([
       "ebert",
       "henderson",
       "kerensky",
+      "lammasch",
       "lvov",
       "orleans",
       "renner",

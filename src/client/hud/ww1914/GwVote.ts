@@ -9,6 +9,7 @@ import type {
   GwBallotBlock,
   GwBallotCast,
 } from "@openfront/engine-api/ww1914/GwHouse";
+import { moneyBillOf } from "@openfront/engine-lib/ww1914/MoneyRows";
 import { html, nothing, svg, TemplateResult } from "lit";
 import { keyed } from "lit/directives/keyed.js";
 import { translateText } from "../../Utils";
@@ -503,7 +504,8 @@ export function voteOverlay(
         <div class="space-y-0.5">
           ${frame === null ? nothing : html`<p class=${MUTED}>${frame}</p>`}
           <h3 class="${HEAD} !text-base">
-            ${billName(c, b.law)}${b.text === null
+            ${billName(c, b.law)}${b.text === null ||
+            moneyBillOf(b.law) !== null
               ? nothing
               : html` ·
                   <span class="font-normal"

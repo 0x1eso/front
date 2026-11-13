@@ -599,7 +599,7 @@ function agendaRow(
   >
     <div class="flex items-baseline justify-between gap-2 text-sm">
       <span class="font-bold"
-        >${billName(c, g.law)}${g.text === null
+        >${billName(c, g.law)}${g.text === null || g.money !== undefined
           ? nothing
           : html` ·
               <span class="font-normal"

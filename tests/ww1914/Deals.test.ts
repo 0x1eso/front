@@ -343,7 +343,10 @@ describe("ww210: bargaining in the lobby", () => {
     const before = trust(seat, "gbr_irish");
     gw.s.chapter += 13;
     dealStep(gw);
-    expect(rows().at(-1)).toMatchObject({ kind: "mark", fate: "kept" });
+    expect(rows()[rows().length - 1]).toMatchObject({
+      kind: "mark",
+      fate: "kept",
+    });
     expect(trust(seat, "gbr_irish")).toBe(before + 1);
     // Cut from the budget before the year is out: broken, -2.
     moneyDo(ctx, { do: "earmark", id: "gbr_ulster_division", on: true });
@@ -351,15 +354,16 @@ describe("ww210: bargaining in the lobby", () => {
     const had = trust(seat, "gbr_unionists");
     moneyDo(ctx, { do: "earmark", id: "gbr_ulster_division", on: false });
     dealStep(gw);
-    expect(rows().at(-1)).toMatchObject({
+    expect(rows()[rows().length - 1]).toMatchObject({
       kind: "mark",
       mark: "gbr_ulster_division",
       fate: "broken",
     });
     expect(trust(seat, "gbr_unionists")).toBe(had - 2);
-    expect(
-      dealsDossierView(gw, seat, { asks: [] } as never)!.deals![0].mark,
-    ).toBe("gbr_ulster_division");
+    // The notebook's box shows with no files or asks.
+    expect(dealsDossierView(gw, seat, undefined)!.deals![0].mark).toBe(
+      "gbr_ulster_division",
+    );
 
     // A promise to leave, made at a table a new one replaced: still due.
     const deu = gw.nation("DEU")!;

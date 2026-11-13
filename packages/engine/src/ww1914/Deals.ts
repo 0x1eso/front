@@ -1325,7 +1325,7 @@ export function dealsDossierView(
   v: GwDossierView | undefined,
 ): GwDossierView | undefined {
   const rows = ledgerOf(seat);
-  if (v === undefined || rows.length === 0) return v;
+  if (rows.length === 0) return v;
   const deals: GwDealView[] = [...rows].reverse().map((d) => ({
     uid: d.uid,
     kind: d.kind,
@@ -1338,5 +1338,6 @@ export function dealsDossierView(
     due: d.due,
     fate: d.fate,
   }));
-  return { ...v, deals };
+  // ww210 merge: the ledger shows with no files or asks in the notebook too.
+  return { files: [], asks: [], ...v, deals };
 }

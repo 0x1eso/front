@@ -132,8 +132,10 @@ describe("the money bills", () => {
     expect(n.budget.voted?.budget).toBe("passed");
 
     // Without the Centre: lost, back to the lobby once, lost again for good.
+    // (Distrust alone only makes a faction waver; the USPD votes no to every
+    // war budget.)
     const before = JSON.stringify(n.budget.plan);
-    seats(seat, "reichstag", { deu_spd: [90, -2], deu_cons: [40, 0] });
+    seats(seat, "reichstag", { deu_uspd: [90, -2], deu_cons: [40, 0] });
     meeting(gw, n);
     const changed = { ...plain(n), mix: [100, 20, 0, 0] };
     expect(put(gw, seat, changed)).toBe(null);

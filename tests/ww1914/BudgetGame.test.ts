@@ -35,6 +35,7 @@ describe("a whole game on the real map", () => {
         let signed = 0;
         let lastSeen = -9;
         let debt = 0;
+        let sitting = false;
         let prices = 0;
         let war = false;
         await playRun(
@@ -57,13 +58,16 @@ describe("a whole game on the real map", () => {
               signed++;
             }
             debt = b.debt;
+            sitting = b.meeting !== null;
             prices = b.prices;
           },
         );
         // Past 1916 means past 1917's budget, laid in February: a game that
         // ends in January 1917 (budget-RUS-1, a palace coup) never met it.
+        // ww210 merge: voted as a bill, it has GW_MONEY_DEADLINE chapters
+        // more to pass: a meeting still sitting at the end counts as met.
         if (year < 191702 || !war) continue;
-        expect(signed).toBeGreaterThanOrEqual(3);
+        expect(signed + (sitting ? 1 : 0)).toBeGreaterThanOrEqual(3);
         expect(debt).toBeGreaterThan(budgetRow(tag).debt);
         expect(prices).toBeGreaterThan(1000);
         return;

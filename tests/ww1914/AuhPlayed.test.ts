@@ -1,5 +1,6 @@
 import type { GwScene } from "@openfront/engine-api/ww1914/SceneDsl";
 import { gwSceneProblems } from "@openfront/engine-api/ww1914/SceneDsl";
+import { budgetNorm } from "@openfront/engine-lib/ww1914/BudgetRules";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
 import { crisisStep } from "@openfront/engine/ww1914/Crises";
 import { dealDesk, deskCandidates } from "@openfront/engine/ww1914/Desk";
@@ -113,6 +114,9 @@ describe("what an Austrian run on the screen showed", () => {
     s.chapter = 20;
     n.side = "central";
     n.atWar = ["FRA"];
+    // ww210 merge: a war budget at its norm (relief well over the norm holds
+    // the ladder, ww209 §1).
+    n.budget.plan = { ...n.budget.plan, shares: [...budgetNorm("DEU", true)] };
     const rung = "gw_home_deu_1";
     const low = () => {
       n.gauges.order = 0;
