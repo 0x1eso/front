@@ -14,15 +14,19 @@ import {
   ToggleRenderDebugGuiEvent,
 } from "../../InputHandler";
 import {
+  autosaveGame,
+  canAutosave,
   FRIENDS_SAVE_MARK,
   type SavedGameError,
   uploadSavedGame,
 } from "../../SavedGamesApi";
+import { saveModeName } from "../../SaveLabel";
 import { isSelfHosted } from "../../SelfHosted";
 import { lastUserMeResponse } from "../../UserMeBroadcast";
 import type { UserSettingModal } from "../../UserSettingModal";
 import { getMapName, translateText } from "../../Utils";
 import type { GameView } from "../../view/GameView";
+import { autosaveMarkOf, saveInfoOf } from "./SaveInfo";
 const exitIcon = assetUrl("images/ExitIconWhite.svg");
 const settingsIcon = assetUrl("images/SettingIconWhite.svg");
 const treeIcon = assetUrl("images/TreeIconWhite.svg");
@@ -84,6 +88,71 @@ export class SettingsModal extends LitElement implements Controller {
 
   createRenderRoot() {
     return this;
+  }
+
+  // The autosave: the game it watches, the mark it last saw there
+  // (autosaveMarkOf), and a save in flight.
+  private autosaveGameSeen: GameView | null = null;
+  private autosaveMark: string | null = null;
+  private autosaving = false;
+
+  getTickIntervalMs() {
+    return 1000;
+  }
+
+  tick() {
+    void this.autosave();
+  }
+
+  /**
+   * Saves into the rotating slots when the mark moves on (a new chapter, a
+   * new quarter). Wherever the player can save by hand, and only there. A
+   * snapshot only reads the game between ticks: nothing it does reaches the
+   * simulation, so a game with friends stays in step.
+   */
+  private async autosave(): Promise<void> {
+    const game = this.game;
+    if (game === null || this.autosaving) return;
+    if (!canAutosave() || !this.canSave()) return;
+    const mark = autosaveMarkOf(game);
+    if (mark === null) return;
+    // A game's first sight only sets the mark: a game just loaded or begun
+    // has nothing new to keep yet.
+    const first = this.autosaveGameSeen !== game;
+    const last = this.autosaveMark;
+    this.autosaveGameSeen = game;
+    this.autosaveMark = mark;
+    if (first || last === mark) return;
+    this.autosaving = true;
+    try {
+      const snapshot = await game.worker.snapshot(ClientEnv.gitCommit());
+      // Listed by its slot ("자동 2"; SaveLabel.saveTitle).
+      const result = await autosaveGame(snapshot, this.saveMeta(game));
+      if (typeof result === "string") {
+        console.warn("Autosave failed", result);
+      }
+    } catch (err) {
+      console.warn("Autosave failed", err);
+    } finally {
+      this.autosaving = false;
+    }
+  }
+
+  /** A save's name, map and what it records of the game. */
+  private saveMeta(game: GameView) {
+    const map = game.config().gameConfig().gameMap;
+    const friends =
+      game.config().gameConfig().gameType !== GameType.Singleplayer;
+    const info = saveInfoOf(game);
+    // The mode's name, not the map's: Great War 1914 shares the 1936 map.
+    const title =
+      info === null ? (getMapName(map) ?? map) : saveModeName(info.mode);
+    return {
+      name: defaultSaveName(title, new Date()),
+      map: friends ? `${FRIENDS_SAVE_MARK}${map}` : map,
+      tick: game.ticks(),
+      ...(info === null ? {} : { game: info }),
+    };
   }
 
   private unregisterBack: (() => void) | null = null;
@@ -217,14 +286,7 @@ export class SettingsModal extends LitElement implements Controller {
     try {
       // The menu has paused the game, so this is the moment the player sees.
       const snapshot = await game.worker.snapshot(ClientEnv.gitCommit());
-      const map = game.config().gameConfig().gameMap;
-      const friends =
-        game.config().gameConfig().gameType !== GameType.Singleplayer;
-      const result = await uploadSavedGame(snapshot, {
-        name: defaultSaveName(getMapName(map) ?? map, new Date()),
-        map: friends ? `${FRIENDS_SAVE_MARK}${map}` : map,
-        tick: game.ticks(),
-      });
+      const result = await uploadSavedGame(snapshot, this.saveMeta(game));
       this.saveStatus = typeof result === "string" ? result : "saved";
     } catch (err) {
       console.warn("Failed to save the game", err);

@@ -12,6 +12,7 @@ import {
   updateSavedGame,
   type SavedGameError,
 } from "../SavedGamesApi";
+import { saveGameLabel, saveTitle } from "../SaveLabel";
 import {
   copyToClipboard,
   getMapName,
@@ -257,7 +258,7 @@ export class SavedGamesPanel extends LitElement {
 
   private async deleteSave(save: SavedGame) {
     const confirmed = await showInGameConfirm(
-      translateText("saved_games.delete_confirm", { name: save.name }),
+      translateText("saved_games.delete_confirm", { name: saveTitle(save) }),
     );
     if (!confirmed) return;
     this.pendingId = save.id;
@@ -282,9 +283,15 @@ export class SavedGamesPanel extends LitElement {
 
   private details(save: SavedGame): string {
     return [
-      getMapName(saveMapOf(save)) ?? saveMapOf(save),
+      // The mode's own name: Great War 1914 shares the 1936 map.
+      save.game === undefined
+        ? (getMapName(saveMapOf(save)) ?? saveMapOf(save))
+        : saveGameLabel(save.game),
       renderDuration(save.tick / 10),
-      new Date(save.createdAt).toLocaleDateString(),
+      new Date(save.createdAt).toLocaleString(undefined, {
+        dateStyle: "short",
+        timeStyle: "short",
+      }),
     ].join(" · ");
   }
 
@@ -424,7 +431,7 @@ export class SavedGamesPanel extends LitElement {
               />`
             : html`<div class="flex items-center gap-2">
                 <span class="font-semibold text-white truncate"
-                  >${save.name}</span
+                  >${saveTitle(save)}</span
                 >
                 ${save.public
                   ? html`<span
@@ -467,11 +474,13 @@ export class SavedGamesPanel extends LitElement {
               () => (this.renamingId = null),
               { disabled: pending },
             )}`
-          : this.button(
-              translateText("saved_games.rename"),
-              () => this.startRename(save),
-              { disabled: pending, attr: "rename" },
-            )}
+          : save.autosave !== undefined
+            ? null
+            : this.button(
+                translateText("saved_games.rename"),
+                () => this.startRename(save),
+                { disabled: pending, attr: "rename" },
+              )}
         ${this.local
           ? null
           : this.button(

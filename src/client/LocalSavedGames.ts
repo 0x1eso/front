@@ -1,4 +1,4 @@
-import type { SavedGame } from "@openfront/shared/ApiSchemas";
+import type { SavedGame, SavedGameInfo } from "@openfront/shared/ApiSchemas";
 import { generateID } from "@openfront/shared/SharedUtil";
 import type { SavedGameError } from "./SavedGamesApi";
 
@@ -7,8 +7,13 @@ import type { SavedGameError } from "./SavedGamesApi";
 // when isSelfHosted()). The same calls and answers as the API's, but a save
 // is never shared. The bytes are stored gzipped, as the API stores them.
 
-/** As many saves as a browser keeps; past it a save asks to delete one. */
+/**
+ * As many of the player's own saves as a browser keeps; past it a save asks
+ * to delete one. The autosaves are kept apart from them.
+ */
 export const MAX_LOCAL_SAVES = 20;
+/** Autosaves rotate through this many slots, overwriting the oldest. */
+export const AUTOSAVE_SLOTS = 3;
 // What the panel's rename box allows (maxlength).
 const MAX_NAME_LENGTH = 64;
 
@@ -24,6 +29,31 @@ export interface LocalSaveBackend {
 }
 
 const toSave = (meta: LocalSaveMeta): SavedGame => ({ ...meta, public: false });
+
+/** What a save records of the game besides its bytes. */
+export interface SaveMeta {
+  name: string;
+  map: string;
+  tick: number;
+  game?: SavedGameInfo;
+}
+
+/** The slot an autosave goes to: an empty one first, else the oldest. */
+export function nextAutosaveSlot(
+  metas: readonly Pick<LocalSaveMeta, "autosave" | "createdAt">[],
+): number {
+  const at = new Map<number, string>();
+  for (const m of metas) {
+    if (m.autosave !== undefined) at.set(m.autosave, m.createdAt);
+  }
+  let oldest = 1;
+  for (let slot = 1; slot <= AUTOSAVE_SLOTS; slot++) {
+    const created = at.get(slot);
+    if (created === undefined) return slot;
+    if (created < at.get(oldest)!) oldest = slot;
+  }
+  return oldest;
+}
 
 export class LocalSavedGames {
   constructor(
@@ -51,20 +81,49 @@ export class LocalSavedGames {
 
   async save(
     snapshot: Uint8Array,
-    meta: { name: string; map: string; tick: number },
+    meta: SaveMeta,
+  ): Promise<SavedGame | SavedGameError> {
+    return this.store(snapshot, meta, null);
+  }
+
+  /**
+   * An autosave: into one of the AUTOSAVE_SLOTS, overwriting the oldest.
+   * The player's own saves are never touched, nor counted against.
+   */
+  async autosave(
+    snapshot: Uint8Array,
+    meta: SaveMeta,
+  ): Promise<SavedGame | SavedGameError> {
+    return this.store(snapshot, meta, "auto");
+  }
+
+  private async store(
+    snapshot: Uint8Array,
+    meta: SaveMeta,
+    auto: "auto" | null,
   ): Promise<SavedGame | SavedGameError> {
     try {
       const db = await this.backend();
       if (db === null) return "request_failed";
-      if ((await db.allMeta()).length >= MAX_LOCAL_SAVES) return "limit";
+      const metas = await db.allMeta();
+      const slot = auto === null ? undefined : nextAutosaveSlot(metas);
+      if (
+        slot === undefined &&
+        metas.filter((m) => m.autosave === undefined).length >= MAX_LOCAL_SAVES
+      ) {
+        return "limit";
+      }
       const data = await this.gzip(snapshot);
       const stored: LocalSaveMeta = {
-        id: this.newId(),
+        // A slot keeps its id: the new save replaces the old one's bytes.
+        id: slot === undefined ? this.newId() : `autosave-${slot}`,
         name: meta.name.slice(0, MAX_NAME_LENGTH),
         map: meta.map,
         tick: meta.tick,
         sizeBytes: data.byteLength,
         createdAt: new Date(this.now()).toISOString(),
+        ...(meta.game === undefined ? {} : { game: meta.game }),
+        ...(slot === undefined ? {} : { autosave: slot }),
       };
       await db.put(stored, data);
       return toSave(stored);
