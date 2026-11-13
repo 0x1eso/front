@@ -3,11 +3,22 @@
 // the moment FRA_FACTIONS has rows. Text in resources/ww1914/ko/FRA.house.json.
 // Lane W6 (ww166-format.md, plan ww166-plan-fra-scenes.md §11.2).
 //
-// The Chamber of May 1914 (en.wikipedia 1914 French legislative election):
-// Radicals 140 (Caillaux), SFIO 103 (Jaurès), Republican Federation 96
-// (Ribot), Independent Radicals 96 (Clemenceau), ALP and the right 73,
-// Democratic Republican Alliance 57, Republican-Socialists 27. Seats here are
-// weights 0..4, not those numbers. Clemenceau chaired the Senate's army
+// ww203: real seats. The Chamber's groups in 1914 (fr.wikipedia, XIe
+// législature, "Répartition des députés par groupes en 1914", 602 filled):
+// Radicals and Radical-Socialists 173, Socialists 104, Gauche radicale 69,
+// Républicains de gauche 56, Fédération républicaine 37, Gauche démocratique
+// 31, Republican-Socialists 25, Action libérale 24, Union républicaine
+// radicale et socialiste 18, Droites 15, unattached 50. Here: fra_radicals
+// 173 + 18, fra_left_rep the three centre groups 69 + 56 + 31, fra_fed_rep
+// 37, fra_catholics 24 + 15, fra_repsoc 25, fra_sfio 104; the unattached stay
+// away. The Senate after the 1912 renewal (fr.wikipedia, élections
+// sénatoriales de 1912; no renewal in the war): Gauche démocratique 166,
+// Union républicaine 58, Gauche républicaine 44, Droite 22, unattached 13
+// (the page sums to 303 of 300). Here: fra_radicals 146 and fra_tiger 20 of
+// the Gauche démocratique, fra_left_rep 58, fra_fed_rep 44, fra_catholics 22,
+// 10 away. Not checked: the Tiger's 20, Caillaux's 40 who split off with
+// him, and the socialist minority's 30 (Longuet's men in the Chamber).
+// Clemenceau chaired the Senate's army
 // commission in 1915 and from 1916 to November 1917 (senat.fr list of its
 // presidents) and accused Malvy in the Senate on 22 July 1917; Malvy went on
 // 31 August 1917 and the Senate as High Court gave him five years'
@@ -114,10 +125,13 @@ const W5 = {
   allowances: "fra_law_allowances",
   censorship: "fra_law_censorship",
   supply: "fra_law_supply_decrees",
+  labour: "fra_law_labour",
 } as const;
 const PROPORTIONAL = "fra_law_proportional";
 const ARMY_COMMISSION = "fra_law_army_commission";
 const AMNESTY = "fra_law_amnesty";
+/** ww203: the war aims article (a resolution), + check. */
+const WAR_AIMS = "fra_war_aims";
 /** ww190 §1: the peace years' navy bill (content/laws/fra.ts). */
 const NAVY = "fra_law_navy";
 
@@ -128,6 +142,7 @@ export const FRA_HOUSE_LAWS: readonly GwLawRow[] = [
   // Proportional representation, Briand's cause before the war (memory).
   row({
     id: PROPORTIONAL,
+    chapter: "franchise",
     opens: since("1915-06"),
     lean: -1,
     decree: false,
@@ -155,6 +170,7 @@ export const FRA_HOUSE_LAWS: readonly GwLawRow[] = [
   // papers the GQG sends.
   row({
     id: ARMY_COMMISSION,
+    chapter: "franchise",
     opens: all(war, warAge(6)),
     lean: 0,
     decree: false,
@@ -185,6 +201,7 @@ export const FRA_HOUSE_LAWS: readonly GwLawRow[] = [
   // An amnesty for what the state of siege punished: strikes, articles, words.
   row({
     id: AMNESTY,
+    chapter: "nations",
     opens: all(war, warAge(24)),
     lean: -1,
     decree: false,
@@ -206,6 +223,38 @@ export const FRA_HOUSE_LAWS: readonly GwLawRow[] = [
       price: [inst("chamber", -1)],
       wins: 1,
       tempers: ["weary"],
+    }),
+  }),
+  // + check. ww203: the war aims article. On 6 June 1917 the Chamber voted
+  // an order of the day on the aims and the Senate confirmed it unanimously
+  // (Paris press of 7 June 1917, Alsace-Lorraine back). The left bank's guard
+  // is Briand's letter to Cambon of 12 January 1917, and peace without
+  // annexations the socialist minority's word for Stockholm (both not
+  // checked here). A resolution: it says, it doesn't run.
+  row({
+    id: WAR_AIMS,
+    chapter: "war_aims",
+    opens: all(war, since("1916-12")),
+    lean: 0,
+    decree: false,
+    cast: { pm: held("chancellor") },
+    draft: [
+      draft("alsace_back", 1, [], [gauge("morale", 1)]),
+      draft("rhine_guard", 0, [], [inst("army", 1), gauge("order", -1)]),
+      draft("no_annexation", -1, [], [gauge("order", 1), gauge("morale", -1)]),
+    ],
+    passed: [gauge("morale", 1)],
+    passedTell: [],
+    term: [],
+    repeal: { authority: 5, tell: [], effects: [] },
+    talk: lawTalk(WAR_AIMS, {
+      who: either(leaderOf("fra_minority"), person("fra_renaudel")),
+      ask: "frank",
+      push: "cold",
+      tell: [],
+      price: [inst("chamber", -1)],
+      wins: 1,
+      tempers: ["stubborn"],
     }),
   }),
 ];
@@ -269,6 +318,8 @@ const ALL_BILLS: readonly GwBillRow[] = [
   },
   {
     law: W5.threeYears,
+    // Jaurès's party fought the three years; it is against its creed.
+    creed: ["fra_sfio"],
     stance: sides(0, -1, 0, -1, -1, 1, 1, 1, 1),
     texts: {
       thirty_months: {
@@ -346,6 +397,8 @@ const ALL_BILLS: readonly GwBillRow[] = [
   {
     law: W5.censorship,
     around: true,
+    // Clemenceau's paper was cut by the censor and renamed itself for it.
+    creed: ["fra_tiger"],
     stance: sides(0, -1, 1, -1, -1, 1, 1, 1, -1),
     texts: {
       military_only: { fra_radicals: 1 },
@@ -385,6 +438,8 @@ const ALL_BILLS: readonly GwBillRow[] = [
   {
     law: PROPORTIONAL,
     by: "fra_repsoc",
+    // The district vote is how the Radicals win: "our party's grave".
+    creed: ["fra_radicals"],
     stance: sides(-1, -1, 1, 1, 1, 1, 1, 1, -1),
     texts: {
       majority_bonus: { fra_radicals: 0, fra_tiger: 0 },
@@ -408,6 +463,8 @@ const ALL_BILLS: readonly GwBillRow[] = [
   {
     law: AMNESTY,
     by: "fra_minority",
+    // Ribot's men: an amnesty in the war calls the next crime.
+    creed: ["fra_fed_rep"],
     stance: sides(0, 1, 0, 1, 1, -1, -1, -1, -1),
     texts: {
       press_only: { fra_radicals: 1, fra_left_rep: 0, fra_tiger: 0 },
@@ -416,6 +473,61 @@ const ALL_BILLS: readonly GwBillRow[] = [
         fra_fed_rep: 0,
         fra_catholics: 0,
         fra_minority: -1,
+      },
+    },
+  },
+  {
+    // + check. ww203: the labour article. The centre and the right keep the
+    // works quiet; the socialists want the men a voice.
+    law: W5.labour,
+    around: true,
+    stance: sides(1, 0, 1, 0, -1, 1, 1, 1, 1),
+    texts: {
+      wage_boards: {
+        fra_caillaux: 1,
+        fra_sfio: 1,
+        fra_minority: 0,
+        fra_left_rep: 0,
+        fra_fed_rep: -1,
+        fra_catholics: 0,
+        fra_tiger: 0,
+      },
+      shop_delegates: {
+        fra_radicals: 0,
+        fra_caillaux: 1,
+        fra_repsoc: 0,
+        fra_sfio: 1,
+        fra_minority: 1,
+        fra_left_rep: -1,
+        fra_fed_rep: -1,
+        fra_catholics: -1,
+        fra_tiger: -1,
+      },
+    },
+  },
+  {
+    // + check. ww203: the war aims, the right's motion (Barrès's Rhine).
+    law: WAR_AIMS,
+    by: "fra_fed_rep",
+    resolution: true,
+    stance: sides(1, 0, 1, 1, 0, 1, 1, 1, 1),
+    texts: {
+      rhine_guard: {
+        fra_radicals: 0,
+        fra_caillaux: -1,
+        fra_sfio: -1,
+        fra_minority: -1,
+      },
+      no_annexation: {
+        fra_radicals: -1,
+        fra_caillaux: 1,
+        fra_repsoc: -1,
+        fra_sfio: 0,
+        fra_minority: 1,
+        fra_left_rep: -1,
+        fra_fed_rep: -1,
+        fra_catholics: -1,
+        fra_tiger: -1,
       },
     },
   },
@@ -435,7 +547,7 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
     bloc: "parliament",
     start: "in",
     strength: 3,
-    seats: { chambre: 3, senat: 3 },
+    seats: { chambre: 191, senat: 146 },
     leaders: [
       { person: "fra_malvy", when: holder("interior", "fra_malvy") },
       { person: "fra_doumergue" },
@@ -468,15 +580,22 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
     wants: [
       {
         id: "income_tax_next",
+        kind: "next",
         when: toCome(W5.incomeTax),
         keep: isLaw(W5.incomeTax),
         chapters: 10,
       },
       {
         id: "prefects",
+        kind: "post",
         keep: war,
         chapters: 2,
         effects: [heat("fra_fed_rep", 1), heat("fra_catholics", 1)],
+      },
+      {
+        id: "rad_text",
+        kind: "concession",
+        when: world({ is: "amendable", id: "fra_radicals" }),
       },
     ],
     amends: amend({
@@ -486,6 +605,7 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
       [W5.censorship]: "military_only",
       [W5.threeYears]: "thirty_months",
       [W5.incomeTax]: "as_voted",
+      [W5.labour]: "wage_boards",
     }),
     splits: {
       when: all(
@@ -494,6 +614,7 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
       ),
       into: "fra_caillaux",
       takes: 1,
+      seats: { chambre: 40 },
       scene: "fra_hs_caillaux",
     },
   },
@@ -503,7 +624,7 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
     bloc: "parliament",
     start: "out",
     strength: 1,
-    seats: { chambre: 1 },
+    seats: { chambre: 40 },
     leaders: [{ person: "fra_caillaux" }],
     camps: ["radical"],
     grows: [
@@ -527,15 +648,22 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
     wants: [
       {
         id: "income_tax_next",
+        kind: "next",
         when: toCome(W5.incomeTax),
         keep: isLaw(W5.incomeTax),
         chapters: 8,
       },
       {
         id: "quiet_police",
+        kind: "promise",
         keep: war,
         chapters: 2,
         effects: [heat("fra_tiger", 2), heat("fra_af", 1)],
+      },
+      {
+        id: "cai_text",
+        kind: "concession",
+        when: world({ is: "amendable", id: "fra_caillaux" }),
       },
     ],
     amends: amend({
@@ -544,6 +672,8 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
       [W5.incomeTax]: "caillaux_scale",
       [W5.censorship]: "white_spaces",
       [W5.warProfits]: "full_excess",
+      [W5.labour]: "shop_delegates",
+      [WAR_AIMS]: "no_annexation",
     }),
   },
   {
@@ -552,7 +682,7 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
     bloc: "parliament",
     start: "in",
     strength: 2,
-    seats: { chambre: 1 },
+    seats: { chambre: 25 },
     leaders: [
       { person: "fra_briand" },
       { person: "fra_painleve" },
@@ -583,15 +713,22 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
     wants: [
       {
         id: "proportional_next",
+        kind: "next",
         when: toCome(PROPORTIONAL),
         keep: isLaw(PROPORTIONAL),
         chapters: 10,
       },
       {
         id: "portfolio",
+        kind: "post",
         keep: war,
         chapters: 2,
         effects: [heat("fra_radicals", 1)],
+      },
+      {
+        id: "rs_text",
+        kind: "concession",
+        when: world({ is: "amendable", id: "fra_repsoc" }),
       },
     ],
     amends: amend({
@@ -607,7 +744,7 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
     bloc: "workers",
     start: "in",
     strength: 3,
-    seats: { chambre: 2 },
+    seats: { chambre: 104 },
     leaders: [
       { person: "fra_jaures" },
       { person: "fra_renaudel" },
@@ -636,25 +773,38 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
       { at: 3, scene: "fra_hs_sfio_2" },
       { at: 6, scene: "fra_hs_sfio_3" },
     ],
-    bills: known(W5.warProfits, W5.rents),
+    bills: known(W5.warProfits, W5.rents, W5.labour),
     wants: [
       {
         id: "rents_next",
+        kind: "next",
         when: toCome(W5.rents),
         keep: isLaw(W5.rents),
         chapters: 8,
       },
       {
+        id: "civil_courts",
+        kind: "promise",
+        keep: war,
+        chapters: 2,
+        effects: [inst("army", -1)],
+      },
+      {
+        id: "canteens",
+        kind: "money",
+        effects: [gauge("money", -1), gauge("morale", 1)],
+      },
+      {
         id: "allowances_next",
+        kind: "promise",
         when: toCome(W5.allowances),
         keep: isLaw(W5.allowances),
         chapters: 8,
       },
       {
-        id: "civil_courts",
-        keep: war,
-        chapters: 2,
-        effects: [inst("army", -1)],
+        id: "sfio_text",
+        kind: "concession",
+        when: world({ is: "amendable", id: "fra_sfio" }),
       },
     ],
     amends: amend({
@@ -665,6 +815,7 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
       [W5.warProfits]: "full_excess",
       [W5.allowances]: "every_family",
       [W5.dalbiez]: "review_boards",
+      [W5.labour]: "wage_boards",
     }),
     splits: {
       when: all(
@@ -673,6 +824,7 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
       ),
       into: "fra_minority",
       takes: 1,
+      seats: { chambre: 30 },
       scene: "fra_hs_minority",
     },
   },
@@ -682,7 +834,7 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
     bloc: "workers",
     start: "out",
     strength: 1,
-    seats: { chambre: 1 },
+    seats: { chambre: 30 },
     leaders: [{ person: "fra_longuet" }],
     radical: "fra_i_merrheim",
     camps: ["socialist"],
@@ -708,15 +860,22 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
     wants: [
       {
         id: "amnesty_next",
+        kind: "next",
         when: toCome(AMNESTY),
         keep: isLaw(AMNESTY),
         chapters: 8,
       },
       {
         id: "passports",
+        kind: "promise",
         keep: war,
         chapters: 2,
         effects: [heat("fra_af", 1), heat("fra_tiger", 1)],
+      },
+      {
+        id: "min_text",
+        kind: "concession",
+        when: world({ is: "amendable", id: "fra_minority" }),
       },
     ],
     amends: amend({
@@ -725,6 +884,8 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
       [W5.siege]: "civil_courts",
       [W5.warProfits]: "full_excess",
       [W5.censorship]: "white_spaces",
+      [W5.labour]: "shop_delegates",
+      [WAR_AIMS]: "no_annexation",
     }),
   },
   {
@@ -733,7 +894,7 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
     bloc: "business",
     start: "in",
     strength: 2,
-    seats: { chambre: 1, senat: 2 },
+    seats: { chambre: 156, senat: 58 },
     leaders: [{ person: "fra_barthou" }, { person: "fra_ferry" }],
     camps: ["centre"],
     grows: [
@@ -758,16 +919,21 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
     ],
     wants: [
       {
+        id: "loan_terms",
+        kind: "money",
+        effects: [gauge("money", -1)],
+      },
+      {
         id: "proportional_next",
+        kind: "promise",
         when: toCome(PROPORTIONAL),
         keep: isLaw(PROPORTIONAL),
         chapters: 10,
       },
       {
-        id: "loan_terms",
-        keep: war,
-        chapters: 2,
-        effects: [gauge("money", -1)],
+        id: "lr_text",
+        kind: "concession",
+        when: world({ is: "amendable", id: "fra_left_rep" }),
       },
     ],
     amends: amend({
@@ -777,6 +943,7 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
       [W5.incomeTax]: "as_voted",
       [W5.warProfits]: "contracts_only",
       [W5.rents]: "rent_boards",
+      [W5.labour]: "strike_ban",
     }),
   },
   {
@@ -785,7 +952,7 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
     bloc: "business",
     start: "in",
     strength: 2,
-    seats: { chambre: 2, senat: 1 },
+    seats: { chambre: 37, senat: 44 },
     leaders: [{ person: "fra_ribot" }, { person: "fra_barres" }],
     camps: ["right"],
     grows: [{ when: casualties(400), by: 1, every: 12, key: "long_lists" }],
@@ -802,19 +969,33 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
       { at: 3, scene: "fra_hs_fr_2" },
       { at: 7, scene: "fra_hs_fr_3" },
     ],
-    bills: known(W5.dalbiez),
+    bills: known(W5.dalbiez, WAR_AIMS),
     wants: [
       {
         id: "dalbiez_next",
+        kind: "next",
         when: toCome(W5.dalbiez),
         keep: isLaw(W5.dalbiez),
         chapters: 8,
       },
       {
+        id: "aims_next",
+        kind: "next",
+        when: toCome(WAR_AIMS),
+        keep: isLaw(WAR_AIMS),
+        chapters: 10,
+      },
+      {
         id: "no_new_tax",
+        kind: "promise",
         keep: war,
         chapters: 2,
         effects: [heat("fra_sfio", 1)],
+      },
+      {
+        id: "fr_text",
+        kind: "concession",
+        when: world({ is: "amendable", id: "fra_fed_rep" }),
       },
     ],
     amends: amend({
@@ -823,6 +1004,8 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
       [W5.dalbiez]: "young_first",
       [W5.warProfits]: "contracts_only",
       [W5.allowances]: "with_children",
+      [W5.labour]: "strike_ban",
+      [WAR_AIMS]: "rhine_guard",
     }),
   },
   {
@@ -831,7 +1014,7 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
     bloc: "court",
     start: "in",
     strength: 2,
-    seats: { chambre: 1, senat: 1 },
+    seats: { chambre: 39, senat: 22 },
     leaders: [{ person: "fra_cochin" }],
     camps: ["right"],
     grows: [{ when: union, by: 1, every: 12, key: "union" }],
@@ -851,15 +1034,27 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
     wants: [
       {
         id: "allowances_next",
+        kind: "next",
         when: toCome(W5.allowances),
         keep: isLaw(W5.allowances),
         chapters: 10,
       },
       {
         id: "chaplains",
+        kind: "promise",
         keep: war,
         chapters: 2,
         effects: [heat("fra_radicals", 1), heat("fra_sfio", 1)],
+      },
+      {
+        id: "orphans",
+        kind: "money",
+        effects: [gauge("money", -1), gauge("morale", 1)],
+      },
+      {
+        id: "cath_text",
+        kind: "concession",
+        when: world({ is: "amendable", id: "fra_catholics" }),
       },
     ],
     amends: amend({
@@ -903,7 +1098,7 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
     bloc: "press",
     start: "in",
     strength: 2,
-    seats: { senat: 1 },
+    seats: { senat: 20 },
     leaders: [
       { person: "fra_clemenceau", when: not(tiger) },
       { person: "fra_mandel" },
@@ -933,15 +1128,22 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
     wants: [
       {
         id: "commission_next",
+        kind: "next",
         when: toCome(ARMY_COMMISSION),
         keep: isLaw(ARMY_COMMISSION),
         chapters: 8,
       },
       {
         id: "papers_free",
+        kind: "promise",
         keep: war,
         chapters: 2,
         effects: [{ kind: "censor", delta: -1 }],
+      },
+      {
+        id: "tig_text",
+        kind: "concession",
+        when: world({ is: "amendable", id: "fra_tiger" }),
       },
     ],
     amends: amend({
