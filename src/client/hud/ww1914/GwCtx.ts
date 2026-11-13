@@ -170,6 +170,22 @@ export interface GwUi {
   deptStaff?: GwOffice | null;
   /** ww196: the 서훈식's picks on a 서훈 명단: honour per entry, null none. */
   honourPick?: { uid: number; picks: (string | null)[] } | null;
+  /** ww203: the 법전 and 의사일정's folds and picks; null fresh. */
+  book?: GwBookDraft | null;
+}
+
+/** ww203: what is open or picked in the 통치 tab's book and agenda. */
+export interface GwBookDraft {
+  /** Chapters unfolded ("other" for articles with none). */
+  open: string[];
+  /** The agenda bill whose lobby list is open. */
+  agenda: string | null;
+  /** `law:faction` whose ways of pressing are open. */
+  press: string | null;
+  /** A button pressed once (`confidence:law`, `withdraw:law`). */
+  armed: string | null;
+  /** The article whose sponsor is being picked. */
+  sponsor: string | null;
 }
 
 export interface GwRuleDraft {

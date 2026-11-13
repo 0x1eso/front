@@ -10,6 +10,7 @@ import type {
 import { GW_POWER_GROUPS } from "@openfront/engine-api/ww1914/GwPowers";
 import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
+import { bookSection } from "./GwBook";
 import type { GwCtx, GwRuleDraft } from "./GwCtx";
 import { timeLeft } from "./GwDept";
 import { rich } from "./GwDict";
@@ -27,7 +28,6 @@ const GO =
 /** Groups whose work is done on another tab: the row links there. */
 const LINKS: Partial<Record<GwPowerGroup, GwTab>> = {
   treaty: "diplo",
-  house: "country",
   cabinet: "people",
   schedule: "schedule",
 };
@@ -382,7 +382,11 @@ function group(
   // Solo, treaties and terms are drawn up on the schedule tab.
   const link =
     g === "treaty" && c.data.roster.length <= 1 ? "schedule" : LINKS[g];
-  if (rows.length === 0 && link === undefined) return nothing;
+  // ww203: the house group carries the 법전 and the 의사일정.
+  const book = g === "house" ? bookSection(c) : nothing;
+  if (rows.length === 0 && link === undefined && book === nothing) {
+    return nothing;
+  }
   const open = d.groups.includes(g);
   return html`<section class=${BOX} data-gw-power-group=${g}>
     <button
@@ -405,7 +409,7 @@ function group(
       <span class="${MUTED} ml-auto">${open ? "−" : "+"}</span>
     </button>
     ${open
-      ? html`${rows.map((p) => powerRow(c, p, d))}
+      ? html`${book} ${rows.map((p) => powerRow(c, p, d))}
         ${link === undefined ? nothing : linkRow(c, g, link)}`
       : nothing}
   </section>`;

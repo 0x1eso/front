@@ -17,3 +17,33 @@ export function fillColor(f: number): string {
   if (f <= 0.75) return "bg-yellow-200";
   return "bg-emerald-300";
 }
+
+/**
+ * ww203: a bloc's seats in the vote scene, one fixed tint each (no new look:
+ * the HUD's own light shades).
+ */
+export const BLOC_COLOR: Readonly<Record<string, string>> = {
+  workers: "#fca5a5",
+  press: "#fdba74",
+  parliament: "#fde68a",
+  business: "#93c5fd",
+  court: "#c4b5fd",
+  army: "#6ee7b7",
+};
+/** Seats no faction holds (independents, the states' votes). */
+export const NO_BLOC_COLOR = "#e2e8f0";
+/** A house seats its blocs left to right. */
+export const BLOC_SEATING: readonly string[] = [
+  "workers",
+  "press",
+  "parliament",
+  "business",
+  "court",
+  "army",
+];
+/** The tally's colours: for (the amber accent), against, away. */
+export const CAST_COLOR = {
+  for: "#fcd34d",
+  against: "#f87171",
+  away: "#64748b",
+} as const;

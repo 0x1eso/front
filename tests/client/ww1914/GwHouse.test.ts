@@ -1,4 +1,13 @@
-import type { GwHouseView } from "@openfront/engine-api/ww1914/GwHouse";
+import type {
+  GwBallot,
+  GwBallotChamber,
+  GwHouseView,
+} from "@openfront/engine-api/ww1914/GwHouse";
+import type {
+  GwAgendaView,
+  GwArticleView,
+  GwBookView,
+} from "@openfront/engine-api/ww1914/GwLaw";
 import type { GwOrder } from "@openfront/engine-api/ww1914/GwOrders";
 import type { GwPack } from "@openfront/engine-api/ww1914/GwPack";
 import type {
@@ -8,13 +17,15 @@ import type {
 import { html, render, TemplateResult } from "lit";
 import { describe, expect, test } from "vitest";
 import { headlineText } from "../../../src/client/hud/ww1914/GwBlocs";
+import { bookSection, textName } from "../../../src/client/hud/ww1914/GwBook";
 import type { GwCtx, GwUi } from "../../../src/client/hud/ww1914/GwCtx";
 import {
   blocFactions,
   houseChip,
-  houseSection,
 } from "../../../src/client/hud/ww1914/GwHouse";
 import { promiseText } from "../../../src/client/hud/ww1914/GwText";
+import { GwVote } from "../../../src/client/hud/ww1914/GwVote";
+import { tallyAt, votePlan } from "../../../src/client/hud/ww1914/GwVoteModel";
 
 const house = (over: Partial<GwHouseView> = {}): GwHouseView => ({
   bill: null,
@@ -37,7 +48,16 @@ const PACK = {
     deu_ebert: { name: "에베르트", lean: "" },
     deu_i_westarp: { name: "베스타르프", lean: "" },
   },
-  scenes: { gw_law_deu_aux: { title: "조국 봉사법", text: { base: "." } } },
+  scenes: {
+    gw_law_deu_aux: {
+      title: "조국 봉사법",
+      text: { base: "." },
+      opt: {
+        army_text: "**군이 쓴 글을 낸다.** 위원회 없이.",
+        unions_text: "**노조가 쓴 글을 낸다.** 공장 위원회와 함께.",
+      },
+    },
+  },
   factions: {
     deu_spd: { name: "사민당", why: { spd_bread: "빵이 바닥났다." } },
     deu_cons: { name: "보수당" },
@@ -65,101 +85,249 @@ function ctx(v: GwHouseView | undefined, draw: (c: GwCtx) => TemplateResult) {
   return { c, sent, root };
 }
 
-describe("the house on the country tab", () => {
-  test("a country with no house shows nothing", () => {
-    const { root } = ctx(undefined, (c) => html`${houseSection(c)}`);
-    expect(root.textContent?.trim()).toBe("");
+const article = (over: Partial<GwArticleView> = {}): GwArticleView => ({
+  id: "deu_aux",
+  chapter: "conscription",
+  bills: ["army_text", "unions_text"],
+  force: null,
+  how: "none",
+  stage: "open",
+  can: "submit",
+  why: null,
+  lockTo: null,
+  house: true,
+  repeal: null,
+  ...over,
+});
+
+const agenda = (over: Partial<GwAgendaView> = {}): GwAgendaView => ({
+  law: "deu_aux",
+  text: "unions_text",
+  replaces: null,
+  stage: "persuade",
+  origin: "seat",
+  by: null,
+  sponsor: "deu_helfferich",
+  age: 2,
+  auto: null,
+  chambers: ["reichstag"],
+  paper: { word: "tight", conf: "mostly", chapter: 19 },
+  counting: false,
+  counter: "finance",
+  call: true,
+  callWhy: null,
+  confidence: true,
+  round: false,
+  withdraw: true,
+  delayTo: null,
+  lobby: [
+    {
+      faction: "deu_spd",
+      seats: { reichstag: 110 },
+      leader: "deu_ebert",
+      word: "for",
+      conf: "sure",
+      deal: true,
+      shut: null,
+      call: true,
+      press: ["file", "threat"],
+    },
+    {
+      faction: "deu_cons",
+      seats: { reichstag: 75 },
+      leader: "deu_i_westarp",
+      word: "waver",
+      conf: "heard",
+      deal: false,
+      shut: "creed",
+      call: false,
+      press: [],
+    },
+  ],
+  ...over,
+});
+
+function bookCtx(book: GwBookView | undefined, h: GwHouseView | null) {
+  const sent: GwOrder[] = [];
+  const root = document.createElement("div");
+  const c = {
+    data: { date: "1916-11-09", chapter: 20 } as unknown as GreatWarData,
+    seat: {
+      tag: "DEU",
+      audiences: 0,
+      people: [{ id: "deu_helfferich", office: "finance" }],
+      world: { house: h ?? undefined, book },
+    } as unknown as GwSeatView,
+    pack: PACK,
+    ui: { notes: [], summoned: 0, armedRepeal: null } as unknown as GwUi,
+    tick: 0,
+    send: (o: GwOrder) => sent.push(o),
+    redraw: () => render(html`${bookSection(c)}`, root),
+    card: () => undefined,
+  } as GwCtx;
+  c.redraw();
+  const q = (sel: string) => root.querySelector(sel) as HTMLButtonElement;
+  return { c, sent, root, q };
+}
+
+describe("the house on the screens: the law book (ww203), the factions", () => {
+  test("a country with no house and no book shows nothing", () => {
+    expect(bookCtx(undefined, null).root.textContent?.trim()).toBe("");
   });
 
-  test("the moving bill: the whip's word, the factions, the calls in words", () => {
-    const { root, sent } = ctx(
-      house({
+  test("chapters fold; an open article goes to a sponsor; a shut one says why", () => {
+    const { c, root, sent, q } = bookCtx(
+      {
+        articles: [
+          article(),
+          article({
+            id: "deu_censor",
+            chapter: "censorship",
+            bills: ["only"],
+            force: "only",
+            can: null,
+            why: "locked",
+            lockTo: 23,
+          }),
+        ],
+        agenda: [],
+        max: 3,
         calls: 2,
-        record: { right: 3, wrong: 1 },
-        bill: {
-          law: "deu_aux",
-          stage: "persuade",
-          origin: "seat",
-          sponsor: "deu_helfferich",
-          chambers: ["reichstag"],
-          whip: { person: "deu_helfferich", word: "wide", chapter: 20 },
-          factions: [
-            {
-              id: "deu_spd",
-              leader: "deu_ebert",
-              said: 1,
-              deal: true,
-              call: "gw_lb_deu_spd",
-            },
-            {
-              id: "deu_cons",
-              leader: "deu_i_westarp",
-              said: null,
-              deal: false,
-              call: null,
-            },
-          ],
-          delayTo: null,
-        },
-      }),
-      (c) => html`${houseSection(c)}`,
+      },
+      house(),
     );
-    const text = root.textContent ?? "";
-    expect(text).toContain("조국 봉사법");
-    expect(text).toContain("에베르트");
-    expect(root.querySelector("[data-gw-house-whip=wide]")).not.toBeNull();
-    expect(text).toContain("사민당");
-    expect(root.querySelector("[data-gw-house-deal]")).not.toBeNull();
-    expect(text).not.toMatch(/[+-]\d/);
-    // No summons left, but the house's extra calls are.
-    const b = root.querySelector(
-      "[data-gw-house-call=deu_spd]",
-    ) as HTMLButtonElement;
-    expect(b.disabled).toBe(false);
-    b.click();
+    expect(root.querySelector("[data-gw-article]")).toBeNull();
+    q("[data-gw-book-fold=conscription]").click();
+    expect(root.textContent).toContain("조국 봉사법");
+    // The bills by the lead of their options, never what they do.
+    expect(root.querySelector("[data-gw-book-bills]")).not.toBeNull();
+    expect(textName(c, "deu_aux", "army_text")).toBe("군이 쓴 글을 낸다.");
+    q("[data-gw-book-submit=deu_aux]").click();
+    q('[data-gw-book-sponsor="deu_helfferich"]').click();
     expect(sent).toEqual([
-      { kind: "summon", person: "deu_ebert", topic: "gw_lb_deu_spd" },
+      { kind: "bill_submit", law: "deu_aux", sponsor: "deu_helfferich" },
     ]);
-    expect(root.querySelector("[data-gw-house-call=deu_cons]")).toBeNull();
-    expect(root.querySelector("[data-gw-house-record]")).not.toBeNull();
+    q("[data-gw-book-fold=censorship]").click();
+    expect(root.querySelector("[data-gw-book-submit=deu_censor]")).toBeNull();
+    expect(root.querySelector("[data-gw-book-why=locked]")).not.toBeNull();
+    expect(root.querySelector("[data-gw-book-force]")).not.toBeNull();
   });
 
-  test("a house gone or sent home says so, and names what doesn't sit (ww171)", () => {
-    const sits = ctx(house(), (c) => html`${houseSection(c)}`).root;
-    expect(sits.querySelector("[data-gw-house-gone]")).toBeNull();
-    expect(sits.querySelector("[data-gw-house-closed]")).toBeNull();
-    const { root } = ctx(
-      house({ around: "art87", closed: ["duma", "council"], gone: true }),
-      (c) => html`${houseSection(c)}`,
+  test("the agenda: the count in words, the call, confidence asked twice, the lobby", () => {
+    const { root, sent, q } = bookCtx(
+      { articles: [], agenda: [agenda()], max: 3, calls: 0 },
+      house({ around: "art87", closed: ["duma"], gone: true }),
     );
+    expect(root.querySelector("[data-gw-house-gone]")).not.toBeNull();
     // The tests run without a language: the line is its key.
-    expect(
-      root.querySelector("[data-gw-house-gone]")?.textContent?.trim(),
-    ).toBe("gw.house.gone.art87");
-    expect(root.querySelector("[data-gw-house-closed]")).not.toBeNull();
+    expect(root.querySelector("[data-gw-agenda-paper]")?.textContent).toContain(
+      "gw.agenda.paper",
+    );
+    q("[data-gw-agenda-vote=deu_aux]").click();
+    q('[data-gw-agenda-act="confidence"]').click();
+    expect(sent).toEqual([
+      { kind: "bill_vote", law: "deu_aux", confidence: false },
+    ]);
+    q('[data-gw-agenda-act="confidence"]').click();
+    expect(sent[1]).toEqual({
+      kind: "bill_vote",
+      law: "deu_aux",
+      confidence: true,
+    });
+    q("[data-gw-agenda-lobby=deu_aux]").click();
+    const spd = root.querySelector("[data-gw-lobby=deu_spd]")?.textContent;
+    expect(spd).toContain("에베르트");
+    expect(root.querySelector("[data-gw-lobby-deal]")).not.toBeNull();
+    // No free call and no time: he can't be summoned now.
+    expect(q("[data-gw-lobby-call=deu_spd]").disabled).toBe(true);
+    expect(root.querySelector("[data-gw-lobby-call=deu_cons]")).toBeNull();
+    expect(root.querySelector("[data-gw-lobby-shut=creed]")).not.toBeNull();
+    q("[data-gw-lobby-press=deu_spd]").click();
+    q("[data-gw-lobby-how=file]").click();
+    expect(sent[2]).toEqual({
+      kind: "bill_press",
+      law: "deu_aux",
+      faction: "deu_spd",
+      how: "file",
+    });
+    q("[data-gw-agenda-count=deu_aux]").click();
+    expect(sent[3]).toEqual({ kind: "bill_count", law: "deu_aux" });
   });
 
-  test("a faction with no leader at hand shows only its word, no stray separator", () => {
-    const { root } = ctx(
-      house({
-        bill: {
-          law: "deu_aux",
-          stage: "persuade",
-          origin: "seat",
-          sponsor: null,
-          chambers: ["reichstag"],
-          whip: null,
-          factions: [
-            { id: "deu_spd", leader: null, said: -1, deal: false, call: null },
-          ],
-          delayTo: null,
-        },
-      }),
-      (c) => html`${houseSection(c)}`,
-    );
-    const line = root.querySelector("[data-gw-house-faction=deu_spd] p");
-    expect(line?.textContent?.trim()).not.toMatch(/^·/);
-    expect(line?.textContent?.trim().length).toBeGreaterThan(0);
+  test("a ballot plays its beats in order and stamps where the line is crossed", () => {
+    const ch: GwBallotChamber = {
+      chamber: "reichstag",
+      size: 397,
+      block: 0,
+      blocks: [
+        { faction: "deu_spd", cast: "for", seats: 110, beat: "firm" },
+        { faction: "deu_cons", cast: "against", seats: 75, beat: "firm" },
+        { faction: "deu_progress", cast: "for", seats: 41, beat: "firm" },
+        { faction: "deu_natlib", cast: "against", seats: 30, beat: "waver" },
+        { faction: "deu_natlib", cast: "away", seats: 15, beat: "waver" },
+        { faction: "deu_centre", cast: "for", seats: 90, beat: "swing" },
+        { faction: "deu_minor", cast: "against", seats: 20, beat: "betray" },
+      ],
+      pass: true,
+      delay: false,
+    };
+    const blocs: Record<string, string> = {
+      deu_spd: "workers",
+      deu_cons: "army",
+      deu_progress: "parliament",
+      deu_natlib: "business",
+      deu_centre: "parliament",
+      deu_minor: "court",
+    };
+    const plan = votePlan(ch, (f) => blocs[f] ?? null);
+    // Beats in the record's order, each later than the last.
+    const at = plan.lines.map((l) => l.at);
+    expect(at).toEqual([...at].sort((x, y) => x - y));
+    expect(plan.lines.map((l) => l.block.beat)).toEqual([
+      "firm",
+      "firm",
+      "firm",
+      "waver",
+      "waver",
+      "swing",
+      "betray",
+    ]);
+    // 241 for, 125 against, 15 away: the line is 184, crossed by the Centre.
+    expect(plan.present).toBe(366);
+    expect(plan.need).toBe(184);
+    const centre = plan.lines[5].at;
+    expect(plan.stampAt).toBeGreaterThanOrEqual(centre);
+    expect(plan.stampAt).toBeLessThan(plan.lines[6].at + 1);
+    expect(tallyAt(plan, plan.stampAt).for).toBe(184);
+    expect(tallyAt(plan, Infinity)).toEqual({
+      for: 241,
+      against: 125,
+      away: 15,
+    });
+    // The seats beyond the blocks sit empty; all 397 are drawn.
+    expect(plan.dots).toHaveLength(397);
+    // A uid plays once; the one standing at load is only remembered.
+    let now = 0;
+    const v = new GwVote(() => now);
+    const ballot: GwBallot = {
+      uid: 4,
+      law: "deu_peace_res",
+      text: null,
+      chapter: 20,
+      how: "vote",
+      chambers: [ch],
+      pass: true,
+      band: "narrow",
+    };
+    expect(v.offer(ballot, () => null)).toBe(false);
+    expect(v.offer({ ...ballot, uid: 5 }, () => null)).toBe(true);
+    expect(v.offer({ ...ballot, uid: 5 }, () => null)).toBe(false);
+    expect(v.at()).toEqual({ k: 0, t: 0 });
+    now = 60_000;
+    expect(v.tick()).toBe(true);
+    expect(v.still).toBe(true);
+    v.close();
+    expect(v.active).toBe(false);
   });
 
   test("the 정국 tab lists a bloc's factions in words; the band shows one chip while one is out", () => {

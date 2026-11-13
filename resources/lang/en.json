@@ -2085,6 +2085,39 @@
       },
       "tone_label": "Tone"
     },
+    "agenda": {
+      "age": "Chapter {n} on the agenda",
+      "auto": "Comes to the vote by itself in chapter {n}",
+      "call": "Put it to the vote",
+      "confidence": "Make it a question of confidence",
+      "confidence_hint": "Your own side's rebels fall in line; a defeat shakes the government at once.",
+      "count": "Ask {office} to count",
+      "counting": "{office} is counting",
+      "empty": "No bill is on the agenda. Submit one from the law book.",
+      "faction_bill": "{faction}'s bill",
+      "mine": "Your bill",
+      "paper": "Count: {word} ({conf})",
+      "paper_at": "counted in chapter {n}",
+      "paper_none": "No count yet",
+      "replaces": "Would replace: {text}",
+      "round": "Go round the house",
+      "tally": {
+        "blocked": "Blocked",
+        "easy": "Plenty",
+        "short": "Short",
+        "tight": "Close"
+      },
+      "title": "Agenda ({n}/{max})",
+      "why": {
+        "draft": "The draft is still on the desk.",
+        "lords": "The Lords have put it off.",
+        "no_sitting": "A house it must pass is not sitting.",
+        "recess": "That house has voted this chapter.",
+        "sign": "Passed; it waits for the signature."
+      },
+      "withdraw": "Withdraw",
+      "withdraw_sure": "Tap again to withdraw"
+    },
     "agent": {
       "bettignies": {
         "bio": "A Frenchwoman of Lille whom British intelligence called 'Alice Dubois'. From January to September 1915 she ran a network of about a hundred people. In history: taken near Tournai on 20 October 1915, she was sentenced to death, then to forced labour, and died in prison in Cologne on 27 September 1918.",
@@ -2192,6 +2225,38 @@
       "go": "Send it back",
       "hint": "It goes back to {name}. It returns next chapter.",
       "open": "Rewrite this"
+    },
+    "book": {
+      "arms": "Armaments",
+      "bills": "Bills: {list}",
+      "censorship": "Censorship",
+      "conscription": "Conscription",
+      "food": "Food and rationing",
+      "franchise": "Franchise and constitution",
+      "hint": "Each article holds bills that exclude each other: when one passes, it replaces the one in force.",
+      "in_force": "In force: {text}",
+      "labour": "Labour",
+      "locked": "Can't come back before chapter {n}",
+      "moving": "On the agenda",
+      "nations": "Nations and churches",
+      "none_in_force": "Nothing in force",
+      "open": "Open",
+      "other": "Other articles",
+      "pick_bill": "Which bill?",
+      "replace": "Replace with another bill",
+      "shut": "Not open yet",
+      "siege": "State of siege",
+      "submit": "Submit",
+      "title": "Law book",
+      "war_aims": "War aims",
+      "war_finance": "War finance",
+      "why": {
+        "closed": "The country's state doesn't call for it yet.",
+        "full": "Three bills are already on the agenda.",
+        "locked": "A bill of this article failed lately.",
+        "moving": "A bill of this article is on the agenda.",
+        "shelved": "It was put away lately."
+      }
     },
     "budget": {
       "alone": "Sign alone (authority -{n})",
@@ -3088,7 +3153,6 @@
       }
     },
     "house": {
-      "calls": "Extra calls for this bill's people: {n}",
       "chamber": {
         "budapest": "Budapest Diet",
         "bundesrat": "Bundesrat",
@@ -3110,7 +3174,6 @@
         "dora": "Parliament is prorogued: bills and supply go by Order in Council."
       },
       "leader": "Led by {name}",
-      "none": "No bill is before the house. Bills are brought under \"Bills and laws\" on this tab.",
       "origin": {
         "ally": "An ally's bill",
         "faction": "A faction's bill",
@@ -3156,7 +3219,6 @@
         "3": "has turned its back",
         "4": "silent"
       },
-      "title": "The house",
       "trend": {
         "down": "losing ground",
         "flat": "holding",
@@ -3169,8 +3231,7 @@
         "likely": "It should pass",
         "short": "We are short",
         "wide": "Plenty to spare"
-      },
-      "whip_line": "{name} counts: \"{word}\""
+      }
     },
     "intel": {
       "age": {
@@ -3523,14 +3584,12 @@
     },
     "law": {
       "by_decree": "can go past them",
-      "call": "Call {name}",
       "how": {
         "decreed": "In force, by decree",
         "none": "In force",
         "scene": "In force, already decided",
         "voted": "In force, voted"
       },
-      "none_yet": "No bill can be brought yet. New bills come up as the country's state changes.",
       "outlook": {
         "blocked": "blocked",
         "easy": "passes with room",
@@ -3550,8 +3609,6 @@
       },
       "stops": "Can be stopped by: {body}",
       "stops_two": "Can be stopped by: {body}, then {second}",
-      "take": "Order a draft",
-      "title": "Bills and laws",
       "waits": {
         "busy": "Another bill is moving.",
         "shelved": "Too soon to bring it again."
@@ -3745,6 +3802,11 @@
       "treaty_loan_paid": "A loan went out under a treaty"
     },
     "lobby": {
+      "calls": "Calls left this chapter: {n}",
+      "calls_none": "No calls left: summoning now takes time.",
+      "hint": "Summon a leader to hear his price, or press him. The count's word on each faction may be wrong.",
+      "leave": "Send him off",
+      "no_price": "He asks nothing you can give.",
       "pace": {
         "long": "Long",
         "none": "No limit",
@@ -3754,6 +3816,20 @@
       "pace_label": "Pace",
       "pace_note": "Each chapter's clock runs {min} to {max} seconds. Everyone ready ends it sooner.",
       "pace_note_none": "Chapters have no clock. One ends when everyone is ready, or when the host ends it with End this chapter.",
+      "press": {
+        "file": "Lay his file on the table",
+        "threat": "Threaten a dissolution",
+        "word": "Lean on him yourself"
+      },
+      "press_label": "Press",
+      "price": {
+        "concession": "A change to the bill",
+        "money": "Money for his people",
+        "next": "His bill next",
+        "post": "A post for his man",
+        "promise": "A promise"
+      },
+      "price_label": "What he asks",
       "resume_failed": "The save could not be handed to the lobby.",
       "resume_none": "No saved game with friends in this browser.",
       "resume_not_friends": "That save is a solo game.",
@@ -3761,8 +3837,24 @@
       "resume_open": "Resume a saved game",
       "saved_friends": "Saved. Bring it back from a new lobby: Resume a saved game.",
       "seat_free": "Free",
+      "seats": "{n} seats",
       "seats_hint": "Pick a seat. The AI runs every country nobody takes.",
-      "table_note": "{length}: {n} chapters, {time}. Pace: {pace}."
+      "seats_in": "{chamber} {n}",
+      "shut": {
+        "broken": "A promise to him is broken: he won't talk.",
+        "creed": "The bill goes against his creed: he won't talk.",
+        "held": "His file keeps him away."
+      },
+      "summon": "Summon",
+      "table_note": "{length}: {n} chapters, {time}. Pace: {pace}.",
+      "take": "Agree",
+      "title": "Lobbying",
+      "word": {
+        "against": "Against",
+        "for": "For",
+        "unknown": "Unknown",
+        "waver": "Wavering"
+      }
     },
     "mandate": {
       "auh_bread_for_vienna": "Keep bread in Vienna",
@@ -6193,6 +6285,41 @@
       "USA_DEU": "Germany under American protection",
       "USA_MEX": "Mexico under American protection",
       "any": "{by}'s {of}"
+    },
+    "vote": {
+      "against": "Against",
+      "away": "Absent",
+      "beat": {
+        "betray": "Betrayed",
+        "betray_by": "Betrayed: {name}",
+        "swing": "As promised",
+        "waver": "The waverers decide"
+      },
+      "block_line": "{n} against stop it",
+      "close": "Continue",
+      "for": "For",
+      "frame": {
+        "bench": "You watch from the front bench",
+        "report": "{name} reports the vote",
+        "told": "{name} brings word of the vote"
+      },
+      "how": {
+        "confidence": "Question of confidence",
+        "round": "The houses left",
+        "vote": "Vote"
+      },
+      "line": "Majority: {n}",
+      "lobby_against": "No lobby",
+      "lobby_for": "Aye lobby",
+      "others": "Other seats",
+      "skip": "Skip",
+      "stamp": {
+        "delay": "Put off",
+        "fail": "Defeated",
+        "pass": "Passed"
+      },
+      "tally": "{for} for · {against} against · {away} absent",
+      "title": "Vote in the {chamber}"
     },
     "wire": {
       "box": {
