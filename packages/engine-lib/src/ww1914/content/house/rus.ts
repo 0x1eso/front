@@ -61,11 +61,23 @@ import {
 // resources/ww1914/ko/RUS.house.json. The house itself (chambers, whip, way
 // round) is in ./houses.ts and comes into play once this file has factions.
 //
-// The Duma weighs ten: the Rights and Nationalists three, Octobrists and
-// Kadets two each, Progressists, Trudoviks and Social Democrats one each. The
-// State Council weighs three: the United Nobility two, the Rights one. A bill
-// the nobles hate dies in the Council unless someone pays Durnovo's price, or
-// the Duma is not sitting and Article 87 carries it (houses.ts).
+// ww203: real seats. The Fourth Duma (1912) has 442: Rights 65,
+// Nationalists and moderate right 88 and the Centre 32 (all three
+// `rus_rights`; the Centre and Shulgin's Progressive Nationalists, about 38,
+// leave as `rus_pnat` in 1915), Octobrists 98, Kadets 59, Progressists 48,
+// Trudoviks 10, Social Democrats 14 (Chkheidze's 8 Mensheviks, and the
+// Bolsheviks' 5 once Malinovsky resigned in May 1914), and 29 no faction holds
+// here (non-party 7, the Polish Kolo 9, the Muslim group 6, the
+// Belarusian-Lithuanian-Polish group 6, Malinovsky's empty seat): they stay
+// away. The State Council (196: 98 appointed, 98 elected) has the Right
+// group 70 (Durnovo's, the United Nobility's men: `rus_nobles`), the Right
+// Centre 20 (`rus_rights`), the Centre about 50 (`rus_octob`) and the Left,
+// the academic group, 19 (`rus_kadets`); the non-party circle and the
+// unattached stay away. A bill the nobles and the Rights hate dies in the
+// Council unless someone pays Durnovo's price, or the Duma is not sitting and
+// Article 87 carries it (houses.ts). Sources: ru.wikipedia (the Fourth Duma;
+// the State Council's groups, 1915 and 1917); the Progressive Nationalists'
+// size and the Centre's in 1915 are not checked.
 
 /** While there is a sovereign to sign. */
 const crowned = world({ is: "regime", of: ["tsar", "crown", "regency"] });
@@ -108,7 +120,8 @@ export const RUS_FACTIONS: readonly GwFactionRow[] = [
     bloc: "court",
     start: "in",
     strength: 3,
-    seats: { duma: 3, council: 1 },
+    // Rights 65, Nationalists 88, the Centre 32; the Council's Right Centre.
+    seats: { duma: 185, council: 20 },
     // Khvostov chairs the Right faction until he takes a ministry; Markov
     // after him. Purishkevich is the one who breaks ranks.
     leaders: [
@@ -139,13 +152,20 @@ export const RUS_FACTIONS: readonly GwFactionRow[] = [
     bills: ["rus_victory", "rus_press"],
     wants: [
       {
+        id: "rights_text",
+        kind: "concession",
+        when: world({ is: "amendable", id: "rus_rights" }),
+      },
+      {
         id: "victory_next",
+        kind: "next",
         when: not(isLaw("rus_victory")),
         keep: isLaw("rus_victory"),
         chapters: 10,
       },
       {
         id: "khvostov_post",
+        kind: "post",
         when: all(
           not(inOffice("rus_khvostov")),
           world({ is: "date", from: "1915-06" }),
@@ -153,9 +173,13 @@ export const RUS_FACTIONS: readonly GwFactionRow[] = [
         keep: inOffice("rus_khvostov"),
         chapters: 6,
       },
-      { id: "train_money", effects: [gauge("money", -1)] },
+      { id: "train_money", kind: "money", effects: [gauge("money", -1)] },
     ],
-    amends: { rus_councils: "defence_alone", rus_grain: "trains_first" },
+    amends: {
+      rus_councils: "defence_alone",
+      rus_grain: "trains_first",
+      rus_war_tax: "war_profits",
+    },
     splits: {
       when: all(
         faction("rus_bloc", { of: ["in"] }),
@@ -163,6 +187,8 @@ export const RUS_FACTIONS: readonly GwFactionRow[] = [
       ),
       into: "rus_pnat",
       takes: 1,
+      // The Centre and the Progressive Nationalists (about 38, not checked).
+      seats: { duma: 70 },
       scene: "rus_f_pnat",
     },
   },
@@ -173,7 +199,7 @@ export const RUS_FACTIONS: readonly GwFactionRow[] = [
     bloc: "parliament",
     start: "out",
     strength: 1,
-    seats: { duma: 1 },
+    seats: { duma: 70 },
     leaders: [{ person: "rus_i_shulgin" }],
     feeds: [
       { when: blocAt("parliament", { max: -3 }), key: "duma_turned" },
@@ -184,12 +210,18 @@ export const RUS_FACTIONS: readonly GwFactionRow[] = [
     bills: ["rus_volost"],
     wants: [
       {
+        id: "pnat_text",
+        kind: "concession",
+        when: world({ is: "amendable", id: "rus_pnat" }),
+      },
+      {
         id: "zemstvo_west",
+        kind: "next",
         when: not(isLaw("rus_volost")),
         keep: isLaw("rus_volost"),
         chapters: 10,
       },
-      { id: "front_aid", effects: [gauge("money", -1)] },
+      { id: "front_aid", kind: "money", effects: [gauge("money", -1)] },
     ],
     amends: { rus_poland: "autonomy_word" },
   },
@@ -201,7 +233,8 @@ export const RUS_FACTIONS: readonly GwFactionRow[] = [
     bloc: "business",
     start: "in",
     strength: 2,
-    seats: { duma: 2 },
+    // The Duma's 98; the Council's Centre (about 50).
+    seats: { duma: 98, council: 50 },
     leaders: [{ person: "rus_guchkov" }, { person: "rus_rodzianko" }],
     grows: [
       {
@@ -226,13 +259,39 @@ export const RUS_FACTIONS: readonly GwFactionRow[] = [
     bills: ["rus_volost", "rus_councils"],
     wants: [
       {
+        id: "octob_text",
+        kind: "concession",
+        when: world({ is: "amendable", id: "rus_octob" }),
+      },
+      // Guchkov's old feud: the war minister who had no shells.
+      {
+        id: "sukhomlinov_out",
+        kind: "promise",
+        when: inOffice("rus_sukhomlinov"),
+        keep: not(inOffice("rus_sukhomlinov")),
+        chapters: 4,
+      },
+      // Polivanov, Guchkov's man at the War Ministry (minister June 1915).
+      {
+        id: "polivanov_post",
+        kind: "post",
+        when: all(
+          not(inOffice("rus_polivanov")),
+          not(inOffice("rus_sukhomlinov")),
+        ),
+        keep: inOffice("rus_polivanov"),
+        chapters: 4,
+      },
+      {
         id: "volost_next",
+        kind: "next",
         when: not(isLaw("rus_volost")),
         keep: isLaw("rus_volost"),
         chapters: 10,
       },
       {
         id: "committee_orders",
+        kind: "money",
         effects: [gauge("money", -1), heat("rus_circle", 1)],
       },
     ],
@@ -241,6 +300,7 @@ export const RUS_FACTIONS: readonly GwFactionRow[] = [
       rus_finland: "quiet_governor",
       rus_pale: "refugees_only",
       rus_amnesty: "no_bombs",
+      rus_army_zone: "civil_governors",
     },
   },
   {
@@ -250,7 +310,8 @@ export const RUS_FACTIONS: readonly GwFactionRow[] = [
     bloc: "parliament",
     start: "in",
     strength: 2,
-    seats: { duma: 2 },
+    // The Duma's 59; the Council's academic group, the Left (19).
+    seats: { duma: 59, council: 19 },
     leaders: [{ person: "rus_milyukov" }, { person: "rus_shingarev" }],
     radical: "rus_i_nekrasov",
     grows: [
@@ -277,24 +338,39 @@ export const RUS_FACTIONS: readonly GwFactionRow[] = [
     bills: ["rus_amnesty", "rus_poland"],
     wants: [
       {
+        id: "kadets_text",
+        kind: "concession",
+        when: world({ is: "amendable", id: "rus_kadets" }),
+      },
+      {
         id: "confidence",
+        kind: "promise",
         when: all(warAge(10), not(trusted)),
         keep: trusted,
         chapters: 10,
       },
       {
         id: "amnesty_next",
+        kind: "next",
         when: not(isLaw("rus_amnesty")),
         keep: isLaw("rus_amnesty"),
         chapters: 10,
       },
-      { id: "session", when: not(sitting), keep: sitting, chapters: 4 },
+      {
+        id: "session",
+        kind: "promise",
+        when: not(sitting),
+        keep: sitting,
+        chapters: 4,
+      },
     ],
     amends: {
       rus_press: "duma_speeches_free",
       rus_ratniki: "not_only_sons",
       rus_poland: "charter",
       rus_victory: "with_allies",
+      rus_army_zone: "no_expulsions",
+      rus_great_programme: "guns_first",
     },
     // The Progressive Bloc: rus_h_bloc's talks (or its ministry), else the
     // same state by another road. It falls apart once it is a handful again.
@@ -317,7 +393,7 @@ export const RUS_FACTIONS: readonly GwFactionRow[] = [
     bloc: "business",
     start: "in",
     strength: 1,
-    seats: { duma: 1 },
+    seats: { duma: 48 },
     leaders: [{ person: "rus_i_konovalov" }],
     grows: [
       {
@@ -339,17 +415,24 @@ export const RUS_FACTIONS: readonly GwFactionRow[] = [
     bills: ["rus_councils", "rus_volost"],
     wants: [
       {
+        id: "progress_text",
+        kind: "concession",
+        when: world({ is: "amendable", id: "rus_progress" }),
+      },
+      {
         id: "committees_in",
+        kind: "next",
         when: not(isLaw("rus_councils")),
         keep: isLaw("rus_councils"),
         chapters: 8,
       },
-      { id: "moscow_orders", effects: [gauge("money", -1)] },
+      { id: "moscow_orders", kind: "money", effects: [gauge("money", -1)] },
     ],
     amends: {
       rus_dry: "wine_and_beer",
       rus_factories: "workers_group",
       rus_councils: "with_zemgor",
+      rus_war_tax: "loans_only",
     },
   },
   {
@@ -359,7 +442,9 @@ export const RUS_FACTIONS: readonly GwFactionRow[] = [
     bloc: "parliament",
     start: "out",
     strength: 3,
-    seats: { duma: 5 },
+    // Pooled from its parties when it forms (the Duma's 236 by the bloc's
+    // own count, with Shulgin's men); these are the three parties' seats.
+    seats: { duma: 205, council: 69 },
     leaders: [{ person: "rus_milyukov" }, { person: "rus_i_shidlovsky" }],
     radical: "rus_i_nekrasov",
     grows: [
@@ -383,17 +468,26 @@ export const RUS_FACTIONS: readonly GwFactionRow[] = [
     bills: ["rus_amnesty", "rus_volost", "rus_poland", "rus_pale"],
     wants: [
       {
+        id: "bloc_text",
+        kind: "concession",
+        when: world({ is: "amendable", id: "rus_bloc" }),
+      },
+      {
         id: "confidence",
+        kind: "promise",
         when: not(trusted),
         keep: trusted,
         chapters: 10,
       },
       {
         id: "amnesty_next",
+        kind: "next",
         when: not(isLaw("rus_amnesty")),
         keep: isLaw("rus_amnesty"),
         chapters: 10,
       },
+      // Zemgor (the zemstvo and town unions) ran on the treasury's money.
+      { id: "zemgor_money", kind: "money", effects: [gauge("money", -1)] },
     ],
     amends: {
       rus_press: "duma_speeches_free",
@@ -407,7 +501,7 @@ export const RUS_FACTIONS: readonly GwFactionRow[] = [
     bloc: "workers",
     start: "in",
     strength: 1,
-    seats: { duma: 1 },
+    seats: { duma: 10 },
     leaders: [{ person: "rus_kerensky" }],
     grows: [
       {
@@ -430,12 +524,25 @@ export const RUS_FACTIONS: readonly GwFactionRow[] = [
     bills: ["rus_peasants", "rus_amnesty"],
     wants: [
       {
+        id: "trud_text",
+        kind: "concession",
+        when: world({ is: "amendable", id: "rus_trud" }),
+      },
+      {
         id: "peasants_next",
+        kind: "next",
         when: not(isLaw("rus_peasants")),
         keep: isLaw("rus_peasants"),
         chapters: 10,
       },
-      { id: "land_word", effects: [heat("rus_nobles", 1)] },
+      // A word said in public: kept the moment it is said.
+      {
+        id: "land_word",
+        kind: "promise",
+        keep: crowned,
+        effects: [heat("rus_nobles", 1)],
+      },
+      { id: "soldier_wives", kind: "money", effects: [gauge("money", -1)] },
     ],
     amends: { rus_ratniki: "land_after", rus_peasants: "captains_go" },
   },
@@ -445,7 +552,8 @@ export const RUS_FACTIONS: readonly GwFactionRow[] = [
     bloc: "workers",
     start: "in",
     strength: 1,
-    seats: { duma: 1 },
+    // Chkheidze's Mensheviks (with Jagiełło) after the 1913 split.
+    seats: { duma: 8 },
     leaders: [{ person: "rus_chkheidze" }],
     grows: [
       {
@@ -466,23 +574,31 @@ export const RUS_FACTIONS: readonly GwFactionRow[] = [
     wants: [
       {
         id: "amnesty_next",
+        kind: "next",
         when: not(isLaw("rus_amnesty")),
         keep: isLaw("rus_amnesty"),
         chapters: 10,
       },
-      { id: "sick_funds", effects: [heat("rus_rights", 1)] },
+      // The 1912 insurance funds left to meet: kept while the crown stands.
+      {
+        id: "sick_funds",
+        kind: "promise",
+        keep: crowned,
+        effects: [heat("rus_rights", 1)],
+      },
     ],
   },
   {
-    // The five Bolshevik deputies; Lenin once he is back. No seats counted:
-    // they vote no on every war bill and nobody can buy them.
+    // The five Bolshevik deputies (six until Malinovsky resigned in May 1914;
+    // Petrovsky chairs them); Lenin once he is back. They vote no on every war
+    // bill and nobody can buy them; held ("under"), they sit no more.
     id: "rus_bolsh",
     tag: "RUS",
     plot: "rus_pl_red",
     bloc: "workers",
     start: "in",
     strength: 1,
-    seats: {},
+    seats: { duma: 5 },
     leaders: [{ person: "rus_lenin" }, { person: "rus_i_petrovsky" }],
     grows: [
       {
@@ -513,7 +629,8 @@ export const RUS_FACTIONS: readonly GwFactionRow[] = [
     bloc: "court",
     start: "in",
     strength: 2,
-    seats: { council: 2 },
+    // The State Council's Right group (70 in 1915), Durnovo's.
+    seats: { council: 70 },
     leaders: [{ person: "rus_durnovo" }, { person: "rus_i_shcheglovitov" }],
     feeds: [
       { when: isLaw("rus_volost"), key: "volost_law" },
@@ -527,17 +644,33 @@ export const RUS_FACTIONS: readonly GwFactionRow[] = [
     steps: steps("nobles"),
     wants: [
       {
+        id: "nobles_text",
+        kind: "concession",
+        when: world({ is: "amendable", id: "rus_nobles" }),
+      },
+      // Words to the Council's Right: kept while they hold.
+      {
         id: "volost_shelved",
+        kind: "promise",
         when: not(isLaw("rus_volost")),
+        keep: not(isLaw("rus_volost")),
+        chapters: 10,
         effects: [heat("rus_octob", 1)],
       },
-      { id: "governors_kept", effects: [heat("rus_kadets", 1)] },
+      {
+        id: "governors_kept",
+        kind: "promise",
+        keep: not(trusted),
+        chapters: 10,
+        effects: [heat("rus_kadets", 1)],
+      },
     ],
     amends: {
       rus_grain: "trains_first",
       rus_poland: "autonomy_word",
       rus_volost: "land_curia",
       rus_peasants: "after_war",
+      rus_war_tax: "loans_only",
     },
   },
   {
@@ -597,6 +730,7 @@ export const RUS_BILLS: readonly GwBillRow[] = [
   {
     law: "rus_press",
     around: true,
+    creed: ["rus_sd", "rus_bolsh"],
     stance: {
       rus_rights: 1,
       rus_nobles: 1,
@@ -605,6 +739,7 @@ export const RUS_BILLS: readonly GwBillRow[] = [
       rus_trud: -1,
       rus_sd: -1,
       rus_bloc: -1,
+      rus_bolsh: -1,
     },
     texts: {
       duma_speeches_free: {
@@ -628,6 +763,7 @@ export const RUS_BILLS: readonly GwBillRow[] = [
       rus_trud: 1,
       rus_bloc: 1,
       rus_pnat: 1,
+      rus_bolsh: -1,
     },
     texts: {
       for_ever: { rus_progress: -1, rus_nobles: -1 },
@@ -637,6 +773,7 @@ export const RUS_BILLS: readonly GwBillRow[] = [
   {
     law: "rus_ratniki",
     around: true,
+    creed: ["rus_bolsh"],
     stance: {
       rus_rights: 1,
       rus_octob: 1,
@@ -644,6 +781,7 @@ export const RUS_BILLS: readonly GwBillRow[] = [
       rus_pnat: 1,
       rus_trud: -1,
       rus_sd: -1,
+      rus_bolsh: -1,
     },
     texts: {
       land_after: {
@@ -667,6 +805,7 @@ export const RUS_BILLS: readonly GwBillRow[] = [
       rus_bloc: 1,
       rus_pnat: 1,
       rus_nobles: -1,
+      rus_bolsh: -1,
     },
     texts: {
       with_zemgor: { rus_rights: -1, rus_nobles: -1 },
@@ -682,6 +821,7 @@ export const RUS_BILLS: readonly GwBillRow[] = [
   {
     law: "rus_factories",
     around: true,
+    creed: ["rus_sd", "rus_bolsh"],
     stance: {
       rus_rights: 1,
       rus_octob: 1,
@@ -690,6 +830,7 @@ export const RUS_BILLS: readonly GwBillRow[] = [
       rus_kadets: -1,
       rus_trud: -1,
       rus_sd: -1,
+      rus_bolsh: -1,
     },
     texts: {
       workers_group: {
@@ -713,6 +854,7 @@ export const RUS_BILLS: readonly GwBillRow[] = [
       rus_sd: 1,
       rus_rights: -1,
       rus_nobles: -1,
+      rus_bolsh: -1,
     },
     texts: {
       quota_levy: { rus_trud: -1, rus_rights: -1, rus_kadets: 0, rus_sd: 0 },
@@ -727,6 +869,7 @@ export const RUS_BILLS: readonly GwBillRow[] = [
   {
     law: "rus_poland",
     around: true,
+    creed: ["rus_rights"],
     stance: {
       rus_octob: 1,
       rus_kadets: 1,
@@ -736,6 +879,7 @@ export const RUS_BILLS: readonly GwBillRow[] = [
       rus_bloc: 1,
       rus_rights: -1,
       rus_nobles: -1,
+      rus_bolsh: 1,
     },
     texts: {
       crown_of_poland: { rus_octob: 0, rus_pnat: -1 },
@@ -750,6 +894,7 @@ export const RUS_BILLS: readonly GwBillRow[] = [
   {
     law: "rus_finland",
     around: true,
+    creed: ["rus_rights"],
     stance: {
       rus_kadets: 1,
       rus_progress: 1,
@@ -759,6 +904,7 @@ export const RUS_BILLS: readonly GwBillRow[] = [
       rus_rights: -1,
       rus_nobles: -1,
       rus_pnat: -1,
+      rus_bolsh: 1,
     },
     texts: {
       diet_recalled: { rus_octob: -1, rus_bloc: 0 },
@@ -773,6 +919,7 @@ export const RUS_BILLS: readonly GwBillRow[] = [
   {
     law: "rus_pale",
     around: true,
+    creed: ["rus_rights"],
     stance: {
       rus_kadets: 1,
       rus_progress: 1,
@@ -782,6 +929,7 @@ export const RUS_BILLS: readonly GwBillRow[] = [
       rus_rights: -1,
       rus_nobles: -1,
       rus_pnat: -1,
+      rus_bolsh: 1,
     },
     texts: {
       whole_pale: { rus_octob: -1, rus_bloc: 0 },
@@ -797,6 +945,7 @@ export const RUS_BILLS: readonly GwBillRow[] = [
     law: "rus_amnesty",
     by: "rus_kadets",
     around: true,
+    creed: ["rus_rights"],
     stance: {
       rus_kadets: 1,
       rus_progress: 1,
@@ -805,6 +954,7 @@ export const RUS_BILLS: readonly GwBillRow[] = [
       rus_bloc: 1,
       rus_rights: -1,
       rus_nobles: -1,
+      rus_bolsh: 1,
     },
     texts: {
       faith_only: {
@@ -830,6 +980,7 @@ export const RUS_BILLS: readonly GwBillRow[] = [
       rus_pnat: 1,
       rus_rights: -1,
       rus_nobles: -1,
+      rus_bolsh: 1,
     },
     texts: {
       land_curia: {
@@ -854,6 +1005,7 @@ export const RUS_BILLS: readonly GwBillRow[] = [
       rus_bloc: 1,
       rus_rights: -1,
       rus_nobles: -1,
+      rus_bolsh: 1,
     },
     texts: {
       captains_go: { rus_octob: 0, rus_pnat: -1 },
@@ -864,6 +1016,7 @@ export const RUS_BILLS: readonly GwBillRow[] = [
     law: "rus_victory",
     by: "rus_rights",
     resolution: true,
+    creed: ["rus_sd", "rus_bolsh"],
     stance: {
       rus_rights: 1,
       rus_octob: 1,
@@ -871,10 +1024,108 @@ export const RUS_BILLS: readonly GwBillRow[] = [
       rus_pnat: 1,
       rus_trud: -1,
       rus_sd: -1,
+      rus_bolsh: -1,
     },
     texts: {
       with_allies: { rus_kadets: 1, rus_progress: 1, rus_bloc: 1 },
       tsar_and_army: { rus_octob: 0, rus_kadets: -1, rus_bloc: -1 },
+    },
+  },
+  // + check (ww203): the government's bills that had no house row.
+  {
+    // The Great Programme passed the Duma in June 1914; the Social Democrats
+    // and the Trudoviks voted no.
+    law: "rus_great_programme",
+    around: true,
+    money: true,
+    creed: ["rus_bolsh"],
+    stance: {
+      rus_rights: 1,
+      rus_octob: 1,
+      rus_pnat: 1,
+      rus_progress: 1,
+      rus_nobles: 1,
+      rus_trud: -1,
+      rus_sd: -1,
+      rus_bolsh: -1,
+    },
+    texts: {
+      whole_by_taxes: { rus_progress: 0, rus_nobles: 0, rus_kadets: -1 },
+      guns_first: { rus_kadets: 1 },
+    },
+  },
+  {
+    // Bark's income tax: the Duma passed it, the State Council took it in
+    // March 1916, signed 6 April 1916 (from 1917). The war-profits tax came
+    // on 13 May 1916.
+    law: "rus_war_tax",
+    around: true,
+    money: true,
+    stance: {
+      rus_octob: 1,
+      rus_kadets: 1,
+      rus_pnat: 1,
+      rus_bloc: 1,
+      rus_trud: 1,
+      rus_sd: 1,
+      rus_nobles: -1,
+      rus_bolsh: -1,
+    },
+    texts: {
+      loans_only: {
+        rus_rights: 1,
+        rus_nobles: 1,
+        rus_progress: 1,
+        rus_octob: 0,
+        rus_kadets: -1,
+        rus_bloc: 0,
+        rus_trud: -1,
+        rus_sd: -1,
+      },
+      war_profits: {
+        rus_rights: 1,
+        rus_nobles: 0,
+        rus_octob: -1,
+        rus_progress: -1,
+        rus_bloc: 0,
+      },
+    },
+  },
+  {
+    // Who rules the army's zone: the Field Regulations of July 1914 gave it
+    // to the generals; the Council of Ministers fought Stavka over it in 1915.
+    law: "rus_army_zone",
+    around: true,
+    stance: {
+      rus_rights: 1,
+      rus_nobles: 1,
+      rus_kadets: -1,
+      rus_progress: -1,
+      rus_bloc: -1,
+      rus_trud: -1,
+      rus_sd: -1,
+      rus_bolsh: -1,
+    },
+    texts: {
+      civil_governors: {
+        rus_octob: 1,
+        rus_pnat: 1,
+        rus_kadets: 1,
+        rus_progress: 1,
+        rus_bloc: 1,
+        rus_rights: 0,
+        rus_trud: 0,
+        rus_sd: 0,
+      },
+      no_expulsions: {
+        rus_octob: 1,
+        rus_kadets: 1,
+        rus_progress: 1,
+        rus_bloc: 1,
+        rus_trud: 1,
+        rus_sd: 0,
+        rus_rights: -1,
+      },
     },
   },
 ];
@@ -887,6 +1138,7 @@ export const RUS_HOUSE_LAWS: readonly GwLawRow[] = [
   // The Kadets': the bloc's amnesty, political and religious.
   row({
     id: "rus_amnesty",
+    chapter: "franchise",
     opens: opens(war, crowned, since("1915-07")),
     lean: -1,
     decree: true,
@@ -914,6 +1166,7 @@ export const RUS_HOUSE_LAWS: readonly GwLawRow[] = [
   // The Octobrists': a zemstvo in every volost, all estates in it.
   row({
     id: "rus_volost",
+    chapter: "franchise",
     opens: opens(war, crowned, since("1915-07")),
     lean: 0,
     decree: true,
@@ -940,6 +1193,7 @@ export const RUS_HOUSE_LAWS: readonly GwLawRow[] = [
   // The Trudoviks': the peasant the equal of anyone before the law.
   row({
     id: "rus_peasants",
+    chapter: "franchise",
     opens: opens(war, crowned, since("1916-01")),
     lean: -1,
     decree: true,
@@ -968,6 +1222,7 @@ export const RUS_HOUSE_LAWS: readonly GwLawRow[] = [
   // resolution: no term, and no way round (it is the Duma's own voice).
   row({
     id: "rus_victory",
+    chapter: "war_aims",
     opens: opens(war, crowned),
     lean: 1,
     decree: false,

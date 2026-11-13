@@ -182,6 +182,9 @@ export const RUS_HOUSE: GwHouseRow = {
       inst: "ministers",
       kind: "vote",
       sits: not(RUS_DUMA_GONE),
+      // ww203: 196 (98 appointed, 98 elected, 1906). Its groups' seats are in
+      // house/rus.ts; the non-party and the unattached stay away.
+      size: 196,
     },
   ],
   whip: either(person("rus_rodzianko"), office("interior")),
