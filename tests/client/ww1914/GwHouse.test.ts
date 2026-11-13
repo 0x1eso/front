@@ -26,6 +26,7 @@ const house = (over: Partial<GwHouseView> = {}): GwHouseView => ({
   around: "bundesrat",
   closed: [],
   gone: false,
+  ballot: null,
   ...over,
 });
 

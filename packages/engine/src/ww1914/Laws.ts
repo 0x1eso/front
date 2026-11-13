@@ -13,10 +13,11 @@ import {
   GwNationState,
   GwSeatState,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
-import type {
-  GwLawOutlook,
-  GwLawState,
-  GwLawView,
+import {
+  gwLawStart,
+  type GwLawOutlook,
+  type GwLawState,
+  type GwLawView,
 } from "@openfront/engine-api/ww1914/GwLaw";
 import type { GwOrderBlock } from "@openfront/engine-api/ww1914/GwOrders";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
@@ -162,23 +163,7 @@ function setFlags(gw: GreatWar, row: GwLawRow, on: boolean): void {
 function touchRow(n: GwNationState, id: string): GwLawState {
   const had = lawStage(n, id);
   if (had !== null) return had;
-  const st: GwLawState = {
-    id,
-    stage: "idle",
-    since: -99,
-    support: 0,
-    how: "none",
-    text: null,
-    lost: 0,
-    after: false,
-    origin: "seat",
-    by: null,
-    sponsor: null,
-    deals: [],
-    whip: -1,
-    delayTo: -1,
-    warm: [],
-  };
+  const st: GwLawState = gwLawStart(id);
   n.laws.push(st);
   return st;
 }

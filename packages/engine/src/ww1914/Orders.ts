@@ -334,6 +334,15 @@ export function applyGwOrder(
       return treatySign(gw, seat, o.how);
     case "crown":
       return crownPick(gw, seat, o.client, o.pick);
+    // ww203: the law book and the agenda (S1 wires them).
+    case "bill_submit":
+    case "bill_vote":
+    case "bill_round":
+    case "bill_withdraw":
+    case "bill_lobby":
+    case "bill_press":
+    case "bill_count":
+      return "no_law";
   }
 }
 

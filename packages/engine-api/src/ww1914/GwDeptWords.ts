@@ -33,6 +33,9 @@ export const GW_TASK_TYPES = [
   // foreign office drafts a beaten country's fate the moment a table opens
   // for it (free, past the one-per-department rule). Topic: the beaten tag.
   "settle", // {나라}의 처분
+  // ww203: common to every seat, given from the agenda (order `bill_count`),
+  // not offered: the counting office counts one bill. Topic: the law id.
+  "count", // {법안} 표 계산
 ] as const;
 export type GwTaskType = (typeof GW_TASK_TYPES)[number];
 export const GW_COMMON_TASK_TYPES: readonly GwTaskType[] = GW_TASK_TYPES.slice(
@@ -139,6 +142,12 @@ export const GW_ANSWER_SLOTS = [
   "shells_trend",
   "bread_trend",
   "money_trend",
+  // ww203: a count answer. bill: the law id (word); tally: the paper's
+  // overall word (GwLaw GW_LAW_OUTLOOKS); swing: the wavering factions' ids,
+  // joined by "," (word; absent with none).
+  "bill",
+  "tally",
+  "swing",
 ] as const;
 export type GwAnswerSlot = (typeof GW_ANSWER_SLOTS)[number];
 

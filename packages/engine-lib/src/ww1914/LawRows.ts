@@ -9,6 +9,7 @@ import type {
   GwIssue,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
+import type { GwBookChapter } from "@openfront/engine-api/ww1914/GwLaw";
 import type {
   GwCastRule,
   GwCond,
@@ -117,6 +118,12 @@ export interface GwLawRow {
   /** Scenes: gw_law_<id> draft, gw_lv_<id> the day, gw_lt_<id> talk, gw_lf_<id> after. */
   readonly id: string;
   readonly tag: GwTag;
+  /**
+   * ww203: the law book's chapter. The row is an article; its `draft` texts
+   * are its bills, which exclude each other: passing another replaces the
+   * one in force, at no repeal price.
+   */
+  readonly chapter?: GwBookChapter;
   /** When it can be taken up. */
   readonly opens: GwCond;
   /** How the body takes it before anyone has been talked to. */

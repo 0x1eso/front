@@ -25,6 +25,7 @@ import {
   GW_TASK_PUSHES,
 } from "./GwDeptWords";
 import { GW_CLIENTS, GW_FATE_TERMS, GW_FATES, GW_SIGN_HOWS } from "./GwFate";
+import { GW_PRESS_HOWS } from "./GwLaw";
 import { GW_SERVICE_BRANCHES, GW_SERVICE_SHARE_MAX } from "./GwSpies";
 import { GW_TABLE_TRADES, GW_TABLE_WORDS } from "./GwTable";
 
@@ -324,6 +325,33 @@ export const GwOrderSchema = z.discriminatedUnion("kind", [
    * GwClientRow, or "regency" (섭정회의에 맡긴다).
    */
   z.object({ kind: z.literal("crown"), client: z.enum(GW_CLIENTS), pick: Id }),
+  // ---- ww203: the law book and the agenda ----
+  /**
+   * 제출 / 다른 안으로 바꾼다: the article's draft goes to the sponsor (the
+   * draft card picks the text); the bill joins the agenda (at most 3).
+   */
+  z.object({ kind: z.literal("bill_submit"), law: Id, sponsor: Id.optional() }),
+  /** 표결에 부친다; `confidence`: 신임을 건다 (GBR, FRA). */
+  z.object({
+    kind: z.literal("bill_vote"),
+    law: Id,
+    confidence: z.boolean(),
+  }),
+  /** 돌아간다: the way round (Bundesrat powers, DORA, Art. 87, §14, siege). */
+  z.object({ kind: z.literal("bill_round"), law: Id }),
+  /** 철회: off the agenda; a faction's own bill can't be. */
+  z.object({ kind: z.literal("bill_withdraw"), law: Id }),
+  /** 부른다: the faction's leader on this bill (a free call, else 1 of time). */
+  z.object({ kind: z.literal("bill_lobby"), law: Id, faction: Id }),
+  /** 압박: a file, the ruler's word, a dissolution threat. */
+  z.object({
+    kind: z.literal("bill_press"),
+    law: Id,
+    faction: Id,
+    how: z.enum(GW_PRESS_HOWS),
+  }),
+  /** The counting office counts this bill (task type `count`). */
+  z.object({ kind: z.literal("bill_count"), law: Id }),
 ]);
 export type GwOrder = z.infer<typeof GwOrderSchema>;
 
@@ -403,5 +431,13 @@ export const GW_ORDER_BLOCKS = [
   "no_fate", // that fate can't be painted there, or painting is shut
   "no_sign", // nothing to sign, or signed already
   "no_crown", // no such state of the seat's, or its crown is set
+  // ww203
+  "agenda_full", // three bills on the agenda
+  "law_locked", // the article failed lately and is locked
+  "recess", // a chamber the bill needs has voted this chapter
+  "lords_wait", // the Lords put it off: not before its chapter
+  "no_talk", // he won't talk: a broken promise, his creed, a file
+  "no_press", // that pressure has nothing to work with
+  "counting", // a department counts it already
 ] as const;
 export type GwOrderBlock = (typeof GW_ORDER_BLOCKS)[number];

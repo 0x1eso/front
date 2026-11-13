@@ -22,9 +22,20 @@ export const DEU_HOUSE: GwHouseRow = {
       kind: "vote",
       starts: true,
       sits: not(DISSOLVED),
+      // ww203: 397 seats (the 1912 election).
+      size: 397,
     },
     // The states' door: only bills that name it (Reich food, the states' rights).
-    { id: "bundesrat", kind: "vote", optional: true },
+    // ww203: 61 votes; Prussia's 17 and the small states' vote as the
+    // chancellor tells them (`rest`); 14 against stop a constitutional change.
+    {
+      id: "bundesrat",
+      kind: "vote",
+      optional: true,
+      size: 61,
+      need: { block: 14 },
+      rest: "for",
+    },
   ],
   whip: either(
     person("deu_helfferich"),
@@ -49,6 +60,8 @@ export const DEU_HOUSE: GwHouseRow = {
     ],
   },
   police: either(office("interior"), office("chancellor")),
+  // ww203: Helfferich's Treasury counts the Reichstag, else the Interior.
+  counter: ["finance", "interior"],
 };
 
 /** Parliament prorogued past the motion (gbr_pw_prorogue): neither House sits. */
@@ -63,7 +76,10 @@ export const GBR_HOUSE: GwHouseRow = {
       kind: "vote",
       starts: true,
       sits: not(any(GBR_PROROGUED, DISSOLVED)),
+      // ww203: 670 seats (December 1910).
+      size: 670,
     },
+    // ww203: the Lords' size is W-GBR's to check; absent, its factions' seats.
     { id: "lords", kind: "lords", sits: not(GBR_PROROGUED) },
   ],
   // Gulland, the chief whip: pack-only, `GBR.house.json` people.
@@ -81,6 +97,10 @@ export const GBR_HOUSE: GwHouseRow = {
     all: GBR_PROROGUED,
   },
   police: either(person("gbr_hall"), office("interior"), office("chancellor")),
+  // ww203: a government bill lost wide shakes the cabinet (ww169 2B: behind
+  // its warnings). The chief whip sits at the Treasury.
+  fall: "gbr_table",
+  counter: ["finance", "interior"],
 };
 
 /**
@@ -102,6 +122,8 @@ export const AUH_HOUSE: GwHouseRow = {
       inst: "nations",
       kind: "vote",
       sits: REICHSRAT_OPEN,
+      // ww203: 516 seats (1911).
+      size: 516,
     },
     {
       id: "budapest",
@@ -109,6 +131,8 @@ export const AUH_HOUSE: GwHouseRow = {
       kind: "consent",
       consent: "auh_work",
       starts: true,
+      // ww203: 413 seats (1910).
+      size: 413,
     },
   ],
   // Tisza counts for himself, and says so.
@@ -131,6 +155,8 @@ export const AUH_HOUSE: GwHouseRow = {
   police: either(office("interior"), office("chancellor")),
   // What the Reichsrat or the Diet passes goes to the Emperor-King to sign.
   signs: true,
+  // ww203: Tisza counts for himself.
+  counter: ["hun_pm", "chancellor"],
 };
 
 /**
@@ -148,6 +174,8 @@ export const RUS_HOUSE: GwHouseRow = {
       kind: "vote",
       starts: true,
       sits: not(RUS_DUMA_GONE),
+      // ww203: 442 seats (the Fourth Duma).
+      size: 442,
     },
     {
       id: "council",
@@ -175,6 +203,7 @@ export const RUS_HOUSE: GwHouseRow = {
   police: either(office("interior"), office("chancellor")),
   // What the Duma and the State Council pass goes to the Tsar to sign.
   signs: true,
+  counter: ["interior", "chancellor"],
 };
 
 /**
@@ -193,8 +222,11 @@ export const FRA_HOUSE: GwHouseRow = {
       kind: "vote",
       starts: true,
       sits: not(DISSOLVED),
+      // ww203: 592 elected in 1914 (W-FRA checks the groups).
+      size: 592,
     },
-    { id: "senat", inst: "senate", kind: "vote" },
+    // ww203: 300 seats; its groups are W-FRA's to check.
+    { id: "senat", inst: "senate", kind: "vote", size: 300 },
   ],
   // The Interior counts the majority for the premier.
   whip: either(office("interior"), office("chancellor")),
@@ -211,6 +243,10 @@ export const FRA_HOUSE: GwHouseRow = {
     ],
   },
   police: either(office("interior"), office("chancellor")),
+  // ww203: a government bill lost wide brings the cabinet down the
+  // consultations' way; the Interior counts the majority.
+  fall: "fra_chamber",
+  counter: ["interior", "chancellor"],
 };
 
 export const GW_HOUSE_ROWS: readonly GwHouseRow[] = [

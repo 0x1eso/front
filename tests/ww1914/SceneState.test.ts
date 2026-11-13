@@ -76,6 +76,11 @@ function billAtVote(gw: GreatWar, id: string): void {
     whip: -1,
     delayTo: -1,
     warm: [],
+    kept: null,
+    lockTo: -1,
+    paper: [],
+    paperAt: -1,
+    faces: -1,
   };
   gw.nation("DEU")!.laws.push(st);
 }

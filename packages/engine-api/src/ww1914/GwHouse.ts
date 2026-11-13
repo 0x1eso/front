@@ -177,6 +177,58 @@ export const GwPlotStateSchema = z.object({
 });
 export type GwPlotState = z.infer<typeof GwPlotStateSchema>;
 
+// ---- The vote record (ww203 §5) ----
+
+/** How a block's seats were cast. */
+export const GW_BALLOT_CASTS = ["for", "against", "away"] as const;
+export type GwBallotCast = (typeof GW_BALLOT_CASTS)[number];
+
+/**
+ * A block's beat in the vote scene: `firm` cast with its faction, `waver`
+ * a waverer deciding, `swing` a lobbied faction keeping its word (약속대로),
+ * `betray` one breaking it (배신).
+ */
+export const GW_BALLOT_BEATS = ["firm", "waver", "swing", "betray"] as const;
+export type GwBallotBeat = (typeof GW_BALLOT_BEATS)[number];
+
+export const GwBallotBlockSchema = z.object({
+  /** The faction; null: seats no faction holds (independents, Prussia's votes). */
+  faction: Id.nullable(),
+  cast: z.enum(GW_BALLOT_CASTS),
+  seats: int,
+  beat: z.enum(GW_BALLOT_BEATS),
+});
+export type GwBallotBlock = z.infer<typeof GwBallotBlockSchema>;
+
+export const GwBallotChamberSchema = z.object({
+  chamber: z.enum(GW_CHAMBERS),
+  /** Its seats in all (the shape's dots); the blocks may sum to less. */
+  size: int,
+  /** Against this many it fails whatever the rest (the Bundesrat's 14); 0 none. */
+  block: int,
+  /** In casting order: firm (the government's friends first), waver, swing, betray. */
+  blocks: z.array(GwBallotBlockSchema),
+  pass: z.boolean(),
+  /** The Lords put it off instead of throwing it out. */
+  delay: z.boolean(),
+});
+export type GwBallotChamber = z.infer<typeof GwBallotChamberSchema>;
+
+/** One vote of the house, as the scene plays it: the view sends it once. */
+export const GwBallotSchema = z.object({
+  /** Counts up per seat: the screen plays each uid once. */
+  uid: int,
+  law: Id,
+  text: Id.nullable(),
+  chapter: int,
+  /** `vote`: called; `confidence`: made a question of confidence; `round`: the chambers left after the way round. */
+  how: z.enum(["vote", "confidence", "round"]),
+  chambers: z.array(GwBallotChamberSchema),
+  pass: z.boolean(),
+  band: z.enum(GW_VOTE_BANDS),
+});
+export type GwBallot = z.infer<typeof GwBallotSchema>;
+
 /** A seat's house: absent until the first chapter of a seat that has rows. */
 export const GwHouseStateSchema = z.object({
   factions: z.array(GwFactionStateSchema),
@@ -187,7 +239,13 @@ export const GwHouseStateSchema = z.object({
   wrong: int,
   /** The last vote: the bill, the band, the chapter. */
   last: z
-    .object({ law: Id, band: z.enum(GW_VOTE_BANDS), chapter: int })
+    .object({
+      law: Id,
+      band: z.enum(GW_VOTE_BANDS),
+      chapter: int,
+      /** ww203: the vote as the scene plays it; null for a vote before. */
+      ballot: GwBallotSchema.nullable().default(null),
+    })
     .nullable(),
   /** Times the way round has been used. */
   around: int,
@@ -196,6 +254,13 @@ export const GwHouseStateSchema = z.object({
     .object({ kind: z.enum(["split", "joined"]), faction: Id, chapter: int })
     .nullable()
     .default(null),
+  // ---- ww203 ----
+  /** Ballots cast so far: the next ballot's uid. */
+  ballots: int.default(0),
+  /** The agenda bill the lobby talks are about; null: the first. */
+  focus: Id.nullable().default(null),
+  /** Chamber -> the chapter it last voted: one vote a chamber a chapter. */
+  sat: z.record(z.string(), int).default({}),
   // ---- S2 ----
   files: z.array(GwFileSchema),
   nextFile: int,
@@ -213,6 +278,9 @@ export function gwHouseStart(): GwHouseState {
     last: null,
     around: 0,
     story: null,
+    ballots: 0,
+    focus: null,
+    sat: {},
     files: [],
     nextFile: 1,
     asks: [],
@@ -282,6 +350,8 @@ export interface GwHouseView {
   closed: readonly GwChamber[];
   /** The house is gone or sent home: every bill goes the way round. */
   gone: boolean;
+  /** ww203: the last vote as the scene plays it (play each uid once). */
+  ballot: GwBallot | null;
 }
 
 // ---- S2: what the notebook reads ----

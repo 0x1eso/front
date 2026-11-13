@@ -25,7 +25,10 @@ import {
   GwVoteBand,
   GwWhipWord,
 } from "@openfront/engine-api/ww1914/GwHouse";
-import type { GwLawState } from "@openfront/engine-api/ww1914/GwLaw";
+import {
+  gwLawStart,
+  type GwLawState,
+} from "@openfront/engine-api/ww1914/GwLaw";
 import type { GwCond } from "@openfront/engine-api/ww1914/SceneDsl";
 import type {
   GwWorldCond,
@@ -561,23 +564,7 @@ export function houseCounts(
   const row = lawRow(law);
   const st = n?.laws.find((x) => x.id === law) ?? null;
   if (n === null || house === null || bill === null || row === null) return [];
-  const live: GwLawState = st ?? {
-    id: law,
-    stage: "idle",
-    since: -99,
-    support: 0,
-    how: "none",
-    text: null,
-    lost: 0,
-    after: false,
-    origin: "seat",
-    by: null,
-    sponsor: null,
-    deals: [],
-    whip: -1,
-    delayTo: -1,
-    warm: [],
-  };
+  const live: GwLawState = st ?? gwLawStart(law);
   const gone = [...skip, ...closedRound(gw, seat, house, bill)];
   return chambersOf(house, bill)
     .filter((c) => !gone.includes(c.id))
@@ -586,23 +573,7 @@ export function houseCounts(
 
 /** A law state for a count with no bill moving (a power's question). */
 function idleLaw(id: string): GwLawState {
-  return {
-    id,
-    stage: "idle",
-    since: -99,
-    support: 0,
-    how: "none",
-    text: null,
-    lost: 0,
-    after: false,
-    origin: "seat",
-    by: null,
-    sponsor: null,
-    deals: [],
-    whip: -1,
-    delayTo: -1,
-    warm: [],
-  };
+  return gwLawStart(id);
 }
 
 /**
@@ -897,7 +868,7 @@ function vote(
   const house = seat.house;
   const band = bandOf(count);
   if (house !== undefined) {
-    house.last = { law: st.id, band, chapter: gw.s.chapter };
+    house.last = { law: st.id, band, chapter: gw.s.chapter, ballot: null };
   }
   judgeWhip(gw, seat, st, count);
   const chambers = new Set(
@@ -1022,23 +993,7 @@ export function houseBring(
   let st = n.laws.find((x) => x.id === law);
   if (st !== undefined && st.stage === "force") return false;
   if (st === undefined) {
-    st = {
-      id: law,
-      stage: "idle",
-      since: -99,
-      support: 0,
-      how: "none",
-      text: null,
-      lost: 0,
-      after: false,
-      origin: "seat",
-      by: null,
-      sponsor: null,
-      deals: [],
-      whip: -1,
-      delayTo: -1,
-      warm: [],
-    };
+    st = gwLawStart(law);
     n.laws.push(st);
   }
   const amend = by === null ? undefined : factionRow(by)?.amends?.[law];
@@ -1517,6 +1472,7 @@ export function houseView(
       .filter((c) => c.sits !== undefined && !sits(ctxOf(gw, seat), c))
       .map((c) => c.id),
     gone: houseGone(gw, seat, house.around),
+    ballot: h.last?.ballot ?? null,
   };
 }
 

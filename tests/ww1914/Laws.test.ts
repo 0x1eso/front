@@ -473,6 +473,11 @@ describe("a save", () => {
       whip: -1,
       delayTo: -1,
       warm: [],
+      kept: null,
+      lockTo: -1,
+      paper: [],
+      paperAt: -1,
+      faces: -1,
     });
     expect(gw.hash()).not.toBe(before);
     const { GreatWarSnapshot } =
@@ -504,6 +509,11 @@ describe("a save", () => {
       whip: -1,
       delayTo: -1,
       warm: [],
+      kept: null,
+      lockTo: -1,
+      paper: [],
+      paperAt: -1,
+      faces: -1,
     });
     expect(
       applyGwOrder(gw, seat, { kind: "law", law: "deu_censor", act: "repeal" }),

@@ -115,7 +115,7 @@ import {
   GwVoteBand,
   GwWhipWord,
 } from "./GwHouse";
-import { GW_LAW_STAGES, GwLawStage } from "./GwLaw";
+import { GW_BILL_ACTS, GW_LAW_STAGES, GwBillAct, GwLawStage } from "./GwLaw";
 import {
   GW_NAVAL_ACTS,
   GW_NAVAL_CANS,
@@ -689,14 +689,23 @@ export type GwWorldEffect =
   | { do: "faction_grow"; id: string; delta: number }
   /** Driven underground. */
   | { do: "faction_under"; id: string }
-  /** Its leader's price for the moving bill is taken: a promise, his side for it. */
-  | { do: "deal"; id: string }
+  /**
+   * Its leader's price for the moving bill is taken: a promise, his side for
+   * it. `want`: which of his prices (ww203: up to three); absent the first.
+   */
+  | { do: "deal"; id: string; want?: string }
   /** The moving bill takes its text. */
   | { do: "amend"; id: string }
   /** The answer to the bill its leader came asking for. */
   | { do: "bill_answer"; id: string; yes: boolean }
   /** A bill starts in the house: from an ally's ask, a faction, the seat. */
   | { do: "law_start"; law: string; origin: GwLawOrigin }
+  /**
+   * ww203: a count answer's course on its bill (the task's topic, else the
+   * lobbied bill): vote now, withdraw, the sponsor works the biggest
+   * waverer, take the first amendment a faction offers.
+   */
+  | { do: "bill_topic"; act: GwBillAct }
   /** The sovereign signs the bill the house passed, or refuses it. */
   | { do: "house_sign"; yes: boolean }
   // ---- Plots, the dossier, allies (ww158, S2) ----
@@ -1168,10 +1177,11 @@ export const GwWorldEffectSchema = z.union([
   act("faction", { id: GwIdSchema, delta: int }),
   act("faction_grow", { id: GwIdSchema, delta: int }),
   act("faction_under", { id: GwIdSchema }),
-  act("deal", { id: GwIdSchema }),
+  act("deal", { id: GwIdSchema, want: GwIdSchema.optional() }),
   act("amend", { id: GwIdSchema }),
   act("bill_answer", { id: GwIdSchema, yes: z.boolean() }),
   act("law_start", { law: GwIdSchema, origin: z.enum(GW_LAW_ORIGINS) }),
+  act("bill_topic", { act: z.enum(GW_BILL_ACTS) }),
   act("house_sign", { yes: z.boolean() }),
   act("plot_sign", { id: GwIdSchema }),
   act("plot_warn", { id: GwIdSchema }),

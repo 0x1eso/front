@@ -30,7 +30,7 @@ import type { GwBudgetView } from "./GwBudget";
 import type { GwTag } from "./GwCountries";
 import type { GwCraftView } from "./GwCraft";
 import type { GwDossierView, GwHouseView } from "./GwHouse";
-import type { GwLawView } from "./GwLaw";
+import type { GwBookView, GwLawView } from "./GwLaw";
 import type { GwPlace } from "./GwPlaces";
 import type { GwPressView } from "./GwPress";
 
@@ -345,6 +345,8 @@ export interface GwWorldView {
   laws: readonly GwLawView[];
   /** The country has bills, none open yet: the box shows, saying so (w159). */
   lawsAhead?: true;
+  /** ww203: the 법전 and 의사일정; absent for a country with no bills. */
+  book?: GwBookView;
   /** Null for a country with no bloc row yet. */
   press: GwPressView | null;
   /** Inventions, the year's project, the footing (ww157). */

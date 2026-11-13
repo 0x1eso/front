@@ -1037,6 +1037,11 @@ describe("the AUH writer's round", () => {
       whip: -1,
       delayTo: -1,
       warm: [],
+      kept: null,
+      lockTo: -1,
+      paper: [],
+      paperAt: -1,
+      faces: -1,
     });
     expect(open()).toBe(true);
     expect(AUH_HOUSE.chambers[0].sits).toEqual(REICHSRAT_OPEN);
