@@ -26,6 +26,7 @@ import type {
   GwWeakRow,
 } from "../../HouseRows";
 import type { GwLawRow } from "../../LawRows";
+import { gbrAxes } from "../laws/gbr";
 import {
   draft,
   either,
@@ -103,6 +104,10 @@ export const GBR_FACTIONS: readonly GwFactionRow[] = [
     bloc: "parliament",
     start: "in",
     strength: 3,
+    // ww207: Home Rule and the Liberal state; class left open (free trade and the New Liberalism).
+    ideals: { union: 1, rule: 1 },
+    trust: 1,
+    ability: "gbr_pw_ab_liberals",
     // ww203: the Liberals' 271 (Dec 1910, with 9 Lib-Labs) less Simon's 34;
     // Liberal peers about 95 of some 620: approximate (ww204 M: no party
     // count of the 1914 Lords found; the Liberal peers peaked near 120).
@@ -173,6 +178,9 @@ export const GBR_FACTIONS: readonly GwFactionRow[] = [
     bloc: "parliament",
     start: "in",
     strength: 1,
+    // ww207: the Liberals' own creed, held against the war state.
+    ideals: { union: 1, rule: 1 },
+    template: "peace",
     // ww203: the 34 Liberals who went with Simon against the Military
     // Service Bill (January 1916, liberalhistory.org.uk).
     seats: { commons: 34 },
@@ -230,6 +238,9 @@ export const GBR_FACTIONS: readonly GwFactionRow[] = [
     bloc: "press",
     start: "out",
     strength: 1,
+    // ww207: the war state and social reform.
+    ideals: { class: 1, rule: -1 },
+    ability: "gbr_pw_ab_lg",
     // ww203: the 71 Liberals who stood by him in the Maurice debate (May
     // 1918); they come out of the Liberals at the split.
     seats: { commons: 71 },
@@ -299,6 +310,10 @@ export const GBR_FACTIONS: readonly GwFactionRow[] = [
     bloc: "business",
     start: "in",
     strength: 3,
+    // ww207: the Union and Empire, property, compulsion.
+    ideals: { union: -1, class: -1, rule: -1 },
+    trust: -1,
+    ability: "gbr_pw_ab_unionists",
     // ww203: the Unionists' 272 (Dec 1910) less the Speaker, Lowther.
     seats: { commons: 271 },
     leaders: [{ person: "gbr_bonar_law" }, { person: "gbr_balfour" }],
@@ -387,6 +402,10 @@ export const GBR_FACTIONS: readonly GwFactionRow[] = [
     bloc: "army",
     start: "out",
     strength: 1,
+    // ww207: Carson's committee: the Union and conscription.
+    ideals: { union: -1, rule: -1 },
+    trust: -1,
+    template: "crown_army",
     // ww203: about 70 Unionist members met in Carson's committee (April
     // 1916); its full roll is not checked.
     seats: { commons: 70 },
@@ -455,6 +474,9 @@ export const GBR_FACTIONS: readonly GwFactionRow[] = [
     bloc: "workers",
     start: "in",
     strength: 2,
+    // ww207: the unions' party, for Home Rule.
+    ideals: { union: 1, class: 1 },
+    ability: "gbr_pw_ab_labour",
     // ww203: Labour's 42 (Dec 1910).
     seats: { commons: 42 },
     leaders: [{ person: "gbr_henderson" }],
@@ -548,6 +570,10 @@ export const GBR_FACTIONS: readonly GwFactionRow[] = [
     bloc: "workers",
     start: "out",
     strength: 1,
+    // ww207: the opposite of the Unionist War Committee.
+    ideals: { union: 1, class: 1, rule: 1 },
+    trust: -1,
+    template: "peace",
     // ww203: the six or so Labour members of the ILP who stood against the
     // war (MacDonald, Snowden, Jowett, Hardie...).
     seats: { commons: 6 },
@@ -608,6 +634,10 @@ export const GBR_FACTIONS: readonly GwFactionRow[] = [
     bloc: "parliament",
     start: "in",
     strength: 3,
+    // ww207: Home Rule, and no compulsion for Ireland.
+    ideals: { union: 1, rule: 1 },
+    trust: 1,
+    ability: "gbr_pw_ab_irish",
     // ww203: the Irish Party's 74 (Dec 1910). O'Brien's 8 and the
     // independents sit as no faction's and stay away.
     seats: { commons: 74 },
@@ -676,6 +706,10 @@ export const GBR_FACTIONS: readonly GwFactionRow[] = [
     bloc: "parliament",
     start: "out",
     strength: 1,
+    // ww207: Ireland apart, against conscription; the 1919 Democratic Programme.
+    ideals: { union: 1, class: 1, rule: 1 },
+    trust: -2,
+    template: "nation",
     // It wins seats and doesn't take them: it is never counted.
     seats: {},
     leaders: [
@@ -711,6 +745,10 @@ export const GBR_FACTIONS: readonly GwFactionRow[] = [
     bloc: "court",
     start: "in",
     strength: 2,
+    // ww207: the Union and the land; sore from the Parliament Act.
+    ideals: { union: -1, class: -1 },
+    trust: -2,
+    template: "crown_army",
     // ww203: the Unionist peers, some 500 of about 620: approximate (ww204 M:
     // no party count of the 1914 Lords found).
     seats: { lords: 500 },
@@ -761,6 +799,9 @@ export const GBR_FACTIONS: readonly GwFactionRow[] = [
     bloc: "army",
     start: "in",
     strength: 2,
+    // ww207: the Curragh officers' Union, and an army that runs the war.
+    ideals: { union: -1, rule: -1 },
+    template: "crown_army",
     // The army weighs in; it has no vote.
     seats: {},
     leaders: [
@@ -1090,12 +1131,241 @@ export const GBR_BILLS: readonly GwBillRow[] = [
       },
     },
   },
+  // ---- ww207: the peace bills and the factions' exclusive laws ----
+  // The 1914 Budget: the Liberals' own benches balked at the land rating.
+  {
+    law: "gbr_budget",
+    money: true,
+    stance: {
+      gbr_liberals: 1,
+      gbr_rebels: 1,
+      gbr_lg: 1,
+      gbr_unionists: -1,
+      gbr_uwc: -1,
+      gbr_labour: 1,
+      gbr_ilp: 1,
+      gbr_irish: 0,
+      gbr_peers: -1,
+    },
+    texts: {
+      site_rating: { gbr_liberals: 0 },
+      taxes_only: { gbr_labour: 0 },
+    },
+  },
+  // The 1911 Act widened: the unions and the friendly societies both have a stake.
+  {
+    law: "gbr_insurance",
+    stance: {
+      gbr_liberals: 1,
+      gbr_rebels: 1,
+      gbr_lg: 1,
+      gbr_unionists: 0,
+      gbr_uwc: 0,
+      gbr_labour: 1,
+      gbr_ilp: 1,
+      gbr_irish: 0,
+      gbr_peers: 0,
+    },
+    texts: {
+      widows: { gbr_unionists: -1, gbr_peers: -1 },
+      societies: { gbr_labour: 0, gbr_unionists: 1 },
+    },
+  },
+  // The land campaign: the landed interest against.
+  {
+    law: "gbr_land",
+    stance: {
+      gbr_liberals: 1,
+      gbr_rebels: 1,
+      gbr_lg: 1,
+      gbr_unionists: -1,
+      gbr_uwc: -1,
+      gbr_labour: 1,
+      gbr_ilp: 1,
+      gbr_irish: 1,
+      gbr_peers: -1,
+    },
+    texts: {
+      ministry_only: { gbr_labour: 0, gbr_unionists: 0 },
+    },
+  },
+  // Disestablishment: the chapels for, the Church and the Unionists against.
+  {
+    law: "gbr_welsh_church",
+    stance: {
+      gbr_liberals: 1,
+      gbr_rebels: 1,
+      gbr_lg: 1,
+      gbr_unionists: -1,
+      gbr_uwc: -1,
+      gbr_labour: 1,
+      gbr_ilp: 1,
+      gbr_irish: 1,
+      gbr_peers: -1,
+    },
+    texts: {
+      keep_endowments: { gbr_unionists: 0 },
+    },
+  },
+  // Home Rule All Round: Scotland first.
+  {
+    law: "gbr_devolution",
+    constitution: true,
+    stance: {
+      gbr_liberals: 1,
+      gbr_rebels: 1,
+      gbr_lg: 0,
+      gbr_unionists: -1,
+      gbr_uwc: -1,
+      gbr_labour: 1,
+      gbr_ilp: 1,
+      gbr_irish: 1,
+      gbr_peers: -1,
+    },
+    texts: {
+      councils: { gbr_unionists: 0, gbr_peers: 0 },
+    },
+  },
+  // The Amending Bill: each text turns a different side.
+  {
+    law: "gbr_ulster",
+    constitution: true,
+    stance: {
+      gbr_liberals: 1,
+      gbr_rebels: 1,
+      gbr_lg: 1,
+      gbr_unionists: 0,
+      gbr_uwc: 0,
+      gbr_labour: 1,
+      gbr_ilp: 0,
+      gbr_irish: 0,
+      gbr_peers: 0,
+    },
+    texts: {
+      nine_counties: {
+        gbr_unionists: 1,
+        gbr_uwc: 1,
+        gbr_peers: 1,
+        gbr_irish: -1,
+        gbr_liberals: 0,
+        gbr_labour: 0,
+      },
+      no_exclusion: {
+        gbr_unionists: -1,
+        gbr_uwc: -1,
+        gbr_peers: -1,
+        gbr_irish: 1,
+      },
+    },
+  },
+  // Lengthening this Parliament: only the ILP stands against.
+  {
+    law: "gbr_postpone",
+    constitution: true,
+    stance: {
+      gbr_liberals: 1,
+      gbr_rebels: 0,
+      gbr_lg: 1,
+      gbr_unionists: 1,
+      gbr_uwc: 1,
+      gbr_labour: 1,
+      gbr_ilp: -1,
+      gbr_irish: 0,
+      gbr_peers: 1,
+    },
+    texts: {
+      till_peace: { gbr_liberals: 0, gbr_labour: 0, gbr_irish: -1 },
+    },
+  },
+  // The Liberals' own: an elected second chamber.
+  {
+    law: "gbr_x_senate",
+    creed: ["gbr_peers"],
+    constitution: true,
+    by: "gbr_liberals",
+    stance: {
+      gbr_liberals: 1,
+      gbr_rebels: 1,
+      gbr_lg: 0,
+      gbr_unionists: -1,
+      gbr_uwc: -1,
+      gbr_labour: 1,
+      gbr_ilp: 1,
+      gbr_irish: 1,
+      gbr_peers: -1,
+    },
+    texts: {
+      fewer_peers: { gbr_unionists: 0, gbr_peers: 0, gbr_labour: 0 },
+    },
+  },
+  // The Unionists' own: Tariff Reform, against the Liberals' free trade.
+  {
+    law: "gbr_x_tariff",
+    creed: ["gbr_liberals"],
+    money: true,
+    by: "gbr_unionists",
+    stance: {
+      gbr_liberals: -1,
+      gbr_rebels: -1,
+      gbr_lg: 0,
+      gbr_unionists: 1,
+      gbr_uwc: 1,
+      gbr_labour: -1,
+      gbr_ilp: -1,
+      gbr_irish: 0,
+      gbr_peers: 1,
+    },
+    texts: {
+      no_food_taxes: { gbr_labour: 0, gbr_lg: 1 },
+    },
+  },
+  // Labour's own: the mines and the railways to the nation.
+  {
+    law: "gbr_x_mines",
+    creed: ["gbr_peers"],
+    by: "gbr_labour",
+    stance: {
+      gbr_liberals: -1,
+      gbr_rebels: 0,
+      gbr_lg: 0,
+      gbr_unionists: -1,
+      gbr_uwc: -1,
+      gbr_labour: 1,
+      gbr_ilp: 1,
+      gbr_irish: 0,
+      gbr_peers: -1,
+    },
+    texts: {
+      state_control: { gbr_lg: 1, gbr_liberals: 0, gbr_unionists: 0 },
+      miners_share: { gbr_lg: 0 },
+    },
+  },
+  // The Irish Party's own: Ireland's purse in Dublin.
+  {
+    law: "gbr_x_irish_purse",
+    by: "gbr_irish",
+    stance: {
+      gbr_liberals: 0,
+      gbr_rebels: 1,
+      gbr_lg: 0,
+      gbr_unionists: -1,
+      gbr_uwc: -1,
+      gbr_labour: 1,
+      gbr_ilp: 1,
+      gbr_irish: 1,
+      gbr_peers: -1,
+    },
+    texts: {
+      joint_board: { gbr_liberals: 1 },
+      own_customs: { gbr_liberals: -1 },
+    },
+  },
 ];
 
 const row = (r: Omit<GwLawRow, "tag">): GwLawRow => ({ ...r, tag: "GBR" });
 
 /** The factions' own bills: rows like content/laws/gbr.ts, with no tells. */
-export const GBR_HOUSE_LAWS: readonly GwLawRow[] = [
+export const GBR_HOUSE_LAWS: readonly GwLawRow[] = gbrAxes([
   // Carson's committee wants the married men too (the second Military Service
   // Act of May 1916, en.wikipedia Military Service Act 1916).
   row({
@@ -1188,7 +1458,7 @@ export const GBR_HOUSE_LAWS: readonly GwLawRow[] = [
       tempers: ["cold"],
     }),
   }),
-];
+]);
 
 // ---- Scenes written by hand: tempers, splits ----
 
