@@ -1033,18 +1033,23 @@ describe("the screens", () => {
     expect(lines[1].params.why).toBe("크루프가 납품한다.");
     // Tests run without a language: a key with no text reads as itself.
     expect(lines[2].params.why).toBe("bread_blockade");
-    // The band's hover: the hint, the trend and its cause, then the lines.
-    expect(
+    // The band's hover: the hint, the trend and its cause, then the lines;
+    // a cause the lines already give is not said twice.
+    const title = (k: string) =>
       panel
-        .querySelector("[data-gw-band-gauge=shells]")!
+        .querySelector(`[data-gw-band-gauge=${k}]`)!
         .getAttribute("title")!
-        .split("\n"),
-    ).toEqual([
+        .split("\n");
+    expect(title("shells")).toEqual([
       "gw.ui.gauge_hint.shells",
       "gw.ui.trend_is",
-      "gw.ui.trend_why",
       "gw.ui.gauge_why",
       "▲ econ_industry",
+    ]);
+    expect(title("bread")).toEqual([
+      "gw.ui.gauge_hint.bread",
+      "gw.ui.trend_is",
+      "gw.ui.trend_why",
     ]);
     // The country tab: the word beside each gauge the step feeds; at the top
     // and still rising there is no room; morale has none.

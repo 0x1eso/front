@@ -12,7 +12,7 @@ import { govBox } from "./GwGov";
 import { houseSection } from "./GwHouse";
 import { lawsSection } from "./GwLaws";
 import { gaugeFill, gaugeLevel, instBand, logByChapter } from "./GwModel";
-import { authorityChip, manpowerChip, trendWordOf } from "./GwNow";
+import { authorityChip, manpowerChip, trendCause, trendWordOf } from "./GwNow";
 import { instName } from "./GwOffice";
 import { rulerCard } from "./GwRuler";
 import { CHIP, fillColor, HEAD, MUTED } from "./GwStyle";
@@ -47,6 +47,7 @@ function gauges(c: GwCtx): TemplateResult {
       const v = gaugeLevel(w.gauge, w.value);
       // ww201: beside the level, where the production step is taking it.
       const trend = trendWordOf(w);
+      const cause = trendCause(w);
       return html`<div class="space-y-0.5" data-gw-gauge=${w.gauge}>
         <div class="flex justify-between gap-2 text-sm">
           <span class="shrink-0 text-white/70"
@@ -62,11 +63,11 @@ function gauges(c: GwCtx): TemplateResult {
         </div>
         ${bar(gaugeFill(w.gauge, v))}
         <span class="sr-only">${v}/${GW_GAUGE_MAX[w.gauge]}</span>
-        ${trend === null || w.why === null || w.why === undefined
+        ${cause === null
           ? nothing
-          : html`<p class=${MUTED} data-gw-trend-why=${w.why}>
+          : html`<p class=${MUTED} data-gw-trend-why=${cause}>
               ${translateText("gw.ui.trend_why", {
-                why: gaugeLineText(c.pack, w.why),
+                why: gaugeLineText(c.pack, cause),
               })}
             </p>`}
         ${w.lines.map(

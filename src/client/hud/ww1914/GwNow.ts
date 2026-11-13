@@ -151,6 +151,16 @@ export function trendWordOf(w: GwGaugeView): GwTrendWord | null {
 }
 
 /**
+ * ww201: the trend's largest cause, when it says something the ▲/▼ lines of
+ * the last chapter don't already say; else null.
+ */
+export function trendCause(w: GwGaugeView): string | null {
+  const why = w.why ?? null;
+  if (why === null || trendWordOf(w) === null) return null;
+  return w.lines.some((l) => l.key === why) ? null : why;
+}
+
+/**
  * ww180: what our propaganda and censorship are doing to the picture, in
  * words; null when nothing runs.
  */
@@ -250,9 +260,10 @@ export function gaugeTitle(c: GwCtx, gauge: GwGauge): string {
         word: translateText(`gw.ui.trend.${word}`),
       }),
     );
-    if (w.why !== null && w.why !== undefined) {
+    const cause = trendCause(w);
+    if (cause !== null) {
       head.push(
-        translateText("gw.ui.trend_why", { why: gaugeLineText(pack, w.why) }),
+        translateText("gw.ui.trend_why", { why: gaugeLineText(pack, cause) }),
       );
     }
   }
