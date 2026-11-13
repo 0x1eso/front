@@ -2236,6 +2236,7 @@
       "last": "Their next answer is the last.",
       "mood": "Their mood: {mood}",
       "moods": {
+        "bowed": "broken: it protests, but cannot refuse",
         "breaking": "close to walking out",
         "calm": "calm",
         "tense": "hardening"
@@ -2249,6 +2250,7 @@
         "insist": "Insist",
         "promise_leave": "Promise to withdraw by a date",
         "promise_vote": "Promise a plebiscite by a date",
+        "push": "Push it through over the protest",
         "ransom": "Money instead of the land",
         "split": "A separate treaty with the breakaway state",
         "trade": "Ask for another place",
@@ -2260,13 +2262,65 @@
       "propose_how": "Every province of {country} is on the map. Paint a fate on each, then put the terms. What is left unpainted goes back.",
       "propose_plan": "A department's plan, if you took one, is painted already. Change any province.",
       "propose_title": "Our terms",
+      "protest": {
+        "cost": "The protest stays on the record. Neutral opinion cools and America turns further from us. {country}'s thirst for revenge and the resistance in the land will grow year by year.",
+        "how": "Accept or protest each province. A protest goes on the record but blocks nothing, and there is no walking out.",
+        "last": "Their next answer is the last. Whatever they still protest then goes into the treaty as proposed.",
+        "no": "Protest",
+        "pushed": "Pushed through over the protest",
+        "why": {
+          "AUH": {
+            "capital": "Vienna? In His Majesty's name we protest.",
+            "heart": "{place} is a land of the Crown. We yield it to force, under protest.",
+            "much": "Nothing of the Empire will be left. We protest {place} as well.",
+            "to_ally": "Vienna protests handing {place} to {for}.",
+            "unjust": "The Monarchy signs because it must. It protests {place}."
+          },
+          "DEU": {
+            "capital": "Berlin? Germany protests, and signs nothing of it freely.",
+            "heart": "{place} is Germany. We sign under protest, under force.",
+            "much": "This is a dictated peace. Germany protests {place} as well.",
+            "to_ally": "Germany protests handing {place} to {for}.",
+            "unjust": "We know the force of the hatred that meets us here. Germany protests {place}."
+          },
+          "FRA": {
+            "capital": "Paris? France protests, as she protested in 1871.",
+            "heart": "{place} is France. It will come back, as it did before; we protest.",
+            "much": "You take more than in 1871. France protests {place} as well.",
+            "to_ally": "France protests handing {place} to {for}.",
+            "unjust": "France yields to force and protests {place}."
+          },
+          "GBR": {
+            "capital": "London? His Majesty's Government protests formally.",
+            "heart": "{place} is a land of the Crown. We protest, for the record.",
+            "much": "You have taken more than enough. We protest {place} as well.",
+            "to_ally": "Britain protests handing {place} to {for}.",
+            "unjust": "His Majesty's Government enters its formal protest over {place}."
+          },
+          "RUS": {
+            "capital": "Petrograd? Russia protests. This paper will not last.",
+            "heart": "{place} is Russian land. We sign without discussion, at gunpoint.",
+            "much": "This is plunder, not peace. Russia protests {place} as well.",
+            "to_ally": "Russia protests handing {place} to {for}.",
+            "unjust": "We will not even debate these terms. We sign them under compulsion and protest {place}."
+          },
+          "capital": "{place} is our capital. We protest, and the world will hear of it.",
+          "heart": "{place} is the heart of this country. It is torn from us; we protest.",
+          "much": "You take everything. We protest {place} as well.",
+          "to_ally": "We protest handing {place} to {for}.",
+          "unjust": "This is not a negotiation but a dictate. We protest {place}."
+        },
+        "yes": "Accept"
+      },
       "round": "Proposal {n} of at most {total}",
       "send": "Send the answer",
       "state": {
+        "accepted": "Accepted",
         "agreed": "Accepted",
         "dropped": "Withdrawn",
         "final": "Refused to the last",
         "partner": "Awaiting an ally's word",
+        "protest": "Protested",
         "refused": "Refused",
         "waiting": "Awaiting the answer"
       },
@@ -2358,7 +2412,8 @@
         "return": "You give back {place}. We accept it gladly.",
         "soft": "On those terms ({fate}), we can bear it. {place} will come back to us one day.",
         "tired": "We cannot fight on. {place}: we accept.",
-        "to_ally": "We cannot accept handing {place} to {for}."
+        "to_ally": "We cannot accept handing {place} to {for}.",
+        "unjust": "This peace is dictated, not negotiated. We protest {place} before the world."
       },
       "yes": "Accept"
     },
@@ -4485,6 +4540,8 @@
       "table_imposed": "{a} forces {place} from {b}.",
       "table_promise_leave_kept": "{a} leaves {place} as it promised {b}.",
       "table_promise_vote_kept": "The people of {place} vote, as {a} promised {b}.",
+      "table_protest_builds": "The neutral press still recalls {a}'s protest against {b}'s terms.",
+      "table_protest_pushed": "{a} writes {b}'s provinces into the treaty over its protest.",
       "table_refused": "{b} refuses {a} {place} to the last.",
       "table_signed": "The peace treaty has been signed.",
       "table_traded": "{b} keeps {place} and gives {a} something else for it.",
@@ -5619,6 +5676,7 @@
         "over": "The table has heard enough from {by}.",
         "press": "{place} again.",
         "propose": "{country} lays its terms on the table.",
+        "protest": "{place} is protested.",
         "traded": "Agreed: {trade}.",
         "walk": "{country} walks out.",
         "yes": "{place} is given up."

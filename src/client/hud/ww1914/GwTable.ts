@@ -711,6 +711,8 @@ function proposeBox(c: GwCtx, t: GwTableView) {
 
 const ANSWER_CHIP: Readonly<Record<string, string>> = {
   agreed: "bg-emerald-400/25 text-emerald-100",
+  accepted: "bg-emerald-400/25 text-emerald-100",
+  protest: "bg-orange-400/30 text-orange-100",
   refused: "bg-red-400/30 text-red-100",
   final: "bg-red-500/30 text-red-100",
   waiting: "bg-amber-300/25 text-amber-100",
@@ -738,9 +740,11 @@ function moveRow(
 ): TemplateResult {
   // ww209: the moves open on this place, when the table names them.
   const has = (m: GwBargainMove) => open === undefined || open.includes(m);
-  const more = (open ?? []).filter((m) => GW_BARGAIN_MOVES.indexOf(m) >= 4);
+  const more = (open ?? []).filter(
+    (m) => GW_BARGAIN_MOVES.indexOf(m) >= 4 && m !== "push",
+  );
   const picks = (c.ui.bargain ??= {});
-  const now = picks[x.id] ?? { move: "insist" as const, place: null };
+  const now = picks[x.id] ?? { move: firstMove(open), place: null };
   const set = (move: GwBargainMove, place: GwPlace | null = null) => {
     picks[x.id] = { move, place };
     c.redraw();
@@ -756,6 +760,9 @@ function moveRow(
     </button>`;
   return html`<div class="space-y-1" data-gw-moves=${x.id}>
     <div class="grid grid-cols-2 gap-1">
+      ${open?.includes("push") === true
+        ? btn("push", translateText("gw.bargain.move.push"))
+        : nothing}
       ${has("insist")
         ? btn("insist", translateText("gw.bargain.move.insist"))
         : nothing}
@@ -786,6 +793,7 @@ function moveRow(
               </button>`,
           )}
         </div>`}
+    ${now.move === "push" ? pushCost(x) : nothing}
     ${now.move !== "trade"
       ? nothing
       : html`<p class=${MUTED}>${translateText("gw.bargain.trade_pick")}</p>
@@ -808,13 +816,34 @@ function moveRow(
 }
 
 /**
+ * ww217: the default move on a refused place: insist, or over a fully
+ * beaten country's protest (no veto to insist against) push it through.
+ */
+function firstMove(open?: readonly GwBargainMove[]): GwBargainMove {
+  return open !== undefined && !open.includes("insist") && open.includes("push")
+    ? "push"
+    : "insist";
+}
+
+/** ww217: what pushing a place through over a protest will cost, in words. */
+function pushCost(x: GwTableClaimView): TemplateResult {
+  return html`<p class="text-sm leading-6 text-orange-100" data-gw-push-cost>
+    ${translateText("gw.bargain.protest.cost", {
+      country: countryName(x.against),
+    })}
+  </p>`;
+}
+
+/**
  * The beaten seat's yes or no to one place; ww209: or a fate of its own
- * named instead of the no (대신 내놓는다).
+ * named instead of the no (대신 내놓는다). ww217: fully beaten
+ * (`protest`), its no is a protest: 받아들인다 / 항의한다.
  */
 function answerToggle(
   c: GwCtx,
   x: GwTableClaimView,
   fates: readonly GwFate[] = [],
+  protest = false,
 ): TemplateResult {
   const said = (c.ui.answers ??= {});
   const own = (c.ui.tableCounters ??= {});
@@ -829,7 +858,15 @@ function answerToggle(
         c.redraw();
       }}
     >
-      ${translateText(yes ? "gw.bargain.yes" : "gw.bargain.no")}
+      ${translateText(
+        protest
+          ? yes
+            ? "gw.bargain.protest.yes"
+            : "gw.bargain.protest.no"
+          : yes
+            ? "gw.bargain.yes"
+            : "gw.bargain.no",
+      )}
     </button>`;
   return html`<div class="grid grid-cols-2 gap-1">
       ${btn(true)} ${btn(false)}
@@ -875,7 +912,12 @@ function claimTerms(
       }),
     });
   }
-  if (x.move !== undefined && GW_BARGAIN_MOVES.indexOf(x.move) >= 4) {
+  if (x.move === "push") {
+    words.push({
+      key: "pushed",
+      text: translateText("gw.bargain.protest.pushed"),
+    });
+  } else if (x.move !== undefined && GW_BARGAIN_MOVES.indexOf(x.move) >= 4) {
     words.push({ key: "move", text: bargainMoveWord(x.move, counterFate(x)) });
   }
   if (x.due !== undefined) {
@@ -910,7 +952,7 @@ function answerRow(
   t: GwTableView,
   x: GwTableClaimView,
 ): TemplateResult {
-  const st = answerState(x);
+  const st = answerState(x, t.talk?.full === true);
   const why = whyText(x);
   const due = t.due;
   const mark = { fate: x.fate ?? "annex", for: x.for, client: x.client };
@@ -941,11 +983,12 @@ function answerRow(
           “${why}”
         </p>`}
     ${claimTerms(c, t, x)}
+    ${x.move === "push" && c.seat.tag === x.by ? pushCost(x) : nothing}
     ${due?.kind === "bargain" && due.claims.includes(x.id)
       ? moveRow(c, x, due.places, due.moves?.[x.id])
       : nothing}
     ${due?.kind === "answer" && due.claims.includes(x.id)
-      ? answerToggle(c, x, due.counters?.[x.id])
+      ? answerToggle(c, x, due.counters?.[x.id], due.protest === true)
       : nothing}
   </div>`;
 }
@@ -994,7 +1037,13 @@ function answersBox(c: GwCtx, t: GwTableView) {
         </p>`
       : nothing}
     ${due?.kind === "answer"
-      ? html`<p class=${MUTED}>${translateText("gw.bargain.answer_how")}</p>`
+      ? html`<p class=${MUTED}>
+          ${translateText(
+            due.protest === true
+              ? "gw.bargain.protest.how"
+              : "gw.bargain.answer_how",
+          )}
+        </p>`
       : nothing}
     <div class="max-h-[46vh] space-y-1 overflow-y-auto sm:max-h-none">
       ${rows.map((x) => answerRow(c, t, x))}
@@ -1002,7 +1051,11 @@ function answersBox(c: GwCtx, t: GwTableView) {
     ${due?.kind === "bargain"
       ? html`${due.last
             ? html`<p class="text-sm text-amber-100" data-gw-last>
-                ${translateText("gw.bargain.last")}
+                ${translateText(
+                  talk.full === true
+                    ? "gw.bargain.protest.last"
+                    : "gw.bargain.last",
+                )}
               </p>`
             : nothing}
           <button
@@ -1011,7 +1064,10 @@ function answersBox(c: GwCtx, t: GwTableView) {
             ?disabled=${tradeOpen}
             @click=${() => {
               const moves = due.claims.map((id) => {
-                const p = picks[id] ?? { move: "insist" as const, place: null };
+                const p = picks[id] ?? {
+                  move: firstMove(due.moves?.[id]),
+                  place: null,
+                };
                 return { claim: id, move: p.move, place: p.place };
               });
               c.ui.bargain = {};

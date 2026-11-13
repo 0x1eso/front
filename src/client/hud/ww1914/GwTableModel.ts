@@ -387,12 +387,19 @@ export function proposalOf(t: GwTableView): GwTableClaimView[] {
   return by === null || theirs.length === 0 ? rows : theirs;
 }
 
-/** Where a proposal's place stands, as a word id under gw.bargain.state. */
-export function answerState(c: GwTableClaimView): string {
+/**
+ * Where a proposal's place stands, as a word id under gw.bargain.state.
+ * ww217: at a full capitulation's table (`full`) the beaten's answers read
+ * 받아들임 / 항의, and a protest pushed through stays 항의.
+ */
+export function answerState(c: GwTableClaimView, full = false): string {
+  if (c.protest === true && (c.state === "open" || c.state === "imposed")) {
+    return "protest";
+  }
   switch (c.state) {
     case "agreed":
     case "imposed":
-      return "agreed";
+      return full ? "accepted" : "agreed";
     case "refused":
       return "final";
     case "dropped":
@@ -415,6 +422,15 @@ export function whyText(c: GwTableClaimView): string {
     for: c.for === undefined ? "" : countryName(c.for),
     by: countryName(c.by),
   };
+  // ww217: a fully beaten country's protest, in its own voice.
+  if (c.protest === true) {
+    const ownKey = `gw.bargain.protest.why.${c.against}.${c.why}`;
+    const voiced = translateText(ownKey, params);
+    if (voiced !== ownKey) return voiced;
+    const commonKey = `gw.bargain.protest.why.${c.why}`;
+    const plain = translateText(commonKey, params);
+    if (plain !== commonKey) return plain;
+  }
   const own = `gw.bargain.why.${c.against}.${c.why}`;
   const said = translateText(own, params);
   return said !== own ? said : translateText(`gw.bargain.why.${c.why}`, params);
