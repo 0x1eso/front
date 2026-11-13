@@ -52,6 +52,9 @@ const DYNAMIC_KEY_PATTERNS: RegExp[] = [
   /^gw\.power\.(?:group|kind|why|link)\.[a-z_]+$/,
   // A country's own office titles (client/ww1914/GwOffice: gw.office_by.FRA.war).
   /^gw\.office_by\.[A-Z]{3}\.[a-z_]+$/,
+  // A country's own form of its money bills (client/ww1914/GwMoneyWords:
+  // gw.money.name_of.GBR.credits, Britain's votes of credit; ww213).
+  /^gw\.money\.name_of\.[A-Z]{3}\.[a-z_]+$/,
   // The budget's words, by line, source, lender and country (client/ww1914/GwBudget).
   /^gw\.budget\.[A-Za-z0-9_.]+$/,
   // The schedule, papers sent back, terms (client/ww1914/GwSchedule, GwDesk).

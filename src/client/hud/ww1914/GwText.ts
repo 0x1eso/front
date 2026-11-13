@@ -22,6 +22,7 @@ import type {
   GwSeatView,
 } from "@openfront/engine-api/ww1914/GwView";
 import type { GwReportView } from "@openfront/engine-api/ww1914/GwWorldView";
+import { moneyBillOf } from "@openfront/engine-lib/ww1914/MoneyRows";
 import { applyJosa } from "../../Josa";
 import { translateText } from "../../Utils";
 import { gwName } from "./GwFateModel";
@@ -372,12 +373,20 @@ function houseDeal(pack: GwPack | null, key: string): string | null {
     .filter((l) => key.endsWith(`_${l}`))
     .sort((a, b) => b.length - a.length)[0];
   const bill = law === undefined ? undefined : pack.scenes[`gw_law_${law}`];
+  // ww213: a money bill has no scene: it is named by its kind (예산안).
+  const money = /_([a-z]{3}_money_(?:budget|credits_[0-9]+))$/.exec(key);
+  const kind = money === null ? null : moneyBillOf(money[1])?.kind;
+  const title =
+    bill?.title ??
+    (kind === undefined || kind === null
+      ? undefined
+      : translateText(`gw.money.bill.${kind}`));
   const line =
-    bill === undefined
+    title === undefined
       ? pack.promises?.house_deal_plain
       : pack.promises?.house_deal;
   if (line === undefined) return null;
-  return line.replace(/\{bill\}/g, bill?.title ?? "");
+  return line.replace(/\{bill\}/g, title ?? "");
 }
 
 /** A file's line in the 서류철: the pack's words for it, else the kind's. */
@@ -533,7 +542,12 @@ export function unknownText(pack: GwPack | null, u: GwUnknown): string {
 }
 
 /** A report as the seat got it: who it's about and what it says. */
-export function reportText(r: GwReportView, pack?: GwPack | null): string {
+export function reportText(
+  r: GwReportView,
+  pack?: GwPack | null,
+  /** ww213: a bill's name by its law id (money bills have no scene). */
+  bill?: (law: string) => string | undefined,
+): string {
   // A plot's or an ask's report names what it is about (ww158).
   const about =
     r.about === null || r.about === undefined
@@ -543,7 +557,7 @@ export function reportText(r: GwReportView, pack?: GwPack | null): string {
         : r.fact === "ally"
           ? pack?.asks?.[r.about]?.name
           : r.fact === "count"
-            ? pack?.scenes[`gw_law_${r.about}`]?.title
+            ? (bill?.(r.about) ?? pack?.scenes[`gw_law_${r.about}`]?.title)
             : undefined;
   // ww173: a front's preparation or strain names the front too.
   const where =

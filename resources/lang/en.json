@@ -4236,13 +4236,32 @@
       },
       "fail": {
         "confidence": "Money is a matter of confidence: losing it shakes the government at once.",
+        "credits": "If they are refused, no more borrowing until the next credits: the gap is printed.",
+        "credits_command": "If the house refuses them, nothing changes in law: they stand by command. The house remembers it.",
         "runs_on": "If it is lost, last year's budget runs on.",
         "unpaid": "If it is refused, that half pays nothing in."
       },
       "mark_plain": "Set aside from {line}",
       "name": {
         "budget": "The {year} budget",
-        "credits": "War credits, No. {n}"
+        "credits": "War credits bill No. {n}"
+      },
+      "name_of": {
+        "AUH": {
+          "budget": "The {year} budget and Hungary's quota"
+        },
+        "DEU": {
+          "budget": "The Reich budget for {year}"
+        },
+        "FRA": {
+          "credits": "Provisional twelfths No. {n} (three months)"
+        },
+        "GBR": {
+          "credits": "Vote of Credit No. {n}"
+        },
+        "RUS": {
+          "budget": "The {year} state budget"
+        }
       },
       "stopped": "The war credits were refused: no bonds or loans for now, and the bank prints the gap."
     },
@@ -6001,6 +6020,7 @@
         "law_busy": "Another bill is moving.",
         "law_locked": "That article failed lately; it waits.",
         "lords_wait": "The Lords have put it off; it waits.",
+        "money_kept": "The budget and the war credits can't be withdrawn: amend them, hold them to their deadline, or put them to the vote.",
         "no_act": "That can no longer be done.",
         "no_affinity": "The country is not yet near enough to its ideas.",
         "no_aim": "That aim is not open.",

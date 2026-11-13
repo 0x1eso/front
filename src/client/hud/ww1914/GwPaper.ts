@@ -29,6 +29,7 @@ import {
   topicWord,
 } from "./GwDept";
 import { rich } from "./GwDict";
+import { lawTitle } from "./GwMoneyWords";
 import { officeTitle } from "./GwOffice";
 import { factionName } from "./GwSocietyWords";
 import { BTN, BTN_ON, CHIP, MUTED } from "./GwStyle";
@@ -66,8 +67,7 @@ export function slotWord(c: GwCtx, v: GwSlotValue): string {
             c.pack?.depts?.words?.[x] ??
             factionName(c.pack, x) ??
             c.pack?.communities?.[x]?.name ??
-            c.pack?.scenes[`gw_law_${x}`]?.title ??
-            x
+            lawTitle(c, x)
           );
       }
     })
@@ -234,7 +234,7 @@ function needText(c: GwCtx, n: GwNeed): string {
       : n.kind === "bill"
         ? n.law === undefined
           ? ""
-          : (c.pack?.scenes[`gw_law_${n.law}`]?.title ?? n.law)
+          : lawTitle(c, n.law)
         : n.kind === "person"
           ? n.office === undefined
             ? ""

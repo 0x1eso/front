@@ -25,6 +25,7 @@ import type { GwCtx } from "./GwCtx";
 import { rich } from "./GwDict";
 import { gwFace } from "./GwFace";
 import { topicLabel } from "./GwModel";
+import { lawTitle } from "./GwMoneyWords";
 import { officeTitle } from "./GwOffice";
 import { paperTitle } from "./GwPaper";
 import { openCard } from "./GwPlaceSheet";
@@ -52,8 +53,8 @@ export function topicWord(c: GwCtx, topic: string | null): string {
   if ((GW_THEATRES as readonly string[]).includes(topic)) {
     return translateText(`gw.theatre.${topic}`);
   }
-  // ww203: a count task's topic is a bill (law id).
-  return c.pack?.scenes[`gw_law_${topic}`]?.title ?? topic;
+  // ww203: a count task's topic is a bill (law id); ww213: a money bill too.
+  return lawTitle(c, topic);
 }
 
 /**

@@ -11,6 +11,7 @@ import { rich } from "./GwDict";
 import { gwName } from "./GwFateModel";
 import { govBox } from "./GwGov";
 import { gaugeFill, gaugeLevel, instBand, logByChapter } from "./GwModel";
+import { lawTitle } from "./GwMoneyWords";
 import { authorityChip, manpowerChip, trendCause, trendWordOf } from "./GwNow";
 import { instName } from "./GwOffice";
 import { rulerCard } from "./GwRuler";
@@ -110,6 +111,12 @@ function list(
 }
 
 /** The reports on the desk, newest first: the stamp is all the seat is told. */
+/** ww213: a counted bill's name, money bills included; undefined unknown. */
+function knownTitle(c: GwCtx, law: string): string | undefined {
+  const t = lawTitle(c, law);
+  return t === law ? undefined : t;
+}
+
 function reports(c: GwCtx): TemplateResult | typeof nothing {
   const { reports: all, sources } = c.seat.world;
   if (all.length === 0) return nothing;
@@ -125,7 +132,9 @@ function reports(c: GwCtx): TemplateResult | typeof nothing {
               >${translateText(`gw.source.${r.source}`)}</span
             >
           </div>
-          <p class="text-white/85">${reportText(r, c.pack)}</p>
+          <p class="text-white/85">
+            ${reportText(r, c.pack, (l) => knownTitle(c, l))}
+          </p>
           ${r.corrected === null
             ? nothing
             : html`<p class="text-amber-200" data-gw-corrected>

@@ -23,7 +23,9 @@ import type {
 } from "@openfront/engine-api/ww1914/GwDeals";
 import type { GwPack } from "@openfront/engine-api/ww1914/GwPack";
 import type { GwBargainMove } from "@openfront/engine-api/ww1914/GwTable";
+import { moneyBillOf } from "@openfront/engine-lib/ww1914/MoneyRows";
 import { translateText } from "../../Utils";
+import type { GwCtx } from "./GwCtx";
 import { textOrNull } from "./GwText";
 
 /** Chapters ahead that still read as "soon". */
@@ -49,13 +51,41 @@ export function moneyKindWord(kind: GwMoneyBill): string {
   return translateText(`gw.money.bill.${kind}`);
 }
 
-/** A money bill's row name: "1916년 예산", "제5차 전쟁 공채". */
+/**
+ * A money bill's name: "1916년도 예산안", "제5차 전쟁 공채안", or the
+ * country's own form (`gw.money.name_of.<TAG>.<kind>`): Britain's votes of
+ * credit, France's provisional twelfths, Vienna's budget with Hungary's quota.
+ */
 export function moneyBillName(m: {
   kind: GwMoneyBill;
   n: number;
   year: number;
+  tag?: string;
 }): string {
-  return translateText(`gw.money.name.${m.kind}`, { year: m.year, n: m.n });
+  const params = { year: m.year, n: m.n };
+  return (
+    (m.tag === undefined
+      ? null
+      : textOrNull(`gw.money.name_of.${m.tag}.${m.kind}`, params)) ??
+    translateText(`gw.money.name.${m.kind}`, params)
+  );
+}
+
+/**
+ * ww213: any bill's name by its law id, wherever one shows (the agenda, the
+ * count paper, the vote, the lobby, reports): a money bill by its own name
+ * (the year its pinned row, else the ledger, gives), any other by its draft
+ * scene's title. The raw id only when nothing knows it.
+ */
+export function lawTitle(c: GwCtx, law: string): string {
+  const m = moneyBillOf(law);
+  if (m === null) return c.pack?.scenes[`gw_law_${law}`]?.title ?? law;
+  const row = c.seat.world.book?.pinned?.find((g) => g.law === law);
+  const year =
+    row?.money?.year ??
+    c.seat.world.budget?.year ??
+    Number(c.data.date.slice(0, 4));
+  return moneyBillName({ kind: m.kind, n: m.n, year, tag: m.tag });
 }
 
 /** How the war credits come: the house votes them, by command, by decree. */
@@ -64,8 +94,18 @@ export function creditsByLine(by: GwCreditsBy): string {
 }
 
 /** What losing the money bill does, in one line. */
-export function moneyFailLine(fail: GwMoneyFail): string {
-  return translateText(`gw.money.fail.${fail}`);
+export function moneyFailLine(
+  fail: GwMoneyFail,
+  kind: GwMoneyBill = "budget",
+  by: GwCreditsBy | null = null,
+): string {
+  if (kind === "budget") return translateText(`gw.money.fail.${fail}`);
+  // ww213: refused credits stop the borrowing (by command: nothing legal).
+  if (by === "command") return translateText("gw.money.fail.credits_command");
+  const stops = translateText("gw.money.fail.credits");
+  return fail === "confidence"
+    ? `${translateText("gw.money.fail.confidence")} ${stops}`
+    : stops;
 }
 
 /**

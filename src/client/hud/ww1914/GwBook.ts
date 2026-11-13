@@ -13,14 +13,13 @@ import type {
   GwLobbyView,
 } from "@openfront/engine-api/ww1914/GwLaw";
 import { GW_BOOK_CHAPTERS } from "@openfront/engine-api/ww1914/GwLaw";
-import { moneyBillOf } from "@openfront/engine-lib/ww1914/MoneyRows";
 import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
 import type { GwBookDraft, GwCtx } from "./GwCtx";
 import { timeLeft } from "./GwDept";
 import { factionName } from "./GwHouse";
 import { lobbyExtras, pricePlus, threatButtons, wingRow } from "./GwLobbyDeals";
-import { moneyBillName, moneyFailLine } from "./GwMoneyWords";
+import { lawTitle, moneyBillName, moneyFailLine } from "./GwMoneyWords";
 import { officeTitle } from "./GwOffice";
 import { BTN, BTN_ON, CHIP, HEAD, MUTED } from "./GwStyle";
 import { optionSplit, personName } from "./GwText";
@@ -30,7 +29,7 @@ const SMALL = "!px-2 !py-1 max-sm:min-h-10";
 const GO =
   "rounded border border-amber-300 bg-amber-300/90 px-3 py-1.5 text-center text-sm font-bold text-slate-900 hover:bg-amber-200 disabled:opacity-40";
 
-/** ww209: 1916년 예산, 제5차 전쟁 공채; the year absent: this one. */
+/** ww209: 1916년도 예산안, 제5차 전쟁 공채안; the year absent: this one. */
 export function moneyName(
   c: GwCtx,
   kind: GwMoneyBill,
@@ -40,21 +39,17 @@ export function moneyName(
   return moneyBillName({
     kind,
     n,
-    year: year ?? Number(c.data.date.slice(0, 4)),
+    year: year ?? c.seat.world.budget?.year ?? Number(c.data.date.slice(0, 4)),
+    tag: c.seat.tag,
   });
 }
 
 /**
  * The article's name: its draft scene's title. ww209: a money bill has no
- * scene: 1916년 예산, 제5차 전쟁 공채 (its pinned row knows the year).
+ * scene: 1916년도 예산안, 제5차 전쟁 공채안, or its country's own form.
  */
 export function billName(c: GwCtx, law: string): string {
-  const money = moneyBillOf(law);
-  if (money !== null) {
-    const row = c.seat.world.book?.pinned?.find((g) => g.law === law);
-    return moneyName(c, money.kind, money.n, row?.money?.year);
-  }
-  return c.pack?.scenes[`gw_law_${law}`]?.title ?? law;
+  return lawTitle(c, law);
 }
 
 /** A bill (a text of the article) by the lead of its option on the draft card. */
@@ -614,7 +609,11 @@ function agendaRow(
     ${g.money === undefined
       ? nothing
       : html`<p class="text-sm text-amber-100/90" data-gw-agenda-money-fail>
-          ${moneyFailLine(g.money.fail)}
+          ${moneyFailLine(
+            g.money.fail,
+            g.money.kind,
+            c.seat.world.budget?.credits?.by ?? null,
+          )}
         </p>`}
     ${g.replaces === null
       ? nothing

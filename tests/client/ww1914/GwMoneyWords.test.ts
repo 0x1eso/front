@@ -83,8 +83,8 @@ describe("ww210 money and bargaining words", () => {
       keys.filter((k) => typeof at(d, k) !== "string").map((k) => `${l} ${k}`),
     );
     expect(missing).toEqual([]);
-    expect(at(LANGS.ko, "gw.money.name.budget")).toBe("{year}년 예산");
-    expect(at(LANGS.ko, "gw.money.name.credits")).toBe("제{n}차 전쟁 공채");
+    expect(at(LANGS.ko, "gw.money.name.budget")).toBe("{year}년도 예산안");
+    expect(at(LANGS.ko, "gw.money.name.credits")).toBe("제{n}차 전쟁 공채안");
     expect(at(LANGS.ko, "gw.vote.beat.defy_by")).toBe("{name}, 반대");
   });
 
