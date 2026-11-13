@@ -59,6 +59,9 @@ export const GW_ENDING_ROWS: Readonly<
   Partial<Record<GwTag, readonly GwEndingRow[]>>
 > = {
   DEU: [
+    { id: "deu_head_ebert_won", of: ["deu_head_ebert_won"] },
+    { id: "deu_head_ebert_death", of: ["deu_head_ebert_death"] },
+    { id: "deu_head_ebert_out", of: ["deu_head_ebert_out"] },
     { id: "deu_end_abdicated", of: ["deu_end_abdicated"] },
     { id: "deu_end_holland", of: ["deu_end_holland"] },
     { id: "deu_end_set_aside", of: ["deu_end_set_aside"] },
@@ -90,6 +93,9 @@ export const GW_ENDING_ROWS: Readonly<
     },
   ],
   GBR: [
+    { id: "gbr_head_henderson_won", of: ["gbr_head_henderson_won"] },
+    { id: "gbr_head_henderson_death", of: ["gbr_head_henderson_death"] },
+    { id: "gbr_head_henderson_out", of: ["gbr_head_henderson_out"] },
     { id: "gbr_end_resigned", of: ["gbr_end_resigned"] },
     { id: "gbr_end_turned_out", of: ["gbr_end_turned_out"] },
     { id: "gbr_end_polls", of: ["gbr_end_polls"] },
@@ -129,6 +135,12 @@ export const GW_ENDING_ROWS: Readonly<
     { id: "gbr_end_deadline", of: ["deadline"] },
   ],
   AUH: [
+    { id: "auh_head_lammasch_won", of: ["auh_head_lammasch_won"] },
+    { id: "auh_head_lammasch_death", of: ["auh_head_lammasch_death"] },
+    { id: "auh_head_lammasch_out", of: ["auh_head_lammasch_out"] },
+    { id: "auh_head_renner_won", of: ["auh_head_renner_won"] },
+    { id: "auh_head_renner_death", of: ["auh_head_renner_death"] },
+    { id: "auh_head_renner_out", of: ["auh_head_renner_out"] },
     { id: "auh_e_abdicated", of: ["auh_e_abdicated"] },
     { id: "auh_e_fj_federation", of: ["auh_e_fj_federation"] },
     { id: "auh_e_karl_federation", of: ["auh_e_karl_federation"] },
@@ -178,6 +190,12 @@ export const GW_ENDING_ROWS: Readonly<
     { id: "auh_e_deadline", of: ["deadline"] },
   ],
   RUS: [
+    { id: "rus_head_lvov_won", of: ["rus_head_lvov_won"] },
+    { id: "rus_head_lvov_death", of: ["rus_head_lvov_death"] },
+    { id: "rus_head_lvov_out", of: ["rus_head_lvov_out"] },
+    { id: "rus_head_kerensky_won", of: ["rus_head_kerensky_won"] },
+    { id: "rus_head_kerensky_death", of: ["rus_head_kerensky_death"] },
+    { id: "rus_head_kerensky_out", of: ["rus_head_kerensky_out"] },
     { id: "rus_abdicated", of: ["rus_abdicated"] },
     { id: "rus_end_pskov", of: ["rus_end_pskov"] },
     { id: "rus_end_for_heir", of: ["rus_end_for_heir"] },
@@ -237,6 +255,9 @@ export const GW_ENDING_ROWS: Readonly<
   ],
   // France (ww166): the President stays to the end; what the end was.
   FRA: [
+    { id: "fra_head_orleans_won", of: ["fra_head_orleans_won"] },
+    { id: "fra_head_orleans_death", of: ["fra_head_orleans_death"] },
+    { id: "fra_head_orleans_out", of: ["fra_head_orleans_out"] },
     { id: "fra_end_stood_down", of: ["fra_end_stood_down"] },
     { id: "fra_end_resigned", of: ["fra_end_resigned"] },
     {

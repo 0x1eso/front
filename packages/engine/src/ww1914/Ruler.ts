@@ -19,13 +19,14 @@ import {
   GW_RULER_EVENTS,
   GW_RULERS,
   GwRulerRow,
+  headRow,
 } from "@openfront/engine-lib/ww1914/RulerRows";
 import { civilFromDays } from "@openfront/engine-lib/ww1936/Calendar";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { closeSeat } from "./Endings";
 import type { GreatWar } from "./GreatWar";
 import { regimeRow, succeed, successionOf } from "./Regimes";
-import { isHead, utopiaWaits } from "./Utopia";
+import { utopiaWaits } from "./Utopia";
 import { chapterOf, clampTo, reason, turn } from "./World";
 
 const P_START = idHash("gw_ruler_start");
@@ -52,17 +53,36 @@ const DAYS_IN_MONTH = 30;
 /** One step above a bottom: the seat is told while it can still act. */
 const NEAR_BOTTOM = 1;
 
-/** The row that fits the seat now, or null where nobody has one. */
+/** Decision 1B: the head the seat chose to play on as; null none. */
+export function playedHead(seat: GwSeatState): string | null {
+  const u = seat.society?.utopia ?? null;
+  return u !== null && u.choice === "play" ? u.head : null;
+}
+
+/**
+ * The row that fits the seat now, or null where nobody has one. A seat that
+ * plays a head (1B) has only his row: it fits the form his utopia brought
+ * and the forms the row names; past them his game ends as anyone's does.
+ */
 export function rulerRow(gw: GreatWar, seat: GwSeatState): GwRulerRow | null {
   const n = gw.nation(seat.tag);
   const regime = n?.regime ?? "";
   const rows = GW_RULERS[seat.tag] ?? [];
-  // ww207 (decision 1B): the player chose to play on as the utopia's head.
-  const u = seat.society?.utopia ?? null;
-  if (u?.choice === "play" && u.head !== null) {
-    const head = rows.find((r) => r.id === u.head);
-    if (head !== undefined) return head;
+  const sits = (r: GwRulerRow) =>
+    r.regimes === undefined || r.regimes.includes(regime);
+  const flagged = (r: GwRulerRow) =>
+    r.flag === undefined || seat.flags.includes(r.flag);
+  // ww208 1B: the player chose to play on as the utopia's head (lane P's
+  // row, gated by S2's seat flag `gw_head_<id>`).
+  const head = playedHead(seat);
+  if (head !== null) {
+    const brought = seat.society?.utopia?.regime ?? null;
+    const row = rows.find(
+      (r) => r.id === head && flagged(r) && (sits(r) || regime === brought),
+    );
+    return row ?? null;
   }
+  // ww207: a form a utopia brought keeps the person, or has no place for him.
   const form = n === null ? null : regimeRow(n);
   if (form?.keeps === true) {
     const kept = rows.find((r) => r.id === seat.ruler.id);
@@ -70,10 +90,7 @@ export function rulerRow(gw: GreatWar, seat: GwSeatState): GwRulerRow | null {
   }
   if (form?.removes === true) return null;
   const row = rows.find(
-    (r) =>
-      !isHead(r.id) &&
-      (r.regimes === undefined || r.regimes.includes(regime)) &&
-      (r.flag === undefined || seat.flags.includes(r.flag)),
+    (r) => r.head !== true && sits(r) && flagged(r),
   );
   return row ?? null;
 }
@@ -259,7 +276,7 @@ export function rulerGone(
     p.status = how === "death" ? "dead" : "fallen";
     p.office = null;
   }
-  const ending = endingOf(seat.tag, how);
+  const ending = row?.gone?.[how] ?? endingOf(seat.tag, how);
   turn(gw, `ruler_${how}`);
   if (s.seats.length > 1) closeSeat(gw, seat, ending);
   else s.ended = ending;
@@ -277,11 +294,7 @@ function personEnds(gw: GreatWar, seat: GwSeatState): void {
   const regime = gw.nation(seat.tag)?.regime ?? "";
   const ending =
     was?.ends?.[regime] ?? was?.ends?.["*"] ?? endingOf(seat.tag, "removed");
-  const p = was?.person === undefined ? null : gw.person(was.person);
-  if (p !== null && p.status !== "dead") {
-    p.status = "fallen";
-    p.office = null;
-  }
+  standDown(gw, was);
   if (s.seats.length > 1) closeSeat(gw, seat, ending);
   else s.ended = ending;
 }
@@ -349,6 +362,37 @@ function watch(gw: GreatWar, seat: GwSeatState, row: GwRulerRow): void {
   if (out && row.removable) rulerGone(gw, seat, "removed");
 }
 
+/** The person in a row leaves the cast's offices: the chair has passed on. */
+function standDown(gw: GreatWar, row: GwRulerRow | undefined): void {
+  const p = row?.person === undefined ? null : gw.person(row.person);
+  if (p !== null && p.status !== "dead") {
+    p.status = "fallen";
+    p.office = null;
+  }
+}
+
+/**
+ * Decision 1B, the utopia's card (Utopia.ts asks it, order utopia_choice).
+ * True while the seat waits on it or has just closed at it: a word not yet
+ * given holds the person's card as it is; "end" closes the seat with the
+ * head's winning ending. "play" lays the head's card (rulerRow).
+ */
+function atUtopiaCard(gw: GreatWar, seat: GwSeatState): boolean {
+  const u = seat.society?.utopia ?? null;
+  const row = headRow(u?.head ?? null);
+  if (u === null || row === null || seat.ruler.id === row.id) return false;
+  if (u.choice === null) return true;
+  if (u.choice !== "end") return false;
+  standDown(
+    gw,
+    (GW_RULERS[seat.tag] ?? []).find((r) => r.id === seat.ruler.id),
+  );
+  const ending = row.won ?? endingOf(seat.tag, "removed");
+  if (gw.s.seats.length > 1) closeSeat(gw, seat, ending);
+  else gw.s.ended = ending;
+  return true;
+}
+
 /** Whether the person in the row has left the game by some other door. */
 function personGone(gw: GreatWar, row: GwRulerRow): GwRulerEnd | null {
   const p = row.person === undefined ? null : gw.person(row.person);
@@ -361,12 +405,20 @@ function personGone(gw: GreatWar, row: GwRulerRow): GwRulerEnd | null {
 export function rulerStep(gw: GreatWar): void {
   for (const seat of gw.s.seats) {
     if (seat.memoir !== null || gw.s.ended !== null) continue;
+    if (atUtopiaCard(gw, seat)) continue;
     const row = rulerRow(gw, seat);
     if (row === null && seat.ruler.id !== null) {
       // ww207 (1B): the utopia's card asks first: end here, or play on.
       if (utopiaWaits(seat)) continue;
       personEnds(gw, seat);
       continue;
+    }
+    if (row?.head === true && seat.ruler.id !== row.id) {
+      const was = GW_RULERS[seat.tag] ?? [];
+      standDown(
+        gw,
+        was.find((r) => r.id === seat.ruler.id),
+      );
     }
     layRow(gw, seat, row);
     if (row === null) continue;

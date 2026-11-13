@@ -580,13 +580,22 @@ export const GW_HIDE_UNMET: readonly GwTag[] = ["RUS"];
 export const GW_SEAT_PERSON: Readonly<
   Partial<Record<GwTag, readonly { person: string; flag?: string }[]>>
 > = {
+  // ww208 1B: a head the seat plays on as (flag gw_head_<ruler row>) comes first.
   GBR: [
+    { person: "gbr_henderson", flag: "gw_head_henderson" },
     { person: "gbr_lloyd_george", flag: "f_pm_lg" },
     { person: "gbr_asquith" },
   ],
-  RUS: [{ person: "rus_nicholas" }],
-  DEU: [{ person: "deu_wilhelm" }],
-  AUH: [{ person: "auh_franz_joseph" }],
+  RUS: [
+    { person: "rus_kerensky", flag: "gw_head_kerensky" },
+    { person: "rus_lvov", flag: "gw_head_lvov" },
+    { person: "rus_nicholas" },
+  ],
+  DEU: [{ person: "deu_ebert", flag: "gw_head_ebert" }, { person: "deu_wilhelm" }],
+  AUH: [
+    { person: "auh_lammasch", flag: "gw_head_lammasch" },
+    { person: "auh_franz_joseph" },
+  ],
   FRA: [{ person: "fra_poincare" }],
 };
 

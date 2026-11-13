@@ -81,7 +81,13 @@ function countrySlots(
 ): GwSlots {
   const out: GwSlots = { country: { kind: "tag", value: tag } };
   const them = s.nations.find((n) => n.tag === tag);
-  const ruler = (GW_RULERS[tag as GwTag] ?? [])
+  // A head (ww208 1B) is the ruler only where a seat plays him.
+  const playing = s.seats.find((x) => x.tag === tag)?.ruler.id ?? null;
+  const rows = GW_RULERS[tag as GwTag] ?? [];
+  const head = rows.find((r) => r.head === true && r.id === playing);
+  const ruler = (
+    head === undefined ? rows.filter((r) => r.head !== true) : [head]
+  )
     .map((r) => r.person)
     .find(
       (id) =>

@@ -461,6 +461,8 @@ describe("pack shares", () => {
       "ww1914/ko/common.persona.json",
       // ww199: a beaten country's fate.
       "ww1914/ko/common.settle.json",
+      // ww208 1B: the heads' card warnings.
+      "ww1914/ko/common.head.json",
       "ww1914/ko/DEU.cast.json",
       "ww1914/ko/GBR.people.json",
       "ww1914/ko/AUH.people.json",

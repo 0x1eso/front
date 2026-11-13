@@ -53,6 +53,7 @@ import { AUH_PERSONA } from "./persona/auh";
 import { DEU_PERSONA } from "./persona/deu";
 import { FRA_PERSONA } from "./persona/fra";
 import { GBR_PERSONA } from "./persona/gbr";
+import { HEADS_PERSONA } from "./persona/heads";
 import { RUS_PERSONA } from "./persona/rus";
 import { AUH_POWER_SCENES, AUH_POWERS, AUH_REACTORS } from "./powers/auh";
 import { COMMON_POWER_SCENES, COMMON_POWERS } from "./powers/common";
@@ -464,6 +465,8 @@ export const GW_CONTENT: GwContent = {
     FRA_PERSONA,
     RUS_PERSONA,
     AUH_PERSONA,
+    // ww208 1B: the heads a utopia brings (lane P).
+    HEADS_PERSONA,
   ]),
   ...GW_HOUSE_CONTENT,
   society: GW_SOCIETY,

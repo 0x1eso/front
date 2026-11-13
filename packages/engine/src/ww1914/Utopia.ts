@@ -45,6 +45,7 @@ import {
   type GwPowerRow,
 } from "@openfront/engine-lib/ww1914/PowerRows";
 import { genericFactionId } from "@openfront/engine-lib/ww1914/SocietyRows";
+import { headRow } from "@openfront/engine-lib/ww1914/RulerRows";
 import {
   GW_AFFINITY_AXIS,
   GW_AFFINITY_BILL,
@@ -418,8 +419,10 @@ export function utopiaChoice(
   }
   if (!play) {
     u.choice = "end";
-    if (gw.s.seats.length > 1) closeSeat(gw, seat, GW_UTOPIA_ENDING);
-    else gw.s.ended = GW_UTOPIA_ENDING;
+    // A head's own winning ending where the utopia brought one (lane P).
+    const ending = headRow(u.head)?.won ?? GW_UTOPIA_ENDING;
+    if (gw.s.seats.length > 1) closeSeat(gw, seat, ending);
+    else gw.s.ended = ending;
     gw.touch();
     return null;
   }
