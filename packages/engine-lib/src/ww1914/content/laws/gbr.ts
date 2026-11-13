@@ -102,7 +102,7 @@ export const GBR_AXIS_PUSHES: Readonly<
     capital_levy: { class: 1 },
     after_the_war: { class: 1 },
   },
-  gbr_budget: {
+  gbr_budget_1914: {
     supertax: { class: 1 },
     site_rating: { class: 1 },
     taxes_only: { rule: 1 },
@@ -674,7 +674,7 @@ export const GBR_LAWS: readonly GwLawRow[] = gbrAxes([
   // 1914, suspended for the war; the farm labourers' minimum wage and the
   // land courts in the land campaign; the 1911 Act's insurance trades.
   row({
-    id: "gbr_budget",
+    id: "gbr_budget_1914",
     chapter: "tax",
     peace: true,
     opens: peace,
@@ -704,7 +704,7 @@ export const GBR_LAWS: readonly GwLawRow[] = gbrAxes([
       tell: ["money:-1"],
       effects: [gauge("money", -1)],
     },
-    talk: lawTalk("gbr_budget", {
+    talk: lawTalk("gbr_budget_1914", {
       who: person("gbr_bonar_law"),
       ask: "frank",
       push: "cold",
