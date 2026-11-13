@@ -591,7 +591,10 @@ export const GW_SEAT_PERSON: Readonly<
     { person: "rus_lvov", flag: "gw_head_lvov" },
     { person: "rus_nicholas" },
   ],
-  DEU: [{ person: "deu_ebert", flag: "gw_head_ebert" }, { person: "deu_wilhelm" }],
+  DEU: [
+    { person: "deu_ebert", flag: "gw_head_ebert" },
+    { person: "deu_wilhelm" },
+  ],
   AUH: [
     { person: "auh_lammasch", flag: "gw_head_lammasch" },
     { person: "auh_franz_joseph" },

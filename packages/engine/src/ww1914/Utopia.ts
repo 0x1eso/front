@@ -47,11 +47,11 @@ import {
   GW_RALLY_SCENE,
   type GwPowerRow,
 } from "@openfront/engine-lib/ww1914/PowerRows";
+import { headRow } from "@openfront/engine-lib/ww1914/RulerRows";
 import {
   communityIdeal,
   genericFactionId,
 } from "@openfront/engine-lib/ww1914/SocietyRows";
-import { headRow } from "@openfront/engine-lib/ww1914/RulerRows";
 import {
   GW_AFFINITY_AXIS,
   GW_AFFINITY_BILL,
@@ -78,7 +78,6 @@ export type UtopiaEffect = Extract<
   GwWorldEffect,
   { do: "affinity" | "rally_reward" }
 >;
-
 
 /** The ending of a seat that stops at its realised utopia (decision 1B). */
 export const GW_UTOPIA_ENDING: GwEnding = "utopia_realised";

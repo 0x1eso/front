@@ -69,13 +69,13 @@ import type {
 } from "@openfront/engine-api/ww1914/WorldDsl";
 import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
+import { GW_LAWS } from "@openfront/engine-lib/ww1914/content/scenes/laws";
 import { genericFactionRows } from "@openfront/engine-lib/ww1914/GenericParties";
 import type {
   GwChamberRow,
   GwFactionRow,
 } from "@openfront/engine-lib/ww1914/HouseRows";
 import type { GwLawRow } from "@openfront/engine-lib/ww1914/LawRows";
-import { GW_LAWS } from "@openfront/engine-lib/ww1914/content/scenes/laws";
 import {
   communityIdeal,
   genericFactionId,

@@ -289,14 +289,21 @@ describe("ww208 merge seams", () => {
     const powers = GW_CONTENT.powers ?? [];
     const of = (faction: string) =>
       powers.find((p) => p.ability?.faction === faction);
-    for (const id of ["deu_g_peasants", "gbr_g_veterans", "deu_spartacus", "rus_sr"]) {
+    for (const id of [
+      "deu_g_peasants",
+      "gbr_g_veterans",
+      "deu_spartacus",
+      "rus_sr",
+    ]) {
       const row = of(id);
       expect(row, id).toBeDefined();
       expect(row!.group).toBe("factions");
     }
     // A party with its own row keeps it.
     expect(of("deu_spd")?.id).toBe("deu_pw_ab_spd");
-    expect(powers.filter((p) => p.ability?.faction === "deu_spd").length).toBe(1);
+    expect(powers.filter((p) => p.ability?.faction === "deu_spd").length).toBe(
+      1,
+    );
   });
 
   test("a rally lays a card; the player picks its reward", async () => {
@@ -322,4 +329,3 @@ describe("ww208 merge seams", () => {
     expect(supportOf(spd)).toBe(support);
   });
 });
-
