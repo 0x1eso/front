@@ -112,6 +112,14 @@ const steps = (id: string, a = 3, b = 7) => [
 ];
 const leader = (id: string) => ({ leader: leaderOf(id) });
 const why = (key: string): GwEffect => reason(key);
+/** ww209: a budget is on the agenda (its earmark prices). */
+const budgetOpen = world({ is: "money", bill: "budget", now: "open" });
+/** ww209: a money bill's purse rows while the crown stands (wartime credits). */
+const credits = (side: -1 | 1) => ({
+  when: all(war, crowned),
+  bill: "credits" as const,
+  side,
+});
 
 export const RUS_FACTIONS: readonly GwFactionRow[] = [
   {
@@ -156,6 +164,13 @@ export const RUS_FACTIONS: readonly GwFactionRow[] = [
     steps: steps("rights"),
     bills: ["rus_victory", "rus_press"],
     wants: [
+      // ww209: the Synod's parish schools in the budget (peacetime too).
+      {
+        id: "parish_schools",
+        kind: "money",
+        when: budgetOpen,
+        earmark: "rus_parish_schools",
+      },
       {
         id: "rights_text",
         kind: "concession",
@@ -178,7 +193,12 @@ export const RUS_FACTIONS: readonly GwFactionRow[] = [
         keep: inOffice("rus_khvostov"),
         chapters: 6,
       },
-      { id: "train_money", kind: "money", effects: [gauge("money", -1)] },
+      {
+        id: "train_money",
+        kind: "money",
+        effects: [gauge("money", -1)],
+        earmark: "rus_hospital_trains",
+      },
     ],
     amends: {
       rus_councils: "defence_alone",
@@ -196,6 +216,18 @@ export const RUS_FACTIONS: readonly GwFactionRow[] = [
       // (ww204 M: the bloc's 236 is checked, the group's own size is not).
       seats: { duma: 70 },
       scene: "rus_f_pnat",
+    },
+    // ww209: the Rights vote the Tsar's money; their purse is their ideals'.
+    purse: [credits(1)],
+    // ww209: Shulgin's Nationalists, who leave for the Progressive Bloc in
+    // August 1915 (rus_pnat): they can be met apart; they don't defy on money.
+    wing: {
+      person: "rus_i_shulgin",
+      ideals: { rule: 1, class: -1, nations: -1 },
+      share: 4,
+      when: not(faction("rus_pnat", { of: ["in"] })),
+      defies: false,
+      into: "rus_pnat",
     },
   },
   {
@@ -230,9 +262,16 @@ export const RUS_FACTIONS: readonly GwFactionRow[] = [
         keep: isLaw("rus_volost"),
         chapters: 10,
       },
-      { id: "front_aid", kind: "money", effects: [gauge("money", -1)] },
+      {
+        id: "front_aid",
+        kind: "money",
+        effects: [gauge("money", -1)],
+        earmark: "rus_southwest_aid",
+      },
     ],
     amends: { rus_poland: "autonomy_word" },
+    // ww209: patriots of the war, critics of the ministers: the credits yes.
+    purse: [credits(1)],
   },
   {
     id: "rus_octob",
@@ -283,6 +322,8 @@ export const RUS_FACTIONS: readonly GwFactionRow[] = [
         when: inOffice("rus_sukhomlinov"),
         keep: not(inOffice("rus_sukhomlinov")),
         chapters: 4,
+        // ww209: shells now, not after the war.
+        terms: ["session", "half"],
       },
       // Polivanov, Guchkov's man at the War Ministry (minister June 1915).
       {
@@ -306,6 +347,7 @@ export const RUS_FACTIONS: readonly GwFactionRow[] = [
         id: "committee_orders",
         kind: "money",
         effects: [gauge("money", -1), heat("rus_circle", 1)],
+        earmark: "rus_war_industry",
       },
     ],
     amends: {
@@ -314,6 +356,16 @@ export const RUS_FACTIONS: readonly GwFactionRow[] = [
       rus_pale: "refugees_only",
       rus_amnesty: "no_bombs",
       rus_army_zone: "civil_governors",
+    },
+    // ww209: Guchkov's party of the army and the fleet (the Duma's defence
+    // commission); they vote the credits.
+    purse: [credits(1), { lines: { army: 1, navy: 1 } }],
+    // ww209: the Left Octobrists, 16 of the faction after the December 1913
+    // split (Godnev, Shidlovsky, Khomyakov; en.wikipedia, Union of 17 October).
+    wing: {
+      person: "rus_i_shidlovsky",
+      ideals: { rule: 1, class: 0, nations: -1 },
+      share: 2,
     },
   },
   {
@@ -354,6 +406,13 @@ export const RUS_FACTIONS: readonly GwFactionRow[] = [
     steps: steps("kadets"),
     bills: ["rus_amnesty", "rus_poland"],
     wants: [
+      // ww209: the zemstvo schools (the 1908 universal schooling credits).
+      {
+        id: "zemstvo_schools",
+        kind: "money",
+        when: budgetOpen,
+        earmark: "rus_zemstvo_schools",
+      },
       {
         id: "kadets_text",
         kind: "concession",
@@ -379,6 +438,8 @@ export const RUS_FACTIONS: readonly GwFactionRow[] = [
         when: not(sitting),
         keep: sitting,
         chapters: 4,
+        // ww209: a session is now or never.
+        terms: ["session", "half"],
       },
     ],
     amends: {
@@ -388,6 +449,19 @@ export const RUS_FACTIONS: readonly GwFactionRow[] = [
       rus_victory: "with_allies",
       rus_army_zone: "no_expulsions",
       rus_great_programme: "guns_first",
+    },
+    // ww209: Milyukov's party voted the war's credits in August 1914; the
+    // income tax was in its programme; relief is the zemstvo's work.
+    purse: [
+      credits(1),
+      { taxes: { income: 1, consumption: -1 }, lines: { relief: 1 } },
+    ],
+    // ww209: Nekrasov's left, which wants the Kadets with the left parties;
+    // its size is not checked (F).
+    wing: {
+      person: "rus_i_nekrasov",
+      ideals: { rule: 1, class: 1, nations: 1 },
+      share: 2,
     },
     // The Progressive Bloc: rus_h_bloc's talks (or its ministry), else the
     // same state by another road. It falls apart once it is a handful again.
@@ -445,7 +519,14 @@ export const RUS_FACTIONS: readonly GwFactionRow[] = [
         keep: isLaw("rus_councils"),
         chapters: 8,
       },
-      { id: "moscow_orders", kind: "money", effects: [gauge("money", -1)] },
+      {
+        id: "moscow_orders",
+        kind: "money",
+        effects: [gauge("money", -1)],
+        earmark: "rus_moscow_orders",
+      },
+      // ww209: money men: no price today, a favour later.
+      { id: "konovalov_favour", kind: "favour" },
     ],
     amends: {
       rus_dry: "wine_and_beer",
@@ -453,6 +534,9 @@ export const RUS_FACTIONS: readonly GwFactionRow[] = [
       rus_councils: "with_zemgor",
       rus_war_tax: "loans_only",
     },
+    // ww209: the industrialists want the army's orders and no tax on war
+    // profits (their ideals already fight it).
+    purse: [credits(1), { lines: { army: 1, national: 1 } }],
   },
   {
     id: "rus_bloc",
@@ -510,13 +594,29 @@ export const RUS_FACTIONS: readonly GwFactionRow[] = [
         chapters: 10,
       },
       // Zemgor (the zemstvo and town unions) ran on the treasury's money.
-      { id: "zemgor_money", kind: "money", effects: [gauge("money", -1)] },
+      {
+        id: "zemgor_money",
+        kind: "money",
+        effects: [gauge("money", -1)],
+        earmark: "rus_zemgor",
+      },
     ],
     amends: {
       rus_press: "duma_speeches_free",
       rus_councils: "with_zemgor",
       rus_factories: "workers_group",
     },
+    // ww209: the bloc votes the war's money, but with no ministry of
+    // confidence and the Duma sour it can refuse the budget: its weapon.
+    purse: [
+      {
+        when: all(not(trusted), blocAt("parliament", { max: -2 }), warAge(15)),
+        bill: "budget",
+        side: -1,
+      },
+      credits(1),
+      { taxes: { income: 1 }, lines: { relief: 1 } },
+    ],
   },
   {
     id: "rus_trud",
@@ -568,9 +668,16 @@ export const RUS_FACTIONS: readonly GwFactionRow[] = [
         keep: crowned,
         effects: [heat("rus_nobles", 1)],
       },
-      { id: "soldier_wives", kind: "money", effects: [gauge("money", -1)] },
+      {
+        id: "soldier_wives",
+        kind: "money",
+        effects: [gauge("money", -1)],
+        earmark: "rus_soldier_wives",
+      },
     ],
     amends: { rus_ratniki: "land_after", rus_peasants: "captains_go" },
+    // ww209: the Trudoviks vote no on the Tsar's budget (F).
+    purse: [{ when: crowned, bill: "budget", side: -1 }],
   },
   {
     id: "rus_sd",
@@ -617,6 +724,11 @@ export const RUS_FACTIONS: readonly GwFactionRow[] = [
         effects: [heat("rus_rights", 1)],
       },
     ],
+    // ww209: no budget and no credits for the Tsar's government: the two
+    // Social Democratic groups read one declaration on 26 July 1914 and the
+    // Bolsheviks left the hall rather than vote (Badayev); the Mensheviks'
+    // own vote is not checked (F).
+    purse: [{ when: crowned, side: -1 }],
   },
   {
     // The five Bolshevik deputies (six until Malinovsky resigned in May 1914;
@@ -654,6 +766,8 @@ export const RUS_FACTIONS: readonly GwFactionRow[] = [
     ],
     cools: [{ when: morale(4), key: "war_popular" }],
     steps: steps("bolsh"),
+    // ww209: not a kopeck for the war, whoever governs.
+    purse: [{ side: -1 }],
   },
   {
     id: "rus_nobles",
@@ -693,6 +807,7 @@ export const RUS_FACTIONS: readonly GwFactionRow[] = [
         keep: not(isLaw("rus_volost")),
         chapters: 10,
         effects: [heat("rus_octob", 1)],
+        terms: ["half", "war_end"],
       },
       {
         id: "governors_kept",
@@ -700,7 +815,10 @@ export const RUS_FACTIONS: readonly GwFactionRow[] = [
         keep: not(trusted),
         chapters: 10,
         effects: [heat("rus_kadets", 1)],
+        terms: ["half", "war_end"],
       },
+      // ww209: Durnovo names nothing now and remembers.
+      { id: "durnovo_favour", kind: "favour" },
     ],
     amends: {
       rus_grain: "trains_first",
@@ -709,6 +827,9 @@ export const RUS_FACTIONS: readonly GwFactionRow[] = [
       rus_peasants: "after_war",
       rus_war_tax: "loans_only",
     },
+    // ww209: the Council's Right held the income tax off for years (it
+    // passed only in April 1916); its ideals fight it. The Tsar's credits yes.
+    purse: [credits(1)],
   },
   {
     id: "rus_stavka",
