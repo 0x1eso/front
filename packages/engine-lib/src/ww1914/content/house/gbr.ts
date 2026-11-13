@@ -22,6 +22,7 @@ import type {
   GwBillRow,
   GwFactionRow,
   GwPlotRow,
+  GwWant,
   GwWeakRow,
 } from "../../HouseRows";
 import type { GwLawRow } from "../../LawRows";
@@ -86,6 +87,14 @@ const bloc = (b: GwFactionRow["bloc"]): GwCond => ({
   max: -3,
 });
 const lead = role("lead");
+/** ww203: his faction's bill is on the agenda (or law): a `next` price kept. */
+const onAgenda = (law: string): GwCond => not(toCome(law));
+/** ww203: his amendment in place of the bill's text (a `concession`). */
+const own = (id: string): GwWant => ({
+  id: "own_text",
+  kind: "concession",
+  when: world({ is: "amendable", id }),
+});
 
 export const GBR_FACTIONS: readonly GwFactionRow[] = [
   {
@@ -94,7 +103,9 @@ export const GBR_FACTIONS: readonly GwFactionRow[] = [
     bloc: "parliament",
     start: "in",
     strength: 3,
-    seats: { commons: 2, lords: 1 },
+    // ww203: the Liberals' 271 (Dec 1910, with 9 Lib-Labs) less Simon's 34;
+    // Liberal peers about 95 of some 620 (the share not checked).
+    seats: { commons: 237, lords: 95 },
     leaders: [{ person: "gbr_asquith", when: lg }, { person: "gbr_mckenna" }],
     grows: [
       { when: all(co, warAge(20)), by: -1, every: 9, key: "coalition_wears" },
@@ -122,12 +133,15 @@ export const GBR_FACTIONS: readonly GwFactionRow[] = [
     wants: [
       {
         id: "franchise_next",
+        kind: "next",
         when: toCome("gbr_franchise"),
-        keep: isLaw("gbr_franchise"),
-        chapters: 10,
+        keep: onAgenda("gbr_franchise"),
+        chapters: 2,
       },
+      own("gbr_liberals"),
       {
         id: "home_rule_next",
+        kind: "promise",
         when: not(flag("f_home_rule_lives")),
         keep: flag("f_home_rule_lives"),
         chapters: 10,
@@ -139,6 +153,7 @@ export const GBR_FACTIONS: readonly GwFactionRow[] = [
       gbr_munitions: "tribunals",
       gbr_married_men: "with_tribunals",
       gbr_wealth: "profits_duty",
+      gbr_navy_estimates: "holiday_clause",
     },
     splits: {
       when: any(
@@ -147,6 +162,7 @@ export const GBR_FACTIONS: readonly GwFactionRow[] = [
       ),
       into: "gbr_lg",
       takes: 1,
+      seats: { commons: 71 },
       scene: "gbr_f_lg",
     },
   },
@@ -156,7 +172,9 @@ export const GBR_FACTIONS: readonly GwFactionRow[] = [
     bloc: "parliament",
     start: "in",
     strength: 1,
-    seats: { commons: 1 },
+    // ww203: the 34 Liberals who went with Simon against the Military
+    // Service Bill (January 1916, liberalhistory.org.uk).
+    seats: { commons: 34 },
     leaders: [{ person: "gbr_simon" }, { person: "gbr_morley" }],
     radical: "gbr_i_ponsonby",
     grows: [
@@ -190,16 +208,19 @@ export const GBR_FACTIONS: readonly GwFactionRow[] = [
     wants: [
       {
         id: "war_aims_next",
+        kind: "next",
         when: toCome("gbr_war_aims"),
-        keep: isLaw("gbr_war_aims"),
-        chapters: 10,
+        keep: onAgenda("gbr_war_aims"),
+        chapters: 2,
       },
-      { id: "hear_conscience", keep: war, chapters: 2 },
+      own("gbr_rebels"),
+      { id: "hear_conscience", kind: "promise", keep: war, chapters: 2 },
     ],
     amends: {
       gbr_conscription: "conscience",
       gbr_dora: "civil_trial",
       gbr_war_aims: "no_annexation",
+      gbr_navy_estimates: "fewer_keels",
     },
   },
   {
@@ -208,7 +229,9 @@ export const GBR_FACTIONS: readonly GwFactionRow[] = [
     bloc: "press",
     start: "out",
     strength: 1,
-    seats: { commons: 1 },
+    // ww203: the 71 Liberals who stood by him in the Maurice debate (May
+    // 1918); they come out of the Liberals at the split.
+    seats: { commons: 71 },
     leaders: [
       { person: "gbr_lloyd_george", when: not(lg) },
       { person: "gbr_i_addison" },
@@ -239,18 +262,29 @@ export const GBR_FACTIONS: readonly GwFactionRow[] = [
     ],
     bills: ["gbr_food"],
     wants: [
+      // The war committee in his hands (December 1916): the post is the keep.
+      {
+        id: "committee",
+        kind: "post",
+        when: all(not(lg), not(flag("f_gbr_committee_lg"))),
+        keep: flag("f_gbr_committee_lg"),
+        chapters: 4,
+      },
       {
         id: "conscription_next",
+        kind: "promise",
         when: toCome("gbr_conscription"),
         keep: isLaw("gbr_conscription"),
         chapters: 8,
       },
       {
         id: "food_next",
+        kind: "next",
         when: toCome("gbr_food"),
-        keep: isLaw("gbr_food"),
-        chapters: 8,
+        keep: onAgenda("gbr_food"),
+        chapters: 2,
       },
+      own("gbr_lg"),
     ],
     amends: {
       gbr_conscription: "all_men",
@@ -264,7 +298,8 @@ export const GBR_FACTIONS: readonly GwFactionRow[] = [
     bloc: "business",
     start: "in",
     strength: 3,
-    seats: { commons: 3 },
+    // ww203: the Unionists' 272 (Dec 1910) less the Speaker, Lowther.
+    seats: { commons: 271 },
     leaders: [{ person: "gbr_bonar_law" }, { person: "gbr_balfour" }],
     grows: [
       {
@@ -295,14 +330,25 @@ export const GBR_FACTIONS: readonly GwFactionRow[] = [
     ],
     bills: ["gbr_conscription"],
     wants: [
+      // Seats in a coalition cabinet (May 1915): the post is the keep.
       {
-        id: "conscription_next",
-        when: toCome("gbr_conscription"),
-        keep: isLaw("gbr_conscription"),
-        chapters: 8,
+        id: "coalition_seats",
+        kind: "post",
+        when: all(war, not(co)),
+        keep: co,
+        chapters: 4,
       },
       {
+        id: "conscription_next",
+        kind: "next",
+        when: toCome("gbr_conscription"),
+        keep: onAgenda("gbr_conscription"),
+        chapters: 2,
+      },
+      own("gbr_unionists"),
+      {
         id: "luxury_duties",
+        kind: "promise",
         keep: war,
         chapters: 2,
         effects: [heat("gbr_liberals", 1), heat("gbr_rebels", 1)],
@@ -315,6 +361,7 @@ export const GBR_FACTIONS: readonly GwFactionRow[] = [
       gbr_franchise: "soldiers_only",
       gbr_rent: "rent_courts",
       gbr_wealth: "after_the_war",
+      gbr_navy_estimates: "full_programme",
     },
     splits: {
       when: all(
@@ -327,6 +374,7 @@ export const GBR_FACTIONS: readonly GwFactionRow[] = [
       ),
       into: "gbr_uwc",
       takes: 1,
+      seats: { commons: 70 },
       scene: "gbr_f_uwc",
     },
   },
@@ -336,7 +384,9 @@ export const GBR_FACTIONS: readonly GwFactionRow[] = [
     bloc: "army",
     start: "out",
     strength: 1,
-    seats: { commons: 1 },
+    // ww203: about 70 Unionist members met in Carson's committee (April
+    // 1916); its full roll is not checked.
+    seats: { commons: 70 },
     leaders: [{ person: "gbr_carson" }],
     grows: [
       {
@@ -370,15 +420,25 @@ export const GBR_FACTIONS: readonly GwFactionRow[] = [
     ],
     bills: ["gbr_married_men"],
     wants: [
+      // Carson in the government (Attorney General, May 1915).
+      {
+        id: "carson_in",
+        kind: "post",
+        when: not(flag("f_gbr_carson_in")),
+        keep: flag("f_gbr_carson_in"),
+        chapters: 4,
+      },
       {
         id: "married_next",
+        kind: "next",
         when: toCome("gbr_married_men"),
         keep: any(
-          isLaw("gbr_married_men"),
+          onAgenda("gbr_married_men"),
           isText("gbr_conscription", "all_men"),
         ),
-        chapters: 8,
+        chapters: 2,
       },
+      own("gbr_uwc"),
     ],
     amends: {
       gbr_conscription: "all_men",
@@ -392,7 +452,8 @@ export const GBR_FACTIONS: readonly GwFactionRow[] = [
     bloc: "workers",
     start: "in",
     strength: 2,
-    seats: { commons: 1 },
+    // ww203: Labour's 42 (Dec 1910).
+    seats: { commons: 42 },
     leaders: [{ person: "gbr_henderson" }],
     radical: "gbr_i_smillie",
     grows: [
@@ -424,22 +485,33 @@ export const GBR_FACTIONS: readonly GwFactionRow[] = [
     ],
     bills: ["gbr_wealth", "gbr_rent"],
     wants: [
+      // Henderson in the cabinet (May 1915): the post is the keep.
       {
-        id: "rent_next",
-        when: toCome("gbr_rent"),
-        keep: isLaw("gbr_rent"),
-        chapters: 8,
+        id: "labour_in",
+        kind: "post",
+        when: all(war, not(flag("f_gbr_labour_in"))),
+        keep: flag("f_gbr_labour_in"),
+        chapters: 4,
       },
       {
+        id: "rent_next",
+        kind: "next",
+        when: toCome("gbr_rent"),
+        keep: onAgenda("gbr_rent"),
+        chapters: 2,
+      },
+      own("gbr_labour"),
+      {
         id: "wealth_next",
+        kind: "next",
         when: toCome("gbr_wealth"),
-        keep: isLaw("gbr_wealth"),
-        chapters: 10,
+        keep: onAgenda("gbr_wealth"),
+        chapters: 2,
       },
       {
         id: "pensions",
-        keep: war,
-        chapters: 2,
+        kind: "money",
+        when: war,
         effects: [gauge("money", -1)],
       },
     ],
@@ -450,6 +522,7 @@ export const GBR_FACTIONS: readonly GwFactionRow[] = [
       gbr_franchise: "women_thirty",
       gbr_married_men: "with_tribunals",
       gbr_wealth: "capital_levy",
+      gbr_navy_estimates: "fewer_keels",
     },
     splits: {
       when: all(
@@ -462,6 +535,7 @@ export const GBR_FACTIONS: readonly GwFactionRow[] = [
       ),
       into: "gbr_ilp",
       takes: 1,
+      seats: { commons: 6 },
       scene: "gbr_f_ilp",
     },
   },
@@ -471,7 +545,9 @@ export const GBR_FACTIONS: readonly GwFactionRow[] = [
     bloc: "workers",
     start: "out",
     strength: 1,
-    seats: { commons: 1 },
+    // ww203: the six or so Labour members of the ILP who stood against the
+    // war (MacDonald, Snowden, Jowett, Hardie...).
+    seats: { commons: 6 },
     leaders: [{ person: "gbr_i_macdonald" }],
     grows: [
       { when: low("bread", 1), by: 1, every: 6, key: "bread_queues" },
@@ -503,9 +579,22 @@ export const GBR_FACTIONS: readonly GwFactionRow[] = [
     wants: [
       {
         id: "war_aims_next",
+        kind: "next",
         when: toCome("gbr_war_aims"),
-        keep: isLaw("gbr_war_aims"),
-        chapters: 10,
+        keep: onAgenda("gbr_war_aims"),
+        chapters: 2,
+      },
+      own("gbr_ilp"),
+      // Passports for Stockholm (summer 1917): the government lets them go.
+      {
+        id: "stockholm",
+        kind: "promise",
+        when: all(
+          world({ is: "date", from: "1917-05" }),
+          not(flag("f_gbr_stockholm_no")),
+        ),
+        keep: war,
+        chapters: 2,
       },
     ],
     amends: { gbr_conscription: "conscience", gbr_war_aims: "negotiate_now" },
@@ -516,7 +605,9 @@ export const GBR_FACTIONS: readonly GwFactionRow[] = [
     bloc: "parliament",
     start: "in",
     strength: 3,
-    seats: { commons: 2 },
+    // ww203: the Irish Party's 74 (Dec 1910). O'Brien's 8 and the
+    // independents sit as no faction's and stay away.
+    seats: { commons: 74 },
     leaders: [{ person: "gbr_redmond" }, { person: "gbr_i_dillon" }],
     grows: [
       {
@@ -545,14 +636,16 @@ export const GBR_FACTIONS: readonly GwFactionRow[] = [
     wants: [
       {
         id: "home_rule_next",
-        when: not(flag("f_home_rule_lives")),
-        keep: flag("f_home_rule_lives"),
-        chapters: 10,
+        kind: "next",
+        when: all(not(flag("f_home_rule_lives")), toCome("gbr_home_rule")),
+        keep: onAgenda("gbr_home_rule"),
+        chapters: 2,
       },
+      own("gbr_irish"),
       {
         id: "irish_money",
-        keep: war,
-        chapters: 2,
+        kind: "money",
+        when: war,
         effects: [
           gauge("money", -1),
           { kind: "pressure", topic: "ireland", delta: -1 },
@@ -615,7 +708,8 @@ export const GBR_FACTIONS: readonly GwFactionRow[] = [
     bloc: "court",
     start: "in",
     strength: 2,
-    seats: { lords: 2 },
+    // ww203: the Unionist peers, some 500 of about 620 (not checked).
+    seats: { lords: 500 },
     leaders: [
       { person: "gbr_i_lansdowne", when: not(lg) },
       { person: "gbr_i_curzon" },
@@ -638,7 +732,18 @@ export const GBR_FACTIONS: readonly GwFactionRow[] = [
       { at: 3, scene: "gbr_f_peer_2" },
       { at: 6, scene: "gbr_f_peer_3" },
     ],
-    wants: [{ id: "debate_time", keep: war, chapters: 2 }],
+    wants: [
+      // A seat in the cabinet for the Lords' leader (Lansdowne, May 1915).
+      {
+        id: "peers_in",
+        kind: "post",
+        when: all(war, not(co)),
+        keep: co,
+        chapters: 4,
+      },
+      own("gbr_peers"),
+      { id: "debate_time", kind: "promise", keep: war, chapters: 2 },
+    ],
     amends: {
       gbr_franchise: "soldiers_only",
       gbr_rent: "rent_courts",
@@ -690,6 +795,8 @@ export const GBR_FACTIONS: readonly GwFactionRow[] = [
 export const GBR_BILLS: readonly GwBillRow[] = [
   {
     law: "gbr_dora",
+    // ww203: the ILP holds a free press and a jury as articles of faith.
+    creed: ["gbr_ilp"],
     stance: {
       gbr_liberals: 1,
       gbr_rebels: -1,
@@ -790,6 +897,8 @@ export const GBR_BILLS: readonly GwBillRow[] = [
   },
   {
     law: "gbr_conscription",
+    // ww203: compulsion is what Simon resigned over, and the ILP's no.
+    creed: ["gbr_rebels", "gbr_ilp"],
     stance: {
       gbr_liberals: 0,
       gbr_rebels: -1,
@@ -827,6 +936,7 @@ export const GBR_BILLS: readonly GwBillRow[] = [
   },
   {
     law: "gbr_franchise",
+    constitution: true,
     stance: {
       gbr_liberals: 1,
       gbr_rebels: 1,
@@ -851,6 +961,9 @@ export const GBR_BILLS: readonly GwBillRow[] = [
   },
   {
     law: "gbr_home_rule",
+    constitution: true,
+    // ww203: Ulster's men don't bargain over Home Rule.
+    creed: ["gbr_uwc"],
     stance: {
       gbr_liberals: 1,
       gbr_rebels: 1,
@@ -875,6 +988,7 @@ export const GBR_BILLS: readonly GwBillRow[] = [
   {
     law: "gbr_married_men",
     by: "gbr_uwc",
+    creed: ["gbr_rebels", "gbr_ilp"],
     stance: {
       gbr_liberals: 0,
       gbr_rebels: -1,
@@ -894,6 +1008,8 @@ export const GBR_BILLS: readonly GwBillRow[] = [
   {
     law: "gbr_war_aims",
     by: "gbr_rebels",
+    // ww203: Carson's committee won't talk of aims short of victory.
+    creed: ["gbr_uwc"],
     resolution: true,
     houses: ["commons"],
     stance: {
@@ -932,6 +1048,39 @@ export const GBR_BILLS: readonly GwBillRow[] = [
       after_the_war: { gbr_liberals: 1, gbr_unionists: 0, gbr_labour: 0 },
     },
   },
+  // ww203: the peace years' naval estimates come to the House too (the
+  // 1914 estimates: Churchill's programme against Lloyd George's Treasury
+  // and the Radical economists).
+  {
+    law: "gbr_navy_estimates",
+    money: true,
+    creed: ["gbr_ilp"],
+    stance: {
+      gbr_liberals: 0,
+      gbr_rebels: -1,
+      gbr_lg: 0,
+      gbr_unionists: 1,
+      gbr_uwc: 1,
+      gbr_labour: -1,
+      gbr_ilp: -1,
+      gbr_irish: 0,
+      gbr_peers: 1,
+    },
+    texts: {
+      full_programme: { gbr_liberals: 0, gbr_lg: -1 },
+      holiday_clause: { gbr_liberals: 1, gbr_rebels: 0, gbr_lg: 1 },
+      fewer_keels: {
+        gbr_liberals: 0,
+        gbr_rebels: 1,
+        gbr_lg: 1,
+        gbr_labour: 1,
+        gbr_unionists: -1,
+        gbr_uwc: -1,
+        gbr_peers: -1,
+        gbr_irish: 1,
+      },
+    },
+  },
 ];
 
 const row = (r: Omit<GwLawRow, "tag">): GwLawRow => ({ ...r, tag: "GBR" });
@@ -942,6 +1091,7 @@ export const GBR_HOUSE_LAWS: readonly GwLawRow[] = [
   // Act of May 1916, en.wikipedia Military Service Act 1916).
   row({
     id: "gbr_married_men",
+    chapter: "conscription",
     opens: all(
       war,
       isLaw("gbr_conscription"),
@@ -972,6 +1122,7 @@ export const GBR_HOUSE_LAWS: readonly GwLawRow[] = [
   // The Commons is asked to say what Britain fights for: a motion, no law.
   row({
     id: "gbr_war_aims",
+    chapter: "war_aims",
     opens: all(war, warAge(18)),
     lean: -1,
     decree: false,
@@ -1004,6 +1155,7 @@ export const GBR_HOUSE_LAWS: readonly GwLawRow[] = [
   // 80%: en.wikipedia Excess profits tax).
   row({
     id: "gbr_wealth",
+    chapter: "war_finance",
     opens: all(war, warAge(12)),
     lean: -1,
     decree: false,

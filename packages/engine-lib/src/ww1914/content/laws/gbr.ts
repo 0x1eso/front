@@ -36,6 +36,7 @@ const navyShare = (delta: number) =>
 export const GBR_LAWS: readonly GwLawRow[] = [
   row({
     id: "gbr_dora",
+    chapter: "censorship",
     opens: war,
     lean: 1,
     decree: false,
@@ -75,6 +76,7 @@ export const GBR_LAWS: readonly GwLawRow[] = [
   }),
   row({
     id: "gbr_drink",
+    chapter: "food",
     opens: { kind: "all", of: [war, since("1915-03")] },
     lean: 0,
     decree: true,
@@ -117,6 +119,7 @@ export const GBR_LAWS: readonly GwLawRow[] = [
   }),
   row({
     id: "gbr_munitions",
+    chapter: "labour",
     opens: { kind: "all", of: [war, since("1915-04")] },
     lean: 0,
     decree: false,
@@ -174,6 +177,7 @@ export const GBR_LAWS: readonly GwLawRow[] = [
   }),
   row({
     id: "gbr_register",
+    chapter: "conscription",
     opens: { kind: "all", of: [war, since("1915-05")] },
     lean: 1,
     decree: false,
@@ -204,6 +208,7 @@ export const GBR_LAWS: readonly GwLawRow[] = [
   }),
   row({
     id: "gbr_rent",
+    chapter: "food",
     opens: {
       kind: "any",
       of: [
@@ -241,6 +246,7 @@ export const GBR_LAWS: readonly GwLawRow[] = [
   }),
   row({
     id: "gbr_conscription",
+    chapter: "conscription",
     opens: {
       kind: "all",
       of: [war, since("1915-08"), world({ is: "manpower", max: 75 })],
@@ -300,6 +306,7 @@ export const GBR_LAWS: readonly GwLawRow[] = [
   }),
   row({
     id: "gbr_food",
+    chapter: "food",
     opens: { kind: "all", of: [war, since("1916-12"), low("bread", 2)] },
     lean: 1,
     decree: true,
@@ -344,6 +351,7 @@ export const GBR_LAWS: readonly GwLawRow[] = [
   }),
   row({
     id: "gbr_franchise",
+    chapter: "franchise",
     opens: { kind: "all", of: [war, since("1916-09")] },
     lean: 0,
     decree: false,
@@ -406,6 +414,7 @@ export const GBR_LAWS: readonly GwLawRow[] = [
   }),
   row({
     id: "gbr_home_rule",
+    chapter: "nations",
     opens: {
       kind: "all",
       of: [war, since("1916-05"), not(flag("f_home_rule_lives"))],
@@ -457,6 +466,7 @@ export const GBR_LAWS: readonly GwLawRow[] = [
   // year with no war; the drafts carry the navy's share and how it is paid.
   row({
     id: "gbr_navy_estimates",
+    chapter: "arms",
     opens: {
       kind: "all",
       of: [not(war), world({ is: "peace_months", min: 1 })],
