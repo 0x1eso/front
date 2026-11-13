@@ -21,6 +21,7 @@ import {
   talkDue,
 } from "@openfront/engine/ww1914/Bargain";
 import { capitulate } from "@openfront/engine/ww1914/Capitulation";
+import { openDepts } from "@openfront/engine/ww1914/Departments";
 import {
   applyClaim,
   applyVassals,
@@ -33,7 +34,7 @@ import {
 import type { GreatWar } from "@openfront/engine/ww1914/GreatWar";
 import { holderOf, moveLand } from "@openfront/engine/ww1914/Land";
 import { outMidWar } from "@openfront/engine/ww1914/Peace";
-import { pairTableStep } from "@openfront/engine/ww1914/Table";
+import { closeTable, pairTableStep } from "@openfront/engine/ww1914/Table";
 import {
   atWarWith,
   declareWar,
@@ -359,6 +360,49 @@ describe("a beaten country's fate (ww199)", () => {
     // No treaty: nothing agreed moved, and Germany still holds what it held.
     expect(holderOf(gw, "iasi")).toBe("DEU");
     expect((gw.s.fates ?? []).some((f) => f.of === "ROU")).toBe(false);
+  });
+
+  test("ww216: once the table has risen no settlement choice comes: the waiting answer and the draft at work are withdrawn with a note", async () => {
+    const settlePapers = (seat: GwSeatState, form: string) =>
+      [...seat.desk, ...(seat.depts?.tray ?? [])].filter(
+        (c) =>
+          c.paper?.form === form &&
+          "type" in c.paper &&
+          c.paper.type === "settle",
+      );
+    const signs = (seat: GwSeatState) =>
+      [...seat.scheduled, ...seat.desk].filter((q) =>
+        gwSignPaperIds("DEU").includes(q.scene),
+      );
+    // The answer came while the table sat; the table signs before it is picked.
+    const a = await romaniaAtTheTable("GWSETTLE1");
+    expect(a.seat.depts!.tasks.map((x) => [x.type, x.topic])).toContainEqual([
+      "settle",
+      "ROU",
+    ]);
+    expect(signs(a.seat)).toHaveLength(1);
+    a.gw.s.chapter++;
+    openDepts(a.gw, a.seat);
+    expect(settlePapers(a.seat, "answer")).toHaveLength(1);
+    closeTable(a.gw);
+    expect(a.t.closed).toBe(true);
+    expect(settlePapers(a.seat, "answer")).toHaveLength(0);
+    expect(settlePapers(a.seat, "stall")).toEqual([
+      expect.objectContaining({
+        paper: expect.objectContaining({ reason: "moot", topic: "ROU" }),
+      }),
+    ]);
+    expect(signs(a.seat)).toHaveLength(0);
+    // The draft still at work when the table rose: withdrawn, no answer later.
+    const b = await romaniaAtTheTable("GWSETTLE2");
+    closeTable(b.gw);
+    expect(b.t.closed).toBe(true);
+    expect(b.seat.depts!.tasks.some((x) => x.type === "settle")).toBe(false);
+    expect(settlePapers(b.seat, "stall")).toHaveLength(1);
+    b.gw.s.chapter++;
+    openDepts(b.gw, b.seat);
+    expect(settlePapers(b.seat, "answer")).toHaveLength(0);
+    expect(signs(b.seat)).toHaveLength(0);
   });
 
   test("ww210: an ultimatum refused brings the advance back; a ransom keeps the land for money", async () => {
