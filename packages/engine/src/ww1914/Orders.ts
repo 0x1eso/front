@@ -87,6 +87,7 @@ import {
 } from "./SceneRun";
 import { answerSlow, askSlow, closeByHost, noteActed } from "./Seats";
 import { sendBack } from "./SendBack";
+import { condemnFaction, promoteFaction } from "./Society";
 import { serviceOrder } from "./Spies";
 import { inOpening, newcomers } from "./Story";
 import { tableClaim, tableNext, tablePass, tableWord } from "./Table";
@@ -94,6 +95,7 @@ import { applyReply, summonScenes } from "./Talk";
 import { sendTelegram } from "./Telegrams";
 import { offerTerms } from "./Terms";
 import { answerTreaty, breakOrder, offerTreaty } from "./Treaties";
+import { openNode, realiseUtopia, utopiaChoice } from "./Utopia";
 import { seatPerson } from "./World";
 
 /** Why this seat can't say ready; null when it can. */
@@ -356,6 +358,17 @@ export function applyGwOrder(
       return housePress(gw, seat, o.law, o.faction, o.how);
     case "bill_count":
       return giveCount(gw, seat, o.law);
+    // ww207: the society (S1) and the utopias (S2).
+    case "node_open":
+      return openNode(gw, seat, o.faction, o.node);
+    case "faction_promote":
+      return promoteFaction(gw, seat, o.faction);
+    case "faction_condemn":
+      return condemnFaction(gw, seat, o.faction);
+    case "utopia_realise":
+      return realiseUtopia(gw, seat, o.faction);
+    case "utopia_choice":
+      return utopiaChoice(gw, seat, o.play);
   }
 }
 

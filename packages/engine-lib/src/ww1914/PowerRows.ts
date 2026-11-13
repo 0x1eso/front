@@ -146,7 +146,28 @@ export interface GwPowerRow {
   readonly ends?: GwEnding;
   /** The silent result card laid at once (`scheduledOnly`, `silent`). */
   readonly scene?: string;
+  /**
+   * ww207: a faction's ability (group `factions`, S2). Asked only at trust
+   * 호의 (1) or more and temper 1 or less; it costs trust -1 and cools down
+   * GW_ABILITY_COOLDOWN chapters unless `cooldown` says. At temper 3+ the
+   * faction turns it against the seat: `turned` runs instead, unasked.
+   */
+  readonly ability?: {
+    readonly faction: string;
+    /** Once a node of kind `ability` is open: these effects replace the row's. */
+    readonly strong?: readonly GwEffect[];
+    readonly turned?: {
+      readonly effects: readonly GwEffect[];
+      /** Its card (`scheduledOnly`); the news line if absent. */
+      readonly scene?: string;
+    };
+  };
 }
+
+/** ww207: chapters an ability cools down; trust it needs; temper it turns at. */
+export const GW_ABILITY_COOLDOWN = 6;
+export const GW_ABILITY_TRUST = 1;
+export const GW_ABILITY_TURNS = 3;
 
 /**
  * While a seat flag holds, a row of these groups that wants this office's

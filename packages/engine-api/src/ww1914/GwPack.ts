@@ -189,6 +189,8 @@ export const GwFactionPackSchema = z
     note: Text.optional(),
     /** Reason key -> the 정국 tab's line for its last move. */
     why: ById.optional(),
+    /** ww207: two or three letters on the strip's fallback shield ("사민"). */
+    short: Text.optional(),
   })
   .strict();
 export type GwFactionPack = z.infer<typeof GwFactionPackSchema>;
@@ -197,6 +199,19 @@ export type GwFactionPack = z.infer<typeof GwFactionPackSchema>;
 export const GwNamePackSchema = z
   .object({ name: Text, note: Text.optional() })
   .strict();
+
+/**
+ * ww207: a faction's utopia, pack `utopia.<id>`: its name (사회민주 독일),
+ * a note, and its tree's nodes in its own words (template words if absent).
+ */
+export const GwUtopiaPackSchema = z
+  .object({
+    name: Text,
+    note: Text.optional(),
+    nodes: z.record(GwIdSchema, GwNamePackSchema).optional(),
+  })
+  .strict();
+export type GwUtopiaPack = z.infer<typeof GwUtopiaPackSchema>;
 
 /** A national aim's words: pack `aims.<id>`. */
 export const GwAimPackSchema = z
@@ -335,6 +350,10 @@ export const GwPackSchema = z
     depts: GwDeptPackSchema.optional(),
     /** ww196: the person: places, bearers, address, diary. */
     persona: GwPersonaPackSchema.optional(),
+    /** ww207: community id -> its name and note (장교와 관료). */
+    communities: z.record(GwIdSchema, GwNamePackSchema).optional(),
+    /** ww207: utopia id (GwTreeRow `utopia`) -> its words. */
+    utopia: z.record(GwIdSchema, GwUtopiaPackSchema).optional(),
   })
   .strict();
 export type GwPack = z.infer<typeof GwPackSchema>;
@@ -360,6 +379,8 @@ export function mergeGwPacks(packs: readonly GwPack[]): GwPack {
     asks: {},
     heads: {},
     powers: {},
+    communities: {},
+    utopia: {},
   };
   for (const p of packs) {
     Object.assign(out.scenes, p.scenes);
@@ -381,6 +402,8 @@ export function mergeGwPacks(packs: readonly GwPack[]): GwPack {
     Object.assign(out.asks!, p.asks);
     Object.assign(out.heads!, p.heads);
     Object.assign(out.powers!, p.powers);
+    Object.assign(out.communities!, p.communities);
+    Object.assign(out.utopia!, p.utopia);
     out.depts = mergeGwDeptPacks(out.depts, p.depts);
     out.persona = mergeGwPersonaPacks(out.persona, p.persona);
     if (p.press !== undefined) out.press = p.press;

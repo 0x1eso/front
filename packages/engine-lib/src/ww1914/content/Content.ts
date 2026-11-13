@@ -13,7 +13,9 @@ import type {
 import type { GwHouseContent } from "../HouseRows";
 import type { GwPowerContent } from "../PowerRows";
 import { withRuler } from "../RulerRows";
+import type { GwSocietyContent } from "../SocietyRows";
 import { joinDepts } from "../TaskRows";
+import type { GwUtopiaContent } from "../UtopiaRows";
 import { AUH_ACT_SCENES, AUH_ACTS, AUH_AIMS } from "./acts/auh";
 import {
   AGENT_ACTS,
@@ -199,6 +201,8 @@ import { STALL_SCENES } from "./scenes/stall_events";
 import { TABLE_SCENES } from "./scenes/table";
 import { WARTIME_SCENES } from "./scenes/wartime";
 import { WORLD_SCENES } from "./scenes/world";
+import { GW_SOCIETY } from "./society";
+import { GW_UTOPIA } from "./utopia";
 
 export interface GwContent extends GwHouseContent, GwPowerContent {
   readonly scenes: readonly GwScene[];
@@ -216,6 +220,10 @@ export interface GwContent extends GwHouseContent, GwPowerContent {
   readonly depts?: GwDeptContent;
   /** ww196: the ruler as a person (content/persona); fixtures may have none. */
   readonly persona?: GwPersonaContent;
+  /** ww207: communities, births, generic parties (content/society). */
+  readonly society?: GwSocietyContent;
+  /** ww207: the tree templates and the factions' trees (content/utopia). */
+  readonly utopia?: GwUtopiaContent;
 }
 
 /** Where the main story remembers the prologues. */
@@ -458,6 +466,8 @@ export const GW_CONTENT: GwContent = {
     AUH_PERSONA,
   ]),
   ...GW_HOUSE_CONTENT,
+  society: GW_SOCIETY,
+  utopia: GW_UTOPIA,
   powers: [
     ...DEU_POWERS,
     ...GBR_POWERS,

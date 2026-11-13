@@ -39,12 +39,14 @@ import { rulerAudiences, rulerStep } from "./Ruler";
 import { closeUndecided } from "./SceneRun";
 import { seaStep } from "./Sea";
 import { closeSeats, regentStep, waitedFor } from "./Seats";
+import { societyStep } from "./Society";
 import { storyStep } from "./Story";
 import { openSession, pairTableStep, tableStep } from "./Table";
 import { GW_SUMMONS_LESS } from "./Tables";
 import { telegramStep } from "./Telegrams";
 import { termsStep } from "./Terms";
 import { treatyStep } from "./Treaties";
+import { utopiaStep } from "./Utopia";
 import { trimLines } from "./World";
 import { worldFlagsStep } from "./WorldFlags";
 
@@ -69,6 +71,9 @@ export const GW_CHAPTER_STEPS: readonly ((gw: GreatWar) => void)[] = [
   electionStep,
   lawStep,
   houseStep,
+  // ww207: the society (S1), then the utopias (S2).
+  societyStep,
+  utopiaStep,
   dossierStep,
   alliesStep,
   homeStep,

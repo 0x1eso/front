@@ -33,6 +33,7 @@ import type { GwDossierView, GwHouseView } from "./GwHouse";
 import type { GwBookView, GwLawView } from "./GwLaw";
 import type { GwPlace } from "./GwPlaces";
 import type { GwPressView } from "./GwPress";
+import type { GwSocietyView } from "./GwSociety";
 
 /** One of the chief of staff's papers; send it back as an `allocate`. */
 export interface GwProposal {
@@ -355,4 +356,6 @@ export interface GwWorldView {
   house?: GwHouseView;
   /** The notebook's 서류철 and allies' asks (ww158, S2); absent with none. */
   dossier?: GwDossierView;
+  /** ww207: the bottom strip, the axes and communities, the election card; absent with no house. */
+  society?: GwSocietyView;
 }

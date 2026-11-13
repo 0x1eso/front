@@ -24,6 +24,8 @@ export const DEU_HOUSE: GwHouseRow = {
       sits: not(DISSOLVED),
       // ww203: 397 seats (the 1912 election).
       size: 397,
+      // ww207 (F, W-DEU checks): two rounds; the 1912 house's term ends early 1917.
+      elect: { rule: "two_round", due: "1917-01", term: 5 },
     },
     // The states' door: only bills that name it (Reich food, the states' rights).
     // ww203: 61 votes; Prussia's 17 and the small states' vote as the
@@ -80,6 +82,8 @@ export const GBR_HOUSE: GwHouseRow = {
       sits: not(any(GBR_PROROGUED, DISSOLVED)),
       // ww203: 670 seats (December 1910).
       size: 670,
+      // ww207 (F, W-GBR checks): the Parliament Act's five years from Dec 1910.
+      elect: { rule: "fptp", due: "1915-12", term: 5 },
     },
     // ww203: some 620 peers in 1914 (Lord Lexden; the party shares are not
     // checked). Bishops and cross-benchers sit as no faction's: away.
@@ -127,6 +131,8 @@ export const AUH_HOUSE: GwHouseRow = {
       sits: REICHSRAT_OPEN,
       // ww203: 516 seats (1911).
       size: 516,
+      // ww207 (F, W-AUH checks): elected June 1911, a six-year term.
+      elect: { rule: "two_round", due: "1917-06", term: 6, franchise: "equal" },
     },
     {
       id: "budapest",
@@ -136,6 +142,8 @@ export const AUH_HOUSE: GwHouseRow = {
       starts: true,
       // ww203: 413 seats (1910).
       size: 413,
+      // ww207 (F, W-AUH checks): elected June 1910, a five-year term, the narrow census.
+      elect: { rule: "curia", due: "1915-06", term: 5, franchise: "estates" },
     },
   ],
   // Tisza counts for himself, and says so.
@@ -181,6 +189,8 @@ export const RUS_HOUSE: GwHouseRow = {
       sits: not(RUS_DUMA_GONE),
       // ww203: 442 seats (the Fourth Duma).
       size: 442,
+      // ww207 (F, W-RUS checks): the Fourth Duma, elected autumn 1912.
+      elect: { rule: "curia", due: "1917-11", term: 5, franchise: "curia" },
     },
     {
       id: "council",
@@ -237,6 +247,8 @@ export const FRA_HOUSE: GwHouseRow = {
       // ww203: 602 filled in 1914, 50 of them unattached (fr.wikipedia, XIe
       // législature, the groups' table); the unattached stay away.
       size: 602,
+      // ww207 (F, W-FRA checks): elected April-May 1914, a four-year term.
+      elect: { rule: "two_round", due: "1918-04", term: 4 },
     },
     // ww203: 300 seats; the 1912 groups (no renewal in the war), about ten
     // unattached away.

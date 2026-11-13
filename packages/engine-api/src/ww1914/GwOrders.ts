@@ -394,6 +394,17 @@ export const GwOrderSchema = z.discriminatedUnion("kind", [
     faction: Id,
     want: Id.nullable(),
   }),
+  // ---- ww207: the society and the utopias ----
+  /** 연다: open a node of the faction's tree, spending its affinity (S2). */
+  z.object({ kind: z.literal("node_open"), faction: Id, node: Id }),
+  /** 지지한다: seats or a post, support +1 (S1). */
+  z.object({ kind: z.literal("faction_promote"), faction: Id }),
+  /** 규탄한다: a ban or arrests; support -2, temper +2, its community heats (S1). */
+  z.object({ kind: z.literal("faction_condemn"), faction: Id }),
+  /** 실현한다: the faction's utopia, every node open and the state met (S2). */
+  z.object({ kind: z.literal("utopia_realise"), faction: Id }),
+  /** The utopia's card (decision 1B): end here, or play on as the new head. */
+  z.object({ kind: z.literal("utopia_choice"), play: z.boolean() }),
 ]);
 export type GwOrder = z.infer<typeof GwOrderSchema>;
 
@@ -481,5 +492,12 @@ export const GW_ORDER_BLOCKS = [
   "no_talk", // he won't talk: a broken promise, his creed, a file
   "no_press", // that pressure has nothing to work with
   "counting", // a department counts it already
+  // ww207
+  "no_faction", // no such faction of the seat's, or it is gone
+  "no_node", // no such node in its tree, or it is open
+  "no_affinity", // its affinity is short of the node's price
+  "node_shut", // the tier before isn't open, or its gate doesn't hold
+  "faction_cool", // promoted or condemned lately: not again yet
+  "no_utopia", // the utopia isn't ready, or there's nothing to choose
 ] as const;
 export type GwOrderBlock = (typeof GW_ORDER_BLOCKS)[number];

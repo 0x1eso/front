@@ -14,6 +14,7 @@ export const GW_POWER_GROUPS = [
   "home", // 국내
   "schedule", // 일정: the schedule tab, linked
   "beyond", // 법 밖의 일: every `beyond` row shows here
+  "factions", // ww207 정당: the factions' abilities (rows with `ability`)
 ] as const;
 export type GwPowerGroup = (typeof GW_POWER_GROUPS)[number];
 
@@ -60,6 +61,10 @@ export const GW_POWER_TAGS = [
   "harsh_home",
   "cabinet_change",
   "coalition",
+  // ww207: a faction promoted or condemned, an ability asked.
+  "promote",
+  "condemn",
+  "ability",
 ] as const;
 export type GwPowerTag = (typeof GW_POWER_TAGS)[number];
 

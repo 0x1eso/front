@@ -9,7 +9,12 @@ import type {
   GwIssue,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
+import type { GwChamber } from "@openfront/engine-api/ww1914/GwHouse";
 import type { GwBookChapter } from "@openfront/engine-api/ww1914/GwLaw";
+import type {
+  GwAxisPush,
+  GwFranchise,
+} from "@openfront/engine-api/ww1914/GwSociety";
 import type {
   GwCastRule,
   GwCond,
@@ -112,6 +117,13 @@ export interface GwLawDraft {
   /** What it does to the count. */
   readonly support: number;
   readonly when?: GwCond;
+  /** ww207: axis notches it moves when passed (one a bill; S1). */
+  readonly axes?: GwAxisPush;
+  /** ww207: a franchise bill's text: the chamber's franchise it sets. */
+  readonly franchise?: {
+    readonly chamber: GwChamber;
+    readonly to: GwFranchise;
+  };
 }
 
 export interface GwLawRow {
@@ -168,6 +180,14 @@ export interface GwLawRow {
   readonly flag?: string;
   /** The censor's level while it is law: up on passing, down on repeal. */
   readonly censor?: number;
+  /**
+   * ww207: a peace row: it opens while the country is not at war (the crisis
+   * weeks, the peace years, neutrality, after the armistice), and its terms
+   * work after the armistice too (S1).
+   */
+  readonly peace?: boolean;
+  /** ww207: a faction's exclusive law: in the book only once that node is open (S2). */
+  readonly exclusive?: { readonly faction: string; readonly node: string };
 }
 
 /** What a law does on its months, as tell words: `steady_bread:+1`. */

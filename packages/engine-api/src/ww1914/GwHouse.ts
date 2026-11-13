@@ -28,8 +28,16 @@ export type GwChamber = (typeof GW_CHAMBERS)[number];
 /**
  * `out`: not formed yet. `in`: sits and counts. `merged`: gone into another
  * faction. `under`: driven underground: it counts for nothing in the house.
+ * `gone` (ww207): dead, no support and no seats after an election; its
+ * members back in their communities, its leader a private man.
  */
-export const GW_FACTION_STATUS = ["out", "in", "merged", "under"] as const;
+export const GW_FACTION_STATUS = [
+  "out",
+  "in",
+  "merged",
+  "under",
+  "gone",
+] as const;
 export type GwFactionStatus = (typeof GW_FACTION_STATUS)[number];
 
 /** Strength 0..4: gw.house.strength.<n> (한 줌 .. 의회를 쥔). */
@@ -135,6 +143,19 @@ export const GwFactionStateSchema = z.object({
   fed: int.default(0),
   /** The feed keys that have fed it since it was last calm. */
   fedKeys: z.array(Id).default([]),
+  // ---- ww207 society (S1) and utopia (S2); absent: the row's start ----
+  /** 0..GW_FACTION_SUPPORT_MAX (GwSociety): its share of its communities. */
+  support: int.optional(),
+  /** -3..3: its trust in the seat (GW_TRUST_WORDS). */
+  trust: int.optional(),
+  /** 0..GW_AFFINITY_MAX: its tree's fill, spent on nodes. */
+  affinity: int.optional(),
+  /** Its tree's nodes open, in order. */
+  nodes: z.array(Id).optional(),
+  /** Its ability can be asked again from this chapter. */
+  ableAt: int.optional(),
+  /** The chapter it was born (a birth row or a generic party); absent: a row's start. */
+  born: int.optional(),
 });
 export type GwFactionState = z.infer<typeof GwFactionStateSchema>;
 

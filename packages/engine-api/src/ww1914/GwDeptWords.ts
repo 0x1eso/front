@@ -36,6 +36,10 @@ export const GW_TASK_TYPES = [
   // ww203: common to every seat, given from the agenda (order `bill_count`),
   // not offered: the counting office counts one bill. Topic: the law id.
   "count", // {법안} 표 계산
+  // ww207: common to every seat, offered to the interior office (S1 wires
+  // it): it reads the communities, their sizes and moods, and who would win
+  // an election. It can be wrong. Topic: null.
+  "poll", // 민심 동향
 ] as const;
 export type GwTaskType = (typeof GW_TASK_TYPES)[number];
 export const GW_COMMON_TASK_TYPES: readonly GwTaskType[] = GW_TASK_TYPES.slice(
@@ -148,6 +152,15 @@ export const GW_ANSWER_SLOTS = [
   "bill",
   "tally",
   "swing",
+  // ww207: a poll answer. winner: the faction that would win the next
+  // election (word); rising, falling: faction ids, joined by ","; hot: the
+  // communities at temper 2+, joined by ","; due: the next election's chamber
+  // (word; absent with none due).
+  "winner",
+  "rising",
+  "falling",
+  "hot",
+  "due",
 ] as const;
 export type GwAnswerSlot = (typeof GW_ANSWER_SLOTS)[number];
 

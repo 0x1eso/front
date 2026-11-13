@@ -14,6 +14,7 @@ import {
   type GwEconState,
   gwTrendOf,
 } from "@openfront/engine-api/ww1914/GwEcon";
+import type { GwSocietyView } from "@openfront/engine-api/ww1914/GwSociety";
 import type {
   GwCountryView,
   GwFrontView,
@@ -51,6 +52,7 @@ import { generalsFor } from "./Post";
 import { pressView } from "./Press";
 import { propView } from "./Propaganda";
 import { holderOf, holds } from "./SceneRun";
+import { societyView } from "./Society";
 import { foeOn, foeRead, fundView, reads, rivalsOf } from "./Spies";
 import { endStrain, strainWord } from "./Strain";
 import { GW_ACTORS, GW_COMMAND_NAMED_AFTER } from "./Tables";
@@ -382,5 +384,15 @@ export function worldView(gw: GreatWar, seat: GwSeatState): GwWorldView {
     house: houseView(gw, seat),
     book: lawBookView(gw, seat),
     dossier: dossierView(gw, seat),
+    ...societyOf(gw, seat),
   };
+}
+
+/** ww207: the strip, the axes, the communities; absent for a seat with no house. */
+function societyOf(
+  gw: GreatWar,
+  seat: GwSeatState,
+): { society?: GwSocietyView } {
+  const society = societyView(gw, seat);
+  return society === undefined ? {} : { society };
 }

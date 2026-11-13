@@ -82,8 +82,10 @@ import { ruleDo, ruleHolds } from "./Rule";
 import { SceneCtx, whoIn } from "./SceneRun";
 import { setUboats } from "./Sea";
 import { seaHolds } from "./Seas";
+import { societyDo, societyHolds } from "./Society";
 import { atPeace, spyEffect, spyHolds } from "./Spies";
 import { collapseHolds } from "./Stalemate";
+import { utopiaDo, utopiaHolds } from "./Utopia";
 import { enter } from "./Wars";
 import { clampTo, lastOf, moveGauge, news, reason } from "./World";
 import { flagNow } from "./WorldFlags";
@@ -377,6 +379,18 @@ export function worldHolds(ctx: SceneCtx, c: GwWorldCond): boolean {
     case "revanche":
     case "settle_open":
       return fateHolds(gw, seat, c);
+    // ww207
+    case "axis":
+    case "support":
+    case "faction_trust":
+    case "community":
+    case "community_trust":
+    case "election_due":
+      return societyHolds(ctx, c);
+    case "affinity":
+    case "node":
+    case "utopia":
+      return utopiaHolds(ctx, c);
   }
 }
 
@@ -720,6 +734,18 @@ export function worldEffect(ctx: SceneCtx, e: GwWorldEffect): void {
     case "settle_plan":
     case "loyalty":
       fateDo(gw, seat, e);
+      return;
+    // ww207
+    case "axis":
+    case "support":
+    case "faction_trust":
+    case "community":
+    case "community_trust":
+    case "election":
+      societyDo(ctx, e);
+      return;
+    case "affinity":
+      utopiaDo(ctx, e);
       return;
   }
 }

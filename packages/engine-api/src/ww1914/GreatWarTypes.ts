@@ -32,6 +32,7 @@ import { GwPowerStateSchema } from "./GwPowers";
 import { gwPressStart, GwPressStateSchema } from "./GwPress";
 import { GwPrologueStateSchema } from "./GwPrologue";
 import { GwRulerStateSchema } from "./GwRuler";
+import { GwAxesSchema, GwSocietyStateSchema } from "./GwSociety";
 import {
   GW_RIVAL_ACTS,
   GW_RIVAL_ENDS,
@@ -795,6 +796,8 @@ export const GwNationStateSchema = z.object({
   vassal: GwVassalStateSchema.optional(),
   /** ww201: the production step's trends (Economy.ts); absent until it runs. */
   econ: GwEconStateSchema.optional(),
+  /** ww207: its axes in notches (GwSociety.ts, Society.ts); absent until moved. */
+  axes: GwAxesSchema.optional(),
 });
 export type GwNationState = z.infer<typeof GwNationStateSchema>;
 
@@ -1688,6 +1691,8 @@ export const GwSeatStateSchema = z.object({
   leftAt: z.number().int().optional(),
   /** ww196: the person's diary and "알고 보니" lines (GwPersona.ts); absent until any. */
   persona: z.lazy(() => GwPersonaStateSchema).optional(),
+  /** ww207: communities, births, elections, the utopia (GwSociety.ts); absent until any. */
+  society: GwSocietyStateSchema.optional(),
 });
 export type GwSeatState = z.infer<typeof GwSeatStateSchema>;
 

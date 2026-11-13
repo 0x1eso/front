@@ -2094,6 +2094,8 @@ export function houseView(
   const factions = rows.flatMap((row) => {
     const f = factionOf(seat, row.id);
     if (f === null || f.status === "out" || f.status === "merged") return [];
+    // ww207: a gone party shows only on the strip (GwSocietyView).
+    if (f.status === "gone") return [];
     return [
       {
         id: row.id,

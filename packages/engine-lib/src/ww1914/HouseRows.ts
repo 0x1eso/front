@@ -19,10 +19,15 @@ import type {
 import type { GwPriceKind } from "@openfront/engine-api/ww1914/GwLaw";
 import type { GwBloc } from "@openfront/engine-api/ww1914/GwPress";
 import type {
+  GwIdeals,
+  GwTreeTemplate,
+} from "@openfront/engine-api/ww1914/GwSociety";
+import type {
   GwCastRule,
   GwCond,
   GwEffect,
 } from "@openfront/engine-api/ww1914/SceneDsl";
+import type { GwElectRow } from "./SocietyRows";
 
 /** -1 against, 0 stays away, +1 for. */
 export type GwSide = -1 | 0 | 1;
@@ -63,6 +68,8 @@ export interface GwChamberRow {
    * ballot (the Bundesrat's Prussia, 17); the vote scene draws each as one.
    */
   readonly states?: readonly { readonly id: string; readonly seats: number }[];
+  /** ww207: its general elections (S1); absent: never elected (Lords, Bundesrat). */
+  readonly elect?: GwElectRow;
 }
 
 /** The way round the house, where the constitution has one. */
@@ -224,6 +231,17 @@ export interface GwFactionRow {
   readonly plot?: string;
   /** Camps it shares with ministers: a sponsor of one warms it to his bill. */
   readonly camps?: readonly GwCamp[];
+  // ---- ww207 (W lanes fill; S1/S2 run) ----
+  /** Its three Cornerstones, on the seat's axes (GwSociety axesOf). */
+  readonly ideals?: GwIdeals;
+  /** Support at the start, 0..10; absent: from its seats' share. */
+  readonly support?: number;
+  /** Trust in the seat at the start, -3..3; 0 if absent. */
+  readonly trust?: number;
+  /** Its tree's template when it has no tree row (born and generic parties). */
+  readonly template?: GwTreeTemplate;
+  /** Its ability: a power row with `ability` naming this faction. */
+  readonly ability?: string;
 }
 
 /** What the house makes of a bill: kept apart from the law row, by law id. */

@@ -128,6 +128,7 @@ import {
   GwPlaceGroupSchema,
   GwPlaceSchema,
 } from "./GwPlaces";
+import { GW_AXES, GwAxis } from "./GwSociety";
 import { GW_SPY_ACTS, GW_SPY_CANS, GwSpyAct, GwSpyCan } from "./GwSpies";
 
 const GW_BUDGET_WHATS = ["treasury", "load", "prices", "lent"] as const;
@@ -565,7 +566,27 @@ export type GwWorldCond =
    */
   | ({ is: "revanche"; tag?: GwTag } & Range)
   /** A table sits with the seat's country in a chair, the fate of `of` (the beaten) open. */
-  | { is: "settle_open"; of?: GwTag };
+  | { is: "settle_open"; of?: GwTag }
+  // ---- ww207: the society (Society.ts, S1) ----
+  /** The seat's country on an axis, in steps -3..3 (minus: the first word). */
+  | ({ is: "axis"; axis: GwAxis } & Range)
+  /** A faction's support, 0..10. */
+  | ({ is: "support"; id: string } & Range)
+  /** A faction's trust in the seat, -3..3. */
+  | ({ is: "faction_trust"; id: string } & Range)
+  /** A community's temper, 0..4. */
+  | ({ is: "community"; id: string } & Range)
+  /** A community's trust in the seat, -3..3. */
+  | ({ is: "community_trust"; id: string } & Range)
+  /** Chapters to the chamber's next general election (none due: false). */
+  | ({ is: "election_due"; chamber: GwChamber } & Range)
+  // ---- ww207: the utopias (Utopia.ts, S2) ----
+  /** A faction's affinity, 0..100. */
+  | ({ is: "affinity"; id: string } & Range)
+  /** That node of the faction's tree is open. */
+  | { is: "node"; id: string; node: string }
+  /** A utopia has been realised: that faction's if `id`, else any. */
+  | { is: "utopia"; id?: string };
 
 export type GwWorldEffect =
   /** Germany's plan for the war to come. */
@@ -809,7 +830,23 @@ export type GwWorldEffect =
       resist?: number;
       client?: GwClient;
       of?: GwTag;
-    };
+    }
+  // ---- ww207: the society (Society.ts, S1) ----
+  /** The seat's country's axis, by notches (GW_AXIS_NOTCHES a step). */
+  | { do: "axis"; axis: GwAxis; delta: number }
+  /** A faction's support. */
+  | { do: "support"; id: string; delta: number }
+  /** A faction's trust in the seat. */
+  | { do: "faction_trust"; id: string; delta: number }
+  /** A community's temper: `delta` > 0 heats it. */
+  | { do: "community"; id: string; delta: number }
+  /** A community's trust in the seat. */
+  | { do: "community_trust"; id: string; delta: number }
+  /** A general election of the chamber now: after a dissolution, a new regime. */
+  | { do: "election"; chamber: GwChamber; cause: "dissolved" | "regime" }
+  // ---- ww207: the utopias (Utopia.ts, S2) ----
+  /** A faction's affinity. */
+  | { do: "affinity"; id: string; delta: number };
 
 const int = z.number().int();
 const yearMonth = z.string().regex(/^19[0-9]{2}-[01][0-9]$/);
@@ -1097,6 +1134,16 @@ export const GwWorldCondSchema = z.union([
   }),
   is("revanche", { tag: tag.optional(), ...range }),
   is("settle_open", { of: tag.optional() }),
+  // ww207
+  is("axis", { axis: z.enum(GW_AXES), ...range }),
+  is("support", { id: GwIdSchema, ...range }),
+  is("faction_trust", { id: GwIdSchema, ...range }),
+  is("community", { id: GwIdSchema, ...range }),
+  is("community_trust", { id: GwIdSchema, ...range }),
+  is("election_due", { chamber: z.enum(GW_CHAMBERS), ...range }),
+  is("affinity", { id: GwIdSchema, ...range }),
+  is("node", { id: GwIdSchema, node: GwIdSchema }),
+  is("utopia", { id: GwIdSchema.optional() }),
 ]) as unknown as z.ZodType<GwWorldCond>;
 
 export const GwWorldEffectSchema = z.union([
@@ -1240,6 +1287,17 @@ export const GwWorldEffectSchema = z.union([
     client: z.enum(GW_CLIENTS).optional(),
     of: tag.optional(),
   }),
+  // ww207
+  act("axis", { axis: z.enum(GW_AXES), delta: int }),
+  act("support", { id: GwIdSchema, delta: int }),
+  act("faction_trust", { id: GwIdSchema, delta: int }),
+  act("community", { id: GwIdSchema, delta: int }),
+  act("community_trust", { id: GwIdSchema, delta: int }),
+  act("election", {
+    chamber: z.enum(GW_CHAMBERS),
+    cause: z.enum(["dissolved", "regime"]),
+  }),
+  act("affinity", { id: GwIdSchema, delta: int }),
 ]) as unknown as z.ZodType<GwWorldEffect>;
 
 // ---- Authoring helpers ----

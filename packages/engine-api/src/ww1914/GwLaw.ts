@@ -169,6 +169,12 @@ export const GW_BOOK_CHAPTERS = [
   "nations", // 민족·종교
   "war_aims", // 전쟁 목표
   "arms", // 군비
+  // ww207: the peace chapters (rows `peace: true`, W lanes).
+  "tax", // 재정·세제
+  "social", // 사회 입법
+  "land", // 토지·농민
+  "schools", // 학교·교회
+  "local", // 지방·자치
 ] as const;
 export type GwBookChapter = (typeof GW_BOOK_CHAPTERS)[number];
 
