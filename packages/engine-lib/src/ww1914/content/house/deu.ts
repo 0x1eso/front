@@ -28,6 +28,7 @@ import type {
   GwWeakRow,
 } from "../../HouseRows";
 import type { GwLawRow } from "../../LawRows";
+import { withAxes } from "../laws/deu";
 import { either, gauge, held, inst, office, person } from "../laws/kit";
 import {
   answerAsk,
@@ -113,6 +114,9 @@ const nextOf = (law: string): Pick<GwWant, "kind" | "when" | "keep"> => ({
 });
 /** A price paid on the spot: the promise is kept the next chapter. */
 const paid: GwCond = { kind: "chapter", min: 0 };
+/** ww207: that node of the faction's tree is open (its exclusive law). */
+const nodeOpen = (faction: string, node: string): GwCond =>
+  world({ is: "node", id: faction, node });
 const peaceTaken: GwCond = any(
   flag("f_resolution_taken"),
   isLaw("deu_peace_res"),
@@ -124,6 +128,10 @@ export const DEU_FACTIONS: readonly GwFactionRow[] = [
   {
     id: "deu_cons",
     tag: "DEU",
+    // ww207: its Cornerstones (rule 왕권/의회, class 재산/노동, force 무력/협조).
+    ideals: { rule: -1, class: -1, force: -1 },
+    trust: 1,
+    ability: "deu_pw_ab_cons",
     bloc: "court",
     start: "in",
     strength: 2,
@@ -189,6 +197,9 @@ export const DEU_FACTIONS: readonly GwFactionRow[] = [
   {
     id: "deu_natlib",
     tag: "DEU",
+    ideals: { rule: 0, class: -1, force: -1 },
+    trust: 1,
+    ability: "deu_pw_ab_natlib",
     bloc: "business",
     start: "in",
     strength: 2,
@@ -259,6 +270,8 @@ export const DEU_FACTIONS: readonly GwFactionRow[] = [
   {
     id: "deu_centre",
     tag: "DEU",
+    ideals: { rule: 1, class: 0, force: 1 },
+    ability: "deu_pw_ab_centre",
     bloc: "parliament",
     start: "in",
     strength: 3,
@@ -337,6 +350,8 @@ export const DEU_FACTIONS: readonly GwFactionRow[] = [
   {
     id: "deu_progress",
     tag: "DEU",
+    ideals: { rule: 1, class: -1, force: 1 },
+    ability: "deu_pw_ab_progress",
     bloc: "parliament",
     start: "in",
     strength: 2,
@@ -408,6 +423,9 @@ export const DEU_FACTIONS: readonly GwFactionRow[] = [
   {
     id: "deu_spd",
     tag: "DEU",
+    ideals: { rule: 1, class: 1, force: 0 },
+    trust: -1,
+    ability: "deu_pw_ab_spd",
     bloc: "workers",
     start: "in",
     strength: 3,
@@ -501,6 +519,8 @@ export const DEU_FACTIONS: readonly GwFactionRow[] = [
   {
     id: "deu_uspd",
     tag: "DEU",
+    ideals: { rule: 1, class: 1, force: 1 },
+    trust: -2,
     bloc: "workers",
     start: "out",
     strength: 1,
@@ -568,6 +588,8 @@ export const DEU_FACTIONS: readonly GwFactionRow[] = [
   {
     id: "deu_spartacus",
     tag: "DEU",
+    ideals: { rule: 0, class: 1, force: 1 },
+    trust: -3,
     bloc: "workers",
     start: "out",
     strength: 1,
@@ -596,6 +618,8 @@ export const DEU_FACTIONS: readonly GwFactionRow[] = [
   {
     id: "deu_minor",
     tag: "DEU",
+    ideals: { rule: 1, class: 0, force: 1 },
+    trust: -1,
     bloc: "parliament",
     start: "in",
     strength: 1,
@@ -650,6 +674,8 @@ export const DEU_FACTIONS: readonly GwFactionRow[] = [
   {
     id: "deu_ohl",
     tag: "DEU",
+    ideals: { rule: -1, class: 0, force: -1 },
+    trust: 2,
     bloc: "army",
     start: "in",
     strength: 2,
@@ -704,6 +730,8 @@ export const DEU_FACTIONS: readonly GwFactionRow[] = [
   {
     id: "deu_south",
     tag: "DEU",
+    ideals: { rule: -1, class: -1, force: 0 },
+    trust: 1,
     bloc: "court",
     start: "in",
     strength: 2,
@@ -777,6 +805,9 @@ export const DEU_FACTIONS: readonly GwFactionRow[] = [
   {
     id: "deu_fatherland",
     tag: "DEU",
+    ideals: { rule: -1, class: 0, force: -1 },
+    trust: 1,
+    ability: "deu_pw_ab_fatherland",
     bloc: "court",
     start: "out",
     strength: 2,
@@ -1223,6 +1254,207 @@ export const DEU_BILLS: readonly GwBillRow[] = [
     },
     sponsor: either(office("war"), office("chancellor")),
   },
+  // ---- ww207: the peace articles, the postponement, the trees' own laws ----
+  {
+    // 30 June 1913: the SPD group's majority voted for the levy on
+    // property; the Conservatives fought a Reich tax on wealth.
+    law: "deu_defence_levy",
+    stance: {
+      deu_cons: -1,
+      deu_natlib: 1,
+      deu_centre: 1,
+      deu_progress: 1,
+      deu_spd: 0,
+      deu_uspd: -1,
+      deu_minor: 0,
+      deu_south: 0,
+      deu_fatherland: 0,
+    },
+    texts: {
+      property_levy: { deu_spd: 1, deu_cons: -1, deu_fatherland: -1 },
+      consumption: {
+        deu_cons: 1,
+        deu_fatherland: 1,
+        deu_progress: 0,
+        deu_spd: -1,
+        deu_uspd: -1,
+      },
+      states_pay: { deu_south: -1, deu_cons: 1, deu_centre: 0 },
+    },
+    houses: ["reichstag", "bundesrat"],
+    money: true,
+    sponsor: either(office("finance"), office("chancellor")),
+  },
+  {
+    law: "deu_grain_tariff",
+    stance: {
+      deu_cons: 1,
+      deu_natlib: 0,
+      deu_centre: 1,
+      deu_progress: -1,
+      deu_spd: -1,
+      deu_uspd: -1,
+      deu_minor: 0,
+      deu_south: 1,
+      deu_fatherland: 1,
+    },
+    texts: {
+      raise_duties: { deu_natlib: -1, deu_centre: 0 },
+      cut_duties: {
+        deu_cons: -1,
+        deu_centre: -1,
+        deu_south: -1,
+        deu_fatherland: -1,
+        deu_natlib: 1,
+        deu_progress: 1,
+        deu_spd: 1,
+        deu_uspd: 1,
+      },
+    },
+    houses: ["reichstag", "bundesrat"],
+    sponsor: home,
+  },
+  {
+    law: "deu_pickets",
+    stance: {
+      deu_cons: 1,
+      deu_natlib: 1,
+      deu_centre: 0,
+      deu_progress: -1,
+      deu_spd: -1,
+      deu_uspd: -1,
+      deu_minor: 0,
+      deu_fatherland: 1,
+    },
+    texts: {
+      ban_pickets: { deu_centre: -1 },
+      joint_chambers: {
+        deu_centre: 1,
+        deu_progress: 1,
+        deu_natlib: 0,
+        deu_spd: 0,
+      },
+      labour_chambers: {
+        deu_cons: -1,
+        deu_natlib: -1,
+        deu_fatherland: -1,
+        deu_centre: 1,
+        deu_progress: 1,
+        deu_spd: 1,
+        deu_uspd: 0,
+      },
+    },
+    houses: ["reichstag", "bundesrat"],
+    sponsor: home,
+  },
+  {
+    // 4 December 1913: no confidence, 293 to 54; the Conservatives alone
+    // stood by the army.
+    law: "deu_zabern",
+    stance: {
+      deu_cons: -1,
+      deu_natlib: 0,
+      deu_centre: 1,
+      deu_progress: 1,
+      deu_spd: 1,
+      deu_uspd: 1,
+      deu_minor: 1,
+      deu_south: 0,
+      deu_fatherland: -1,
+    },
+    texts: {
+      crown_command: {
+        deu_cons: 1,
+        deu_fatherland: 1,
+        deu_natlib: 1,
+        deu_centre: -1,
+        deu_progress: -1,
+        deu_spd: -1,
+        deu_uspd: -1,
+        deu_minor: -1,
+      },
+      reichsland_rights: { deu_natlib: -1, deu_south: -1 },
+    },
+    sponsor: chan,
+  },
+  {
+    // The Reichstag of 1912 stretched its own term in the war (laws of 16
+    // October 1916, 23 July 1917, 18 July 1918); the far left said no.
+    law: "deu_postpone",
+    stance: {
+      deu_cons: 1,
+      deu_natlib: 1,
+      deu_centre: 1,
+      deu_progress: 1,
+      deu_spd: 1,
+      deu_uspd: -1,
+      deu_minor: 0,
+      deu_south: 1,
+      deu_fatherland: 1,
+    },
+    texts: { till_peace: { deu_progress: 0, deu_spd: 0 } },
+    houses: ["reichstag", "bundesrat"],
+    sponsor: chan,
+  },
+  {
+    law: "deu_x_eight_hours",
+    by: "deu_spd",
+    stance: {
+      deu_cons: -1,
+      deu_natlib: -1,
+      deu_centre: 0,
+      deu_progress: 0,
+      deu_spd: 1,
+      deu_uspd: 1,
+      deu_minor: 0,
+      deu_south: -1,
+      deu_fatherland: -1,
+    },
+    texts: {
+      works_councils: { deu_centre: 1, deu_progress: 1, deu_natlib: 0 },
+    },
+    houses: ["reichstag", "bundesrat"],
+    sponsor: home,
+  },
+  {
+    law: "deu_x_proportional",
+    by: "deu_progress",
+    stance: {
+      deu_cons: -1,
+      deu_natlib: 0,
+      deu_centre: 0,
+      deu_progress: 1,
+      deu_spd: 1,
+      deu_uspd: 1,
+      deu_minor: 1,
+      deu_south: -1,
+      deu_fatherland: -1,
+    },
+    texts: { big_cities: { deu_centre: 1, deu_natlib: 1 } },
+    houses: ["reichstag", "bundesrat"],
+    sponsor: chan,
+  },
+  {
+    law: "deu_x_army_fixed",
+    by: "deu_cons",
+    stance: {
+      deu_cons: 1,
+      deu_natlib: 1,
+      deu_centre: -1,
+      deu_progress: -1,
+      deu_spd: -1,
+      deu_uspd: -1,
+      deu_minor: -1,
+      deu_south: 0,
+      deu_fatherland: 1,
+    },
+    texts: { seven_years: { deu_centre: 0 } },
+    houses: ["reichstag", "bundesrat"],
+    // The army's money out of the yearly budget: the constitution's budget right.
+    constitution: true,
+    creed: ["deu_spd", "deu_uspd"],
+    sponsor: either(office("war"), office("chancellor")),
+  },
 ];
 
 // ---- The factions' own bills ----
@@ -1303,7 +1535,7 @@ const chose = (scene: string, pick: string): GwCond => ({
 });
 
 /** The factions' own bills: rows like content/laws/deu.ts. */
-export const DEU_HOUSE_LAWS: readonly GwLawRow[] = [
+const DEU_HOUSE_LAW_ROWS: readonly GwLawRow[] = [
   own({
     // The peace resolution: the desk's crisis card is the same vote, so the
     // bill stands aside once that card was answered with the text taken.
@@ -1422,7 +1654,159 @@ export const DEU_HOUSE_LAWS: readonly GwLawRow[] = [
       either(person("deu_stresemann"), held("foreign")),
     ),
   }),
+  // ---- ww207 ----
+  own({
+    // The Reichstag's term stretched in war (see the bill row).
+    id: "deu_postpone",
+    chapter: "franchise",
+    opens: all(
+      war,
+      world({ is: "election_due", chamber: "reichstag", max: 6 }),
+    ),
+    lean: 1,
+    decree: false,
+    cast: { chancellor: held("chancellor") },
+    draft: [
+      text("one_year", 1),
+      text("till_peace", 0, [inst("reichstag", -1)]),
+    ],
+    passed: [gauge("order", 1)],
+    passedTell: [],
+    term: [],
+    repeal: { authority: 10, tell: [], effects: [gauge("order", -1)] },
+    talk: quietTalk(
+      "deu_postpone",
+      either(person("deu_erzberger"), held("chancellor")),
+    ),
+  }),
+  own({
+    // The SPD tree's law (node m2): the eight-hour day, the Erfurt
+    // programme's old demand, and works councils.
+    id: "deu_x_eight_hours",
+    chapter: "social",
+    opens: nodeOpen("deu_spd", "m2"),
+    exclusive: { faction: "deu_spd", node: "m2" },
+    peace: true,
+    lean: -1,
+    decree: false,
+    cast: { chancellor: held("chancellor") },
+    draft: [
+      text("eight_hours", 0),
+      text("works_councils", 1, [inst("reichstag", 1)]),
+    ],
+    passed: [
+      { kind: "opinion", bloc: "workers", delta: 2 },
+      { kind: "opinion", bloc: "business", delta: -1 },
+    ],
+    passedTell: [],
+    term: [{ gauge: "order", delta: 1, every: 12 }],
+    repeal: {
+      authority: 25,
+      tell: [],
+      effects: [{ kind: "opinion", bloc: "workers", delta: -2 }],
+    },
+    talk: quietTalk(
+      "deu_x_eight_hours",
+      either(person("deu_ebert"), held("interior")),
+    ),
+  }),
+  own({
+    // The Progressives' tree law (node m2): the seats redrawn. The 1871
+    // constituencies were never redrawn; proportional voting in the big
+    // towns came only with the law of 24 August 1918 (not checked).
+    id: "deu_x_proportional",
+    chapter: "franchise",
+    opens: nodeOpen("deu_progress", "m2"),
+    exclusive: { faction: "deu_progress", node: "m2" },
+    peace: true,
+    lean: -1,
+    decree: false,
+    cast: { chancellor: held("chancellor") },
+    draft: [text("big_cities", 1), text("redraw", -1)],
+    passed: [
+      inst("reichstag", 1),
+      { kind: "opinion", bloc: "court", delta: -1 },
+    ],
+    passedTell: [],
+    term: [],
+    repeal: { authority: 25, tell: [], effects: [inst("reichstag", -1)] },
+    talk: quietTalk(
+      "deu_x_proportional",
+      either(person("deu_stresemann"), held("interior")),
+    ),
+  }),
+  own({
+    // The Conservatives' tree law (node b1): the army's money fixed for
+    // good, out of the Reichstag's yearly hands (Bismarck's Äternat, lost
+    // in 1874 for the seven-year Septennat).
+    id: "deu_x_army_fixed",
+    chapter: "arms",
+    opens: nodeOpen("deu_cons", "b1"),
+    exclusive: { faction: "deu_cons", node: "b1" },
+    peace: true,
+    lean: -2,
+    decree: false,
+    cast: { chancellor: held("chancellor") },
+    draft: [
+      text("eternal", -1, [inst("reichstag", -1)]),
+      text("seven_years", 1),
+    ],
+    passed: [inst("army", 1), inst("reichstag", -1)],
+    passedTell: [],
+    term: [],
+    repeal: { authority: 30, tell: [], effects: [inst("army", -1)] },
+    talk: quietTalk(
+      "deu_x_army_fixed",
+      either(held("war"), held("chancellor")),
+    ),
+  }),
 ];
+
+/** ww207: what each text of the house's own bills moves, in notches. */
+const DEU_HOUSE_LAW_AXES = {
+  deu_peace_res: {
+    understanding: { force: 1, rule: 1 },
+    no_annex: { force: 1, class: 1 },
+    secured: { force: 1 },
+  },
+  deu_take_back: {
+    repeal_on_demand: { rule: 1 },
+    committee: { rule: 1 },
+    end_powers: { rule: 1, force: 1 },
+  },
+  deu_parl_gov: {
+    study: { rule: 1 },
+    answer: { rule: 1, force: 1 },
+    members: { rule: 1 },
+  },
+  deu_war_aims: {
+    guarantees: { force: -1 },
+    east_and_west: { force: -1, rule: -1 },
+    east_only: { force: -1 },
+  },
+  deu_postpone: {
+    one_year: { rule: -1 },
+    till_peace: { rule: -1, force: -1 },
+  },
+  deu_x_eight_hours: {
+    eight_hours: { class: 1 },
+    works_councils: { class: 1, rule: 1 },
+  },
+  deu_x_proportional: {
+    big_cities: { rule: 1 },
+    redraw: { rule: 1, class: 1 },
+  },
+  deu_x_army_fixed: {
+    eternal: { rule: -1, force: -1 },
+    seven_years: { rule: -1 },
+  },
+} as const;
+
+/** The factions' own bills, each text with its axis push. */
+export const DEU_HOUSE_LAWS: readonly GwLawRow[] = withAxes(
+  DEU_HOUSE_LAW_ROWS,
+  DEU_HOUSE_LAW_AXES,
+);
 
 // ---- Step, split and join scenes ----
 

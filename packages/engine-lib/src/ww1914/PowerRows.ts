@@ -371,7 +371,10 @@ export function powerCalledScenes(rows: GwPowerContent): string[] {
   for (const p of rows.powers ?? []) {
     if (p.scene) out.add(p.scene);
     if (p.risk?.scene) out.add(p.risk.scene);
+    // ww207: an ability's turned card is the row's to lay too.
+    if (p.ability?.turned?.scene) out.add(p.ability.turned.scene);
     lists.push(p.effects, p.failed, p.risk?.then);
+    lists.push(p.ability?.strong, p.ability?.turned?.effects);
     if (p.target !== undefined && p.target.kind !== "person") {
       for (const o of p.target.of) lists.push(o.effects);
     }
