@@ -96,6 +96,22 @@ const waitCourse = (key: string): GwCourseRow =>
   c("wait", ["wait"], [remember(key)], { wait: true });
 const on = (slots: Slots): FindingMore => ({ slots });
 
+/**
+ * ww201: where the production step takes a gauge, in the head's words, once
+ * it has run (slot `<gauge>_trend`). Falling outweighs rising: a head brings
+ * bad news first. Text `depts.answers.<row>.findings.<gauge>_<word>`.
+ */
+const trendFindings = (g: "shells" | "bread" | "money"): GwFindingRow[] => {
+  const k = `${g}_trend` as const;
+  return [
+    f(`${g}_rising`, 2, on({ [k]: ["rising", "rising_fast"] })),
+    f(`${g}_full`, 1, on({ [k]: ["full"] })),
+    f(`${g}_steady`, 1, on({ [k]: ["steady"] })),
+    f(`${g}_falling`, 2, on({ [k]: ["falling"] })),
+    f(`${g}_falling_fast`, 3, on({ [k]: ["falling_fast"] })),
+  ];
+};
+
 const gauge = (g: Gauge, delta: number): GwEffect => ({
   kind: "gauge",
   gauge: g,
@@ -428,6 +444,7 @@ const MONEY: GwAnswerRow = {
     f("prices_low", 1, on({ prices: ["low"] })),
     f("lenders", 2),
     f("abroad", 1),
+    ...trendFindings("money"),
     f("taxes_in", 3, {
       wrong: true,
       slots: { treasury: ["low"] },
@@ -459,6 +476,7 @@ const BUDGET: GwAnswerRow = {
     f("treasury_high", 2, on({ treasury: ["high"] })),
     f("services", 2),
     f("prices_high", 2, on({ prices: ["high"] })),
+    ...trendFindings("money"),
   ],
   courses: [
     c("balance", ["cheap", "calm"], [gauge("money", 1), army(-1)]),
@@ -484,6 +502,7 @@ const BREAD: GwAnswerRow = {
     f("farms", 2, { when: war }),
     f("spend_ample", 1, on({ spend: ["ample"] })),
     f("spend_thrift", 1, on({ spend: ["thrift"] })),
+    ...trendFindings("bread"),
     f("hoarders", 3, {
       wrong: true,
       slots: { bread: ["low"] },
@@ -613,6 +632,7 @@ const ARMS: GwAnswerRow = {
     f("strikes", 2, on({ strikes: ["middling", "high"] })),
     f("spend_ample", 1, on({ spend: ["ample"] })),
     f("spend_thrift", 1, on({ spend: ["thrift"] })),
+    ...trendFindings("shells"),
     f("wasted", 3, {
       wrong: true,
       slots: { shells: ["low"] },

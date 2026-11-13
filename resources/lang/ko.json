@@ -15667,7 +15667,21 @@
       "flu_wave_1": "독감이 돌았다.",
       "flu_wave_2": "독감이 다시 돌았다.",
       "flu_wave_3": "독감이 세 번째로 돌았다.",
-      "refusals_3": "군대가 공격을 거부한다."
+      "refusals_3": "군대가 공격을 거부한다.",
+      "econ_industry": "나라 안 공장들이 포탄을 대고 있다.",
+      "econ_held": "우리가 차지한 땅의 공장과 광산이 우리 몫을 내고 있다.",
+      "econ_mobilised": "공업 전체가 군수 생산으로 돌아섰다.",
+      "econ_fronts": "전선마다 포탄을 쏘아 대고 있다.",
+      "econ_farms": "밭에서 곡식이 들어오고 있다.",
+      "econ_imports": "바다 건너 곡물이 들어오고 있다.",
+      "econ_labour": "농사짓던 일손이 군대에 가 있다.",
+      "econ_eaters": "도시와 군대가 곡식을 먹어 치우고 있다.",
+      "econ_land": "새로 얻은 땅에서 세금이 들어오고 있다.",
+      "econ_land_lost": "잃은 땅에서는 세금이 들어오지 않는다.",
+      "econ_trade": "관세와 해운으로 돈이 들어오고 있다.",
+      "econ_tribute": "우리에게 기대는 나라가 공물을 보내오고 있다.",
+      "econ_tribute_paid": "우리를 거느린 나라에 공물을 바치고 있다.",
+      "econ_peace": "평화가 이어져 창고가 늘 차 있던 만큼 다시 찬다."
     },
     "mandate": {
       "deu_bread_for_the_winter": "겨울 빵을 남기기",
@@ -15939,7 +15953,8 @@
       "fate_vassal_free": "{a}이(가) {b}에게서 떨어져 나갔다.",
       "fate_state_turned": "{a}이(가) {b} 편으로 돌아섰다.",
       "fate_term_over": "{a}의 군정 기한이 끝나 그 땅이 {b}에 돌아갔다.",
-      "fate_unratified": "{a}이(가) 서명한 조약을 끝내 비준하지 않았다."
+      "fate_unratified": "{a}이(가) 서명한 조약을 끝내 비준하지 않았다.",
+      "econ_mobilised": "{a}은(는) 포탄이 바닥난 뒤 공업을 전시 체제로 돌렸다."
     },
     "odds": {
       "0": "될 일이 아닙니다.",
@@ -17370,7 +17385,27 @@
         "wait_room": "접견실에 {n}명",
         "wait_read": "읽을 서류 {n}장",
         "wait_talk": "만날 사람 {n}명",
-        "wait_none": "기다리는 서류도 손님도 없다."
+        "wait_none": "기다리는 서류도 손님도 없다.",
+        "step": {
+          "shells": {
+            "up": "포탄이 한 칸 늘었다: {why}",
+            "down": "포탄이 한 칸 줄었다: {why}",
+            "up_big": "포탄이 크게 늘었다: {why}",
+            "down_big": "포탄이 크게 줄었다: {why}"
+          },
+          "bread": {
+            "up": "빵이 한 칸 늘었다: {why}",
+            "down": "빵이 한 칸 줄었다: {why}",
+            "up_big": "빵이 크게 늘었다: {why}",
+            "down_big": "빵이 크게 줄었다: {why}"
+          },
+          "money": {
+            "up": "재정이 한 칸 나아졌다: {why}",
+            "down": "재정이 한 칸 나빠졌다: {why}",
+            "up_big": "재정이 크게 나아졌다: {why}",
+            "down_big": "재정이 크게 나빠졌다: {why}"
+          }
+        }
       },
       "gauge_hint": {
         "shells": "포탄: 전선에 보낼 포탄이 얼마나 있는가.",
@@ -17630,7 +17665,17 @@
         "no_diary": "아직 적은 것이 없다.",
         "private": "사사로운 것"
       },
-      "memoir_diary_year": "{year}년"
+      "memoir_diary_year": "{year}년",
+      "trend": {
+        "falling_fast": "빠르게 줄고 있다",
+        "falling": "조금씩 줄고 있다",
+        "steady": "그대로다",
+        "rising": "조금씩 늘고 있다",
+        "rising_fast": "빠르게 늘고 있다",
+        "full": "더 쌓을 곳이 없다"
+      },
+      "trend_is": "흐름: {word}",
+      "trend_why": "가장 큰 까닭: {why}"
     },
     "unknown": {
       "ai": "{country}의 원수는 {word} 인물이었다.",

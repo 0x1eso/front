@@ -1,23 +1,34 @@
 // Great War 1914 (ww179): the desk's "지금 상황" box. Plain lines read from
 // the view alone: war or peace, our propaganda and censorship while they run
 // (ww180), the crisis in words, and what waits.
-import type { GwGauge } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import {
+  GW_GAUGE_MAX,
+  type GwGauge,
+} from "@openfront/engine-api/ww1914/GreatWarTypes";
+import {
+  GW_ECON_GAUGES,
+  type GwTrendWord,
+  gwTrendWord,
+} from "@openfront/engine-api/ww1914/GwEcon";
+import type { GwPack } from "@openfront/engine-api/ww1914/GwPack";
 import type {
   GreatWarData,
   GwSeatView,
 } from "@openfront/engine-api/ww1914/GwView";
+import type { GwGaugeView } from "@openfront/engine-api/ww1914/GwWorldView";
 import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
 import type { GwCtx } from "./GwCtx";
 import {
   crisisShown,
+  gaugeLevel,
   isReadOnly,
   paperCards,
   talkCards,
   tempBand,
 } from "./GwModel";
 import { CHIP, MUTED } from "./GwStyle";
-import { textOrNull } from "./GwText";
+import { gaugeLineText } from "./GwText";
 
 /** One line of the box: a translation key and its params. */
 export interface GwNowLine {
@@ -28,8 +39,16 @@ export interface GwNowLine {
 /** Foes named on the war line; more than this ends in "등". */
 const FOES_SHOWN = 3;
 
-/** The lines of the box, in order: war or peace, the crisis, what waits. */
-export function nowLines(data: GreatWarData, seat: GwSeatView): GwNowLine[] {
+/**
+ * The lines of the box, in order: war or peace, what the chapter's turn made
+ * or used up (ww201), the crisis, what waits. `pack` gives the seat's own
+ * wording of a cause.
+ */
+export function nowLines(
+  data: GreatWarData,
+  seat: GwSeatView,
+  pack: GwPack | null = null,
+): GwNowLine[] {
   const w = seat.world;
   const out: GwNowLine[] = [];
   if (data.ended !== null) return out;
@@ -52,6 +71,7 @@ export function nowLines(data: GreatWarData, seat: GwSeatView): GwNowLine[] {
   }
   const prop = propLine(seat);
   if (prop !== null) out.push(prop);
+  out.push(...stepLines(seat, pack));
   const chain = w.chain ?? null;
   if (crisisShown(data, seat)) {
     const band = tempBand(data.temp);
@@ -99,6 +119,38 @@ export function nowLines(data: GreatWarData, seat: GwSeatView): GwNowLine[] {
 }
 
 /**
+ * ww201: one line for each gauge the production step moved at the chapter's
+ * turn: "포탄이 한 칸 늘었다: <why>".
+ */
+function stepLines(seat: GwSeatView, pack: GwPack | null): GwNowLine[] {
+  return (seat.world.gauges ?? []).flatMap((g) => {
+    const step = g.step ?? null;
+    if (step === null || step.delta === 0) return [];
+    const way = step.delta > 0 ? "up" : "down";
+    const big = Math.abs(step.delta) >= 2 ? "_big" : "";
+    return [
+      {
+        key: `gw.ui.now.step.${g.gauge}.${way}${big}`,
+        params: { why: gaugeLineText(pack, step.key) },
+      },
+    ];
+  });
+}
+
+/**
+ * ww201: where the production step takes a gauge, as a word; null for the
+ * gauges it doesn't feed (morale, order).
+ */
+export function trendWordOf(w: GwGaugeView): GwTrendWord | null {
+  if (!GW_ECON_GAUGES.some((g) => g === w.gauge)) return null;
+  return gwTrendWord(
+    w.trend ?? 0,
+    gaugeLevel(w.gauge, w.value),
+    GW_GAUGE_MAX[w.gauge],
+  );
+}
+
+/**
  * ww180: what our propaganda and censorship are doing to the picture, in
  * words; null when nothing runs.
  */
@@ -128,7 +180,7 @@ function propLine(seat: GwSeatView): GwNowLine | null {
 
 /** The box at the top of the desk. */
 export function nowBox(c: GwCtx): TemplateResult | typeof nothing {
-  const lines = nowLines(c.data, c.seat);
+  const lines = nowLines(c.data, c.seat, c.pack);
   if (lines.length === 0) return nothing;
   return html`<div
     class="rounded border border-white/10 bg-white/5 p-2"
@@ -180,19 +232,31 @@ export function manpowerChip(n: number): TemplateResult {
 }
 
 /**
- * A band gauge's hover: what it is, then why it moved in the last chapter,
- * one "▲ reason" a line, as the country tab tells it.
+ * A band gauge's hover: what it is, where it is heading and why (ww201), then
+ * why it moved in the last chapter, one "▲ reason" a line, as the country tab
+ * tells it.
  */
 export function gaugeTitle(c: GwCtx, gauge: GwGauge): string {
   const w = c.seat.world.gauges.find((x) => x.gauge === gauge);
+  const pack = c.pack ?? null;
   const why = (w?.lines ?? []).map(
-    (l) =>
-      `${l.delta > 0 ? "▲" : "▼"} ${
-        textOrNull(`gw.line.${l.key}`) ?? c.pack?.reasons?.[l.key] ?? l.key
-      }`,
+    (l) => `${l.delta > 0 ? "▲" : "▼"} ${gaugeLineText(pack, l.key)}`,
   );
-  const head = translateText(`gw.ui.gauge_hint.${gauge}`);
+  const head = [translateText(`gw.ui.gauge_hint.${gauge}`)];
+  const word = w === undefined ? null : trendWordOf(w);
+  if (w !== undefined && word !== null) {
+    head.push(
+      translateText("gw.ui.trend_is", {
+        word: translateText(`gw.ui.trend.${word}`),
+      }),
+    );
+    if (w.why !== null && w.why !== undefined) {
+      head.push(
+        translateText("gw.ui.trend_why", { why: gaugeLineText(pack, w.why) }),
+      );
+    }
+  }
   return why.length === 0
-    ? head
-    : [head, translateText("gw.ui.gauge_why"), ...why].join("\n");
+    ? head.join("\n")
+    : [...head, translateText("gw.ui.gauge_why"), ...why].join("\n");
 }

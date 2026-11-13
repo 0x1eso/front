@@ -56,6 +56,8 @@ export const GW_PACK_SHARES: Readonly<
     "depts",
     "persona",
     "settle",
+    // ww201: the seat's own words for the production step's causes.
+    "econ",
   ],
   GBR: [
     "crisis",
@@ -86,6 +88,7 @@ export const GW_PACK_SHARES: Readonly<
     "depts",
     "persona",
     "settle",
+    "econ",
   ],
   AUH: [
     "crisis",
@@ -118,6 +121,7 @@ export const GW_PACK_SHARES: Readonly<
     "settle",
     "colonies",
     "agents",
+    "econ",
   ],
   RUS: [
     "crisis",
@@ -150,6 +154,7 @@ export const GW_PACK_SHARES: Readonly<
     "settle",
     "colonies",
     "agents",
+    "econ",
   ],
   FRA: [
     "crisis",
@@ -182,6 +187,7 @@ export const GW_PACK_SHARES: Readonly<
     "settle",
     "colonies",
     "president",
+    "econ",
   ],
 };
 

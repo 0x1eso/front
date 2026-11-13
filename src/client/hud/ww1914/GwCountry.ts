@@ -12,16 +12,16 @@ import { govBox } from "./GwGov";
 import { houseSection } from "./GwHouse";
 import { lawsSection } from "./GwLaws";
 import { gaugeFill, gaugeLevel, instBand, logByChapter } from "./GwModel";
-import { authorityChip, manpowerChip } from "./GwNow";
+import { authorityChip, manpowerChip, trendWordOf } from "./GwNow";
 import { instName } from "./GwOffice";
 import { rulerCard } from "./GwRuler";
 import { CHIP, fillColor, HEAD, MUTED } from "./GwStyle";
 import {
   countInMan,
   factText,
+  gaugeLineText,
   reasonText,
   reportText,
-  textOrNull,
 } from "./GwText";
 
 const BOX = "space-y-1.5 rounded border border-white/15 bg-black/35 p-2.5";
@@ -45,22 +45,34 @@ function gauges(c: GwCtx): TemplateResult {
     ${sub("gw.ui.gauges_sub")}
     ${c.seat.world.gauges.map((w) => {
       const v = gaugeLevel(w.gauge, w.value);
+      // ww201: beside the level, where the production step is taking it.
+      const trend = trendWordOf(w);
       return html`<div class="space-y-0.5" data-gw-gauge=${w.gauge}>
-        <div class="flex justify-between text-sm">
-          <span class="text-white/70"
+        <div class="flex justify-between gap-2 text-sm">
+          <span class="shrink-0 text-white/70"
             >${translateText(`gw.ui.gauge_name.${w.gauge}`)}</span
           >
-          <span>${translateText(`gw.ui.gauge.${w.gauge}.${v}`)}</span>
+          <span class="text-right"
+            >${translateText(`gw.ui.gauge.${w.gauge}.${v}`)}${trend === null
+              ? nothing
+              : html`<span class="text-white/60" data-gw-trend=${trend}>
+                  · ${translateText(`gw.ui.trend.${trend}`)}</span
+                >`}</span
+          >
         </div>
         ${bar(gaugeFill(w.gauge, v))}
         <span class="sr-only">${v}/${GW_GAUGE_MAX[w.gauge]}</span>
+        ${trend === null || w.why === null || w.why === undefined
+          ? nothing
+          : html`<p class=${MUTED} data-gw-trend-why=${w.why}>
+              ${translateText("gw.ui.trend_why", {
+                why: gaugeLineText(c.pack, w.why),
+              })}
+            </p>`}
         ${w.lines.map(
           (l) =>
             html`<p class=${MUTED} data-gw-line=${l.key}>
-              ${l.delta > 0 ? "▲" : "▼"}
-              ${textOrNull(`gw.line.${l.key}`) ??
-              c.pack?.reasons?.[l.key] ??
-              l.key}
+              ${l.delta > 0 ? "▲" : "▼"} ${gaugeLineText(c.pack, l.key)}
             </p>`,
         )}
       </div>`;
