@@ -404,7 +404,40 @@ function tellOf(e: GwEffect): string[] {
   return e.kind === "inst" ? [`${e.inst}:${e.delta}`] : [];
 }
 
+/**
+ * ww214: a money bill's own paper, where it is counted, lobbied and called
+ * (the client draws the bill on it): the war credits as they come, and the
+ * budget or the credits back on the agenda after a lost vote. The meeting's
+ * card is the budget's first paper. `keep` leaves it to its deadline.
+ */
+function moneyPaper(
+  id: string,
+  bill: "budget" | "credits",
+  variants: GwScene["variants"],
+): GwScene {
+  return {
+    id,
+    nation: [...GW_TAGS],
+    kind: "ledger",
+    when: onlyCalled,
+    cast: { fin: CAST.fin },
+    salience: 9,
+    tags: ["home"],
+    variants: [
+      { id: "back", when: world({ is: "money", bill, now: "back" }) },
+      ...variants,
+    ],
+    fallback: "keep",
+    options: [opt("keep", [], [])],
+  };
+}
+
 export const BUDGET_SCENES: readonly GwScene[] = [
+  moneyPaper("gw_mp_credits", "credits", [
+    { id: "cold", when: { kind: "gauge", gauge: "morale", max: 1 } },
+    { id: "base" },
+  ]),
+  moneyPaper("gw_mp_budget", "budget", [{ id: "base" }]),
   {
     id: "gw_bm_common",
     nation: [...GW_TAGS],

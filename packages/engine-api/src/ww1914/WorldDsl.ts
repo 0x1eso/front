@@ -601,12 +601,13 @@ export type GwWorldCond =
   /**
    * The seat's money bill of that kind: `open` on the agenda, `passed` or
    * `failed` its last vote (this meeting, these credits), `stopped`
-   * borrowing stopped by refused credits now.
+   * borrowing stopped by refused credits now; ww214: `back` on the agenda
+   * again after a lost vote.
    */
   | {
       is: "money";
       bill: GwMoneyBill;
-      now: "open" | "passed" | "failed" | "stopped";
+      now: "open" | "passed" | "failed" | "stopped" | "back";
     }
   /** The plan running now taxes that kind. */
   | { is: "tax_kind"; tax: GwTaxKind }
@@ -1193,7 +1194,7 @@ export const GwWorldCondSchema = z.union([
   // ww209
   is("money", {
     bill: z.enum(GW_MONEY_BILLS),
-    now: z.enum(["open", "passed", "failed", "stopped"]),
+    now: z.enum(["open", "passed", "failed", "stopped", "back"]),
   }),
   is("tax_kind", { tax: z.enum(GW_TAX_KINDS) }),
   is("earmark", { id: GwIdSchema }),

@@ -203,7 +203,13 @@ const DEU: GwPressRow = {
       tag: 1,
       vor: 1,
     }),
-    story("credits", 8, decided("gw_credits"), { vor: 0, ffm: 1, dtz: 1 }),
+    // ww214: the credits voted on their paper (the old gw_credits card is gone).
+    story(
+      "credits",
+      8,
+      { when: world({ is: "money", bill: "credits", now: "passed" }) },
+      { vor: 0, ffm: 1, dtz: 1 },
+    ),
     story("liner", 8, decided("deu_s_liner"), { dtz: 1, tag: -1, ffm: -1 }),
     story(
       "uboat",

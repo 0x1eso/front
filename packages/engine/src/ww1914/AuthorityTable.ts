@@ -163,13 +163,6 @@ const germanRules: GwInstRule[] = [
   },
   {
     rule: "call",
-    scene: "gw_credits",
-    every: 6,
-    first: true,
-    sits: "reichstag",
-  },
-  {
-    rule: "call",
     scene: "gw_uboat_first",
     once: true,
     when: all(

@@ -97,49 +97,6 @@ export const WORLD_SCENES: readonly GwScene[] = [
     ],
   },
   {
-    id: "gw_credits",
-    // ww187: the loan is voted in the Reichstag (AuthorityTable waits for it).
-    assumes: { sits: ["reichstag"] },
-    nation: ["DEU"],
-    kind: "proposal",
-    when: onlyCalled,
-    cast: {},
-    salience: 8,
-    tags: ["home"],
-    variants: [
-      { id: "cold", when: { kind: "inst", inst: "reichstag", max: -2 } },
-      { id: "base" },
-    ],
-    fallback: "short",
-    options: [
-      {
-        id: "plain",
-        // Without a price the Reichstag says no.
-        when: { kind: "inst", inst: "reichstag", min: -2 },
-        tell: ["money:+2", "reichstag:-1"],
-        effects: [
-          { kind: "gauge", gauge: "money", delta: 2 },
-          inst_("reichstag", -1),
-        ],
-      },
-      {
-        id: "reform",
-        tell: ["money:+2", "reichstag:+1", "army:-1"],
-        effects: [
-          { kind: "gauge", gauge: "money", delta: 2 },
-          inst_("reichstag", 1),
-          inst_("army", -1),
-          { kind: "reason", key: "credits_for_reform" },
-        ],
-      },
-      {
-        id: "short",
-        tell: ["money:+1"],
-        effects: [{ kind: "gauge", gauge: "money", delta: 1 }],
-      },
-    ],
-  },
-  {
     id: "gw_peace_feeler",
     nation: everyone,
     kind: "proposal",

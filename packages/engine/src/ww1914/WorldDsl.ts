@@ -603,11 +603,20 @@ export function worldEffect(ctx: SceneCtx, e: GwWorldEffect): void {
       if (nation !== null && nation.budget.draft !== null) {
         const d = nation.budget.draft;
         d.shares = tilted(d.shares, e.line, e.delta);
+        // ww214: the plan already before the house is the one the card amends.
+        const put = nation.budget.put;
+        if (put !== null && put !== undefined) {
+          put.shares = tilted(put.shares, e.line, e.delta);
+        }
       }
       return;
     case "budget_mix":
       if (nation !== null && nation.budget.draft !== null) {
         budgetRaise(nation.budget.draft, e.source, e.delta);
+        const put = nation.budget.put;
+        if (put !== null && put !== undefined) {
+          budgetRaise(put, e.source, e.delta);
+        }
       }
       return;
     case "budget_item":

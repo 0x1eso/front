@@ -224,7 +224,7 @@ describe("the meeting", () => {
     expect(b.meeting ?? b.lastChapter).toBeGreaterThanOrEqual(at - 1);
   });
 
-  test("putting the plan takes the card away; the house votes it into force", async () => {
+  test("ww214: putting the plan keeps the card, its paper; the house votes it into force and the card goes", async () => {
     const { runner, gw, seat, n } = await war();
     toMeeting(gw, runner, "DEU");
     const d = n.budget.draft!;
@@ -236,7 +236,7 @@ describe("the meeting", () => {
       force: false,
     });
     expect(block).toBeNull();
-    expect(seat.desk.some((c) => c.scene.startsWith("gw_bm_"))).toBe(false);
+    expect(seat.desk.some((c) => c.scene.startsWith("gw_bm_"))).toBe(true);
     expect(n.budget.put?.shares).toEqual(shares);
     expect(n.budget.meeting).not.toBeNull();
     expect(callBudget(gw, seat)).toBeNull();

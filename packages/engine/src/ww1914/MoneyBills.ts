@@ -11,6 +11,11 @@
 //   (`budget_put`) or the meeting card puts the draft; it must pass within
 //   GW_MONEY_DEADLINE chapters of the meeting. Lost, it goes back to the
 //   lobby once; lost again, or at the deadline, the country's rule runs.
+// - ww214: one paper. The meeting puts the minister's draft on the pinned
+//   place at once, so the meeting's card is the bill's paper: its plan, the
+//   count, the lobby and the call on one card. The credits come with their
+//   own paper (`gw_mp_credits`), and a bill lost once comes back on one. No
+//   count answer comes apart for a money bill (Departments).
 // - The credits: on each country's rhythm while at war; voted (a bill), by
 //   command (RUS: granted; the seat may put them to the Duma), or by decree
 //   (AUH §14 while the Reichsrat is shut). Refused: no borrowing until the
@@ -94,6 +99,7 @@ import {
   tellSeats,
 } from "./Budget";
 import { giveCount } from "./Departments";
+import { makeCard, placeCard } from "./Desk";
 import type { GreatWar } from "./GreatWar";
 import {
   chambersOf,
@@ -109,7 +115,7 @@ import { agendaView, fallBy, lawCall, lawStage, moneyAgenda } from "./Laws";
 import { officeHolder } from "./People";
 import { heatThreat } from "./Powers";
 import { moveOpinion } from "./Press";
-import { holds, type SceneCtx } from "./SceneRun";
+import { holds, sceneOf, type SceneCtx } from "./SceneRun";
 import { factionTrust as trustNow } from "./Society";
 import { factionTrust, idealsOf } from "./Utopia";
 import { clampTo, reason, seatsOf } from "./World";
@@ -123,8 +129,40 @@ export type MoneyEffect = Extract<
   { do: "earmark" | "split_pressure" }
 >;
 
-/** The meeting's card: gone once the budget is put. */
+/** The meeting's card: the budget's paper (ww214), gone once it is settled. */
 const MEETING = /^gw_bm_/;
+/** ww214: the money bills' own papers: the credits', and one lost once. */
+export const moneyPaperIds = {
+  credits: "gw_mp_credits",
+  budget: "gw_mp_budget",
+} as const;
+
+/** ww214: lays a money bill's paper: now (an order), or next chapter. */
+function layPaper(
+  gw: GreatWar,
+  seat: GwSeatState,
+  kind: GwMoneyBill,
+  now: boolean,
+): void {
+  const id = moneyPaperIds[kind];
+  const scene = sceneOf(id);
+  if (scene === null) return;
+  dropPapers(seat, kind);
+  if (!now) {
+    seat.scheduled.push({ scene: id, chapter: gw.s.chapter + 1 });
+    return;
+  }
+  const card = makeCard(gw, seat, scene, "scheduled");
+  if (card !== null) placeCard(gw, seat, card);
+}
+
+/** ww214: a settled bill's papers leave the desk and the schedule. */
+function dropPapers(seat: GwSeatState, kind: GwMoneyBill): void {
+  const mine = (scene: string) =>
+    scene === moneyPaperIds[kind] || (kind === "budget" && MEETING.test(scene));
+  seat.desk = seat.desk.filter((c) => !mine(c.scene));
+  seat.scheduled = seat.scheduled.filter((q) => !mine(q.scene));
+}
 const MOVING: readonly GwLawState["stage"][] = [
   "draft",
   "persuade",
@@ -552,14 +590,15 @@ export function budgetPut(
   } else {
     openBill(gw, seat, n, id, budgetMood(gw, n, clean));
   }
-  seat.desk = seat.desk.filter((c) => !MEETING.test(c.scene));
+  // ww214: the meeting's card stays: it is the bill's paper, where it is voted.
   return null;
 }
 
 /**
  * The meeting card's `budget_sign` where the house votes the budget: the
  * draft goes onto the pinned place (the cabinet's amendments in it). False:
- * not such a country; the old signature runs.
+ * not such a country; the old signature runs. ww214: already there (put at
+ * the meeting), the house reads the plan as the card's pick left it.
  */
 export function budgetSign(gw: GreatWar, n: GwNationState): boolean {
   if (n.budget.meeting === null || !moneyVoted(gw, n)) return false;
@@ -571,6 +610,8 @@ export function budgetSign(gw: GreatWar, n: GwNationState): boolean {
     const plan = cleanPlan(n.budget.put ?? draftOf(n));
     n.budget.put = plan;
     openBill(gw, seat, n, id, budgetMood(gw, n, plan));
+  } else if (n.budget.put !== null && n.budget.put !== undefined) {
+    st.support = budgetMood(gw, n, n.budget.put);
   }
   return true;
 }
@@ -598,15 +639,17 @@ function putCredits(
   }
   if (rhythm.by === "decree" || !moneyVoted(gw, n)) return "no_credits";
   if (creditsBill(n) !== null) return "law_busy";
-  openCredits(gw, seat, n, rhythm);
+  openCredits(gw, seat, n, rhythm, true);
   return null;
 }
 
+/** The credits onto the pinned place, with their paper (ww214). */
 function openCredits(
   gw: GreatWar,
   seat: GwSeatState,
   n: GwNationState,
   rhythm: GwCreditsRow,
+  now: boolean,
 ): void {
   const cr = n.budget.credits!;
   cr.due = gw.s.chapter + Math.max(1, rhythm.every);
@@ -618,6 +661,7 @@ function openCredits(
     moneyIds.credits(n.tag as GwTag, k),
     creditsMood(gw, n, k),
   );
+  layPaper(gw, seat, "credits", now);
 }
 
 /** The factions that had what they asked of a budget: trust +1 (§2.1 7). */
@@ -630,6 +674,7 @@ function thank(gw: GreatWar, seat: GwSeatState, st: GwLawState): void {
 }
 
 function settle(
+  gw: GreatWar,
   n: GwNationState,
   st: GwLawState,
   how: GwLawState["how"],
@@ -637,6 +682,10 @@ function settle(
   st.stage = "idle";
   st.how = how;
   st.faces = -1;
+  const kind = moneyBillOf(st.id)?.kind;
+  if (kind !== undefined) {
+    for (const seat of seatsOf(gw, n.tag)) dropPapers(seat, kind);
+  }
   // A credits bill is spent: the next has its own number.
   if (moneyBillOf(st.id)?.kind === "credits") {
     n.laws = n.laws.filter((x) => x !== st);
@@ -687,7 +736,7 @@ export function moneyPassed(
     }
     reason(gw, seat, "money_credits_passed");
   }
-  settle(n, st, how);
+  settle(gw, n, st, how);
 }
 
 /**
@@ -737,6 +786,8 @@ export function moneyLost(
     st.paper = [];
     st.paperAt = -1;
     reason(gw, seat, "money_back");
+    // ww214: it comes back on its paper, to be lobbied and called again.
+    layPaper(gw, seat, m.kind, false);
     return;
   }
   failed(gw, seat, n, st, fail);
@@ -767,7 +818,7 @@ function failed(
   } else {
     lostCredits(gw, seat, n, m.n);
   }
-  settle(n, st, "none");
+  settle(gw, n, st, "none");
 }
 
 /** Last year's budget runs on; the house that refused it is weaker for it. */
@@ -841,7 +892,7 @@ export function moneyWithdrawn(
   if (m === null || n === null) return;
   if (m.kind === "budget") runsOn(gw, seat, n);
   else lostCredits(gw, seat, n, m.n);
-  settle(n, st, "none");
+  settle(gw, n, st, "none");
 }
 
 // ---- The chapter ----
@@ -873,7 +924,7 @@ function budgetDeadline(
   const st = lawStage(n, id);
   // Settled another way (forced, signed by decree): off the pinned place.
   if (b.meeting === null) {
-    if (st !== null && MOVING.includes(st.stage)) settle(n, st, "none");
+    if (st !== null && MOVING.includes(st.stage)) settle(gw, n, st, "none");
     return;
   }
   if (gw.s.chapter < b.meeting || !moneyVoted(gw, n)) return;
@@ -893,7 +944,7 @@ function creditsStep(gw: GreatWar, seat: GwSeatState, n: GwNationState) {
   const bill = creditsBill(n);
   if (!atWar(gw, n) || row === null || row.credits.length === 0) {
     // Peace: no credits; a bill still on the agenda lapses.
-    if (bill !== null) settle(n, bill, "none");
+    if (bill !== null) settle(gw, n, bill, "none");
     return;
   }
   b.credits ??= { n: 0, due: gw.s.chapter, stopTo: -1, lost: 0 };
@@ -908,7 +959,7 @@ function creditsStep(gw: GreatWar, seat: GwSeatState, n: GwNationState) {
   const rhythm = creditsRow(gw, seat);
   if (rhythm === null) return;
   if (rhythm.by === "vote" && moneyVoted(gw, n)) {
-    openCredits(gw, seat, n, rhythm);
+    openCredits(gw, seat, n, rhythm, false);
     return;
   }
   // By command or decree (or the house gone): granted, no vote.
@@ -916,6 +967,20 @@ function creditsStep(gw: GreatWar, seat: GwSeatState, n: GwNationState) {
   cr.due = gw.s.chapter + Math.max(1, rhythm.every);
   const by: GwCreditsBy = rhythm.by === "vote" ? "decree" : rhythm.by;
   reason(gw, seat, `money_credits_${by}`);
+}
+
+/**
+ * ww214: a meeting where the house votes the budget puts the minister's draft
+ * on the pinned place at once: its card, dealt next chapter, is the paper
+ * the bill is counted, lobbied and called from.
+ */
+function budgetOpened(gw: GreatWar, n: GwNationState): void {
+  const b = n.budget;
+  if (b.meeting === null || gw.s.chapter >= b.meeting) return;
+  if (!moneyVoted(gw, n) || b.voted?.budget !== undefined) return;
+  const st = lawStage(n, moneyIds.budget(n.tag as GwTag));
+  if (st !== null && MOVING.includes(st.stage)) return;
+  budgetSign(gw, n);
 }
 
 /** A faction with this many tenths of the first chamber brings its own tilt. */
@@ -1010,6 +1075,7 @@ export function moneyStep(gw: GreatWar): void {
     const seat = seatsOf(gw, n.tag)[0];
     if (seat === undefined) continue;
     budgetDeadline(gw, seat, n);
+    budgetOpened(gw, n);
     factionTilt(gw, seat, n);
     creditsStep(gw, seat, n);
   }
@@ -1031,6 +1097,13 @@ export function moneyHolds(ctx: SceneCtx, c: MoneyCond): boolean {
       }
       if (c.now === "stopped") {
         return (n.budget.credits?.stopTo ?? -1) > gw.s.chapter;
+      }
+      if (c.now === "back") {
+        const st = moneyAgenda(n).find(
+          (x) => moneyBillOf(x.id)?.kind === c.bill,
+        );
+        if (st === undefined) return false;
+        return c.bill === "budget" ? (n.budget.tries ?? 0) > 0 : st.lost > 0;
       }
       return n.budget.voted?.[c.bill] === c.now;
     }
@@ -1097,6 +1170,7 @@ export function moneyBudgetView(
   return {
     ...v,
     ...(b.year === undefined ? {} : { year: b.year }),
+    put: b.put ?? null,
     tax: plan.tax ?? "consumption",
     taxes: [...GW_TAX_KINDS],
     marks: (plan.marks ?? []).flatMap((m) => {
@@ -1142,6 +1216,10 @@ export function moneyBookView(
   const year = civilFromDays(gw.s.day).year;
   const pinned = moneyAgenda(n).map((st) => {
     const m = moneyBillOf(st.id)!;
+    const due =
+      m.kind === "budget"
+        ? (n.budget.meeting ?? st.since + GW_MONEY_DEADLINE)
+        : st.since + GW_MONEY_DEADLINE;
     return {
       ...agendaView(gw, seat, n, st),
       money: {
@@ -1149,6 +1227,7 @@ export function moneyBookView(
         n: m.n,
         year: m.kind === "budget" ? (n.budget.year ?? year) : year,
         fail: row.fail,
+        due,
       },
     };
   });

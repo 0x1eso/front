@@ -380,10 +380,9 @@ describe("gauges and the home front", () => {
     expect(seat(runner).world.memoir).not.toBeNull();
   });
 
-  test("war credits come to the Reichstag", async () => {
-    const { runner } = await atWar();
-    playChapter(runner);
-    expect(seat(runner).desk.map((c) => c.scene)).toContain("gw_credits");
+  test("ww214: war credits have no card apart from their bill (BudgetVote plays their paper)", () => {
+    expect(GW_CONTENT.scenes.some((x) => x.id === "gw_credits")).toBe(false);
+    expect(GW_CONTENT.scenes.some((x) => x.id === "gw_mp_credits")).toBe(true);
   });
 });
 

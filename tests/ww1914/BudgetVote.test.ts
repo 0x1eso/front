@@ -17,13 +17,15 @@ import {
   moneyIds,
 } from "@openfront/engine-lib/ww1914/MoneyRows";
 import { budgetStep } from "@openfront/engine/ww1914/Budget";
+import { openDepts } from "@openfront/engine/ww1914/Departments";
+import { dealDesk, makeCard, placeCard } from "@openfront/engine/ww1914/Desk";
 import { govHeat } from "@openfront/engine/ww1914/Government";
 import type { GreatWar } from "@openfront/engine/ww1914/GreatWar";
 import { factionOf, houseStep } from "@openfront/engine/ww1914/House";
 import { lawBookView } from "@openfront/engine/ww1914/Laws";
 import { moneyBookView, moneyStep } from "@openfront/engine/ww1914/MoneyBills";
 import { applyGwOrder } from "@openfront/engine/ww1914/Orders";
-import { holds } from "@openfront/engine/ww1914/SceneRun";
+import { holds, sceneOf } from "@openfront/engine/ww1914/SceneRun";
 import { societyStep } from "@openfront/engine/ww1914/Society";
 import { worldEffect } from "@openfront/engine/ww1914/WorldDsl";
 import fs from "fs";
@@ -315,5 +317,89 @@ describe("the money bills", () => {
       ).gw.money.name_of.DEU.budget.replace("{year}", String(row.money!.year));
     expect(word("ko")).toBe("1915년도 제국 예산안");
     expect(word("en")).toBe("The Reich budget for 1915");
+  });
+
+  test("ww214: the credits come on one paper: voted from it with the full ballot, and no second paper", async () => {
+    const { gw, n, seat } = await atWar("DEU");
+    seats(seat, "reichstag", { deu_spd: [110, 2], deu_cons: [60, 1] });
+    n.budget.credits = { n: 1, due: gw.s.chapter, stopTo: -1, lost: 0 };
+    moneyStep(gw);
+    const law = moneyIds.credits("DEU", 2);
+    expect(n.laws.find((x) => x.id === law)?.stage).toBe("persuade");
+    expect(seat.scheduled.map((q) => q.scene)).toEqual(["gw_mp_credits"]);
+    // The next chapter: the paper on the desk, the count written into the
+    // bill, and no count answer or old credits card beside it.
+    gw.s.chapter++;
+    openDepts(gw, seat);
+    dealDesk(gw, seat);
+    const about = (c: (typeof seat.desk)[number]) =>
+      c.scene === "gw_mp_credits" ||
+      c.scene === "gw_credits" ||
+      c.paper?.topic === law ||
+      (c.paper?.form === "news" && c.paper.lines.some((l) => l.topic === law));
+    expect(seat.desk.filter(about).map((c) => c.scene)).toEqual([
+      "gw_mp_credits",
+    ]);
+    const st = n.laws.find((x) => x.id === law)!;
+    expect(st.paper.length).toBeGreaterThan(0);
+    // Voted from the paper: its pick, then the call; the ballot plays.
+    const card = seat.desk.find((c) => c.scene === "gw_mp_credits")!;
+    expect(
+      applyGwOrder(gw, seat, {
+        kind: "choose",
+        card: card.uid,
+        option: "keep",
+      }),
+    ).toBe(null);
+    expect(call(gw, seat, law)).toBe(null);
+    const ballot = seat.house!.last!.ballot!;
+    expect(ballot.law).toBe(law);
+    expect(ballot.pass).toBe(true);
+    expect(n.budget.credits!.n).toBe(2);
+    expect(seat.desk.filter(about)).toEqual([]);
+    expect(seat.scheduled.filter((q) => q.scene.startsWith("gw_mp_"))).toEqual(
+      [],
+    );
+  });
+
+  test("ww214: the meeting puts the draft at once; its card amends the bill and stays its paper; a lost bill comes back on one", async () => {
+    const { gw, n, seat } = await atWar("DEU");
+    seats(seat, "reichstag", { deu_uspd: [90, -2], deu_cons: [40, 0] });
+    meeting(gw, n);
+    moneyStep(gw);
+    const law = moneyIds.budget("DEU");
+    const st = n.laws.find((x) => x.id === law)!;
+    expect(st.stage).toBe("persuade");
+    expect(n.budget.put!.shares).toEqual(plain(n).shares);
+    // A version on the meeting's card tilts the plan before the house.
+    const card = makeCard(gw, seat, sceneOf("gw_bm_deu_1915")!, "scheduled")!;
+    placeCard(gw, seat, card);
+    const army = plain(n).shares[0];
+    expect(
+      applyGwOrder(gw, seat, {
+        kind: "choose",
+        card: card.uid,
+        option: "guns",
+      }),
+    ).toBe(null);
+    expect(n.budget.put!.shares[0]).toBeGreaterThan(army);
+    expect(st.stage).toBe("persuade");
+    // The ledger's amendment keeps a meeting card on the desk.
+    const again = makeCard(gw, seat, sceneOf("gw_bm_deu_1915")!, "scheduled")!;
+    placeCard(gw, seat, again);
+    expect(put(gw, seat, plain(n))).toBe(null);
+    expect(seat.desk.some((c) => c.uid === again.uid)).toBe(true);
+    // Lost once: back on the agenda, and on its paper next chapter.
+    seat.desk = [];
+    expect(call(gw, seat, law)).toBe(null);
+    expect(seat.house!.last!.ballot!.pass).toBe(false);
+    expect(st.stage).toBe("persuade");
+    expect(seat.scheduled.map((q) => q.scene)).toContain("gw_mp_budget");
+    expect(
+      holds(
+        { gw, seat, cast: {} },
+        { kind: "world", of: { is: "money", bill: "budget", now: "back" } },
+      ),
+    ).toBe(true);
   });
 });

@@ -99,6 +99,7 @@ export const GW_REPEAT_MAX = 5;
  */
 export const GW_REPEAT_FREE: readonly string[] = [
   "gw_bm_",
+  "gw_mp_",
   "gw_bc_",
   "gw_bt_",
   "gw_bl_",

@@ -46,7 +46,6 @@ const OTHER_SHARES = [
   "deu_k_spa",
   "deu_s_papal_note",
   "deu_s_pless",
-  "gw_credits",
   "gw_d_stockholm",
 ];
 /** The plan's talks with no bargain in them. */

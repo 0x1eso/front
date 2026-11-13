@@ -340,8 +340,16 @@ export interface GwAgendaView {
   /**
    * ww209: a money bill's pinned row: which, its number (credits), the year
    * it is for (1916년 예산), and what losing it does. Absent: a plain bill.
+   * ww214: `due`, the chapter at whose close the house votes it by itself
+   * if it is left until then.
    */
-  money?: { kind: GwMoneyBill; n: number; year: number; fail: GwMoneyFail };
+  money?: {
+    kind: GwMoneyBill;
+    n: number;
+    year: number;
+    fail: GwMoneyFail;
+    due?: number;
+  };
 }
 
 /** The 법전 and 의사일정 of the 통치 tab's house group. */

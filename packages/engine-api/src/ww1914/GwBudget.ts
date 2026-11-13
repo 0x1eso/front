@@ -268,6 +268,8 @@ export interface GwBudgetView {
    * its name holds after its pinned row is gone (the vote scene, reports).
    */
   year?: number;
+  /** ww214: the plan before the house now (amended on its paper); absent: none. */
+  put?: GwBudgetPlan | null;
 }
 
 /** ww209: an earmark under its line: text pack money.mark.<id>. */

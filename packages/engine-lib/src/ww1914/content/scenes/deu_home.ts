@@ -1058,7 +1058,11 @@ const SCENES: readonly GwScene[] = [
       any(
         world({ is: "defy", id: "deu_spd", min: 3 }),
         all(
-          any(seen("gw_credits"), reichstagMax(0)),
+          any(
+            world({ is: "money", bill: "credits", now: "passed" }),
+            world({ is: "money", bill: "credits", now: "failed" }),
+            reichstagMax(0),
+          ),
           world({ is: "war_months", own: true, min: 16, max: 23 }),
         ),
       ),

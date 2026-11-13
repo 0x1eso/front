@@ -114,7 +114,7 @@ import { ownFronts } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { billRow, countPaper, countSlots, houseCounter } from "./House";
 import { lawDraftCard, lawDropDraft } from "./Laws";
-import { moneyMayWithdraw } from "./MoneyBills";
+import { isMoneyBill, moneyMayWithdraw } from "./MoneyBills";
 import { openTopics } from "./Orders";
 import { voiceKeys } from "./Persona";
 import { moveRumour } from "./Press";
@@ -1061,21 +1061,23 @@ function workTask(
           ? "moot"
           : null;
     if (why !== null) {
-      layPaper(
-        seat,
-        paperCard(
-          gw,
-          {
-            form: "stall",
-            office: t.office,
-            by: head.id,
-            type: t.type!,
-            topic: t.topic,
-            reason: why,
-          },
-          head.id,
-        ),
-      );
+      if (!moneyCount(t)) {
+        layPaper(
+          seat,
+          paperCard(
+            gw,
+            {
+              form: "stall",
+              office: t.office,
+              by: head.id,
+              type: t.type!,
+              topic: t.topic,
+              reason: why,
+            },
+            head.id,
+          ),
+        );
+      }
       if (why === "moot") {
         d.tasks = d.tasks.filter((x) => x !== t);
         writePast(gw, seat, { ...t, scene: "gw_paper_stall" }, "withdraw");
@@ -1096,14 +1098,25 @@ function workTask(
     if (t.type === "count" && t.topic !== null) {
       countPaper(gw, seat, t.topic, workBand(gw, t, head), head.id);
     }
-    const card = answerCard(gw, seat, t, head);
+    // ww214: a money bill's count is read on the bill's own paper; no
+    // second paper comes for it.
+    const card = moneyCount(t) ? null : answerCard(gw, seat, t, head);
     if (card !== null) layPaper(seat, card);
     leak(gw, seat, head);
-  } else if (stage === "inquiry" && first && (t.question ?? null) === null) {
+  } else if (
+    stage === "inquiry" &&
+    first &&
+    (t.question ?? null) === null &&
+    !moneyCount(t)
+  ) {
     askQuestion(gw, seat, t, head);
   }
   return true;
 }
+
+/** ww214: the count office's free count of a money bill (MoneyBills). */
+const moneyCount = (t: GwDeptTask): boolean =>
+  t.type === "count" && t.topic !== null && isMoneyBill(t.topic);
 
 /** Opens the chapter's work: stages move, questions, stalls, answers, news. */
 function workTasks(gw: GreatWar, seat: GwSeatState): void {
@@ -1129,6 +1142,8 @@ function workTasks(gw: GreatWar, seat: GwSeatState): void {
       continue;
     }
     if (!workTask(gw, seat, t, head)) continue;
+    // ww214: the money bills' free count has no line of its own either.
+    if (moneyCount(t)) continue;
     const rows = holdingRows(gw, seat, t.type, t.office, t.topic, head);
     news.push({
       office: t.office,
