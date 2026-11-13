@@ -175,6 +175,16 @@ function settleReport(gw: GreatWar, f: GwFile): void {
 // ---- Using it ----
 
 /** The file is used in this talk: he gives way, or he calls the bluff. */
+/** ww203: a file on `who` is held (not out): the lobby can press with it. */
+export function hasFile(seat: GwSeatState, who: string): boolean {
+  return held(seat).some((x) => x.who === who);
+}
+
+/** ww203: the lobby presses with the file on `who` (as `use_file`). */
+export function pressWithFile(ctx: SceneCtx, who: string): void {
+  holdFile(ctx, who);
+}
+
 function holdFile(ctx: SceneCtx, who: string): void {
   const { gw, seat } = ctx;
   const f = held(seat)

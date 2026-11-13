@@ -15,9 +15,6 @@ import {
   GwTheatreState,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
-import { gwPressStart } from "@openfront/engine-api/ww1914/GwPress";
-import { blankRuler } from "@openfront/engine-api/ww1914/GwRuler";
-import { gwStoryStart } from "@openfront/engine-api/ww1914/GwStory";
 import type { GreatWarData } from "@openfront/engine-api/ww1914/GwView";
 import { snapshotType } from "@openfront/engine-lib/snapshot/SnapshotType";
 import { budgetStart } from "@openfront/engine-lib/ww1914/BudgetRules";
@@ -44,6 +41,7 @@ import { closeGame } from "./Endings";
 import { prologueStep } from "./Prologue";
 import { firstRegime, institutionsOf } from "./Regimes";
 import { watchSeats } from "./Seats";
+import { blankSeat } from "./SeatStart";
 import { tableTick } from "./Table";
 import { GW_ACTORS } from "./Tables";
 import { gwView } from "./View";
@@ -250,56 +248,7 @@ export class GreatWar {
   start(): void {
     for (const p of this.mg.players()) {
       if (p.clientID() === null) continue;
-      this.s.seats.push({
-        smallID: p.smallID(),
-        tag: this.tagOf(p.smallID()),
-        ready: false,
-        audiences: 0,
-        privates: 0,
-        desk: [],
-        flags: [],
-        memory: [],
-        promises: [],
-        seen: {},
-        scheduled: [],
-        alloc: {
-          main: "west",
-          posture: "hold",
-          scale: "limited",
-          allyShare: 0,
-          research: "artillery",
-        },
-        log: [],
-        tension: 0,
-        shown: [],
-        choices: [],
-        mandates: [],
-        known: [],
-        subjects: {},
-        big: -9,
-        votes: [],
-        signed: -1,
-        lines: [],
-        gov: [],
-        memoir: null,
-        ruler: blankRuler(),
-        press: gwPressStart(),
-        acts: 0,
-        acted: [],
-        aim: null,
-        aimsDropped: [],
-        claims: [],
-        claimsSigned: -1,
-        claimsChanged: 0,
-        returns: [],
-        terms: [],
-        story: gwStoryStart(),
-        ordered: false,
-        idle: 0,
-        regent: false,
-        wired: 0,
-        away: false,
-      });
+      this.s.seats.push(blankSeat(p.smallID(), this.tagOf(p.smallID())));
     }
     this.s.seats.sort((a, b) => a.smallID - b.smallID);
   }

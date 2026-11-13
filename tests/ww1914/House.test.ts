@@ -53,6 +53,7 @@ import {
 import { makeCard } from "@openfront/engine/ww1914/Desk";
 import { GreatWar, GreatWarSnapshot } from "@openfront/engine/ww1914/GreatWar";
 import {
+  countPaper,
   factionOf,
   houseCounts,
   houseSits,
@@ -61,12 +62,12 @@ import {
   houseView,
   seatsNow,
   whipOf,
+  wordOf,
 } from "@openfront/engine/ww1914/House";
 import {
   lawCanDecree,
   lawDecree,
   lawPut,
-  lawStep,
   lawWithdraw,
 } from "@openfront/engine/ww1914/Laws";
 import { applyGwOrder } from "@openfront/engine/ww1914/Orders";
@@ -522,27 +523,36 @@ describe("a bill through the house", () => {
     n.inst.reichstag = 0;
     drafted(gw, seat, "deu_aux", "army_text");
     const st = n.laws.find((x) => x.id === "deu_aux")!;
-    const base = count(gw, seat, "deu_aux");
-    // army_text: the SPD against (-3), the conservatives against (-3), centre away.
-    expect(base).toBe(st.support - 6);
+    // ww203: seats cast. army_text: the SPD (3) and the conservatives (3)
+    // against, the centre's 2 wavering; the rest of the 397 away.
+    const cast = () => houseCounts(gw, seat, "deu_aux", 0)[0].cast!;
+    expect(cast().against).toBeGreaterThanOrEqual(6);
+    expect(cast().for + cast().against).toBe(8);
     const ctx = ctxOf(gw, seat);
     runEffects(ctx, [doWorld({ do: "deal", id: "t_centre" })]);
-    expect(count(gw, seat, "deu_aux")).toBe(base + 2);
+    expect([cast().for, cast().against]).toEqual([2, 6]);
     const p = seat.promises.find((x) => x.key === "house_t_centre_deu_aux")!;
     expect(p.who).toBe("deu_erzberger");
     expect(seat.flags).toContain("t_paid");
     runEffects(ctx, [doWorld({ do: "amend", id: "t_spd" })]);
     expect(st.text).toBe("unions_text");
-    expect(count(gw, seat, "deu_aux")).toBe(base + 2 + 6);
+    expect([cast().for, cast().against]).toEqual([5, 3]);
+    // The count reads the margin in tenths of the votes cast: 2 of 8.
+    expect(count(gw, seat, "deu_aux")).toBe(2);
   });
 
-  test("the whip speaks each chapter, as a report that may be wrong, and is judged after the vote", async () => {
+  test("the count paper is a report that may be wrong, and is judged after the vote", async () => {
     const { gw, n, seat } = await atWar();
     n.inst.reichstag = 5;
-    // An anxious whip can be wrong: his word is stamped unconfirmed.
-    gw.person(whipOf(gw, seat)!)!.temperament = "anxious";
+    // An anxious head can be wrong: his word is stamped unconfirmed.
+    const head = whipOf(gw, seat)!;
+    gw.person(head)!.temperament = "anxious";
     drafted(gw, seat, "deu_aux", "unions_text");
+    // ww203: no word each chapter; a department's count paper.
     houseStep(gw);
+    expect(gw.s.reports.some((x) => x.about === "deu_aux")).toBe(false);
+    countPaper(gw, seat, "deu_aux", 2, head);
+    expect(n.laws.find((x) => x.id === "deu_aux")!.paper.length).toBe(3);
     const r = gw.s.reports.filter(
       (x) => x.fact === "count" && x.about === "deu_aux",
     );
@@ -595,7 +605,7 @@ describe("a bill through the house", () => {
     expect(l?.who).toBe("deu_i_westarp");
   });
 
-  test("short of the count it goes back to the house, whatever the day", async () => {
+  test("short of the count it fails: the article locks and authority falls", async () => {
     const { gw, n, seat } = await atWar();
     n.inst.reichstag = -5;
     drafted(gw, seat, "deu_aux", "army_text");
@@ -603,8 +613,9 @@ describe("a bill through the house", () => {
     st.stage = "vote";
     const authority = n.authority;
     lawPut(ctxOf(gw, seat), "deu_aux");
-    expect(st.stage).toBe("persuade");
-    expect(n.authority).toBe(authority - 5);
+    expect(st.stage).toBe("idle");
+    expect(st.lockTo).toBe(gw.s.chapter + 6);
+    expect(n.authority).toBe(authority - 10);
     expect(seat.house!.last?.band).toBe("lost_wide");
   });
 
@@ -641,13 +652,19 @@ describe("a bill through the house", () => {
     lawPut(ctxOf(gw, seat), "deu_aux");
     expect(st.stage).toBe("vote");
     expect(st.delayTo).toBe(gw.s.chapter + 3);
-    seat.scheduled = [];
-    lawStep(gw);
-    expect(seat.scheduled.some((q) => q.scene === "gw_lv_deu_aux")).toBe(false);
+    const b = seat.house!.last!.ballot!;
+    expect(b.chambers.find((c) => c.chamber === "lords")!.delay).toBe(true);
+    // ww203: the call waits for the delay to run out.
+    const call = () =>
+      applyGwOrder(gw, seat, {
+        kind: "bill_vote",
+        law: "deu_aux",
+        confidence: false,
+      });
+    gw.s.chapter++;
+    expect(call()).toBe("lords_wait");
     gw.s.chapter = st.delayTo;
-    lawStep(gw);
-    expect(seat.scheduled.some((q) => q.scene === "gw_lv_deu_aux")).toBe(true);
-    lawPut(ctxOf(gw, seat), "deu_aux");
+    expect(call()).toBe(null);
     expect(st.stage).toBe("force");
   });
 
@@ -857,14 +874,14 @@ describe("the approved rest of the design", () => {
     expect(st.stage).toBe("sign");
     const card = seat.desk.find((c) => c.scene === houseIds.sign("DEU"))!;
     expect(card).toBeDefined();
-    // Nothing else moves while it waits.
+    // ww203: it takes a place on the agenda; others still come.
     expect(
       applyGwOrder(gw, seat, {
         kind: "law",
         law: "deu_bread_cards",
         act: "draft",
       }),
-    ).toBe("law_busy");
+    ).toBe(null);
     applyGwOrder(gw, seat, { kind: "choose", card: card.uid, option: "sign" });
     expect([st.stage, st.how]).toEqual(["force", "voted"]);
   });
@@ -1075,14 +1092,12 @@ describe("the AUH writer's round", () => {
     const counts = houseCounts(gw, seat, "deu_bread_cards", 0);
     expect(counts.map((c) => c.id)).toEqual(["reichstag"]);
     expect(count(gw, seat, "deu_bread_cards")).toBeGreaterThanOrEqual(0);
-    houseStep(gw);
+    countPaper(gw, seat, "deu_bread_cards", 3, null);
     const st = n.laws.find((x) => x.id === "deu_bread_cards")!;
     expect(GW_WHIP_WORDS[st.whip]).not.toBe("hopeless");
     const r = gw.s.reports.find((x) => x.about === "deu_bread_cards")!;
     expect(r.truth).toBe(
-      GW_WHIP_WORDS.indexOf(
-        count(gw, seat, "deu_bread_cards") >= 3 ? "wide" : "likely",
-      ),
+      GW_WHIP_WORDS.indexOf(wordOf(count(gw, seat, "deu_bread_cards"))),
     );
     const heat = factionOf(seat, "t_spd")!.heat;
     st.stage = "vote";

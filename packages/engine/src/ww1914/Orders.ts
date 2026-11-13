@@ -35,6 +35,7 @@ import {
   deptChosen,
   deptRead,
   deptSentBack,
+  giveCount,
   giveGift,
   giveTask,
   isPetitioner,
@@ -52,7 +53,14 @@ import { crownPick, fatePaint, treatySign } from "./Fate";
 import { proposalsFor } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { answerPetition, holdHonours } from "./Honours";
-import { lawOrder } from "./Laws";
+import { housePress, lobbyCall } from "./House";
+import {
+  lawCall,
+  lawOrder,
+  lawRound,
+  lawSubmit,
+  lawWithdrawOrder,
+} from "./Laws";
 import { GW_OFFENSIVE_PAPERS, signOffensivePaper } from "./Offensives";
 import {
   candidatesFor,
@@ -150,21 +158,8 @@ export function applyGwOrder(
       applyReply(gw, seat, card, scene, reply);
       return null;
     }
-    case "summon": {
-      const scene = sceneOf(o.topic);
-      const price = summonPrice(seat, scene, o.topic);
-      if (price !== null) return price;
-      if (scene?.kind !== "talk" || scene.summon !== true) return "no_topic";
-      if (!summonable(gw, seat, o.person, o.topic)) return "no_topic";
-      // ww193: on a trip the room is shut; private meetings go on.
-      if (!isPrivateTalk(scene) && roomShut(gw, seat)) return "room_shut";
-      const card = makeCard(gw, seat, scene, "summon");
-      if (card === null) return "no_topic";
-      paySummon(seat, scene, o.topic);
-      placeCard(gw, seat, card);
-      if (isPetitioner(seat, o.person)) petitionerSeen(seat, o.person);
-      return null;
-    }
+    case "summon":
+      return summon(gw, seat, o.person, o.topic);
     case "dismiss": {
       const p = gw.person(o.person);
       if (!ownPerson(seat, o.person) || p === null) return "no_person";
@@ -334,16 +329,50 @@ export function applyGwOrder(
       return treatySign(gw, seat, o.how);
     case "crown":
       return crownPick(gw, seat, o.client, o.pick);
-    // ww203: the law book and the agenda (S1 wires them).
+    // ww203: the law book and the agenda.
     case "bill_submit":
+      if (o.sponsor !== undefined && !ownPerson(seat, o.sponsor)) {
+        return "no_person";
+      }
+      return lawSubmit(gw, seat, o.law, o.sponsor ?? null);
     case "bill_vote":
+      return lawCall(gw, seat, o.law, o.confidence);
     case "bill_round":
+      return lawRound(gw, seat, o.law);
     case "bill_withdraw":
-    case "bill_lobby":
+      return lawWithdrawOrder(gw, seat, o.law);
+    case "bill_lobby": {
+      const call = lobbyCall(gw, seat, o.law, o.faction);
+      if (typeof call === "string") return call;
+      return summon(gw, seat, call.person, call.topic);
+    }
     case "bill_press":
+      return housePress(gw, seat, o.law, o.faction, o.how);
     case "bill_count":
-      return "no_law";
+      return giveCount(gw, seat, o.law);
   }
+}
+
+/** Call a person on a talk scene: an audience, a private meeting, a house call. */
+function summon(
+  gw: GreatWar,
+  seat: GwSeatState,
+  person: string,
+  topic: string,
+): GwOrderBlock | null {
+  const scene = sceneOf(topic);
+  const price = summonPrice(seat, scene, topic);
+  if (price !== null) return price;
+  if (scene?.kind !== "talk" || scene.summon !== true) return "no_topic";
+  if (!summonable(gw, seat, person, topic)) return "no_topic";
+  // ww193: on a trip the room is shut; private meetings go on.
+  if (!isPrivateTalk(scene) && roomShut(gw, seat)) return "room_shut";
+  const card = makeCard(gw, seat, scene, "summon");
+  if (card === null) return "no_topic";
+  paySummon(seat, scene, topic);
+  placeCard(gw, seat, card);
+  if (isPetitioner(seat, person)) petitionerSeen(seat, person);
+  return null;
 }
 
 /**

@@ -112,6 +112,7 @@ import {
 import { settlePlan } from "./Fate";
 import { ownFronts } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
+import { billRow, countPaper, countSlots, houseCounter } from "./House";
 import { lawDraftCard, lawDropDraft } from "./Laws";
 import { openTopics } from "./Orders";
 import { courseGrainOf, grainCounted, voiceKeys } from "./Persona";
@@ -846,11 +847,45 @@ export function giveSettle(gw: GreatWar, seat: GwSeatState, of: string): void {
   d.tasks.push(t);
 }
 
+/**
+ * ww203: 집계를 맡긴다: the house's counting office counts a bill on the
+ * agenda, free and past the one-task rule; the paper comes as the next
+ * chapter opens (House.countPaper writes it faction by faction).
+ */
+export function giveCount(
+  gw: GreatWar,
+  seat: GwSeatState,
+  law: string,
+): GwOrderBlock | null {
+  const n = gw.nation(seat.tag);
+  const st = n?.laws.find((x) => x.id === law) ?? null;
+  if (st === null || (st.stage !== "persuade" && st.stage !== "vote")) {
+    return "no_law";
+  }
+  if (billRow(seat, law) === null) return "no_law";
+  const office = houseCounter(seat, (o) => deptHead(gw, seat, o) !== null);
+  const head = office === null ? null : deptHead(gw, seat, office);
+  if (office === null || head === null) return "no_dept";
+  const d = deptState(seat);
+  if (d.tasks.some((t) => t.type === "count" && t.topic === law)) {
+    return "counting";
+  }
+  const t = newTask(gw, office, head, "count", null, law);
+  t.due = gw.s.chapter + 1;
+  d.tasks.push(t);
+  return null;
+}
+
 // ---- Tasks: the chapter's work ----
 
 /** The topic no longer makes sense: the country is out, the front shut. */
 function moot(gw: GreatWar, seat: GwSeatState, t: GwDeptTask): boolean {
   if (t.topic === null) return false;
+  // ww203: a count is moot once its bill has left the agenda.
+  if (t.type === "count") {
+    const st = gw.nation(seat.tag)?.laws.find((x) => x.id === t.topic);
+    return st === undefined || (st.stage !== "persuade" && st.stage !== "vote");
+  }
   // ww199: a beaten country's fate is moot once no table sits for it.
   if (t.type === "settle") {
     const tb = gw.s.table;
@@ -1049,6 +1084,10 @@ function workTask(
   if (stage === "report") {
     d.tasks = d.tasks.filter((x) => x !== t);
     dropPapers(seat, t.office, ["question"]);
+    // ww203: the count's paper is written into the bill, faction by faction.
+    if (t.type === "count" && t.topic !== null) {
+      countPaper(gw, seat, t.topic, workBand(gw, t, head), head.id);
+    }
     const card = answerCard(gw, seat, t, head);
     if (card !== null) layPaper(seat, card);
     leak(gw, seat, head);
@@ -1128,6 +1167,9 @@ function taskSlots(gw: GreatWar, seat: GwSeatState, t: GwDeptTask): GwSlots {
     if (q.q === "money") slots.spend = { kind: "word", value: pick };
     if (q.q === "reach") slots.reach = { kind: "word", value: pick };
     if (q.q === "person") slots.sent = { kind: "person", value: pick };
+  }
+  if (t.type === "count" && t.topic !== null) {
+    Object.assign(slots, countSlots(gw, seat, t.topic));
   }
   return slots;
 }

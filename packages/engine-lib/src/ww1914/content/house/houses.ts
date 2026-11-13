@@ -146,6 +146,8 @@ export const AUH_HOUSE: GwHouseRow = {
     inst: "nations",
     delta: -1,
     skips: ["reichsrat"],
+    // ww203: the decree faces the house when it sits again.
+    faces: true,
     heats: [
       { faction: "auh_czech", by: 1 },
       { faction: "auh_slavs", by: 1 },
@@ -194,6 +196,8 @@ export const RUS_HOUSE: GwHouseRow = {
     inst: "duma",
     delta: -1,
     skips: ["duma", "council"],
+    // ww203: the decree faces the house when it sits again.
+    faces: true,
     heats: [
       { faction: "rus_nobles", by: 1 },
       { faction: "rus_kadets", by: 1 },

@@ -70,7 +70,11 @@
     "house_refused": "의회를 통과한 법안에 서명하지 않았다. 의회의 무게가 줄었다.",
     "house_refused_by": "{who}의 무리가 서명 거부에 반발했다.",
     "house_no_sitting": "의회가 닫혀 있어 표결이 열리지 않았다. 법안은 그대로 기다린다.",
-    "house_elected": "선거가 끝났다. 새 의회가 다시 문을 열었다."
+    "house_elected": "선거가 끝났다. 새 의회가 다시 문을 열었다.",
+    "house_press_file": "{who}의 서류를 꺼냈다. 그는 표결에 나오지 않는다.",
+    "house_press_word": "내 뜻을 직접 전했다. {who}의 무리가 따르기로 했다.",
+    "house_press_word_no": "내 뜻을 직접 전했으나 {who}의 무리는 움직이지 않았다. 반감만 샀다.",
+    "house_press_threat": "해산을 입에 올렸다. {who}의 무리가 물러섰고, 의회 전체가 술렁인다."
   },
   "heads": {
     "house_split": {

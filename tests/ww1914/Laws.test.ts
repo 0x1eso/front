@@ -1,6 +1,7 @@
 import { GameMapSize, GameMapType } from "@openfront/engine-api/game/GameTypes";
 import type { MapFiles } from "@openfront/engine-api/game/MapFiles";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
+import type { GwOrder } from "@openfront/engine-api/ww1914/GwOrders";
 import {
   GwPack,
   gwPackProblems,
@@ -22,6 +23,7 @@ import { GW_AUTHORITY } from "@openfront/engine/ww1914/AuthorityTable";
 import { advanceChapter } from "@openfront/engine/ww1914/Chapters";
 import type { GreatWar } from "@openfront/engine/ww1914/GreatWar";
 import {
+  lawAgenda,
   lawCanDecree,
   lawCount,
   lawViews,
@@ -62,6 +64,15 @@ async function atWar() {
   s.dayShift = 800;
   s.day += 800;
   return { runner, gw, n, seat: s.seats[0] };
+}
+
+/** 표결에 부친다 from the agenda (ww203). */
+function call(gw: GreatWar, law: string) {
+  return applyGwOrder(gw, gw.s.seats[0], {
+    kind: "bill_vote",
+    law,
+    confidence: false,
+  });
 }
 
 /** Clears the desk the plain way and closes the chapter. */
@@ -179,7 +190,7 @@ function withoutHouse(): void {
 describe("a bill's way", () => {
   beforeEach(withoutHouse);
   afterEach(() => useGwContent(null));
-  test("draft, persuade, the day, in force, and the law works on its months", async () => {
+  test("draft, persuade, the call, in force, and the law works on its months", async () => {
     const { gw, n, seat: st } = await atWar();
     const row = rowOf("deu_bread_cards");
     expect(
@@ -195,11 +206,13 @@ describe("a bill's way", () => {
     });
     expect(n.laws[0].stage).toBe("persuade");
     expect(n.laws[0].text).toBe("city_cards");
+    // ww203: no timer and no day scene: it waits on the agenda for the call.
     next(gw);
     next(gw);
-    expect(n.laws[0].stage).toBe("vote");
-    expect(st.desk.some((c) => c.scene === `gw_lv_${row.id}`)).toBe(true);
+    expect(n.laws[0].stage).toBe("persuade");
+    expect(st.desk.some((c) => c.scene === `gw_lv_${row.id}`)).toBe(false);
     const bread = n.gauges.bread;
+    expect(call(gw, row.id)).toBe(null);
     next(gw);
     expect(n.laws[0].stage).toBe("force");
     expect(n.laws[0].how).toBe("voted");
@@ -207,18 +220,21 @@ describe("a bill's way", () => {
     expect(st.log.some((l) => l.key === `law_in_${row.id}`)).toBe(true);
   });
 
-  test("one bill moves at a time", async () => {
+  test("three bills on the agenda at once; the same article once", async () => {
     const { gw, seat: st } = await atWar();
-    expect(
-      applyGwOrder(gw, st, {
-        kind: "law",
-        law: "deu_bread_cards",
-        act: "draft",
-      }),
-    ).toBe(null);
-    expect(
-      applyGwOrder(gw, st, { kind: "law", law: "deu_censor", act: "draft" }),
-    ).toBe("law_busy");
+    const open = lawViews(gw, st).filter((v) => v.stage === "open");
+    expect(open.length).toBeGreaterThan(3);
+    for (const v of open.slice(0, 3)) {
+      expect(applyGwOrder(gw, st, { kind: "bill_submit", law: v.id })).toBe(
+        null,
+      );
+    }
+    expect(applyGwOrder(gw, st, { kind: "bill_submit", law: open[3].id })).toBe(
+      "agenda_full",
+    );
+    expect(applyGwOrder(gw, st, { kind: "bill_submit", law: open[0].id })).toBe(
+      "law_busy",
+    );
   });
 
   test("another country's bill is refused and nothing changes", async () => {
@@ -229,23 +245,23 @@ describe("a bill's way", () => {
     expect(n.laws).toEqual([]);
   });
 
-  test("thrown out, it costs authority and comes back to be argued", async () => {
+  test("thrown out, it costs authority and locks its article a while", async () => {
     const { gw, n, seat: st } = await atWar();
     n.inst.reichstag = -5;
     const row = rowOf("deu_strike_ban");
     applyGwOrder(gw, st, { kind: "law", law: row.id, act: "draft" });
     next(gw);
-    next(gw);
-    expect(n.laws[0].stage).toBe("vote");
-    expect(lawCount(gw, st, row.id)).toBeLessThan(0);
-    const card = st.desk.find((c) => c.scene === `gw_lv_${row.id}`)!;
-    expect(card.variant).toBe("short");
+    expect(lawCount(gw, st, row.id)).toBeLessThan(-1);
     const was = n.authority;
-    applyGwOrder(gw, st, { kind: "choose", card: card.uid, option: "put" });
-    expect(n.laws[0].stage).toBe("persuade");
+    expect(call(gw, row.id)).toBe(null);
+    expect(n.laws[0].stage).toBe("idle");
     expect(n.laws[0].lost).toBe(1);
-    expect(n.authority).toBe(was - 5);
+    expect(n.laws[0].lockTo).toBe(gw.s.chapter + 6);
+    expect(n.authority).toBe(was - 10);
     expect(st.log.some((l) => l.key === "law_no_reichstag")).toBe(true);
+    expect(applyGwOrder(gw, st, { kind: "bill_submit", law: row.id })).toBe(
+      "law_locked",
+    );
   });
 
   test("the decree goes past the body at its price; the fallout is shown", async () => {
@@ -254,14 +270,14 @@ describe("a bill's way", () => {
     const row = rowOf("deu_strike_ban");
     applyGwOrder(gw, st, { kind: "law", law: row.id, act: "draft" });
     next(gw);
-    next(gw);
-    const card = st.desk.find((c) => c.scene === `gw_lv_${row.id}`)!;
-    const scene = gwContent().scenes.find((s) => s.id === card.scene)!;
+    const scene = gwContent().scenes.find((s) => s.id === `gw_lv_${row.id}`)!;
     const opt = scene.options!.find((o) => o.id === "decree")!;
     expect(opt.tell).toContain("authority:-20");
     n.authority = 60;
     n.inst.reichstag = -2;
-    applyGwOrder(gw, st, { kind: "choose", card: card.uid, option: "decree" });
+    expect(applyGwOrder(gw, st, { kind: "bill_round", law: row.id })).toBe(
+      null,
+    );
     expect(n.laws[0].stage).toBe("force");
     expect(n.laws[0].how).toBe("decreed");
     expect(n.authority).toBe(40);
@@ -276,16 +292,13 @@ describe("a bill's way", () => {
     n.authority = 5;
     applyGwOrder(gw, st, { kind: "law", law: "deu_censor", act: "draft" });
     next(gw);
-    next(gw);
     const v = lawViews(gw, st).find((x) => x.id === "deu_censor")!;
-    expect(v.stage).toBe("vote");
-    const card = st.desk.find((c) => c.scene === "gw_lv_deu_censor")!;
+    expect(v.stage).toBe("persuade");
     const blocked = applyGwOrder(gw, st, {
-      kind: "choose",
-      card: card.uid,
-      option: "decree",
+      kind: "bill_round",
+      law: "deu_censor",
     });
-    expect(blocked).toBe("closed");
+    expect(blocked).toBe("no_authority");
   });
 
   test("taken back, it can come again after a while; never a dead end", async () => {
@@ -293,13 +306,7 @@ describe("a bill's way", () => {
     const id = "deu_censor";
     applyGwOrder(gw, st, { kind: "law", law: id, act: "draft" });
     next(gw);
-    next(gw);
-    const card = st.desk.find((c) => c.scene === `gw_lv_${id}`)!;
-    applyGwOrder(gw, st, {
-      kind: "choose",
-      card: card.uid,
-      option: "withdraw",
-    });
+    expect(applyGwOrder(gw, st, { kind: "bill_withdraw", law: id })).toBe(null);
     expect(n.laws[0].stage).toBe("idle");
     expect(applyGwOrder(gw, st, { kind: "law", law: id, act: "draft" })).toBe(
       "law_busy",
@@ -316,8 +323,7 @@ describe("a bill's way", () => {
     n.inst.reichstag = 3;
     applyGwOrder(gw, st, { kind: "law", law: row.id, act: "draft" });
     next(gw);
-    next(gw);
-    next(gw);
+    expect(call(gw, row.id)).toBe(null);
     expect(st.flags).toContain("f_law_strike_ban");
     n.authority = 5;
     expect(
@@ -402,7 +408,8 @@ describe("a bill's way", () => {
     const row = rowOf("deu_bread_cards");
     n.inst.reichstag = 3;
     applyGwOrder(gw, st, { kind: "law", law: row.id, act: "draft" });
-    for (let i = 0; i < 3; i++) next(gw);
+    next(gw);
+    expect(call(gw, row.id)).toBe(null);
     expect(n.laws[0].stage).toBe("force");
     for (let i = 0; i < row.after!.chapters + 2; i++) {
       if (st.desk.some((c) => c.scene === `gw_lf_${row.id}`)) break;
@@ -569,22 +576,20 @@ describe("a whole game on the real map", () => {
             for (const x of n.laws) {
               if (x.stage === "force" && x.how !== "scene") passed.add(x.id);
             }
-            // The day of a vote is a person's: they count first, and a bill
-            // with no way through goes back in the drawer.
-            for (const c of [...seat.desk]) {
-              if (!c.scene.startsWith("gw_lv_")) continue;
-              const id = c.scene.slice("gw_lv_".length);
-              const pick =
+            // ww203: a person calls the vote after a chapter on the agenda:
+            // they count first, and a bill with no way through goes back in
+            // the drawer.
+            for (const x of lawAgenda(n)) {
+              if (x.stage !== "persuade" || gw.s.chapter - x.since < 1)
+                continue;
+              const id = x.id;
+              const o: GwOrder =
                 lawCount(gw, seat, id) >= 0
-                  ? "put"
+                  ? { kind: "bill_vote", law: id, confidence: false }
                   : lawCanDecree(gw, seat, id)
-                    ? "decree"
-                    : "withdraw";
-              applyGwOrder(gw, seat, {
-                kind: "choose",
-                card: c.uid,
-                option: pick,
-              });
+                    ? { kind: "bill_round", law: id }
+                    : { kind: "bill_withdraw", law: id };
+              applyGwOrder(gw, seat, o);
             }
             const open = lawViews(gw, seat).find(
               (v) => v.stage === "open" && v.waits === null,

@@ -38,7 +38,7 @@ import { eraOf, researchView } from "./Eras";
 import { ownFronts, proposalsFor } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { houseView } from "./House";
-import { lawsAhead, lawViews } from "./Laws";
+import { lawBookView, lawsAhead, lawViews } from "./Laws";
 import { seaView } from "./NavalIntel";
 import { prepView } from "./Offensives";
 import {
@@ -380,6 +380,7 @@ export function worldView(gw: GreatWar, seat: GwSeatState): GwWorldView {
     press: pressView(gw, seat),
     craft: craftView(gw, seat),
     house: houseView(gw, seat),
+    book: lawBookView(gw, seat),
     dossier: dossierView(gw, seat),
   };
 }

@@ -8,13 +8,16 @@
 import type {
   GwCard,
   GwNationState,
+  GwOffice,
   GwSeatState,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import type { GwSlots } from "@openfront/engine-api/ww1914/GwDepts";
 import {
   GW_FACTION_STEP_MAX,
   GW_FACTION_STRENGTH_MAX,
   GW_FEED_WEARS,
   GW_WHIP_WORDS,
+  GwBallot,
   GwBillFactionView,
   GwChamber,
   GwFactionState,
@@ -27,8 +30,12 @@ import {
 } from "@openfront/engine-api/ww1914/GwHouse";
 import {
   gwLawStart,
+  type GwCountWord,
   type GwLawState,
+  type GwLobbyView,
+  type GwPressHow,
 } from "@openfront/engine-api/ww1914/GwLaw";
+import type { GwOrderBlock } from "@openfront/engine-api/ww1914/GwOrders";
 import type { GwCond } from "@openfront/engine-api/ww1914/SceneDsl";
 import type {
   GwWorldCond,
@@ -37,13 +44,17 @@ import type {
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
 import { GW_LAWS } from "@openfront/engine-lib/ww1914/content/scenes/laws";
 import {
+  GW_AGENDA_MAX,
   GW_ASK_GAP,
   GW_ASK_STRENGTH,
   GW_BRING_STRENGTH,
+  GW_BROKEN_SHUT,
   GW_HOUSE_CALLS,
   GW_IGNORED_FADE,
   GW_IGNORED_LIMIT,
   GW_LORDS_DELAY,
+  GW_PRICES_MAX,
+  GW_REBEL_TENTHS,
   GW_REFUSED_HEAT,
   GW_SPONSOR_ODDS,
   GW_WHIP_SPREAD,
@@ -52,13 +63,17 @@ import {
   GwFactionRow,
   GwHouseRow,
   GwSide,
+  GwWant,
   houseIds,
 } from "@openfront/engine-lib/ww1914/HouseRows";
 import type { GwLawRow } from "@openfront/engine-lib/ww1914/LawRows";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
+import { BallotFaction, BallotResult, castChamber } from "./Ballot";
 import { blocNow } from "./Blocs";
 import { makeCard, placeCard } from "./Desk";
+import { hasFile, pressWithFile } from "./Dossier";
 import type { GreatWar } from "./GreatWar";
+import { moveRuler } from "./Ruler";
 import { castOf, holds, runEffects, SceneCtx, sceneOf } from "./SceneRun";
 import {
   clampTo,
@@ -177,17 +192,37 @@ const MOVING: readonly GwLawState["stage"][] = [
   "sign",
 ];
 
-function movingBill(
-  gw: GreatWar,
-  seat: GwSeatState,
-): { st: GwLawState; bill: GwBillRow; row: GwLawRow } | null {
+interface Moving {
+  st: GwLawState;
+  bill: GwBillRow;
+  row: GwLawRow;
+}
+
+/** ww203: the house bills on the agenda, in the order they joined it. */
+export function agendaBills(gw: GreatWar, seat: GwSeatState): Moving[] {
   const n = gw.nation(seat.tag);
-  if (n === null) return null;
-  const st = n.laws.find((x) => MOVING.includes(x.stage));
-  if (st === undefined) return null;
-  const bill = billRow(seat, st.id);
-  const row = lawRow(st.id);
-  return bill === null || row === null ? null : { st, bill, row };
+  if (n === null) return [];
+  return n.laws.flatMap((st) => {
+    if (!MOVING.includes(st.stage)) return [];
+    const bill = billRow(seat, st.id);
+    const row = lawRow(st.id);
+    return bill === null || row === null ? [] : [{ st, bill, row }];
+  });
+}
+
+/**
+ * The bill the house's talks are about: the lobbied one (`focus`) while it
+ * is on the agenda, else the first. The scenes' "moving bill".
+ */
+function movingBill(gw: GreatWar, seat: GwSeatState): Moving | null {
+  const all = agendaBills(gw, seat);
+  const focus = seat.house?.focus ?? null;
+  return all.find((m) => m.st.id === focus) ?? all[0] ?? null;
+}
+
+/** ww203: the lobby talks are about this bill now. */
+export function houseFocus(seat: GwSeatState, law: string | null): void {
+  if (seat.house !== undefined) seat.house.focus = law;
 }
 
 /** The chambers a bill meets, in order. */
@@ -481,26 +516,42 @@ function splitsAndJoins(gw: GreatWar, seat: GwSeatState): void {
 
 // ---- The count ----
 
-/** A faction's side on the moving bill, and whether a deal was broken. */
+/** A promise of the house to this faction broken and not yet past. */
+function brokenTo(gw: GreatWar, seat: GwSeatState, id: string): boolean {
+  const pre = `house_${id}_`;
+  return seat.promises.some(
+    (p) =>
+      p.key.startsWith(pre) &&
+      p.broken &&
+      gw.s.chapter - p.due < GW_BROKEN_SHUT,
+  );
+}
+
+/**
+ * A faction's side on the moving bill, and whether a deal was broken. ww203:
+ * `away` for a held leader or a boycott (its seats don't count); a faction
+ * the seat broke a promise to betrays the deal on this bill.
+ */
 function sideOf(
   gw: GreatWar,
   seat: GwSeatState,
   bill: GwBillRow,
   st: GwLawState,
   id: string,
-): { side: GwSide; broke: boolean } {
+): { side: GwSide; broke: boolean; away?: true } {
   const f = factionOf(seat, id);
   const row = factionRow(id);
   if (f === null || row === null || f.status !== "in") {
-    return { side: 0, broke: false };
+    return { side: 0, broke: false, away: true };
   }
   const deal = st.deals.includes(id);
   // A file holds its leader: the faction stays away (S2 sets `held`).
-  if (f.held >= gw.s.chapter) return { side: 0, broke: false };
+  if (f.held >= gw.s.chapter) return { side: 0, broke: false, away: true };
   // A boycott, or the silence before a plot.
-  if (f.step >= 3) return { side: 0, broke: deal };
+  if (f.step >= 3) return { side: 0, broke: deal, away: true };
   const turned = f.step === 2 || blocNow(gw, seat, row.bloc) <= -3;
   if (turned) return { side: -1, broke: deal };
+  if (deal && brokenTo(gw, seat, id)) return { side: -1, broke: true };
   if (deal) return { side: 1, broke: false };
   const text = st.text === null ? undefined : bill.texts?.[st.text]?.[id];
   const side = text ?? bill.stance[id] ?? 0;
@@ -511,12 +562,47 @@ function sideOf(
 
 interface ChamberCount {
   id: GwChamber;
+  /** The margin in tenths of the votes cast (Ballot.marginTenths); < 0 fails. */
   count: number;
+  /** ww203: the seats cast; absent for a shut chamber. */
+  cast?: BallotResult;
   /** Fails whatever the count: a consent faction against, a closed chamber. */
   blocked: boolean;
   kind: GwChamberRow["kind"];
   /** ww187: it doesn't sit and the way round doesn't carry the bill past it. */
   shut?: true;
+}
+
+/** What each faction of the seat's house does in chamber `c`. */
+function ballotFactions(
+  gw: GreatWar,
+  seat: GwSeatState,
+  bill: GwBillRow,
+  st: GwLawState,
+  c: GwChamber,
+  confidence: boolean,
+): BallotFaction[] {
+  return factionRows(seat.tag).flatMap((f) => {
+    const seats = seatsNow(seat, f)[c] ?? 0;
+    const fs = factionOf(seat, f.id);
+    if (seats <= 0 || fs?.status !== "in") return [];
+    const s = sideOf(gw, seat, bill, st, f.id);
+    const deal = st.deals.includes(f.id);
+    // A kept deal holds the whole faction; a question of confidence holds
+    // the government's side.
+    const holds = (deal && !s.broke) || (confidence && s.side > 0);
+    const tenths = holds ? 0 : (GW_REBEL_TENTHS[fs.step] ?? 0);
+    return [
+      {
+        id: f.id,
+        seats,
+        side: s.side,
+        away: s.away === true,
+        rebels: Math.floor((seats * tenths) / 10),
+        beat: s.broke ? "betray" : deal ? "swing" : "firm",
+      },
+    ];
+  });
 }
 
 function countIn(
@@ -528,26 +614,39 @@ function countIn(
   st: GwLawState,
   c: GwChamberRow,
   table: number,
+  confidence = false,
 ): ChamberCount {
   const ctx = ctxOf(gw, seat);
   if (!sits(ctx, c)) {
     return { id: c.id, count: CLOSED, blocked: true, kind: c.kind, shut: true };
   }
-  let count =
+  const score =
     (c.inst === undefined ? 0 : (n.inst[c.inst] ?? 0)) +
     lean +
     st.support +
     table;
-  for (const f of factionRows(seat.tag)) {
-    const seats = seatsNow(seat, f)[c.id] ?? 0;
-    if (seats === 0) continue;
-    count += seats * sideOf(gw, seat, bill, st, f.id).side;
-  }
-  const blocked =
+  const refused =
     c.kind === "consent" &&
     c.consent !== undefined &&
     sideOf(gw, seat, bill, st, c.consent).side <= 0;
-  return { id: c.id, count, blocked, kind: c.kind };
+  const need = c.need;
+  const block =
+    bill.constitution === true && need !== undefined && need !== "half"
+      ? need.block
+      : 0;
+  const cast = castChamber(
+    {
+      id: c.id,
+      size: c.size ?? null,
+      rest: c.rest ?? "away",
+      block,
+      score,
+      refused,
+    },
+    ballotFactions(gw, seat, bill, st, c.id, confidence),
+  );
+  const blocked = refused || (block > 0 && cast.against >= block);
+  return { id: c.id, count: cast.count, cast, blocked, kind: c.kind };
 }
 
 /** Each chamber's count of the moving bill; `skip`: chambers gone round. */
@@ -557,6 +656,7 @@ export function houseCounts(
   law: string,
   table: number,
   skip: readonly GwChamber[] = [],
+  confidence = false,
 ): ChamberCount[] {
   const n = gw.nation(seat.tag);
   const house = houseRow(seat.tag);
@@ -568,7 +668,9 @@ export function houseCounts(
   const gone = [...skip, ...closedRound(gw, seat, house, bill)];
   return chambersOf(house, bill)
     .filter((c) => !gone.includes(c.id))
-    .map((c) => countIn(gw, seat, n, bill, row.lean, live, c, table));
+    .map((c) =>
+      countIn(gw, seat, n, bill, row.lean, live, c, table, confidence),
+    );
 }
 
 /** A law state for a count with no bill moving (a power's question). */
@@ -668,17 +770,21 @@ export function houseTally(counts: readonly ChamberCount[]): {
   return { count: v, stops: v < 0 ? worst.id : null, lords };
 }
 
+/**
+ * ww203: the count is the margin in tenths of the votes cast; a margin of a
+ * fifth (GW_WIDE_SHARE) or more is wide.
+ */
 export function bandOf(count: number): GwVoteBand {
-  if (count >= 3) return "wide";
+  if (count >= 2) return "wide";
   if (count >= 0) return "narrow";
-  return count >= -2 ? "lost_narrow" : "lost_wide";
+  return count >= -1 ? "lost_narrow" : "lost_wide";
 }
 
 export function wordOf(count: number): GwWhipWord {
-  if (count >= 3) return "wide";
+  if (count >= 2) return "wide";
   if (count >= 1) return "likely";
   if (count === 0) return "even";
-  return count >= -2 ? "short" : "hopeless";
+  return count >= -1 ? "short" : "hopeless";
 }
 
 // ---- The whip ----
@@ -705,38 +811,73 @@ export function whipOf(gw: GreatWar, seat: GwSeatState): string | null {
   return null;
 }
 
-/** His word on the moving bill this chapter: the true count and his error. */
-function whipWord(
+/** A faction's true word on a bill: how the bulk of its seats will go. */
+function trueWord(
+  gw: GreatWar,
+  seat: GwSeatState,
+  bill: GwBillRow,
+  st: GwLawState,
+  id: string,
+): GwCountWord {
+  const s = sideOf(gw, seat, bill, st, id);
+  if (s.away === true) return "unknown";
+  if (s.side === 0) return "waver";
+  // Temper 1: a tenth wavers; the bulk still goes with the faction.
+  return s.side > 0 ? "for" : "against";
+}
+
+/** One step off: what a weak head gets wrong about a faction. */
+function offWord(w: GwCountWord, r: number): GwCountWord {
+  if (w !== "waver") return "waver";
+  return r % 2 === 0 ? "for" : "against";
+}
+
+/**
+ * ww203: the counting office's paper on a bill on the agenda, faction by
+ * faction, written at the head's band: band 3 sure and right; below, his
+ * confidence word drops and, by his spread (the old whip's), one faction's
+ * word is off. The overall word is the true count shifted by the same error,
+ * kept as the bill's `whip` and as a report the vote puts right.
+ */
+export function countPaper(
   gw: GreatWar,
   seat: GwSeatState,
   law: string,
-  truth: number,
-): { word: number; sure: boolean } {
-  const id = whipOf(gw, seat);
-  const p = id === null ? null : gw.person(id);
-  const band =
-    p?.competence[1] ?? gw.s.sources.find((x) => x.id === "whip")?.band ?? 2;
-  const spread = GW_WHIP_SPREAD[band - 1] ?? 1;
+  band: number,
+  head: string | null,
+): void {
+  const n = gw.nation(seat.tag);
+  const st = n?.laws.find((x) => x.id === law) ?? null;
+  const bill = billRow(seat, law);
+  if (st === null || bill === null || !MOVING.includes(st.stage)) return;
+  const counts = houseCounts(gw, seat, law, 0);
+  const ids = lobbyRows(gw, seat, bill).map((r) => r.id);
+  const spread = GW_WHIP_SPREAD[Math.max(1, Math.min(3, band)) - 1] ?? 1;
   const r = wwRoll(gw.s.seed, P_WHIP, idHash(law), gw.s.chapter);
-  let err = spread === 0 ? 0 : (r % (2 * spread + 1)) - spread;
-  const t = p?.temperament ?? null;
-  if (t === "anxious") err -= 1;
-  if (t === "arrogant") err += 1;
-  const word = GW_WHIP_WORDS.indexOf(wordOf(truth + err));
-  return { word, sure: spread === 0 && t !== "anxious" && t !== "arrogant" };
-}
-
-/** The whip speaks: filed as a report that may be wrong. */
-function whipReport(gw: GreatWar, seat: GwSeatState, st: GwLawState): void {
-  const table = 0;
-  const counts = houseCounts(gw, seat, st.id, table);
-  // No chamber sits to vote on it: the whip has nothing to count.
+  const off = spread === 0 || ids.length === 0 ? -1 : r % ids.length;
+  const conf = band >= 3 ? "sure" : band === 2 ? "mostly" : "heard";
+  st.paper = ids.map((id, i) => {
+    const word = trueWord(gw, seat, bill, st, id);
+    return {
+      faction: id,
+      word: i === off ? offWord(word, r >> 3) : word,
+      conf,
+    };
+  });
+  st.paperAt = gw.s.chapter;
+  // No chamber sits to vote on it: nothing to count overall.
   if (counts.length === 0 || counts.some((c) => c.shut === true)) {
     st.whip = -1;
     return;
   }
   const truth = houseTally(counts).count;
-  const { word, sure } = whipWord(gw, seat, st.id, truth);
+  const p = head === null ? null : gw.person(head);
+  let err = spread === 0 ? 0 : ((r >> 5) % (2 * spread + 1)) - spread;
+  const t = p?.temperament ?? null;
+  if (t === "anxious") err -= 1;
+  if (t === "arrogant") err += 1;
+  const word = GW_WHIP_WORDS.indexOf(wordOf(truth + err));
+  const sure = spread === 0 && t !== "anxious" && t !== "arrogant";
   st.whip = word;
   const s = gw.s;
   s.reports.push({
@@ -753,6 +894,51 @@ function whipReport(gw: GreatWar, seat: GwSeatState, st: GwLawState): void {
     checkDay: sure ? null : CHECK_LATER,
     about: st.id,
   });
+}
+
+/** The paper's overall word as the agenda reads it (GwLawOutlook). */
+export const OUTLOOK_OF_WHIP = [
+  "easy",
+  "tight",
+  "tight",
+  "short",
+  "blocked",
+] as const;
+
+/** ww203: a count answer's slots: the bill, the paper's word, the waverers. */
+export function countSlots(
+  gw: GreatWar,
+  seat: GwSeatState,
+  law: string,
+): GwSlots {
+  const st = gw.nation(seat.tag)?.laws.find((x) => x.id === law);
+  if (st === undefined) return {};
+  const out: GwSlots = { bill: { kind: "word", value: law } };
+  const tally = st.whip < 0 ? undefined : OUTLOOK_OF_WHIP[st.whip];
+  if (tally !== undefined) out.tally = { kind: "word", value: tally };
+  const swing = st.paper
+    .filter((p) => p.word === "waver")
+    .map((p) => p.faction);
+  if (swing.length > 0) out.swing = { kind: "word", value: swing.join(",") };
+  return out;
+}
+
+/** The factions sitting in a bill's chambers, in row order. */
+function lobbyRows(
+  gw: GreatWar,
+  seat: GwSeatState,
+  bill: GwBillRow,
+): GwFactionRow[] {
+  const house = houseRow(seat.tag);
+  if (house === null) return [];
+  const ids = new Set(chambersOf(house, bill).map((c) => c.id));
+  return factionRows(seat.tag).filter(
+    (f) =>
+      factionOf(seat, f.id)?.status === "in" &&
+      Object.entries(seatsNow(seat, f)).some(
+        ([c, k]) => (k ?? 0) > 0 && ids.has(c as GwChamber),
+      ),
+  );
 }
 
 /** After the vote: was the whip right, and his reports are put right now. */
@@ -792,30 +978,42 @@ export function houseSits(
   return counts.length > 0 && !counts.some((c) => c.shut === true);
 }
 
-/** The day: the count is the count. Null: not a house bill. */
+/**
+ * The day: the count is the count. Null: not a house bill. ww203: called
+ * from the agenda; `confidence`: the premier made it a question of
+ * confidence (his side's rebels hold). The ballot is kept for the scene.
+ */
 export function housePut(
   gw: GreatWar,
   seat: GwSeatState,
   st: GwLawState,
   table: number,
-): { pass: boolean; stops: string | null; sign: boolean } | null {
+  confidence = false,
+): {
+  pass: boolean;
+  stops: string | null;
+  sign: boolean;
+  band: GwVoteBand | null;
+} | null {
   const bill = billRow(seat, st.id);
   if (bill === null) return null;
-  const counts = houseCounts(gw, seat, st.id, table);
+  const counts = houseCounts(gw, seat, st.id, table, [], confidence);
   // No chamber sits to vote on it: no vote, no card, no word judged. It waits;
   // the way round is the only door. ww187: so with one it needs shut.
   if (counts.length === 0 || counts.some((c) => c.shut === true)) {
     reason(gw, seat, "house_no_sitting");
-    return { pass: false, stops: "no_sitting", sign: false };
+    return { pass: false, stops: "no_sitting", sign: false, band: null };
   }
   const t = houseTally(counts);
+  const how = confidence ? "confidence" : "vote";
   // The Lords below zero put it off once; past the delay they can't.
   if (t.count >= 0 && t.lords && bill.money !== true && st.delayTo === -1) {
     st.delayTo = gw.s.chapter + GW_LORDS_DELAY;
+    record(gw, seat, st, counts, how, false, bandOf(t.count), true);
     reason(gw, seat, "house_lords_delay");
-    return { pass: false, stops: "lords_delay", sign: false };
+    return { pass: false, stops: "lords_delay", sign: false, band: null };
   }
-  vote(gw, seat, bill, st, t.count);
+  vote(gw, seat, bill, st, t.count, counts, how);
   // A closed chamber went by the way round: its factions take that ill.
   const house = houseRow(seat.tag)!;
   const closed = closedRound(gw, seat, house, bill);
@@ -825,7 +1023,43 @@ export function housePut(
     reason(gw, seat, `house_round_${house.around.id}`);
   }
   const sign = t.count >= 0 && house.signs === true;
-  return { pass: t.count >= 0, stops: t.stops, sign };
+  return { pass: t.count >= 0, stops: t.stops, sign, band: bandOf(t.count) };
+}
+
+/** The vote as the scene plays it: kept on the house, once per uid. */
+function record(
+  gw: GreatWar,
+  seat: GwSeatState,
+  st: GwLawState,
+  counts: readonly ChamberCount[],
+  how: GwBallot["how"],
+  pass: boolean,
+  band: GwVoteBand,
+  lordsDelay = false,
+): void {
+  const h = seat.house;
+  if (h === undefined) return;
+  const chambers = counts.flatMap((c) => {
+    if (c.cast === undefined) return [];
+    h.sat[c.id] = gw.s.chapter;
+    const delay = lordsDelay && c.kind === "lords" && !c.cast.chamber.pass;
+    return [{ ...c.cast.chamber, delay }];
+  });
+  h.last = {
+    law: st.id,
+    band,
+    chapter: gw.s.chapter,
+    ballot: {
+      uid: ++h.ballots,
+      law: st.id,
+      text: st.text,
+      chapter: gw.s.chapter,
+      how,
+      chambers,
+      pass,
+      band,
+    },
+  };
 }
 
 /** The house passed it: the sovereign's paper to sign or refuse. */
@@ -864,12 +1098,12 @@ function vote(
   bill: GwBillRow,
   st: GwLawState,
   count: number,
+  counts: readonly ChamberCount[],
+  how: GwBallot["how"],
 ): void {
-  const house = seat.house;
   const band = bandOf(count);
-  if (house !== undefined) {
-    house.last = { law: st.id, band, chapter: gw.s.chapter, ballot: null };
-  }
+  const pass = count >= 0;
+  record(gw, seat, st, counts, how, pass, band);
   judgeWhip(gw, seat, st, count);
   const chambers = new Set(
     chambersOf(houseRow(seat.tag)!, bill).map((c) => c.id),
@@ -893,6 +1127,12 @@ function vote(
           ? "house_voted_against"
           : "house_stayed_away";
     reason(gw, seat, key, who);
+    // ww203 §6: passed, those for cool a step, those against heat (two if
+    // it goes against their creed).
+    if (pass && side > 0) f.heat = Math.max(0, f.heat - 1);
+    if (pass && side < 0) {
+      heatBy(gw, seat, row.id, bill.creed?.includes(row.id) ? 2 : 1);
+    }
     if (broke) {
       // He broke his word first: the seat may drop its own to him.
       const k = `house_${row.id}_${st.id}`;
@@ -947,7 +1187,7 @@ export function houseRound(
   reason(gw, seat, `house_round_${around.id}`);
   const left = houseCounts(gw, seat, st.id, table, around.skips);
   const t = houseTally(left);
-  if (left.length > 0) vote(gw, seat, bill, st, t.count);
+  if (left.length > 0) vote(gw, seat, bill, st, t.count, left, "round");
   if (t.count < 0) reason(gw, seat, "house_round_blocked");
   return { pass: t.count >= 0 };
 }
@@ -989,9 +1229,11 @@ export function houseBring(
   const n = gw.nation(seat.tag);
   const row = lawRow(law);
   if (n === null || row === null || row.tag !== seat.tag) return false;
-  if (n.laws.some((x) => MOVING.includes(x.stage))) return false;
+  const on = n.laws.filter((x) => MOVING.includes(x.stage)).length;
+  if (on >= GW_AGENDA_MAX) return false;
   let st = n.laws.find((x) => x.id === law);
-  if (st !== undefined && st.stage === "force") return false;
+  if (st !== undefined && st.stage !== "idle") return false;
+  if (st !== undefined && st.lockTo > gw.s.chapter) return false;
   if (st === undefined) {
     st = gwLawStart(law);
     n.laws.push(st);
@@ -1079,8 +1321,8 @@ function unanswered(gw: GreatWar, seat: GwSeatState): void {
     seat.scheduled.some((q) => q.scene === scene) ||
     (seat.depts?.tray ?? []).some((c) => c.scene === scene) ||
     (seat.depts?.tasks ?? []).some((t) => t.scene === scene);
-  const m = movingBill(gw, seat);
-  if (m !== null && m.st.stage === "draft" && !there(houseIds.draft(m.st.id))) {
+  for (const m of agendaBills(gw, seat)) {
+    if (m.st.stage !== "draft" || there(houseIds.draft(m.st.id))) continue;
     m.st.text = m.row.draft[0].id;
     m.st.support += m.row.draft[0].support;
     m.st.stage = "persuade";
@@ -1096,7 +1338,9 @@ function unanswered(gw: GreatWar, seat: GwSeatState): void {
 
 function asksStep(gw: GreatWar, seat: GwSeatState): void {
   const n = gw.nation(seat.tag);
-  if (n === null || n.laws.some((x) => MOVING.includes(x.stage))) return;
+  if (n === null) return;
+  const on = n.laws.filter((x) => MOVING.includes(x.stage)).length;
+  if (on >= GW_AGENDA_MAX) return;
   let visited = false;
   for (const row of factionRows(seat.tag)) {
     const st = factionOf(seat, row.id);
@@ -1129,8 +1373,11 @@ function asksStep(gw: GreatWar, seat: GwSeatState): void {
 
 /** The sponsor works one faction on his own; his politics decide how well. */
 function sponsorWorks(gw: GreatWar, seat: GwSeatState): void {
-  const m = movingBill(gw, seat);
-  if (m === null || m.st.stage !== "persuade" || m.st.sponsor === null) return;
+  for (const m of agendaBills(gw, seat)) sponsorWorksOn(gw, seat, m);
+}
+
+function sponsorWorksOn(gw: GreatWar, seat: GwSeatState, m: Moving): void {
+  if (m.st.stage !== "persuade" || m.st.sponsor === null) return;
   const p = gw.person(m.st.sponsor);
   const band = p?.competence[1] ?? 2;
   const chambers = new Set(
@@ -1190,11 +1437,18 @@ export function houseStep(gw: GreatWar): void {
     splitsAndJoins(gw, seat);
     unanswered(gw, seat);
     sponsorWorks(gw, seat);
-    const m = movingBill(gw, seat);
-    const inHouse =
-      m !== null && (m.st.stage === "persuade" || m.st.stage === "vote");
+    // ww203: the free calls are the agenda's; the count is a department's
+    // paper now (`count` task), not the whip's word each chapter.
+    const inHouse = agendaBills(gw, seat).some(
+      (m) => m.st.stage === "persuade" || m.st.stage === "vote",
+    );
     h.calls = inHouse ? GW_HOUSE_CALLS : 0;
-    if (inHouse) whipReport(gw, seat, m.st);
+    if (
+      h.focus !== null &&
+      !agendaBills(gw, seat).some((m) => m.st.id === h.focus)
+    ) {
+      h.focus = null;
+    }
     asksStep(gw, seat);
   }
 }
@@ -1224,17 +1478,22 @@ type HouseCond = Extract<
   }
 >;
 
-/** The price the leader names now for the moving bill, if any. */
-function wantNow(ctx: SceneCtx, id: string) {
+/** ww203: the prices the leader names now for the moving bill, up to three. */
+function wantsNow(ctx: SceneCtx, id: string): GwWant[] {
   const m = movingBill(ctx.gw, ctx.seat);
   const row = factionRow(id);
-  if (m === null || row === null || m.st.deals.includes(id)) return null;
+  if (m === null || row === null || m.st.deals.includes(id)) return [];
   const free = { ...ctx, cast: {} };
-  return (
-    (row.wants ?? []).find(
-      (w) => w.when === undefined || holds(free, w.when),
-    ) ?? null
-  );
+  return (row.wants ?? [])
+    .filter((w) => w.when === undefined || holds(free, w.when))
+    .slice(0, GW_PRICES_MAX);
+}
+
+/** The price named `want` (absent: his first) for the moving bill, if any. */
+function wantNow(ctx: SceneCtx, id: string, want?: string): GwWant | null {
+  const all = wantsNow(ctx, id);
+  if (want === undefined) return all[0] ?? null;
+  return all.find((w) => w.id === want) ?? null;
 }
 
 export function houseHolds(ctx: SceneCtx, c: HouseCond): boolean {
@@ -1253,8 +1512,10 @@ export function houseHolds(ctx: SceneCtx, c: HouseCond): boolean {
     case "faction_asks":
       return factionOf(seat, c.id)?.asking === c.law;
     case "faction_want": {
-      const w = wantNow(ctx, c.id);
-      return w !== null && (c.want === "any" || w.id === c.want);
+      const all = wantsNow(ctx, c.id);
+      return c.want === "any"
+        ? all.length > 0
+        : all.some((w) => w.id === c.want);
     }
     case "deal":
       return movingBill(gw, seat)?.st.deals.includes(c.id) === true;
@@ -1366,7 +1627,7 @@ export function houseEffect(ctx: SceneCtx, e: HouseEffect): void {
       return;
     }
     case "deal":
-      takeDeal(ctx, e.id);
+      takeDeal(ctx, e.id, e.want);
       return;
     case "amend": {
       if (!houseHolds(ctx, { is: "amendable", id: e.id })) return;
@@ -1395,9 +1656,9 @@ export function houseEffect(ctx: SceneCtx, e: HouseEffect): void {
 }
 
 /** The leader's price is taken: a promise to him, his faction for the bill. */
-function takeDeal(ctx: SceneCtx, id: string): void {
+function takeDeal(ctx: SceneCtx, id: string, want?: string): void {
   const { gw, seat } = ctx;
-  const w = wantNow(ctx, id);
+  const w = wantNow(ctx, id, want);
   const m = movingBill(gw, seat);
   const f = factionOf(seat, id);
   if (w === null || m === null || f === null) return;
@@ -1421,6 +1682,283 @@ function takeDeal(ctx: SceneCtx, id: string): void {
   f.heat = Math.max(0, f.heat - 1);
   runEffects(ctx, w.effects ?? []);
   reason(gw, seat, "house_deal", who ?? undefined);
+}
+
+// ---- ww203: lobbying ----
+
+/** Why a leader won't talk about this bill; null: he talks. */
+function shutOf(
+  gw: GreatWar,
+  seat: GwSeatState,
+  bill: GwBillRow,
+  id: string,
+): GwLobbyView["shut"] {
+  const f = factionOf(seat, id);
+  if (f !== null && f.held >= gw.s.chapter) return "held";
+  if (brokenTo(gw, seat, id)) return "broken";
+  if (bill.creed?.includes(id) === true) return "creed";
+  return null;
+}
+
+function agendaBill(gw: GreatWar, seat: GwSeatState, law: string) {
+  return agendaBills(gw, seat).find((m) => m.st.id === law) ?? null;
+}
+
+/** The ways the ruler can press this faction's leader now. */
+function pressHows(
+  seat: GwSeatState,
+  m: Moving,
+  id: string,
+  leader: string | null,
+): GwPressHow[] {
+  if (m.st.stage !== "persuade" && m.st.stage !== "vote") return [];
+  const out: GwPressHow[] = [];
+  if (leader !== null && hasFile(seat, leader)) out.push("file");
+  if (!m.st.warm.includes(id)) out.push("word", "threat");
+  return out;
+}
+
+/** The lobby list of an agenda bill: every faction in its chambers. */
+export function lobbyViews(
+  gw: GreatWar,
+  seat: GwSeatState,
+  law: string,
+): GwLobbyView[] {
+  const m = agendaBill(gw, seat, law);
+  const house = houseRow(seat.tag);
+  if (m === null || house === null) return [];
+  const chambers = chambersOf(house, m.bill).map((c) => c.id);
+  const open = m.st.stage === "persuade" || m.st.stage === "vote";
+  return lobbyRows(gw, seat, m.bill).map((row) => {
+    const f = factionOf(seat, row.id)!;
+    const now = seatsNow(seat, row);
+    const seats: Partial<Record<GwChamber, number>> = {};
+    for (const c of chambers) if ((now[c] ?? 0) > 0) seats[c] = now[c];
+    const paper = m.st.paper.find((x) => x.faction === row.id);
+    const shut = shutOf(gw, seat, m.bill, row.id);
+    const topic = houseIds.lobby(row.id);
+    return {
+      faction: row.id,
+      seats,
+      leader: f.leader,
+      word: paper?.word ?? "unknown",
+      conf: paper?.conf ?? null,
+      deal: m.st.deals.includes(row.id),
+      shut,
+      call:
+        open &&
+        shut === null &&
+        f.leader !== null &&
+        !m.st.deals.includes(row.id) &&
+        sceneOf(topic) !== null &&
+        !seat.desk.some((c) => c.scene === topic),
+      press: pressHows(seat, m, row.id, f.leader),
+    };
+  });
+}
+
+/**
+ * 부른다: the leader's lobby talk on this bill, if he talks. The talks are
+ * about this bill from now (`focus`). The caller summons him.
+ */
+export function lobbyCall(
+  gw: GreatWar,
+  seat: GwSeatState,
+  law: string,
+  faction: string,
+): { person: string; topic: string } | GwOrderBlock {
+  const m = agendaBill(gw, seat, law);
+  if (m === null) return "no_law";
+  const v = lobbyViews(gw, seat, law).find((x) => x.faction === faction);
+  if (v === undefined) return "no_topic";
+  if (v.shut !== null) return "no_talk";
+  if (!v.call || v.leader === null) return "no_topic";
+  houseFocus(seat, law);
+  return { person: v.leader, topic: houseIds.lobby(faction) };
+}
+
+/**
+ * 압박: no deal, only absence or fear, and heat. A file holds him away; the
+ * ruler's word brings court and army factions in (others it only angers,
+ * and it costs him nerve); a dissolution threat brings his waverers in and
+ * heats every faction of the bill's house.
+ */
+export function housePress(
+  gw: GreatWar,
+  seat: GwSeatState,
+  law: string,
+  faction: string,
+  how: GwPressHow,
+): GwOrderBlock | null {
+  const m = agendaBill(gw, seat, law);
+  if (m === null) return "no_law";
+  const v = lobbyViews(gw, seat, law).find((x) => x.faction === faction);
+  if (v === undefined) return "no_topic";
+  if (!v.press.includes(how)) return "no_press";
+  const row = factionRow(faction)!;
+  const ctx = ctxOf(gw, seat);
+  const who = v.leader ?? undefined;
+  houseFocus(seat, law);
+  if (how === "file") {
+    pressWithFile(ctx, v.leader!);
+    reason(gw, seat, "house_press_file", who);
+    return null;
+  }
+  if (how === "word") {
+    const heeds = row.bloc === "court" || row.bloc === "army";
+    if (heeds) m.st.warm.push(faction);
+    else moveRuler(gw, seat, "nerve", -1, "house_press_word");
+    heatBy(gw, seat, faction, heeds ? 1 : 2);
+    reason(gw, seat, heeds ? "house_press_word" : "house_press_word_no", who);
+    return null;
+  }
+  m.st.warm.push(faction);
+  for (const r of lobbyRows(gw, seat, m.bill)) heatBy(gw, seat, r.id, 1);
+  reason(gw, seat, "house_press_threat", who);
+  return null;
+}
+
+/**
+ * ww203: a law carried round now must face the house when it is back (the
+ * way round has `faces` and its door is open only while the house is away).
+ */
+export function houseRoundFaces(gw: GreatWar, seat: GwSeatState): boolean {
+  const around = houseRow(seat.tag)?.around;
+  if (around?.faces !== true || around.when === undefined) return false;
+  return !houseGone(gw, seat, around);
+}
+
+/** ww203: the house a decree must face is back: the way round's door shut. */
+export function houseBack(gw: GreatWar, seat: GwSeatState): boolean {
+  const around = houseRow(seat.tag)?.around;
+  if (around?.faces !== true || around.when === undefined) return false;
+  if (houseGone(gw, seat, around)) return false;
+  return !holds(ctxOf(gw, seat), around.when);
+}
+
+/**
+ * ww203 §9: a house nobody plays counts a bill by its rows: each faction
+ * that starts in the house at its row's seats and side on `text`, no temper,
+ * no deals; waverers by the chamber's mood and the bill's lean. Only the
+ * chambers that sit count. Null: no house, or none sits.
+ */
+export function rowCount(
+  gw: GreatWar,
+  seat: GwSeatState,
+  law: string,
+  text: string,
+): { pass: boolean; count: number } | null {
+  const n = gw.nation(seat.tag);
+  const house = houseRow(seat.tag);
+  const bill = (gwContent().bills ?? []).find((x) => x.law === law) ?? null;
+  const row = lawRow(law);
+  if (n === null || house === null || bill === null || row === null) {
+    return null;
+  }
+  const ctx = ctxOf(gw, seat);
+  const sideIn = (id: string): GwSide =>
+    bill.texts?.[text]?.[id] ?? bill.stance[id] ?? 0;
+  const cast = chambersOf(house, bill)
+    .filter((c) => c.kind !== "lords" && sits(ctx, c))
+    .map((c) => {
+      const need = c.need;
+      return castChamber(
+        {
+          id: c.id,
+          size: c.size ?? null,
+          rest: c.rest ?? "away",
+          block:
+            bill.constitution === true && need !== undefined && need !== "half"
+              ? need.block
+              : 0,
+          score: (c.inst === undefined ? 0 : (n.inst[c.inst] ?? 0)) + row.lean,
+          refused:
+            c.kind === "consent" &&
+            c.consent !== undefined &&
+            sideIn(c.consent) <= 0,
+        },
+        factionRows(seat.tag)
+          .filter((f) => f.start === "in")
+          .map((f) => ({
+            id: f.id,
+            seats: f.seats[c.id] ?? 0,
+            side: sideIn(f.id),
+            away: false,
+            rebels: 0,
+            beat: "firm" as const,
+          })),
+      );
+    });
+  if (cast.length === 0) return null;
+  return {
+    pass: cast.every((x) => x.chamber.pass),
+    count: Math.min(...cast.map((x) => x.count)),
+  };
+}
+
+/** ww203: the chambers a house bill meets, in order. */
+export function houseChambers(seat: GwSeatState, law: string): GwChamber[] {
+  const house = houseRow(seat.tag);
+  const bill = billRow(seat, law);
+  if (house === null || bill === null) return [];
+  return chambersOf(house, bill).map((c) => c.id);
+}
+
+/**
+ * ww203: a count answer's course. `work`: the sponsor brings the biggest
+ * wavering faction in (warm: it comes in for him); `amend`: the first
+ * faction with its own text for the bill has it taken.
+ */
+export function houseWork(
+  ctx: SceneCtx,
+  law: string,
+  act: "work" | "amend",
+): void {
+  const { gw, seat } = ctx;
+  const m = agendaBill(gw, seat, law);
+  if (m === null) return;
+  houseFocus(seat, law);
+  const rows = lobbyRows(gw, seat, m.bill);
+  if (act === "amend") {
+    const f = rows.find((r) => houseHolds(ctx, { is: "amendable", id: r.id }));
+    if (f !== undefined) houseEffect(ctx, { do: "amend", id: f.id });
+    return;
+  }
+  const target = rows
+    .filter((r) => !m.st.deals.includes(r.id) && !m.st.warm.includes(r.id))
+    .filter((r) => sideOf(gw, seat, m.bill, m.st, r.id).side === 0)
+    .sort(
+      (a, b) => seatsSum(seat, b) - seatsSum(seat, a) || (a.id < b.id ? -1 : 1),
+    )[0];
+  if (target === undefined) return;
+  m.st.warm.push(target.id);
+  reason(gw, seat, "house_sponsor_won", m.st.sponsor ?? undefined);
+}
+
+/** ww203: the house's fall row, if a lost government bill shakes it. */
+export function houseFall(seat: GwSeatState): string | null {
+  return houseRow(seat.tag)?.fall ?? null;
+}
+
+/** ww203: the office that counts a bill now, if any head is there. */
+export function houseCounter(
+  seat: GwSeatState,
+  hasHead: (o: GwOffice) => boolean,
+): GwOffice | null {
+  return (houseRow(seat.tag)?.counter ?? []).find(hasHead) ?? null;
+}
+
+/** ww203: chambers the bill meets that have voted this chapter. */
+export function houseSat(
+  gw: GreatWar,
+  seat: GwSeatState,
+  law: string,
+): boolean {
+  const house = houseRow(seat.tag);
+  const bill = billRow(seat, law);
+  const sat = seat.house?.sat ?? {};
+  if (house === null || bill === null) return false;
+  return chambersOf(house, bill).some((c) => sat[c.id] === gw.s.chapter);
 }
 
 // ---- The view ----

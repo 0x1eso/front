@@ -10,6 +10,10 @@
     "law_no_council": "각료 회의가 안을 받지 않았다.",
     "law_no_duma": "두마가 안을 부결했다.",
     "law_no_body": "안이 표를 얻지 못했다.",
-    "law_withdrawn": "안을 거둬들였다."
+    "law_withdrawn": "안을 거둬들였다.",
+    "law_lost_wide": "법안이 크게 졌다. 내각이 흔들린다.",
+    "law_confidence_lost": "신임을 건 표결에서 졌다. 내각이 무너지기 직전이다.",
+    "law_lapsed": "의회가 칙령을 승인하지 않았다. 칙령은 효력을 잃었다.",
+    "law_faces": "의회가 다시 열렸다. 그동안의 칙령이 의회의 승인을 기다린다."
   }
 }

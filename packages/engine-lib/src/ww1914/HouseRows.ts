@@ -78,6 +78,13 @@ export interface GwAroundRow {
   readonly delta?: number;
   /** The chambers it goes past; the others still vote. */
   readonly skips: readonly GwChamber[];
+  /**
+   * ww203: a law made this way while the door is open (the house away) must
+   * face the house when it is back (`when` no longer holds): it goes on the
+   * agenda and lapses unless passed within GW_DECREE_FACE chapters (Art. 87,
+   * §14).
+   */
+  readonly faces?: boolean;
   /** Factions it heats, and by how much. */
   readonly heats: readonly { readonly faction: string; readonly by: number }[];
 }
@@ -388,7 +395,7 @@ export const GW_BROKEN_SHUT = 6;
 /** Chapters a file holds a pressed leader away. */
 export const GW_PRESS_HELD = 2;
 /** Rebels by temper 0..4: tenths of a faction's seats (temper 2+ turns whole). */
-export const GW_REBEL_TENTHS: readonly number[] = [0, 1, 1, 0, 0];
+export const GW_REBEL_TENTHS: readonly number[] = [0, 1, 0, 0, 0];
 /** A margin of this share of the votes cast or more is wide (pass or fail). */
 export const GW_WIDE_SHARE = 0.2;
 

@@ -54,6 +54,7 @@ import {
   lawStage,
   lawSupport,
   lawText,
+  lawTopic,
   lawWithdraw,
 } from "./Laws";
 import { navalEffect, navalHolds } from "./NavalIntel";
@@ -251,7 +252,14 @@ export function worldHolds(ctx: SceneCtx, c: GwWorldCond): boolean {
       return nation !== null && inRange(budgetFact(gw, nation, c.what), c);
     case "law": {
       const st = nation === null ? null : lawStage(nation, c.id);
-      if (st === null || !c.of.includes(st.stage)) return false;
+      if (st === null) return false;
+      // ww203: while a bill moves to replace it, the law stands in force.
+      const kept =
+        st.kept !== null &&
+        c.of.includes("force") &&
+        (c.text === undefined || st.kept === c.text);
+      if (kept) return true;
+      if (!c.of.includes(st.stage)) return false;
       return c.text === undefined || st.text === c.text;
     }
     case "law_count":
@@ -624,6 +632,9 @@ export function worldEffect(ctx: SceneCtx, e: GwWorldEffect): void {
     case "bill_answer":
     case "law_start":
       houseEffect(ctx, e);
+      return;
+    case "bill_topic":
+      lawTopic(ctx, e.act);
       return;
     case "house_sign":
       lawSign(ctx, e.yes);
