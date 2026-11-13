@@ -446,7 +446,7 @@ describe("diplomacy L0: the digests that never move", () => {
   // War's own rules moved it, not the diplomacy.
   test("the Great War pin is unchanged", () => {
     expect(read("ww1914/GreatWarSnapshot.test.ts")).toContain(
-      'const GW_DIGEST = "86d2d90c53b88684";',
+      'const GW_DIGEST = "589fa5d0dd3f8ad3";',
     );
   });
 });
