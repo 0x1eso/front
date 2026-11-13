@@ -1122,7 +1122,7 @@ export function speech(c: GwCtx): TemplateResult | typeof nothing {
   const talking = !t.done && t.due === null;
   const name = envoyName(c.pack, line.who, t, c.seat);
   return html`<div
-    class="${GLASS} pointer-events-auto fixed bottom-[calc(42vh+0.5rem)] left-2 right-14 z-[897] rounded p-2.5 text-white sm:bottom-3 sm:left-[416px] sm:right-3 sm:mx-auto sm:max-w-[720px]"
+    class="${GLASS} pointer-events-auto fixed bottom-[calc(42vh+var(--gw-strip-h,0px)+0.5rem)] left-2 right-14 z-[897] rounded p-2.5 text-white sm:bottom-[calc(var(--gw-strip-h,0px)+0.75rem)] sm:left-[416px] sm:right-3 sm:mx-auto sm:max-w-[720px]"
     data-gw-speech
     data-gw-line=${line.n}
     data-gw-word=${line.word}

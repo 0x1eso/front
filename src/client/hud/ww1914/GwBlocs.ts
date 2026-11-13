@@ -15,6 +15,7 @@ import type { GwCtx } from "./GwCtx";
 import { timeLeft } from "./GwDept";
 import { blocFactions } from "./GwHouse";
 import { officeTitle, planWhy } from "./GwOffice";
+import { societySection } from "./GwSocietyTab";
 import { BTN, BTN_ON, CHIP, fillColor, HEAD, MUTED } from "./GwStyle";
 import { personName } from "./GwText";
 
@@ -329,9 +330,12 @@ function policy(c: GwCtx, p: GwPressView): TemplateResult {
 export function blocsTab(c: GwCtx): TemplateResult {
   const p = c.seat.world.press;
   if (p === null) {
-    return html`<p class="text-sm text-white/65" data-gw-blocs-none>
-      ${translateText("gw.ui.press.none")}
-    </p>`;
+    return html`<div class="space-y-3">
+      <p class="text-sm text-white/65" data-gw-blocs-none>
+        ${translateText("gw.ui.press.none")}
+      </p>
+      ${societySection(c)}
+    </div>`;
   }
   return html`<div class="space-y-3" data-gw-blocs>
     <section class=${BOX}>
@@ -341,6 +345,7 @@ export function blocsTab(c: GwCtx): TemplateResult {
       </p>
       ${p.blocs.map((b) => blocRow(c, b))}
     </section>
+    ${societySection(c)}
     <section class=${BOX}>
       <h3 class=${HEAD}>${translateText("gw.ui.press.ties_title")}</h3>
       <p class=${MUTED} data-gw-sub>${translateText("gw.ui.press.ties_sub")}</p>

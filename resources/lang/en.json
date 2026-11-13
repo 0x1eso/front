@@ -5339,6 +5339,58 @@
       "estimate": "Estimate",
       "unconfirmed": "Unconfirmed"
     },
+    "strip": {
+      "affinity": {
+        "0": "Far off",
+        "1": "A first step",
+        "2": "Halfway",
+        "3": "Close",
+        "4": "Within reach"
+      },
+      "axes_sub": "Bills, powers and the war move the country along these lines.",
+      "axes_title": "Where the country leans",
+      "axis_trend": "Moving toward {word}",
+      "card": {
+        "ability": "Its help",
+        "ask": "Ask",
+        "born": "A new party.",
+        "close": "Close",
+        "condemn": "Condemn it",
+        "condemn_again": "Press again to condemn",
+        "gone": "This party is gone. Its members went back to their own people.",
+        "ideals": "What it wants",
+        "leader": "Leader",
+        "lobby": "Go and persuade",
+        "no_ideals": "No clear line",
+        "open": "Open",
+        "opened": "Opened",
+        "promote": "Back it",
+        "realise": "Realise it",
+        "support": "Support",
+        "temper": "Mood",
+        "tree": "Ideal",
+        "trust": "Ties",
+        "turned": "It has turned against us."
+      },
+      "communities_sub": "The people the parties draw on. They hold no seats.",
+      "communities_title": "Society",
+      "draws": "Parties: {names}",
+      "elect": {
+        "moved": "{before} → {after} seats",
+        "title": "{chamber}: {cause}"
+      },
+      "label": "The parties in the house",
+      "ready": "Can be asked",
+      "utopia": {
+        "ask": "A new head stands at the top: {name}. You can end here, or rule on in {name}'s place.",
+        "body": "The whole country has taken up these ideals. The streets have gone quiet.",
+        "end": "End here",
+        "go_on": "Rule on",
+        "kicker": "An ideal realised",
+        "play": "Rule on in {name}'s place",
+        "title": "The country made: {name}"
+      }
+    },
     "table": {
       "agenda": "On the table",
       "ask": {
