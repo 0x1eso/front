@@ -83,6 +83,7 @@ import {
   isMoneyBill,
   moneyLawRow,
   moneyLost,
+  moneyMayWithdraw,
   moneyPassed,
   moneyWithdrawn,
 } from "./MoneyBills";
@@ -549,9 +550,10 @@ export function lawWithdraw(gw: GreatWar, seat: GwSeatState, id: string): void {
   if (st.origin === "house") return;
   // A decree facing the house can't be taken back: it is voted or lapses.
   if (st.faces !== -1) return;
-  // ww209: a money bill withdrawn: last year's runs on, no credits.
+  // ww213: the budget and voted credits are voted, never withdrawn; credits
+  // by command put to the house anyway may be (no credits this period).
   if (isMoneyBill(st.id)) {
-    moneyWithdrawn(gw, seat, st);
+    if (moneyMayWithdraw(gw, seat, st.id)) moneyWithdrawn(gw, seat, st);
     return;
   }
   reason(gw, seat, "law_withdrawn");
@@ -973,6 +975,7 @@ export function lawWithdrawOrder(
   const st = n === null ? null : lawStage(n, id);
   if (st === null || !MOVING.includes(st.stage)) return "no_law";
   if (st.origin === "house" || st.faces !== -1) return "no_law";
+  if (!moneyMayWithdraw(gw, seat, id)) return "money_kept";
   lawWithdraw(gw, seat, id);
   return null;
 }
@@ -1258,7 +1261,10 @@ export function agendaView(
     callWhy: why,
     confidence: open && why === null && house && houseFall(seat) !== null,
     round: open && st.faces === -1 && lawCanDecree(gw, seat, st.id),
-    withdraw: st.origin !== "house" && st.faces === -1,
+    withdraw:
+      st.origin !== "house" &&
+      st.faces === -1 &&
+      moneyMayWithdraw(gw, seat, st.id),
     delayTo: st.delayTo < 0 ? null : st.delayTo,
     lobby: house ? lobbyViews(gw, seat, st.id) : [],
   };

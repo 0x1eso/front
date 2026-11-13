@@ -811,7 +811,26 @@ function lostCredits(
   reason(gw, seat, "money_credits_stopped");
 }
 
-/** 철회 (Laws.lawWithdraw): last year's runs on; no credits this period. */
+/**
+ * ww213: may this money bill be taken off its pinned place unvoted? The
+ * yearly budget never: it is amended, re-drafted, held to its deadline or
+ * forced through the country's way round, and the house votes it at the
+ * deadline. War credits only where the country's rule makes the vote
+ * optional (Russia's, by supreme command, put to the Duma anyway).
+ */
+export function moneyMayWithdraw(
+  gw: GreatWar,
+  seat: GwSeatState,
+  law: string,
+): boolean {
+  const m = moneyBillOf(law);
+  if (m === null) return true;
+  if (m.kind === "budget") return false;
+  const by = creditsRow(gw, seat)?.by ?? "vote";
+  return by !== "vote";
+}
+
+/** 철회 (Laws.lawWithdraw): only credits the house needn't vote (RUS). */
 export function moneyWithdrawn(
   gw: GreatWar,
   seat: GwSeatState,
@@ -1077,6 +1096,7 @@ export function moneyBudgetView(
   const stage = st?.stage;
   return {
     ...v,
+    ...(b.year === undefined ? {} : { year: b.year }),
     tax: plan.tax ?? "consumption",
     taxes: [...GW_TAX_KINDS],
     marks: (plan.marks ?? []).flatMap((m) => {

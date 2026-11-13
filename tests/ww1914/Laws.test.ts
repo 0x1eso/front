@@ -107,8 +107,9 @@ describe("the rows", () => {
       // ww203: the law book's new articles (W lanes, marked +); ww204 merge:
       // the five lanes' rows together, DEU and RUS 16. ww207: the peace
       // chapters and the franchise (W-RUS 18). ww208 merge: AUH 19, FRA and RUS
-      // 18, GBR 17, DEU 16 (exclusive node laws aside).
-      expect(rows.length).toBeLessThanOrEqual(20);
+      // 18, GBR 17, DEU 16 (exclusive node laws aside). ww211: AUH's peace
+      // years' bills, 25.
+      expect(rows.length).toBeLessThanOrEqual(tag === "AUH" ? 25 : 20);
     }
     const ids = new Set(GW_CONTENT.scenes.map((s) => s.id));
     for (const r of GW_LAWS) {

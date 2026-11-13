@@ -114,6 +114,7 @@ import { ownFronts } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { billRow, countPaper, countSlots, houseCounter } from "./House";
 import { lawDraftCard, lawDropDraft } from "./Laws";
+import { moneyMayWithdraw } from "./MoneyBills";
 import { openTopics } from "./Orders";
 import { voiceKeys } from "./Persona";
 import { moveRumour } from "./Press";
@@ -1182,6 +1183,16 @@ function taskSlots(gw: GreatWar, seat: GwSeatState, t: GwDeptTask): GwSlots {
   return slots;
 }
 
+/**
+ * ww213: a course that takes the task's bill off the agenda unvoted. The
+ * count office never offers it on the budget or on voted war credits.
+ */
+const takesBack = (c: GwCourseRow): boolean =>
+  c.effects.some(
+    (e) =>
+      e.kind === "world" && e.of.do === "bill_topic" && e.of.act === "withdraw",
+  );
+
 /** Builds the answer card of a task done; null when no row holds. */
 function answerCard(
   gw: GreatWar,
@@ -1210,8 +1221,12 @@ function answerCard(
     left,
     late: false,
   }));
+  const kept =
+    type === "count" &&
+    t.topic !== null &&
+    !moneyMayWithdraw(gw, seat, t.topic);
   const all = gather(ctx, rows, slots, (r) => r.courses).filter(
-    (x) => !(t.skip ?? []).includes(x.item.id),
+    (x) => !(t.skip ?? []).includes(x.item.id) && !(kept && takesBack(x.item)),
   );
   const { lean, picks } = headLean(seat, t.office, head);
   const temper = answerTemper(head.temperament);

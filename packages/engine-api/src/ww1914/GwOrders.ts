@@ -590,5 +590,7 @@ export const GW_ORDER_BLOCKS = [
   "no_threat", // threats are void on his bloc, or there's nothing to threaten
   "no_wing", // his faction has no wing to meet, or it was met
   "paid_only", // word has got round: he takes only what is paid now
+  // ww213
+  "money_kept", // the budget and voted war credits can't be withdrawn
 ] as const;
 export type GwOrderBlock = (typeof GW_ORDER_BLOCKS)[number];

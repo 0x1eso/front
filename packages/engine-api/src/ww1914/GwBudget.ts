@@ -263,6 +263,11 @@ export interface GwBudgetView {
   bill?: { law: string; stage: "persuade" | "vote" | "sign" } | null;
   /** The war credits; null with none (peace, or a country with no rhythm). */
   credits?: GwCreditsView | null;
+  /**
+   * ww213: the year the latest meeting's budget is for (1916년도 예산안), so
+   * its name holds after its pinned row is gone (the vote scene, reports).
+   */
+  year?: number;
 }
 
 /** ww209: an earmark under its line: text pack money.mark.<id>. */

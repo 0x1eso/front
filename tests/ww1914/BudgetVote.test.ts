@@ -20,11 +20,14 @@ import { budgetStep } from "@openfront/engine/ww1914/Budget";
 import { govHeat } from "@openfront/engine/ww1914/Government";
 import type { GreatWar } from "@openfront/engine/ww1914/GreatWar";
 import { factionOf, houseStep } from "@openfront/engine/ww1914/House";
-import { moneyStep } from "@openfront/engine/ww1914/MoneyBills";
+import { lawBookView } from "@openfront/engine/ww1914/Laws";
+import { moneyBookView, moneyStep } from "@openfront/engine/ww1914/MoneyBills";
 import { applyGwOrder } from "@openfront/engine/ww1914/Orders";
 import { holds } from "@openfront/engine/ww1914/SceneRun";
 import { societyStep } from "@openfront/engine/ww1914/Society";
 import { worldEffect } from "@openfront/engine/ww1914/WorldDsl";
+import fs from "fs";
+import path from "path";
 import { describe, expect, test } from "vitest";
 import { HUMAN, step, wwRunnerCapture } from "../ww1936/util";
 
@@ -282,5 +285,35 @@ describe("the money bills", () => {
       { do: "budget_rate", pct: 50, shut: 12 },
     );
     expect(owners()).toBe(had - 1);
+  });
+
+  test("ww213: the budget can't be withdrawn, by order, scene or count paper; its name reads as a bill", async () => {
+    const { gw, n, seat } = await atWar("DEU");
+    seats(seat, "reichstag", { deu_centre: [100, 2], deu_spd: [90, -2] });
+    meeting(gw, n);
+    expect(put(gw, seat, plain(n))).toBe(null);
+    const law = moneyIds.budget("DEU");
+    const st = n.laws.find((x) => x.id === law)!;
+    expect(applyGwOrder(gw, seat, { kind: "bill_withdraw", law })).toBe(
+      "money_kept",
+    );
+    worldEffect({ gw, seat, cast: {} }, { do: "law_withdraw", law });
+    expect(st.stage).toBe("persuade");
+    expect(n.budget.meeting).not.toBe(null);
+    // The pinned row offers no 철회; its year names it.
+    const row = moneyBookView(gw, seat, lawBookView(gw, seat))!.pinned![0];
+    expect(row.law).toBe(law);
+    expect(row.withdraw).toBe(false);
+    const word = (l: string) =>
+      (
+        JSON.parse(
+          fs.readFileSync(
+            path.join(__dirname, `../../resources/lang/${l}.json`),
+            "utf-8",
+          ),
+        ) as { gw: { money: { name_of: Record<string, { budget: string }> } } }
+      ).gw.money.name_of.DEU.budget.replace("{year}", String(row.money!.year));
+    expect(word("ko")).toBe("1915년도 제국 예산안");
+    expect(word("en")).toBe("The Reich budget for 1915");
   });
 });
