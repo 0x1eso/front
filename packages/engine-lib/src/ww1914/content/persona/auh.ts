@@ -1,4 +1,4 @@
-// ww196 §0: AUH's ruler as a person: places, bearers, grain, diary rows
+// ww196 §0: AUH's ruler as a person: places, bearers, diary rows
 // (GwPersona.ts). The writer lane W-AUH owns this file and
 // resources/ww1914/ko/AUH.persona.json.
 //
@@ -20,7 +20,6 @@
 import type {
   GwBearer,
   GwDiaryRow,
-  GwGrain,
   GwPersonaContent,
   GwRulerPlace,
 } from "@openfront/engine-api/ww1914/GwPersona";
@@ -117,29 +116,6 @@ const BEARERS: GwBearer[] = [
   }),
   bearer("auh_br_seidler", { ruler: KARL, from: "1918-07-25" }),
   bearer("auh_br_bardolff", { ruler: FF }),
-];
-
-const GRAIN: GwGrain[] = [
-  // The old emperor does not change what has stood for sixty years.
-  { id: "auh_gr_fj_bold", nation: ["AUH"], ruler: FJ, lean: "bold" },
-  // Karl wants the killing over: the hard line costs him.
-  { id: "auh_gr_karl_firm", nation: ["AUH"], ruler: KARL, lean: "firm" },
-  // Zita's brothers serve the other side; he will not be hard on kin.
-  {
-    id: "auh_gr_karl_kin",
-    nation: ["AUH"],
-    ruler: KARL,
-    lean: "firm",
-    kin: true,
-  },
-  // Franz Ferdinand will not give way to the Magyar lords again.
-  {
-    id: "auh_gr_ff_magyar",
-    nation: ["AUH"],
-    ruler: FF,
-    lean: "gentle",
-    camps: ["magyar"],
-  },
 ];
 
 const dy = (
@@ -245,6 +221,5 @@ const DIARY: GwDiaryRow[] = [
 export const AUH_PERSONA: GwPersonaContent = {
   places: PLACES,
   bearers: BEARERS,
-  grain: GRAIN,
   diary: DIARY,
 };

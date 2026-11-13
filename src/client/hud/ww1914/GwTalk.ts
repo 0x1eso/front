@@ -5,7 +5,6 @@ import type {
 import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
 import type { GwCtx, GwUi, Transcript } from "./GwCtx";
-import { grainChip, grainLine } from "./GwDiary";
 import { briefLine, pastLine, rich } from "./GwDict";
 import { newPass, TextPass } from "./GwDictModel";
 import { gwFace } from "./GwFace";
@@ -405,8 +404,7 @@ export function talkView(
                         const text = optionText(c.pack, card!, r.id);
                         const why = r.open
                           ? undefined
-                          : (grainLine(c, r) ??
-                            c.pack?.scenes[card!.scene]?.why?.[r.id]);
+                          : c.pack?.scenes[card!.scene]?.why?.[r.id];
                         return html`<div>
                           <button
                             class="${BTN} w-full"
@@ -444,7 +442,6 @@ export function talkView(
                               pass,
                             )}
                           </button>
-                          ${r.open ? grainChip(r) : nothing}
                           ${why === undefined
                             ? nothing
                             : html`<p class="${MUTED} pl-1">

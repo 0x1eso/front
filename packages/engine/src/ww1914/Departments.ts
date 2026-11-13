@@ -115,9 +115,8 @@ import type { GreatWar } from "./GreatWar";
 import { billRow, countPaper, countSlots, houseCounter } from "./House";
 import { lawDraftCard, lawDropDraft } from "./Laws";
 import { openTopics } from "./Orders";
-import { courseGrainOf, grainCounted, voiceKeys } from "./Persona";
+import { voiceKeys } from "./Persona";
 import { moveRumour } from "./Press";
-import { GW_NERVE_WORN } from "./Ruler";
 import {
   castOf,
   ctxOf,
@@ -1287,37 +1286,6 @@ function courseRow(row: string, id: string): GwCourseRow | null {
   return r?.courses.find((x) => x.id === id) ?? null;
 }
 
-/** ww197: whether course `id` goes against the person's grain, like an option. */
-function courseGrain(
-  gw: GreatWar,
-  seat: GwSeatState,
-  card: GwCard,
-  p: AnswerPaper,
-  id: string,
-) {
-  const leanOf = (x: AnswerPaper["courses"][number]) =>
-    courseRow(x.row, x.id)?.lean ?? [];
-  const c = p.courses.find((x) => x.id === id);
-  if (c === undefined) return null;
-  const others = p.courses.filter((x) => x.id !== id).map(leanOf);
-  return courseGrainOf(gw, seat, card, leanOf(c), others);
-}
-
-/** Listed but not his today: no nerve left, and another course is free of it. */
-function courseLocked(
-  gw: GreatWar,
-  seat: GwSeatState,
-  card: GwCard,
-  p: AnswerPaper,
-  id: string,
-): boolean {
-  if (seat.ruler.nerve > GW_NERVE_WORN) return false;
-  const against = (x: string) =>
-    courseGrain(gw, seat, card, p, x)?.costs === true;
-  if (!against(id)) return false;
-  return p.courses.some((x) => x.id !== id && !against(x.id));
-}
-
 /** A course is taken: its effects, its later papers, its bill. */
 function takeCourse(
   gw: GreatWar,
@@ -1412,11 +1380,8 @@ export function answerPaper(
   if ((course === null) === (redo === null)) return "no_option";
   if (course !== null) {
     if (!p.courses.some((c) => c.id === course)) return "no_option";
-    if (courseLocked(gw, seat, card, p, course)) return "closed";
-    const grain = courseGrain(gw, seat, card, p, course);
     removeCard(seat, uid);
     takeCourse(gw, seat, p, course);
-    grainCounted(gw, seat, grain);
     const verdict: GwVerdict =
       p.own === null || p.own === course ? "accept" : "overrule";
     writePast(gw, seat, { ...p, scene: card.scene, course }, verdict);
@@ -2037,21 +2002,6 @@ export function cardDeptView(
 }
 
 /** A desk paper as the seat sees it: what the head left out stays hidden. */
-/** ww197: the course's grain row while it costs, and whether it is locked. */
-function courseGrainView(
-  gw: GreatWar,
-  seat: GwSeatState,
-  card: GwCard,
-  p: AnswerPaper,
-  id: string,
-): { grain?: string; locked?: true } {
-  const g = courseGrain(gw, seat, card, p, id);
-  if (g === null || !g.costs) return {};
-  return courseLocked(gw, seat, card, p, id)
-    ? { grain: g.row.id, locked: true }
-    : { grain: g.row.id };
-}
-
 export function paperView(
   gw: GreatWar,
   seat: GwSeatState,
@@ -2085,7 +2035,6 @@ export function paperView(
           for: x.for,
           against: x.against,
           needs: courseRow(x.row, x.id)?.needs ?? [],
-          ...courseGrainView(gw, seat, c, p, x.id),
         })),
         called: p.called,
         waited: gw.s.chapter - p.ready,

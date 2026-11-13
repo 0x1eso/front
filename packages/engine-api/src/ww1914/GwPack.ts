@@ -90,8 +90,6 @@ export const GwRulerPackSchema = z
     family: Bands,
     conscience: Bands,
     reputation: Bands,
-    /** ww196: nerve (기력), the fifth side. */
-    nerve: Bands.optional(),
     /** Stands for `conscience` once it has given out. */
     broken: Text,
     /**
@@ -335,7 +333,7 @@ export const GwPackSchema = z
     powers: z.record(GwIdSchema, GwPowerPackSchema).optional(),
     /** ww193: the departments' names, tasks, wants, levers and voices. */
     depts: GwDeptPackSchema.optional(),
-    /** ww196: the person: places, bearers, address, grain, diary. */
+    /** ww196: the person: places, bearers, address, diary. */
     persona: GwPersonaPackSchema.optional(),
   })
   .strict();
@@ -475,7 +473,6 @@ export function gwPackOverlaps(packs: readonly GwPack[]): string[] {
       ...Object.keys(p.depts?.occasions ?? {}).map((x) => `occasion ${x}`),
       ...Object.keys(p.persona?.places ?? {}).map((x) => `place ${x}`),
       ...Object.keys(p.persona?.bearers ?? {}).map((x) => `bearer ${x}`),
-      ...Object.keys(p.persona?.grain ?? {}).map((x) => `grain ${x}`),
       ...Object.keys(p.persona?.diary ?? {}).map((x) => `diary ${x}`),
     ];
     for (const id of ids) {

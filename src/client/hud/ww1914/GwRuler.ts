@@ -12,37 +12,19 @@ import { reasonText } from "./GwText";
 
 const BOX = "space-y-1.5 rounded border border-white/15 bg-black/35 p-2.5";
 
-/**
- * The sides drawn: GW_RULER_SIDES, and ww196's nerve (기력) as the fifth once
- * the view carries it (lane P appends it to the list).
- */
-function sidesOf(levels: readonly number[]): readonly string[] {
-  return [...new Set<string>([...GW_RULER_SIDES, "nerve"])].slice(
-    0,
-    levels.length,
-  );
-}
-
 /** The side's sentence for the person: words, never a number. */
 function sideLine(
   c: GwCtx,
   id: string,
-  side: string,
+  side: GwRulerSide,
   level: number,
   broken: boolean,
 ): string {
   const words = c.pack?.rulers?.[id];
-  if (side === "nerve") {
-    // His own words for it where written, else the plain ones.
-    const own = (words as Record<string, unknown> | undefined)?.nerve as
-      | readonly string[]
-      | undefined;
-    return own?.[level] ?? translateText(`gw.ruler.nerve.${level}`);
-  }
   if (words === undefined) return "";
   return side === "conscience" && broken
     ? words.broken
-    : (words[side as GwRulerSide]?.[level] ?? "");
+    : (words[side]?.[level] ?? "");
 }
 
 /**
@@ -77,7 +59,7 @@ export function rulerCard(c: GwCtx): TemplateResult | typeof nothing {
     <h3 class=${HEAD}>
       ${translateText("gw.ruler.title", { name, age: r.age })}
     </h3>
-    ${sidesOf(r.levels).map(
+    ${GW_RULER_SIDES.map(
       (side, i) =>
         html`<div class="text-sm" data-gw-ruler-side=${side}>
           <span class="text-white/70"

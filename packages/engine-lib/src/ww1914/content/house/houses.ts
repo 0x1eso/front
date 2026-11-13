@@ -216,14 +216,6 @@ export const RUS_HOUSE: GwHouseRow = {
   // What the Duma and the State Council pass goes to the Tsar to sign.
   signs: true,
   counter: ["interior", "chancellor"],
-  // ww204: bargaining with the Duma's men goes against the Tsar's grain; the
-  // court's and the Stavka's men he sees gladly.
-  lobbyGrain: {
-    ruler: "nicholas",
-    chamber: "duma",
-    free: ["court", "army"],
-    key: "nicholas_duma_lobby",
-  },
 };
 
 /**

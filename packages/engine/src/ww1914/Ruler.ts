@@ -116,14 +116,7 @@ export function moveRuler(
   r.lines = r.lines.slice(-LINES_KEPT);
   reason(gw, seat, key);
   if (r[side] === NEAR_BOTTOM && was > NEAR_BOTTOM) nearBottom(gw, seat, side);
-  // ww196: rest and sleep give back nerve with the health (no line of its own).
-  if (side === "health" && moved > 0) {
-    r.nerve = clampTo(r.nerve + moved, 0, GW_RULER_MAX);
-  }
 }
-
-/** ww196 (§0.7): nerve at which health and sleep scenes come. */
-export const GW_NERVE_WORN = 1;
 
 /** A side that can end the game says so a step before the doctors or friends. */
 function nearBottom(gw: GreatWar, seat: GwSeatState, side: GwRulerSide): void {
@@ -160,16 +153,6 @@ export function rulerHolds(
     from !== null && inRange(gw.s.chapter - from, x);
   switch (c.kind) {
     case "ruler":
-      // ww196: worn out, the "low health" scenes (rest, sleep) come too; the
-      // strict gates (a bottom, max 1) still read the health itself.
-      if (
-        c.side === "health" &&
-        c.min === undefined &&
-        (c.max ?? 0) > GW_NERVE_WORN &&
-        r.nerve <= GW_NERVE_WORN
-      ) {
-        return true;
-      }
       return inRange(r[c.side], c);
     case "ruler_is":
       return c.of.includes(r.id);

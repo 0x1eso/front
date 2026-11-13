@@ -1722,13 +1722,11 @@ export const GwPersonaStateSchema = z.object({
       topic: z.string().nullable().optional(),
     }),
   ),
-  /** Grain options taken: grain row id -> times (for `second`). */
-  grain: z.record(GwIdSchema, z.number().int()),
 });
 export type GwPersonaState = z.infer<typeof GwPersonaStateSchema>;
 
 export function gwPersonaStart(): GwPersonaState {
-  return { diary: [], hindsight: [], grain: {} };
+  return { diary: [], hindsight: [] };
 }
 
 /** World secrets (design §4.4): each is there or not in a game. */

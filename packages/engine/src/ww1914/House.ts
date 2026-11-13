@@ -77,7 +77,6 @@ import { makeCard, placeCard } from "./Desk";
 import { hasFile, pressWithFile } from "./Dossier";
 import type { GreatWar } from "./GreatWar";
 import { moveOpinion } from "./Press";
-import { moveRuler } from "./Ruler";
 import { castOf, holds, runEffects, SceneCtx, sceneOf } from "./SceneRun";
 import {
   clampTo,
@@ -1872,26 +1871,6 @@ export function housePrice(
 }
 
 /**
- * ww204: summoning this leader went against the ruler's grain (the Tsar and
- * the Duma's men): a nerve, once a chapter.
- */
-export function houseLobbyGrain(
-  gw: GreatWar,
-  seat: GwSeatState,
-  faction: string,
-): void {
-  const g = houseRow(seat.tag)?.lobbyGrain;
-  const row = factionRow(faction);
-  if (g === undefined || row === null || seat.ruler.id !== g.ruler) return;
-  if (g.free.includes(row.bloc)) return;
-  if ((seatsNow(seat, row)[g.chamber] ?? 0) <= 0) return;
-  const today = seat.ruler.lines.some(
-    (l) => l.key === g.key && l.chapter === gw.s.chapter,
-  );
-  if (!today) moveRuler(gw, seat, "nerve", -1, g.key);
-}
-
-/**
  * 부른다: the leader's lobby talk on this bill, if he talks. The talks are
  * about this bill from now (`focus`). The caller summons him.
  */
@@ -1913,8 +1892,8 @@ export function lobbyCall(
 
 /**
  * 압박: no deal, only absence or fear, and heat. A file holds him away; the
- * ruler's word brings court and army factions in (others it only angers,
- * and it costs him nerve); a dissolution threat brings his waverers in and
+ * ruler's word brings court and army factions in (others it only angers);
+ * a dissolution threat brings his waverers in and
  * heats every faction of the bill's house.
  */
 export function housePress(
@@ -1941,7 +1920,6 @@ export function housePress(
   if (how === "word") {
     const heeds = row.bloc === "court" || row.bloc === "army";
     if (heeds) m.st.warm.push(faction);
-    else moveRuler(gw, seat, "nerve", -1, "house_press_word");
     heatBy(gw, seat, faction, heeds ? 1 : 2);
     reason(gw, seat, heeds ? "house_press_word" : "house_press_word_no", who);
     return null;

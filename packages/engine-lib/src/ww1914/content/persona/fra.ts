@@ -1,4 +1,4 @@
-// ww196 §0: FRA's ruler as a person: places, bearers, grain, diary rows
+// ww196 §0: FRA's ruler as a person: places, bearers, diary rows
 // (GwPersona.ts). The writer lane W-FRA owns this file and
 // resources/ww1914/ko/FRA.persona.json.
 //
@@ -66,34 +66,6 @@ const BEARERS: GwBearer[] = [
   }),
   bearer("decori", { until: "1915-10-18" }),
   bearer("sainsere", { from: "1915-10-18" }),
-];
-
-// ---- Against his grain (costs nerve) ----
-
-const GRAIN: GwPersonaContent["grain"] = [
-  {
-    id: "fra_gr_tiger",
-    nation: NATION,
-    ruler: RULER,
-    lean: "gentle",
-    people: ["fra_clemenceau"],
-  },
-  {
-    id: "fra_gr_caillaux",
-    nation: NATION,
-    ruler: RULER,
-    lean: "gentle",
-    people: ["fra_caillaux"],
-  },
-  // The constitution gives him a pen to sign with: overstepping it once he
-  // can bear, a second time it costs him.
-  {
-    id: "fra_gr_overstep",
-    nation: NATION,
-    ruler: RULER,
-    lean: "bold",
-    second: true,
-  },
 ];
 
 // ---- His daily notes ----
@@ -182,6 +154,5 @@ const DIARY: GwDiaryRow[] = [
 export const FRA_PERSONA: GwPersonaContent = {
   places: PLACES,
   bearers: BEARERS,
-  grain: GRAIN,
   diary: DIARY,
 };

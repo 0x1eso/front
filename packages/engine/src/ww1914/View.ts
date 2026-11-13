@@ -56,14 +56,7 @@ import { realmViews, ruledViews } from "./Fate";
 import { govView, pollView } from "./Government";
 import type { GreatWar } from "./GreatWar";
 import { openTopics, readyBlock } from "./Orders";
-import {
-  bearerRow,
-  deskHead,
-  grainLocked,
-  grainView,
-  isPrivatePaper,
-  misledOf,
-} from "./Persona";
+import { bearerRow, deskHead, isPrivatePaper, misledOf } from "./Persona";
 import { powerViews } from "./Powers";
 import { prologueView } from "./Prologue";
 import { rulerView } from "./Ruler";
@@ -121,16 +114,12 @@ function cardView(
     variant: c.variant,
     cast: c.cast,
     stamp: scene.stamp ?? null,
-    options: (scene.options ?? []).map((o) => {
-      const grain = grainView(gw, seat, c, scene, o);
-      return {
-        id: o.id,
-        open: optionOpen(ctx, o) && !grainLocked(gw, seat, c, scene, o),
-        tell: c.back?.changed ? reworkTell(o, c.back.direction) : o.tell,
-        ...(o.screen === undefined ? {} : { screen: o.screen }),
-        ...(grain === undefined ? {} : { grain }),
-      };
-    }),
+    options: (scene.options ?? []).map((o) => ({
+      id: o.id,
+      open: optionOpen(ctx, o),
+      tell: c.back?.changed ? reworkTell(o, c.back.direction) : o.tell,
+      ...(o.screen === undefined ? {} : { screen: o.screen }),
+    })),
     who: speaker === null ? null : (c.cast[speaker] ?? null),
     node: c.node,
     says:

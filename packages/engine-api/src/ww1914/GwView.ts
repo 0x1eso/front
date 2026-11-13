@@ -51,11 +51,6 @@ export interface GwOptionView {
   tell: readonly string[];
   /** The screen to open once it is taken. */
   screen?: "fronts" | "budget";
-  /**
-   * ww196 (P): against the person's grain (`persona.grain.<id>`): it costs a
-   * nerve; locked at nerve 0-1, with that line as the why.
-   */
-  grain?: string;
 }
 
 export interface GwReplyView extends GwOptionView {

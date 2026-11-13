@@ -273,7 +273,7 @@ describe("Article 87", () => {
   });
 });
 
-describe("ww204: prices, the Tsar's grain, replacing, Prussia, AI laws", () => {
+describe("ww204: prices, the Duma's men, replacing, Prussia, AI laws", () => {
   test("a summoned leader names his prices; a concession takes his text and ends the talk", async () => {
     const { gw, n, seat } = await atWar("GBR");
     const law = "gbr_conscription";
@@ -309,20 +309,17 @@ describe("ww204: prices, the Tsar's grain, replacing, Prussia, AI laws", () => {
     expect(view().prices).toBe(null);
   });
 
-  test("lobbying the Duma costs the Tsar a nerve once a chapter; the court's men cost none", async () => {
+  test("ww206: lobbying the Duma costs the Tsar's card nothing", async () => {
     const { gw, n, seat } = await atWar("RUS");
     const law = "rus_press";
     onAgenda(gw, n, seat, law);
     seat.house!.calls = 2;
-    seat.ruler.nerve = 3;
+    const before = seat.ruler.lines.length;
     const lobby = (faction: string) =>
       applyGwOrder(gw, seat, { kind: "bill_lobby", law, faction });
     expect(lobby("rus_rights")).toBe(null);
-    expect(seat.ruler.nerve).toBe(3);
     expect(lobby("rus_kadets")).toBe(null);
-    expect(seat.ruler.nerve).toBe(2);
-    expect(lobby("rus_octob")).toBe(null);
-    expect(seat.ruler.nerve).toBe(2);
+    expect(seat.ruler.lines).toHaveLength(before);
   });
 
   test("a bill replacing the law in force passes as itself; Prussia casts as one", async () => {

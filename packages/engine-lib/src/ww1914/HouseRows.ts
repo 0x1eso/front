@@ -116,18 +116,6 @@ export interface GwHouseRow {
   readonly fall?: string;
   /** ww203: the office that counts a bill (task `count`), first with a head. */
   readonly counter?: readonly GwOffice[];
-  /**
-   * ww204: lobbying this chamber goes against the ruler's grain (the Tsar and
-   * the Duma): summoning a leader who sits in it costs him a nerve, once a
-   * chapter, unless the faction is of a `free` bloc (court, army). `key`:
-   * the reason line.
-   */
-  readonly lobbyGrain?: {
-    readonly ruler: string;
-    readonly chamber: GwChamber;
-    readonly free: readonly GwBloc[];
-    readonly key: string;
-  };
 }
 
 /** A line that moves a faction's strength, every `every` months while it holds. */

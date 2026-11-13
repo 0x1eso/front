@@ -3,16 +3,13 @@
 // diary card atop the next desk and 수첩 › 일기. Words from pack `persona`;
 // the rows are the engine's (lane P). Existing boxes only.
 import type { GwDiaryView } from "@openfront/engine-api/ww1914/GwPersona";
-import type {
-  GwCardView,
-  GwOptionView,
-} from "@openfront/engine-api/ww1914/GwView";
+import type { GwCardView } from "@openfront/engine-api/ww1914/GwView";
 import { html, nothing, TemplateResult } from "lit";
 import { applyJosa } from "../../Josa";
 import { translateText } from "../../Utils";
 import type { GwCtx } from "./GwCtx";
 import { rich } from "./GwDict";
-import { CHIP, HEAD, MUTED } from "./GwStyle";
+import { HEAD, MUTED } from "./GwStyle";
 import { fullDate, personName, shortDate } from "./GwText";
 
 const BOX = "space-y-1.5 rounded border border-white/15 bg-black/35 p-2.5";
@@ -146,27 +143,4 @@ export function diarySection(c: GwCtx): TemplateResult | typeof nothing {
       ? html`<p class=${MUTED}>${translateText("gw.ui.persona.no_diary")}</p>`
       : rows}
   </section>`;
-}
-
-/** The person's line against an option's grain (`persona.grain`), if any. */
-export function grainLine(
-  c: GwCtx,
-  o: Pick<GwOptionView, "grain">,
-): string | undefined {
-  return o.grain === undefined ? undefined : c.pack?.persona?.grain?.[o.grain];
-}
-
-/** "마음에 걸린다": an open option that goes against him costs him. */
-export function grainChip(
-  o: Pick<GwOptionView, "id" | "grain">,
-): TemplateResult | typeof nothing {
-  if (o.grain === undefined) return nothing;
-  return html`<span class="pl-1"
-    ><span
-      class=${CHIP}
-      data-gw-grain=${o.id}
-      title=${translateText("gw.ui.persona.grain_tip")}
-      >${translateText("gw.ui.persona.grain")}</span
-    ></span
-  >`;
 }

@@ -4886,16 +4886,10 @@
         "health": "The body will not hold. Without rest in a few months, this ends here.",
         "reputation": "Standing has hit the bottom. Unless it is won back in a few months, the seat is lost."
       },
-      "nerve": {
-        "0": "Worn out. What goes against him he cannot bring himself to say today.",
-        "1": "Tired. The hard words cost him.",
-        "2": "Still has the strength to bear it."
-      },
       "side": {
         "conscience": "Conscience",
         "family": "Family",
         "health": "Health",
-        "nerve": "Nerve",
         "reputation": "Reputation"
       },
       "title": "{name}, {age}"
@@ -6008,8 +6002,6 @@
         "brought": "Brought in by {who}",
         "comes_in": "{who} comes in with the papers.",
         "diary": "Diary",
-        "grain": "Weighs on him",
-        "grain_tip": "It goes against the grain. It wears him down.",
         "no_diary": "Nothing written yet.",
         "private": "Private matters"
       },

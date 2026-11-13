@@ -1,4 +1,4 @@
-// ww196 §0: GBR's ruler as a person: places, bearers, grain, diary rows
+// ww196 §0: GBR's ruler as a person: places, bearers, diary rows
 // (GwPersona.ts). The writer lane W-GBR owns this file and
 // resources/ww1914/ko/GBR.persona.json.
 //
@@ -14,7 +14,6 @@ import type {
   GwBearer,
   GwDiaryMoment,
   GwDiaryRow,
-  GwGrain,
   GwPersonaContent,
   GwRulerPlace,
 } from "@openfront/engine-api/ww1914/GwPersona";
@@ -83,30 +82,6 @@ const BEARERS: GwBearer[] = [
   // from 1912 to 1922, checked).
   bearer("bonham_carter", { ruler: ASQUITH }),
   bearer("davies", { ruler: LG }),
-];
-
-// ---- What goes against the grain (§0.4): costs nerve ----
-
-const GRAIN: GwGrain[] = [
-  // "Wait and see": the big leap.
-  { id: "gbr_gr_bold", nation: NATION, ruler: ASQUITH, lean: "bold" },
-  // Coercing Ireland, against Redmond and his own Home Rule.
-  {
-    id: "gbr_gr_irish",
-    nation: NATION,
-    ruler: ASQUITH,
-    lean: "firm",
-    camps: ["irish"],
-  },
-  // Lloyd George: waiting, and giving way to the generals.
-  { id: "gbr_gr_lg_wait", nation: NATION, ruler: LG, lean: "wait" },
-  {
-    id: "gbr_gr_lg_generals",
-    nation: NATION,
-    ruler: LG,
-    lean: "gentle",
-    camps: ["military"],
-  },
 ];
 
 // ---- His diary (§0.6): Asquith's letters, Lloyd George's notes ----
@@ -206,6 +181,5 @@ const DIARY: GwDiaryRow[] = [
 export const GBR_PERSONA: GwPersonaContent = {
   places: PLACES,
   bearers: BEARERS,
-  grain: GRAIN,
   diary: DIARY,
 };

@@ -6,10 +6,7 @@ import {
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { GW_TAGS } from "@openfront/engine-api/ww1914/GwCountries";
 import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
-import {
-  GW_CONTENT,
-  useGwContent,
-} from "@openfront/engine-lib/ww1914/content/Content";
+import { useGwContent } from "@openfront/engine-lib/ww1914/content/Content";
 import { GW_RULERS } from "@openfront/engine-lib/ww1914/RulerRows";
 import { daysFromCivil } from "@openfront/engine-lib/ww1936/Calendar";
 import { closeChain } from "@openfront/engine/ww1914/Crises";
@@ -31,8 +28,8 @@ import { gwRunner } from "./util";
 
 // ww197 (owner's A, "그 사람이 끝나면 내 판도 끝"): a regime with no place for
 // the person ends the seat with its own ending; and the ww196 leftovers: a
-// front course marks the chief's war paper, a course against the grain costs
-// nerve, the memoir keeps a few diary lines a year.
+// front course marks the chief's war paper, the memoir keeps a few diary
+// lines a year. ww206: no nerve, so no course is locked or costs him.
 
 afterEach(() => useGwContent(null));
 
@@ -199,43 +196,24 @@ describe("the person ends, the game ends (ww197)", () => {
     );
   });
 
-  test("a course against his grain costs a nerve, and with none left it is locked", async () => {
-    useGwContent({
-      ...GW_CONTENT,
-      persona: {
-        grain: [
-          { id: "t_grain", nation: ["DEU"], ruler: "wilhelm", lean: "firm" },
-        ],
-      },
-    });
+  test("ww206: no nerve: every course stays open and costs the card nothing", async () => {
     const { gw, st } = await deuAtWar();
-    st.ruler.nerve = 3;
-    let card = frontAnswer(gw, st, "west");
-    const courses = () => {
-      const v = paperView(gw, st, card);
-      if (v?.form !== "answer") throw new Error("form");
-      return v.courses;
-    };
-    expect(courses().find((c) => c.id === "attack")).toMatchObject({
-      grain: "t_grain",
-    });
-    expect(courses().find((c) => c.id === "hold")?.grain).toBeUndefined();
-    const answer = (course: string) =>
+    const card = frontAnswer(gw, st, "west");
+    const v = paperView(gw, st, card);
+    if (v?.form !== "answer") throw new Error("form");
+    for (const c of v.courses) {
+      expect(c).not.toHaveProperty("grain");
+      expect(c).not.toHaveProperty("locked");
+    }
+    const before = st.ruler.lines.length;
+    expect(
       applyGwOrder(gw, st, {
         kind: "answer",
         card: card.uid,
-        course,
+        course: "attack",
         redo: null,
-      });
-    expect(answer("attack")).toBeNull();
-    expect(st.ruler.nerve).toBe(2);
-    expect(st.ruler.lines.slice(-1)[0]?.key).toBe("wilhelm_grain");
-
-    st.ruler.nerve = 0;
-    card = frontAnswer(gw, st, "west");
-    expect(courses().find((c) => c.id === "attack")?.locked).toBe(true);
-    expect(answer("attack")).toBe("closed");
-    expect(answer("hold")).toBeNull();
-    expect(st.ruler.nerve).toBe(0);
+      }),
+    ).toBeNull();
+    expect(st.ruler.lines).toHaveLength(before);
   });
 });

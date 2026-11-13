@@ -1,7 +1,6 @@
 // Great War 1914 (ww196 §0): you are that person. Where the ruler sits on the
 // chapter's date, who hands him each paper, the voice his ministers take with
-// him, what goes against his grain (it costs nerve, and at the bottom it is
-// locked), and what his people told him that proved wrong ("알고 보니").
+// him, and what his people told him that proved wrong ("알고 보니").
 // The diary is Diary.ts. Rows: content persona/<seat>.ts (GwPersona.ts).
 import type {
   GwCard,
@@ -11,42 +10,29 @@ import type {
   GwSeatState,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { gwPersonaStart } from "@openfront/engine-api/ww1914/GreatWarTypes";
-import type { GwLean } from "@openfront/engine-api/ww1914/GwDepts";
 import type {
   GwBearer,
   GwDeskHeadView,
-  GwGrain,
   GwPersonaContent,
   GwRelationVoice,
   GwRulerPlace,
 } from "@openfront/engine-api/ww1914/GwPersona";
-import { GW_RULER_MAX } from "@openfront/engine-api/ww1914/GwRuler";
-import type {
-  GwCond,
-  GwOption,
-  GwScene,
-} from "@openfront/engine-api/ww1914/SceneDsl";
+import type { GwCond, GwScene } from "@openfront/engine-api/ww1914/SceneDsl";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
-import { GW_PROUD, leanScore } from "@openfront/engine-lib/ww1914/TaskRows";
+import { GW_PROUD } from "@openfront/engine-lib/ww1914/TaskRows";
 import {
   civilFromDays,
   formatIsoDate,
 } from "@openfront/engine-lib/ww1936/Calendar";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import type { GreatWar } from "./GreatWar";
-import { GW_NERVE_WORN, moveRuler } from "./Ruler";
-import { ctxOf, holds, optionOpen, personDef, sceneOf } from "./SceneRun";
-import { seatPerson } from "./World";
+import { holds, sceneOf } from "./SceneRun";
 
 const P_HINDSIGHT = idHash("gw_hindsight");
 
 /** Chapters after an answer that a finding proves right or wrong: 2..4. */
 export const GW_HINDSIGHT_MIN = 2;
 export const GW_HINDSIGHT_SPREAD = 3;
-/** How far an option must read above the others to be against his grain. */
-export const GW_GRAIN_MARGIN = 2;
-/** Chapters without a thing against his grain before a nerve comes back. */
-export const GW_NERVE_REST = 2;
 /** Proved wrong this often: "often" on the person row. */
 const MISLED_OFTEN = 3;
 
@@ -175,174 +161,6 @@ export function relationVoice(p: GwPersonState): GwRelationVoice | null {
 export function voiceKeys(p: GwPersonState, office: GwOffice): string[] {
   const rel = relationVoice(p);
   return [p.id, office, ...(rel === null ? [] : [rel]), p.temperament];
-}
-
-// ---- His grain and his nerve (§0.4) ----
-
-/** Whether `o` reads as `lean` among the scene's options, clearly. */
-export function readsAs(
-  options: readonly GwOption[],
-  o: GwOption,
-  lean: GwGrain["lean"],
-): boolean {
-  const others = options.filter((x) => x.id !== o.id);
-  if (others.length === 0) return false;
-  const mine = leanScore(o, lean);
-  if (mine <= 0) return false;
-  return others.every((x) => leanScore(x, lean) + GW_GRAIN_MARGIN <= mine);
-}
-
-/** His own family: no office, no camp, nothing to be given (the private cast). */
-function isKin(id: string, seat: GwSeatState): boolean {
-  const d = personDef(id);
-  return (
-    d !== null &&
-    d.tag === seat.tag &&
-    d.office === null &&
-    d.fit.length === 0 &&
-    d.camps.length === 0
-  );
-}
-
-/** Whether the row's people, camps or kin are on this paper. */
-function towards(
-  r: GwGrain,
-  seat: GwSeatState,
-  card: GwCard,
-  scene: GwScene,
-): boolean {
-  if (r.people === undefined && r.camps === undefined && r.kin !== true) {
-    return true;
-  }
-  const self = seatPerson(seat);
-  const who = [
-    ...Object.values(card.cast),
-    ...(card.dept === undefined ? [] : [card.dept.by]),
-  ].filter((x) => x !== self);
-  if (r.people?.some((x) => who.includes(x)) === true) return true;
-  const camps = r.camps;
-  if (
-    camps !== undefined &&
-    who.some((x) => personDef(x)?.camps.some((c) => camps.includes(c)))
-  ) {
-    return true;
-  }
-  return (
-    r.kin === true && (isPrivatePaper(scene) || who.some((x) => isKin(x, seat)))
-  );
-}
-
-/** The grain an option goes against, and whether taking it costs a nerve. */
-export function grainOf(
-  gw: GreatWar,
-  seat: GwSeatState,
-  card: GwCard,
-  scene: GwScene,
-  o: GwOption,
-): { row: GwGrain; costs: boolean } | null {
-  const id = seat.ruler.id;
-  if (id === null) return null;
-  const options = scene.options ?? [];
-  for (const r of persona().grain ?? []) {
-    if (r.ruler !== id || !r.nation.includes(seat.tag)) continue;
-    if (!readsAs(options, o, r.lean)) continue;
-    if (!towards(r, seat, card, scene)) continue;
-    if (r.when !== undefined && !holds(ctxOf(gw, seat, card), r.when)) continue;
-    const before = seat.persona?.grain[r.id] ?? 0;
-    return { row: r, costs: r.second !== true || before >= 1 };
-  }
-  return null;
-}
-
-/**
- * ww197: a course on an answer paper against his grain, like an option: the
- * course reads as the row's lean and some other course on the paper doesn't.
- */
-export function courseGrainOf(
-  gw: GreatWar,
-  seat: GwSeatState,
-  card: GwCard,
-  lean: readonly GwLean[],
-  others: readonly (readonly GwLean[])[],
-): { row: GwGrain; costs: boolean } | null {
-  const id = seat.ruler.id;
-  if (id === null) return null;
-  const scene = sceneOf(card.scene);
-  for (const r of persona().grain ?? []) {
-    if (r.ruler !== id || !r.nation.includes(seat.tag)) continue;
-    if (!lean.includes(r.lean)) continue;
-    if (others.every((o) => o.includes(r.lean))) continue;
-    if (scene !== null && !towards(r, seat, card, scene)) continue;
-    if (r.when !== undefined && !holds(ctxOf(gw, seat, card), r.when)) continue;
-    const before = seat.persona?.grain[r.id] ?? 0;
-    return { row: r, costs: r.second !== true || before >= 1 };
-  }
-  return null;
-}
-
-/** The grain row id to show on the option, when taking it costs a nerve. */
-export function grainView(
-  gw: GreatWar,
-  seat: GwSeatState,
-  card: GwCard,
-  scene: GwScene,
-  o: GwOption,
-): string | undefined {
-  const g = grainOf(gw, seat, card, scene, o);
-  return g?.costs === true ? g.row.id : undefined;
-}
-
-/**
- * Listed but not his to take today: no nerve left for it. Never the last way
- * out: an option stays open while no other open one is free of his grain.
- */
-export function grainLocked(
-  gw: GreatWar,
-  seat: GwSeatState,
-  card: GwCard,
-  scene: GwScene,
-  o: GwOption,
-): boolean {
-  if (seat.ruler.nerve > GW_NERVE_WORN) return false;
-  const against = (x: GwOption) =>
-    grainOf(gw, seat, card, scene, x)?.costs === true;
-  if (!against(o)) return false;
-  const ctx = ctxOf(gw, seat, card);
-  return (scene.options ?? []).some(
-    (x) => x.id !== o.id && optionOpen(ctx, x) && !against(x),
-  );
-}
-
-/** He took it himself: counted, and it costs what it costs. */
-export function grainTaken(
-  gw: GreatWar,
-  seat: GwSeatState,
-  card: GwCard,
-  scene: GwScene,
-  o: GwOption,
-): void {
-  grainCounted(gw, seat, grainOf(gw, seat, card, scene, o));
-}
-
-/** He took a thing against his grain himself: counted, and it may cost. */
-export function grainCounted(
-  gw: GreatWar,
-  seat: GwSeatState,
-  g: { row: GwGrain; costs: boolean } | null,
-): void {
-  if (g === null) return;
-  const st = personaState(seat);
-  st.grain[g.row.id] = (st.grain[g.row.id] ?? 0) + 1;
-  if (g.costs) moveRuler(gw, seat, "nerve", -1, `${seat.ruler.id}_grain`);
-}
-
-/** A quiet stretch gives a nerve back: no move of it for GW_NERVE_REST. */
-export function restNerve(gw: GreatWar, seat: GwSeatState): void {
-  const r = seat.ruler;
-  if (r.id === null || r.nerve >= GW_RULER_MAX) return;
-  const last = r.lines.filter((l) => l.side === "nerve").slice(-1)[0];
-  if (last !== undefined && gw.s.chapter - last.chapter < GW_NERVE_REST) return;
-  moveRuler(gw, seat, "nerve", 1, `${r.id}_calm`);
 }
 
 // ---- What his people told him (§0.5) ----

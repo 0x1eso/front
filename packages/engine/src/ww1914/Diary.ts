@@ -29,7 +29,6 @@ import {
   noteFindings,
   personaRowHolds,
   personaState,
-  restNerve,
   tellFindings,
   Told,
 } from "./Persona";
@@ -159,9 +158,7 @@ export function chapterMoments(
   for (const l of r.lines) {
     if (l.chapter !== now || l.delta >= 0) continue;
     if (l.side === "family") out.push(moment("family", W_FAMILY));
-    if (l.side === "health" || l.side === "nerve") {
-      out.push(moment("health", W_HEALTH));
-    }
+    if (l.side === "health") out.push(moment("health", W_HEALTH));
   }
   for (const [id, ch] of Object.entries(seat.seen)) {
     if (ch !== now) continue;
@@ -271,14 +268,13 @@ export function writeDiary(
 }
 
 /**
- * Chapter step (after the card's own): a quiet stretch gives nerve back, the
- * findings due are told, and the person writes his line.
+ * Chapter step (after the card's own): the findings due are told, and the
+ * person writes his line.
  */
 export function personaStep(gw: GreatWar): void {
   for (const seat of gw.s.seats) {
     if (seat.memoir !== null || gw.s.ended !== null) continue;
     if (seat.ruler.id === null) continue;
-    restNerve(gw, seat);
     noteFindings(gw, seat);
     const told = tellFindings(gw, seat);
     writeDiary(gw, seat, chapterMoments(gw, seat, told));

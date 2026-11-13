@@ -17,9 +17,9 @@ import { afterEach, describe, expect, test } from "vitest";
 import { gwRunner } from "./util";
 
 // ww196 §0: the person at the desk. Where he sits and who brings the paper
-// follow the date and the paper; at the bottom of his nerve a thing against
-// his grain is listed but locked; the chapter's diary line is about its
-// heaviest moment.
+// follow the date and the paper; the chapter's diary line is about its
+// heaviest moment. ww206: no nerve, so nothing he would rather not do is
+// locked or costs him.
 
 const paper = (
   id: string,
@@ -75,7 +75,6 @@ const PERSONA: GwPersonaContent = {
     { id: "t_valentini", nation: ["DEU"], until: "1918-01-16" },
     { id: "t_berg", nation: ["DEU"] },
   ],
-  grain: [{ id: "t_grain", nation: ["DEU"], ruler: "wilhelm", lean: "firm" }],
   diary: [
     { id: "t_d_front", nation: ["DEU"], moment: "front" },
     { id: "t_d_decision", nation: ["DEU"], moment: "decision" },
@@ -128,33 +127,25 @@ describe("the person (ww196 §0)", () => {
     expect(v.head).toEqual({ place: "t_potsdam", bearer: "t_berg" });
   });
 
-  test("at the bottom of his nerve a thing against his grain is locked, with its why", async () => {
+  test("ww206: no nerve: the hard option stays open and costs the card nothing", async () => {
     const { gw, st } = await deu();
-    st.ruler.nerve = 3;
-    let card = deal(gw, st, "t_p_hard");
-    let opts = seatView(gw).desk[0].options;
-    expect(opts.find((o) => o.id === "refuse")).toMatchObject({
-      open: true,
-      grain: "t_grain",
-    });
-    expect(opts.find((o) => o.id === "accept")?.grain).toBeUndefined();
-    const choose = (option: string) =>
-      applyGwOrder(gw, st, { kind: "choose", card: card.uid, option });
-    expect(choose("refuse")).toBeNull();
-    expect(st.ruler.nerve).toBe(2);
-    expect(st.ruler.lines.slice(-1)[0]?.key).toBe("wilhelm_grain");
-
-    st.ruler.nerve = 0;
-    card = deal(gw, st, "t_p_hard");
-    opts = seatView(gw).desk[0].options;
-    expect(opts.find((o) => o.id === "refuse")).toMatchObject({
-      open: false,
-      grain: "t_grain",
-    });
-    expect(opts.find((o) => o.id === "accept")?.open).toBe(true);
-    expect(choose("refuse")).toBe("closed");
-    expect(choose("accept")).toBeNull();
-    expect(st.ruler.nerve).toBe(0);
+    const card = deal(gw, st, "t_p_hard");
+    const opts = seatView(gw).desk[0].options;
+    expect(opts.map((o) => [o.id, o.open])).toEqual([
+      ["refuse", true],
+      ["accept", true],
+    ]);
+    expect(seatView(gw).ruler?.levels).toHaveLength(4);
+    const before = st.ruler.lines.length;
+    expect(
+      applyGwOrder(gw, st, {
+        kind: "choose",
+        card: card.uid,
+        option: "refuse",
+      }),
+    ).toBeNull();
+    expect(st.ruler.lines).toHaveLength(before);
+    expect("nerve" in st.ruler).toBe(false);
   });
 
   test("a chapter's diary line names its heaviest moment, else the filler", async () => {
@@ -217,7 +208,6 @@ describe("the person (ww196 §0)", () => {
     const rows = [
       ...(p?.places ?? []),
       ...(p?.bearers ?? []),
-      ...(p?.grain ?? []),
       ...(p?.diary ?? []),
     ];
     const bad = rows.flatMap((r) =>

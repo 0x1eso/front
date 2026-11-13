@@ -28,7 +28,6 @@ import {
   taskName,
   topicWord,
 } from "./GwDept";
-import { grainChip, grainLine } from "./GwDiary";
 import { rich } from "./GwDict";
 import { officeTitle } from "./GwOffice";
 import { BTN, BTN_ON, CHIP, MUTED } from "./GwStyle";
@@ -252,14 +251,10 @@ function courseBox(
   const text = c.pack?.depts?.answers?.[o.row]?.courses?.[o.id];
   const armed = c.ui.armed?.uid === card.uid && c.ui.armed.option === o.id;
   const fill = (t: string) => rich(c, fillPaper(c, t, p));
-  // ww197: against his grain it costs a nerve; with none left, his own line.
-  const locked = o.locked === true;
-  const why = locked ? grainLine(c, o) : undefined;
   return html`<div class="space-y-0.5" data-gw-course=${o.id}>
     <button
       class="${armed ? BTN_ON : BTN} w-full"
       data-gw-course-pick=${o.id}
-      ?disabled=${locked}
       @click=${() => {
         c.ui.armed = armed ? null : { uid: card.uid, option: o.id };
         c.ui.backOpen = false;
@@ -269,10 +264,6 @@ function courseBox(
     >
       <b>${text === undefined ? o.id : fill(text.name)}</b>
     </button>
-    ${locked ? nothing : grainChip(o)}
-    ${why === undefined
-      ? nothing
-      : html`<p class="${MUTED} pl-1" data-gw-why>${rich(c, why)}</p>`}
     ${o.own || o.by !== p.office
       ? html`<div class="flex flex-wrap gap-1 pl-1">
           <span class=${CHIP} data-gw-course-by=${o.by}

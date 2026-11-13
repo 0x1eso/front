@@ -195,7 +195,6 @@ const PACK = GwPackSchema.parse({
         manner: ["서류를 두 손으로 내려놓는다.", "말없이 기다린다."],
       },
     },
-    grain: { g_firm: "오늘은 그 말을 할 기력이 없다." },
     diary: { d_walk: "{who}와 정원을 걸었다." },
     forms: { DEU: "황제의 난외 메모" },
   },
@@ -1558,13 +1557,13 @@ describe("departments at work (ww193, ww196)", () => {
     ]);
   });
 
-  test("the person: the desk heading, who brings a paper, the diary, private things, grain and nerve", async () => {
+  test("the person: the desk heading, who brings a paper, the diary, private things; no nerve (ww206)", async () => {
     const own = card({
       uid: 21,
       bearer: "b_valentini",
       options: [
-        { id: "back_vienna", open: false, tell: [], grain: "g_firm" },
-        { id: "term_limit", open: true, tell: [], grain: "g_firm" },
+        { id: "back_vienna", open: true, tell: [] },
+        { id: "term_limit", open: true, tell: [] },
       ],
     });
     const home = card({ uid: 22, scene: "deu_sample_counter", private: true });
@@ -1584,7 +1583,7 @@ describe("departments at work (ww193, ww196)", () => {
         ruler: {
           id: "deu_wilhelm",
           age: 55,
-          levels: [2, 2, 2, 2, 0],
+          levels: [2, 2, 2, 2],
           broken: false,
           lines: [],
         },
@@ -1608,11 +1607,9 @@ describe("departments at work (ww193, ww196)", () => {
     ).not.toBeNull();
     await tap(panel, "[data-gw-open='21']");
     const r = panel.querySelector("[data-gw-reader]")!;
-    // Locked against his grain: his own line is the why; open, a word chip.
-    expect(r.querySelector("[data-gw-why]")!.textContent).toContain(
-      "오늘은 그 말을 할 기력이 없다.",
-    );
-    expect(r.querySelector("[data-gw-grain=term_limit]")).not.toBeNull();
+    // ww206: no grain chip, no lock.
+    expect(r.querySelector("[data-gw-grain]")).toBeNull();
+    expect(r.querySelectorAll("[data-gw-option]:disabled")).toHaveLength(0);
     await tap(panel, "[data-gw-tab=notebook]");
     expect(
       panel.querySelector(
@@ -1620,9 +1617,8 @@ describe("departments at work (ww193, ww196)", () => {
       ),
     ).not.toBeNull();
     await tap(panel, "[data-gw-tab=country]");
-    expect(
-      panel.querySelector("[data-gw-ruler-side=nerve]")!.textContent,
-    ).toContain("gw.ruler.nerve.0");
+    expect(panel.querySelector("[data-gw-ruler-side=nerve]")).toBeNull();
+    expect(panel.querySelectorAll("[data-gw-ruler-side]")).toHaveLength(4);
   });
 
   test("the schedule: ceremonies, a trip's price in words, the rest folded, the pool", async () => {

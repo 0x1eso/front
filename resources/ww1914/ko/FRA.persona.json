@@ -59,11 +59,6 @@
         ]
       }
     },
-    "grain": {
-      "fra_gr_tiger": "클레망소에게 또 고개를 숙이는 말은 오늘 내 입에서 나오지 않는다.",
-      "fra_gr_caillaux": "카요를 감싸 주는 글을 내 손으로 쓸 기력이 없다.",
-      "fra_gr_overstep": "헌법은 대통령에게 서명할 펜만 주었다. 그 선을 한 번 넘었다. 오늘 또 넘을 힘은 없다."
-    },
     "diary": {
       "fra_di_decision_signed": "{scene}. 서명했다. 총리는 고맙다는 말 대신 시계를 보았다.",
       "fra_di_decision_faces": "{scene}의 일을 정했다. 장관들은 저마다 다른 것을 들은 얼굴로 나갔다.",

@@ -17,13 +17,7 @@ import {
   roomBox,
   signWord,
 } from "./GwDept";
-import {
-  bearerLine,
-  deskHeading,
-  diaryCard,
-  grainChip,
-  grainLine,
-} from "./GwDiary";
+import { bearerLine, deskHeading, diaryCard } from "./GwDiary";
 import { briefLine, rich } from "./GwDict";
 import { newPass, TextPass } from "./GwDictModel";
 import { gwName } from "./GwFateModel";
@@ -441,11 +435,7 @@ function optionButton(
   pass: TextPass,
 ): TemplateResult {
   const armed = c.ui.armed?.uid === card.uid && c.ui.armed.option === o.id;
-  // ww196: shut against his grain, the person's own line is the why.
-  const grain = grainLine(c, o);
-  const why = o.open
-    ? undefined
-    : (grain ?? c.pack?.scenes[card.scene]?.why?.[o.id]);
+  const why = o.open ? undefined : c.pack?.scenes[card.scene]?.why?.[o.id];
   // The year's pick (ww179): what each project works on, never its result.
   const aim = card.scene.endsWith("_agenda")
     ? (c.pack?.craft?.[o.id]?.aim ?? null)
@@ -471,7 +461,7 @@ function optionButton(
         ></span
       >
     </button>
-    ${optionMarks(c, card, o.id)} ${o.open ? grainChip(o) : nothing}
+    ${optionMarks(c, card, o.id)}
     ${aim === null
       ? nothing
       : html`<p class="${MUTED} pl-1" data-gw-option-aim=${o.id}>

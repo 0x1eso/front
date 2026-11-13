@@ -1,4 +1,4 @@
-// Great War 1914: the person at the desk. Five things about them, in words on
+// Great War 1914: the person at the desk. Four things about them, in words on
 // the screen (hud/ww1914/GwRuler) and integers here. The rows are in
 // engine-lib/ww1914/RulerRows, the rule in engine/ww1914/Ruler.
 import { z } from "zod";
@@ -8,9 +8,6 @@ export const GW_RULER_SIDES = [
   "family",
   "conscience",
   "reputation",
-  // ww196 (§0.4): what he has left for the things against his grain
-  // (engine/ww1914/Persona). Spent by them, back with rest and sleep.
-  "nerve",
 ] as const;
 export type GwRulerSide = (typeof GW_RULER_SIDES)[number];
 
@@ -39,8 +36,6 @@ export const GwRulerStateSchema = z.object({
   family: int,
   conscience: int,
   reputation: int,
-  /** ww196: absent on an older save, which starts it full. */
-  nerve: int.default(GW_RULER_MAX),
   /** Chapter conscience gave out; it doesn't come back. */
   broken: int.nullable(),
   /** Chapter health hit the bottom; null when it has recovered. */
@@ -63,7 +58,6 @@ export function blankRuler(): GwRulerState {
     family: GW_RULER_MAX,
     conscience: GW_RULER_MAX,
     reputation: GW_RULER_MAX,
-    nerve: GW_RULER_MAX,
     broken: null,
     failing: null,
     shaken: null,

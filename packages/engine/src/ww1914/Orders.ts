@@ -54,7 +54,7 @@ import { crownPick, fatePaint, treatySign } from "./Fate";
 import { proposalsFor } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { answerPetition, holdHonours } from "./Honours";
-import { houseLobbyGrain, housePress, housePrice, lobbyCall } from "./House";
+import { housePress, housePrice, lobbyCall } from "./House";
 import {
   lawCall,
   lawOrder,
@@ -70,7 +70,6 @@ import {
   dismissPrice,
   pressPremier,
 } from "./People";
-import { grainLocked, grainTaken } from "./Persona";
 import { postGeneral } from "./Post";
 import { takePower } from "./Powers";
 import { pressCensor, pressInvite, pressLeak } from "./Press";
@@ -138,10 +137,8 @@ export function applyGwOrder(
       if (opt === undefined) return "no_option";
       const ctx = ctxOf(gw, seat, card);
       if (!optionOpen(ctx, opt)) return "closed";
-      if (grainLocked(gw, seat, card, scene, opt)) return "closed";
       removeCard(seat, card.uid);
       takeOption(ctx, scene, opt, false);
-      grainTaken(gw, seat, card, scene, opt);
       deptChosen(gw, seat, card, opt.id);
       return null;
     }
@@ -351,9 +348,7 @@ export function applyGwOrder(
     case "bill_lobby": {
       const call = lobbyCall(gw, seat, o.law, o.faction);
       if (typeof call === "string") return call;
-      const block = summon(gw, seat, call.person, call.topic);
-      if (block === null) houseLobbyGrain(gw, seat, o.faction);
-      return block;
+      return summon(gw, seat, call.person, call.topic);
     }
     case "bill_price":
       return housePrice(gw, seat, o.law, o.faction, o.want);

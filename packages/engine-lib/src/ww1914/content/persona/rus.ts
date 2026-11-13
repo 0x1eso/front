@@ -1,4 +1,4 @@
-// ww196 §0: RUS's ruler as a person: places, bearers, grain, diary rows
+// ww196 §0: RUS's ruler as a person: places, bearers, diary rows
 // (GwPersona.ts). The writer lane W-RUS owns this file and
 // resources/ww1914/ko/RUS.persona.json.
 //
@@ -13,7 +13,6 @@
 import type {
   GwBearer,
   GwDiaryRow,
-  GwGrain,
   GwPersonaContent,
   GwRulerPlace,
 } from "@openfront/engine-api/ww1914/GwPersona";
@@ -103,35 +102,6 @@ const BEARERS: GwBearer[] = [
   bearer("mordvinov"),
 ];
 
-// ---- Against his grain (costs one nerve) ----
-
-const GRAIN: GwGrain[] = [
-  // Hard words to his own family: the Empress, the grand dukes, the cousins.
-  {
-    id: "rus_gr_kin",
-    nation: ["RUS"],
-    ruler: "nicholas",
-    lean: "firm",
-    kin: true,
-  },
-  // Hard words to the court that raised him.
-  {
-    id: "rus_gr_court",
-    nation: ["RUS"],
-    ruler: "nicholas",
-    lean: "firm",
-    camps: ["court"],
-  },
-  // Turning the Friend away: the boy's blood is in it.
-  {
-    id: "rus_gr_friend",
-    nation: ["RUS"],
-    ruler: "nicholas",
-    lean: "firm",
-    people: ["rus_rasputin"],
-  },
-];
-
 // ---- The diary: terse; weather, a walk, the reports, whom he received ----
 
 const day = (
@@ -210,6 +180,5 @@ const DIARY: GwDiaryRow[] = [
 export const RUS_PERSONA: GwPersonaContent = {
   places: PLACES,
   bearers: BEARERS,
-  grain: GRAIN,
   diary: DIARY,
 };

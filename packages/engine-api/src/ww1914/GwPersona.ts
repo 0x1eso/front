@@ -1,16 +1,13 @@
 // Great War 1914 (ww196 §0): you are that person. The rows that put the
 // player in the ruler's chair: where he sits on the chapter's date, who hands
-// him each paper, how he is addressed, what goes against his grain (and costs
-// nerve), his diary, the "알고 보니" lines and the private papers.
+// him each paper, how he is addressed, his diary, the "알고 보니" lines and
+// the private papers.
 // Engine: engine/ww1914/Persona.ts, Diary.ts (lane P). Rows: content
 // persona/<seat>.ts (writers), joined in Content.ts as `persona`. Text: pack
 // `persona` (GwPersonaPackSchema), shares `<SEAT>.persona.json`.
-// The nerve side (기력): P appends "nerve" to GW_RULER_SIDES (GwRuler.ts);
-// the ruler view's `levels` then has a fifth entry.
 import { z } from "zod";
 import { GW_OFFICES, GW_THEATRES, GwIdSchema } from "./GreatWarTypes";
 import { GW_TAGS, GwTag } from "./GwCountries";
-import { GW_LEANS } from "./GwDepts";
 import { GW_PAPER_FORMS } from "./GwDeptWords";
 import { GW_SCENE_KINDS, GW_SCENE_TAGS, GwCondSchema } from "./SceneDsl";
 
@@ -88,29 +85,6 @@ export const GW_RULER_ADDRESS: Readonly<Partial<Record<GwTag, GwAddress>>> = {
 export const GW_RELATION_VOICES = ["fear", "flattery", "bluntness"] as const;
 export type GwRelationVoice = (typeof GW_RELATION_VOICES)[number];
 
-/**
- * What goes against the person's grain (§0.4, `GW_RULER_GRAIN`): an option
- * the lean classifier (TaskRows `leanPick` scoring) reads as `lean`, toward
- * these people or camps (`kin`: his family), and `second`: only a second
- * time (Wilhelm holding firm after blustering). It costs one nerve; at nerve
- * 0-1 it stays listed but locked. Text `persona.grain.<id>`: the `why` line in
- * his voice ("오늘은 그 말을 할 기력이 없다").
- */
-export const GwGrainSchema = z
-  .object({
-    id: GwIdSchema,
-    nation: z.array(z.enum(GW_TAGS)).min(1),
-    ruler: GwIdSchema,
-    lean: z.enum(GW_LEANS),
-    people: z.array(GwIdSchema).min(1).optional(),
-    camps: z.array(z.string()).min(1).optional(),
-    kin: z.boolean().optional(),
-    second: z.boolean().optional(),
-    when: GwCondSchema.optional(),
-  })
-  .strict();
-export type GwGrain = z.infer<typeof GwGrainSchema>;
-
 /** The moments a diary line can be about (§0.6). APPEND ONLY. */
 export const GW_DIARY_MOMENTS = [
   "decision",
@@ -149,7 +123,6 @@ export type GwDiaryRow = z.infer<typeof GwDiaryRowSchema>;
 export interface GwPersonaContent {
   readonly places?: readonly GwRulerPlace[];
   readonly bearers?: readonly GwBearer[];
-  readonly grain?: readonly GwGrain[];
   readonly diary?: readonly GwDiaryRow[];
 }
 
@@ -159,7 +132,6 @@ export function joinPersona(
   return {
     places: parts.flatMap((p) => p.places ?? []),
     bearers: parts.flatMap((p) => p.bearers ?? []),
-    grain: parts.flatMap((p) => p.grain ?? []),
     diary: parts.flatMap((p) => p.diary ?? []),
   };
 }
@@ -175,7 +147,6 @@ export const GwPersonaPackSchema = z
       )
       .optional(),
     address: z.partialRecord(z.enum(GW_ADDRESS), Text).optional(),
-    grain: ById.optional(),
     diary: ById.optional(),
     /** The diary card's head per seat ("니콜라이의 일기"): tag -> words. */
     forms: z.partialRecord(z.enum(GW_TAGS), Text).optional(),
@@ -193,7 +164,6 @@ export function mergeGwPersonaPacks(
     places: { ...a.places, ...b.places },
     bearers: { ...a.bearers, ...b.bearers },
     address: { ...a.address, ...b.address },
-    grain: { ...a.grain, ...b.grain },
     diary: { ...a.diary, ...b.diary },
     forms: { ...a.forms, ...b.forms },
   };

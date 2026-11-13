@@ -1,11 +1,10 @@
-// ww196 §0: DEU's ruler as a person: places, bearers, grain, diary rows
+// ww196 §0: DEU's ruler as a person: places, bearers, diary rows
 // (GwPersona.ts). The writer lane W-DEU owns this file and
 // resources/ww1914/ko/DEU.persona.json. Facts: ww196-facts.md (DEU): the GHQ
 // moves, the cabinet chiefs by date, the Kaiser's marginalia.
 import type {
   GwBearer,
   GwDiaryRow,
-  GwGrain,
   GwPersonaContent,
   GwRulerPlace,
 } from "@openfront/engine-api/ww1914/GwPersona";
@@ -82,17 +81,6 @@ const BEARERS: GwBearer[] = [
   { id: "deu_br_berg", nation: DEU, from: VALENTINI_UNTIL },
 ];
 
-// §0.4: Wilhelm holding firm a second time after blustering.
-const GRAIN: GwGrain[] = [
-  {
-    id: "deu_gr_bluster",
-    nation: DEU,
-    ruler: "wilhelm",
-    lean: "firm",
-    second: true,
-  },
-];
-
 const d = (
   id: string,
   moment: GwDiaryRow["moment"],
@@ -167,6 +155,5 @@ const DIARY: GwDiaryRow[] = [
 export const DEU_PERSONA: GwPersonaContent = {
   places: PLACES,
   bearers: BEARERS,
-  grain: GRAIN,
   diary: DIARY,
 };
