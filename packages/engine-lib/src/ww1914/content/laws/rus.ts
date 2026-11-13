@@ -1,6 +1,7 @@
+import type { GwAxisPush } from "@openfront/engine-api/ww1914/GwSociety";
 import { any, chose, not } from "@openfront/engine-api/ww1914/SceneDsl";
 import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
-import type { GwLawRow } from "../../LawRows";
+import type { GwLawDraft, GwLawRow } from "../../LawRows";
 import {
   draft,
   either,
@@ -37,7 +38,7 @@ const mix = (source: "taxes" | "loans", delta: number) =>
  * signs under Article 87 while it isn't sitting: nothing stops him, and the
  * Duma remembers. That is the whole game here: what the decree costs later.
  */
-export const RUS_LAWS: readonly GwLawRow[] = [
+const RUS_WAR_LAWS: readonly GwLawRow[] = [
   row({
     id: "rus_press",
     chapter: "censorship",
@@ -558,4 +559,454 @@ export const RUS_LAWS: readonly GwLawRow[] = [
       wins: 1,
     }),
   }),
+];
+
+// ---- ww207 (W-RUS): the society's pushes, the peace bills, the franchise ----
+
+/**
+ * Axis notches each text moves when it passes (rule: 전제 -1 / 의회 +1;
+ * class: 지주·자본 -1 / 농민·노동 +1; nations: 하나의 러시아 -1 / 민족들 +1).
+ * Every bill text has one. The house laws' are in house/rus.ts.
+ */
+export const RUS_LAW_AXES: Readonly<
+  Record<string, Readonly<Record<string, GwAxisPush>>>
+> = {
+  rus_press: {
+    stavka_reads: { rule: -1, nations: -1 },
+    war_news_only: { rule: -1 },
+    duma_speeches_free: { rule: 1 },
+  },
+  rus_dry: {
+    for_the_war: { nations: -1 },
+    for_ever: { rule: -1, nations: -1 },
+    wine_and_beer: { class: -1 },
+  },
+  rus_ratniki: {
+    second_class: { rule: -1 },
+    not_only_sons: { rule: 1 },
+    land_after: { class: 1 },
+  },
+  rus_councils: {
+    four_councils: { rule: 1, class: -1 },
+    defence_alone: { rule: -1 },
+    with_zemgor: { rule: 1 },
+  },
+  rus_factories: {
+    under_arms: { rule: -1, class: -1 },
+    workers_group: { class: 1 },
+    strike_courts: { class: -1 },
+  },
+  rus_grain: {
+    fixed_price: { class: 1 },
+    quota_levy: { rule: -1 },
+    trains_first: { class: -1 },
+  },
+  rus_poland: {
+    autonomy_word: { nations: 1 },
+    charter: { rule: 1, nations: 1 },
+    crown_of_poland: { rule: -1, nations: 1 },
+  },
+  rus_finland: {
+    stop_the_programme: { nations: 1 },
+    diet_recalled: { rule: 1, nations: 1 },
+    quiet_governor: { nations: -1 },
+  },
+  rus_pale: {
+    towns_circular: { rule: -1, nations: 1 },
+    whole_pale: { rule: 1, nations: 1 },
+    refugees_only: { nations: 1 },
+  },
+  rus_great_programme: {
+    whole_by_taxes: { nations: -1 },
+    whole_by_loans: { class: -1, nations: -1 },
+    guns_first: { rule: -1 },
+  },
+  rus_war_tax: {
+    loans_only: { class: -1 },
+    income_tax: { class: 1 },
+    war_profits: { rule: 1, class: 1 },
+  },
+  rus_army_zone: {
+    stavka_rules: { rule: -1 },
+    civil_governors: { rule: 1 },
+    no_expulsions: { nations: 1 },
+  },
+};
+
+/** Lays the axis table over rows written before ww207. */
+export function withAxes(
+  rows: readonly GwLawRow[],
+  table: Readonly<Record<string, Readonly<Record<string, GwAxisPush>>>>,
+): GwLawRow[] {
+  return rows.map((r) => {
+    const t = table[r.id];
+    if (t === undefined) return r;
+    return {
+      ...r,
+      draft: r.draft.map((d) =>
+        t[d.id] === undefined ? d : { ...d, axes: t[d.id] },
+      ),
+    };
+  });
+}
+
+/** A text with its push; no tell before the pick. */
+const text = (
+  id: string,
+  support: number,
+  axes: GwAxisPush,
+  effects: GwLawDraft["effects"] = [],
+  more: Partial<GwLawDraft> = {},
+): GwLawDraft => ({ ...draft(id, support, [], [...effects]), axes, ...more });
+
+/** Not at war: the crisis weeks, the peace years, after the armistice. */
+const notWar = not(war);
+/** Whoever reigns or governs: an exclusive law opens once its node is open. */
+const anyForm = since("1914-01");
+
+export const RUS_PEACE_LAWS: readonly GwLawRow[] = [
+  // + check: Stolypin's land laws: the ukaz of 9 Nov 1906, the law of 14 June
+  // 1910 (leaving the commune), the land-settlement law of 29 May 1911. The
+  // Peasant Land Bank bought estates for peasants; the Kadets' and the
+  // Trudoviks' programmes took the estates for the tillers, with or without
+  // payment.
+  row({
+    id: "rus_land",
+    chapter: "land",
+    peace: true,
+    opens: allOf(crowned, notWar),
+    lean: 0,
+    decree: true,
+    cast: { agri: held("agriculture") },
+    draft: [
+      text("separation", 1, { class: -1 }, [gauge("bread", 1)]),
+      text("land_bank", 1, { class: 1 }, [gauge("money", -1)]),
+      text("alienation", -1, { rule: 1, class: 1 }, [inst("court", -1)]),
+    ],
+    passed: [gauge("bread", 1)],
+    passedTell: [],
+    term: [{ gauge: "bread", delta: 1, every: 12, offset: 3 }],
+    flag: "f_law_rus_land",
+    repeal: { authority: 15, tell: [], effects: [gauge("order", -1)] },
+    talk: lawTalk("rus_land", {
+      who: either(person("rus_krivoshein"), held("agriculture")),
+      ask: "warm",
+      push: "frank",
+      tell: [],
+      price: [inst("duma", 1)],
+      wins: 1,
+    }),
+  }),
+  // + check: the law of 3 May 1908 (O.S.): free primary school for every
+  // child within ten years, by 1917, through state money to the zemstvos.
+  // The Holy Synod's parish schools ran beside them; the borderlands asked
+  // for schooling in their own tongue.
+  row({
+    id: "rus_schools",
+    chapter: "schools",
+    peace: true,
+    opens: allOf(crowned, notWar),
+    lean: 1,
+    decree: true,
+    cast: { interior: held("interior"), fin: held("finance") },
+    draft: [
+      text("zemstvo_schools", 1, { rule: 1 }),
+      text("parish_schools", 1, { nations: -1 }, [inst("court", 1)]),
+      text("mother_tongue", -1, { nations: 1 }),
+    ],
+    passed: [gauge("morale", 1)],
+    passedTell: [],
+    term: [{ gauge: "money", delta: -1, every: 12, offset: 5 }],
+    flag: "f_law_rus_schools",
+    repeal: { authority: 15, tell: [], effects: [gauge("morale", -1)] },
+    talk: lawTalk("rus_schools", {
+      who: person("rus_rodzianko"),
+      ask: "warm",
+      push: "cold",
+      tell: [],
+      price: [inst("duma", 1)],
+      wins: 1,
+    }),
+  }),
+  // + check: the insurance laws of 23 June 1912 (O.S.): sickness and accident
+  // funds for the workers of the large factories, mines and railways, paid
+  // by workers and owners, with workers sitting on the boards.
+  row({
+    id: "rus_insurance",
+    chapter: "social",
+    peace: true,
+    opens: allOf(crowned, notWar),
+    lean: 0,
+    decree: true,
+    cast: { interior: held("interior") },
+    draft: [
+      text("sick_funds", 1, { class: 1 }),
+      text("workers_boards", 0, { rule: 1, class: 1 }),
+      text("owners_run", 1, { class: -1 }),
+    ],
+    passed: [gauge("order", 1)],
+    passedTell: [],
+    term: [
+      { gauge: "order", delta: 1, every: 12, offset: 2 },
+      { gauge: "money", delta: -1, every: 14, offset: 7 },
+    ],
+    flag: "f_law_rus_insurance",
+    repeal: { authority: 15, tell: [], effects: [gauge("order", -1)] },
+    talk: lawTalk("rus_insurance", {
+      who: either(person("rus_chkheidze"), held("interior")),
+      ask: "frank",
+      push: "cold",
+      tell: [],
+      price: [inst("court", -1)],
+      wins: 1,
+    }),
+  }),
+  // Peace-time taxes: an income tax had waited in the Duma since 1907 (it
+  // came only in the war, signed 6 April 1916); the treasury lived on the
+  // vodka monopoly and the excises.
+  row({
+    id: "rus_tax_reform",
+    chapter: "tax",
+    peace: true,
+    opens: allOf(crowned, notWar),
+    lean: 0,
+    decree: true,
+    cast: { fin: held("finance") },
+    draft: [
+      text("income_tax", 0, { class: 1 }, [inst("court", -1)]),
+      text("excise_up", 1, { class: -1 }, [gauge("order", -1)]),
+      text("estates_tax", -1, { rule: 1, class: 1 }, [inst("court", -1)]),
+    ],
+    passed: [gauge("money", 1)],
+    passedTell: [],
+    term: [{ gauge: "money", delta: 1, every: 10, offset: 4 }],
+    flag: "f_law_rus_tax",
+    repeal: { authority: 10, tell: [], effects: [gauge("money", -1)] },
+    talk: lawTalk("rus_tax_reform", {
+      who: held("finance"),
+      ask: "cold",
+      push: "frank",
+      tell: [],
+      price: [gauge("money", -1)],
+      wins: 1,
+    }),
+  }),
+  // The electoral law of 3 June 1907 weighted the curiae for the landowners;
+  // the Kadets and the left asked for the "four-tail" vote (universal, equal,
+  // direct, secret). Each text sets the Duma's franchise for the next
+  // election. Open in war and peace.
+  row({
+    id: "rus_franchise",
+    chapter: "franchise",
+    opens: crowned,
+    lean: -1,
+    decree: true,
+    cast: { interior: held("interior") },
+    draft: [
+      text("four_tails", -1, { rule: 1, class: 1 }, [inst("court", -1)], {
+        franchise: { chamber: "duma", to: "equal" },
+      }),
+      text("wider_curiae", 0, { rule: 1 }, [], {
+        franchise: { chamber: "duma", to: "wide" },
+      }),
+      text("estates_only", 0, { rule: -1, class: -1 }, [inst("duma", -1)], {
+        franchise: { chamber: "duma", to: "estates" },
+      }),
+    ],
+    passed: [],
+    passedTell: [],
+    term: [],
+    flag: "f_law_rus_franchise",
+    repeal: { authority: 20, tell: [], effects: [inst("duma", -1)] },
+    talk: lawTalk("rus_franchise", {
+      who: person("rus_milyukov"),
+      ask: "frank",
+      push: "cold",
+      tell: [],
+      price: [inst("court", -1)],
+      wins: 1,
+      tempers: ["arrogant"],
+    }),
+  }),
+  // The Fourth Duma's five years end in the autumn of 1917 (elected 1912,
+  // opened 15 November 1912 O.S.). No law put its election off in the real
+  // war; here the war can.
+  row({
+    id: "rus_duma_postpone",
+    chapter: "franchise",
+    opens: allOf(war, crowned, since("1916-06")),
+    lean: 0,
+    decree: true,
+    cast: { interior: held("interior") },
+    draft: [
+      text("one_year", 1, { rule: -1 }),
+      text("till_peace", 0, { rule: -1, nations: -1 }, [inst("duma", -1)]),
+      text("duma_consents", 1, { rule: 1 }),
+    ],
+    passed: [gauge("order", 1)],
+    passedTell: [],
+    term: [],
+    flag: "f_law_rus_postpone",
+    repeal: { authority: 10, tell: [], effects: [] },
+    talk: lawTalk("rus_duma_postpone", {
+      who: person("rus_rodzianko"),
+      ask: "warm",
+      push: "cold",
+      tell: [],
+      price: [inst("duma", 1)],
+      wins: 1,
+    }),
+  }),
+  // ---- the factions' exclusive laws (a node of their tree opens them) ----
+  // The Octobrists: the freedoms of the 17 October 1905 manifesto in law.
+  row({
+    id: "rus_x_liberties",
+    chapter: "franchise",
+    exclusive: { faction: "rus_octob", node: "rus_octob_law" },
+    opens: anyForm,
+    lean: 0,
+    decree: true,
+    cast: { interior: held("interior") },
+    draft: [
+      text("all_freedoms", 0, { rule: 1 }, [inst("court", -1)]),
+      text("freedoms_in_order", 1, { rule: 1, class: -1 }),
+    ],
+    passed: [inst("duma", 1), gauge("morale", 1)],
+    passedTell: [],
+    term: [{ gauge: "morale", delta: 1, every: 14, offset: 4 }],
+    flag: "f_law_rus_liberties",
+    repeal: { authority: 20, tell: [], effects: [inst("duma", -2)] },
+    talk: lawTalk("rus_x_liberties", {
+      who: person("rus_guchkov"),
+      ask: "frank",
+      push: "cold",
+      tell: [],
+      price: [inst("court", -1)],
+      wins: 1,
+    }),
+  }),
+  // The Kadets: ministers answer to the Duma, not the Tsar.
+  row({
+    id: "rus_x_ministry",
+    chapter: "franchise",
+    exclusive: { faction: "rus_kadets", node: "rus_kadets_law" },
+    opens: anyForm,
+    lean: -1,
+    decree: true,
+    cast: { chancellor: held("chancellor") },
+    draft: [
+      text("responsible", -1, { rule: 1 }, [
+        inst("court", -2),
+        inst("duma", 1),
+      ]),
+      text("public_confidence", 0, { rule: 1 }, [inst("court", -1)]),
+    ],
+    passed: [inst("duma", 1)],
+    passedTell: [],
+    term: [{ gauge: "order", delta: 1, every: 12, offset: 6 }],
+    flag: "f_law_rus_ministry",
+    repeal: { authority: 25, tell: [], effects: [inst("duma", -2)] },
+    talk: lawTalk("rus_x_ministry", {
+      who: person("rus_milyukov"),
+      ask: "frank",
+      push: "cold",
+      tell: [],
+      price: [inst("court", -1)],
+      wins: 1,
+      tempers: ["arrogant"],
+    }),
+  }),
+  // The Rights: the Duma back to an advisory body, as they asked since 1907.
+  row({
+    id: "rus_x_advisory",
+    chapter: "franchise",
+    exclusive: { faction: "rus_rights", node: "rus_rights_law" },
+    opens: crowned,
+    lean: -1,
+    decree: true,
+    cast: { interior: held("interior") },
+    draft: [
+      text("advisory_duma", 0, { rule: -1 }, [
+        inst("duma", -2),
+        inst("court", 1),
+      ]),
+      text("estates_duma", 0, { rule: -1, class: -1 }, [inst("duma", -1)]),
+    ],
+    passed: [inst("court", 1)],
+    passedTell: [],
+    term: [{ gauge: "order", delta: 1, every: 10, offset: 3 }],
+    flag: "f_law_rus_advisory",
+    repeal: { authority: 15, tell: [], effects: [inst("court", -1)] },
+    talk: lawTalk("rus_x_advisory", {
+      who: either(person("rus_khvostov"), person("rus_durnovo")),
+      ask: "warm",
+      push: "frank",
+      tell: [],
+      price: [inst("duma", -1)],
+      wins: 1,
+    }),
+  }),
+  // The Trudoviks: the land to those who work it.
+  row({
+    id: "rus_x_land",
+    chapter: "land",
+    exclusive: { faction: "rus_trud", node: "rus_trud_law" },
+    opens: anyForm,
+    lean: -1,
+    decree: true,
+    cast: { agri: held("agriculture") },
+    draft: [
+      text("to_the_tillers", -1, { class: 1 }, [inst("court", -2)]),
+      text("with_payment", 0, { class: 1 }, [gauge("money", -1)]),
+    ],
+    passed: [gauge("morale", 1), gauge("order", 1)],
+    passedTell: [],
+    term: [{ gauge: "bread", delta: -1, every: 12, offset: 2 }],
+    flag: "f_law_rus_land_tillers",
+    repeal: { authority: 25, tell: [], effects: [gauge("order", -2)] },
+    talk: lawTalk("rus_x_land", {
+      who: person("rus_kerensky"),
+      ask: "frank",
+      push: "cold",
+      tell: [],
+      price: [inst("court", -1)],
+      wins: 1,
+      tempers: ["anxious"],
+    }),
+  }),
+  // The Bolsheviks: the eight-hour day and the factory committees.
+  row({
+    id: "rus_x_eight_hours",
+    chapter: "labour",
+    exclusive: { faction: "rus_bolsh", node: "rus_bolsh_law" },
+    opens: anyForm,
+    lean: -2,
+    decree: true,
+    cast: { interior: held("interior") },
+    draft: [
+      text("eight_hours", -1, { class: 1 }, [gauge("shells", -1)]),
+      text("workers_control", -2, { class: 1, nations: 1 }, [
+        gauge("shells", -1),
+      ]),
+    ],
+    passed: [gauge("order", 1)],
+    passedTell: [],
+    term: [{ gauge: "shells", delta: -1, every: 10, offset: 2 }],
+    flag: "f_law_rus_eight_hours",
+    repeal: { authority: 20, tell: [], effects: [gauge("order", -2)] },
+    talk: lawTalk("rus_x_eight_hours", {
+      who: either(person("rus_lenin"), held("interior")),
+      ask: "cold",
+      push: "cold",
+      tell: [],
+      price: [inst("court", -1)],
+      wins: 1,
+    }),
+  }),
+];
+
+/** Russia's bills: the war rows with their pushes, and the ww207 rows. */
+export const RUS_LAWS: readonly GwLawRow[] = [
+  ...withAxes(RUS_WAR_LAWS, RUS_LAW_AXES),
+  ...RUS_PEACE_LAWS,
 ];

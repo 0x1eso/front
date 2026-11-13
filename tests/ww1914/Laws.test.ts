@@ -96,13 +96,18 @@ describe("the rows", () => {
   test("eight to sixteen bills a nation, each with its three scenes", () => {
     for (const tag of NATIONS) {
       // The factions' own bills (ww158) are the house files', not these.
+      // ww207: a faction's exclusive law (its tree's node) isn't the book's.
       const rows = GW_LAWS.filter(
-        (r) => r.tag === tag && !GW_HOUSE_LAWS.includes(r),
+        (r) =>
+          r.tag === tag &&
+          !GW_HOUSE_LAWS.includes(r) &&
+          r.exclusive === undefined,
       );
       expect(rows.length).toBeGreaterThanOrEqual(8);
       // ww203: the law book's new articles (W lanes, marked +); ww204 merge:
-      // the five lanes' rows together, DEU and RUS 16.
-      expect(rows.length).toBeLessThanOrEqual(16);
+      // the five lanes' rows together, DEU and RUS 16. ww207: the peace
+      // chapters and the franchise (W-RUS 18).
+      expect(rows.length).toBeLessThanOrEqual(20);
     }
     const ids = new Set(GW_CONTENT.scenes.map((s) => s.id));
     for (const r of GW_LAWS) {

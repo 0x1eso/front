@@ -189,8 +189,17 @@ export const RUS_HOUSE: GwHouseRow = {
       sits: not(RUS_DUMA_GONE),
       // ww203: 442 seats (the Fourth Duma).
       size: 442,
-      // ww207 (F, W-RUS checks): the Fourth Duma, elected autumn 1912.
-      elect: { rule: "curia", due: "1917-11", term: 5, franchise: "curia" },
+      // ww207 (W-RUS, checked): the Fourth Duma, elected in the autumn of
+      // 1912 under the curiae of 3 June 1907, opened 15 November 1912 (O.S.)
+      // for five years. No law put the 1917 election off; here the war can
+      // (rus_duma_postpone).
+      elect: {
+        rule: "curia",
+        due: "1917-11",
+        term: 5,
+        franchise: "curia",
+        postpone: "rus_duma_postpone",
+      },
     },
     {
       id: "council",
