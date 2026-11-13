@@ -89,6 +89,31 @@ const trust = (tag: GwTag, delta: number): GwEffect => ({
   delta,
 });
 const declare = (tag: GwTag): GwEffect => doWorld({ do: "declare", tag });
+
+/** A community's trust in the seat (ww207). */
+const sway = (id: string, delta: number): GwEffect =>
+  doWorld({ do: "community_trust", id, delta });
+/** ww207: a faction's ability row: asked, strong once its node is open, turned. */
+const ability = (
+  id: string,
+  faction: string,
+  a: { effects: GwEffect[]; strong: GwEffect[]; turned: GwEffect[] },
+): GwPowerRow => ({
+  id,
+  tag: "FRA",
+  group: "factions",
+  kind: "custom",
+  shows: ours,
+  tags: ["ability"],
+  effects: a.effects,
+  ability: {
+    faction,
+    strong: a.strong,
+    // The turned form's news line is its reason (FRA.powers.json reasons).
+    turned: { effects: [...a.turned, reason(`${id}_turned`)] },
+  },
+  scene: `${id}_r`,
+});
 const maybe = (when: GwCond, then: GwEffect[]): GwEffect => ({
   kind: "maybe",
   when,
@@ -1067,6 +1092,43 @@ export const FRA_POWERS: readonly GwPowerRow[] = [
     },
     scene: "fra_pw_strikers_front_r",
   },
+  // ---- ww207 (W-FRA): the factions' abilities (group `factions`, S2 runs
+  // them): asked at 호의 and a cool temper, they cost the faction's trust and
+  // cool down; at temper 3 the faction turns them against the seat (design
+  // §7). The Radicals' mayors / their foot-dragging; the SFIO and CGT's
+  // sacred union / the 1917 strikes; the parish network / the silent pulpit;
+  // Action française's street against the "defeatists" (it named Malvy and
+  // Caillaux in 1917) / against the government; the Tiger's paper and the
+  // Senate's army commission / their campaign.
+  ability("fra_pw_ab_radicals", "fra_radicals", {
+    effects: [gauge("order", 1), sway("fra_mayors", 1)],
+    strong: [gauge("order", 2), sway("fra_mayors", 1), sway("fra_peasants", 1)],
+    turned: [gauge("order", -1), inst("countersign", -1)],
+  }),
+  ability("fra_pw_ab_sfio", "fra_sfio", {
+    effects: [gauge("morale", 1), sway("fra_cgt", 1)],
+    strong: [gauge("morale", 1), gauge("order", 1), sway("fra_cgt", 1)],
+    turned: [gauge("order", -2), { kind: "gauge", gauge: "shells", delta: -1 }],
+  }),
+  ability("fra_pw_ab_catholics", "fra_catholics", {
+    effects: [gauge("morale", 1), sway("fra_catholic", 1)],
+    strong: [gauge("morale", 2), sway("fra_catholic", 1)],
+    turned: [gauge("morale", -1), sway("fra_catholic", -1)],
+  }),
+  ability("fra_pw_ab_af", "fra_af", {
+    effects: [heat("fra_caillaux", 2), gauge("morale", 1)],
+    strong: [
+      heat("fra_caillaux", 2),
+      heat("fra_minority", 2),
+      gauge("morale", 1),
+    ],
+    turned: [gauge("order", -2), heat("fra_radicals", 1)],
+  }),
+  ability("fra_pw_ab_tiger", "fra_tiger", {
+    effects: [gauge("morale", 1), inst("senate", 1)],
+    strong: [gauge("morale", 1), inst("senate", 1), inst("army", -1)],
+    turned: [inst("senate", -1), gauge("morale", -1)],
+  }),
 ];
 
 /** FRA's own reactors, on top of GW_REACTORS (`nation: "FRA"`). */
@@ -1212,4 +1274,8 @@ export const FRA_POWER_SCENES: readonly GwScene[] = [
   card("fra_pw_reprisal_bad", ["war"], [v("usa", usaOut), v("base")]),
   card("fra_pw_strikers_front_r", ["home"], [v("base")]),
   card("fra_pw_strikers_front_bad", ["home"], [v("base")]),
+  // ww207 (W-FRA): the abilities' cards when asked.
+  ...["radicals", "sfio", "catholics", "af", "tiger"].map((f) =>
+    card(`fra_pw_ab_${f}_r`, ["home"], [v("base")]),
+  ),
 ];
