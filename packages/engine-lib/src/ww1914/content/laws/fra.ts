@@ -5,6 +5,8 @@
 import { all, memory, not } from "@openfront/engine-api/ww1914/SceneDsl";
 import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
 import type { GwLawRow } from "../../LawRows";
+import { withAxes } from "./fraAxes";
+import { FRA_PEACE_LAWS } from "./fraPeace";
 import {
   draft,
   either,
@@ -31,7 +33,7 @@ const atWar = (from: string) => all(war, since(from));
  * an equal; where `decree` is true, a decree under the state of siege goes
  * round both, and the Chamber remembers it.
  */
-export const FRA_LAWS: readonly GwLawRow[] = [
+const FRA_LAW_ROWS: readonly GwLawRow[] = [
   row({
     id: "fra_law_siege",
     chapter: "siege",
@@ -412,6 +414,12 @@ export const FRA_LAWS: readonly GwLawRow[] = [
     }),
   }),
 ];
+
+/** ww207: every text with its axis push (./fraAxes). */
+export const FRA_LAWS: readonly GwLawRow[] = [
+  ...FRA_LAW_ROWS,
+  ...FRA_PEACE_LAWS,
+].map(withAxes);
 
 /** The arms effect on the running plan's navy share (ww190 PeaceYears). */
 function navyArms(delta: number) {

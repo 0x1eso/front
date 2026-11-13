@@ -56,6 +56,7 @@ import type {
 } from "../../HouseRows";
 import type { GwLawRow } from "../../LawRows";
 import { FRA_LAWS } from "../laws/fra";
+import { withAxes } from "../laws/fraAxes";
 import {
   draft,
   either,
@@ -138,7 +139,7 @@ const NAVY = "fra_law_navy";
 const row = (r: Omit<GwLawRow, "tag">): GwLawRow => ({ ...r, tag: "FRA" });
 
 /** The factions' own bills: rows like content/laws/fra.ts, with no tells. */
-export const FRA_HOUSE_LAWS: readonly GwLawRow[] = [
+const FRA_HOUSE_LAW_ROWS: readonly GwLawRow[] = [
   // Proportional representation, Briand's cause before the war (memory).
   row({
     id: PROPORTIONAL,
@@ -258,6 +259,10 @@ export const FRA_HOUSE_LAWS: readonly GwLawRow[] = [
     }),
   }),
 ];
+
+/** ww207: every text with its axis push (../laws/fraAxes). */
+export const FRA_HOUSE_LAWS: readonly GwLawRow[] =
+  FRA_HOUSE_LAW_ROWS.map(withAxes);
 
 const LAW_IDS = new Set([
   ...FRA_LAWS.map((l) => l.id),
@@ -541,6 +546,114 @@ const ALL_BILLS: readonly GwBillRow[] = [
       },
     },
   },
+  // ---- ww207 (W-FRA): the peace years' bills, the postponement, the node laws ----
+  {
+    // The 1914 Chamber sat on to 1919; Caillaux's and Longuet's men want the
+    // country asked.
+    law: "fra_law_postpone",
+    stance: sides(1, 0, 1, 1, -1, 1, 1, 1, 1),
+    texts: { soldiers_vote: { fra_minority: 1, fra_sfio: 0, fra_tiger: -1 } },
+  },
+  {
+    // The CGT's cause since its May Day of 1906; the right counts the cost.
+    law: "fra_law_eight_hours",
+    stance: sides(0, 1, 0, 1, 1, -1, -1, 0, -1),
+    texts: {
+      by_trade: { fra_radicals: 1, fra_left_rep: 0, fra_catholics: 1 },
+      english_week: { fra_left_rep: 1, fra_catholics: 1, fra_minority: 0 },
+    },
+  },
+  {
+    // The Radical senators feared the priest's vote (1919-22, checked).
+    law: "fra_law_women_vote",
+    stance: sides(-1, 0, 0, 1, 1, 0, 1, 1, -1),
+    texts: {
+      local_only: { fra_radicals: 0, fra_left_rep: 1 },
+      war_widows: { fra_sfio: -1, fra_minority: -1, fra_tiger: 0 },
+    },
+  },
+  {
+    law: "fra_law_lay_school",
+    by: "fra_radicals",
+    creed: ["fra_catholics"],
+    stance: sides(1, 1, 1, 1, 1, 0, -1, -1, 1),
+    texts: {
+      school_truce: {
+        fra_radicals: -1,
+        fra_sfio: -1,
+        fra_fed_rep: 1,
+        fra_left_rep: 1,
+      },
+    },
+  },
+  {
+    law: "fra_law_grain",
+    stance: sides(0, -1, 0, -1, -1, 1, 1, 1, 0),
+    texts: {
+      farm_credit: { fra_radicals: 1, fra_sfio: 0, fra_caillaux: 1 },
+      consolidation: { fra_radicals: 1, fra_repsoc: 1 },
+    },
+  },
+  {
+    law: "fra_law_capital_levy",
+    by: "fra_sfio",
+    creed: ["fra_fed_rep"],
+    stance: sides(-1, 1, -1, 1, 1, -1, -1, -1, -1),
+    texts: {
+      inheritance: { fra_radicals: 1, fra_repsoc: 0 },
+      turnover: {
+        fra_sfio: -1,
+        fra_caillaux: -1,
+        fra_left_rep: 1,
+        fra_catholics: 0,
+      },
+    },
+  },
+  {
+    law: "fra_law_regions",
+    stance: sides(-1, 0, 0, -1, 0, 1, 1, 1, -1),
+    texts: {
+      elected_councils: { fra_sfio: 0, fra_tiger: -1, fra_left_rep: 0 },
+      prefects_stay: { fra_radicals: 1, fra_tiger: 1, fra_catholics: -1 },
+    },
+  },
+  {
+    law: "fra_law_free_school",
+    by: "fra_radicals",
+    stance: sides(1, 1, 1, 1, 1, 0, -1, -1, 0),
+  },
+  {
+    law: "fra_law_nationalise",
+    by: "fra_sfio",
+    creed: ["fra_fed_rep"],
+    stance: sides(-1, 0, -1, 1, 1, -1, -1, -1, -1),
+    texts: {
+      mixed_boards: { fra_radicals: 0, fra_repsoc: 1, fra_caillaux: 1 },
+    },
+  },
+  {
+    law: "fra_law_colonies",
+    by: "fra_left_rep",
+    stance: sides(1, -1, 1, -1, -1, 1, 1, 1, 1),
+    texts: { native_councils: { fra_sfio: 0, fra_fed_rep: 0, fra_tiger: -1 } },
+  },
+  {
+    law: "fra_law_congregations",
+    by: "fra_catholics",
+    creed: ["fra_sfio"],
+    stance: sides(-1, -1, -1, -1, -1, 0, 1, 1, -1),
+    texts: { veterans_monks: { fra_left_rep: 1, fra_repsoc: 0 } },
+  },
+  {
+    law: "fra_law_exile",
+    stance: sides(-1, -1, -1, -1, -1, -1, 0, 1, -1),
+  },
+  {
+    law: "fra_law_full_powers",
+    by: "fra_tiger",
+    stance: sides(-1, -1, 0, -1, -1, 0, 1, 1, 1),
+    texts: { with_commission: { fra_radicals: 0, fra_repsoc: 1 } },
+  },
 ];
 
 /** Stances on the bills, by law id: W5's (once written) and the factions' own. */
@@ -554,6 +667,9 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
   {
     id: "fra_radicals",
     tag: "FRA",
+    // ww207 (W-FRA): its three Cornerstones on 권위↔공화, 재산↔노동, 교회↔세속.
+    ideals: { rule: 1, class: -1, church: 1 },
+    ability: "fra_pw_ab_radicals",
     bloc: "parliament",
     start: "in",
     strength: 3,
@@ -632,6 +748,9 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
   {
     id: "fra_caillaux",
     tag: "FRA",
+    // ww207 (W-FRA): its three Cornerstones on 권위↔공화, 재산↔노동, 교회↔세속.
+    ideals: { rule: 1, class: 1, church: 0 },
+    template: "peace",
     bloc: "parliament",
     start: "out",
     strength: 1,
@@ -690,6 +809,9 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
   {
     id: "fra_repsoc",
     tag: "FRA",
+    // ww207 (W-FRA): its three Cornerstones on 권위↔공화, 재산↔노동, 교회↔세속.
+    ideals: { rule: 1, class: 0, church: 1 },
+    template: "parliament",
     bloc: "parliament",
     start: "in",
     strength: 2,
@@ -752,6 +874,9 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
   {
     id: "fra_sfio",
     tag: "FRA",
+    // ww207 (W-FRA): its three Cornerstones on 권위↔공화, 재산↔노동, 교회↔세속.
+    ideals: { rule: 1, class: 1, church: 1 },
+    ability: "fra_pw_ab_sfio",
     bloc: "workers",
     start: "in",
     strength: 3,
@@ -843,6 +968,10 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
   {
     id: "fra_minority",
     tag: "FRA",
+    // ww207 (W-FRA): its three Cornerstones on 권위↔공화, 재산↔노동, 교회↔세속.
+    ideals: { rule: 0, class: 1, church: 1 },
+    template: "peace",
+    trust: -1,
     bloc: "workers",
     start: "out",
     strength: 1,
@@ -903,6 +1032,8 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
   {
     id: "fra_left_rep",
     tag: "FRA",
+    // ww207 (W-FRA): its three Cornerstones on 권위↔공화, 재산↔노동, 교회↔세속.
+    ideals: { rule: 1, class: -1, church: 0 },
     bloc: "business",
     start: "in",
     strength: 2,
@@ -961,6 +1092,9 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
   {
     id: "fra_fed_rep",
     tag: "FRA",
+    // ww207 (W-FRA): its three Cornerstones on 권위↔공화, 재산↔노동, 교회↔세속.
+    ideals: { rule: 0, class: -1, church: -1 },
+    template: "nation",
     bloc: "business",
     start: "in",
     strength: 2,
@@ -1023,6 +1157,10 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
   {
     id: "fra_catholics",
     tag: "FRA",
+    // ww207 (W-FRA): its three Cornerstones on 권위↔공화, 재산↔노동, 교회↔세속.
+    ideals: { rule: -1, class: 0, church: -1 },
+    ability: "fra_pw_ab_catholics",
+    trust: -1,
     bloc: "court",
     start: "in",
     strength: 2,
@@ -1079,6 +1217,10 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
   {
     id: "fra_af",
     tag: "FRA",
+    // ww207 (W-FRA): its three Cornerstones on 권위↔공화, 재산↔노동, 교회↔세속.
+    ideals: { rule: -1, class: -1, church: -1 },
+    ability: "fra_pw_ab_af",
+    trust: -1,
     bloc: "press",
     start: "in",
     strength: 1,
@@ -1107,6 +1249,9 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
   {
     id: "fra_tiger",
     tag: "FRA",
+    // ww207 (W-FRA): its three Cornerstones on 권위↔공화, 재산↔노동, 교회↔세속.
+    ideals: { rule: -1, class: -1, church: 1 },
+    ability: "fra_pw_ab_tiger",
     bloc: "press",
     start: "in",
     strength: 2,
@@ -1170,6 +1315,9 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
   {
     id: "fra_gqg",
     tag: "FRA",
+    // ww207 (W-FRA): its three Cornerstones on 권위↔공화, 재산↔노동, 교회↔세속.
+    ideals: { rule: -1, class: -1, church: 0 },
+    template: "crown_army",
     bloc: "army",
     start: "in",
     strength: 2,
