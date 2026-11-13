@@ -814,7 +814,9 @@ describe("the peace table between friends", () => {
     }
     expect(due?.kind).toBe("turn");
     if (due?.kind !== "turn") return;
-    const place = (["kamerun", "windhoek", "dar_es_salaam"] as const).find(
+    // ww199 (design §2.4): France has Kamerun as its case and would have a
+    // word first; Britain's own cases go straight to Germany's friend.
+    const place = (["windhoek", "dar_es_salaam", "kamerun"] as const).find(
       (p) => due.places.includes(p),
     )!;
     expect(place).toBeDefined();

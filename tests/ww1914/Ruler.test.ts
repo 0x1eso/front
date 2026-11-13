@@ -94,15 +94,15 @@ describe("the card", () => {
     expect(s.ruler.lines.length).toBe(before);
   });
 
-  test("the person changes with the regime and the card with them", async () => {
+  // ww197: the person is the game. A regime with no row of his ends it, and
+  // his card stays his (it no longer changes hands to nobody).
+  test("a regime the person has no place in ends his game", async () => {
     const gw = await fresh();
     const s = gw.s.seats[0];
     gw.nation("DEU")!.regime = "republic";
     rulerStep(gw);
-    expect(s.ruler.id).toBeNull();
-    expect(
-      view({ game: { greatWar: () => gw } } as never).seats[0].ruler,
-    ).toBeNull();
+    expect(gw.s.ended).toBe("deu_end_holland");
+    expect(s.ruler.id).toBe("wilhelm");
   });
 
   test("a card that is low shortens the working day, never to nothing", async () => {

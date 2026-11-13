@@ -12,10 +12,10 @@ import { warMonths } from "./Eras";
 import { allocOf } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { GW_CONCEDES, GW_HOME } from "./HomeTable";
+import { outMidWar } from "./Peace";
 import { officeHolder, recordResult } from "./People";
 import { changeRegime, regimeRow, successionStep } from "./Regimes";
 import { seaFor } from "./Sea";
-import { leaveWar } from "./Wars";
 import {
   everyMonths,
   fights,
@@ -164,7 +164,7 @@ function aiFalls(gw: GreatWar, n: GwNationState): void {
     changeRegime(gw, n.tag, next);
     return;
   }
-  leaveWar(gw, n.tag, "nation_collapsed");
+  outMidWar(gw, n.tag, "nation_collapsed");
 }
 
 /** The rung so many chapters at the bottom reach, `months` into the war. */

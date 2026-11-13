@@ -165,8 +165,11 @@ describe("the table", () => {
     expect(seatOf(runner).table!.due?.kind).toBe("turn");
     order(runner, { kind: "table_claim", place: "metz" });
     order(runner, { kind: "table_next" });
-    step(runner, 2);
     const c = gw.s.table!.claims.find((x) => x.place === "metz")!;
+    // ww199 (design §2.4): France has Metz as its case, so its word comes
+    // before the holder's, each at reading speed.
+    expect(c.partner).toBe("FRA");
+    for (let i = 0; i < 300 && c.state === "open"; i++) step(runner, 1);
     expect(c.against).toBe("DEU");
     expect(c.state).toBe("agreed");
     untilDue(runner);

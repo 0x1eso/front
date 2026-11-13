@@ -19,7 +19,12 @@ import { warScore } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { hasLandGraph } from "./Occupation";
 import { STRAIN_WORN, worstStrain } from "./Strain";
-import { closeTable, conferenceOpened, tableStart } from "./Table";
+import {
+  closeTable,
+  conferenceOpened,
+  queueCapitulationTable,
+  tableStart,
+} from "./Table";
 import { GW_BEATEN, GwBeaten } from "./Tables";
 import { leaveWar } from "./Wars";
 import {
@@ -91,7 +96,7 @@ function beatenBy(gw: GreatWar, row: GwBeaten): boolean {
 
 function groundStep(gw: GreatWar): void {
   for (const row of GW_BEATEN) {
-    if (beatenBy(gw, row)) leaveWar(gw, row.tag, "nation_beaten");
+    if (beatenBy(gw, row)) outMidWar(gw, row.tag, "nation_beaten");
   }
 }
 
@@ -180,7 +185,7 @@ export function peaceStep(gw: GreatWar): void {
   for (const tag of FOLLOWERS) {
     const n = gw.nation(tag);
     if (n !== null && fights(n) && followerDone(gw, n)) {
-      leaveWar(gw, tag, "sued_for_peace");
+      outMidWar(gw, tag, "sued_for_peace");
     }
   }
   if (sideDone(gw, "central")) armistice(gw, "central_lost", "DEU");
@@ -265,6 +270,17 @@ export function openTalks(gw: GreatWar, seat: GwSeatState): void {
   if (!seat.flags.includes("gw_talks_open")) seat.flags.push("gw_talks_open");
 }
 
+/**
+ * ww199 merge (design §2.1): a country out mid-war, however it went (sued,
+ * beaten, fallen at home, a separate peace), gets its own table at once with
+ * the side it fought, as `capitulate` already did.
+ */
+export function outMidWar(gw: GreatWar, tag: GwTag, why: string): void {
+  const foes = [...(gw.nation(tag)?.atWar ?? [])].sort();
+  leaveWar(gw, tag, why);
+  if (gw.nation(tag)?.out === true) queueCapitulationTable(gw, tag, foes);
+}
+
 /** The seat's country asks. A leader's asking stops its side. */
 export function sue(gw: GreatWar, tag: GwTag, why = "sued_for_peace"): void {
   const n = gw.nation(tag);
@@ -280,7 +296,7 @@ export function sue(gw: GreatWar, tag: GwTag, why = "sued_for_peace"): void {
       return;
     }
   }
-  leaveWar(gw, tag, why);
+  outMidWar(gw, tag, why);
 }
 
 /** The chapter after an armistice is the conference, whatever the calendar says. */

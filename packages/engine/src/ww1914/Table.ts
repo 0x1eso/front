@@ -1255,6 +1255,20 @@ export function queueCapitulationTable(
   });
   if (chairs.length === 0) return false;
   const [lead, ...rest] = chairs;
+  // ww199 merge: one table per knock-out. Called twice for the same fall
+  // (the country is out, then capitulate's fuller list of its foes), the
+  // waiting row takes the chairs it lacked.
+  const waiting = (gw.s.pairTables ?? []).find(
+    (r) => r.b === loser && r.signed === null,
+  );
+  if (waiting !== undefined) {
+    if (waiting.opened !== null) return false;
+    const more = chairs.filter(
+      (x) => x !== waiting.a && !(waiting.with ?? []).includes(x),
+    );
+    if (more.length > 0) waiting.with = [...(waiting.with ?? []), ...more];
+    return true;
+  }
   const score = clampTo(warScore(gw, side), -100, 100);
   return queuePairTable(gw, lead, loser, lead, score, rest);
 }

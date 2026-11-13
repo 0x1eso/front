@@ -70,7 +70,7 @@ import {
   seatDeclares,
   seatOffersPeace,
 } from "./PairWar";
-import { armistice, openTalks, sue } from "./Peace";
+import { armistice, openTalks, outMidWar, sue } from "./Peace";
 import { yearsDo, yearsHolds } from "./PeaceYears";
 import { keepPerson, openLetter, personLeaves, recordResult } from "./People";
 import { plotEffect, plotHolds } from "./Plots";
@@ -83,7 +83,7 @@ import { setUboats } from "./Sea";
 import { seaHolds } from "./Seas";
 import { atPeace, spyEffect, spyHolds } from "./Spies";
 import { collapseHolds } from "./Stalemate";
-import { enter, leaveWar } from "./Wars";
+import { enter } from "./Wars";
 import { clampTo, lastOf, moveGauge, news, reason } from "./World";
 import { flagNow } from "./WorldFlags";
 
@@ -547,7 +547,7 @@ export function worldEffect(ctx: SceneCtx, e: GwWorldEffect): void {
       return;
     case "separate_peace":
       if (!seat.flags.includes(SEPARATE_PEACE)) seat.flags.push(SEPARATE_PEACE);
-      leaveWar(gw, seat.tag, "sued_for_peace");
+      outMidWar(gw, seat.tag, "sued_for_peace");
       return;
     case "passes": {
       const p = person(ctx, e.who);

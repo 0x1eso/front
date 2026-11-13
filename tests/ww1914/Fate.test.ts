@@ -26,6 +26,7 @@ import {
 } from "@openfront/engine/ww1914/Fate";
 import type { GreatWar } from "@openfront/engine/ww1914/GreatWar";
 import { holderOf, moveLand } from "@openfront/engine/ww1914/Land";
+import { outMidWar } from "@openfront/engine/ww1914/Peace";
 import { pairTableStep } from "@openfront/engine/ww1914/Table";
 import {
   atWarWith,
@@ -108,6 +109,21 @@ describe("a beaten country's fate (ww199)", () => {
     expect(t.closed).toBe(true);
     expect((gw.s.fates ?? []).length).toBeGreaterThan(0);
     expect(gw.nation("DEU")!.atWar).toContain("FRA");
+  });
+
+  test("a country that sues or falls at home mid-war gets its table too, once", async () => {
+    const gw = await world("GWFATE7");
+    openGeneral(gw, "DEU", "FRA", "test");
+    enter(gw, "AUH", "central", "test");
+    enter(gw, "ROU", "entente", "test");
+    moveLand(gw, "bucharest", "DEU", null, "occupation");
+    moveLand(gw, "craiova", "AUH", null, "occupation");
+    outMidWar(gw, "ROU", "nation_collapsed");
+    // Asked again for the same fall: still one table.
+    capitulate(gw, "ROU");
+    const rows = (gw.s.pairTables ?? []).filter((r) => r.b === "ROU");
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ a: "DEU", winner: "DEU", with: ["AUH"] });
   });
 
   test("a founded Poland owns its places with its own player; no smallID of June 1914 moved", async () => {
