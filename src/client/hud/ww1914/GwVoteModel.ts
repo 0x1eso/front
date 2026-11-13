@@ -1,7 +1,8 @@
 // Great War 1914: the vote scene's plan (ww203 §5). From the engine's ballot
 // record, each chamber's seats as dots in its shape (a hemicycle, the
 // Commons' facing benches and lobbies, the Bundesrat's table), the time each
-// block casts, the tally at any moment and the moment the line is crossed.
+// block casts, the tally at any moment, the moment the line is crossed and
+// (ww215) the chair's declaration once the count is done.
 // Pure: GwVote draws it.
 import type {
   GwBallotBlock,
@@ -66,27 +67,33 @@ export interface GwVotePlan {
   present: number;
   /** For must reach this to carry it (more than half of those present). */
   need: number;
-  /** Ms when the stamp lands: the line crossed, or can't be any more. */
-  stampAt: number;
-  /** Ms the chamber takes, the stamp's moment held a little. */
+  /** Ms when the outcome is settled (the line crossed, or out of reach); null if the count never settles it. */
+  crossAt: number | null;
+  /** ww215: ms when the chair declares the result, a pause after the last seat. */
+  sayAt: number;
+  /** Ms the chamber takes, the declaration held to be read. */
   end: number;
   pass: boolean;
   delay: boolean;
 }
 
 // ---- Times (ms; the second chamber plays the same, shorter) ----
-const OUTLINE = 500;
+// ww215: about 1.8x the first cut, so it reads as a count, not a flicker.
+const OUTLINE = 900;
 /**
  * firm, waver, the lobbied (swing and betray), then a wing defying its line:
  * the party has cast, and its men who stand up against it come last, alone,
  * so the log can name them ("리프크네히트, 반대").
  */
-const PHASE = [2500, 1500, 1000, 900] as const;
+const PHASE = [4500, 2700, 1800, 1600] as const;
 /** A block's seats fill over this share of its slot. */
 const FILL = 0.7;
 /** A broken promise flips this far into its slot. */
 const FLIP = 0.6;
-const HOLD = 900;
+/** The hush between the last seat and the chair's declaration. */
+const PAUSE = 1500;
+/** The declaration held, to be read before the scene moves on. */
+const HOLD = 2600;
 
 const PHASE_OF: Readonly<Record<GwBallotBlock["beat"], number>> = {
   firm: 0,
@@ -284,7 +291,7 @@ function seating(
     .map((x) => x.i);
 }
 
-/** The chamber's play: dots, block times, the stamp's moment. */
+/** The chamber's play: dots, block times, the declaration's moment. */
 export function votePlan(
   ch: GwBallotChamber,
   blocOf: (faction: string) => string | null,
@@ -363,7 +370,7 @@ export function votePlan(
     (m, d) => (d.at === Infinity ? m : Math.max(m, d.at)),
     0,
   );
-  const stampAt = crossing(dots, present, need, ch) ?? last + 300 * scale;
+  const sayAt = last + PAUSE * scale;
   return {
     shape,
     r,
@@ -371,8 +378,9 @@ export function votePlan(
     lines: blocks.map((block, i) => ({ block, at: times[i].at })),
     present,
     need,
-    stampAt,
-    end: Math.max(last + 300 * scale, stampAt) + HOLD * scale,
+    crossAt: crossing(dots, present, need, ch),
+    sayAt,
+    end: sayAt + HOLD * scale,
     pass: ch.pass,
     delay: ch.delay,
   };
