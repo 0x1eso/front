@@ -4303,6 +4303,8 @@
       "table_ceded": "{b} cedes {place} to {a}.",
       "table_dropped": "{a} lets its claim to {place} go.",
       "table_imposed": "{a} forces {place} from {b}.",
+      "table_promise_leave_kept": "{a} leaves {place} as it promised {b}.",
+      "table_promise_vote_kept": "The people of {place} vote, as {a} promised {b}.",
       "table_refused": "{b} refuses {a} {place} to the last.",
       "table_signed": "The peace treaty has been signed.",
       "table_traded": "{b} keeps {place} and gives {a} something else for it.",

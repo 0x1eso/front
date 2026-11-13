@@ -4,7 +4,7 @@
 // the count, the whip, ways round) and the S2 files (plots, the dossier,
 // allies' asks). See /home/eser/dev/ww158-format.md. Lists are APPEND ONLY.
 import { z } from "zod";
-import { GwDealSchema, type GwDealView } from "./GwDeals";
+import { GwCounterStateSchema, GwDealSchema, type GwDealView } from "./GwDeals";
 
 /** The chambers a bill can meet. Text: gw.house.chamber.<id>. */
 export const GW_CHAMBERS = [
@@ -311,6 +311,8 @@ export const GwHouseStateSchema = z.object({
   deals2: z.array(GwDealSchema).optional(),
   /** The next ledger row's uid. */
   nextDeal: int.optional(),
+  /** ww210 (S2): counter-offers made on the agenda's bills; absent: none. */
+  counters: z.array(GwCounterStateSchema).optional(),
   // ---- S2 ----
   files: z.array(GwFileSchema),
   nextFile: int,

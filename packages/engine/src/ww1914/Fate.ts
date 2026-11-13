@@ -607,7 +607,7 @@ export function hasPlayer(gw: GreatWar, tag: GwTag): boolean {
 }
 
 /** Records a signed fate; a later one on the place replaces it. */
-function record(gw: GreatWar, r: GwFateRecord): void {
+export function record(gw: GreatWar, r: GwFateRecord): void {
   const rows = (gw.s.fates ?? []).filter((x) => x.place !== r.place);
   rows.push(r);
   gw.s.fates = rows;

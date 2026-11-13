@@ -36,9 +36,9 @@ import {
   GW_TABLE_AIMS,
   GW_TABLE_HEART,
 } from "@openfront/engine-lib/ww1914/TableRows";
-import { aiPartnerWord, markOf } from "./Fate";
+import { aiPartnerWord, markOf, record } from "./Fate";
 import type { GreatWar } from "./GreatWar";
-import { holderOf } from "./Land";
+import { holderOf, moveLand } from "./Land";
 import {
   againstOf,
   claimsMade,
@@ -57,7 +57,7 @@ import {
 } from "./Table";
 import { weariness } from "./Terms";
 import { resumeWar } from "./Wars";
-import { news, reason, seatsOf } from "./World";
+import { clampTo, news, reason, seatsOf } from "./World";
 
 /** Proposals a victor may lay down: the first and three more. */
 export const GW_TALK_ROUNDS = 4;
@@ -101,6 +101,22 @@ const WALK_TIRED = 6;
 const MUCH = 3;
 /** A worn country says it can't go on. */
 const TIRED = 12;
+// ---- ww210 (S2): the new moves ----
+/** A promise to leave, or to let the people vote, falls due after this. */
+const PROMISE_CHAPTERS = 12;
+/** What a promise leaves of the fate's weight, in hundredths. */
+const PROMISE_WEIGHT = { promise_leave: 50, promise_vote: 75 } as const;
+/** An ultimatum the beaten believes moves it this much. */
+const ULTIMATUM_WORTH = 20;
+/** A ransom in money steps: one for each this many hundredths of weight. */
+const RANSOM_PER = 35;
+const RANSOM_MOST = 3;
+/** Moves that leave the place with the beaten: a trade, not a cession. */
+const TRADES: readonly GwBargainMove[] = [
+  "ransom",
+  "favour_neutral",
+  "favour_trade",
+];
 
 type Talk = NonNullable<GwTableState["talk"]>;
 
@@ -201,6 +217,9 @@ export function answerOf(
   const fate = c.fate ?? "annex";
   const owner = GW_PLACES[c.place].owner;
   if (fate === "return" || owner === c.by) return { yes: true, why: "return" };
+  if (c.move !== undefined && TRADES.includes(c.move)) {
+    return tradeAnswer(gw, c);
+  }
   const capital = GW_CAPITALS[owner] === c.place;
   if (capital && (fate === "annex" || fate === "ally" || fate === "state")) {
     return { yes: false, why: "capital" };
@@ -208,13 +227,23 @@ export function answerOf(
   const n = gw.nation(c.against);
   const allies = alliesFight(gw, c.against);
   const walked = (gw.s.walkedOut ?? []).includes(c.against);
+  // ww210: an ultimatum it believes; a bluff it reads by its character.
+  const pressed =
+    c.move === "ultimatum" && c.ultimatum !== undefined && !bluffRead(gw, c)
+      ? ULTIMATUM_WORTH
+      : 0;
   const lev =
     leverage(gw, c) +
     (c.insisted ?? 0) * INSIST_WORTH +
     (walked ? WALKED_BEFORE : 0) -
-    (allies ? ALLIES_FIGHT : 0);
+    (allies ? ALLIES_FIGHT : 0) +
+    pressed;
   const full = placeCost(gw, c) + (n === null ? 0 : CHARACTER[n.ai]);
-  const cost = Math.trunc((full * weightOf(c)) / 100);
+  const promised =
+    c.move === "promise_leave" || c.move === "promise_vote"
+      ? PROMISE_WEIGHT[c.move]
+      : 100;
+  const cost = Math.trunc((full * weightOf(c) * promised) / 10_000);
   if (lev >= cost) {
     if (fate !== "annex" && fate !== "ally" && lev < full) {
       return { yes: true, why: "soft" };
@@ -231,6 +260,93 @@ export function answerOf(
   if (allies) return { yes: false, why: "allies" };
   if (claimsMade(tableOf(gw), c.by) >= MUCH) return { yes: false, why: "much" };
   return { yes: false, why: "army" };
+}
+
+/**
+ * ww210: a trade for the place (ransom, neutrality, trade terms): the land
+ * stays with the beaten, so it weighs only whether it can pay or promise.
+ */
+function tradeAnswer(
+  gw: GreatWar,
+  c: GwTableClaim,
+): { yes: boolean; why: GwTableWhy } {
+  const n = gw.nation(c.against);
+  if (c.move === "ransom") {
+    const can = n !== null && n.gauges.money >= (c.ransom ?? 1);
+    return can ? { yes: true, why: "soft" } : { yes: false, why: "army" };
+  }
+  if (c.move === "favour_neutral" && alliesFight(gw, c.against)) {
+    return { yes: false, why: "allies" };
+  }
+  return { yes: true, why: "soft" };
+}
+
+/**
+ * ww210: the beaten reads an ultimatum as a bluff when the victor is too
+ * weary to march again, if its character is hard enough to call it.
+ */
+function bluffRead(gw: GreatWar, c: GwTableClaim): boolean {
+  const by = gw.nation(c.by);
+  const it = gw.nation(c.against);
+  if (by === null || it === null) return false;
+  const hard = it.ai === "hardline" || it.ai === "principled";
+  return hard && weariness(by) >= TIRED;
+}
+
+/** ww210: a ransom's steps of money, by the weight of what it buys off. */
+const ransomOf = (c: GwTableClaim): number =>
+  clampTo(Math.ceil(weightOf(c) / RANSOM_PER), 1, RANSOM_MOST);
+
+/** ww210: the fates lighter than the claim's, heaviest first (the counters). */
+function lighterOf(c: GwTableClaim): GwFate[] {
+  const out: GwFate[] = [];
+  let x: GwTableClaim = { ...c };
+  for (let guard = 0; guard < 6; guard++) {
+    const was = x.fate ?? "annex";
+    if (was === "return") break;
+    x = { ...x };
+    stepDown(x);
+    const f = x.fate ?? "annex";
+    if (f === was) break;
+    if (f !== "return" && !out.includes(f)) out.push(f);
+  }
+  return out;
+}
+
+/**
+ * ww210: a government nobody plays names its own fate for a place it
+ * refuses: the heaviest lighter fate it would take.
+ */
+function aiCounter(gw: GreatWar, c: GwTableClaim): void {
+  for (const f of lighterOf(c)) {
+    const x: GwTableClaim = { ...c, fate: f };
+    if (f === "occupy") x.term = "short";
+    else delete x.term;
+    delete x.move;
+    if (!answerOf(gw, x).yes) continue;
+    c.counter = f === "occupy" ? { fate: f, term: "short" } : { fate: f };
+    return;
+  }
+  delete c.counter;
+}
+
+/** ww210: a trade taken: the land stays, the beaten pays or promises. */
+function settleTrade(gw: GreatWar, c: GwTableClaim): void {
+  const t = tableOf(gw);
+  c.state = "traded";
+  if (c.move === "ransom") {
+    c.offer = "reparations";
+    t.bill[c.against] = (t.bill[c.against] ?? 0) + (c.ransom ?? 1);
+  } else if (c.move === "favour_neutral") {
+    c.offer = "guarantee";
+    const n = gw.nation(c.against);
+    if (n !== null) n.trust[c.by] = clampTo((n.trust[c.by] ?? 0) + 1, -3, 3);
+  } else {
+    c.offer = "port";
+  }
+  c.offerBy = c.against;
+  say(t, "traded", c.against, c.id);
+  resultLines(gw, c, "traded");
 }
 
 /** A place refused to the last: it stays with the beaten. */
@@ -260,10 +376,24 @@ function answerAll(
     if (a.why === undefined) delete c.why;
     else c.why = a.why;
     if (a.yes) {
-      give(gw, c, "agreed");
+      if (c.move !== undefined && TRADES.includes(c.move)) settleTrade(gw, c);
+      else give(gw, c, "agreed");
     } else {
       c.step = "refused";
       say(t, "no", c.against, c.id);
+      // ww210: an ultimatum refused: the advance resumes, unless it was a
+      // bluff the victor can't carry out; then the place goes.
+      if (c.move === "ultimatum" && c.ultimatum !== undefined) {
+        if (!bluffRead(gw, c) && canWalk(gw, c.against)) {
+          walkOut(gw, c.against);
+          return;
+        }
+        c.state = "dropped";
+        say(t, "drop", c.by, c.id);
+        resultLines(gw, c, "dropped");
+        continue;
+      }
+      if (said === null) aiCounter(gw, c);
     }
   }
   if ((t.talk!.rounds[by] ?? 0) < roundsOf(t)) return;
@@ -411,6 +541,57 @@ function bargain(
         say(t, "drop", by, c.id);
         resultLines(gw, c, "dropped");
         continue;
+      // ---- ww210 ----
+      case "counter": {
+        const k = c.counter;
+        if (k === undefined) {
+          c.insisted = (c.insisted ?? 0) + 1;
+          strain += STRAIN_INSIST;
+          break;
+        }
+        c.move = "counter";
+        c.fate = k.fate;
+        delete c.for;
+        delete c.client;
+        if (k.term === undefined) delete c.term;
+        else c.term = k.term;
+        give(gw, c, "agreed");
+        continue;
+      }
+      case "ransom":
+        c.move = "ransom";
+        c.ransom = ransomOf(c);
+        break;
+      case "promise_leave":
+      case "promise_vote":
+        c.move = m.move;
+        c.fate = "occupy";
+        c.term = "short";
+        delete c.for;
+        delete c.client;
+        c.due = gw.s.chapter + PROMISE_CHAPTERS;
+        break;
+      case "ultimatum":
+        c.move = "ultimatum";
+        c.ultimatum = round;
+        strain += STRAIN_INSIST;
+        break;
+      case "favour_neutral":
+      case "favour_trade":
+        c.move = m.move;
+        break;
+      case "split":
+        if (c.fate !== "state" || c.client === undefined) {
+          c.insisted = (c.insisted ?? 0) + 1;
+          strain += STRAIN_INSIST;
+          break;
+        }
+        // A separate table with the breakaway (the Bread Peace): the place
+        // leaves the beaten's count, and the beaten's strain rises.
+        c.move = "split";
+        give(gw, c, "imposed");
+        strain += STRAIN_INSIST;
+        continue;
     }
     c.step = "asked";
     c.round = round;
@@ -435,6 +616,8 @@ function aiMove(
   const n = gw.nation(by);
   const fate = c.fate ?? "annex";
   if (n === null || fate === "return") return "drop";
+  // ww210: the beaten named its own fate: all but a hard man take it.
+  if (c.counter !== undefined && n.ai !== "hardline") return "counter";
   switch (n.ai) {
     case "hardline": {
       const wanted =
@@ -560,6 +743,8 @@ export function tableBargain(
   const picks = new Map<number, GwBargainPick>();
   for (const m of moves) {
     if (!due.claims.includes(m.claim)) return "table_no";
+    const open = due.moves?.[m.claim];
+    if (open !== undefined && !open.includes(m.move)) return "table_no";
     const place = m.place === null ? null : (m.place as GwPlace);
     if (m.move === "trade" && (place === null || !(place in GW_PLACES))) {
       return "table_no";
@@ -577,15 +762,28 @@ export function tableBargain(
  * refused places. S0's stub refuses.
  */
 export function tableCounter(
-  _gw: GreatWar,
-  _seat: GwSeatState,
-  _counters: readonly {
+  gw: GreatWar,
+  seat: GwSeatState,
+  counters: readonly {
     claim: number;
     fate: GwFate;
     term: GwFateTerm | null;
   }[],
 ): GwOrderBlock | null {
-  return "table_no";
+  if (!talking(gw)) return "table_no";
+  const due = talkDue(gw, seat);
+  if (due?.kind !== "answer") return "table_no";
+  for (const k of counters) {
+    if (!(due.counters?.[k.claim] ?? []).includes(k.fate)) return "table_no";
+  }
+  const t = tableOf(gw);
+  for (const k of counters) {
+    const c = t.claims.find((x) => x.id === k.claim)!;
+    const term = k.fate === "occupy" ? (k.term ?? "short") : null;
+    c.counter = term === null ? { fate: k.fate } : { fate: k.fate, term };
+  }
+  gw.touch();
+  return null;
 }
 
 /** Applies `table_answer`: the beaten seat says yes or no, or walks out. */
@@ -652,6 +850,7 @@ export function talkDue(gw: GreatWar, seat: GwSeatState): GwTableDue {
       places: askable(gw, x),
       round,
       last: round + 1 >= roundsOf(t),
+      moves: Object.fromEntries(refused.map((c) => [c.id, movesFor(gw, c)])),
     };
   }
   if (seat.tag !== beatenOf(t)) return null;
@@ -662,7 +861,73 @@ export function talkDue(gw: GreatWar, seat: GwSeatState): GwTableDue {
     kind: "answer",
     claims: asked.map((c) => c.id),
     walk: canWalk(gw, seat.tag),
+    counters: Object.fromEntries(
+      asked
+        .filter((c) => c.move === undefined || !TRADES.includes(c.move))
+        .map((c) => [c.id, lighterOf(c)]),
+    ),
   };
+}
+
+/** ww210: the moves open on a refused place, read off the state. */
+function movesFor(gw: GreatWar, c: GwTableClaim): GwBargainMove[] {
+  const out: GwBargainMove[] = ["insist", "down", "trade", "drop"];
+  if (c.counter !== undefined) out.push("counter");
+  out.push("ransom");
+  if ((c.fate ?? "annex") !== "return")
+    out.push("promise_leave", "promise_vote");
+  const t = tableOf(gw);
+  if (
+    gw.s.armistice === null &&
+    t.pair !== undefined &&
+    c.ultimatum === undefined
+  ) {
+    out.push("ultimatum");
+  }
+  out.push("favour_neutral", "favour_trade");
+  if (c.fate === "state" && c.client !== undefined) out.push("split");
+  return out;
+}
+
+/**
+ * ww210 (S2), each chapter: promises made at the table fall due. One to
+ * leave is kept by leaving; one to let the people vote, by the vote (the
+ * country's heart goes back, the rest stays). At war again by then, it is
+ * broken: the beaten's trust -2 and its grudge remembered.
+ */
+export function bargainStep(gw: GreatWar): void {
+  const t = gw.s.table;
+  if (t === null || !t.closed) return;
+  for (const c of t.claims) {
+    if (c.due === undefined || gw.s.chapter < c.due) continue;
+    if (c.move !== "promise_leave" && c.move !== "promise_vote") continue;
+    if (c.state !== "agreed" && c.state !== "imposed") continue;
+    delete c.due;
+    const by = gw.nation(c.by);
+    const it = gw.nation(c.against);
+    if (by === null || it === null) continue;
+    if (by.atWar.includes(c.against)) {
+      it.trust[c.by] = clampTo((it.trust[c.by] ?? 0) - 2, -3, 3);
+      for (const seat of seatsOf(gw, c.against)) {
+        const flag = `f_revanche_${c.by.toLowerCase()}`;
+        if (!seat.flags.includes(flag)) seat.flags.push(flag);
+        reason(gw, seat, "table_promise_broken");
+      }
+      continue;
+    }
+    if (holderOf(gw, c.place) !== c.by) continue;
+    const owner = GW_PLACES[c.place].owner;
+    const heart =
+      GW_TABLE_HEART[owner]?.includes(GW_PLACES[c.place].group) === true;
+    const base = { place: c.place, by: c.by, of: owner, chapter: gw.s.chapter };
+    if (c.move === "promise_vote" && !heart) {
+      record(gw, { ...base, fate: "annex", to: c.by });
+    } else {
+      moveLand(gw, c.place, owner, null, "table");
+      record(gw, { ...base, fate: "return", to: owner });
+    }
+    news(gw, `table_${c.move}_kept`, c.by, c.against, null, c.place);
+  }
 }
 
 /** Who speaks at the talk now. */

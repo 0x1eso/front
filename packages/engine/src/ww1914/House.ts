@@ -11,6 +11,7 @@ import type {
   GwOffice,
   GwSeatState,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import type { GwDealTerm } from "@openfront/engine-api/ww1914/GwDeals";
 import type { GwSlots } from "@openfront/engine-api/ww1914/GwDepts";
 import {
   GW_FACTION_STEP_MAX,
@@ -74,6 +75,18 @@ import type { GwLawRow } from "@openfront/engine-lib/ww1914/LawRows";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { BallotFaction, BallotResult, castChamber } from "./Ballot";
 import { blocNow } from "./Blocs";
+import {
+  counterSealed,
+  dealTerm,
+  lobbyExtras,
+  owedAnswered,
+  owedFavour,
+  owesHim,
+  paidNow,
+  paidOnly,
+  peelSplit,
+  termsOf,
+} from "./Deals";
 import { makeCard, placeCard } from "./Desk";
 import { hasFile, pressWithFile } from "./Dossier";
 import type { GreatWar } from "./GreatWar";
@@ -209,7 +222,7 @@ function poolSeats(list: readonly Seats[]): Seats {
   return out;
 }
 
-const ctxOf = (gw: GreatWar, seat: GwSeatState): SceneCtx => ({
+export const ctxOf = (gw: GreatWar, seat: GwSeatState): SceneCtx => ({
   gw,
   seat,
   cast: {},
@@ -224,7 +237,7 @@ const MOVING: readonly GwLawState["stage"][] = [
   "sign",
 ];
 
-interface Moving {
+export interface Moving {
   st: GwLawState;
   bill: GwBillRow;
   row: GwLawRow;
@@ -464,7 +477,8 @@ function settleDeals(gw: GreatWar, seat: GwSeatState, st: GwFactionState) {
     if (p === undefined) return false;
     if (p.kept) {
       st.heat = Math.max(0, st.heat - 2);
-      factionTrust(seat, st.id, 1);
+      // ww210: kept within a session's deadline: more trust.
+      factionTrust(seat, st.id, p.term === "session" ? 2 : 1);
       reason(gw, seat, "house_deal_kept", whoOf(st));
       return false;
     }
@@ -637,6 +651,10 @@ function sideOf(
   // ww204 (T): a price brings a faction GW_DEAL_STEP sides over: one against
   // wavers, one wavering is for.
   if (deal) {
+    // ww210: a promise due only after the war brings his waverers alone.
+    if (dealTerm(seat, st.id, id) === "war_end") {
+      return { side: (base === 0 ? 1 : base) as GwSide, broke: false };
+    }
     return { side: Math.min(1, base + GW_DEAL_STEP) as GwSide, broke: false };
   }
   const side = base;
@@ -679,18 +697,18 @@ function ballotFactions(
     const deal = st.deals.includes(f.id);
     // A kept deal holds the whole faction; a question of confidence holds
     // the government's side.
-    const holds = (deal && !s.broke) || (confidence && s.side > 0);
+    const whole = deal && dealTerm(seat, st.id, f.id) !== "war_end";
+    const holds = (whole && !s.broke) || (confidence && s.side > 0);
     const tenths = holds ? 0 : (GW_REBEL_TENTHS[fs.step] ?? 0);
-    return [
-      {
-        id: f.id,
-        seats,
-        side: s.side,
-        away: s.away === true,
-        rebels: Math.floor((seats * tenths) / 10),
-        beat: s.broke ? "betray" : deal ? "swing" : "firm",
-      },
-    ];
+    // ww210: a peeled wing votes for apart (Deals.peelSplit).
+    return peelSplit(seat, st.id, f, {
+      id: f.id,
+      seats,
+      side: s.side,
+      away: s.away === true,
+      rebels: Math.floor((seats * tenths) / 10),
+      beat: s.broke ? "betray" : deal ? "swing" : "firm",
+    });
   });
 }
 
@@ -1014,7 +1032,7 @@ export function countSlots(
 }
 
 /** The factions sitting in a bill's chambers, in row order. */
-function lobbyRows(
+export function lobbyRows(
   gw: GreatWar,
   seat: GwSeatState,
   bill: GwBillRow,
@@ -1391,7 +1409,11 @@ export function spendHouseCall(seat: GwSeatState, topic: string): boolean {
 
 // ---- Asks and bills of the factions ----
 
-function opensNow(gw: GreatWar, seat: GwSeatState, law: string): boolean {
+export function opensNow(
+  gw: GreatWar,
+  seat: GwSeatState,
+  law: string,
+): boolean {
   const row = lawRow(law);
   const n = gw.nation(seat.tag);
   if (row === null || n === null) return false;
@@ -1435,6 +1457,7 @@ function unanswered(gw: GreatWar, seat: GwSeatState): void {
     if (gw.s.chapter <= f.asked + 1) continue;
     f.asking = null;
     f.ignored++;
+    owedAnswered(gw, seat, f.id, false);
   }
 }
 
@@ -1463,8 +1486,10 @@ function asksStep(gw: GreatWar, seat: GwSeatState): void {
       }
     }
     if (visited || st.asking !== null) continue;
-    if (st.strength < GW_ASK_STRENGTH) continue;
-    if (gw.s.chapter - st.asked < GW_ASK_GAP) continue;
+    // ww210: a favour the seat owes him: he comes to collect it.
+    const owed = owesHim(seat, row.id);
+    if (st.strength < GW_ASK_STRENGTH && !owed) continue;
+    if (gw.s.chapter - st.asked < GW_ASK_GAP && !owed) continue;
     if (sceneOf(houseIds.visit(row.id)) === null) continue;
     st.asking = bill;
     st.asked = gw.s.chapter;
@@ -1605,11 +1630,13 @@ type HouseCond = Extract<
  * ww204: a concession needs his own text for this bill (`amendable`), whatever
  * the row's `when` says.
  */
-function wantsNow(ctx: SceneCtx, id: string): GwWant[] {
+export function wantsNow(ctx: SceneCtx, id: string): GwWant[] {
   const m = movingBill(ctx.gw, ctx.seat);
   const row = factionRow(id);
   if (m === null || row === null || m.st.deals.includes(id)) return [];
   const free = { ...ctx, cast: {} };
+  // ww210: word has got round his bloc: only prices paid now.
+  const paid = paidOnly(ctx.gw, ctx.seat, id);
   return (row.wants ?? [])
     .filter((w) => w.when === undefined || holds(free, w.when))
     .filter(
@@ -1617,11 +1644,12 @@ function wantsNow(ctx: SceneCtx, id: string): GwWant[] {
         wantKind(w) !== "concession" ||
         houseHolds(free, { is: "amendable", id }),
     )
+    .filter((w) => !paid || paidNow(w))
     .slice(0, GW_PRICES_MAX);
 }
 
 /** ww204: `fn` with the talks about `law` (the lobbied bill), focus restored. */
-function withFocus<T>(seat: GwSeatState, law: string, fn: () => T): T {
+export function withFocus<T>(seat: GwSeatState, law: string, fn: () => T): T {
   const h = seat.house;
   if (h === undefined) return fn();
   const was = h.focus;
@@ -1787,8 +1815,11 @@ export function houseEffect(ctx: SceneCtx, e: HouseEffect): void {
       f.asking = null;
       if (e.yes && houseBring(gw, seat, law, "faction", e.id)) {
         f.heat = Math.max(0, f.heat - 1);
+        owedAnswered(gw, seat, e.id, true);
         return;
       }
+      // ww210: a favour the seat owed him, refused.
+      owedAnswered(gw, seat, e.id, false);
       f.ignored++;
       heatBy(gw, seat, e.id, GW_REFUSED_HEAT);
       return;
@@ -1799,8 +1830,17 @@ export function houseEffect(ctx: SceneCtx, e: HouseEffect): void {
   }
 }
 
-/** The leader's price is taken: a promise to him, his faction for the bill. */
-function takeDeal(ctx: SceneCtx, id: string, want?: string): void {
+/**
+ * The leader's price is taken: a promise to him, his faction for the bill.
+ * ww210: `bill` false pays it with no vote asked (빚으로 남긴다); a `favour`
+ * price leaves the seat owing him (ledger `owed`).
+ */
+export function takeDeal(
+  ctx: SceneCtx,
+  id: string,
+  want?: string,
+  bill = true,
+): void {
   const { gw, seat } = ctx;
   const w = wantNow(ctx, id, want);
   const m = movingBill(gw, seat);
@@ -1819,10 +1859,12 @@ function takeDeal(ctx: SceneCtx, id: string, want?: string): void {
       broken: false,
       keep: JSON.stringify(w.keep as GwCond),
       back: w.back ?? null,
+      faction: id,
     });
     f.deals.push(key);
   }
-  m.st.deals.push(id);
+  if (bill) m.st.deals.push(id);
+  if (wantKind(w) === "favour") owedFavour(gw, seat, id, m.st.id);
   f.heat = Math.max(0, f.heat - 1);
   const kind = wantKind(w);
   // ww204: a concession is his text for the bill; his bill next joins the
@@ -1834,7 +1876,7 @@ function takeDeal(ctx: SceneCtx, id: string, want?: string): void {
 }
 
 /** ww204: the faction's own bill the `next` price names, onto the agenda. */
-function bringNext(
+export function bringNext(
   gw: GreatWar,
   seat: GwSeatState,
   id: string,
@@ -1865,7 +1907,7 @@ function shutOf(
   return null;
 }
 
-function agendaBill(gw: GreatWar, seat: GwSeatState, law: string) {
+export function agendaBill(gw: GreatWar, seat: GwSeatState, law: string) {
   return agendaBills(gw, seat).find((m) => m.st.id === law) ?? null;
 }
 
@@ -1919,12 +1961,18 @@ export function lobbyViews(
         !seat.desk.some((c) => c.scene === topic),
       press: pressHows(seat, m, row.id, f.leader),
       prices: pricesOf(gw, seat, law, row.id),
+      // ww210: the bargaining's extras (Deals.ts).
+      ...lobbyExtras(gw, seat, m, row, open),
     };
   });
 }
 
 /** ww204: summoned on this bill (his talk on the desk, the talks about it). */
-function summoned(seat: GwSeatState, law: string, faction: string): boolean {
+export function summoned(
+  seat: GwSeatState,
+  law: string,
+  faction: string,
+): boolean {
   const topic = houseIds.lobby(faction);
   return seat.house?.focus === law && seat.desk.some((c) => c.scene === topic);
 }
@@ -1935,13 +1983,17 @@ function pricesOf(
   seat: GwSeatState,
   law: string,
   faction: string,
-): { id: string; kind: GwPriceKind }[] | null {
+): { id: string; kind: GwPriceKind; terms?: readonly GwDealTerm[] }[] | null {
   if (!summoned(seat, law, faction)) return null;
   return withFocus(seat, law, () =>
-    wantsNow(ctxOf(gw, seat), faction).map((w) => ({
-      id: w.id,
-      kind: wantKind(w),
-    })),
+    wantsNow(ctxOf(gw, seat), faction).map((w) => {
+      const terms = termsOf(w);
+      return {
+        id: w.id,
+        kind: wantKind(w),
+        ...(terms.length === 0 ? {} : { terms }),
+      };
+    }),
   );
 }
 
@@ -1962,8 +2014,10 @@ export function housePrice(
   const ctx = ctxOf(gw, seat);
   if (want !== null) {
     const ok = wantsNow(ctx, faction).some((w) => w.id === want);
-    if (!ok) return "no_topic";
+    if (!ok) return paidOnly(gw, seat, faction) ? "paid_only" : "no_topic";
     takeDeal(ctx, faction, want);
+    // ww210: his added price taken: the seat's counter goes with it.
+    counterSealed(gw, seat, law, faction, want);
   }
   const topic = houseIds.lobby(faction);
   seat.desk = seat.desk.filter((c) => c.scene !== topic);
