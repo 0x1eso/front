@@ -7,12 +7,14 @@ import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
 import type { GwLawRow } from "../../LawRows";
 import {
   draft,
+  either,
   gauge,
   held,
   inst,
   lawTalk,
   low,
   men,
+  office,
   person,
   since,
   until,
@@ -32,6 +34,7 @@ const atWar = (from: string) => all(war, since(from));
 export const FRA_LAWS: readonly GwLawRow[] = [
   row({
     id: "fra_law_siege",
+    chapter: "siege",
     opens: war,
     lean: 1,
     decree: false,
@@ -66,6 +69,7 @@ export const FRA_LAWS: readonly GwLawRow[] = [
   }),
   row({
     id: "fra_law_three_years",
+    chapter: "conscription",
     opens: all(not(war), until("1916-12")),
     lean: 0,
     decree: false,
@@ -96,6 +100,7 @@ export const FRA_LAWS: readonly GwLawRow[] = [
   }),
   row({
     id: "fra_law_income_tax",
+    chapter: "war_finance",
     opens: since("1914-08"),
     lean: -1,
     decree: false,
@@ -131,6 +136,7 @@ export const FRA_LAWS: readonly GwLawRow[] = [
   }),
   row({
     id: "fra_law_dalbiez",
+    chapter: "conscription",
     opens: atWar("1915-05"),
     lean: 1,
     decree: false,
@@ -170,8 +176,49 @@ export const FRA_LAWS: readonly GwLawRow[] = [
       ],
     },
   }),
+  // + check. ww203: the labour article beside Dalbiez's factory lists: the
+  // men sent back to the works stay soldiers. A decree of 17 January 1917
+  // forbade strikes in the private works making arms (Labour Ministry
+  // history, travail-emploi.gouv.fr); the wage boards and the shop delegates
+  // of Thomas's ministry that year are not checked.
+  row({
+    id: "fra_law_labour",
+    chapter: "labour",
+    opens: atWar("1915-09"),
+    lean: 0,
+    decree: true,
+    cast: { arms: either(office("munitions"), held("war")) },
+    draft: [
+      draft("strike_ban", 1, [], [gauge("shells", 1)]),
+      draft("wage_boards", 0, [], [gauge("order", 1), gauge("money", -1)]),
+      draft("shop_delegates", -1, [], [gauge("order", 1), inst("army", -1)]),
+    ],
+    passed: [gauge("shells", 1)],
+    passedTell: [],
+    term: [
+      { gauge: "shells", delta: 1, every: 8 },
+      { gauge: "order", delta: -1, every: 12, offset: 4, text: ["strike_ban"] },
+      {
+        gauge: "order",
+        delta: 1,
+        every: 12,
+        text: ["wage_boards", "shop_delegates"],
+      },
+    ],
+    repeal: { authority: 15, tell: [], effects: [gauge("shells", -1)] },
+    talk: lawTalk("fra_law_labour", {
+      who: person("fra_jouhaux"),
+      ask: "frank",
+      push: "cold",
+      tell: [],
+      price: [gauge("money", -1)],
+      wins: 1,
+      tempers: ["stubborn"],
+    }),
+  }),
   row({
     id: "fra_law_war_profits",
+    chapter: "war_finance",
     opens: atWar("1915-12"),
     lean: 0,
     decree: false,
@@ -200,6 +247,7 @@ export const FRA_LAWS: readonly GwLawRow[] = [
   }),
   row({
     id: "fra_law_rents",
+    chapter: "food",
     opens: atWar("1914-09"),
     lean: 1,
     decree: true,
@@ -243,6 +291,7 @@ export const FRA_LAWS: readonly GwLawRow[] = [
   }),
   row({
     id: "fra_law_allowances",
+    chapter: "food",
     opens: war,
     lean: 1,
     decree: true,
@@ -271,6 +320,7 @@ export const FRA_LAWS: readonly GwLawRow[] = [
   }),
   row({
     id: "fra_law_censorship",
+    chapter: "censorship",
     opens: war,
     lean: 1,
     decree: true,
@@ -301,6 +351,7 @@ export const FRA_LAWS: readonly GwLawRow[] = [
   }),
   row({
     id: "fra_law_supply_decrees",
+    chapter: "food",
     opens: all(war, since("1917-09"), low("bread", 2)),
     lean: 0,
     decree: false,
@@ -332,6 +383,7 @@ export const FRA_LAWS: readonly GwLawRow[] = [
   // programme of 1912 pushed on. Opens only while the war hasn't come.
   row({
     id: "fra_law_navy",
+    chapter: "arms",
     opens: all(not(war), world({ is: "peace_months", min: 3 })),
     lean: 0,
     decree: false,

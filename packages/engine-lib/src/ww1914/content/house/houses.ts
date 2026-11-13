@@ -227,10 +227,12 @@ export const FRA_HOUSE: GwHouseRow = {
       kind: "vote",
       starts: true,
       sits: not(DISSOLVED),
-      // ww203: 592 elected in 1914 (W-FRA checks the groups).
-      size: 592,
+      // ww203: 602 filled in 1914, 50 of them unattached (fr.wikipedia, XIe
+      // législature, the groups' table); the unattached stay away.
+      size: 602,
     },
-    // ww203: 300 seats; its groups are W-FRA's to check.
+    // ww203: 300 seats; the 1912 groups (no renewal in the war), about ten
+    // unattached away.
     { id: "senat", inst: "senate", kind: "vote", size: 300 },
   ],
   // The Interior counts the majority for the premier.
