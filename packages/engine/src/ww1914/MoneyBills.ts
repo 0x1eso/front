@@ -144,6 +144,9 @@ const ctxOf = (gw: GreatWar, seat: GwSeatState): SceneCtx => ({
 
 // ---- Rows ----
 
+/** ww210 merge (T): the house's waverers lean this far to the money bills. */
+const GW_MONEY_LEAN = 2;
+
 export const isMoneyBill = (law: string): boolean => moneyBillOf(law) !== null;
 
 export function moneyRow(tag: string): GwMoneyRow | null {
@@ -160,7 +163,8 @@ export function moneyLawRow(id: string): GwLawRow | null {
     tag: row.tag,
     chapter: "war_finance",
     opens: ALWAYS,
-    lean: 0,
+    // ww210 merge (T): supply is customary: the waverers lean to it.
+    lean: GW_MONEY_LEAN,
     decree: row.round?.around !== undefined,
     cast: {},
     draft: [{ id: m.kind, tell: [], effects: [], support: 0 }],
@@ -293,12 +297,15 @@ function purseScore(
   return score;
 }
 
-/** A faction's trust in the seat leans its purse: ±1 at ±2 or past. */
+/**
+ * A faction's trust in the seat leans its purse: +1 at 2 or past. ww210
+ * merge (T): distrust alone doesn't turn a faction against the money; it
+ * wavers, and the chamber's mood decides its waverers.
+ */
 function trustLean(seat: GwSeatState, id: string): number {
   const f = factionOf(seat, id);
   if (f === null) return 0;
-  const t = trustNow(f);
-  return t >= 2 ? 1 : t <= -2 ? -1 : 0;
+  return trustNow(f) >= 2 ? 1 : 0;
 }
 
 /** What the faction's purse wants of this bill, before its trust. */
@@ -315,6 +322,18 @@ function wantScore(
   return purseScore(n, m, wantsOf(idealsOf(id), purse), id);
 }
 
+/**
+ * ww210 merge (T): the government's own: a faction whose leader sits in the
+ * cabinet votes its government's money unless its purse says otherwise
+ * (Asquith's Liberals, Tisza's Party of Work, Ribot's Republicans).
+ */
+function inGovernment(gw: GreatWar, id: string): number {
+  const leaders = factionRow(id)?.leaders ?? [];
+  return leaders.some((l) => (gw.person(l.person)?.office ?? null) !== null)
+    ? 1
+    : 0;
+}
+
 /** A faction's side on a money bill: its purse against the plan (§2.1). */
 export function moneySide(
   gw: GreatWar,
@@ -328,7 +347,12 @@ export function moneySide(
   const purse = purseRowOf(ctxOf(gw, seat), id, m.kind);
   if (purse?.side !== undefined) return purse.side;
   const rally = rallied(n, m) ? 1 : 0;
-  return sign(trustLean(seat, id) + rally + wantScore(gw, seat, st, id));
+  return sign(
+    trustLean(seat, id) +
+      rally +
+      inGovernment(gw, id) +
+      wantScore(gw, seat, st, id),
+  );
 }
 
 /** A peel sealed on this bill (S2's ledger): the wing votes for apart. */
@@ -378,13 +402,14 @@ export function wingApart(
   const m = moneyBillOf(st.id);
   const n = gw.nation(seat.tag);
   if (m === null || n === null || rallied(n, m)) return undefined;
-  const tenths = GW_DEFY_TENTHS[factionOf(seat, id)?.step ?? 0] ?? 0;
-  if (tenths <= 0) return undefined;
   if (purseScore(n, m, wantsOf(wing.ideals, null), null) >= 0) {
     return undefined;
   }
-  // Its first defies are a few men alone, before the wing stands up.
+  // Its first defies are a few men alone, by conscience whatever the
+  // party's temper, before the wing stands up.
   const lone = wing.lone?.[factionOf(seat, id)?.defied ?? 0];
+  const tenths = GW_DEFY_TENTHS[factionOf(seat, id)?.step ?? 0] ?? 0;
+  if (lone === undefined && tenths <= 0) return undefined;
   if (lone !== undefined) {
     return {
       seats: clampTo(lone.seats, 1, seats),

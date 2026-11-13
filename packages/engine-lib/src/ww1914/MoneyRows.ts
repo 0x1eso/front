@@ -194,7 +194,7 @@ export const GW_DEFY_TENTHS: readonly number[] = [0, 1, 6, 10, 10];
 export const GW_SPLIT_PRESSURE = 3;
 
 /** A line this far off the norm is one a faction's purse minds. */
-export const GW_PURSE_OFF = 2;
+export const GW_PURSE_OFF = 3;
 
 /** A line this far off the norm moves its political owner at signing. */
 export const GW_OWNER_OFF = 3;

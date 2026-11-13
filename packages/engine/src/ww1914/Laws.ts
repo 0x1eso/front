@@ -358,7 +358,12 @@ function put(
   confidence: boolean,
 ): void {
   const { gw, seat } = ctx;
-  const house = housePut(gw, seat, st, tableOf(gw, seat, row), confidence);
+  // ww210 merge: a bill whose body is the council of ministers (Vienna's own
+  // business) goes to the council while the Reichsrat is shut.
+  const council = row.body !== undefined && !houseSits(gw, seat, st.id);
+  const house = council
+    ? null
+    : housePut(gw, seat, st, tableOf(gw, seat, row), confidence);
   if (house !== null) {
     // No chamber sits to vote on it: it waits on the agenda.
     if (house.stops === "no_sitting") {
@@ -905,7 +910,10 @@ function callWhy(
   if (st.delayTo !== -1 && gw.s.chapter < st.delayTo) return "lords";
   if (billRow(seat, st.id) === null) return null;
   if (houseSat(gw, seat, st.id)) return "recess";
-  if (!houseSits(gw, seat, st.id)) return "no_sitting";
+  // ww210 merge: with the house shut, a council bill goes to the council.
+  if (!houseSits(gw, seat, st.id)) {
+    return rowOf(st.id)?.body !== undefined ? null : "no_sitting";
+  }
   return null;
 }
 
