@@ -159,6 +159,16 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
     id: "auh_germans",
     tag: "AUH",
     ideals: { rule: -1, class: 0, dual: -1 },
+    // ww209 (W-AUH): the German Nationals stood for the war's money (the
+    // game's reading). Wolf's radicals vote openly against a government that
+    // gives the Czechs ground, and are never bought apart (harder, not softer).
+    purse: [{ bill: "credits", side: 1 }],
+    wing: {
+      person: "auh_i_wolf",
+      ideals: { rule: -1, class: 1, dual: -1 },
+      share: 2,
+      peels: false,
+    },
     bloc: "press",
     start: "in",
     strength: 3,
@@ -212,6 +222,14 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
         keep: paid,
         effects: [heat("auh_czech", 1), heat("auh_slavs", 1)],
       },
+      // ww209: Tyrol's valleys behind the Italian front.
+      {
+        id: "tyrol_valleys",
+        kind: "money",
+        when: { kind: "at_war", tag: "ITA" },
+        earmark: "auh_tyrol_valleys",
+        keep: paid,
+      },
       amendFor("auh_germans"),
     ],
   },
@@ -219,6 +237,12 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
     id: "auh_csoc",
     tag: "AUH",
     ideals: { rule: -1, class: -1, dual: 1 },
+    // ww209 (W-AUH): the court's party gives the war its money; on the
+    // budget it wants Vienna's bread and the army both over the norm.
+    purse: [
+      { bill: "credits", side: 1 },
+      { bill: "budget", lines: { relief: 1, army: 1 } },
+    ],
     trust: 1,
     ability: "auh_pw_ab_city",
     bloc: "court",
@@ -264,6 +288,7 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
       {
         id: "vienna_flour",
         kind: "money",
+        earmark: "auh_vienna_flour",
         keep: paid,
         effects: [gauge("money", -1)],
       },
@@ -274,6 +299,9 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
     id: "auh_czech",
     tag: "AUH",
     ideals: { rule: 1, class: 0, dual: 1 },
+    // ww209 (W-AUH): no Czech hand for a budget once German is decreed the
+    // language of office in Bohemia (the game's reading, F).
+    purse: [{ when: isLaw("auh_oktroi"), side: -1 }],
     trust: -1,
     ability: "auh_pw_ab_czech",
     plot: "auh_pl_nations",
@@ -331,6 +359,7 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
         when: not(flag("f_auh_amnesty")),
         keep: flag("f_auh_amnesty"),
         chapters: 10,
+        terms: ["session", "half"],
       },
       {
         id: "house_open",
@@ -338,10 +367,13 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
         when: not(REICHSRAT_OPEN),
         keep: REICHSRAT_OPEN,
         chapters: 8,
+        // ww209: a house called after the war is no house to him.
+        terms: ["session", "half"],
       },
       {
         id: "czech_schools",
         kind: "money",
+        earmark: "auh_bohemia_schools",
         keep: paid,
         effects: [heat("auh_germans", 1)],
       },
@@ -352,6 +384,18 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
     id: "auh_poles",
     tag: "AUH",
     ideals: { rule: 0, class: -1, dual: 1 },
+    // ww209 (W-AUH): after Chełm went to Ukraine at Brest-Litovsk (Feb
+    // 1918) the Polish Club refused supply; in June 1918 it refused the
+    // provisional budget until Seidler went (Rauchensteiner pp. 962-964;
+    // The Spectator, 3 Aug 1918). Witos's peasants (PSL Piast; in the
+    // Reichsrat 1911-18, Britannica) drifted from the Austrian answer first:
+    // its wing. Its share is the game's (F).
+    purse: [{ when: flag("f_auh_chelm_given"), side: -1 }],
+    wing: {
+      person: "auh_i_witos",
+      ideals: { rule: 1, class: 1, dual: 1 },
+      share: 3,
+    },
     trust: 1,
     ability: "auh_pw_ab_legions",
     bloc: "parliament",
@@ -401,9 +445,12 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
       {
         id: "galicia_aid",
         kind: "money",
+        earmark: "auh_galicia_aid",
         keep: paid,
         effects: [gauge("money", -1)],
       },
+      // ww209: the Club's vote now, a favour of its choosing later.
+      { id: "club_favour", kind: "favour", when: war },
       amendFor("auh_poles"),
     ],
   },
@@ -411,6 +458,9 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
     id: "auh_slavs",
     tag: "AUH",
     ideals: { rule: -1, class: 0, dual: 1 },
+    // ww209 (W-AUH): after the May Declaration the Yugoslav Club votes no
+    // budget of the dual order (the game's reading, F).
+    purse: [{ when: flag("f_auh_may_draft"), bill: "budget", side: -1 }],
     trust: -1,
     bloc: "parliament",
     start: "in",
@@ -442,12 +492,21 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
         when: not(flag("f_auh_amnesty")),
         keep: flag("f_auh_amnesty"),
         chapters: 10,
+        terms: ["session", "half"],
       },
       {
         id: "croatia_heard",
         kind: "promise",
         keep: paid,
         effects: [heat("auh_work", 1)],
+      },
+      // ww209: bread for Dalmatia and Herzegovina.
+      {
+        id: "dalmatia_bread",
+        kind: "money",
+        when: war,
+        earmark: "auh_dalmatia_bread",
+        keep: paid,
       },
       amendFor("auh_slavs"),
     ],
@@ -456,6 +515,17 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
     id: "auh_sd",
     tag: "AUH",
     ideals: { rule: 1, class: 1, dual: 1 },
+    // ww209 (W-AUH): in peace the party voted no state budget (memory, F).
+    // Its left (Bauer, back from Russia Sept 1917; the Karl Marx club of
+    // 1916) defies the line once the war drags, and goes to auh_sd_left.
+    purse: [{ when: not(war), bill: "budget", side: -1 }],
+    wing: {
+      person: "auh_i_bauer",
+      ideals: { rule: 1, class: 1, dual: 1 },
+      share: 2,
+      when: warAge(24),
+      into: "auh_sd_left",
+    },
     ability: "auh_pw_ab_unions",
     bloc: "workers",
     start: "in",
@@ -512,6 +582,7 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
         when: not(REICHSRAT_OPEN),
         keep: REICHSRAT_OPEN,
         chapters: 10,
+        terms: ["session", "half"],
       },
       {
         id: "rents_next",
@@ -523,6 +594,7 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
       {
         id: "flour_ration",
         kind: "money",
+        earmark: "auh_workers_bread",
         keep: paid,
         effects: [gauge("money", -1)],
       },
@@ -534,6 +606,13 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
     id: "auh_work",
     tag: "AUH",
     ideals: { rule: -1, class: -1, dual: -1 },
+    // ww209 (W-AUH): Tisza's majority gives the war its money (Law LXIII of
+    // 1912); from 1916 it voted a property tax and a war profits tax
+    // (1914-1918-online, war finance Austria-Hungary).
+    purse: [
+      { bill: "credits", side: 1 },
+      { when: warAge(18), bill: "budget", taxes: { property: 1, profits: 1 } },
+    ],
     trust: 1,
     ability: "auh_pw_ab_grain",
     bloc: "business",
@@ -575,6 +654,7 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
         id: "grain_price",
         kind: "money",
         when: moving("auh_food"),
+        earmark: "auh_grain_price",
         keep: paid,
         effects: [gauge("money", -1)],
       },
@@ -599,6 +679,8 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
         keep: paid,
         effects: [inst("hungary", 1), inst("nations", -1)],
       },
+      // ww209: Tisza names no price today and remembers it (a favour later).
+      { id: "tisza_favour", kind: "favour" },
       amendFor("auh_work"),
     ],
   },
@@ -606,6 +688,10 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
     id: "auh_indep",
     tag: "AUH",
     ideals: { rule: 1, class: 0, dual: -1 },
+    // ww209 (W-AUH): the truce with Tisza at the war's start, and short
+    // (1914-1918-online, Tisza; Hungarian Conservative): the first year's
+    // credits go through; then its ideals.
+    purse: [{ when: not(warAge(12)), bill: "credits", side: 1 }],
     trust: -1,
     template: "nation",
     bloc: "parliament",
@@ -684,6 +770,8 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
     id: "auh_karolyi",
     tag: "AUH",
     ideals: { rule: 1, class: 1, dual: -1 },
+    // ww209 (W-AUH): the peace party votes no war money (F).
+    purse: [{ bill: "credits", side: -1 }],
     trust: -2,
     plot: "auh_pl_magyar",
     bloc: "parliament",
@@ -722,6 +810,8 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
         when: not(flag("f_auh_peace_word")),
         keep: flag("f_auh_peace_word"),
         chapters: 8,
+        // ww209: a peace word after the war is worth nothing.
+        terms: ["session", "half"],
       },
       {
         id: "motion_next",
@@ -744,6 +834,8 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
     id: "auh_const",
     tag: "AUH",
     ideals: { rule: 1, class: -1, dual: -1 },
+    // ww209 (W-AUH): against Tisza, not against the war (F).
+    purse: [{ bill: "credits", side: 1 }],
     template: "parliament",
     bloc: "parliament",
     start: "in",
