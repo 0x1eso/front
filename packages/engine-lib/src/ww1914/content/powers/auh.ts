@@ -1015,6 +1015,96 @@ export const AUH_POWERS: readonly GwPowerRow[] = [
       scene: "auh_pw_strike_bad",
     },
   }),
+  // ---- ww207 (W-AUH): the factions' abilities (group 정당) ----
+  // Asked at 호의 or better and a calm temper; turned against the seat at
+  // temper 3 (PowerRows `ability`). Facts (F: memory unless marked): Hungary
+  // fed the Austrian half's cities short in the war and Tisza's men held
+  // the grain; Vienna's city hall under Weiskirchner ran the war kitchens;
+  // the Czech deputies' loyal declarations, and the desertions held against
+  // them (Infantry Regiment 28, April 1915, already in auh_h_regiment28);
+  // the Polish Legions from August 1914 and the oath crisis of July 1917;
+  // the unions keeping the plants at work, and the January 1918 strike.
+  row({
+    id: "auh_pw_ab_grain",
+    group: "factions",
+    kind: "lawful",
+    opens: [{ when: war, why: "no_war" }],
+    tags: ["ability"],
+    effects: [gauge("bread", 1), inst("hungary", 1), reason("auh_ab_grain")],
+    ability: {
+      faction: "auh_work",
+      strong: [gauge("bread", 2), inst("hungary", 1), reason("auh_ab_grain")],
+      turned: {
+        effects: [
+          gauge("bread", -1),
+          inst("hungary", 1),
+          reason("auh_ab_grain_held"),
+        ],
+      },
+    },
+  }),
+  row({
+    id: "auh_pw_ab_city",
+    group: "factions",
+    kind: "lawful",
+    tags: ["ability"],
+    effects: [gauge("order", 1), reason("auh_ab_city")],
+    ability: {
+      faction: "auh_csoc",
+      strong: [gauge("order", 1), gauge("morale", 1), reason("auh_ab_city")],
+      turned: {
+        effects: [gauge("order", -1), reason("auh_ab_city_shut")],
+      },
+    },
+  }),
+  row({
+    id: "auh_pw_ab_czech",
+    group: "factions",
+    kind: "lawful",
+    opens: [{ when: war, why: "no_war" }],
+    tags: ["ability"],
+    effects: [inst("nations", 1), men(2), reason("auh_ab_czech")],
+    ability: {
+      faction: "auh_czech",
+      strong: [inst("nations", 1), men(3), reason("auh_ab_czech")],
+      turned: {
+        effects: [men(-3), gauge("morale", -1), reason("auh_ab_czech_desert")],
+      },
+    },
+  }),
+  row({
+    id: "auh_pw_ab_legions",
+    group: "factions",
+    kind: "lawful",
+    opens: [{ when: war, why: "no_war" }],
+    tags: ["ability"],
+    effects: [men(2), reason("auh_ab_legions")],
+    ability: {
+      faction: "auh_poles",
+      strong: [men(3), gauge("morale", 1), reason("auh_ab_legions")],
+      turned: {
+        effects: [men(-2), inst("nations", -1), reason("auh_ab_legions_oath")],
+      },
+    },
+  }),
+  row({
+    id: "auh_pw_ab_unions",
+    group: "factions",
+    kind: "lawful",
+    tags: ["ability"],
+    effects: [gauge("shells", 1), gauge("order", 1), reason("auh_ab_unions")],
+    ability: {
+      faction: "auh_sd",
+      strong: [gauge("shells", 1), gauge("order", 2), reason("auh_ab_unions")],
+      turned: {
+        effects: [
+          gauge("shells", -1),
+          gauge("order", -2),
+          reason("auh_ab_unions_strike"),
+        ],
+      },
+    },
+  }),
 ];
 
 /**
@@ -1129,4 +1219,10 @@ export const AUH_POWER_SCENES: readonly GwScene[] = [
   card("auh_pw_no_mercy_bad"),
   card("auh_pw_strike_r", [v("hungry", low("bread", 0)), base]),
   card("auh_pw_strike_bad"),
+  // ww207: the factions' abilities.
+  card("auh_pw_ab_grain_r"),
+  card("auh_pw_ab_city_r"),
+  card("auh_pw_ab_czech_r"),
+  card("auh_pw_ab_legions_r"),
+  card("auh_pw_ab_unions_r"),
 ];
