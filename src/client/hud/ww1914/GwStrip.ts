@@ -10,8 +10,10 @@ import type { GwGauge } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import {
   axesOf,
   GW_NODE_TIERS,
+  type GwAxis,
   type GwNodeView,
   type GwStripFactionView,
+  type GwTreeTemplate,
 } from "@openfront/engine-api/ww1914/GwSociety";
 import { html, nothing, svg, TemplateResult } from "lit";
 import { unsafeSVG } from "lit/directives/unsafe-svg.js";
@@ -20,6 +22,19 @@ import type { GwCtx } from "./GwCtx";
 import { factionName } from "./GwHouse";
 import { gaugeLevel } from "./GwModel";
 import { gaugeTitle } from "./GwNow";
+import {
+  axisName as axisNameOf,
+  axisSide,
+  chipWord,
+  kindWord,
+  nodeText,
+  supportWord,
+  tierWord,
+  trustWord as trustWordOf,
+  utopiaName as utopiaNameOf,
+  utopiaNote,
+  utopiaWhy,
+} from "./GwSocietyWords";
 import {
   factionColour,
   fervourMarks,
@@ -30,8 +45,6 @@ import {
   STANDING_SEGMENTS,
   standingFilled,
   stripFactions,
-  supportBand,
-  trustWord,
 } from "./GwStripModel";
 import { BTN, BTN_ON, GLASS, HEAD, MUTED } from "./GwStyle";
 import { personName } from "./GwText";
@@ -46,48 +59,27 @@ export function known(
   return t === key ? null : t;
 }
 
-/** An axis side's word: 의회, 노동, 협조… (C writes them). */
-export function sideWord(c: GwCtx, axis: string, side: number): string {
-  const end = side < 0 ? "minus" : "plus";
-  return (
-    known(`gw.society.axis.${axis}.${c.seat.tag}.${end}`) ??
-    `${axis} ${side < 0 ? "−" : "+"}`
-  );
+// The words are lane C's (GwSocietyWords); these read them for the seat.
+
+/** An axis side's word: 의회, 노동, 협조… */
+export function sideWord(c: GwCtx, axis: GwAxis, side: number): string {
+  return axisSide(c.seat.tag, axis, side < 0 ? -1 : 1);
 }
 
-export function axisName(c: GwCtx, axis: string): string {
-  return known(`gw.society.axis.${axis}.${c.seat.tag}.name`) ?? axis;
+export function axisName(c: GwCtx, axis: GwAxis): string {
+  return axisNameOf(c.seat.tag, axis);
 }
 
 export function trustText(trust: number): string {
-  const w = trustWord(trust);
-  return known(`gw.society.trust.${w}`) ?? w;
+  return trustWordOf(trust);
 }
 
 /** A tree's name: the pack's own (사회민주 독일), else its template's. */
 export function utopiaName(
   c: GwCtx,
-  tree: { utopia: string; template: string },
+  tree: { utopia: string; template: GwTreeTemplate },
 ): string {
-  return (
-    c.pack?.utopia?.[tree.utopia]?.name ??
-    known(`gw.utopia.template.${tree.template}`) ??
-    known(`gw.utopia.template.${tree.template}.name`) ??
-    tree.utopia
-  );
-}
-
-function nodeName(
-  c: GwCtx,
-  tree: { utopia: string; template: string },
-  node: string,
-): string {
-  return (
-    c.pack?.utopia?.[tree.utopia]?.nodes?.[node]?.name ??
-    known(`gw.utopia.node.${tree.template}.${node}`) ??
-    known(`gw.utopia.node.${tree.template}.${node}.name`) ??
-    node
-  );
+  return utopiaNameOf(c.pack, tree.utopia, tree.template);
 }
 
 // ---- Marks ----
@@ -130,7 +122,7 @@ export function markSvg(
 
 // ---- The chips ----
 
-function standingBar(trust: number, cls = "h-1 w-2"): TemplateResult {
+function standingBar(trust: number, cls = "h-1 w-1 sm:w-2"): TemplateResult {
   const filled = standingFilled(trust);
   return html`<span class="flex gap-px" data-gw-standing=${filled}>
     ${Array.from(
@@ -163,7 +155,7 @@ function chip(c: GwCtx, f: GwStripFactionView): TemplateResult {
   const gone = f.status === "gone";
   const marks = fervourMarks(f.temper);
   return html`<button
-    class="relative flex h-11 min-w-11 shrink-0 items-center gap-1.5 rounded-md border border-white/15 bg-slate-900/85 py-1 pl-1 pr-2 text-left text-white shadow hover:bg-slate-700/90 ${gone
+    class="relative flex h-11 min-w-11 shrink-0 items-center gap-1 rounded-md border border-white/15 bg-slate-900/85 py-1 pl-1 pr-1.5 sm:gap-1.5 sm:pr-2 text-left text-white shadow hover:bg-slate-700/90 ${gone
       ? "opacity-40 grayscale"
       : ""} ${f.born ? "gw-born border-amber-300/60" : ""}"
     data-gw-chip=${f.id}
@@ -191,7 +183,7 @@ function chip(c: GwCtx, f: GwStripFactionView): TemplateResult {
       </span>
       ${gone
         ? html`<span class="text-[10px] leading-none text-white/70"
-            >${translateText("gw.strip.gone")}</span
+            >${chipWord("gone")}</span
           >`
         : html`<span class="flex items-center gap-1">
             ${standingBar(f.trust)}
@@ -212,7 +204,7 @@ function chip(c: GwCtx, f: GwStripFactionView): TemplateResult {
       ? html`<span
           class="absolute -top-2 left-1 rounded bg-amber-300 px-1 text-[10px] font-bold leading-4 text-slate-900"
           data-gw-born
-          >${translateText("gw.strip.new")}</span
+          >${chipWord("new")}</span
         >`
       : nothing}
   </button>`;
@@ -235,7 +227,7 @@ function meters(c: GwCtx): TemplateResult {
   const word = (g: GwGauge, v: number) =>
     translateText(`gw.ui.gauge.${g}.${gaugeLevel(g, v)}`);
   return html`<div
-    class="pointer-events-auto flex h-8 items-center gap-2 rounded-md border border-white/15 bg-slate-900/85 px-2 text-white"
+    class="pointer-events-auto flex h-8 items-center gap-2 sm:h-10 rounded-md border border-white/15 bg-slate-900/85 px-2 text-white"
     data-gw-meters
   >
     <span class="text-xs text-white/70"
@@ -255,7 +247,7 @@ function meters(c: GwCtx): TemplateResult {
       ></span>
     </span>
     <span
-      class="relative h-7 w-7 shrink-0 overflow-hidden rounded-full border ${orb >=
+      class="relative h-7 w-7 shrink-0 overflow-hidden rounded-full sm:h-9 sm:w-9 border ${orb >=
       0.6
         ? "border-red-400 shadow-[0_0_8px_rgba(248,113,113,0.7)]"
         : "border-white/30"} bg-slate-700/50"
@@ -389,10 +381,7 @@ function standingLines(c: GwCtx, f: GwStripFactionView): TemplateResult {
       <span class="text-white/90">${v}</span>${extra}
     </div>`;
   return html`<div class="space-y-1" data-gw-card-standing>
-    ${row(
-      "support",
-      translateText(`gw.strip.support.${supportBand(f.support)}`),
-    )}
+    ${row("support", supportWord(f.support))}
     ${row(
       "trust",
       trustText(f.trust),
@@ -446,10 +435,7 @@ function nodeCell(
   tree: NonNullable<GwStripFactionView["tree"]>,
   n: GwNodeView,
 ): TemplateResult {
-  const why =
-    n.open || n.can || n.why === null
-      ? null
-      : (known(`gw.utopia.why.${n.why}`) ?? n.why);
+  const why = n.open || n.can || n.why === null ? null : utopiaWhy(n.why);
   return html`<div
     class="flex min-h-[4.5rem] flex-col gap-1 rounded border p-1.5 text-xs ${n.open
       ? "border-amber-300/70 bg-amber-300/15"
@@ -460,11 +446,9 @@ function nodeCell(
     data-gw-node-state=${n.open ? "open" : n.can ? "can" : "shut"}
   >
     <span class="font-bold leading-tight text-white/90"
-      >${nodeName(c, tree, n.id)}</span
+      >${nodeText(c.pack, tree.utopia, tree.template, n.id).name}</span
     >
-    <span class="text-[10px] text-white/50"
-      >${translateText(`gw.strip.kind.${n.kind}`)}</span
-    >
+    <span class="text-[10px] text-white/50">${kindWord(n.kind)}</span>
     ${n.open
       ? html`<span class="mt-auto text-amber-200"
           >${translateText("gw.strip.card.opened")}</span
@@ -489,7 +473,7 @@ function nodeCell(
 function treeBox(c: GwCtx, f: GwStripFactionView) {
   const tree = f.tree;
   if (tree === null) return nothing;
-  const note = c.pack?.utopia?.[tree.utopia]?.note;
+  const note = utopiaNote(c.pack, tree.utopia, tree.template);
   return html`<section
     class="space-y-1.5 rounded border border-white/15 bg-black/35 p-2.5"
     data-gw-card-tree=${tree.utopia}
@@ -498,7 +482,7 @@ function treeBox(c: GwCtx, f: GwStripFactionView) {
       <h4 class=${HEAD}>${translateText("gw.strip.card.tree")}</h4>
       <span class="text-sm text-amber-100">${utopiaName(c, tree)}</span>
     </div>
-    ${note === undefined ? nothing : html`<p class=${MUTED}>${note}</p>`}
+    ${html`<p class=${MUTED}>${note}</p>`}
     <div class="flex items-center gap-2">
       <span class="h-1.5 flex-1 overflow-hidden rounded bg-white/10"
         ><span
@@ -516,7 +500,7 @@ function treeBox(c: GwCtx, f: GwStripFactionView) {
       const nodes = tree.nodes.filter((n) => n.tier === tier);
       if (nodes.length === 0) return nothing;
       return html`<div class="space-y-1" data-gw-tier=${tier}>
-        <p class=${MUTED}>${translateText(`gw.strip.tier.${tier}`)}</p>
+        <p class=${MUTED}>${tierWord(tier)}</p>
         <div class="grid grid-cols-3 gap-1">
           ${nodes.map((n) => nodeCell(c, f, tree, n))}
         </div>

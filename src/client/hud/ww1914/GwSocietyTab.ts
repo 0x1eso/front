@@ -2,12 +2,20 @@
 // axes in words and the communities under the blocs; the election card on
 // the hemicycle (each election plays once); the utopia's card (decision 1B:
 // end here, or play on). Words, not numbers.
-import { axesOf } from "@openfront/engine-api/ww1914/GwSociety";
+import type { GwChamber } from "@openfront/engine-api/ww1914/GwHouse";
+import { axesOf, type GwAxis } from "@openfront/engine-api/ww1914/GwSociety";
 import { html, nothing, svg, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
 import type { GwCtx } from "./GwCtx";
 import { factionName } from "./GwHouse";
-import { axisName, known, sideWord, trustText, utopiaName } from "./GwStrip";
+import {
+  electionCause,
+  electionDue,
+  electionLine,
+  leanLine,
+  sizeWord,
+} from "./GwSocietyWords";
+import { axisName, sideWord, trustText, utopiaName } from "./GwStrip";
 import { axisPlace, electPlan, type GwElect } from "./GwStripModel";
 import { GLASS, HEAD, MUTED } from "./GwStyle";
 import { fullDate, personName } from "./GwText";
@@ -21,10 +29,10 @@ function communityName(c: GwCtx, id: string): string {
 
 function axisRow(
   c: GwCtx,
-  a: { axis: string; step: number; trend: number },
+  a: { axis: GwAxis; step: number; trend: number },
 ): TemplateResult {
   const place = axisPlace(a.step);
-  const lean = known(`gw.society.lean.${a.axis}.${c.seat.tag}.${a.step}`);
+  const lean = leanLine(c.seat.tag, a.axis, a.step);
   return html`<div class="space-y-1" data-gw-axis=${a.axis}>
     <div class="flex items-center gap-1.5 text-sm">
       <span class="text-white">${axisName(c, a.axis)}</span>
@@ -50,7 +58,25 @@ function axisRow(
       </span>
       <span class="w-16 shrink-0 text-white/70">${sideWord(c, a.axis, 1)}</span>
     </div>
-    ${lean === null ? nothing : html`<p class=${MUTED}>${lean}</p>`}
+    <p class=${MUTED}>${lean}</p>
+  </div>`;
+}
+
+/** When each chamber's next general election is due, in words. */
+function dueLines(c: GwCtx): TemplateResult | typeof nothing {
+  const due = c.seat.world.society?.election.due ?? {};
+  const list = (Object.keys(due) as GwChamber[]).filter(
+    (k) => due[k] !== undefined,
+  );
+  if (list.length === 0) return nothing;
+  return html`<div class="space-y-0.5 border-t border-white/10 pt-1.5">
+    ${list.map(
+      (k) =>
+        html`<p class="text-xs text-white/75" data-gw-due=${k}>
+          ${translateText(`gw.house.chamber.${k}`)} ·
+          ${electionDue(Math.max(0, (due[k] ?? 0) - c.data.chapter))}
+        </p>`,
+    )}
   </div>`;
 }
 
@@ -65,7 +91,7 @@ export function societySection(c: GwCtx): TemplateResult | typeof nothing {
   return html`<section class=${BOX} data-gw-axes>
       <h3 class=${HEAD}>${translateText("gw.strip.axes_title")}</h3>
       <p class=${MUTED} data-gw-sub>${translateText("gw.strip.axes_sub")}</p>
-      ${axes.map((a) => axisRow(c, a))}
+      ${axes.map((a) => axisRow(c, a))} ${dueLines(c)}
     </section>
     ${s.communities.length === 0
       ? nothing
@@ -77,12 +103,12 @@ export function societySection(c: GwCtx): TemplateResult | typeof nothing {
           ${s.communities.map((m) => {
             const note = c.pack?.communities?.[m.id]?.note;
             const words = [
-              known(`gw.society.size.${m.size}`),
+              sizeWord(m.size),
               trustText(m.trust),
               translateText(
                 `gw.house.temper.${Math.min(4, Math.max(0, m.temper))}`,
               ),
-            ].filter((w): w is string => w !== null);
+            ];
             return html`<div class="space-y-0.5" data-gw-community=${m.id}>
               <div class="flex items-center gap-1.5 text-sm">
                 <span class="text-white/90">${communityName(c, m.id)}</span>
@@ -154,7 +180,10 @@ export function electOverlay(
       >
         <div class="space-y-0.5">
           <h3 class="${HEAD} !text-base">
-            ${translateText(`gw.strip.elect.title.${el.cause}`, { chamber })}
+            ${translateText("gw.strip.elect.title", {
+              chamber,
+              cause: electionCause(el.cause),
+            })}
           </h3>
           <p class=${MUTED}>${fullDate(c.data.date)}</p>
         </div>
@@ -171,19 +200,23 @@ export function electOverlay(
                   style=${`--b:${d.before};--a:${d.after};fill:${d.after};animation:gwelect 300ms ${Math.round(400 + (SWEEP * i) / n)}ms both`} />`,
             )}
           </svg>
-          <ul class="space-y-1 sm:w-56 sm:shrink-0">
+          <ul class="space-y-1 sm:w-64 sm:shrink-0">
             ${plan.rows.map((r) => {
               const delta = r.after - r.before;
               return html`<li
-                class="flex items-center gap-1.5 text-xs"
+                class="flex items-start gap-1.5 text-xs"
                 data-gw-elect-row=${r.faction}
               >
                 <span
-                  class="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
+                  class="mt-0.5 inline-block h-2.5 w-2.5 shrink-0 rounded-full"
                   style="background:${r.colour}"
                 ></span>
-                <span class="min-w-0 flex-1 truncate text-white/85"
-                  >${factionName(c, r.faction)}</span
+                <span class="min-w-0 flex-1 text-white/85"
+                  >${electionLine(
+                    factionName(c, r.faction),
+                    r.before,
+                    r.after,
+                  )}</span
                 >
                 <span
                   class=${delta > 0

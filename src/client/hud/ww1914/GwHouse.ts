@@ -8,11 +8,13 @@ import type {
 import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
 import type { GwCtx } from "./GwCtx";
+import { factionName as packFactionName } from "./GwSocietyWords";
 import { CHIP, MUTED } from "./GwStyle";
 import { personName } from "./GwText";
 
 export function factionName(c: GwCtx, id: string): string {
-  return c.pack?.factions?.[id]?.name ?? id;
+  // ww207: a generic nationalist party is named after its community (C).
+  return packFactionName(c.pack, id) ?? id;
 }
 
 const houseOf = (c: GwCtx): GwHouseView | null => c.seat.world.house ?? null;

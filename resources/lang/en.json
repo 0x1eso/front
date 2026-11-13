@@ -5004,36 +5004,10 @@
       "draws": "Parties: {names}",
       "elect": {
         "moved": "{before} → {after} seats",
-        "title": {
-          "by": "{chamber}: by-elections",
-          "dissolved": "{chamber}: election after a dissolution",
-          "due": "{chamber}: general election",
-          "regime": "{chamber}: the new order's first election"
-        }
-      },
-      "gone": "Gone",
-      "kind": {
-        "ability": "Ability",
-        "institution": "Institution",
-        "law": "Law",
-        "perk": "Advantage"
+        "title": "{chamber}: {cause}"
       },
       "label": "The parties in the house",
-      "new": "New party",
       "ready": "Can be asked",
-      "support": {
-        "0": "None",
-        "1": "A handful",
-        "2": "Thin",
-        "3": "Steady",
-        "4": "Broad",
-        "5": "Overwhelming"
-      },
-      "tier": {
-        "bold": "Bold",
-        "extreme": "Extreme",
-        "moderate": "Moderate"
-      },
       "utopia": {
         "ask": "A new head stands at the top: {name}. You can end here, or rule on in {name}'s place.",
         "body": "The whole country has taken up these ideals. The streets have gone quiet.",

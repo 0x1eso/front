@@ -19448,6 +19448,58 @@
       "skip": "건너뛰기",
       "close": "계속"
     },
+    "strip": {
+      "label": "의회의 정당들",
+      "ready": "부탁할 수 있다",
+      "axes_title": "나라가 기우는 쪽",
+      "axes_sub": "법안과 조치, 전쟁이 나라를 이 줄 위에서 움직인다.",
+      "axis_trend": "{word} 쪽으로 움직이는 중",
+      "communities_title": "사회",
+      "communities_sub": "정당들이 기대는 사람들이다. 의석은 없다.",
+      "draws": "기대는 당: {names}",
+      "affinity": {
+        "0": "아직 멀다",
+        "1": "첫발을 뗐다",
+        "2": "절반쯤 왔다",
+        "3": "가까워졌다",
+        "4": "손에 닿는다"
+      },
+      "card": {
+        "ideals": "이 당이 바라는 것",
+        "no_ideals": "뚜렷한 노선이 없다",
+        "support": "지지",
+        "trust": "관계",
+        "temper": "기세",
+        "leader": "이끄는 이",
+        "ability": "부탁",
+        "ask": "부탁한다",
+        "turned": "이 당은 등을 돌렸다.",
+        "tree": "이상향",
+        "open": "연다",
+        "opened": "열렸다",
+        "realise": "실현한다",
+        "promote": "지지한다",
+        "condemn": "규탄한다",
+        "condemn_again": "한 번 더 누르면 규탄한다",
+        "lobby": "설득하러 간다",
+        "close": "닫는다",
+        "born": "새로 생긴 당이다.",
+        "gone": "이 당은 사라졌다. 당원들은 제 사람들 곁으로 돌아갔다."
+      },
+      "elect": {
+        "moved": "{before}석 → {after}석",
+        "title": "{chamber} {cause}"
+      },
+      "utopia": {
+        "kicker": "이상향 실현",
+        "title": "이루어진 나라: {name}",
+        "body": "온 나라가 이 뜻을 받아들였다. 거리의 소란도 가라앉았다.",
+        "ask": "나라 맨 위에 새 사람이 섰다: {name}. 여기서 끝낼 수도, {name}의 자리에서 계속 다스릴 수도 있다.",
+        "end": "여기서 끝낸다",
+        "play": "{name}의 자리에서 계속한다",
+        "go_on": "계속 다스린다"
+      }
+    },
     "bargain": {
       "propose_title": "조건을 정한다",
       "propose_how": "{country}의 모든 주가 지도에 있다. 주마다 처분을 칠한 뒤 조건을 제시한다. 칠하지 않은 주는 돌려준다.",
@@ -19570,84 +19622,6 @@
         }
       },
       "tap": "지도에서 주를 누르면 그 주만 따로 정할 수 있다."
-    },
-    "strip": {
-      "label": "의회의 정당들",
-      "new": "새 당",
-      "gone": "사라짐",
-      "ready": "부탁할 수 있다",
-      "axes_title": "나라가 기우는 쪽",
-      "axes_sub": "법안과 조치, 전쟁이 나라를 이 줄 위에서 움직인다.",
-      "axis_trend": "{word} 쪽으로 움직이는 중",
-      "communities_title": "사회",
-      "communities_sub": "정당들이 기대는 사람들이다. 의석은 없다.",
-      "draws": "기대는 당: {names}",
-      "support": {
-        "0": "없다",
-        "1": "한 줌",
-        "2": "얇다",
-        "3": "고르다",
-        "4": "두텁다",
-        "5": "압도적이다"
-      },
-      "affinity": {
-        "0": "아직 멀다",
-        "1": "첫발을 뗐다",
-        "2": "절반쯤 왔다",
-        "3": "가까워졌다",
-        "4": "손에 닿는다"
-      },
-      "tier": {
-        "moderate": "온건",
-        "bold": "대담",
-        "extreme": "극단"
-      },
-      "kind": {
-        "law": "법",
-        "institution": "기관",
-        "perk": "특전",
-        "ability": "능력"
-      },
-      "card": {
-        "ideals": "이 당이 바라는 것",
-        "no_ideals": "뚜렷한 노선이 없다",
-        "support": "지지",
-        "trust": "관계",
-        "temper": "기세",
-        "leader": "이끄는 이",
-        "ability": "부탁",
-        "ask": "부탁한다",
-        "turned": "이 당은 등을 돌렸다.",
-        "tree": "이상향",
-        "open": "연다",
-        "opened": "열렸다",
-        "realise": "실현한다",
-        "promote": "지지한다",
-        "condemn": "규탄한다",
-        "condemn_again": "한 번 더 누르면 규탄한다",
-        "lobby": "설득하러 간다",
-        "close": "닫는다",
-        "born": "새로 생긴 당이다.",
-        "gone": "이 당은 사라졌다. 당원들은 제 사람들 곁으로 돌아갔다."
-      },
-      "elect": {
-        "moved": "{before}석 → {after}석",
-        "title": {
-          "due": "{chamber} 총선거",
-          "dissolved": "해산 뒤 {chamber} 총선거",
-          "regime": "새 체제의 첫 {chamber} 선거",
-          "by": "{chamber} 보궐선거"
-        }
-      },
-      "utopia": {
-        "kicker": "이상향 실현",
-        "title": "이루어진 나라: {name}",
-        "body": "온 나라가 이 뜻을 받아들였다. 거리의 소란도 가라앉았다.",
-        "ask": "나라 맨 위에 새 사람이 섰다: {name}. 여기서 끝낼 수도, {name}의 자리에서 계속 다스릴 수도 있다.",
-        "end": "여기서 끝낸다",
-        "play": "{name}의 자리에서 계속한다",
-        "go_on": "계속 다스린다"
-      }
     }
   },
   "imjin": {

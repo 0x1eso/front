@@ -7,13 +7,10 @@ import { GW_GAUGE_MAX } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwPack } from "@openfront/engine-api/ww1914/GwPack";
 import {
   GW_AFFINITY_MAX,
-  GW_FACTION_SUPPORT_MAX,
   GW_TRUST_MAX,
-  GW_TRUST_WORDS,
   type GwElection,
   type GwSocietyView,
   type GwStripFactionView,
-  type GwTrustWord,
 } from "@openfront/engine-api/ww1914/GwSociety";
 import { BLOC_COLOR, BLOC_SEATING, NO_BLOC_COLOR } from "./GwStyle";
 import { arcSeats } from "./GwVoteModel";
@@ -58,10 +55,6 @@ export function standingFilled(trust: number): number {
   );
 }
 
-export function trustWord(trust: number): GwTrustWord {
-  return GW_TRUST_WORDS[standingFilled(trust)];
-}
-
 /** Red fervour marks: none to temper 1, then one at 2, two at 3, three at 4. */
 export function fervourMarks(temper: number): number {
   return Math.max(0, Math.min(3, Math.round(temper) - 1));
@@ -70,12 +63,6 @@ export function fervourMarks(temper: number): number {
 /** The ring round the mark: 0..1 of the tree's fill. */
 export function ringFill(affinity: number): number {
   return Math.max(0, Math.min(1, affinity / GW_AFFINITY_MAX));
-}
-
-/** Support 0..10 in six words: gw.strip.support.<band>. */
-export function supportBand(support: number): number {
-  const s = Math.max(0, Math.min(GW_FACTION_SUPPORT_MAX, Math.round(support)));
-  return s === 0 ? 0 : Math.ceil(s / 2);
 }
 
 /** 질서 the orb: it fills as order falls, empty at the top, full at riot. */
