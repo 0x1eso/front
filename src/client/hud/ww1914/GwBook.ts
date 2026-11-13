@@ -19,7 +19,13 @@ import type { GwBookDraft, GwCtx } from "./GwCtx";
 import { timeLeft } from "./GwDept";
 import { factionName } from "./GwHouse";
 import { lobbyExtras, pricePlus, threatButtons, wingRow } from "./GwLobbyDeals";
-import { lawTitle, moneyBillName, moneyFailLine } from "./GwMoneyWords";
+import {
+  lawTitle,
+  moneyBillName,
+  moneyDueLine,
+  moneyKindWord,
+  openMoneyPaper,
+} from "./GwMoneyWords";
 import { officeTitle } from "./GwOffice";
 import { BTN, BTN_ON, CHIP, HEAD, MUTED } from "./GwStyle";
 import { optionSplit, personName } from "./GwText";
@@ -64,7 +70,7 @@ function chapterName(ch: GwBookChapter | null): string {
     : translateText(`gw.book.${ch}`);
 }
 
-function draftOf(c: GwCtx): GwBookDraft {
+export function draftOf(c: GwCtx): GwBookDraft {
   c.ui.book ??= {
     open: [],
     agenda: null,
@@ -260,7 +266,7 @@ function bookBox(c: GwCtx, b: GwBookView, d: GwBookDraft): TemplateResult {
 
 // ---- The agenda ----
 
-function paperLine(c: GwCtx, g: GwAgendaView): TemplateResult {
+export function paperLine(c: GwCtx, g: GwAgendaView): TemplateResult {
   const office = g.counter === null ? "" : officeTitle(c.seat.tag, g.counter);
   return html`<p class="text-sm text-amber-100/90" data-gw-agenda-paper>
       ${g.paper === null
@@ -289,7 +295,7 @@ function paperLine(c: GwCtx, g: GwAgendaView): TemplateResult {
 }
 
 /** A button that asks twice: 신임을 건다, 철회. */
-function twice(
+export function twice(
   c: GwCtx,
   d: GwBookDraft,
   key: string,
@@ -452,7 +458,7 @@ function pricesBox(c: GwCtx, g: GwAgendaView, l: GwLobbyView): TemplateResult {
   </div>`;
 }
 
-function lobbyLine(
+export function lobbyLine(
   c: GwCtx,
   g: GwAgendaView,
   l: GwLobbyView,
@@ -586,15 +592,12 @@ function agendaRow(
     translateText("gw.agenda.age", { n: Math.max(1, g.age) }),
   ].filter((x) => x !== null);
   return html`<div
-    class="space-y-1 rounded border ${g.money === undefined
-      ? "border-white/10"
-      : "border-amber-300/40 bg-amber-300/5"} p-2"
+    class="space-y-1 rounded border border-white/10 p-2"
     data-gw-agenda=${g.law}
-    data-gw-agenda-money=${g.money?.kind ?? nothing}
   >
     <div class="flex items-baseline justify-between gap-2 text-sm">
       <span class="font-bold"
-        >${billName(c, g.law)}${g.text === null || g.money !== undefined
+        >${billName(c, g.law)}${g.text === null
           ? nothing
           : html` ·
               <span class="font-normal"
@@ -606,15 +609,6 @@ function agendaRow(
       >
     </div>
     <p class=${MUTED}>${who.join(" · ")}</p>
-    ${g.money === undefined
-      ? nothing
-      : html`<p class="text-sm text-amber-100/90" data-gw-agenda-money-fail>
-          ${moneyFailLine(
-            g.money.fail,
-            g.money.kind,
-            c.seat.world.budget?.credits?.by ?? null,
-          )}
-        </p>`}
     ${g.replaces === null
       ? nothing
       : html`<p class=${MUTED} data-gw-agenda-replaces>
@@ -671,24 +665,46 @@ function agendaRow(
 }
 
 /**
- * ww209: the money bills, pinned above the agenda and not counted in it:
- * the year's budget and the war credits, each as an agenda row.
+ * ww209: the money bills, pinned above the agenda and not counted in it.
+ * ww214: each is only a status line here; its paper (the count, the lobby,
+ * the call) opens from it, the same paper as the one on the desk.
  */
-function pinnedBox(
-  c: GwCtx,
-  b: GwBookView,
-  d: GwBookDraft,
-): TemplateResult | typeof nothing {
+function pinnedBox(c: GwCtx, b: GwBookView): TemplateResult | typeof nothing {
   const rows = b.pinned ?? [];
   if (rows.length === 0) return nothing;
   return html`<div class="space-y-1.5" data-gw-pinned>
     <h4 class=${HEAD}>${translateText("gw.agenda.pinned")}</h4>
-    ${rows.map((g) => agendaRow(c, g, b.calls, d))}
+    ${rows.map(
+      (g) =>
+        html`<div
+          class="space-y-1 rounded border border-amber-300/40 bg-amber-300/5 p-2"
+          data-gw-agenda=${g.law}
+          data-gw-agenda-money=${g.money?.kind ?? nothing}
+        >
+          <div class="flex items-baseline justify-between gap-2 text-sm">
+            <span class="font-bold">${billName(c, g.law)}</span>
+            <span class="shrink-0 text-xs text-amber-100/90"
+              >${translateText("gw.money.paper.waits")}</span
+            >
+          </div>
+          <p class=${MUTED}>
+            ${g.money === undefined ? "" : moneyKindWord(g.money.kind)} ·
+            ${moneyDueLine(g, c.data.chapter)}
+          </p>
+          <button
+            class="${BTN} ${SMALL}"
+            data-gw-pinned-open=${g.law}
+            @click=${() => openMoneyPaper(c, g.law)}
+          >
+            ${translateText("gw.money.paper.open")}
+          </button>
+        </div>`,
+    )}
   </div>`;
 }
 
 function agendaBox(c: GwCtx, b: GwBookView, d: GwBookDraft): TemplateResult {
-  return html`${pinnedBox(c, b, d)}
+  return html`${pinnedBox(c, b)}
     <div class="space-y-1.5" data-gw-agenda-box>
       <h4 class=${HEAD}>
         ${translateText("gw.agenda.title", { n: b.agenda.length, max: b.max })}

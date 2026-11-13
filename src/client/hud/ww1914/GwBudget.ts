@@ -86,7 +86,8 @@ export function planOf(c: GwCtx): GwBudgetPlan {
   const v = c.seat.world.budget;
   // A plan left on the screen ends with its meeting, however that closed.
   if (!v.meeting) return v.plan;
-  return c.ui.budgetPlan ?? v.draft ?? v.plan;
+  // ww214: the plan before the house, as its paper amended it.
+  return c.ui.budgetPlan ?? v.put ?? v.draft ?? v.plan;
 }
 
 /** ww209: the plan's tax kind; absent is the old duties on goods. */
@@ -592,7 +593,9 @@ function actions(
       ? html`<p class="text-sm text-amber-200" data-gw-budget-refused>
           ${translateText("gw.budget.refused_now")}
         </p>`
-      : html`<p class=${MUTED}>${translateText("gw.budget.unsigned")}</p>`}
+      : b === null
+        ? html`<p class=${MUTED}>${translateText("gw.budget.unsigned")}</p>`
+        : nothing}
     ${b === null
       ? html`<button
           class=${GO}
@@ -631,7 +634,11 @@ function actions(
           class="${BTN} w-full text-center"
           data-gw-budget-reset
           @click=${() => {
-            c.ui.budgetPlan = null;
+            const d = v.draft;
+            c.ui.budgetPlan =
+              d === null
+                ? null
+                : { ...d, shares: [...d.shares], mix: [...d.mix] };
             c.redraw();
           }}
         >
@@ -770,7 +777,7 @@ export function openLedger(c: GwCtx) {
 /** What the meeting's card adds to the reader: the draft against what runs. */
 export function budgetStrip(c: GwCtx): TemplateResult {
   const v = c.seat.world.budget;
-  const plan = v.draft ?? v.plan;
+  const plan = v.put ?? v.draft ?? v.plan;
   return html`<div class="${BOX}" data-gw-budget-strip>
     <div class="flex flex-wrap gap-1">
       ${GW_BUDGET_LINES.map(

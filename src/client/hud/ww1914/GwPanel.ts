@@ -45,6 +45,7 @@ import {
   tabsOf,
   wiresIn,
 } from "./GwModel";
+import { moneyReader } from "./GwMoneyPaper";
 import { notebookTab } from "./GwNotebook";
 import { peopleTab } from "./GwPeople";
 import { replayBeats } from "./GwPlaceModel";
@@ -400,6 +401,7 @@ export class GwPanel extends LitElement implements Controller {
       ui.budgetOpen = false;
       ui.pressPick = null;
       ui.readerUid = null;
+      ui.moneyPaper = null;
       ui.armed = null;
       ui.actOpen = null;
       ui.actPicks = {};
@@ -701,7 +703,7 @@ export class GwPanel extends LitElement implements Controller {
       ${replaying
         ? nothing
         : html`${paintTags(c)} ${tableTags(c)} ${speech(c)}`}
-      ${open === undefined ? nothing : reader(c, open)}
+      ${open === undefined ? nothing : reader(c, open)} ${moneyReader(c)}
       ${ui.budgetOpen ? budgetPanel(c) : nothing}
       ${ui.spot === null || replaying || painting
         ? nothing

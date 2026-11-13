@@ -21,8 +21,10 @@ import type {
   GwDealTerm,
   GwThreatKind,
 } from "@openfront/engine-api/ww1914/GwDeals";
+import type { GwAgendaView } from "@openfront/engine-api/ww1914/GwLaw";
 import type { GwPack } from "@openfront/engine-api/ww1914/GwPack";
 import type { GwBargainMove } from "@openfront/engine-api/ww1914/GwTable";
+import type { GwCardView } from "@openfront/engine-api/ww1914/GwView";
 import { moneyBillOf } from "@openfront/engine-lib/ww1914/MoneyRows";
 import { translateText } from "../../Utils";
 import type { GwCtx } from "./GwCtx";
@@ -221,4 +223,53 @@ export function defyLine(name: string | null): string {
 /** A settlement-table move's chip; `counter` and `down` name the fate. */
 export function bargainMoveWord(move: GwBargainMove, fate = ""): string {
   return translateText(`gw.bargain.move.${move}`, { fate });
+}
+
+// ---- ww214: one paper for a money bill ----
+
+/** The pinned row of a money bill, by its law id; null once it has left. */
+export function pinnedRow(c: GwCtx, law: string): GwAgendaView | null {
+  return c.seat.world.book?.pinned?.find((g) => g.law === law) ?? null;
+}
+
+/**
+ * The money bill a desk card is the paper of: the meeting's card for the
+ * budget on its pinned place, the credits' paper, a bill come back after a
+ * lost vote. Null for any other card, or a bill no longer before the house
+ * (a budget signed without a vote keeps the meeting's old card).
+ */
+export function moneyHostLaw(
+  c: GwCtx,
+  card: Pick<GwCardView, "scene">,
+): string | null {
+  const kind: GwMoneyBill | null =
+    card.scene === "gw_mp_credits"
+      ? "credits"
+      : card.scene === "gw_mp_budget" || card.scene.startsWith("gw_bm_")
+        ? "budget"
+        : null;
+  if (kind === null) return null;
+  const row = c.seat.world.book?.pinned?.find((g) => g.money?.kind === kind);
+  return row?.law ?? null;
+}
+
+/** Opens a money bill's paper: its card on the desk, else the paper alone. */
+export function openMoneyPaper(c: GwCtx, law: string): void {
+  const card = c.seat.desk.find((x) => moneyHostLaw(c, x) === law);
+  if (card !== undefined) {
+    c.ui.readerUid = card.uid;
+    c.ui.moneyPaper = null;
+  } else {
+    c.ui.moneyPaper = law;
+  }
+  c.ui.armed = null;
+  c.redraw();
+}
+
+/** When the house votes it by itself if it is left, in words. */
+export function moneyDueLine(g: GwAgendaView, chapter: number): string {
+  const due = g.money?.due;
+  const left = due === undefined ? 2 : due - chapter;
+  const key = left <= 0 ? "now" : left === 1 ? "next" : "later";
+  return translateText(`gw.money.paper.due.${key}`);
 }

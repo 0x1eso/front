@@ -1,3 +1,4 @@
+import type { GwBudgetView } from "@openfront/engine-api/ww1914/GwBudget";
 import type {
   GwBallot,
   GwBallotChamber,
@@ -12,17 +13,21 @@ import type { GwOrder } from "@openfront/engine-api/ww1914/GwOrders";
 import type { GwPack } from "@openfront/engine-api/ww1914/GwPack";
 import type {
   GreatWarData,
+  GwCardView,
   GwSeatView,
 } from "@openfront/engine-api/ww1914/GwView";
+import { budgetRow } from "@openfront/engine-lib/ww1914/BudgetRules";
 import { html, render, TemplateResult } from "lit";
 import { describe, expect, test } from "vitest";
 import { headlineText } from "../../../src/client/hud/ww1914/GwBlocs";
 import { bookSection, textName } from "../../../src/client/hud/ww1914/GwBook";
 import type { GwCtx, GwUi } from "../../../src/client/hud/ww1914/GwCtx";
+import { reader } from "../../../src/client/hud/ww1914/GwDesk";
 import {
   blocFactions,
   houseChip,
 } from "../../../src/client/hud/ww1914/GwHouse";
+import { moneyReader } from "../../../src/client/hud/ww1914/GwMoneyPaper";
 import { promiseText } from "../../../src/client/hud/ww1914/GwText";
 import { GwVote, voteOverlay } from "../../../src/client/hud/ww1914/GwVote";
 import { tallyAt, votePlan } from "../../../src/client/hud/ww1914/GwVoteModel";
@@ -49,6 +54,11 @@ const PACK = {
     deu_i_westarp: { name: "베스타르프", lean: "" },
   },
   scenes: {
+    gw_mp_credits: {
+      title: "전쟁 공채안",
+      text: { base: "{fin}이(가) 공채안을 올린다." },
+      opt: { keep: "**공채안을 기한까지 둔다.**" },
+    },
     gw_law_deu_aux: {
       title: "조국 봉사법",
       text: { base: "." },
@@ -149,7 +159,40 @@ const agenda = (over: Partial<GwAgendaView> = {}): GwAgendaView => ({
   ...over,
 });
 
-function bookCtx(book: GwBookView | undefined, h: GwHouseView | null) {
+/** ww214: the ledger's view, enough for a money bill's paper. */
+const budgetView = (over: Partial<GwBudgetView> = {}): GwBudgetView =>
+  ({
+    plan: { shares: [...budgetRow("DEU").war], mix: [100, 60, 2, 15] },
+    draft: { shares: [...budgetRow("DEU").war], mix: [100, 60, 2, 15] },
+    put: { shares: [...budgetRow("DEU").war], mix: [100, 60, 2, 15] },
+    meeting: true,
+    refused: false,
+    body: {
+      kind: "vote",
+      inst: "reichstag",
+      need: -4,
+      second: null,
+      secondNeed: 0,
+      value: 0,
+      secondValue: 0,
+      forcePrice: 30,
+    },
+    authority: 40,
+    credits: {
+      n: 3,
+      by: "vote",
+      due: 24,
+      law: "deu_money_credits_3",
+      stopTo: null,
+    },
+    ...over,
+  }) as unknown as GwBudgetView;
+
+function bookCtx(
+  book: GwBookView | undefined,
+  h: GwHouseView | null,
+  desk: GwCardView[] = [],
+) {
   const sent: GwOrder[] = [];
   const root = document.createElement("div");
   const c = {
@@ -158,14 +201,29 @@ function bookCtx(book: GwBookView | undefined, h: GwHouseView | null) {
       tag: "DEU",
       audiences: 0,
       people: [{ id: "deu_helfferich", office: "finance" }],
-      world: { house: h ?? undefined, book },
+      desk,
+      world: { house: h ?? undefined, book, budget: budgetView(), secrets: [] },
     } as unknown as GwSeatView,
     pack: PACK,
-    ui: { notes: [], summoned: 0, armedRepeal: null } as unknown as GwUi,
+    ui: {
+      notes: [],
+      summoned: 0,
+      armedRepeal: null,
+      armed: null,
+      readerUid: null,
+    } as unknown as GwUi,
     tick: 0,
     send: (o: GwOrder) => sent.push(o),
-    redraw: () => render(html`${bookSection(c)}`, root),
-    card: () => undefined,
+    redraw: () => {
+      const open = c.ui.readerUid === null ? undefined : c.card(c.ui.readerUid);
+      render(
+        html`${bookSection(c)}${open === undefined
+          ? ""
+          : reader(c, open)}${moneyReader(c)}`,
+        root,
+      );
+    },
+    card: (uid: number) => desk.find((x) => x.uid === uid),
   } as GwCtx;
   c.redraw();
   const q = (sel: string) => root.querySelector(sel) as HTMLButtonElement;
@@ -444,7 +502,8 @@ describe("the house on the screens: the law book (ww203), the factions", () => {
       { articles: [], agenda: [rival], max: 3, calls: 1, pinned: [budget] },
       house(),
     );
-    // Pinned above the agenda, not counted in it, with what losing it does.
+    // Pinned above the agenda, not counted in it: ww214, only a status line
+    // that opens the bill's paper, where what losing it does is written.
     const pinned = root.querySelector("[data-gw-pinned]")!;
     expect(
       pinned.compareDocumentPosition(
@@ -454,8 +513,14 @@ describe("the house on the screens: the law book (ww203), the factions", () => {
     expect(
       pinned.querySelector('[data-gw-agenda-money="budget"]'),
     ).not.toBeNull();
-    expect(pinned.querySelector("[data-gw-agenda-money-fail]")).not.toBeNull();
-    q("[data-gw-agenda-lobby=deu_money_budget]").click();
+    expect(pinned.querySelector("[data-gw-agenda-lobby]")).toBeNull();
+    expect(pinned.querySelector("[data-gw-agenda-vote]")).toBeNull();
+    expect(pinned.textContent).toContain("gw.money.paper.waits");
+    q("[data-gw-pinned-open=deu_money_budget]").click();
+    expect(c.ui.moneyPaper).toBe("deu_money_budget");
+    const paper = root.querySelector("[data-gw-money-reader]")!;
+    expect(paper.querySelector("[data-gw-agenda-money-fail]")).not.toBeNull();
+    expect(paper.querySelector("[data-gw-money-lobby]")).not.toBeNull();
     q('[data-gw-price-term="session"]').click();
     q("[data-gw-price-favour=spd_bread]").click();
     q('[data-gw-counter="against"]').click();
@@ -522,6 +587,64 @@ describe("the house on the screens: the law book (ww203), the factions", () => {
     const line = scene.querySelector('[data-gw-vote-line="defy"]')!;
     expect(line.textContent).toContain("gw.vote.wing_of");
     expect(line.textContent).toContain("gw.vote.beat.defy_by");
+  });
+
+  test("ww214: the credits' paper is where they are voted: the count, the lobby, the call; no second paper", () => {
+    const law = "deu_money_credits_3";
+    const credits = agenda({
+      law,
+      text: null,
+      withdraw: false,
+      confidence: false,
+      money: { kind: "credits", n: 3, year: 1916, fail: "runs_on", due: 21 },
+    });
+    const card = {
+      uid: 7,
+      scene: "gw_mp_credits",
+      kind: "ledger",
+      variant: "base",
+      cast: {},
+      stamp: null,
+      options: [{ id: "keep", open: true, tell: [] }],
+      who: null,
+      node: null,
+      says: null,
+      replies: [],
+    } as unknown as GwCardView;
+    const { c, root, sent, q } = bookCtx(
+      { articles: [], agenda: [], max: 3, calls: 1, pinned: [credits] },
+      house(),
+      [card],
+    );
+    // The status line opens the card on the desk, not another paper.
+    q(`[data-gw-pinned-open=${law}]`).click();
+    expect(c.ui.readerUid).toBe(7);
+    expect(c.ui.moneyPaper).toBe(null);
+    const paper = root.querySelector(`[data-gw-money-paper=${law}]`)!;
+    expect(root.querySelector("[data-gw-reader=gw_mp_credits]")).not.toBe(null);
+    // Titled with the bill's own name, the count's word, the lobby, the choices.
+    expect(root.querySelector("[data-gw-reader] h2")!.textContent).toContain(
+      "gw.money.name.credits",
+    );
+    expect(
+      paper.querySelector("[data-gw-agenda-paper]")!.textContent,
+    ).toContain("gw.agenda.paper");
+    expect(paper.querySelectorAll("[data-gw-lobby]").length).toBe(2);
+    expect(paper.querySelector("[data-gw-credits-by=vote]")).not.toBe(null);
+    expect(paper.querySelector("[data-gw-money-amend]")).toBe(null);
+    expect(paper.querySelector("[data-gw-money-hold]")).not.toBe(null);
+    expect(paper.querySelector("[data-gw-money-due]")!.textContent).toContain(
+      "gw.money.paper.due.next",
+    );
+    // The card's options are not drawn apart: the call is the paper's.
+    expect(root.querySelector("[data-gw-option]")).toBe(null);
+    q(`[data-gw-money-vote=${law}]`).click();
+    expect(sent).toEqual([
+      { kind: "choose", card: 7, option: "keep" },
+      { kind: "bill_vote", law, confidence: false },
+    ]);
+    expect(c.ui.readerUid).toBe(null);
+    expect(c.ui.notes.map((n) => n.pick)).toEqual(["gw.agenda.call"]);
   });
 
   test("the 정국 tab lists a bloc's factions in words; the band shows one chip while one is out", () => {

@@ -2406,7 +2406,7 @@
       "close": "Close",
       "credits": "War credits",
       "credits_ask": "Ask the Duma too",
-      "credits_on": "On the agenda: call the vote in the Rule tab.",
+      "credits_on": "Before the house: lobby and call the vote on the credits' paper.",
       "credits_put": "Put the credits now",
       "debt_end": "Debt at year's end",
       "differs": "Where it parts from the minister's draft",
@@ -2503,8 +2503,8 @@
       "printed_more": "Printed on top: {sum}",
       "proposed": "Proposed",
       "put": "Put it on the agenda",
-      "put_again": "Put it to the house again",
-      "put_hint": "It hangs apart at the top of the house group in the Rule tab. Win the parties there, then call the vote.",
+      "put_again": "Amend it and put it again",
+      "put_hint": "The amended plan goes onto the budget's paper. Win the parties there, then call the vote.",
       "refused_now": "Refused. Change it and send it again, force it, or last year's runs on.",
       "reset": "Back to the draft",
       "revenue": "Revenue",
@@ -4263,6 +4263,25 @@
           "budget": "The {year} state budget"
         }
       },
+      "paper": {
+        "alone": "Sign it alone",
+        "amend": "Amend it and put it again",
+        "amend_hint": "Open the ledger and change the lines and the taxes.",
+        "choices": "What to do with it",
+        "count": "The count",
+        "due": {
+          "later": "Left as it is, the house votes it by itself at the deadline.",
+          "next": "Left as it is, the house votes it by itself as the next chapter ends.",
+          "now": "Left as it is, the house votes it by itself as this chapter ends."
+        },
+        "force": "Force it through on your authority",
+        "hold": "Leave it till the deadline",
+        "open": "Open its paper",
+        "plan": "The plan",
+        "short": "Not enough authority for that now.",
+        "versions": "Which plan goes in",
+        "waits": "Waiting for the vote"
+      },
       "stopped": "The war credits were refused: no bonds or loans for now, and the bank prints the gap."
     },
     "news": {
@@ -4687,7 +4706,6 @@
       "conference_protest": "The signature carried a protest.",
       "conference_signed": "The treaty was signed.",
       "countersign_refused": "The chancellor will not put his name to more.",
-      "credits_for_reform": "The credits passed at the price of a promise of reform.",
       "dept_acted": "Nobody heard {who}'s department, so it acted on its own.",
       "dept_leak": "Word got out of {who}'s department.",
       "dept_overruled": "{who} was overruled and took it badly.",

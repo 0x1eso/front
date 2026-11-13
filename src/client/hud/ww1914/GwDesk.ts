@@ -30,6 +30,8 @@ import {
   paperCards,
   talkCards,
 } from "./GwModel";
+import { moneyPaperBody } from "./GwMoneyPaper";
+import { lawTitle, moneyHostLaw } from "./GwMoneyWords";
 import { nowBox } from "./GwNow";
 import { paperBody, paperChips, paperGist, paperTitle } from "./GwPaper";
 import { openCard, placeChip } from "./GwPlaceSheet";
@@ -112,8 +114,13 @@ function sender(c: GwCtx, card: GwCardView): string {
   return first === undefined ? "" : personName(c.pack, first);
 }
 
-/** The card's heading: a paper's own, else its scene's title. */
+/**
+ * The card's heading: a paper's own, else its scene's title. ww214: a money
+ * bill's paper bears the bill's own name (1916년도 제국 예산안).
+ */
 function titleOf(c: GwCtx, card: GwCardView): string {
+  const law = moneyHostLaw(c, card);
+  if (law !== null) return lawTitle(c, law);
   return paperTitle(c, card) ?? cardTitle(c.pack, card);
 }
 
@@ -607,6 +614,8 @@ export function reader(c: GwCtx, card: GwCardView): TemplateResult {
       ? briefText(c.pack, card, c.seat, c.data.date)
       : null;
   const stamp = cardStamp(card);
+  // ww214: a money bill's paper: the bill decided on the card itself.
+  const money = moneyHostLaw(c, card);
   const armedOpt =
     c.ui.armed?.uid === card.uid
       ? card.options.find((o) => o.id === c.ui.armed?.option)
@@ -676,7 +685,11 @@ export function reader(c: GwCtx, card: GwCardView): TemplateResult {
           : html`<p class="text-white/70" data-gw-broken-line>${after}</p>`}
         ${decryptLine(card)}
       </div>
-      ${card.scene.startsWith("gw_bm_") ? budgetStrip(c) : nothing}
+      ${money !== null
+        ? moneyPaperBody(c, money, card, close)
+        : card.scene.startsWith("gw_bm_")
+          ? budgetStrip(c)
+          : nothing}
       ${card.scene.startsWith("gw_lv_") ? lawStrip(c, card.scene) : nothing}
       ${projectDoneLine(c, card.scene)} ${paperBody(c, card, close)}
       ${(card.folded ?? []).length === 0
@@ -688,45 +701,47 @@ export function reader(c: GwCtx, card: GwCardView): TemplateResult {
                 html`<p class="text-sm text-white/75">${rich(c, l, pass)}</p>`,
             )}
           </div>`}
-      ${card.paper !== undefined && card.paper.form !== "news"
-        ? deptVerdicts(c, card, close)
-        : read
-          ? html`<button
-                class="${BTN} w-full text-center"
-                data-gw-readdone
-                @click=${() => {
-                  c.send({ kind: "read", card: card.uid });
-                  close();
-                }}
-              >
-                ${translateText("gw.ui.read_done")}
-              </button>
-              ${deptVerdicts(c, card, close)}`
-          : html`<div class="space-y-1.5">
-              <div class=${MUTED}>${translateText("gw.ui.options")}</div>
-              ${card.options.map((o) => optionButton(c, card, o, pass))}
-              ${armedOpt === undefined
-                ? nothing
-                : html`<button
-                    class="w-full rounded border border-amber-300 bg-amber-300/90 px-3 py-2 text-center text-sm font-bold text-slate-900 hover:bg-amber-200"
-                    data-gw-sign
-                    @click=${() => {
-                      c.ui.notes.push(resultNote(c, card, armedOpt));
-                      c.send({
-                        kind: "choose",
-                        card: card.uid,
-                        option: armedOpt.id,
-                      });
-                      if (armedOpt.screen === "fronts") {
-                        c.ui.tab = armedOpt.screen;
-                      }
-                      close();
-                    }}
-                  >
-                    ${signWord(card, armedOpt.id)}
-                  </button>`}
-              ${backControl(c, card, close)} ${deptVerdicts(c, card, close)}
-            </div>`}
+      ${money !== null
+        ? nothing
+        : card.paper !== undefined && card.paper.form !== "news"
+          ? deptVerdicts(c, card, close)
+          : read
+            ? html`<button
+                  class="${BTN} w-full text-center"
+                  data-gw-readdone
+                  @click=${() => {
+                    c.send({ kind: "read", card: card.uid });
+                    close();
+                  }}
+                >
+                  ${translateText("gw.ui.read_done")}
+                </button>
+                ${deptVerdicts(c, card, close)}`
+            : html`<div class="space-y-1.5">
+                <div class=${MUTED}>${translateText("gw.ui.options")}</div>
+                ${card.options.map((o) => optionButton(c, card, o, pass))}
+                ${armedOpt === undefined
+                  ? nothing
+                  : html`<button
+                      class="w-full rounded border border-amber-300 bg-amber-300/90 px-3 py-2 text-center text-sm font-bold text-slate-900 hover:bg-amber-200"
+                      data-gw-sign
+                      @click=${() => {
+                        c.ui.notes.push(resultNote(c, card, armedOpt));
+                        c.send({
+                          kind: "choose",
+                          card: card.uid,
+                          option: armedOpt.id,
+                        });
+                        if (armedOpt.screen === "fronts") {
+                          c.ui.tab = armedOpt.screen;
+                        }
+                        close();
+                      }}
+                    >
+                      ${signWord(card, armedOpt.id)}
+                    </button>`}
+                ${backControl(c, card, close)} ${deptVerdicts(c, card, close)}
+              </div>`}
     </article>
   </div>`;
 }

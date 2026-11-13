@@ -183,6 +183,8 @@ export interface GwUi {
   honourPick?: { uid: number; picks: (string | null)[] } | null;
   /** ww203: the 법전 and 의사일정's folds and picks; null fresh. */
   book?: GwBookDraft | null;
+  /** ww214: a money bill's paper open with no card of it on the desk. */
+  moneyPaper?: string | null;
 }
 
 /** ww203: what is open or picked in the 통치 tab's book and agenda. */
