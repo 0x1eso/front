@@ -16,6 +16,7 @@ import type { GwFateMark } from "@openfront/engine-api/ww1914/GwFate";
 import type { GwOrder } from "@openfront/engine-api/ww1914/GwOrders";
 import type { GwPack } from "@openfront/engine-api/ww1914/GwPack";
 import type { GwPlace } from "@openfront/engine-api/ww1914/GwPlaces";
+import type { GwBargainMove } from "@openfront/engine-api/ww1914/GwTable";
 import type {
   GreatWarData,
   GwCardView,
@@ -135,6 +136,10 @@ export interface GwUi {
   tableFate?: { place: GwPlace; mark: GwFateMark } | null;
   /** The list of what could stand in for the land is open. */
   tableOffer: boolean;
+  /** ww205: the seat's move on each refused place, by claim id, before it proposes again. */
+  bargain?: Record<number, { move: GwBargainMove; place: GwPlace | null }>;
+  /** ww205: the beaten seat's yes (true) or no to each place, by claim id. */
+  answers?: Record<number, boolean>;
   /** Terms being drawn up. */
   termTag: GwTag | null;
   termGive: GwGiveClause[];

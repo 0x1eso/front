@@ -85,10 +85,10 @@ const STRAIN_ROUND = 1;
 const STRAIN_INSIST = 2;
 /** Strain the beaten bears before it walks out, by character. */
 const WALK_AT = {
-  hardline: 5,
-  opportunist: 6,
-  principled: 7,
-  cautious: 8,
+  hardline: 6,
+  opportunist: 7,
+  principled: 8,
+  cautious: 9,
 } as const;
 /** Allies still fighting make the door nearer; a worn country bears more. */
 const WALK_ALLIES = 2;

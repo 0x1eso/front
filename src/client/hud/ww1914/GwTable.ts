@@ -2,6 +2,7 @@ import { gwCountry, GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import type { GwFateMark } from "@openfront/engine-api/ww1914/GwFate";
 import { GW_PLACES, GwPlace } from "@openfront/engine-api/ww1914/GwPlaces";
 import type {
+  GwBargainMove,
   GwTableClaimView,
   GwTableLine,
   GwTableView,
@@ -29,10 +30,13 @@ import {
   sameMark,
 } from "./GwFateModel";
 import { officeTitle } from "./GwOffice";
+import { SIGN } from "./GwPaper";
 import { BTN, BTN_ON, CHIP, GLASS, HEAD, MUTED } from "./GwStyle";
 import {
   aideLines,
+  answerState,
   countryName,
+  downMark,
   envoyName,
   envoyPerson,
   envoyTitle,
@@ -41,9 +45,11 @@ import {
   lineText,
   paintable,
   placeName,
+  proposalOf,
   stillWanted,
   tagged,
   toggleLand,
+  whyText,
 } from "./GwTableModel";
 import { personName } from "./GwText";
 
@@ -86,6 +92,13 @@ export function paintTags(c: GwCtx): TemplateResult | typeof nothing {
 export function tableTags(c: GwCtx): TemplateResult | typeof nothing {
   const t = c.seat.table;
   if (t === null || t === undefined || c.ui.tab !== "table") return nothing;
+  // ww205: the proposal being painted names its painted places.
+  if (t.due?.kind === "propose") {
+    const fates = c.seat.claims?.fates ?? {};
+    return html`${t.due.places
+      .filter((p) => fates[p] !== undefined)
+      .map((p) => tag(p, fates[p]))}`;
+  }
   return html`${tagged(t).map((x) =>
     tag(
       x.place,
@@ -475,14 +488,17 @@ export function armedMark(
   return t.fates?.[armed] ?? { fate: "annex" };
 }
 
-/** What the armed place is to become: a row of fates, then what it needs. */
-function fateButtons(c: GwCtx, t: GwTableView, armed: GwPlace) {
+/**
+ * What the armed place is to become: a row of fates, then what it needs.
+ * `mark`: what it is now (null: nothing painted); `pick` takes the new one.
+ */
+function fateButtons(
+  c: GwCtx,
+  armed: GwPlace,
+  mark: GwFateMark | null,
+  pick: (m: GwFateMark) => void,
+) {
   const ch = choicesFor(c.seat, [armed]);
-  const mark = armedMark(c, t, armed);
-  const pick = (m: GwFateMark) => {
-    c.ui.tableFate = { place: armed, mark: m };
-    c.redraw();
-  };
   const detail = (on: boolean, label: string, m: GwFateMark, id: string) =>
     html`<button
       class="${on ? BTN_ON : BTN} !px-2 !py-1"
@@ -492,7 +508,7 @@ function fateButtons(c: GwCtx, t: GwTableView, armed: GwPlace) {
       ${label}
     </button>`;
   let details: TemplateResult[] = [];
-  if (mark.fate === "state") {
+  if (mark?.fate === "state") {
     details = ch.states.map((id) =>
       detail(
         mark.client === id,
@@ -501,7 +517,7 @@ function fateButtons(c: GwCtx, t: GwTableView, armed: GwPlace) {
         id,
       ),
     );
-  } else if (mark.fate === "ally") {
+  } else if (mark?.fate === "ally") {
     details = ch.allies.map((tag) =>
       detail(
         mark.for === tag,
@@ -510,7 +526,7 @@ function fateButtons(c: GwCtx, t: GwTableView, armed: GwPlace) {
         tag,
       ),
     );
-  } else if (mark.fate === "occupy") {
+  } else if (mark?.fate === "occupy") {
     details = (["short", "long"] as const).map((term) =>
       detail(
         (mark.term ?? "short") === term,
@@ -525,9 +541,10 @@ function fateButtons(c: GwCtx, t: GwTableView, armed: GwPlace) {
       ${ch.fates.map(
         (f) =>
           html`<button
-            class="${mark.fate === f ? BTN_ON : BTN} !px-2 !py-1 text-center"
+            class="${mark?.fate === f ? BTN_ON : BTN} !px-2 !py-1 text-center"
             data-gw-turn-fate=${f}
-            @click=${() => pick(mark.fate === f ? mark : markOf(f, ch))}
+            @click=${() =>
+              pick(mark !== null && mark.fate === f ? mark : markOf(f, ch))}
           >
             ${fateDo(f)}
           </button>`,
@@ -552,7 +569,10 @@ function turnBox(c: GwCtx, t: GwTableView) {
       ? html`<p class="text-sm text-white/80">
           ${translateText("gw.table.tap")}
         </p>`
-      : html`${fateButtons(c, t, armed)}
+      : html`${fateButtons(c, armed, armedMark(c, t, armed), (m) => {
+            c.ui.tableFate = { place: armed, mark: m };
+            c.redraw();
+          })}
           <button
             class="${BTN_ON} w-full text-center"
             data-gw-claim-go
@@ -604,6 +624,316 @@ function turnBox(c: GwCtx, t: GwTableView) {
     >
       ${translateText("gw.table.pass")}
     </button>
+  </section>`;
+}
+
+// ---- ww205: a table of one beaten country, in whole proposals ----
+
+/** The lands among `places`, west to east. */
+function landsAmong(c: GwCtx, places: readonly GwPlace[]): string[] {
+  return landsOf(c.seat.tag).filter((g) =>
+    places.some((p) => GW_PLACES[p].group === g),
+  );
+}
+
+/** The whole proposal: every place of the beaten painted, then the terms. */
+function proposeBox(c: GwCtx, t: GwTableView) {
+  const due = t.due;
+  if (due?.kind !== "propose") return nothing;
+  const beaten = t.talk?.beaten ?? null;
+  const places = due.places;
+  const fates = c.seat.claims?.fates ?? t.fates ?? {};
+  const painted = places.filter((p) => fates[p] !== undefined).length;
+  const armed =
+    c.ui.tableArmed !== null && places.includes(c.ui.tableArmed)
+      ? c.ui.tableArmed
+      : null;
+  return html`<section class="${BOX} border-amber-300/50" data-gw-propose>
+    <h3 class=${HEAD}>${translateText("gw.bargain.propose_title")}</h3>
+    <p class="text-sm leading-6 text-white/85">
+      ${translateText("gw.bargain.propose_how", {
+        country: beaten === null ? "" : countryName(beaten),
+      })}
+    </p>
+    <p class=${MUTED}>${translateText("gw.bargain.propose_plan")}</p>
+    ${armed === null
+      ? html`<p class=${MUTED}>${translateText("gw.bargain.tap")}</p>`
+      : html`<div
+          class="space-y-1 rounded border border-amber-300/30 p-1.5"
+          data-gw-propose-armed=${armed}
+        >
+          <p class="text-sm font-bold text-amber-100">${placeName(armed)}</p>
+          ${fateButtons(c, armed, fates[armed] ?? null, (m) =>
+            c.send(fateOrder({ place: armed }, m)),
+          )}
+        </div>`}
+    ${landsAmong(c, places).map((g) => fateRow(c, g, places))}
+    <div class="flex flex-wrap gap-1" data-gw-propose-places>
+      ${places.slice(0, 24).map(
+        (p) =>
+          html`<button
+            class="${p === armed ? BTN_ON : BTN} !px-2 !py-1"
+            data-gw-propose-place=${p}
+            @click=${() => {
+              c.ui.tableArmed = p === armed ? null : p;
+              c.fly?.(p);
+              c.redraw();
+            }}
+          >
+            ${placeName(p)}${fates[p] === undefined
+              ? nothing
+              : html` <span class="text-amber-200"
+                  >${fateChip(fates[p].fate)}</span
+                >`}
+          </button>`,
+      )}
+    </div>
+    <p class=${MUTED} data-gw-propose-count>
+      ${translateText("gw.bargain.painted", {
+        n: painted,
+        total: places.length,
+      })}
+    </p>
+    <button
+      class=${SIGN}
+      data-gw-propose-go
+      @click=${() => {
+        c.ui.tableArmed = null;
+        c.send({ kind: "table_propose" });
+      }}
+    >
+      ${translateText("gw.bargain.propose")}
+    </button>
+  </section>`;
+}
+
+const ANSWER_CHIP: Readonly<Record<string, string>> = {
+  agreed: "bg-emerald-400/25 text-emerald-100",
+  refused: "bg-red-400/30 text-red-100",
+  final: "bg-red-500/30 text-red-100",
+  waiting: "bg-amber-300/25 text-amber-100",
+  partner: "bg-amber-300/25 text-amber-100",
+  dropped: "bg-white/10 text-white/60",
+};
+
+/** The seat's move on a refused place: insist, step down, trade, let go. */
+function moveRow(
+  c: GwCtx,
+  x: GwTableClaimView,
+  places: readonly GwPlace[],
+): TemplateResult {
+  const picks = (c.ui.bargain ??= {});
+  const now = picks[x.id] ?? { move: "insist" as const, place: null };
+  const set = (move: GwBargainMove, place: GwPlace | null = null) => {
+    picks[x.id] = { move, place };
+    c.redraw();
+  };
+  const down = downMark(x);
+  const btn = (move: GwBargainMove, label: string) =>
+    html`<button
+      class="${now.move === move ? BTN_ON : BTN} !px-2 !py-1 text-center"
+      data-gw-move=${move}
+      @click=${() => set(move, move === "trade" ? now.place : null)}
+    >
+      ${label}
+    </button>`;
+  return html`<div class="space-y-1" data-gw-moves=${x.id}>
+    <div class="grid grid-cols-2 gap-1">
+      ${btn("insist", translateText("gw.bargain.move.insist"))}
+      ${down === null
+        ? nothing
+        : btn(
+            "down",
+            translateText("gw.bargain.move.down", { fate: markWord(down) }),
+          )}
+      ${places.length === 0
+        ? nothing
+        : btn("trade", translateText("gw.bargain.move.trade"))}
+      ${btn("drop", translateText("gw.bargain.move.drop"))}
+    </div>
+    ${now.move !== "trade"
+      ? nothing
+      : html`<p class=${MUTED}>${translateText("gw.bargain.trade_pick")}</p>
+          <div class="flex flex-wrap gap-1" data-gw-trade-places>
+            ${places.slice(0, 16).map(
+              (p) =>
+                html`<button
+                  class="${now.place === p ? BTN_ON : BTN} !px-2 !py-1"
+                  data-gw-trade-place=${p}
+                  @click=${() => {
+                    set("trade", p);
+                    c.fly?.(p);
+                  }}
+                >
+                  ${placeName(p)}
+                </button>`,
+            )}
+          </div>`}
+  </div>`;
+}
+
+/** The beaten seat's yes or no to one place. */
+function answerToggle(c: GwCtx, x: GwTableClaimView): TemplateResult {
+  const said = (c.ui.answers ??= {});
+  const now = said[x.id];
+  const btn = (yes: boolean) =>
+    html`<button
+      class="${now === yes ? BTN_ON : BTN} !px-2 !py-1 text-center"
+      data-gw-say=${yes ? "yes" : "no"}
+      @click=${() => {
+        said[x.id] = yes;
+        c.redraw();
+      }}
+    >
+      ${translateText(yes ? "gw.bargain.yes" : "gw.bargain.no")}
+    </button>`;
+  return html`<div class="grid grid-cols-2 gap-1">
+    ${btn(true)} ${btn(false)}
+  </div>`;
+}
+
+/** One place of the proposal: its fate, the answer, and the reason in words. */
+function answerRow(
+  c: GwCtx,
+  t: GwTableView,
+  x: GwTableClaimView,
+): TemplateResult {
+  const st = answerState(x);
+  const why = whyText(x);
+  const due = t.due;
+  const mark = { fate: x.fate ?? "annex", for: x.for, client: x.client };
+  return html`<div
+    class="space-y-1 rounded border border-white/10 bg-black/20 p-1.5"
+    data-gw-answer=${x.id}
+    data-gw-answer-state=${st}
+  >
+    <div class="flex flex-wrap items-center gap-1.5">
+      <button
+        class="text-left text-sm font-bold text-white/90"
+        @click=${() => c.fly?.(x.place)}
+      >
+        ${placeName(x.place)}
+      </button>
+      <span class=${MUTED}>${markWord({ ...mark, term: x.term })}</span>
+      <span
+        class="ml-auto inline-block rounded px-1.5 py-0.5 text-xs ${ANSWER_CHIP[
+          st
+        ]}"
+        data-gw-answer-chip=${st}
+        >${translateText(`gw.bargain.state.${st}`)}</span
+      >
+    </div>
+    ${why === ""
+      ? nothing
+      : html`<p class="text-sm leading-6 text-white/85" data-gw-why=${x.why!}>
+          “${why}”
+        </p>`}
+    ${due?.kind === "bargain" && due.claims.includes(x.id)
+      ? moveRow(c, x, due.places)
+      : nothing}
+    ${due?.kind === "answer" && due.claims.includes(x.id)
+      ? answerToggle(c, x)
+      : nothing}
+  </div>`;
+}
+
+/** The proposal on the table and its answers, then this round's controls. */
+function answersBox(c: GwCtx, t: GwTableView) {
+  const talk = t.talk ?? null;
+  if (talk === null) return nothing;
+  const rows = proposalOf(t);
+  if (rows.length === 0) return nothing;
+  const due = t.due;
+  const by = rows[0].by;
+  const beaten = talk.beaten;
+  const head =
+    due?.kind === "answer"
+      ? translateText("gw.bargain.answer_title", { by: countryName(by) })
+      : translateText("gw.bargain.answers_title", {
+          country: beaten === null ? "" : countryName(beaten),
+        });
+  const mine = c.seat.tag === by;
+  const picks = c.ui.bargain ?? {};
+  const said = c.ui.answers ?? {};
+  const tradeOpen =
+    due?.kind === "bargain" &&
+    due.claims.some(
+      (id) => picks[id]?.move === "trade" && picks[id]?.place === null,
+    );
+  return html`<section class="${BOX} border-amber-200/40" data-gw-answers>
+    <div class="flex items-center gap-2">
+      <h3 class=${HEAD}>${head}</h3>
+      ${talk.round === 0
+        ? nothing
+        : html`<span class="${CHIP} ml-auto" data-gw-round=${talk.round}
+            >${translateText("gw.bargain.round", {
+              n: talk.round,
+              total: talk.rounds,
+            })}</span
+          >`}
+    </div>
+    ${mine && beaten !== null
+      ? html`<p class=${MUTED} data-gw-mood=${talk.mood}>
+          ${translateText("gw.bargain.mood", {
+            mood: translateText(`gw.bargain.moods.${talk.mood}`),
+          })}
+        </p>`
+      : nothing}
+    ${due?.kind === "answer"
+      ? html`<p class=${MUTED}>${translateText("gw.bargain.answer_how")}</p>`
+      : nothing}
+    <div class="max-h-[46vh] space-y-1 overflow-y-auto sm:max-h-none">
+      ${rows.map((x) => answerRow(c, t, x))}
+    </div>
+    ${due?.kind === "bargain"
+      ? html`${due.last
+            ? html`<p class="text-sm text-amber-100" data-gw-last>
+                ${translateText("gw.bargain.last")}
+              </p>`
+            : nothing}
+          <button
+            class=${SIGN}
+            data-gw-bargain-go
+            ?disabled=${tradeOpen}
+            @click=${() => {
+              const moves = due.claims.map((id) => {
+                const p = picks[id] ?? { move: "insist" as const, place: null };
+                return { claim: id, move: p.move, place: p.place };
+              });
+              c.ui.bargain = {};
+              c.send({ kind: "table_bargain", moves });
+            }}
+          >
+            ${translateText("gw.bargain.again")}
+          </button>`
+      : nothing}
+    ${due?.kind === "answer"
+      ? html`<button
+            class=${SIGN}
+            data-gw-answer-go
+            ?disabled=${due.claims.some((id) => said[id] === undefined)}
+            @click=${() => {
+              const answers = due.claims.map((id) => ({
+                claim: id,
+                yes: said[id] === true,
+              }));
+              c.ui.answers = {};
+              c.send({ kind: "table_answer", answers, walk: false });
+            }}
+          >
+            ${translateText("gw.bargain.send")}
+          </button>
+          ${due.walk
+            ? html`<button
+                class="${BTN} w-full text-center"
+                data-gw-walk
+                @click=${() =>
+                  c.send({ kind: "table_answer", answers: [], walk: true })}
+              >
+                ${translateText("gw.bargain.walk")}
+              </button>`
+            : nothing}`
+      : nothing}
   </section>`;
 }
 
@@ -752,8 +1082,9 @@ export function tableTab(c: GwCtx): TemplateResult | typeof nothing {
           </p>`
         : nothing}
     </section>
-    ${treaty(c, t)} ${wordBox(c, t)} ${turnBox(c, t)} ${aides(c, t)}
-    ${closeRow(c, t)} ${signBox(c, t)} ${agenda(c, t)}
+    ${treaty(c, t)} ${wordBox(c, t)} ${turnBox(c, t)} ${proposeBox(c, t)}
+    ${answersBox(c, t)} ${aides(c, t)} ${closeRow(c, t)} ${signBox(c, t)}
+    ${t.talk === null || t.talk === undefined ? agenda(c, t) : nothing}
   </div>`;
 }
 
