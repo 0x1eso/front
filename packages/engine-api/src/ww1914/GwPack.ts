@@ -191,6 +191,17 @@ export const GwFactionPackSchema = z
     why: ById.optional(),
     /** ww207: two or three letters on the strip's fallback shield ("사민"). */
     short: Text.optional(),
+    /**
+     * ww209: its leader's lines in the lobby: `counter_<take|refuse|more>`
+     * (his answer to a counter-offer), `threat_<kind>` (his answer to a
+     * threat, GW_THREAT_KINDS).
+     */
+    says: ById.optional(),
+    /**
+     * ww209: its wing man's talk (GwWingRow): `note` (who they are), `open`
+     * (met apart), `took`, `refused`, `defy` (his line as he votes against).
+     */
+    wing: ById.optional(),
   })
   .strict();
 export type GwFactionPack = z.infer<typeof GwFactionPackSchema>;
@@ -354,6 +365,11 @@ export const GwPackSchema = z
     communities: z.record(GwIdSchema, GwNamePackSchema).optional(),
     /** ww207: utopia id (GwTreeRow `utopia`) -> its words. */
     utopia: z.record(GwIdSchema, GwUtopiaPackSchema).optional(),
+    /** ww209: the money bills' words: earmark id -> its name and note. */
+    money: z
+      .object({ mark: z.record(GwIdSchema, GwNamePackSchema).optional() })
+      .strict()
+      .optional(),
   })
   .strict();
 export type GwPack = z.infer<typeof GwPackSchema>;
@@ -406,6 +422,9 @@ export function mergeGwPacks(packs: readonly GwPack[]): GwPack {
     Object.assign(out.utopia!, p.utopia);
     out.depts = mergeGwDeptPacks(out.depts, p.depts);
     out.persona = mergeGwPersonaPacks(out.persona, p.persona);
+    if (p.money !== undefined) {
+      out.money = { mark: { ...out.money?.mark, ...p.money.mark } };
+    }
     if (p.press !== undefined) out.press = p.press;
     if (p.table !== undefined) out.table = { ...out.table, ...p.table };
   }
