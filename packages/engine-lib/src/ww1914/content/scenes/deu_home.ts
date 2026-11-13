@@ -1050,12 +1050,13 @@ const SCENES: readonly GwScene[] = [
   scene({
     id: "deu_h_spd_split",
     kind: "report",
-    // ww209 (S1): by state, the second time the SPD's left defies its line
-    // on a money bill; else the old window.
+    // ww209 (S1): by state, when the SPD's left defies its line on a money
+    // bill as a wing (after Liebknecht's lone defies, ww210 merge); else the
+    // old window.
     when: all(
       war,
       any(
-        world({ is: "defy", id: "deu_spd", min: 2 }),
+        world({ is: "defy", id: "deu_spd", min: 3 }),
         all(
           any(seen("gw_credits"), reichstagMax(0)),
           world({ is: "war_months", own: true, min: 16, max: 23 }),

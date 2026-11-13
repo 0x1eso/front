@@ -549,6 +549,12 @@ export const DEU_FACTIONS: readonly GwFactionRow[] = [
       share: 2,
       when: not(uspdIn),
       into: "deu_uspd",
+      // ww210 merge: before the wing stands up, a few men alone: Liebknecht
+      // on 2 Dec 1914, then Liebknecht and Rühle in March 1915.
+      lone: [
+        { person: "deu_liebknecht", seats: 1 },
+        { person: "deu_liebknecht", with: ["deu_i_ruehle"], seats: 2 },
+      ],
       wants: [
         {
           id: "haase_peace",

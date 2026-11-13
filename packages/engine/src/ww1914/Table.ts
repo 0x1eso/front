@@ -44,6 +44,7 @@ import {
   GW_TABLE_SESSIONS,
 } from "@openfront/engine-lib/ww1914/TableRows";
 import {
+  keepTableDue,
   pressAgain,
   startTalk,
   stepTalk,
@@ -1183,6 +1184,7 @@ function openPairTable(gw: GreatWar, row: GwPairTable): void {
   const second = first === row.a ? row.b : row.a;
   // ww199: a capitulation table's other victors speak after the first.
   const others = (row.with ?? []).filter((x) => x !== first && x !== second);
+  keepTableDue(gw);
   s.table = {
     session: 0,
     order: [first, ...others, second],

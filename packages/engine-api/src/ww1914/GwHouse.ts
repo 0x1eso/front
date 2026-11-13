@@ -243,6 +243,8 @@ export const GwBallotBlockSchema = z.object({
   person: Id.optional(),
   /** ww209: the faction's wing voting apart (`defy`, or peeled `swing`). */
   wing: z.boolean().optional(),
+  /** ww210 merge: the men who stood with `person`, named after him. */
+  with: z.array(Id).optional(),
 });
 export type GwBallotBlock = z.infer<typeof GwBallotBlockSchema>;
 

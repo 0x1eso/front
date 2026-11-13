@@ -34,6 +34,8 @@ export interface BallotApart {
   cast: "for" | "against";
   beat: "defy" | "swing";
   person: string;
+  /** ww210 merge: the men who stood with him. */
+  with?: readonly string[];
 }
 
 export interface BallotChamberIn {
@@ -97,6 +99,9 @@ export function castChamber(
       late.push({
         ...block(whole.id, whole.apart!.cast, apart, whole.apart!.beat),
         person: whole.apart!.person,
+        ...(whole.apart!.with === undefined
+          ? {}
+          : { with: [...whole.apart!.with] }),
         wing: true,
       });
     }

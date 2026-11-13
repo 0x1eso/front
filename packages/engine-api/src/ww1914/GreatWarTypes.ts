@@ -40,7 +40,11 @@ import {
   gwStoryStart,
   GwStoryStateSchema,
 } from "./GwStory";
-import { GwMapRecordSchema, GwTableStateSchema } from "./GwTable";
+import {
+  GwMapRecordSchema,
+  GwTableClaimSchema,
+  GwTableStateSchema,
+} from "./GwTable";
 
 /** A content id: scene, person, flag, memory key. */
 export const GwIdSchema = z
@@ -2387,6 +2391,11 @@ export const GreatWarStateSchema = z.object({
   landMoves: z.array(GwLandMoveSchema).default([]),
   /** The peace table, from the armistice on; null before. */
   table: GwTableStateSchema.nullable().default(null),
+  /**
+   * ww210 merge: table promises (promise_leave, promise_vote) still due from
+   * a table a new one has since replaced; Bargain's step settles them.
+   */
+  tableDue: z.array(GwTableClaimSchema).default([]),
   /** Seats that asked for more reading time this chapter, by smallID. */
   slowAsked: z.array(z.number().int()).default([]),
   /** Times this chapter's clock was lengthened. */

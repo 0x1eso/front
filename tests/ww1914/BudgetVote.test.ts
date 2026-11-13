@@ -12,7 +12,6 @@ import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import type { GwCond } from "@openfront/engine-api/ww1914/SceneDsl";
 import { budgetNorm } from "@openfront/engine-lib/ww1914/BudgetRules";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
-import type { GwFactionRow } from "@openfront/engine-lib/ww1914/HouseRows";
 import {
   GW_SPLIT_PRESSURE,
   moneyIds,
@@ -20,15 +19,12 @@ import {
 import { budgetStep } from "@openfront/engine/ww1914/Budget";
 import { govHeat } from "@openfront/engine/ww1914/Government";
 import type { GreatWar } from "@openfront/engine/ww1914/GreatWar";
-import {
-  factionOf,
-  factionRow,
-  houseStep,
-} from "@openfront/engine/ww1914/House";
+import { factionOf, houseStep } from "@openfront/engine/ww1914/House";
 import { moneyStep } from "@openfront/engine/ww1914/MoneyBills";
 import { applyGwOrder } from "@openfront/engine/ww1914/Orders";
 import { holds } from "@openfront/engine/ww1914/SceneRun";
 import { societyStep } from "@openfront/engine/ww1914/Society";
+import { worldEffect } from "@openfront/engine/ww1914/WorldDsl";
 import { describe, expect, test } from "vitest";
 import { HUMAN, step, wwRunnerCapture } from "../ww1936/util";
 
@@ -155,7 +151,8 @@ describe("the money bills", () => {
 
   test("refused credits stop the borrowing; Britain's are confidence; Russia's need no vote", async () => {
     const { gw, n, seat } = await atWar("DEU");
-    seats(seat, "reichstag", { deu_spd: [90, -2], deu_cons: [40, 0] });
+    // The SPD votes the credits in war (W-DEU's purse): the USPD doesn't.
+    seats(seat, "reichstag", { deu_uspd: [90, -2], deu_cons: [40, 0] });
     n.inst.reichstag = -3;
     n.budget.credits = { n: 1, due: gw.s.chapter, stopTo: -1, lost: 0 };
     moneyStep(gw);
@@ -174,8 +171,9 @@ describe("the money bills", () => {
     expect(n.budget.debt).toBe(debt);
 
     const gbr = await atWar("GBR");
+    // Labour votes the credits (W-GBR's purse); the ILP doesn't.
     seats(gbr.seat, "commons", {
-      gbr_labour: [200, -2],
+      gbr_ilp: [200, -2],
       gbr_liberals: [100, 0],
     });
     gbr.n.inst.commons = -3;
@@ -206,44 +204,81 @@ describe("the money bills", () => {
     );
   });
 
-  test("the SPD's left defies its line on the credits; the second time brings the split's report", async () => {
+  test("the SPD's left defies its line on the credits: Liebknecht alone first, then Haase's wing and the split's report", async () => {
     const { gw, n, seat } = await atWar("DEU");
-    // The left as a wing (W-DEU writes the real row).
-    const spd = factionRow("deu_spd") as {
-      -readonly [K in keyof GwFactionRow]: GwFactionRow[K];
-    };
-    const had = spd.wing;
-    spd.wing = { person: "deu_liebknecht", ideals: { force: 1 }, share: 2 };
-    try {
-      seats(seat, "reichstag", { deu_spd: [110, 2], deu_cons: [60, 1] });
-      const f = seat.house!.factions.find((x) => x.id === "deu_spd")!;
-      const scene = gwContent().scenes.find((x) => x.id === "deu_h_spd_split")!;
-      const ctx = { gw, seat, cast: {} };
-      n.budget.credits = { n: 1, due: gw.s.chapter, stopTo: -1, lost: 0 };
-      for (const k of [2, 3, 4]) {
-        f.heat = 1;
-        f.step = 1;
-        n.budget.credits.due = gw.s.chapter;
-        moneyStep(gw);
-        const law = moneyIds.credits("DEU", k);
-        expect(call(gw, seat, law)).toBe(null);
-        const b = seat.house!.last!.ballot!;
-        expect(b.pass).toBe(true);
-        const defy = b.chambers[0].blocks.find((x) => x.beat === "defy")!;
-        expect(defy.faction).toBe("deu_spd");
-        expect(defy.cast).toBe("against");
-        expect(defy.person).toBe("deu_liebknecht");
-        expect(defy.wing).toBe(true);
-        expect(f.defied).toBe(k - 1);
-        expect(holds(ctx, scene.when as GwCond)).toBe(k >= 3);
-      }
-      // The third: split pressure enough, the left goes its own way.
-      expect(f.split).toBe(GW_SPLIT_PRESSURE);
-      societyStep(gw);
-      expect(factionOf(seat, "deu_uspd")?.status).toBe("in");
-      expect(f.split).toBe(0);
-    } finally {
-      spd.wing = had;
-    }
+    seats(seat, "reichstag", { deu_spd: [110, 2], deu_cons: [60, 1] });
+    const f = seat.house!.factions.find((x) => x.id === "deu_spd")!;
+    const scene = gwContent().scenes.find((x) => x.id === "deu_h_spd_split")!;
+    const ctx = { gw, seat, cast: {} };
+    // Dec 1914: Liebknecht; Mar 1915: Liebknecht and Rühle; then the wing.
+    const who = [
+      ["deu_liebknecht", undefined, 1],
+      ["deu_liebknecht", ["deu_i_ruehle"], 2],
+      ["deu_haase", undefined, null],
+      ["deu_haase", undefined, null],
+      ["deu_haase", undefined, null],
+    ] as const;
+    n.budget.credits = { n: 1, due: gw.s.chapter, stopTo: -1, lost: 0 };
+    who.forEach(([person, others, size], i) => {
+      const k = i + 2;
+      f.heat = 1;
+      f.step = 1;
+      n.budget.credits!.due = gw.s.chapter;
+      moneyStep(gw);
+      const law = moneyIds.credits("DEU", k);
+      expect(call(gw, seat, law)).toBe(null);
+      const b = seat.house!.last!.ballot!;
+      expect(b.pass).toBe(true);
+      const defy = b.chambers[0].blocks.find((x) => x.beat === "defy")!;
+      expect(defy.faction).toBe("deu_spd");
+      expect(defy.cast).toBe("against");
+      expect(defy.person).toBe(person);
+      expect(defy.with).toEqual(others);
+      if (size !== null) expect(defy.seats).toBe(size);
+      expect(defy.wing).toBe(true);
+      expect(f.defied).toBe(k - 1);
+      // The lone men press no split; the wing's report comes with the wing.
+      expect(f.split ?? 0).toBe(Math.max(0, k - 3));
+      expect(holds(ctx, scene.when as GwCond)).toBe(k >= 4);
+    });
+    // The wing's third defy: split pressure enough, the left goes its way.
+    expect(f.split).toBe(GW_SPLIT_PRESSURE);
+    societyStep(gw);
+    expect(factionOf(seat, "deu_uspd")?.status).toBe("in");
+    expect(f.split).toBe(0);
+  });
+
+  test("ww210 merge: a strong faction against brings its own tilt; a moratorium costs the propertied", async () => {
+    const { gw, n, seat } = await atWar("DEU");
+    seats(seat, "reichstag", { deu_uspd: [120, -1], deu_cons: [200, 2] });
+    meeting(gw, n);
+    const plan = plain(n);
+    expect(put(gw, seat, plan)).toBe(null);
+    moneyStep(gw);
+    // Not the chapter it was put: the house reads the plan first.
+    expect(n.budget.tilt).toBeUndefined();
+    gw.s.chapter++;
+    moneyStep(gw);
+    expect(n.budget.tilt).toBe("deu_uspd");
+    expect(n.budget.put!.shares).not.toEqual(plan.shares);
+    expect(n.budget.put!.shares.reduce((a, b) => a + b, 0)).toBe(
+      plan.shares.reduce((a, b) => a + b, 0),
+    );
+    expect(seat.log.some((l) => l.key === "money_tilt")).toBe(true);
+    // Once a year: the next chapter leaves the plan as it stands.
+    const now = [...n.budget.put!.shares];
+    gw.s.chapter++;
+    moneyStep(gw);
+    expect(n.budget.put!.shares).toEqual(now);
+
+    // The row's trust (1) until the society is started.
+    const owners = () =>
+      seat.society?.communities.find((c) => c.id === "deu_owners")?.trust ?? 1;
+    const had = owners();
+    worldEffect(
+      { gw, seat, cast: {} },
+      { do: "budget_rate", pct: 50, shut: 12 },
+    );
+    expect(owners()).toBe(had - 1);
   });
 });

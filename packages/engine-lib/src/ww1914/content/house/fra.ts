@@ -1014,13 +1014,21 @@ export const FRA_FACTIONS: readonly GwFactionRow[] = [
     // ww209: Longuet's minority inside the party, from the Haute-Vienne's
     // motion of 1915 to the split above. Defying: the first socialist no
     // votes on the credits were Brizon, Raffin-Dugens and Blanc, 24 June 1916
-    // (fr.wikipedia Pierre Brizon); the log names the minority's man.
+    // (fr.wikipedia Pierre Brizon): the first defy names them, later ones
+    // the minority's man.
     wing: {
       person: "fra_longuet",
       ideals: { rule: 0, class: 1, church: 1 },
       share: 3,
       when: all(since("1915-05"), faction("fra_minority", { of: ["out"] })),
       into: "fra_minority",
+      lone: [
+        {
+          person: "fra_i_brizon",
+          with: ["fra_i_raffin_dugens", "fra_i_blanc"],
+          seats: 3,
+        },
+      ],
     },
   },
   {

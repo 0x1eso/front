@@ -13,7 +13,12 @@ import {
 } from "@openfront/engine-api/ww1914/GwLaw";
 import { GW_LAWS } from "@openfront/engine-lib/ww1914/content/scenes/laws";
 import type { GwWingRow } from "@openfront/engine-lib/ww1914/HouseRows";
-import { dealStep, dealsDossierView } from "@openfront/engine/ww1914/Deals";
+import { keepTableDue } from "@openfront/engine/ww1914/Bargain";
+import {
+  dealStep,
+  dealsDossierView,
+  markGiven,
+} from "@openfront/engine/ww1914/Deals";
 import type { GreatWar } from "@openfront/engine/ww1914/GreatWar";
 import {
   factionOf,
@@ -21,6 +26,7 @@ import {
   houseStep,
   lobbyViews,
 } from "@openfront/engine/ww1914/House";
+import { moneyDo } from "@openfront/engine/ww1914/MoneyBills";
 import { applyGwOrder } from "@openfront/engine/ww1914/Orders";
 import { describe, expect, test } from "vitest";
 import { HUMAN, step, wwRunnerCapture } from "../ww1936/util";
@@ -325,5 +331,65 @@ describe("ww210: bargaining in the lobby", () => {
       back: null,
     });
     expect(lobby(gw, seat, LAW, "gbr_unionists").paidOnly).toBe(false);
+  });
+
+  test("ww210 merge: money for his region kept a year or cut and broken; a table promise outlives its table", async () => {
+    const { gw, seat } = await atWar("GBR");
+    const ctx = { gw, seat, cast: {} };
+    const rows = () => seat.house!.deals2 ?? [];
+    // Kept a year in the budget: kept, +1 trust.
+    moneyDo(ctx, { do: "earmark", id: "gbr_irish_land", on: true });
+    markGiven(gw, seat, "gbr_irish", "gbr_irish_land", null);
+    const before = trust(seat, "gbr_irish");
+    gw.s.chapter += 13;
+    dealStep(gw);
+    expect(rows().at(-1)).toMatchObject({ kind: "mark", fate: "kept" });
+    expect(trust(seat, "gbr_irish")).toBe(before + 1);
+    // Cut from the budget before the year is out: broken, -2.
+    moneyDo(ctx, { do: "earmark", id: "gbr_ulster_division", on: true });
+    markGiven(gw, seat, "gbr_unionists", "gbr_ulster_division", null);
+    const had = trust(seat, "gbr_unionists");
+    moneyDo(ctx, { do: "earmark", id: "gbr_ulster_division", on: false });
+    dealStep(gw);
+    expect(rows().at(-1)).toMatchObject({
+      kind: "mark",
+      mark: "gbr_ulster_division",
+      fate: "broken",
+    });
+    expect(trust(seat, "gbr_unionists")).toBe(had - 2);
+    expect(
+      dealsDossierView(gw, seat, { asks: [] } as never)!.deals![0].mark,
+    ).toBe("gbr_ulster_division");
+
+    // A promise to leave, made at a table a new one replaced: still due.
+    const deu = gw.nation("DEU")!;
+    deu.atWar = ["GBR"];
+    gw.s.table = {
+      closed: true,
+      claims: [
+        {
+          id: 1,
+          place: "lille",
+          by: "DEU",
+          against: "GBR",
+          session: 0,
+          state: "agreed",
+          step: "asked",
+          offer: null,
+          offerBy: null,
+          offers: 0,
+          pressed: false,
+          move: "promise_leave",
+          due: gw.s.chapter + 2,
+        },
+      ],
+    } as never;
+    keepTableDue(gw);
+    gw.s.table = null;
+    gw.s.chapter += 3;
+    dealStep(gw);
+    // At war again by its day: broken, and remembered.
+    expect(seat.flags).toContain("f_revanche_deu");
+    expect(gw.s.tableDue).toEqual([]);
   });
 });

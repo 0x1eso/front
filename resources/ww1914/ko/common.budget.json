@@ -50,6 +50,7 @@
   },
   "reasons": {
     "budget_moratorium": "이자를 반으로 줄였다. 돈줄이 닫혔다.",
+    "budget_rentiers": "공채를 쥔 집들이 이자를 잃었다. 가진 사람들의 믿음이 줄었다.",
     "budget_levy": "재산에 한 번 세금을 물렸다.",
     "budget_new_note": "은행권을 고쳐 냈다.",
     "budget_print_on": "지폐를 더 찍어 넘겼다."

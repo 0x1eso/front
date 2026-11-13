@@ -396,10 +396,16 @@ function dealLine(c: GwCtx, d: GwDealView): string {
       ? factionName(c, d.faction)
       : `${personName(c.pack, d.person)} (${factionName(c, d.faction)})`;
   const law = d.law === null ? null : billName(c, d.law);
+  const mark =
+    d.mark === undefined
+      ? null
+      : (GW_MONEY.earmarks.find((e) => e.id === d.mark) ?? null);
   const what =
     d.kind === "threat" && d.threat !== null
       ? threatWord(d.threat)
-      : dealKindWord(d.kind);
+      : mark !== null
+        ? `${dealKindWord(d.kind)}: ${earmarkName(c.pack, mark.tag, mark)}`
+        : dealKindWord(d.kind);
   return [who, what, law].filter((x) => x !== null).join(" · ");
 }
 

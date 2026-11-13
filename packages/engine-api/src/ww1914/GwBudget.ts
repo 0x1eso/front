@@ -157,6 +157,11 @@ export const GwBudgetStateSchema = z.object({
   put: GwBudgetPlanSchema.nullable().optional(),
   /** Votes the budget has lost this meeting (GW_MONEY_TRIES). */
   tries: int.optional(),
+  /**
+   * ww210 merge: the faction whose own tilt amended the budget put this year
+   * (a strong faction against it); absent none yet.
+   */
+  tilt: z.string().optional(),
   /** The war credits: absent until the first are due. */
   credits: z
     .object({

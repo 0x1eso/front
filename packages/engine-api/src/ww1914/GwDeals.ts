@@ -61,7 +61,18 @@ export type GwThreatKind = (typeof GW_THREAT_KINDS)[number];
  * the seat's side on his bill or a rival's still to give. Promises with a
  * price stay in `seat.promises` (with their `term`). Text gw.deal.kind.<id>.
  */
-export const GW_DEAL_KINDS = ["owe", "owed", "threat", "peel", "vote"] as const;
+/**
+ * `mark` (ww210 merge): money given to his region (an earmark): kept when it
+ * stays in the budget a year, broken when it is cut before.
+ */
+export const GW_DEAL_KINDS = [
+  "owe",
+  "owed",
+  "threat",
+  "peel",
+  "vote",
+  "mark",
+] as const;
 export type GwDealKind = (typeof GW_DEAL_KINDS)[number];
 
 /**
@@ -114,6 +125,8 @@ export const GwDealSchema = z.object({
   threat: z.enum(GW_THREAT_KINDS).optional(),
   side: z.union([z.literal(-1), z.literal(1)]).optional(),
   vote: Id.optional(),
+  /** ww210 merge: `mark`: the earmark (GwEarmarkRow id). */
+  mark: Id.optional(),
   chapter: int,
   /** The chapter it falls due; -1 none; -2 at the armistice (war_end). */
   due: int,
@@ -175,6 +188,8 @@ export interface GwDealView {
   person: string | null;
   law: string | null;
   threat: GwThreatKind | null;
+  /** ww210 merge: `mark`: the earmark. */
+  mark?: string;
   chapter: number;
   /** -1 none, -2 at the armistice. */
   due: number;

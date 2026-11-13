@@ -345,7 +345,9 @@ function logLine(
     b.beat === "betray"
       ? leaderOf(c, b.faction)
       : b.beat === "defy" && b.person !== undefined
-        ? personName(c.pack, b.person)
+        ? [b.person, ...(b.with ?? [])]
+            .map((p) => personName(c.pack, p))
+            .join(", ")
         : null;
   const beat =
     b.beat === "firm"

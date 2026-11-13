@@ -299,6 +299,22 @@ export interface GwWingRow {
   readonly into?: string;
   /** Its smaller prices when met apart; absent: the faction's, cheapest first. */
   readonly wants?: readonly GwWant[];
+  /**
+   * ww210 merge: its first open defies, before the wing stands up as one:
+   * the n-th is these men alone (Liebknecht, 2 Dec 1914). They add no split
+   * pressure.
+   */
+  readonly lone?: readonly GwLoneDefy[];
+}
+
+/** ww210 merge: men of a wing who vote against their party's line alone. */
+export interface GwLoneDefy {
+  /** The man the log names first. */
+  readonly person: string;
+  /** Those who stood with him, named after him. */
+  readonly with?: readonly string[];
+  /** Their seats. */
+  readonly seats: number;
 }
 
 /** What the house makes of a bill: kept apart from the law row, by law id. */

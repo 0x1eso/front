@@ -11,6 +11,7 @@ import type {
   GwWorldWho,
 } from "@openfront/engine-api/ww1914/WorldDsl";
 import { tilted } from "@openfront/engine-lib/ww1914/BudgetRules";
+import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
 import { civilFromDays } from "@openfront/engine-lib/ww1936/Calendar";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { noteFx } from "./ActNote";
@@ -616,6 +617,16 @@ export function worldEffect(ctx: SceneCtx, e: GwWorldEffect): void {
       if (nation !== null) {
         nation.budget.rate = e.pct;
         nation.budget.shutUntil = s.chapter + e.shut;
+      }
+      // ww210 merge: the bonds are the propertied's: a moratorium on their
+      // interest costs those communities' trust.
+      if (e.pct < 100) {
+        for (const c of gwContent().society?.communities ?? []) {
+          if (c.tag !== seat.tag || c.ideal.axis !== "class") continue;
+          if (c.ideal.side >= 0) continue;
+          societyDo(ctx, { do: "community_trust", id: c.id, delta: -1 });
+        }
+        reason(gw, seat, "budget_rentiers");
       }
       return;
     case "law_text":

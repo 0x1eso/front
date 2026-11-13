@@ -434,7 +434,7 @@ describe("the house on the screens: the law book (ww203), the factions", () => {
       },
     };
     const budget = agenda({
-      law: "deu_budget",
+      law: "deu_money_budget",
       text: null,
       lobby: [spd],
       money: { kind: "budget", n: 0, year: 1916, fail: "runs_on" },
@@ -455,7 +455,7 @@ describe("the house on the screens: the law book (ww203), the factions", () => {
       pinned.querySelector('[data-gw-agenda-money="budget"]'),
     ).not.toBeNull();
     expect(pinned.querySelector("[data-gw-agenda-money-fail]")).not.toBeNull();
-    q("[data-gw-agenda-lobby=deu_budget]").click();
+    q("[data-gw-agenda-lobby=deu_money_budget]").click();
     q('[data-gw-price-term="session"]').click();
     q("[data-gw-price-favour=spd_bread]").click();
     q('[data-gw-counter="against"]').click();
@@ -464,7 +464,7 @@ describe("the house on the screens: the law book (ww203), the factions", () => {
     q("[data-gw-lobby-press=deu_spd]").click();
     q('[data-gw-lobby-threat="condemn"]').click();
     q("[data-gw-wing-call=deu_spd]").click();
-    const law = "deu_budget";
+    const law = "deu_money_budget";
     const faction = "deu_spd";
     expect(sent).toEqual([
       { kind: "bill_term", law, faction, want: "spd_bread", term: "session" },

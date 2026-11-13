@@ -12,8 +12,9 @@ import { gauge, inst } from "../laws/kit";
 // regimes auh_federal_crown and auh_trial are S2's; Karl stays in both.
 // ww208 merge: the Social Democrats' tree brings the existing (ww197) form
 // `austria_republic`, which has no place for the crown; its head is Renner
-// (lane P). No tree takes the peace or federal path without Karl, so lane P's
-// Lammasch (form `federation`) waits for one.
+// (lane P). ww210 merge: the peace party born in the war (the generic
+// `auh_g_peace`) takes the path without Karl: Lammasch's neutral federation
+// of the peoples, form `federation`, head Lammasch (lane P).
 
 const law = (id: string): Partial<GwNodeRow> => ({ kind: "law", law: id });
 
@@ -150,6 +151,19 @@ export const AUH_UTOPIA: GwUtopiaContent = {
       template: "crown_army",
       utopia: "auh_u_army",
       realised: [inst("army", 2)],
+    },
+    // The peace party born in the war: Lammasch's way. The Hague jurist, the
+    // Meinl circle's man for a separate peace (Karl sounded him for premier
+    // in June 1917; premier at last 27 Oct-11 Nov 1918), for a neutral
+    // Austria of free peoples. Realised: the peoples' councils govern and Karl
+    // steps back from the affairs of state, as on 11 Nov 1918.
+    {
+      faction: "auh_g_peace",
+      template: "peace",
+      utopia: "auh_u_lammasch",
+      regime: "federation",
+      head: "lammasch",
+      realised: [setFlag("f_auh_peace_word"), inst("nations", 1)],
     },
     // Károlyi: peace with the Entente and a Hungary of its own.
     {

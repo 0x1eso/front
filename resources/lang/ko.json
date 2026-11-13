@@ -16519,7 +16519,8 @@
       "money_credits_passed": "전쟁 공채가 통과됐다.",
       "money_credits_stopped": "전쟁 공채가 부결됐다. 다음 공채까지 빚을 낼 수 없어 모자란 돈은 찍어서 메운다.",
       "money_credits_command": "전쟁 공채는 최고 명령으로 정해졌다.",
-      "money_credits_decree": "전쟁 공채가 칙령으로 나왔다."
+      "money_credits_decree": "전쟁 공채가 칙령으로 나왔다.",
+      "money_tilt": "{who}의 무리가 예산안에 자기 수정안을 내 붙였다. 의회는 이제 고친 안을 놓고 셈한다."
     },
     "result": {
       "advance": "전진",
@@ -20504,7 +20505,8 @@
         "owed": "내가 진 빚",
         "threat": "위협",
         "peel": "온건파를 따로 만났다",
-        "vote": "표 대 표"
+        "vote": "표 대 표",
+        "mark": "그의 지역에 준 돈"
       },
       "fate": {
         "open": "아직 남아 있다",

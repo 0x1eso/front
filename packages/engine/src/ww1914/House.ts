@@ -79,6 +79,7 @@ import {
   counterSealed,
   dealTerm,
   lobbyExtras,
+  markGiven,
   owedAnswered,
   owedFavour,
   owesHim,
@@ -1963,6 +1964,7 @@ export function takeDeal(
   // ww210: money for his region: the earmark into the plan (MoneyBills).
   if (w.earmark !== undefined) {
     moneyDo(ctx, { do: "earmark", id: w.earmark, on: true });
+    markGiven(gw, seat, id, w.earmark, m.st.id);
   }
   f.heat = Math.max(0, f.heat - 1);
   const kind = wantKind(w);

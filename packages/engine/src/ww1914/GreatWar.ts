@@ -227,6 +227,7 @@ export class GreatWar {
       held: {},
       landMoves: [],
       table: null,
+      tableDue: [],
       slowAsked: [],
       slowGranted: 0,
       telegrams: [],

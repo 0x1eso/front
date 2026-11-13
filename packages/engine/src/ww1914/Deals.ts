@@ -140,7 +140,7 @@ function addDeal(
   gw: GreatWar,
   seat: GwSeatState,
   d: Pick<GwDeal, "kind" | "faction" | "person" | "law" | "due"> &
-    Partial<Pick<GwDeal, "threat" | "side" | "vote">>,
+    Partial<Pick<GwDeal, "threat" | "side" | "vote" | "mark">>,
 ): GwDeal | null {
   const h = seat.house;
   if (h === undefined) return null;
@@ -308,6 +308,32 @@ export function owedAnswered(
 function brokenCost(gw: GreatWar, seat: GwSeatState, faction: string): void {
   factionTrust(seat, faction, -2);
   heatBy(gw, seat, faction, 2);
+}
+
+/** A year: an earmark kept this long in the budget is a promise kept. */
+const MARK_DUE = 12;
+
+/**
+ * ww210 merge: money given to his region (an earmark) is a promise: it must
+ * stay in the budget a year. Cut before then (the ledger, a threat carried
+ * out), it is broken.
+ */
+export function markGiven(
+  gw: GreatWar,
+  seat: GwSeatState,
+  faction: string,
+  mark: string,
+  law: string | null,
+): void {
+  if (openRows(seat, "mark", faction).some((d) => d.mark === mark)) return;
+  addDeal(gw, seat, {
+    kind: "mark",
+    faction,
+    person: leaderOf(gw, seat, faction),
+    law,
+    mark,
+    due: gw.s.chapter + MARK_DUE,
+  });
 }
 
 /** The wing row standing now, if it can be met apart. */
@@ -842,7 +868,10 @@ function applyCounter(
       return;
     }
     case "region":
-      if (pick !== null) moneyDo(ctx, { do: "earmark", id: pick, on: true });
+      if (pick !== null) {
+        moneyDo(ctx, { do: "earmark", id: pick, on: true });
+        markGiven(gw, seat, faction, pick, law);
+      }
       return;
     case "text":
       withFocus(seat, law, () =>
@@ -1095,6 +1124,7 @@ export function dealStep(gw: GreatWar): void {
     settleThreats(gw, seat);
     settleVotes(gw, seat);
     settlePeels(gw, seat);
+    settleMarks(gw, seat);
     settleWarEnd(gw, seat);
     pruneCounters(gw, seat);
   }
@@ -1219,6 +1249,23 @@ function settlePeels(gw: GreatWar, seat: GwSeatState): void {
   }
 }
 
+/** Money for his region: cut within the year, broken; kept a year, kept. */
+function settleMarks(gw: GreatWar, seat: GwSeatState): void {
+  const marks = marksNow(gw, seat);
+  for (const d of openRows(seat, "mark")) {
+    if (d.mark === undefined) continue;
+    if (!marks.includes(d.mark)) {
+      endDeal(gw, d, "broken");
+      brokenCost(gw, seat, d.faction);
+      reason(gw, seat, "deal_mark_broken", d.person ?? undefined);
+    } else if (gw.s.chapter > d.due) {
+      endDeal(gw, d, "kept");
+      factionTrust(seat, d.faction, 1);
+      reason(gw, seat, "deal_mark_kept", d.person ?? undefined);
+    }
+  }
+}
+
 /**
  * The armistice: promises made "after the war" fall due in one go; one not
  * kept breaks, and its bloc steps down a notch too.
@@ -1286,6 +1333,7 @@ export function dealsDossierView(
     person: d.person,
     law: d.law,
     threat: d.threat ?? null,
+    ...(d.mark === undefined ? {} : { mark: d.mark }),
     chapter: d.chapter,
     due: d.due,
     fate: d.fate,

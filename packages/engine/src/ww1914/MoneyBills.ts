@@ -103,6 +103,7 @@ import {
   houseFall,
   houseOpened,
   houseRow,
+  seatsNow,
 } from "./House";
 import { agendaView, fallBy, lawCall, lawStage, moneyAgenda } from "./Laws";
 import { officeHolder } from "./People";
@@ -330,7 +331,7 @@ export function moneySide(
   return sign(trustLean(seat, id) + rally + wantScore(gw, seat, st, id));
 }
 
-/** A peel taken on this bill (S2's ledger): the wing votes for apart. */
+/** A peel sealed on this bill (S2's ledger): the wing votes for apart. */
 export function wingPeeled(
   seat: GwSeatState,
   faction: string,
@@ -341,6 +342,8 @@ export function wingPeeled(
       d.kind === "peel" &&
       d.faction === faction &&
       d.law === law &&
+      // Met apart is not enough: his price taken (S2 sets `side`).
+      d.side === 1 &&
       (d.fate === "open" || d.fate === "kept"),
   );
 }
@@ -380,6 +383,17 @@ export function wingApart(
   if (purseScore(n, m, wantsOf(wing.ideals, null), null) >= 0) {
     return undefined;
   }
+  // Its first defies are a few men alone, before the wing stands up.
+  const lone = wing.lone?.[factionOf(seat, id)?.defied ?? 0];
+  if (lone !== undefined) {
+    return {
+      seats: clampTo(lone.seats, 1, seats),
+      cast: "against",
+      beat: "defy",
+      person: lone.person,
+      ...(lone.with === undefined ? {} : { with: lone.with }),
+    };
+  }
   return {
     seats: Math.max(1, Math.floor((k * tenths) / 10)),
     cast: "against",
@@ -392,9 +406,13 @@ export function wingApart(
 export function wingDefied(gw: GreatWar, seat: GwSeatState, id: string): void {
   const f = factionOf(seat, id);
   if (f === null) return;
+  const wing = factionRow(id)?.wing;
+  const lone = wing?.lone?.[f.defied ?? 0];
   f.defied = (f.defied ?? 0) + 1;
-  f.split = (f.split ?? 0) + 1;
-  reason(gw, seat, "house_defied", factionRow(id)?.wing?.person);
+  // A few men alone don't split a party; the wing standing up does.
+  if (lone === undefined) f.split = (f.split ?? 0) + 1;
+  if (lone === undefined) reason(gw, seat, "house_defied", wing?.person);
+  else reason(gw, seat, "house_defied_lone", lone.person);
 }
 
 // ---- The bills ----
@@ -442,6 +460,7 @@ function openBill(
     n.laws.push(st);
   }
   Object.assign(st, gwLawStart(id));
+  if (m.kind === "budget") delete n.budget.tilt;
   st.stage = "persuade";
   st.since = gw.s.chapter;
   st.support = support;
@@ -855,6 +874,91 @@ function creditsStep(gw: GreatWar, seat: GwSeatState, n: GwNationState) {
   reason(gw, seat, `money_credits_${by}`);
 }
 
+/** A faction with this many tenths of the first chamber brings its own tilt. */
+const TILT_TENTHS = 2;
+
+/** The faction's own tilt of a plan: its line up, another down, its tax. */
+function tiltOf(
+  gw: GreatWar,
+  seat: GwSeatState,
+  n: GwNationState,
+  plan: GwBudgetPlan,
+  id: string,
+): GwBudgetPlan | null {
+  const w = wantsOf(idealsOf(id), purseRowOf(ctxOf(gw, seat), id, "budget"));
+  const want = (l: GwBudgetLine) => w.lines[l] ?? 0;
+  const off = (l: GwBudgetLine) => lineOff(n, plan, l);
+  const up = GW_BUDGET_LINES.filter((l) => want(l) > 0).sort(
+    (a, b) => off(a) - off(b),
+  )[0];
+  const down = GW_BUDGET_LINES.filter((l) => l !== up && want(l) <= 0).sort(
+    (a, b) => want(a) - want(b) || off(b) - off(a),
+  )[0];
+  const out = cleanPlan(plan);
+  let moved = false;
+  if (up !== undefined && down !== undefined) {
+    const d = GW_BUDGET_LINES.indexOf(down);
+    const give = Math.min(GW_PURSE_OFF, out.shares[d]);
+    if (give > 0) {
+      out.shares[d] -= give;
+      out.shares[GW_BUDGET_LINES.indexOf(up)] += give;
+      moved = true;
+    }
+  }
+  const tax = out.tax ?? "consumption";
+  if (out.mix[0] > 100 && (w.taxes[tax] ?? 0) < 0) {
+    const best = [...GW_TAX_KINDS].sort(
+      (a, b) => (w.taxes[b] ?? 0) - (w.taxes[a] ?? 0),
+    )[0];
+    if (best !== undefined && (w.taxes[best] ?? 0) > 0) {
+      out.tax = best;
+      moved = true;
+    }
+  }
+  return moved && budgetValid(out) ? out : null;
+}
+
+/**
+ * ww210 merge (design §2.4): a strong faction against the budget put brings
+ * its own tilt as an amendment from the floor, once a year: the house then
+ * reads the amended plan. The seat may put its own again.
+ */
+function factionTilt(gw: GreatWar, seat: GwSeatState, n: GwNationState): void {
+  const b = n.budget;
+  const id = moneyIds.budget(n.tag as GwTag);
+  const st = lawStage(n, id);
+  const put = b.put ?? null;
+  if (st === null || st.stage !== "persuade" || put === null) return;
+  if (b.tilt !== undefined || gw.s.chapter <= st.since) return;
+  const house = houseRow(n.tag);
+  const bill = moneyBillRow(seat, id);
+  const first =
+    house === null || bill === null ? undefined : chambersOf(house, bill)[0];
+  if (first === undefined) return;
+  const rows = factionRows(seat.tag).filter(
+    (r) => factionOf(seat, r.id)?.status === "in",
+  );
+  const seatsIn = (r: (typeof rows)[number]) =>
+    seatsNow(seat, r)[first.id] ?? 0;
+  const size = first.size ?? rows.reduce((t, r) => t + seatsIn(r), 0);
+  const strong = rows
+    .filter(
+      (r) =>
+        !st.deals.includes(r.id) &&
+        seatsIn(r) * 10 >= size * TILT_TENTHS &&
+        moneySide(gw, seat, st, r.id) < 0,
+    )
+    .sort((a, c) => seatsIn(c) - seatsIn(a))[0];
+  if (strong === undefined) return;
+  b.tilt = strong.id;
+  const plan = tiltOf(gw, seat, n, put, strong.id);
+  if (plan === null) return;
+  b.put = plan;
+  st.support = budgetMood(gw, n, plan);
+  const f = factionOf(seat, strong.id);
+  reason(gw, seat, "money_tilt", f?.leader ?? strong.leaders[0]?.person);
+}
+
 /** Each chapter, after the budget: credits come due, deadlines. */
 export function moneyStep(gw: GreatWar): void {
   for (const n of gw.s.nations) {
@@ -862,6 +966,7 @@ export function moneyStep(gw: GreatWar): void {
     const seat = seatsOf(gw, n.tag)[0];
     if (seat === undefined) continue;
     budgetDeadline(gw, seat, n);
+    factionTilt(gw, seat, n);
     creditsStep(gw, seat, n);
   }
 }

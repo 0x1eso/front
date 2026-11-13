@@ -14,6 +14,7 @@ import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
 import { GW_TABLE_SESSIONS } from "@openfront/engine-lib/ww1914/TableRows";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { GW_AFTER_CHAPTERS } from "./Aftermath";
+import { keepTableDue } from "./Bargain";
 import { hungry } from "./Economy";
 import { warMonths } from "./Eras";
 import { warScore } from "./Fronts";
@@ -311,6 +312,7 @@ export function skipToConference(gw: GreatWar): void {
   s.closingDay = s.day + chapterOf(gw).spanDays;
   s.conferenceLeft = CONFERENCE_CHAPTERS + GW_AFTER_CHAPTERS;
   s.chapter = last - 1;
+  keepTableDue(gw);
   s.table = tableStart(gw);
   // ww199: the victors' foreign offices draft the fates; their rulers' cards.
   conferenceOpened(gw);

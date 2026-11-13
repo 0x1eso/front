@@ -2,10 +2,13 @@
 // supreme command (Fundamental Laws Art. 117), a lost budget runs on (Art.
 // 116), Art. 87 is the way round; every owner, earmark, wing and want names
 // a faction, community, person or scene that exists, and each has its words.
+import { budgetNorm } from "@openfront/engine-lib/ww1914/BudgetRules";
 import { GW_CONTENT } from "@openfront/engine-lib/ww1914/content/Content";
+import { adopt } from "@openfront/engine/ww1914/Budget";
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
+import { HUMAN, step, wwRunnerCapture } from "../ww1936/util";
 
 const pack = JSON.parse(
   fs.readFileSync(
@@ -84,5 +87,35 @@ describe("ww210 W-RUS money rows", () => {
       "rus_octob",
       "rus_kadets",
     ]);
+  });
+
+  test("ww210 merge: a navy line under the norm in war lays Gangut, once", async () => {
+    const made = await wwRunnerCapture(
+      { greatWar1914: true, greatWar1914Calendar: "full" },
+      [{ clientID: HUMAN, gwCountry: "RUS" }],
+      undefined,
+      undefined,
+      HUMAN,
+    );
+    step(made.runner, 2);
+    const gw = made.runner.game.greatWar()!;
+    const n = gw.nation("RUS")!;
+    const seat = gw.s.seats[0];
+    seat.scheduled = [];
+    const low = [...budgetNorm("RUS", true)];
+    low[1] -= 3;
+    low[0] += 3;
+    const plan = { shares: low, mix: [100, 10, 0, 0] };
+    // In peace the fleet's war scenes stay away.
+    adopt(gw, n, plan, "signed");
+    expect(seat.scheduled.some((q) => q.scene === "rus_h_gangut")).toBe(false);
+    n.atWar = ["DEU"];
+    adopt(gw, n, plan, "signed");
+    expect(seat.scheduled.some((q) => q.scene === "rus_h_gangut")).toBe(true);
+    // Seen once, it isn't laid again.
+    seat.scheduled = [];
+    seat.seen.rus_h_gangut = gw.s.chapter;
+    adopt(gw, n, plan, "signed");
+    expect(seat.scheduled.some((q) => q.scene === "rus_h_gangut")).toBe(false);
   });
 });

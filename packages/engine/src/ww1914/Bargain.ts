@@ -897,8 +897,11 @@ function movesFor(gw: GreatWar, c: GwTableClaim): GwBargainMove[] {
  */
 export function bargainStep(gw: GreatWar): void {
   const t = gw.s.table;
-  if (t === null || !t.closed) return;
-  for (const c of t.claims) {
+  const claims = [
+    ...gw.s.tableDue,
+    ...(t !== null && t.closed ? t.claims : []),
+  ];
+  for (const c of claims) {
     if (c.due === undefined || gw.s.chapter < c.due) continue;
     if (c.move !== "promise_leave" && c.move !== "promise_vote") continue;
     if (c.state !== "agreed" && c.state !== "imposed") continue;
@@ -927,6 +930,24 @@ export function bargainStep(gw: GreatWar): void {
       record(gw, { ...base, fate: "return", to: owner });
     }
     news(gw, `table_${c.move}_kept`, c.by, c.against, null, c.place);
+  }
+  if (gw.s.tableDue.some((c) => c.due === undefined)) {
+    gw.s.tableDue = gw.s.tableDue.filter((c) => c.due !== undefined);
+  }
+}
+
+/**
+ * ww210 merge: before a new table replaces the old, the old one's promises
+ * still due are kept apart, so they fall due all the same.
+ */
+export function keepTableDue(gw: GreatWar): void {
+  const t = gw.s.table;
+  if (t === null) return;
+  for (const c of t.claims) {
+    if (c.due === undefined) continue;
+    if (c.move !== "promise_leave" && c.move !== "promise_vote") continue;
+    if (c.state !== "agreed" && c.state !== "imposed") continue;
+    gw.s.tableDue.push(c);
   }
 }
 

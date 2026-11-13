@@ -2804,6 +2804,7 @@
         "refused": "Refused when called"
       },
       "kind": {
+        "mark": "Money for his region",
         "owe": "He owes me",
         "owed": "I owe him",
         "peel": "His moderates met apart",
@@ -4842,6 +4843,7 @@
       "money_dissolve_open": "The budget was refused. The house could be dissolved over it.",
       "money_put_budget": "The budget went to the house.",
       "money_put_credits": "The war credits went to the house.",
+      "money_tilt": "{who}'s party put its own amendment to the budget. The house now reads the amended plan.",
       "money_unpaid": "Budapest refused: Hungary pays nothing in.",
       "nations_stir": "The nationalities stirred at the defeat.",
       "naval_df_ordered": "The Admiralty is putting up direction-finding stations on the coast.",

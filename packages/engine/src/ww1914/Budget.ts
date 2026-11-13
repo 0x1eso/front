@@ -399,7 +399,9 @@ function lineOwners(
   }
   const fleet = row?.fleet;
   const navy = lineOff(n, plan, "navy", war);
-  if (fleet === undefined || budgetRow(n.tag).navy !== null) return;
+  // The fleet's scenes are war's (Gangut, Cattaro, Kiel, a sortie). A row
+  // with a fleet reads the line even where it also repairs the sea (DEU).
+  if (fleet === undefined || !war) return;
   const scene =
     navy <= -GW_OWNER_OFF
       ? fleet.low
@@ -407,8 +409,11 @@ function lineOwners(
         ? fleet.high
         : null;
   if (scene === undefined || scene === null || !known(scene)) return;
+  const once = gwContent().scenes.find((x) => x.id === scene)?.once === true;
   for (const seat of seatsOf(gw, n.tag)) {
     if (seat.scheduled.some((q) => q.scene === scene)) continue;
+    // ww210 merge: a once-only paper (Gangut, Cattaro) comes once.
+    if (once && seat.seen[scene] !== undefined) continue;
     seat.scheduled.push({ scene, chapter: gw.s.chapter + 1 });
   }
 }
