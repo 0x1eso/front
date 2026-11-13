@@ -40,6 +40,7 @@ const allOf = (...of: GwLawRow["opens"][]): GwLawRow["opens"] => ({
 export const AUH_LAWS: readonly GwLawRow[] = [
   row({
     id: "auh_press",
+    chapter: "censorship",
     opens: war,
     lean: 1,
     decree: true,
@@ -85,6 +86,7 @@ export const AUH_LAWS: readonly GwLawRow[] = [
   }),
   row({
     id: "auh_landsturm",
+    chapter: "conscription",
     opens: allOf(war, since("1915-02")),
     lean: 0,
     decree: false,
@@ -122,6 +124,7 @@ export const AUH_LAWS: readonly GwLawRow[] = [
   }),
   row({
     id: "auh_factories",
+    chapter: "labour",
     opens: allOf(war, since("1915-01")),
     lean: 1,
     decree: true,
@@ -189,6 +192,7 @@ export const AUH_LAWS: readonly GwLawRow[] = [
   }),
   row({
     id: "auh_food",
+    chapter: "food",
     opens: allOf(war, since("1916-02"), low("bread", 2)),
     lean: -2,
     decree: false,
@@ -237,6 +241,7 @@ export const AUH_LAWS: readonly GwLawRow[] = [
   }),
   row({
     id: "auh_galicia",
+    chapter: "nations",
     opens: allOf(war, since("1916-06")),
     lean: 0,
     decree: true,
@@ -275,6 +280,7 @@ export const AUH_LAWS: readonly GwLawRow[] = [
   }),
   row({
     id: "auh_transylvania",
+    chapter: "nations",
     opens: allOf(war, until("1916-08"), world({ is: "neutral", tag: "ROU" })),
     lean: -2,
     decree: false,
@@ -308,6 +314,7 @@ export const AUH_LAWS: readonly GwLawRow[] = [
   }),
   row({
     id: "auh_oktroi",
+    chapter: "franchise",
     opens: allOf(war, since("1916-11"), until("1917-12")),
     lean: 1,
     decree: true,
@@ -341,6 +348,7 @@ export const AUH_LAWS: readonly GwLawRow[] = [
   }),
   row({
     id: "auh_reichsrat",
+    chapter: "franchise",
     opens: allOf(war, since("1916-11")),
     lean: -1,
     decree: false,
@@ -391,6 +399,7 @@ export const AUH_LAWS: readonly GwLawRow[] = [
   }),
   row({
     id: "auh_franchise",
+    chapter: "franchise",
     opens: allOf(
       war,
       since("1917-01"),
@@ -436,10 +445,120 @@ export const AUH_LAWS: readonly GwLawRow[] = [
       tempers: ["arrogant"],
     }),
   }),
+  // + check. ww203: how the war is paid, Austria's half (its taxes are
+  // Vienna's; Budapest taxes its own). Eight war loans were raised. The war
+  // surcharge on the direct taxes came by imperial decree, 28 August 1916
+  // (RGBl. 280, a parliament.gv.at paper); a war-profits tax was argued in
+  // the Vienna press in 1916 (Wienbibliothek clippings); its date and
+  // paragraph not checked.
+  row({
+    id: "auh_war_tax",
+    chapter: "war_finance",
+    opens: allOf(war, since("1915-06")),
+    lean: 0,
+    decree: true,
+    body: "council",
+    cast: { chancellor: held("chancellor"), finance: held("finance") },
+    draft: [
+      draft("loans_only", 1, []),
+      draft(
+        "profits_tax",
+        0,
+        ["order:+1", "council:-1"],
+        [gauge("order", 1), inst("council", -1)],
+      ),
+      draft(
+        "surcharge",
+        -1,
+        ["money:+1", "morale:-1"],
+        [gauge("money", 1), gauge("morale", -1)],
+      ),
+    ],
+    passed: [gauge("money", 1)],
+    passedTell: ["money:+1"],
+    term: [
+      { gauge: "money", delta: 1, every: 10 },
+      {
+        gauge: "money",
+        delta: -1,
+        every: 14,
+        offset: 7,
+        text: ["loans_only"],
+      },
+    ],
+    repeal: {
+      authority: 15,
+      tell: ["money:-1"],
+      effects: [gauge("money", -1)],
+    },
+    talk: lawTalk("auh_war_tax", {
+      who: either(person("auh_bilinski"), held("finance")),
+      ask: "frank",
+      push: "cold",
+      tell: ["council:-1"],
+      price: [inst("council", -1)],
+      wins: 1,
+    }),
+  }),
+  // + check. ww203: who tries civilians in the war. The AOK asked from late
+  // November 1914 to put all Bohemia and the rest of Moravia and Silesia
+  // under the emergency decrees and its courts; Stürgkh refused at once, as
+  // did every civil minister. By the end of 1914, 950 arrested in Bohemia,
+  // 704 handed to the military courts (Rauchensteiner, The First World War
+  // and the End of the Habsburg Monarchy, austria-forum pp. 268-269).
+  row({
+    id: "auh_war_zone",
+    chapter: "siege",
+    opens: allOf(war, since("1914-11")),
+    lean: 0,
+    decree: true,
+    body: "council",
+    cast: { chancellor: held("chancellor"), war: held("war") },
+    draft: [
+      draft(
+        "army_courts",
+        0,
+        ["army:+1", "nations:-1", "order:+1"],
+        [inst("army", 1), inst("nations", -1), gauge("order", 1)],
+      ),
+      draft("war_zone_only", 1, ["order:+1"], [gauge("order", 1)]),
+      draft(
+        "civil_courts",
+        -1,
+        ["nations:+1", "army:-1"],
+        [inst("nations", 1), inst("army", -1)],
+      ),
+    ],
+    passed: [],
+    passedTell: [],
+    term: [
+      {
+        gauge: "morale",
+        delta: -1,
+        every: 12,
+        offset: 4,
+        text: ["army_courts"],
+      },
+    ],
+    repeal: {
+      authority: 10,
+      tell: ["army:-1"],
+      effects: [inst("army", -1)],
+    },
+    talk: lawTalk("auh_war_zone", {
+      who: either(person("auh_conrad"), held("war")),
+      ask: "cold",
+      push: "frank",
+      tell: ["army:+1"],
+      price: [inst("army", 1)],
+      wins: 1,
+    }),
+  }),
   // ww190: the peace years' army bill. The recruits' quota is joint: Budapest
   // passes it or nobody does, and it asks its price in words of command.
   row({
     id: "auh_army_bill",
+    chapter: "arms",
     opens: allOf(
       { kind: "not", of: world({ is: "war_months", min: 0 }) },
       world({ is: "peace_months", min: 3 }),

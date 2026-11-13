@@ -17,12 +17,13 @@ import {
   role,
   trustOf,
 } from "@openfront/engine-api/ww1914/SceneDsl";
-import { world } from "@openfront/engine-api/ww1914/WorldDsl";
+import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
 import type {
   GwAskRow,
   GwBillRow,
   GwFactionRow,
   GwPlotRow,
+  GwWant,
   GwWeakRow,
 } from "../../HouseRows";
 import type { GwLawRow } from "../../LawRows";
@@ -78,6 +79,23 @@ import {
 // names Károlyi in 1916). Unchecked: Renner as the party's second man; the
 // 1917 suffrage bloc as one body; the Christian Socials as the house-owners'
 // party against rent control.
+//
+// ww203 seats (real, by club). Reichsrat 1911, 516 (en.wikipedia 1911
+// Cisleithanian legislative election, its club table): German National
+// Association 100, Bohemian Club 84, Christian Social Union 73, Polish Club
+// 70, Social Democrats 83 (German 49, Bohemian 25, Polish 9), South Slavs 34
+// (Croatian-Slovenian Club 27, Dalmatian Club 7); the Ukrainian Association
+// 28, the Latin Union 21 and 23 independents have no faction here and stay
+// away. Diet 1910, 413 (en.wikipedia 1910 Hungarian parliamentary election):
+// Party of Work 256, Kossuth's Independence party 54 (the infobox says 51)
+// and Justh's 44, one party again from 1913 (98). Unchecked: Andrássy's
+// Constitution Party of September 1913 at about 20, taken from the Party of
+// Work's 256 (hu.wikipedia gives no count after 1906); Károlyi's party of
+// July 1916 at about 20 (one source: "only 20 members in Parliament").
+//
+// ww203 prices: each leader names up to three, first first (`kind`). A
+// concession is his `amends` text for the bill (`amend_text`). Burián at the
+// Ballhausplatz was Tisza's man, foreign minister 13 Jan 1915 (people_auh).
 
 const row = (r: Omit<GwLawRow, "tag">): GwLawRow => ({ ...r, tag: "AUH" });
 
@@ -91,6 +109,11 @@ const TISZA_IN: GwCond = {
   kind: "holder",
   office: "hun_pm",
   person: "auh_tisza",
+};
+const BURIAN_FOREIGN: GwCond = {
+  kind: "holder",
+  office: "foreign",
+  person: "auh_burian",
 };
 const turned = (bloc: GwBloc): GwCond => ({ kind: "bloc", bloc, max: -3 });
 const blocAt = (bloc: GwBloc, min: number): GwCond => ({
@@ -120,6 +143,14 @@ const trustDeu = (delta: number): GwEffect => ({
   tag: "DEU",
   delta,
 });
+/** ww203: the leader's own wording of the bill (his `amends` text). */
+const amendFor = (f: string): GwWant => ({
+  id: "amend_text",
+  kind: "concession",
+  when: world({ is: "amendable", id: f }),
+  keep: paid,
+  effects: [doWorld({ do: "amend", id: f })],
+});
 
 export const AUH_FACTIONS: readonly GwFactionRow[] = [
   // ---- Vienna: the Reichsrat ----
@@ -129,7 +160,7 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
     bloc: "press",
     start: "in",
     strength: 3,
-    seats: { reichsrat: 2 },
+    seats: { reichsrat: 100 },
     leaders: [{ person: "auh_i_gross" }],
     radical: "auh_i_wolf",
     grows: [
@@ -168,15 +199,18 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
     wants: [
       {
         id: "oktroi_first",
+        kind: "next",
         when: not(isLaw("auh_oktroi")),
         keep: isLaw("auh_oktroi"),
         chapters: 8,
       },
       {
         id: "german_officials",
+        kind: "post",
         keep: paid,
         effects: [heat("auh_czech", 1), heat("auh_slavs", 1)],
       },
+      amendFor("auh_germans"),
     ],
   },
   {
@@ -185,7 +219,7 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
     bloc: "court",
     start: "in",
     strength: 2,
-    seats: { reichsrat: 2 },
+    seats: { reichsrat: 73 },
     leaders: [{ person: "auh_i_hauser" }],
     grows: [
       { when: blocAt("court", 2), by: 1, every: 8, key: "loyal_mood" },
@@ -217,11 +251,18 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
     wants: [
       {
         id: "war_aid_next",
+        kind: "next",
         when: not(isLaw("auh_war_aid")),
         keep: isLaw("auh_war_aid"),
         chapters: 8,
       },
-      { id: "vienna_flour", keep: paid, effects: [gauge("money", -1)] },
+      {
+        id: "vienna_flour",
+        kind: "money",
+        keep: paid,
+        effects: [gauge("money", -1)],
+      },
+      amendFor("auh_csoc"),
     ],
   },
   {
@@ -231,7 +272,7 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
     bloc: "parliament",
     start: "in",
     strength: 3,
-    seats: { reichsrat: 2 },
+    seats: { reichsrat: 84 },
     leaders: [
       {
         person: "auh_kramar",
@@ -278,17 +319,25 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
     wants: [
       {
         id: "amnesty",
+        kind: "promise",
         when: not(flag("f_auh_amnesty")),
         keep: flag("f_auh_amnesty"),
         chapters: 10,
       },
       {
         id: "house_open",
+        kind: "promise",
         when: not(REICHSRAT_OPEN),
         keep: REICHSRAT_OPEN,
         chapters: 8,
       },
-      { id: "czech_schools", keep: paid, effects: [heat("auh_germans", 1)] },
+      {
+        id: "czech_schools",
+        kind: "money",
+        keep: paid,
+        effects: [heat("auh_germans", 1)],
+      },
+      amendFor("auh_czech"),
     ],
   },
   {
@@ -297,7 +346,7 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
     bloc: "parliament",
     start: "in",
     strength: 2,
-    seats: { reichsrat: 2 },
+    seats: { reichsrat: 70 },
     leaders: [{ person: "auh_bilinski" }, { person: "auh_i_leo" }],
     grows: [
       {
@@ -325,11 +374,26 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
     wants: [
       {
         id: "galicia_next",
+        kind: "next",
         when: not(isLaw("auh_galicia")),
         keep: isLaw("auh_galicia"),
         chapters: 8,
       },
-      { id: "galicia_aid", keep: paid, effects: [gauge("money", -1)] },
+      // + check: a Pole as the minister for Galicia (the post was always a
+      // Pole's; its holders in the war not checked).
+      {
+        id: "galicia_minister",
+        kind: "post",
+        keep: paid,
+        effects: [inst("nations", 1), inst("council", -1)],
+      },
+      {
+        id: "galicia_aid",
+        kind: "money",
+        keep: paid,
+        effects: [gauge("money", -1)],
+      },
+      amendFor("auh_poles"),
     ],
   },
   {
@@ -338,7 +402,7 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
     bloc: "parliament",
     start: "in",
     strength: 1,
-    seats: { reichsrat: 1 },
+    seats: { reichsrat: 34 },
     leaders: [{ person: "auh_korosec" }],
     grows: [
       { when: REICHSRAT_OPEN, by: 1, every: 6, key: "club_formed" },
@@ -361,11 +425,18 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
     wants: [
       {
         id: "amnesty",
+        kind: "promise",
         when: not(flag("f_auh_amnesty")),
         keep: flag("f_auh_amnesty"),
         chapters: 10,
       },
-      { id: "croatia_heard", keep: paid, effects: [heat("auh_work", 1)] },
+      {
+        id: "croatia_heard",
+        kind: "promise",
+        keep: paid,
+        effects: [heat("auh_work", 1)],
+      },
+      amendFor("auh_slavs"),
     ],
   },
   {
@@ -374,7 +445,7 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
     bloc: "workers",
     start: "in",
     strength: 3,
-    seats: { reichsrat: 2 },
+    seats: { reichsrat: 83 },
     leaders: [{ person: "auh_adler" }, { person: "auh_i_renner" }],
     radical: "auh_i_bauer",
     grows: [
@@ -422,17 +493,25 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
     wants: [
       {
         id: "house_open",
+        kind: "promise",
         when: not(REICHSRAT_OPEN),
         keep: REICHSRAT_OPEN,
         chapters: 10,
       },
       {
         id: "rents_next",
+        kind: "next",
         when: not(isLaw("auh_rents")),
         keep: isLaw("auh_rents"),
         chapters: 8,
       },
-      { id: "flour_ration", keep: paid, effects: [gauge("money", -1)] },
+      {
+        id: "flour_ration",
+        kind: "money",
+        keep: paid,
+        effects: [gauge("money", -1)],
+      },
+      amendFor("auh_sd"),
     ],
   },
   // ---- Budapest: the Diet ----
@@ -442,7 +521,7 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
     bloc: "business",
     start: "in",
     strength: 4,
-    seats: { budapest: 3 },
+    seats: { budapest: 236 },
     leaders: [{ person: "auh_tisza" }],
     grows: [
       { when: not(TISZA_IN), by: -1, every: 8, key: "tisza_out" },
@@ -475,21 +554,33 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
     wants: [
       {
         id: "grain_price",
+        kind: "money",
         when: moving("auh_food"),
         keep: paid,
         effects: [gauge("money", -1)],
       },
       {
         id: "honved_home",
+        kind: "promise",
         when: moving("auh_landsturm"),
         keep: paid,
         effects: [inst("hungary", 1), inst("army", -1)],
       },
+      // Burián at the Ballhausplatz, Tisza's man (he was, January 1915).
+      {
+        id: "burian_foreign",
+        kind: "post",
+        when: all(TISZA_IN, not(BURIAN_FOREIGN)),
+        keep: BURIAN_FOREIGN,
+        chapters: 4,
+      },
       {
         id: "hungary_first",
+        kind: "promise",
         keep: paid,
         effects: [inst("hungary", 1), inst("nations", -1)],
       },
+      amendFor("auh_work"),
     ],
   },
   {
@@ -498,7 +589,7 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
     bloc: "parliament",
     start: "in",
     strength: 2,
-    seats: { budapest: 1 },
+    seats: { budapest: 98 },
     leaders: [
       { person: "auh_karolyi", when: faction("auh_karolyi", { of: ["out"] }) },
       { person: "auh_i_apponyi" },
@@ -527,21 +618,25 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
     wants: [
       {
         id: "franchise_next",
+        kind: "next",
         when: not(isLaw("auh_franchise")),
         keep: isLaw("auh_franchise"),
         chapters: 10,
       },
       {
         id: "magyar_command",
+        kind: "promise",
         keep: paid,
         effects: [inst("hungary", 1), inst("army", -1)],
       },
+      amendFor("auh_indep"),
     ],
     // Károlyi takes the Entente's side out of the party, by state.
     splits: {
       when: all(warAge(20), any(temper("auh_indep", 2), score({ max: -10 }))),
       into: "auh_karolyi",
       takes: 1,
+      seats: { budapest: 20 },
       scene: "auh_f_karolyi_split",
     },
     // What is left of it goes in with Andrássy against Tisza.
@@ -569,7 +664,7 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
     bloc: "parliament",
     start: "out",
     strength: 1,
-    seats: { budapest: 1 },
+    seats: { budapest: 20 },
     leaders: [{ person: "auh_karolyi" }],
     grows: [
       { when: score({ max: -15 }), by: 1, every: 6, key: "defeats" },
@@ -598,16 +693,26 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
     wants: [
       {
         id: "peace_word",
+        kind: "promise",
         when: not(flag("f_auh_peace_word")),
         keep: flag("f_auh_peace_word"),
         chapters: 8,
       },
       {
+        id: "motion_next",
+        kind: "next",
+        when: not(isLaw("auh_peace_motion")),
+        keep: isLaw("auh_peace_motion"),
+        chapters: 10,
+      },
+      {
         id: "franchise_next",
+        kind: "promise",
         when: not(isLaw("auh_franchise")),
         keep: isLaw("auh_franchise"),
         chapters: 10,
       },
+      amendFor("auh_karolyi"),
     ],
   },
   {
@@ -616,7 +721,7 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
     bloc: "parliament",
     start: "in",
     strength: 1,
-    seats: { budapest: 1 },
+    seats: { budapest: 20 },
     leaders: [{ person: "auh_andrassy" }],
     grows: [
       {
@@ -643,11 +748,18 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
     wants: [
       {
         id: "franchise_promise",
+        kind: "next",
         when: not(isLaw("auh_franchise")),
         keep: isLaw("auh_franchise"),
         chapters: 12,
       },
-      { id: "peace_soundings", keep: paid, effects: [trustDeu(-1)] },
+      {
+        id: "peace_soundings",
+        kind: "promise",
+        keep: paid,
+        effects: [trustDeu(-1)],
+      },
+      amendFor("auh_const"),
     ],
   },
   // The opposition against Tisza, once it stands together (no steps of its
@@ -658,7 +770,7 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
     bloc: "parliament",
     start: "out",
     strength: 2,
-    seats: { budapest: 2 },
+    seats: { budapest: 98 },
     leaders: [{ person: "auh_andrassy" }, { person: "auh_i_apponyi" }],
     feeds: [{ when: TISZA_IN, key: "tisza_holds" }],
     cools: [{ when: isLaw("auh_franchise"), key: "franchise", by: 2 }],
@@ -666,11 +778,18 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
     wants: [
       {
         id: "franchise_promise",
+        kind: "promise",
         when: not(isLaw("auh_franchise")),
         keep: isLaw("auh_franchise"),
         chapters: 10,
       },
-      { id: "peace_soundings", keep: paid, effects: [trustDeu(-1)] },
+      {
+        id: "peace_soundings",
+        kind: "promise",
+        keep: paid,
+        effects: [trustDeu(-1)],
+      },
+      amendFor("auh_suffrage"),
     ],
   },
   // ---- Outside the house ----
@@ -867,6 +986,8 @@ export const AUH_BILLS: readonly GwBillRow[] = [
     law: "auh_transylvania",
     houses: BUDAPEST,
     sponsor: held("hun_pm"),
+    // ww203: Romanian seats and schools in Transylvania: the '48ers' creed.
+    creed: ["auh_indep"],
     stance: {
       auh_work: 0,
       auh_indep: -1,
@@ -884,6 +1005,9 @@ export const AUH_BILLS: readonly GwBillRow[] = [
     law: "auh_oktroi",
     houses: VIENNA,
     around: true,
+    // ww203: German as the state language and Bohemia cut in two by decree.
+    constitution: true,
+    creed: ["auh_czech", "auh_slavs"],
     stance: {
       auh_germans: 1,
       auh_csoc: 1,
@@ -898,6 +1022,7 @@ export const AUH_BILLS: readonly GwBillRow[] = [
     law: "auh_franchise",
     houses: BUDAPEST,
     sponsor: held("hun_pm"),
+    constitution: true,
     stance: {
       auh_work: -1,
       auh_indep: 1,
@@ -910,7 +1035,67 @@ export const AUH_BILLS: readonly GwBillRow[] = [
       universal: { auh_work: -1, auh_const: -1 },
     },
   },
+  // ww203 (+): the war tax, Austria's half.
+  {
+    law: "auh_war_tax",
+    houses: VIENNA,
+    around: true,
+    money: true,
+    sponsor: office("finance"),
+    stance: {
+      auh_germans: 1,
+      auh_csoc: 1,
+      auh_czech: 0,
+      auh_poles: 1,
+      auh_slavs: 0,
+      auh_sd: -1,
+    },
+    texts: {
+      profits_tax: {
+        auh_germans: -1,
+        auh_czech: 1,
+        auh_slavs: 1,
+        auh_sd: 1,
+        auh_poles: 0,
+      },
+      surcharge: {
+        auh_germans: 0,
+        auh_csoc: -1,
+        auh_czech: -1,
+        auh_poles: -1,
+        auh_slavs: -1,
+        auh_sd: 0,
+      },
+    },
+  },
+  // ww203 (+): who tries civilians in the war.
+  {
+    law: "auh_war_zone",
+    houses: VIENNA,
+    around: true,
+    sponsor: office("war"),
+    stance: {
+      auh_germans: 1,
+      auh_csoc: 1,
+      auh_czech: -1,
+      auh_poles: 0,
+      auh_slavs: -1,
+      auh_sd: -1,
+    },
+    texts: {
+      war_zone_only: { auh_czech: 0, auh_slavs: 0, auh_sd: 0, auh_poles: -1 },
+      civil_courts: {
+        auh_germans: -1,
+        auh_csoc: 0,
+        auh_czech: 1,
+        auh_poles: 1,
+        auh_slavs: 1,
+        auh_sd: 1,
+      },
+    },
+  },
   // ---- The factions' own ----
+
   {
     law: "auh_rents",
     by: "auh_sd",
@@ -983,6 +1168,7 @@ export const AUH_HOUSE_LAWS: readonly GwLawRow[] = [
   // 26 January 1917 (univie.ac.at exposé; austria-forum Mietrecht).
   row({
     id: "auh_rents",
+    chapter: "food",
     opens: all(war, since("1916-06")),
     lean: 0,
     decree: true,
@@ -1012,6 +1198,7 @@ export const AUH_HOUSE_LAWS: readonly GwLawRow[] = [
   // existed; the party's push for more is the game's).
   row({
     id: "auh_war_aid",
+    chapter: "food",
     opens: all(war, since("1915-06")),
     lean: 0,
     decree: true,
@@ -1043,6 +1230,7 @@ export const AUH_HOUSE_LAWS: readonly GwLawRow[] = [
   // Károlyi's motion in the Diet: peace without annexations. A resolution.
   row({
     id: "auh_peace_motion",
+    chapter: "war_aims",
     opens: all(war, warAge(18)),
     lean: -1,
     decree: false,
