@@ -82,6 +82,10 @@ const offer = (tag: "ITA" | "ROU" | "GRC" | "BGR"): GwEffect[] => [
 ];
 
 const war = world({ is: "war" });
+const gauge = (
+  g: "shells" | "bread" | "money" | "morale" | "order",
+  delta: number,
+): GwEffect => ({ kind: "gauge", gauge: g, delta });
 const inWar = world({ is: "side", of: ["entente", "central"] });
 const neutralSeat = world({ is: "side", of: ["neutral"] });
 const rising = flag("f_gbr_rising");
@@ -1244,7 +1248,93 @@ export const GBR_POWERS: readonly GwPowerRow[] = [
     },
     scene: "gbr_pw_reprisal_r",
   },
+  // ---- ww207: the factions' abilities (group `factions`) ----
+  // S2 runs the gates (trust 호의 or more, temper 1 or less), the cooldown
+  // and the turned form at temper 3. From memory (F): the National Liberal
+  // Federation's meetings; the Ulster Volunteer Force enlisting as the 36th
+  // (Ulster) Division in September 1914 and its Larne gun-running of April
+  // 1914; the Treasury Agreement with the unions in March 1915 and the Clyde
+  // strikes; Redmond's Woodenbridge speech (20 Sep 1914) and the Irish
+  // members' walk-out over conscription in April 1918; the Ministry of
+  // Munitions' drive of 1915 and the press campaign of December 1916.
+  ability("gbr_liberals", {
+    effects: [opinion("parliament", 1), gauge("morale", 1)],
+    strong: [opinion("parliament", 1), gauge("morale", 1), inst("commons", 1)],
+    turned: [inst("commons", -1), inst("cabinet", -1)],
+  }),
+  ability("gbr_unionists", {
+    effects: [
+      maybe(war, doWorld({ do: "manpower", delta: 3 })),
+      { kind: "pressure", topic: "ireland", delta: -1 },
+      opinion("army", 1),
+    ],
+    strong: [
+      maybe(war, doWorld({ do: "manpower", delta: 5 })),
+      { kind: "pressure", topic: "ireland", delta: -1 },
+      opinion("army", 1),
+    ],
+    turned: [
+      { kind: "pressure", topic: "ireland", delta: 2 },
+      gauge("order", -1),
+      inst("irish", -1),
+    ],
+  }),
+  ability("gbr_labour", {
+    effects: [gauge("shells", 1), gauge("order", 1)],
+    strong: [gauge("shells", 1), gauge("order", 1), gauge("morale", 1)],
+    turned: [gauge("shells", -1), gauge("order", -1)],
+  }),
+  ability("gbr_irish", {
+    effects: [
+      inst("commons", 1),
+      inst("irish", 1),
+      maybe(war, doWorld({ do: "manpower", delta: 2 })),
+    ],
+    strong: [
+      inst("commons", 2),
+      inst("irish", 1),
+      maybe(war, doWorld({ do: "manpower", delta: 2 })),
+    ],
+    turned: [
+      inst("commons", -2),
+      { kind: "pressure", topic: "ireland", delta: 1 },
+    ],
+  }),
+  ability("gbr_lg", {
+    effects: [gauge("shells", 2), gauge("money", -1)],
+    strong: [gauge("shells", 2)],
+    turned: [inst("cabinet", -1), inst("commons", -1), opinion("press", -1)],
+  }),
 ];
+
+/**
+ * ww207: a faction's ability row: shown while the faction sits; a reason
+ * line after each form (`<id>`, `<id>_turned`).
+ */
+function ability(
+  faction: string,
+  f: {
+    effects: GwEffect[];
+    strong: GwEffect[];
+    turned: GwEffect[];
+  },
+): GwPowerRow {
+  const id = `gbr_pw_ab_${faction.replace(/^gbr_/, "")}`;
+  return {
+    id,
+    tag: "GBR",
+    group: "factions",
+    kind: "lawful",
+    shows: world({ is: "faction", id: faction, of: ["in"] }),
+    tags: ["ability"],
+    effects: [...f.effects, reason(id)],
+    ability: {
+      faction,
+      strong: [...f.strong, reason(id)],
+      turned: { effects: [...f.turned, reason(`${id}_turned`)] },
+    },
+  };
+}
 
 /** GBR's own reactors, on top of GW_REACTORS (`nation: "GBR"`). */
 export const GBR_REACTORS: readonly GwReactorRow[] = [

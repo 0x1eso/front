@@ -82,8 +82,15 @@ export const GBR_HOUSE: GwHouseRow = {
       sits: not(any(GBR_PROROGUED, DISSOLVED)),
       // ww203: 670 seats (December 1910).
       size: 670,
-      // ww207 (F, W-GBR checks): the Parliament Act's five years from Dec 1910.
-      elect: { rule: "fptp", due: "1915-12", term: 5 },
+      // ww207 (W-GBR, checked): the Parliament Act's five years from the
+      // house's first sitting (31 Jan 1911); the Parliament and Registration
+      // Act (Jan 1916) put it off eight months, and later acts again.
+      elect: {
+        rule: "fptp",
+        due: "1916-01",
+        term: 5,
+        postpone: "gbr_postpone",
+      },
     },
     // ww203: some 620 peers in 1914 (Lord Lexden; the party shares are not
     // checked). Bishops and cross-benchers sit as no faction's: away.
