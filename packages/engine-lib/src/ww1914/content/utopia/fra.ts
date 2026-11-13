@@ -7,7 +7,7 @@ import type { GwNodeRow, GwTreeRow, GwUtopiaContent } from "../../UtopiaRows";
 // node's words). See /home/eser/dev/ww207-format.md.
 //
 // Only Action française's restoration removes the President (design §5):
-// the regime `fra_crown` (S2 makes it) and the head `fra_orleans`, Philippe
+// the regime `fra_crown` (S2 makes it) and the head `orleans`, Philippe
 // d'Orléans, the Orléanist pretender in 1914 (lane P's ruler row; he lived in
 // exile under the 1886 law, F: Brussels in the war years). The Tiger's
 // government is the existing `fra_tiger`. The born and small factions take a
@@ -53,7 +53,7 @@ const TREES: readonly GwTreeRow[] = [
     utopia: "fra_restoration",
     own: [lawNode("fra_law_exile")],
     regime: "fra_crown",
-    head: "fra_orleans",
+    head: "orleans",
   },
   {
     faction: "fra_tiger",
