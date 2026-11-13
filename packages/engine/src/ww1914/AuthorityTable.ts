@@ -347,7 +347,7 @@ const frenchPapers: GwPaperBar[] = [
 ];
 
 /** Form of government -> who can say no. "" is a country with no row yet. */
-export const GW_AUTHORITY: Readonly<Record<string, GwAuthorityRow>> = {
+const FORMS: Readonly<Record<string, GwAuthorityRow>> = {
   "": NOBODY,
   empire: {
     law: GW_LAW_BODIES.reichstag,
@@ -592,6 +592,21 @@ export const GW_AUTHORITY: Readonly<Record<string, GwAuthorityRow>> = {
     papers: [],
     dismiss: [{ camp: "any", inst: "chamber", delta: -1 }],
   },
+};
+
+/**
+ * Form of government -> who can say no. ww208 merge: the utopias' forms
+ * (Regimes.ts) take the bodies of the form nearest them.
+ */
+export const GW_AUTHORITY: Readonly<Record<string, GwAuthorityRow>> = {
+  ...FORMS,
+  deu_parl: FORMS.republic,
+  deu_soviet: FORMS.republic,
+  gbr_labour: FORMS.national,
+  auh_federal_crown: FORMS.federation,
+  auh_trial: FORMS.federation,
+  rus_soviet: FORMS.rep,
+  fra_crown: FORMS.fra_republic,
 };
 
 /** What each camp makes of a question laid before the cabinet. */

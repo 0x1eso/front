@@ -12,21 +12,27 @@ import {
 import { GW_LAWS } from "@openfront/engine-lib/ww1914/content/scenes/laws";
 import type { GwFactionRow } from "@openfront/engine-lib/ww1914/HouseRows";
 import type { GwLawRow } from "@openfront/engine-lib/ww1914/LawRows";
+import { GW_RALLY_SCENE } from "@openfront/engine-lib/ww1914/PowerRows";
 import type { GwSocietyContent } from "@openfront/engine-lib/ww1914/SocietyRows";
 import {
   factionOf,
+  houseRow,
   houseStep,
   houseView,
 } from "@openfront/engine/ww1914/House";
 import { lawAiStep, lawStep, lawViews } from "@openfront/engine/ww1914/Laws";
+import { runEffects } from "@openfront/engine/ww1914/SceneRun";
 import {
   axisStep,
+  electionDue,
   generalElection,
+  GW_BILL_PUSH,
   lawAxes,
   societyStep,
   societyView,
   supportOf,
 } from "@openfront/engine/ww1914/Society";
+import { utopiaStep } from "@openfront/engine/ww1914/Utopia";
 import { afterEach, describe, expect, test } from "vitest";
 import { gwRunner } from "./util";
 
@@ -47,11 +53,17 @@ function withLaws<T>(rows: readonly GwLawRow[], fn: () => T): T {
 function fixture(
   ideals: Record<string, GwFactionRow["ideals"]>,
   society: GwSocietyContent = {},
+  /** ww208 merge: the other factions hold no ideals (the W lanes' aside). */
+  only = false,
 ): GwContent {
   return {
     ...GW_CONTENT,
     factions: (GW_CONTENT.factions ?? []).map((f) =>
-      ideals[f.id] === undefined ? f : { ...f, ideals: ideals[f.id] },
+      ideals[f.id] !== undefined
+        ? { ...f, ideals: ideals[f.id] }
+        : only
+          ? { ...f, ideals: {} }
+          : f,
     ),
     society: {
       communities: society.communities ?? [],
@@ -134,7 +146,7 @@ describe("ww208 society", () => {
       ],
     };
     lawAxes(gw, seat, row, null);
-    expect(n.axes?.class).toBe(1);
+    expect(n.axes?.class).toBe(GW_BILL_PUSH);
     // Twenty bills later, the country stands two steps toward labour.
     n.axes = { class: 20 };
     expect(axisStep(n, "class")).toBe(2);
@@ -178,6 +190,7 @@ describe("ww208 society", () => {
             { faction: "deu_fatherland", tag: "DEU", from: "deu_t_patriots" },
           ],
         },
+        true,
       ),
     );
     const { gw, seat, n } = await deu();
@@ -223,17 +236,100 @@ describe("ww208 society", () => {
         ...was.draft.filter((d) => d !== carried),
       ],
     };
+    // ww208 merge: France's other bills (W-FRA's peace rows) stay out of it.
+    const others = LAWS.filter((r) => r.tag === "FRA" && r.id !== was.id);
+    const kept = LAWS.filter((r) => !others.includes(r));
+    const book = [...LAWS];
+    LAWS.splice(0, LAWS.length, ...kept);
     try {
       for (let c = 6; c <= 30 && fra.laws.length === 0; c += 6) {
         gw.s.chapter = c;
         lawAiStep(gw);
       }
     } finally {
+      LAWS.splice(0, LAWS.length, ...book);
       LAWS[at] = was;
     }
     expect(fra.laws.find((l) => l.id === was.id)?.stage).toBe("force");
-    expect(fra.axes).toEqual({ rule: -1, church: -1 });
+    expect(fra.axes).toEqual({
+      rule: -GW_BILL_PUSH,
+      church: -GW_BILL_PUSH,
+    });
     // AI countries keep no society.
     expect(gw.s.seats.some((x) => x.tag === "FRA")).toBe(false);
+  });
+});
+
+describe("ww208 merge seams", () => {
+  test("a war postponement holds the election, by its law or its flag", async () => {
+    // GBR's bill is also set by a power and two scenes: the flag counts.
+    expect(LAWS.find((r) => r.id === "gbr_postpone")?.flag).toBe(
+      "f_gbr_parliament_extended",
+    );
+    const { gw, seat, n } = await deu();
+    const reichstag = houseRow("DEU")!.chambers.find(
+      (c) => c.id === "reichstag",
+    )!;
+    expect(reichstag.elect?.postpone).toBe("deu_postpone");
+    const at = LAWS.findIndex((r) => r.id === "deu_postpone");
+    const was = LAWS[at];
+    LAWS[at] = { ...was, flag: "f_test_postponed" };
+    try {
+      n.atWar = ["FRA"];
+      seat.flags.push("f_test_postponed");
+      const due = electionDue(gw, seat, reichstag)!;
+      chapters(gw, due, due);
+      expect(seat.society!.elections).toEqual([]);
+      // No postponement: the war election comes.
+      seat.flags = seat.flags.filter((f) => f !== "f_test_postponed");
+      chapters(gw, due + 1, due + 1);
+      expect(seat.society!.elections.map((e) => e.cause)).toEqual(["due"]);
+    } finally {
+      LAWS[at] = was;
+    }
+  });
+
+  test("born and generic parties have their template's ability", () => {
+    const powers = GW_CONTENT.powers ?? [];
+    const of = (faction: string) =>
+      powers.find((p) => p.ability?.faction === faction);
+    for (const id of [
+      "deu_g_peasants",
+      "gbr_g_veterans",
+      "deu_spartacus",
+      "rus_sr",
+    ]) {
+      const row = of(id);
+      expect(row, id).toBeDefined();
+      expect(row!.group).toBe("factions");
+    }
+    // A party with its own row keeps it.
+    expect(of("deu_spd")?.id).toBe("deu_pw_ab_spd");
+    expect(powers.filter((p) => p.ability?.faction === "deu_spd").length).toBe(
+      1,
+    );
+  });
+
+  test("a rally lays a card; the player picks its reward", async () => {
+    const { gw, seat } = await deu();
+    const spd = factionOf(seat, "deu_spd")!;
+    spd.trust = 2;
+    spd.step = 2;
+    spd.heat = 4;
+    const support = supportOf(spd);
+    for (let c = 8; c < 8 + 6 && seat.society?.rally === undefined; c++) {
+      gw.s.chapter = c;
+      spd.step = 2;
+      utopiaStep(gw);
+    }
+    expect(seat.society!.rally).toBe("deu_spd");
+    expect(seat.desk.some((d) => d.scene === GW_RALLY_SCENE)).toBe(true);
+    const morale = gw.nation("DEU")!.gauges.morale;
+    runEffects({ gw, seat, cast: {} }, [
+      { kind: "world", of: { do: "rally_reward", reward: "morale" } },
+    ]);
+    expect(gw.nation("DEU")!.gauges.morale).toBe(Math.min(5, morale + 1));
+    expect(seat.society!.rally).toBeUndefined();
+    expect(supportOf(spd)).toBe(support);
   });
 });

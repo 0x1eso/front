@@ -79,6 +79,6 @@ export function joinUtopia(parts: readonly GwUtopiaContent[]): GwUtopiaContent {
 }
 
 /** Affinity a month from the axes: per step the axes stand on each ideal. */
-export const GW_AFFINITY_AXIS = 2;
+export const GW_AFFINITY_AXIS = 4;
 /** Affinity a passed bill of its own, a project done, brings. */
 export const GW_AFFINITY_BILL = 5;

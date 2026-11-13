@@ -886,7 +886,13 @@ export type GwWorldEffect =
   | { do: "split_pressure"; id: string; delta: number }
   // ---- ww209: the ledger (Deals.ts, S2) ----
   /** A ledger row with the faction: he owes a favour, or the seat owes him one. */
-  | { do: "ledger"; kind: "owe" | "owed"; id: string };
+  | { do: "ledger"; kind: "owe" | "owed"; id: string }
+  /** ww208 merge: the reward the player picked on a rally card (FP2). */
+  | { do: "rally_reward"; reward: GwRallyReward };
+
+/** What a faction's rally is turned to: its own support, order, morale. */
+export const GW_RALLY_REWARDS = ["support", "order", "morale"] as const;
+export type GwRallyReward = (typeof GW_RALLY_REWARDS)[number];
 
 const int = z.number().int();
 const yearMonth = z.string().regex(/^19[0-9]{2}-[01][0-9]$/);
@@ -1356,6 +1362,7 @@ export const GwWorldEffectSchema = z.union([
   act("earmark", { id: GwIdSchema, on: z.boolean() }),
   act("split_pressure", { id: GwIdSchema, delta: int }),
   act("ledger", { kind: z.enum(["owe", "owed"]), id: GwIdSchema }),
+  act("rally_reward", { reward: z.enum(GW_RALLY_REWARDS) }),
 ]) as unknown as z.ZodType<GwWorldEffect>;
 
 // ---- Authoring helpers ----

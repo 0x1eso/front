@@ -693,10 +693,11 @@ describe("the screens", () => {
       "deu_new",
       "deu_gone",
     ]);
-    // No mark row yet: every chip carries the shield in its bloc colour.
-    expect(
-      chips[0].querySelector("[data-gw-mark]")!.getAttribute("data-gw-mark"),
-    ).toBe("shield");
+    // The SPD has its mark (W-DEU); a party with no mark row has the shield.
+    const mark = (i: number) =>
+      chips[i].querySelector("[data-gw-mark]")!.getAttribute("data-gw-mark");
+    expect(mark(0)).toBe("mark");
+    expect(mark(2)).toBe("shield");
     expect(
       chips[0]
         .querySelector("[data-gw-fervour]")!

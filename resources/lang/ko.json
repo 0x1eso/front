@@ -15714,7 +15714,8 @@
       "society_fervour": "성난 정파와 들끓는 민심이 질서를 갉아먹는다.",
       "utopia_protest": "항의 시위",
       "budget_orders": "군비 예산이 공장의 주문량을 정한다.",
-      "budget_subsidy": "영국의 보조금으로 포탄이 들어온다."
+      "budget_subsidy": "영국의 보조금으로 포탄이 들어온다.",
+      "utopia_rally": "지지 집회"
     },
     "mandate": {
       "deu_bread_for_the_winter": "겨울 빵을 남기기",
@@ -20404,7 +20405,20 @@
         "imperial_council": "제국 평의회",
         "peace_society": "평화 협회",
         "mediation_office": "중재 창구",
-        "peace_congress": "국제 평화 회의"
+        "peace_congress": "국제 평화 회의",
+        "gbr_college_green": "칼리지 그린 의사당",
+        "gbr_daily_herald": "데일리 헤럴드",
+        "gbr_freemans_journal": "프리먼스 저널",
+        "gbr_garden_suburb": "정원 연구실",
+        "gbr_home_rule_council": "자치 협의회",
+        "gbr_imperial_council": "제국 회의",
+        "gbr_labour_cabinet": "노동당 내각",
+        "gbr_liberal_press": "자유당 신문들",
+        "gbr_munitions_ministry": "군수부",
+        "gbr_peoples_house": "국민의 의회",
+        "gbr_primrose_league": "프림로즈 연맹",
+        "gbr_reconstruction": "재건부",
+        "gbr_workers_committee": "노동자 전시 위원회"
       },
       "why": {
         "affinity": "나라가 아직 이 당의 생각 쪽으로 충분히 오지 않았다.",
@@ -20416,7 +20430,9 @@
         "axes": "나라가 아직 이 당의 생각에 다 닿지 않았다.",
         "laws": "이 당의 법이 아직 시행되지 않았다.",
         "communities": "이 당을 따르는 사람이 아직 나라의 절반이 못 된다.",
-        "state": "그 나라를 세울 형편이 아직 아니다."
+        "state": "그 나라를 세울 형편이 아직 아니다.",
+        "no_affinity": "나라가 아직 이 당의 생각 쪽으로 충분히 오지 않았다.",
+        "node_shut": "앞 단계를 먼저 이뤄야 하거나, 지금 형편이 허락하지 않는다."
       },
       "tier": {
         "moderate": "온건",

@@ -140,12 +140,12 @@ export type GwNodeKind = (typeof GW_NODE_KINDS)[number];
 /** Affinity runs 0..GW_AFFINITY_MAX; a node costs its tier's price. */
 export const GW_AFFINITY_MAX = 100;
 export const GW_NODE_PRICE: Readonly<Record<GwNodeTier, number>> = {
-  moderate: 20,
-  bold: 35,
-  extreme: 50,
+  moderate: 10,
+  bold: 20,
+  extreme: 30,
 };
 /** Realisation: the axes at its ideals this far, its communities over half. */
-export const GW_REALISE_AXIS = 2;
+export const GW_REALISE_AXIS = 1;
 
 /** The player's word on a utopia's regime change (decision 1B). */
 export const GW_UTOPIA_CHOICES = ["end", "play"] as const;
@@ -172,6 +172,13 @@ export const GwCommunityStateSchema = z.object({
   step: int,
   /** Its rally or protest came this chapter; -9 never. */
   stirred: int,
+  /** ww208 merge: the ideal a realised utopia gave it; absent: its row's. */
+  ideal: z
+    .object({
+      axis: z.enum(GW_AXES),
+      side: z.union([z.literal(-1), z.literal(1)]),
+    })
+    .optional(),
 });
 export type GwCommunityState = z.infer<typeof GwCommunityStateSchema>;
 
@@ -216,6 +223,8 @@ export const GwSocietyStateSchema = z.object({
   utopia: GwUtopiaStateSchema.nullable(),
   /** ww208 (S1): the axes at the last society step (the view's trend). */
   was: GwAxesSchema.optional(),
+  /** ww208 merge: the faction whose rally card waits for its reward. */
+  rally: Id.optional(),
 });
 export type GwSocietyState = z.infer<typeof GwSocietyStateSchema>;
 

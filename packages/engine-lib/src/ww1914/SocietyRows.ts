@@ -32,6 +32,14 @@ export interface GwCommunityRow {
   readonly steps?: readonly number[];
 }
 
+/** A community's ideal now: the one a realised utopia gave it, else its row's. */
+export function communityIdeal(
+  row: GwCommunityRow,
+  st?: { readonly ideal?: GwCommunityRow["ideal"] } | null,
+): GwCommunityRow["ideal"] {
+  return st?.ideal ?? row.ideal;
+}
+
 /** Heat a community needs for tempers 2, 3, 4 when its row names none. */
 export const GW_COMMUNITY_STEPS: readonly number[] = [3, 6, 10];
 

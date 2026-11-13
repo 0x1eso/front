@@ -99,7 +99,10 @@ export function s2Problems(c: GwContent, tag: GwTag, pack: GwPack): string[] {
     }
   }
 
-  const head = (GW_SEAT_PERSON[tag] ?? []).map((x) => x.person);
+  // ww208 1B: a head (flag gw_head_<id>) is the seat only once it plays him.
+  const head = (GW_SEAT_PERSON[tag] ?? [])
+    .filter((x) => x.flag?.startsWith("gw_head_") !== true)
+    .map((x) => x.person);
   for (const w of (c.weak ?? []).filter((x) =>
     x.person.startsWith(`${tag.toLowerCase()}_`),
   )) {

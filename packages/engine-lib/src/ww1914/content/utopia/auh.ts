@@ -9,11 +9,11 @@ import { gauge, inst } from "../laws/kit";
 //
 // Each named tree carries its exclusive law (content/laws/auh.ts
 // AUH_EXCLUSIVE_LAWS) on the node its row names, bent to kind `law`. The
-// regimes auh_federal_crown and auh_trial are S2's; Karl stays in both. No
-// AUH tree removes the person: the Social Democrats' plan is Renner's, a
-// federation of nations under the crown (his writings to 1918, F: memory),
-// so the republic and its heads (Lammasch, Renner) are left to a tree S2 or
-// a later lane may add.
+// regimes auh_federal_crown and auh_trial are S2's; Karl stays in both.
+// ww208 merge: the Social Democrats' tree brings the existing (ww197) form
+// `austria_republic`, which has no place for the crown; its head is Renner
+// (lane P). No tree takes the peace or federal path without Karl, so lane P's
+// Lammasch (form `federation`) waits for one.
 
 const law = (id: string): Partial<GwNodeRow> => ({ kind: "law", law: id });
 
@@ -106,6 +106,8 @@ export const AUH_UTOPIA: GwUtopiaContent = {
           power: "auh_pw_ab_unions",
         },
       ],
+      regime: "austria_republic",
+      head: "renner",
       realised: [gauge("order", 1), inst("nations", 1)],
     },
     // The Czechs: the Bohemian state right, a king crowned in Prague.

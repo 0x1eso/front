@@ -1,10 +1,11 @@
 import { gwSocietyStart } from "@openfront/engine-api/ww1914/GwSociety";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
-import { GW_RULERS } from "@openfront/engine-lib/ww1914/RulerRows";
+import { GW_RULERS, headRow } from "@openfront/engine-lib/ww1914/RulerRows";
 import type { GreatWar } from "@openfront/engine/ww1914/GreatWar";
 import { placeRow } from "@openfront/engine/ww1914/Persona";
-import { changeRegime } from "@openfront/engine/ww1914/Regimes";
+import { changeRegime, GW_REGIMES } from "@openfront/engine/ww1914/Regimes";
 import { rulerStep } from "@openfront/engine/ww1914/Ruler";
+import { utopiaChoice } from "@openfront/engine/ww1914/Utopia";
 import { loadGwPack } from "@openfront/shared/ww1914/GwPackLoader";
 import fs from "node:fs";
 import path from "node:path";
@@ -48,7 +49,9 @@ describe("the heads a utopia brings (ww208 1B)", () => {
     expect(gw.s.ended).toBeNull();
     expect(st.ruler.id).toBe("wilhelm");
 
-    st.society!.utopia!.choice = "play";
+    // The order sets the head's seat flag (gw_head_ebert) his row waits for.
+    expect(utopiaChoice(gw, st, true)).toBeNull();
+    expect(st.flags).toContain("gw_head_ebert");
     rulerStep(gw);
     expect(gw.s.ended).toBeNull();
     expect(st.ruler.id).toBe("ebert");
@@ -113,5 +116,33 @@ describe("the heads a utopia brings (ww208 1B)", () => {
         expect(pack.scenes[s!], s!).toBeTruthy();
       }
     }
+  });
+
+  test("every tree's regime and head resolve (ww208 merge)", () => {
+    const trees = gwContent().utopia?.trees ?? [];
+    const named = new Set<string>();
+    for (const t of trees) {
+      const tag = t.faction.slice(0, 3).toUpperCase() as "DEU";
+      if (t.regime !== undefined) {
+        const forms = (GW_REGIMES[tag] ?? []).map((r) => r.id);
+        expect(forms, `${t.faction} ${t.regime}`).toContain(t.regime);
+      }
+      if (t.head === undefined) continue;
+      const row = headRow(t.head);
+      expect(row, t.head).not.toBeNull();
+      expect(GW_RULERS[tag]?.includes(row!), t.head).toBe(true);
+      expect(row!.flag).toBe(`gw_head_${t.head}`);
+      expect(t.regime, t.head).toBeDefined();
+      named.add(t.head);
+    }
+    // Lammasch waits for a tree that takes the peace path without Karl.
+    expect([...named].sort()).toEqual([
+      "ebert",
+      "henderson",
+      "kerensky",
+      "lvov",
+      "orleans",
+      "renner",
+    ]);
   });
 });
