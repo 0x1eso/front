@@ -46,6 +46,7 @@ import {
   beatPlot,
   cool,
   coolPlot,
+  faction,
   grow,
   heat,
   heatPlot,
@@ -88,6 +89,8 @@ const bloc = (b: GwFactionRow["bloc"]): GwCond => ({
   max: -3,
 });
 const lead = role("lead");
+/** ww209: Lloyd George's men are still inside the Liberal party. */
+const lgOut = faction("gbr_lg", { of: ["out"] });
 /** ww203: his faction's bill is on the agenda (or law): a `next` price kept. */
 const onAgenda = (law: string): GwCond => not(toCome(law));
 /** ww203: his amendment in place of the bill's text (a `concession`). */
@@ -151,6 +154,8 @@ export const GBR_FACTIONS: readonly GwFactionRow[] = [
         when: not(flag("f_home_rule_lives")),
         keep: flag("f_home_rule_lives"),
         chapters: 10,
+        // ww209: the Act on the book and suspended for the war (Sept 1914).
+        terms: ["half", "war_end"],
       },
     ],
     amends: {
@@ -160,6 +165,18 @@ export const GBR_FACTIONS: readonly GwFactionRow[] = [
       gbr_married_men: "with_tribunals",
       gbr_wealth: "profits_duty",
       gbr_navy_estimates: "holiday_clause",
+    },
+    // ww209: free trade and the People's Budget's supertax.
+    purse: [{ taxes: { consumption: -1, income: 1 } }],
+    // ww209: the Liberals who would follow Lloyd George; Addison canvassed
+    // them in December 1916. Met apart, they vote as his men.
+    wing: {
+      person: "gbr_i_addison",
+      ideals: { class: 1, rule: -1 },
+      share: 3,
+      when: lgOut,
+      defies: false,
+      into: "gbr_lg",
     },
     splits: {
       when: any(
@@ -223,7 +240,13 @@ export const GBR_FACTIONS: readonly GwFactionRow[] = [
         chapters: 2,
       },
       own("gbr_rebels"),
-      { id: "hear_conscience", kind: "promise", keep: war, chapters: 2 },
+      {
+        id: "hear_conscience",
+        kind: "promise",
+        keep: war,
+        chapters: 2,
+        terms: ["session"],
+      },
     ],
     amends: {
       gbr_conscription: "conscience",
@@ -231,6 +254,8 @@ export const GBR_FACTIONS: readonly GwFactionRow[] = [
       gbr_war_aims: "no_annexation",
       gbr_navy_estimates: "fewer_keels",
     },
+    // ww209: the economists who fought Churchill's Navy Estimates (1914).
+    purse: [{ lines: { army: -1, navy: -1 } }],
   },
   {
     id: "gbr_lg",
@@ -288,6 +313,7 @@ export const GBR_FACTIONS: readonly GwFactionRow[] = [
         when: toCome("gbr_conscription"),
         keep: isLaw("gbr_conscription"),
         chapters: 8,
+        terms: ["session", "half"],
       },
       {
         id: "food_next",
@@ -303,6 +329,8 @@ export const GBR_FACTIONS: readonly GwFactionRow[] = [
       gbr_food: "national_cards",
       gbr_wealth: "profits_duty",
     },
+    // ww209: the munitions drive (May 1915).
+    purse: [{ lines: { army: 1 } }],
   },
   {
     id: "gbr_unionists",
@@ -368,7 +396,10 @@ export const GBR_FACTIONS: readonly GwFactionRow[] = [
         keep: war,
         chapters: 2,
         effects: [heat("gbr_liberals", 1), heat("gbr_rebels", 1)],
+        terms: ["session", "half"],
       },
+      // ww209: his votes now, a favour owed him later.
+      { id: "owe_later", kind: "favour", when: war },
     ],
     amends: {
       gbr_conscription: "all_men",
@@ -378,6 +409,21 @@ export const GBR_FACTIONS: readonly GwFactionRow[] = [
       gbr_rent: "rent_courts",
       gbr_wealth: "after_the_war",
       gbr_navy_estimates: "full_programme",
+    },
+    // ww209: in peace the opposition votes against a Liberal budget (1909,
+    // 1914); at war it votes the credits.
+    purse: [
+      { when: war, bill: "credits", side: 1 },
+      { when: not(war), bill: "budget", side: -1 },
+    ],
+    // ww209: Carson's men; in the Nigeria debate (8 Nov 1916) he led them
+    // against Bonar Law's own bench.
+    wing: {
+      person: "gbr_carson",
+      ideals: { union: -1, rule: -1 },
+      share: 3,
+      when: faction("gbr_uwc", { of: ["out"] }),
+      into: "gbr_uwc",
     },
     splits: {
       when: all(
@@ -538,6 +584,7 @@ export const GBR_FACTIONS: readonly GwFactionRow[] = [
         kind: "money",
         when: war,
         effects: [gauge("money", -1)],
+        earmark: "gbr_separation",
       },
     ],
     amends: {
@@ -548,6 +595,18 @@ export const GBR_FACTIONS: readonly GwFactionRow[] = [
       gbr_married_men: "with_tribunals",
       gbr_wealth: "capital_levy",
       gbr_navy_estimates: "fewer_keels",
+    },
+    // ww209: the party backed the first £100 m on 5 Aug 1914.
+    purse: [{ when: war, bill: "credits", side: 1 }],
+    // ww209: the ILP's members inside the party; MacDonald gave up the chair
+    // over the credits (5 Aug 1914). They vote no openly; they aren't bought.
+    wing: {
+      person: "gbr_i_macdonald",
+      ideals: { union: 1, class: 1, rule: 1 },
+      share: 1,
+      when: faction("gbr_ilp", { of: ["out"] }),
+      peels: false,
+      into: "gbr_ilp",
     },
     splits: {
       when: all(
@@ -624,9 +683,12 @@ export const GBR_FACTIONS: readonly GwFactionRow[] = [
         ),
         keep: war,
         chapters: 2,
+        terms: ["session"],
       },
     ],
     amends: { gbr_conscription: "conscience", gbr_war_aims: "negotiate_now" },
+    // ww209: against the war's money.
+    purse: [{ when: war, bill: "credits", side: -1 }],
   },
   {
     id: "gbr_irish",
@@ -683,13 +745,18 @@ export const GBR_FACTIONS: readonly GwFactionRow[] = [
           gauge("money", -1),
           { kind: "pressure", topic: "ireland", delta: -1 },
         ],
+        earmark: "gbr_irish_land",
       },
+      // ww209: Irish votes now, a favour for Ireland later.
+      { id: "owe_later", kind: "favour" },
     ],
     amends: {
       gbr_home_rule: "all_ireland",
       gbr_drink: "short_hours",
       gbr_conscription: "conscience",
     },
+    // ww209: the spirit duties hit the distilleries (1909).
+    purse: [{ taxes: { consumption: -1 } }],
     splits: {
       when: all(
         any(flag("f_gbr_rising"), flag("f_gbr_irish_draft")),
@@ -784,7 +851,13 @@ export const GBR_FACTIONS: readonly GwFactionRow[] = [
         chapters: 4,
       },
       own("gbr_peers"),
-      { id: "debate_time", kind: "promise", keep: war, chapters: 2 },
+      {
+        id: "debate_time",
+        kind: "promise",
+        keep: war,
+        chapters: 2,
+        terms: ["session", "half"],
+      },
     ],
     amends: {
       gbr_franchise: "soldiers_only",
@@ -1134,7 +1207,7 @@ export const GBR_BILLS: readonly GwBillRow[] = [
   // ---- ww207: the peace bills and the factions' exclusive laws ----
   // The 1914 Budget: the Liberals' own benches balked at the land rating.
   {
-    law: "gbr_budget",
+    law: "gbr_budget_1914",
     money: true,
     stance: {
       gbr_liberals: 1,

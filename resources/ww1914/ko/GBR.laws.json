@@ -844,7 +844,7 @@
         }
       }
     },
-    "gw_law_gbr_budget": {
+    "gw_law_gbr_budget_1914": {
       "title": "예산안",
       "brief": "재무대신이 올해 예산안을 들고 왔습니다. 누구에게 얼마를 걷고 어디에 쓸지가 쟁점입니다.",
       "topic": "큰 소득에 더 걷고, 그 돈을 지방에 나눈다. 어디까지 할지 정한다.",
@@ -857,7 +857,7 @@
         "taxes_only": "**지방 보조금 장은 뺀다.** 세금만 올리고 지방 개혁은 다음 해로 미룬다."
       }
     },
-    "gw_lv_gbr_budget": {
+    "gw_lv_gbr_budget_1914": {
       "title": "예산안 표결일",
       "brief": {
         "shut": "의회가 닫혀 있어 오늘은 표결할 수 없습니다. 미룰지, 거둘지 정해야 합니다.",
@@ -877,7 +877,7 @@
         "put": "의회가 닫혀 있어 표결할 곳이 없다."
       }
     },
-    "gw_lt_gbr_budget": {
+    "gw_lt_gbr_budget_1914": {
       "title": "예산안",
       "brief": "보수당 지도자가 예산안을 두고 할 말이 있다며 왔습니다.",
       "topic": "예산안을 보수당은 어떻게 보시오?",
@@ -1771,9 +1771,9 @@
     "law_line_gbr_home_rule": "더블린이 제 일을 제가 본다. 아일랜드 쪽 징병 이야기가 줄었다.",
     "law_in_gbr_navy_estimates": "해군 예산안이 통과됐다. 조선소에 주문서가 갔다.",
     "law_out_gbr_navy_estimates": "해군 예산의 추가분을 거뒀다.",
-    "law_in_gbr_budget": "예산안이 통과됐다. 세무서가 새 세율표를 붙였다.",
-    "law_out_gbr_budget": "올해 예산의 새 세금을 거뒀다.",
-    "law_line_gbr_budget": "새 세금이 들어온다. 클럽에서는 재무대신 이야기가 끊이지 않는다.",
+    "law_in_gbr_budget_1914": "예산안이 통과됐다. 세무서가 새 세율표를 붙였다.",
+    "law_out_gbr_budget_1914": "올해 예산의 새 세금을 거뒀다.",
+    "law_line_gbr_budget_1914": "새 세금이 들어온다. 클럽에서는 재무대신 이야기가 끊이지 않는다.",
     "law_in_gbr_insurance": "국민보험 개정법이 시행됐다.",
     "law_out_gbr_insurance": "국민보험을 예전 모양으로 되돌렸다.",
     "law_line_gbr_insurance": "보험 카드에 도장이 찍힌다. 일이 끊긴 집에 돈이 조금 들어간다.",
