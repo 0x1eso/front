@@ -3,7 +3,10 @@
 // the count with factions, deals and amendments, the whip's word, the day by
 // the true count, the way round, the Lords' delay, a consent chamber, the
 // factions' own bills, tempers and splits, the extra calls, the v2 migration.
-import type { GwSeatState } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import type {
+  GwNationState,
+  GwSeatState,
+} from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import { GW_WHIP_WORDS } from "@openfront/engine-api/ww1914/GwHouse";
 import { GwPack, gwPackProblems } from "@openfront/engine-api/ww1914/GwPack";
@@ -424,6 +427,15 @@ function drafted(gw: GreatWar, seat: GwSeatState, law: string, text: string) {
   ).toBe(null);
 }
 
+/**
+ * ww204: a waverer is never sure (GW_WAVER_SWING), so the fixture's two
+ * wavering centre seats split even in the best mood: the sponsor's camp
+ * brings the centre in where a test needs the bill carried.
+ */
+function warmCentre(n: GwNationState, law: string) {
+  n.laws.find((x) => x.id === law)!.warm.push("t_centre");
+}
+
 const count = (gw: GreatWar, seat: GwSeatState, law: string) =>
   houseTally(houseCounts(gw, seat, law, 0)).count;
 
@@ -548,6 +560,7 @@ describe("a bill through the house", () => {
     const head = whipOf(gw, seat)!;
     gw.person(head)!.temperament = "anxious";
     drafted(gw, seat, "deu_aux", "unions_text");
+    warmCentre(n, "deu_aux");
     // ww203: no word each chapter; a department's count paper.
     houseStep(gw);
     expect(gw.s.reports.some((x) => x.about === "deu_aux")).toBe(false);
@@ -647,6 +660,7 @@ describe("a bill through the house", () => {
     const { gw, n, seat } = await atWar(house);
     n.inst.reichstag = 5;
     drafted(gw, seat, "deu_aux", "unions_text");
+    warmCentre(n, "deu_aux");
     const st = n.laws.find((x) => x.id === "deu_aux")!;
     st.stage = "vote";
     lawPut(ctxOf(gw, seat), "deu_aux");
@@ -868,6 +882,7 @@ describe("the approved rest of the design", () => {
     const { gw, n, seat } = await atWar({ ...HOUSE, signs: true });
     n.inst.reichstag = 5;
     drafted(gw, seat, "deu_aux", "unions_text");
+    warmCentre(n, "deu_aux");
     const st = n.laws.find((x) => x.id === "deu_aux")!;
     st.stage = "vote";
     lawPut(ctxOf(gw, seat), "deu_aux");
@@ -890,6 +905,7 @@ describe("the approved rest of the design", () => {
     const { gw, n, seat } = await atWar({ ...HOUSE, signs: true });
     n.inst.reichstag = 5;
     drafted(gw, seat, "deu_aux", "unions_text");
+    warmCentre(n, "deu_aux");
     const st = n.laws.find((x) => x.id === "deu_aux")!;
     st.stage = "vote";
     lawPut(ctxOf(gw, seat), "deu_aux");
@@ -1015,6 +1031,7 @@ describe("the GBR writer's round", () => {
     });
     n.inst.reichstag = 5;
     drafted(gw, seat, "deu_aux", "unions_text");
+    warmCentre(n, "deu_aux");
     const st = n.laws.find((x) => x.id === "deu_aux")!;
     st.stage = "vote";
     expect(count(gw, seat, "deu_aux")).toBeGreaterThanOrEqual(0);
@@ -1082,6 +1099,7 @@ describe("the AUH writer's round", () => {
     n.inst.reichstag = 5;
     // Not a bill §14 can reach: the closed chamber blocks it.
     drafted(gw, seat, "deu_aux", "unions_text");
+    warmCentre(n, "deu_aux");
     expect(count(gw, seat, "deu_aux")).toBeLessThanOrEqual(-3);
     const aux = n.laws.find((x) => x.id === "deu_aux")!;
     lawWithdraw(gw, seat, "deu_aux");
@@ -1089,6 +1107,7 @@ describe("the AUH writer's round", () => {
     seat.desk = [];
     // The bread cards: Vienna's half goes by §14, Budapest alone counts.
     drafted(gw, seat, "deu_bread_cards", "city_cards");
+    warmCentre(n, "deu_bread_cards");
     const counts = houseCounts(gw, seat, "deu_bread_cards", 0);
     expect(counts.map((c) => c.id)).toEqual(["reichstag"]);
     expect(count(gw, seat, "deu_bread_cards")).toBeGreaterThanOrEqual(0);
