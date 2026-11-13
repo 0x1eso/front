@@ -1,9 +1,7 @@
 // Great War 1914 (ww207 §9, U1): the bottom strip's plan. Pure: which chips
 // stand in what order, what each shows (the standing bar, the fervour marks,
-// the ability's dot, the affinity ring, the fallback shield), how full the
-// 질서 orb and the 사기 bar are, and the election card's hemicycle (seats
-// before and after). GwStrip and GwSocietyTab draw it. Words, not numbers.
-import { GW_GAUGE_MAX } from "@openfront/engine-api/ww1914/GreatWarTypes";
+// the ability's dot, the affinity ring, the fallback shield), and the
+// election card's hemicycle (seats before and after). GwStrip and GwSocietyTab draw it. Words, not numbers.
 import type { GwPack } from "@openfront/engine-api/ww1914/GwPack";
 import {
   GW_AFFINITY_MAX,
@@ -63,19 +61,6 @@ export function fervourMarks(temper: number): number {
 /** The ring round the mark: 0..1 of the tree's fill. */
 export function ringFill(affinity: number): number {
   return Math.max(0, Math.min(1, affinity / GW_AFFINITY_MAX));
-}
-
-/** 질서 the orb: it fills as order falls, empty at the top, full at riot. */
-export function orbFill(order: number): number {
-  const max = GW_GAUGE_MAX.order;
-  const v = Math.max(0, Math.min(max, Math.round(order)));
-  return 1 - v / max;
-}
-
-/** 사기 the bar: full at its height. */
-export function moraleFill(morale: number): number {
-  const max = GW_GAUGE_MAX.morale;
-  return Math.max(0, Math.min(max, Math.round(morale))) / max;
 }
 
 /** An axis step -3..3 as a place on its line, 0 (the first word) .. 1. */
