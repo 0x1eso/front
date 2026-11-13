@@ -111,6 +111,10 @@ export function paintCells(
 function claimCell(c: GwTableClaimView): OccupationCell | null {
   switch (c.state) {
     case "open":
+      // ww205: a place refused in this round waits for the seat's move.
+      if (c.round !== undefined && c.step === "refused") {
+        return cell(c.place, "refused", LEVEL.open, OCC_BLINK);
+      }
       return cell(c.place, "open", LEVEL.open, OCC_BLINK);
     case "agreed":
       return cell(c.place, "agreed", LEVEL.settled);
@@ -130,8 +134,27 @@ export function tableCells(
   t: GwTableView,
   wanted: readonly GwPlace[],
   picked: GwPlace | null,
+  fates?: Readonly<Partial<Record<GwPlace, GwFateMark>>>,
 ): OccupationCell[] {
   const out = new Map<number, OccupationCell>();
+  // ww205: the whole proposal is painted on the beaten country's map.
+  if (t.due?.kind === "propose") {
+    for (const p of t.due.places) {
+      const m = fates?.[p];
+      out.set(
+        GW_PLACES[p].id,
+        m === undefined
+          ? cell(p, "free", LEVEL.wanted)
+          : { ...cell(p, "wanted", LEVEL.open), rgb: fateRgb(m, p) },
+      );
+    }
+    if (picked !== null) {
+      const id = GW_PLACES[picked].id;
+      const was = out.get(id);
+      if (was !== undefined) out.set(id, { ...was, flags: OCC_BLINK });
+    }
+    return [...out.values()];
+  }
   if (t.due?.kind === "turn") {
     for (const p of t.due.places) {
       out.set(GW_PLACES[p].id, cell(p, "free", LEVEL.free));
@@ -288,7 +311,9 @@ export function aideMoment(t: GwTableView): string | null {
     if (last === undefined) return null;
     return last.word === "open" || last.word === "over" ? last.word : null;
   }
-  if (due.kind === "turn") return "turn";
+  if (due.kind === "turn" || due.kind === "propose") return "turn";
+  if (due.kind === "bargain") return "refused";
+  if (due.kind === "answer") return "asked";
   const c = t.claims.find((x) => x.id === due.claim)!;
   if (due.words.includes("no")) {
     if (c.step === "offered") return "their_offer";
@@ -349,4 +374,64 @@ export function stillWanted(
   return (seat.claims?.places ?? []).filter(
     (p) => !on.has(p) && open.includes(p),
   );
+}
+
+// ---- ww205: whole proposals, answers place by place ----
+
+/** The places of the proposal on the table now (the claimant's), else all so far. */
+export function proposalOf(t: GwTableView): GwTableClaimView[] {
+  const by = t.talk?.claimant ?? null;
+  const rows = t.claims.filter((c) => c.round !== undefined);
+  const theirs = rows.filter((c) => c.by === by);
+  // Between two victors' proposals the last ones stay in view.
+  return by === null || theirs.length === 0 ? rows : theirs;
+}
+
+/** Where a proposal's place stands, as a word id under gw.bargain.state. */
+export function answerState(c: GwTableClaimView): string {
+  switch (c.state) {
+    case "agreed":
+    case "imposed":
+      return "agreed";
+    case "refused":
+      return "final";
+    case "dropped":
+      return "dropped";
+    default:
+      if (c.step === "partner") return "partner";
+      return c.step === "refused" ? "refused" : "waiting";
+  }
+}
+
+/**
+ * The beaten's reason, in its own voice: `gw.bargain.why.<TAG>.<id>` for a
+ * country with its own words, else the common one. Empty with none.
+ */
+export function whyText(c: GwTableClaimView): string {
+  if (c.why === undefined) return "";
+  const params = {
+    place: placeName(c.place),
+    fate: translateText(`gw.fate.chip.${c.fate ?? "annex"}`),
+    for: c.for === undefined ? "" : countryName(c.for),
+    by: countryName(c.by),
+  };
+  const own = `gw.bargain.why.${c.against}.${c.why}`;
+  const said = translateText(own, params);
+  return said !== own ? said : translateText(`gw.bargain.why.${c.why}`, params);
+}
+
+/** The fate one step down from a refused place's (annex → occupy → vassal → return). */
+export function downMark(c: GwTableClaimView): GwFateMark | null {
+  switch (c.fate ?? "annex") {
+    case "annex":
+    case "ally":
+    case "state":
+      return { fate: "occupy", term: "long" };
+    case "occupy":
+      return { fate: "vassal" };
+    case "vassal":
+      return { fate: "return" };
+    default:
+      return null;
+  }
 }

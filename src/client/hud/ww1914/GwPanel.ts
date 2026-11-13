@@ -248,7 +248,12 @@ export class GwPanel extends LitElement implements Controller {
     }
     const t = seat.table ?? null;
     if (t === null || ui.tab !== "table") return null;
-    return tableCells(t, seat.claims?.places ?? [], ui.tableArmed);
+    return tableCells(
+      t,
+      seat.claims?.places ?? [],
+      ui.tableArmed,
+      seat.claims?.fates,
+    );
   }
 
   /** A place tapped on the map while it is painted. */
@@ -258,7 +263,10 @@ export class GwPanel extends LitElement implements Controller {
     if (ui.paint !== null) {
       if (GW_PLACES[place].owner === seat?.tag) return;
       ui.paint = togglePlace(ui.paint, place);
-    } else if (seat?.table?.due?.kind === "turn") {
+    } else if (
+      seat?.table?.due?.kind === "turn" ||
+      seat?.table?.due?.kind === "propose"
+    ) {
       const open = seat.table.due.places.includes(place);
       ui.tableBarred = open ? null : place;
       ui.tableArmed = open && ui.tableArmed !== place ? place : null;
@@ -458,20 +466,31 @@ export class GwPanel extends LitElement implements Controller {
       ui.readerUid = null;
       this.tableView = true;
     }
-    if (t.due?.kind !== "turn") {
+    if (t.due?.kind !== "turn" && t.due?.kind !== "propose") {
       ui.tableArmed = null;
       ui.tableBarred = null;
       this.turnSeen = false;
     } else if (!this.turnSeen) {
-      // The last claim may have taken the camera to Africa: the choice is here.
-      this.turnSeen = true;
-      this.tableView = true;
+      // ww205: a whole proposal is painted on the beaten country itself,
+      // once the month's replay has given the camera back.
+      const first = t.due.kind === "propose" ? t.due.places[0] : undefined;
+      if (first === undefined) {
+        // The last claim may have taken the camera to Africa: the choice is here.
+        this.turnSeen = true;
+        this.tableView = true;
+      } else if (!replaying && this.painted !== null) {
+        this.turnSeen = true;
+        this.painted.fly(first);
+      }
     }
     if (this.tableView && !replaying) {
       this.tableView = false;
       this.painted?.flyTo(TABLE_VIEW[0], TABLE_VIEW[1]);
     }
     if (t.due?.kind !== "word") ui.tableOffer = false;
+    // ww205: a round's moves and answers last only while they are due.
+    if (t.due?.kind !== "bargain") ui.bargain = {};
+    if (t.due?.kind !== "answer") ui.answers = {};
     const line = t.lines[t.lines.length - 1];
     if (line === undefined || line.n === this.lineSeen) return;
     this.lineSeen = line.n;
@@ -480,6 +499,7 @@ export class GwPanel extends LitElement implements Controller {
       claim !== undefined &&
       ui.tab === "table" &&
       t.due?.kind !== "turn" &&
+      t.due?.kind !== "propose" &&
       !replaying
     ) {
       this.painted?.fly(claim.place);

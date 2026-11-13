@@ -35,7 +35,7 @@ import { BTN, BTN_ON, CHIP, MUTED } from "./GwStyle";
 import { country, frontLine, personName } from "./GwText";
 
 const SMALL = "!px-2 !py-1";
-const SIGN =
+export const SIGN =
   "w-full rounded border border-amber-300 bg-amber-300/90 px-3 py-2 text-center text-sm font-bold text-slate-900 hover:bg-amber-200 disabled:opacity-40";
 const SECTION = "space-y-1 border-t border-white/10 pt-2";
 

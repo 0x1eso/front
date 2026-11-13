@@ -2411,5 +2411,10 @@ export const GreatWarStateSchema = z.object({
     .optional(),
   /** ww199: every fate a table signed, in order; a later one on a place replaces it. */
   fates: z.array(GwFateRecordSchema).optional(),
+  /**
+   * ww205: countries that walked out of a peace table and went back to war
+   * (Brest, February 1918), in order; each does it once.
+   */
+  walkedOut: z.array(z.enum(GW_TAGS)).optional(),
 });
 export type GreatWarState = z.infer<typeof GreatWarStateSchema>;

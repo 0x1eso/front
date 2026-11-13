@@ -310,6 +310,40 @@ export function leaveWar(gw: GreatWar, tag: GwTag, why: string): void {
 }
 
 /**
+ * ww205: a country that walked out of its peace table goes back to war with
+ * those who sat across from it (Brest: "neither war nor peace", then the
+ * German advance). It is no longer out, nor beaten; its land is a front again.
+ */
+export function resumeWar(
+  gw: GreatWar,
+  tag: GwTag,
+  foes: readonly GwTag[],
+  why: string,
+): void {
+  const n = gw.nation(tag);
+  if (n === null) return;
+  n.out = false;
+  gw.s.beaten = (gw.s.beaten ?? []).filter((b) => b.tag !== tag);
+  for (const foe of foes) {
+    const f = gw.nation(foe);
+    if (f === null || f.out || foe === tag || warOf(gw, tag, foe) !== null) {
+      continue;
+    }
+    gw.s.wars.push({
+      a: foe,
+      b: tag,
+      since: gw.s.chapter,
+      cause: "walked_out",
+      ended: null,
+    });
+  }
+  syncAtWar(gw);
+  news(gw, why, tag);
+  turn(gw, `entered_${tag.toLowerCase()}`);
+  refreshTheatres(gw);
+}
+
+/**
  * Two countries make a peace of their own (design B5's `makePeace`): only
  * their war ends. A coalition's member left with no war is out of it.
  * `offeredBy`: whose offer the other took; null when both came to it at once.
