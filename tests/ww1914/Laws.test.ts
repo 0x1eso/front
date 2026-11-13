@@ -82,14 +82,15 @@ function next(gw: GreatWar): void {
 }
 
 describe("the rows", () => {
-  test("eight to ten bills a nation, each with its three scenes", () => {
+  test("eight to twelve bills a nation, each with its three scenes", () => {
     for (const tag of NATIONS) {
       // The factions' own bills (ww158) are the house files', not these.
       const rows = GW_LAWS.filter(
         (r) => r.tag === tag && !GW_HOUSE_LAWS.includes(r),
       );
       expect(rows.length).toBeGreaterThanOrEqual(8);
-      expect(rows.length).toBeLessThanOrEqual(10);
+      // ww203: the law book's new articles (W lanes, marked +).
+      expect(rows.length).toBeLessThanOrEqual(12);
     }
     const ids = new Set(GW_CONTENT.scenes.map((s) => s.id));
     for (const r of GW_LAWS) {

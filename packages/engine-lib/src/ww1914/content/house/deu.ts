@@ -24,6 +24,7 @@ import type {
   GwBillRow,
   GwFactionRow,
   GwPlotRow,
+  GwWant,
   GwWeakRow,
 } from "../../HouseRows";
 import type { GwLawRow } from "../../LawRows";
@@ -84,10 +85,31 @@ const score = (o: { min?: number; max?: number }): GwCond =>
   world({ is: "score", ...o });
 const uboats = (min: number): GwCond => world({ is: "uboat", min });
 const unrest = (min: number): GwCond => world({ is: "unrest", min });
-const holds = (o: "chief_of_staff" | "chancellor", p: string): GwCond => ({
+const holds = (
+  o: "chief_of_staff" | "chancellor" | "navy" | "war",
+  p: string,
+): GwCond => ({
   kind: "holder",
   office: o,
   person: p,
+});
+/** ww203: a post for his man, named while the man is about and out of it. */
+const postFor = (
+  o: "chancellor" | "navy" | "war",
+  p: string,
+): Pick<GwWant, "kind" | "when" | "keep"> => ({
+  kind: "post",
+  when: all({ kind: "person_active", person: p }, not(holds(o, p))),
+  keep: holds(o, p),
+});
+/** ww203: his amendment for the bill before the house (his `amends`). */
+const amendOn = (...laws: string[]): GwCond =>
+  any(...laws.map((l) => moving(l)));
+/** ww203: his own bill joins the agenda, and stays there or passes. */
+const nextOf = (law: string): Pick<GwWant, "kind" | "when" | "keep"> => ({
+  kind: "next",
+  when: all(not(isLaw(law)), not(moving(law))),
+  keep: any(moving(law), isLaw(law)),
 });
 /** A price paid on the spot: the promise is kept the next chapter. */
 const paid: GwCond = { kind: "chapter", min: 0 };
@@ -105,7 +127,9 @@ export const DEU_FACTIONS: readonly GwFactionRow[] = [
     bloc: "court",
     start: "in",
     strength: 2,
-    seats: { reichstag: 2 },
+    // ww203: the 1912 Reichstag: Conservatives 41, Reich Party 14, the
+    // agrarian and anti-Semitic groups and independents 20 (Wikipedia, 1912).
+    seats: { reichstag: 75 },
     leaders: [{ person: "deu_i_westarp" }],
     radical: "deu_i_heydebrand",
     grows: [
@@ -137,17 +161,20 @@ export const DEU_FACTIONS: readonly GwFactionRow[] = [
       deu_war_aims: "east_and_west",
     },
     wants: [
+      { id: "aims_next", ...nextOf("deu_war_aims"), chapters: 10 },
       {
-        id: "aims_next",
-        when: not(isLaw("deu_war_aims")),
-        keep: isLaw("deu_war_aims"),
-        chapters: 10,
+        id: "cons_text",
+        kind: "concession",
+        when: amendOn("deu_three_class", "deu_aux", "deu_censor"),
       },
       {
         id: "grain_price",
+        kind: "money",
         effects: [gauge("bread", -1), heat("deu_spd", 1)],
         keep: paid,
       },
+      // The Conservatives stood by Tirpitz after March 1916 (memory, check).
+      { id: "tirpitz_back", ...postFor("navy", "deu_tirpitz"), chapters: 6 },
     ],
     // The Fatherland Party is the desk's (deu_h_fatherland_party); here the
     // conservative benches go over to it.
@@ -165,7 +192,7 @@ export const DEU_FACTIONS: readonly GwFactionRow[] = [
     bloc: "business",
     start: "in",
     strength: 2,
-    seats: { reichstag: 1 },
+    seats: { reichstag: 45 },
     leaders: [
       { person: "deu_i_bassermann", when: until("1917-07") },
       { person: "deu_stresemann" },
@@ -198,17 +225,35 @@ export const DEU_FACTIONS: readonly GwFactionRow[] = [
     wants: [
       {
         id: "industry_heard",
+        kind: "promise",
         when: any(moving("deu_aux"), moving("deu_strike_ban")),
         effects: [heat("deu_spd", 1)],
         keep: paid,
       },
       {
+        id: "natlib_text",
+        kind: "concession",
+        when: amendOn("deu_strike_ban", "deu_three_class", "deu_take_back"),
+      },
+      // Stresemann worked for Bülow's return in July 1917 (memory, check).
+      {
+        id: "buelow_chancellor",
+        ...postFor("chancellor", "deu_buelow"),
+        chapters: 8,
+      },
+      {
         id: "aims_word",
+        kind: "promise",
         when: not(isLaw("deu_war_aims")),
         keep: isLaw("deu_war_aims"),
         chapters: 10,
       },
-      { id: "loan_terms", effects: [gauge("money", -1)], keep: paid },
+      {
+        id: "loan_terms",
+        kind: "money",
+        effects: [gauge("money", -1)],
+        keep: paid,
+      },
     ],
   },
   {
@@ -217,7 +262,7 @@ export const DEU_FACTIONS: readonly GwFactionRow[] = [
     bloc: "parliament",
     start: "in",
     strength: 3,
-    seats: { reichstag: 2 },
+    seats: { reichstag: 90 },
     leaders: [
       { person: "deu_erzberger" },
       { person: "deu_i_spahn", when: until("1917-06") },
@@ -263,18 +308,30 @@ export const DEU_FACTIONS: readonly GwFactionRow[] = [
     },
     wants: [
       {
-        id: "jesuits_next",
-        when: not(isLaw("deu_jesuits")),
-        keep: isLaw("deu_jesuits"),
-        chapters: 10,
+        id: "centre_text",
+        kind: "concession",
+        when: amendOn("deu_aux", "deu_strike_ban", "deu_food_office"),
       },
       {
         id: "peace_word",
+        kind: "promise",
         when: not(peaceTaken),
         keep: peaceTaken,
         chapters: 8,
       },
-      { id: "catholic_bread", effects: [gauge("money", -1)], keep: paid },
+      { id: "jesuits_next", ...nextOf("deu_jesuits"), chapters: 10 },
+      // The majority took Hertling, a Centre man, in November 1917.
+      {
+        id: "hertling_chancellor",
+        ...postFor("chancellor", "deu_hertling"),
+        chapters: 8,
+      },
+      {
+        id: "catholic_bread",
+        kind: "money",
+        effects: [gauge("money", -1)],
+        keep: paid,
+      },
     ],
   },
   {
@@ -283,7 +340,7 @@ export const DEU_FACTIONS: readonly GwFactionRow[] = [
     bloc: "parliament",
     start: "in",
     strength: 2,
-    seats: { reichstag: 1 },
+    seats: { reichstag: 41 },
     leaders: [{ person: "deu_i_payer" }],
     grows: [
       {
@@ -323,15 +380,28 @@ export const DEU_FACTIONS: readonly GwFactionRow[] = [
     wants: [
       {
         id: "franchise_word",
+        kind: "promise",
         when: not(isLaw("deu_three_class")),
         keep: any(flag("f_franchise_word"), isLaw("deu_three_class")),
         chapters: 8,
       },
       {
-        id: "committee_seat",
-        when: not(isLaw("deu_parl_gov")),
-        keep: isLaw("deu_parl_gov"),
-        chapters: 10,
+        id: "progress_text",
+        kind: "concession",
+        when: amendOn("deu_three_class", "deu_censor", "deu_parl_gov"),
+      },
+      { id: "committee_seat", ...nextOf("deu_parl_gov"), chapters: 10 },
+      // Haußmann and Payer's man in October 1918.
+      {
+        id: "max_chancellor",
+        ...postFor("chancellor", "deu_max_baden"),
+        chapters: 8,
+      },
+      {
+        id: "liberal_press",
+        kind: "promise",
+        effects: [{ kind: "censor", delta: -1 }],
+        keep: paid,
       },
     ],
   },
@@ -341,7 +411,7 @@ export const DEU_FACTIONS: readonly GwFactionRow[] = [
     bloc: "workers",
     start: "in",
     strength: 3,
-    seats: { reichstag: 3 },
+    seats: { reichstag: 110 },
     leaders: [{ person: "deu_ebert" }, { person: "deu_scheidemann" }],
     grows: [
       {
@@ -388,18 +458,32 @@ export const DEU_FACTIONS: readonly GwFactionRow[] = [
     },
     wants: [
       {
-        id: "unions_next",
-        when: not(isLaw("deu_unions")),
-        keep: isLaw("deu_unions"),
-        chapters: 8,
+        id: "spd_text",
+        kind: "concession",
+        when: amendOn("deu_aux", "deu_strike_ban", "deu_three_class"),
       },
+      { id: "unions_next", ...nextOf("deu_unions"), chapters: 8 },
       {
         id: "franchise_word",
+        kind: "promise",
         when: not(isLaw("deu_three_class")),
         keep: any(flag("f_franchise_word"), isLaw("deu_three_class")),
         chapters: 10,
       },
-      { id: "amnesty", effects: [heat("deu_ohl", 1)], keep: paid },
+      // The unions trusted Groener at the War Office, 1916-17 (memory).
+      { id: "groener_war", ...postFor("war", "deu_groener"), chapters: 6 },
+      {
+        id: "war_aid",
+        kind: "money",
+        effects: [gauge("money", -1)],
+        keep: paid,
+      },
+      {
+        id: "amnesty",
+        kind: "promise",
+        effects: [heat("deu_ohl", 1)],
+        keep: paid,
+      },
     ],
     // The desk's report of the twenty votes (deu_h_spd_split) is the first
     // crack; the new party comes when the state says so.
@@ -410,6 +494,7 @@ export const DEU_FACTIONS: readonly GwFactionRow[] = [
       ),
       into: "deu_uspd",
       takes: 1,
+      seats: { reichstag: 18 },
       scene: "deu_f_uspd",
     },
   },
@@ -419,7 +504,8 @@ export const DEU_FACTIONS: readonly GwFactionRow[] = [
     bloc: "workers",
     start: "out",
     strength: 1,
-    seats: { reichstag: 1 },
+    // ww203: the eighteen of the Arbeitsgemeinschaft, March 1916.
+    seats: { reichstag: 18 },
     leaders: [{ person: "deu_haase" }, { person: "deu_i_ledebour" }],
     radical: "deu_i_ledebour",
     grows: [
@@ -453,13 +539,24 @@ export const DEU_FACTIONS: readonly GwFactionRow[] = [
     bills: ["deu_peace_res"],
     amends: { deu_peace_res: "no_annex" },
     wants: [
+      { id: "peace_text", ...nextOf("deu_peace_res"), chapters: 8 },
       {
-        id: "peace_text",
-        when: not(isLaw("deu_peace_res")),
-        keep: isLaw("deu_peace_res"),
-        chapters: 8,
+        id: "uspd_text",
+        kind: "concession",
+        when: amendOn("deu_peace_res"),
       },
-      { id: "amnesty", effects: [heat("deu_ohl", 1)], keep: paid },
+      {
+        id: "amnesty",
+        kind: "promise",
+        effects: [heat("deu_ohl", 1)],
+        keep: paid,
+      },
+      {
+        id: "meetings_free",
+        kind: "promise",
+        effects: [{ kind: "censor", delta: -1 }, heat("deu_ohl", 1)],
+        keep: paid,
+      },
     ],
     splits: {
       when: all(temper("deu_uspd", 2), any(unrest(1), low("order", 1))),
@@ -502,7 +599,8 @@ export const DEU_FACTIONS: readonly GwFactionRow[] = [
     bloc: "parliament",
     start: "in",
     strength: 1,
-    seats: { reichstag: 1 },
+    // ww203: Poles 18, Alsace-Lorraine 9, Guelphs 5, the Dane 1.
+    seats: { reichstag: 33 },
     leaders: [{ person: "deu_i_seyda" }],
     grows: [
       { when: flag("f_poland_kingdom"), by: 1, every: 12, key: "minor_poland" },
@@ -528,13 +626,25 @@ export const DEU_FACTIONS: readonly GwFactionRow[] = [
     bills: ["deu_alsace"],
     amends: { deu_alsace: "federal_state" },
     wants: [
+      { id: "alsace_next", ...nextOf("deu_alsace"), chapters: 10 },
       {
-        id: "alsace_next",
-        when: not(isLaw("deu_alsace")),
-        keep: isLaw("deu_alsace"),
-        chapters: 10,
+        id: "minor_text",
+        kind: "concession",
+        when: amendOn("deu_alsace"),
       },
-      { id: "polish_schools", effects: [heat("deu_cons", 1)], keep: paid },
+      {
+        id: "polish_schools",
+        kind: "promise",
+        effects: [heat("deu_cons", 1)],
+        keep: paid,
+      },
+      {
+        id: "polish_kingdom",
+        kind: "promise",
+        when: not(flag("f_poland_kingdom")),
+        keep: flag("f_poland_kingdom"),
+        chapters: 12,
+      },
     ],
   },
   {
@@ -597,7 +707,8 @@ export const DEU_FACTIONS: readonly GwFactionRow[] = [
     bloc: "court",
     start: "in",
     strength: 2,
-    seats: { bundesrat: 2 },
+    // ww203: Bavaria 6, Saxony 4, Württemberg 4, Baden 3 of the 61.
+    seats: { bundesrat: 17 },
     leaders: [
       {
         person: "deu_hertling",
@@ -638,8 +749,29 @@ export const DEU_FACTIONS: readonly GwFactionRow[] = [
       deu_bread_cards: "city_cards",
     },
     wants: [
-      { id: "bavaria_grain", effects: [gauge("bread", -1)], keep: paid },
-      { id: "peace_seat", keep: world({ is: "armistice" }), chapters: 24 },
+      {
+        id: "south_text",
+        kind: "concession",
+        when: amendOn("deu_food_office", "deu_alsace", "deu_bread_cards"),
+      },
+      {
+        id: "bavaria_grain",
+        kind: "money",
+        effects: [gauge("bread", -1)],
+        keep: paid,
+      },
+      // Hertling himself, Bavaria's premier, took the chancellery in 1917.
+      {
+        id: "hertling_chancellor",
+        ...postFor("chancellor", "deu_hertling"),
+        chapters: 8,
+      },
+      {
+        id: "peace_seat",
+        kind: "promise",
+        keep: world({ is: "armistice" }),
+        chapters: 24,
+      },
     ],
   },
   {
@@ -648,7 +780,8 @@ export const DEU_FACTIONS: readonly GwFactionRow[] = [
     bloc: "court",
     start: "out",
     strength: 2,
-    seats: { reichstag: 2 },
+    // ww203: the conservative benches it pools (the join takes theirs).
+    seats: { reichstag: 75 },
     leaders: [{ person: "deu_tirpitz" }, { person: "deu_i_kapp" }],
     radical: "deu_i_kapp",
     grows: [
@@ -683,14 +816,21 @@ export const DEU_FACTIONS: readonly GwFactionRow[] = [
     bills: ["deu_war_aims"],
     amends: { deu_war_aims: "east_and_west", deu_three_class: "plural_vote" },
     wants: [
+      { id: "aims_next", ...nextOf("deu_war_aims"), chapters: 8 },
       {
-        id: "aims_next",
-        when: not(isLaw("deu_war_aims")),
-        keep: isLaw("deu_war_aims"),
+        id: "fatherland_text",
+        kind: "concession",
+        when: amendOn("deu_war_aims", "deu_three_class"),
+      },
+      // The Fatherland Party wanted Tirpitz at the head of the government.
+      {
+        id: "tirpitz_chancellor",
+        ...postFor("chancellor", "deu_tirpitz"),
         chapters: 8,
       },
       {
         id: "no_reform",
+        kind: "promise",
         effects: [heat("deu_progress", 1), heat("deu_spd", 1)],
         keep: paid,
       },
@@ -780,6 +920,8 @@ export const DEU_BILLS: readonly GwBillRow[] = [
       arbitration: { deu_centre: 1, deu_progress: 1, deu_spd: 0 },
       courts_only: { deu_centre: 1 },
     },
+    // ww203: the Independents won't bargain over a ban on strikes.
+    creed: ["deu_uspd"],
     sponsor: either(office("war"), office("chancellor")),
   },
   {
@@ -872,6 +1014,8 @@ export const DEU_BILLS: readonly GwBillRow[] = [
         deu_uspd: -1,
       },
     },
+    // ww203: the three-class vote is the Conservatives' bedrock.
+    creed: ["deu_cons", "deu_fatherland"],
     sponsor: chan,
   },
   {
@@ -904,6 +1048,8 @@ export const DEU_BILLS: readonly GwBillRow[] = [
       },
     },
     houses: ["reichstag", "bundesrat"],
+    // ww203: a Reichsland made a state changes the constitution.
+    constitution: true,
     sponsor: chan,
   },
   // The factions' own.
@@ -925,6 +1071,7 @@ export const DEU_BILLS: readonly GwBillRow[] = [
       no_annex: { deu_uspd: 1, deu_centre: 0 },
       secured: { deu_natlib: 0, deu_spd: 0, deu_uspd: -1 },
     },
+    creed: ["deu_fatherland"],
     sponsor: either(office("chancellor"), office("foreign")),
   },
   {
@@ -967,6 +1114,9 @@ export const DEU_BILLS: readonly GwBillRow[] = [
       answer: { deu_natlib: 0 },
     },
     houses: ["reichstag", "bundesrat"],
+    // ww203: a chancellor answerable to the house: the October 1918 change.
+    constitution: true,
+    creed: ["deu_cons", "deu_fatherland"],
     sponsor: chan,
   },
   {
@@ -987,7 +1137,86 @@ export const DEU_BILLS: readonly GwBillRow[] = [
       east_and_west: { deu_centre: -1 },
       guarantees: { deu_centre: 1, deu_progress: 0 },
     },
+    creed: ["deu_uspd"],
     sponsor: either(office("foreign"), office("chancellor")),
+  },
+  // ww203 + check: the new articles, and the peace years' army bill.
+  {
+    law: "deu_war_tax",
+    stance: {
+      deu_cons: 0,
+      deu_natlib: 1,
+      deu_centre: 1,
+      deu_progress: 1,
+      deu_spd: 1,
+      deu_uspd: 0,
+      deu_minor: 1,
+      deu_south: 1,
+      deu_fatherland: 0,
+    },
+    texts: {
+      loans_only: {
+        deu_cons: 1,
+        deu_fatherland: 1,
+        deu_centre: 0,
+        deu_progress: 0,
+        deu_spd: -1,
+        deu_uspd: -1,
+      },
+      property_tax: {
+        deu_cons: -1,
+        deu_fatherland: -1,
+        deu_natlib: -1,
+        deu_centre: 0,
+        deu_uspd: 1,
+        deu_south: -1,
+      },
+    },
+    houses: ["reichstag", "bundesrat"],
+    money: true,
+    sponsor: either(person("deu_helfferich"), office("finance")),
+  },
+  {
+    law: "deu_siege",
+    stance: {
+      deu_cons: 1,
+      deu_natlib: 1,
+      deu_centre: 0,
+      deu_progress: -1,
+      deu_spd: -1,
+      deu_uspd: -1,
+      deu_minor: -1,
+      deu_fatherland: 1,
+    },
+    texts: {
+      civil_review: {
+        deu_cons: 0,
+        deu_natlib: 0,
+        deu_centre: 1,
+        deu_progress: 1,
+        deu_spd: 1,
+        deu_uspd: 0,
+        deu_minor: 1,
+        deu_fatherland: -1,
+      },
+    },
+    sponsor: home,
+  },
+  {
+    law: "deu_army_bill",
+    stance: {
+      deu_cons: 1,
+      deu_natlib: 1,
+      deu_centre: 1,
+      deu_progress: 0,
+      deu_spd: -1,
+      deu_minor: -1,
+    },
+    texts: {
+      cadres: { deu_progress: 1, deu_spd: 0 },
+      full_service: { deu_centre: 0, deu_progress: -1 },
+    },
+    sponsor: either(office("war"), office("chancellor")),
   },
 ];
 
@@ -1074,6 +1303,7 @@ export const DEU_HOUSE_LAWS: readonly GwLawRow[] = [
     // The peace resolution: the desk's crisis card is the same vote, so the
     // bill stands aside once that card was answered with the text taken.
     id: "deu_peace_res",
+    chapter: "war_aims",
     opens: all(
       war,
       warAge(24),
@@ -1115,6 +1345,7 @@ export const DEU_HOUSE_LAWS: readonly GwLawRow[] = [
     // The Reichstag may ask for the Bundesrat's wartime decrees to be lifted
     // (the 4 August 1914 law): the majority's answer to the way round.
     id: "deu_take_back",
+    chapter: "franchise",
     opens: all(war, aroundUsed(2)),
     lean: 0,
     decree: false,
@@ -1135,6 +1366,7 @@ export const DEU_HOUSE_LAWS: readonly GwLawRow[] = [
   }),
   own({
     id: "deu_parl_gov",
+    chapter: "franchise",
     opens: all(
       war,
       any(warAge(30), low("morale", 1), flag("f_interparty_heard")),
@@ -1162,6 +1394,7 @@ export const DEU_HOUSE_LAWS: readonly GwLawRow[] = [
   }),
   own({
     id: "deu_war_aims",
+    chapter: "war_aims",
     opens: all(war, any(flag("f_aims_ban_lifted"), warAge(24))),
     lean: 0,
     decree: false,

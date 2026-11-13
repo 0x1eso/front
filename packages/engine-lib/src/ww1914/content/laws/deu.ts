@@ -63,6 +63,7 @@ const opinion = (bloc: "business" | "workers", delta: number) =>
 export const DEU_LAWS: readonly GwLawRow[] = [
   row({
     id: "deu_censor",
+    chapter: "censorship",
     // The siege law gave the corps commanders the censor in August 1914.
     opens: allOf(war, since("1914-10")),
     lean: 0,
@@ -108,6 +109,7 @@ export const DEU_LAWS: readonly GwLawRow[] = [
   }),
   row({
     id: "deu_bread_cards",
+    chapter: "food",
     opens: allOf(war, since("1915-01")),
     lean: 1,
     decree: true,
@@ -169,6 +171,7 @@ export const DEU_LAWS: readonly GwLawRow[] = [
   }),
   row({
     id: "deu_food_office",
+    chapter: "food",
     opens: allOf(war, since("1916-02"), low("bread", 2)),
     lean: 1,
     decree: true,
@@ -203,6 +206,7 @@ export const DEU_LAWS: readonly GwLawRow[] = [
   }),
   row({
     id: "deu_strike_ban",
+    chapter: "labour",
     opens: allOf(war, since("1915-06")),
     lean: -1,
     decree: true,
@@ -250,6 +254,7 @@ export const DEU_LAWS: readonly GwLawRow[] = [
   }),
   row({
     id: "deu_aux",
+    chapter: "conscription",
     opens: allOf(war, since("1916-08")),
     lean: 0,
     decree: false,
@@ -290,6 +295,7 @@ export const DEU_LAWS: readonly GwLawRow[] = [
   }),
   row({
     id: "deu_unions",
+    chapter: "labour",
     opens: allOf(war, since("1916-01")),
     lean: 1,
     decree: false,
@@ -323,6 +329,7 @@ export const DEU_LAWS: readonly GwLawRow[] = [
   }),
   row({
     id: "deu_jesuits",
+    chapter: "nations",
     opens: allOf(war, since("1916-06")),
     lean: 0,
     decree: false,
@@ -351,6 +358,7 @@ export const DEU_LAWS: readonly GwLawRow[] = [
   }),
   row({
     id: "deu_three_class",
+    chapter: "franchise",
     opens: allOf(
       war,
       since("1916-06"),
@@ -401,6 +409,7 @@ export const DEU_LAWS: readonly GwLawRow[] = [
   }),
   row({
     id: "deu_alsace",
+    chapter: "nations",
     opens: allOf(war, since("1917-01")),
     lean: -1,
     decree: false,
@@ -433,6 +442,7 @@ export const DEU_LAWS: readonly GwLawRow[] = [
   // (Laws.test keeps a nation at ten bills, so the levy rides in the texts).
   row({
     id: "deu_army_bill",
+    chapter: "arms",
     opens: allOf(
       peaceYears(6),
       any(
@@ -500,6 +510,82 @@ export const DEU_LAWS: readonly GwLawRow[] = [
       price: [gauge("money", -1)],
       wins: 1,
       tempers: ["cunning"],
+    }),
+  }),
+  // ww203 + check: the war's money. Helfferich paid the war with loans and
+  // the hope of the enemy's indemnity; the Kriegssteuergesetz of 21 June 1916
+  // taxed the war's gains; the left asked for a Reich tax on property.
+  row({
+    id: "deu_war_tax",
+    chapter: "war_finance",
+    opens: allOf(war, since("1916-01")),
+    lean: 0,
+    decree: false,
+    cast: { finance: held("finance"), chancellor: held("chancellor") },
+    draft: [
+      draft("loans_only", 1, []),
+      draft("war_profits", 0, []),
+      draft("property_tax", -2, [], [inst("reichstag", 1)]),
+    ],
+    passed: [
+      onText("deu_war_tax", "loans_only", opinion("business", 1)),
+      onText("deu_war_tax", "war_profits", gauge("money", 1)),
+      onText(
+        "deu_war_tax",
+        "property_tax",
+        gauge("money", 2),
+        opinion("business", -1),
+      ),
+    ],
+    passedTell: [],
+    term: [
+      { gauge: "money", delta: -1, every: 10, text: ["loans_only"] },
+      {
+        gauge: "money",
+        delta: 1,
+        every: 10,
+        text: ["war_profits", "property_tax"],
+      },
+    ],
+    repeal: { authority: 15, tell: [], effects: [gauge("money", -1)] },
+    talk: lawTalk("deu_war_tax", {
+      who: either(person("deu_helfferich"), held("finance")),
+      ask: "frank",
+      push: "cold",
+      tell: [],
+      price: [gauge("money", -1)],
+      wins: 1,
+      tempers: ["arrogant"],
+    }),
+  }),
+  // ww203 + check: the state of siege. The corps commanders ruled the home
+  // districts under the Prussian siege law of 1851; the Reichstag won the
+  // Schutzhaft law of 4 December 1916 (custody with an appeal, three months).
+  row({
+    id: "deu_siege",
+    chapter: "siege",
+    opens: allOf(war, since("1916-06")),
+    lean: 0,
+    decree: false,
+    cast: home,
+    draft: [
+      draft("corps_commanders", 1, [], [inst("army", 1)]),
+      draft("civil_review", 0, [], [inst("reichstag", 1), inst("army", -1)]),
+    ],
+    passed: [
+      onText("deu_siege", "corps_commanders", gauge("order", 1)),
+      onText("deu_siege", "civil_review", gauge("morale", 1)),
+    ],
+    passedTell: [],
+    term: [{ gauge: "order", delta: 1, every: 12, text: ["corps_commanders"] }],
+    repeal: { authority: 15, tell: [], effects: [inst("army", -1)] },
+    talk: lawTalk("deu_siege", {
+      who: either(person("deu_haase"), held("interior")),
+      ask: "frank",
+      push: "threat",
+      tell: [],
+      price: [inst("army", -1)],
+      wins: 1,
     }),
   }),
 ];
