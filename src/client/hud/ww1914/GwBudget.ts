@@ -9,24 +9,34 @@ import {
   GwBudgetItem,
   GwBudgetPlan,
   GwBudgetView,
+  GwCreditsView,
+  GwTaxKind,
 } from "@openfront/engine-api/ww1914/GwBudget";
 import {
-  budgetVote,
   budgetYear,
-  GW_BUDGET_BODIES,
-  GwBudgetVote,
   GwBudgetYear,
   interestOf,
   loadOf,
 } from "@openfront/engine-lib/ww1914/BudgetRules";
 import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
+import { moneyName } from "./GwBook";
 import type { GwCtx } from "./GwCtx";
+import { markName } from "./GwLobbyDeals";
+import {
+  creditsByLine,
+  creditsLine,
+  taxKindLabel,
+  taxKindNote,
+  taxKindWord,
+} from "./GwMoneyWords";
 import { instName } from "./GwOffice";
 import { BTN, BTN_ON, CHIP, GLASS, HEAD, MUTED } from "./GwStyle";
 import { fullDate, personName, textOrNull } from "./GwText";
 
 const BOX = "space-y-1.5 rounded border border-white/15 bg-black/35 p-2.5";
+const GO =
+  "w-full rounded border border-amber-300 bg-amber-300/90 px-3 py-2 text-center text-sm font-bold text-slate-900 hover:bg-amber-200 disabled:opacity-40";
 const STEP =
   "rounded border border-white/25 bg-white/10 px-1.5 text-xs hover:bg-white/20 disabled:opacity-30";
 /** How many reason lines each number shows. */
@@ -79,15 +89,9 @@ export function planOf(c: GwCtx): GwBudgetPlan {
   return c.ui.budgetPlan ?? v.draft ?? v.plan;
 }
 
-export function voteOf(c: GwCtx, plan: GwBudgetPlan): GwBudgetVote {
-  const v = c.seat.world.budget;
-  // No body in the view: the budget goes by decree (ww171), nobody votes it.
-  const body =
-    v.body === null
-      ? null
-      : (GW_BUDGET_BODIES[c.seat.world.war.regime] ?? null);
-  return budgetVote(body, c.seat.inst, v.basis, plan);
-}
+/** ww209: the plan's tax kind; absent is the old duties on goods. */
+export const taxOf = (plan: GwBudgetPlan): GwTaxKind =>
+  plan.tax ?? "consumption";
 
 export const sharesLeft = (plan: GwBudgetPlan) =>
   100 - plan.shares.reduce((a, x) => a + x, 0);
@@ -102,7 +106,12 @@ function lineName(tag: string, i: number): string {
 }
 
 function change(c: GwCtx, plan: GwBudgetPlan, edit: (p: GwBudgetPlan) => void) {
-  const next = { shares: [...plan.shares], mix: [...plan.mix] };
+  const next: GwBudgetPlan = {
+    ...plan,
+    shares: [...plan.shares],
+    mix: [...plan.mix],
+  };
+  if (plan.marks !== undefined) next.marks = [...plan.marks];
   edit(next);
   c.ui.budgetPlan = next;
   c.redraw();
@@ -164,6 +173,90 @@ function heads(): TemplateResult {
   </div>`;
 }
 
+/** Earmarks in the plan: the line's set-aside points, by whose they are. */
+export function marksIn(v: GwBudgetView, plan: GwBudgetPlan): string[] {
+  return plan.marks ?? (v.marks ?? []).map((m) => m.id);
+}
+
+/** Small lines under a spending line: its earmarks, each kept or cut. */
+function marksUnder(
+  c: GwCtx,
+  v: GwBudgetView,
+  plan: GwBudgetPlan,
+  line: string,
+  live: boolean,
+): TemplateResult | typeof nothing {
+  const marks = (v.marks ?? []).filter((m) => m.line === line);
+  if (marks.length === 0) return nothing;
+  const kept = marksIn(v, plan);
+  return html`${marks.map((m) => {
+    const on = kept.includes(m.id);
+    return html`<div
+      class="flex items-center gap-2 pl-3 text-xs"
+      data-gw-budget-mark=${m.id}
+      data-gw-mark-on=${on ? "yes" : "no"}
+    >
+      <span
+        class="min-w-0 flex-1 truncate ${on
+          ? "text-white/70"
+          : "text-white/40 line-through"}"
+        >└ ${markName(c, m.id, m.line, m.faction, m.community)}</span
+      >
+      ${live
+        ? html`<button
+            class=${STEP}
+            data-gw-mark-toggle=${m.id}
+            @click=${() =>
+              change(c, plan, (p) => {
+                p.marks = on ? kept.filter((x) => x !== m.id) : [...kept, m.id];
+              })}
+          >
+            ${translateText(on ? "gw.budget.mark_cut" : "gw.budget.mark_keep")}
+          </button>`
+        : on
+          ? nothing
+          : html`<span class="text-white/45"
+              >${translateText("gw.budget.mark_out")}</span
+            >`}
+    </div>`;
+  })}`;
+}
+
+/** ww209: who the taxes fall on, as chips under the tax rate. */
+function taxKinds(
+  c: GwCtx,
+  v: GwBudgetView,
+  plan: GwBudgetPlan,
+  live: boolean,
+): TemplateResult | typeof nothing {
+  const kinds = v.taxes ?? [];
+  const now = taxOf(plan);
+  if (kinds.length === 0 && v.tax === undefined) return nothing;
+  const shown = kinds.includes(now) ? kinds : [now, ...kinds];
+  return html`<div
+    class="flex flex-wrap items-center gap-1 pl-3"
+    data-gw-budget-taxes
+  >
+    <span class=${MUTED}>${taxKindLabel()}</span>
+    ${shown.map((k) =>
+      live
+        ? html`<button
+            class="${k === now ? BTN_ON : BTN} !px-2 !py-0.5 text-xs"
+            data-gw-tax=${k}
+            title=${taxKindNote(k)}
+            @click=${() => change(c, plan, (p) => (p.tax = k))}
+          >
+            ${taxKindWord(k)}
+          </button>`
+        : k === now
+          ? html`<span class=${CHIP} data-gw-tax=${k} title=${taxKindNote(k)}
+              >${taxKindWord(k)}</span
+            >`
+          : nothing,
+    )}
+  </div>`;
+}
+
 function spending(
   c: GwCtx,
   v: GwBudgetView,
@@ -175,23 +268,24 @@ function spending(
   return html`<section class=${BOX} data-gw-budget-spending>
     <h3 class=${HEAD}>${translateText("gw.budget.spending")}</h3>
     ${heads()}
-    ${GW_BUDGET_LINES.map((l, i) =>
-      row(
-        lineName(tag, i),
-        v.plan.shares[i],
-        plan.shares[i],
-        steps(
-          c,
-          plan,
-          l,
+    ${GW_BUDGET_LINES.map(
+      (l, i) =>
+        html`${row(
+          lineName(tag, i),
+          v.plan.shares[i],
           plan.shares[i],
-          0,
-          100,
-          (p, x) => (p.shares[i] = x),
-          live,
-        ),
-        l,
-      ),
+          steps(
+            c,
+            plan,
+            l,
+            plan.shares[i],
+            0,
+            100,
+            (p, x) => (p.shares[i] = x),
+            live,
+          ),
+          l,
+        )}${marksUnder(c, v, plan, l, live)}`,
     )}
     ${left === 0
       ? nothing
@@ -265,7 +359,9 @@ function revenue(
         plan.mix[i],
         steps(c, plan, s, plan.mix[i], lo, hi, (p, x) => (p.mix[i] = x), live),
         s,
-      )}${sourceNote(c, v, i, plan, y)}`;
+      )}${sourceNote(c, v, i, plan, y)}${s === "taxes"
+        ? taxKinds(c, v, plan, live)
+        : nothing}`;
     })}
   </section>`;
 }
@@ -374,41 +470,100 @@ function forecast(c: GwCtx, y: GwBudgetYear, live: boolean): TemplateResult {
   </section>`;
 }
 
-function bodyLines(
-  v: GwBudgetView,
-  vote: GwBudgetVote,
-  tag: string,
-): TemplateResult | typeof nothing {
+/**
+ * Who passes it, in words (ww209: no forecast; the house counts by faction
+ * once it is put, and the 통치 tab's pinned row carries the count's word).
+ */
+function bodyLines(c: GwCtx, v: GwBudgetView): TemplateResult {
   const b = v.body;
   if (b === null) {
     return html`<p class=${MUTED}>${translateText("gw.budget.nobody")}</p>`;
   }
-  const lineOf = (inst: string, score: number, need: number) =>
-    html`<p class="text-sm text-white/85" data-gw-budget-body=${inst}>
-      ${translateText("gw.budget.body_line", {
-        body: instName(tag, inst),
-        score,
-        need,
-      })}
-    </p>`;
-  return html`${lineOf(b.inst, vote.score, b.need)}
-    ${b.second === null
+  const tag = c.seat.tag;
+  const list = [b.inst, b.second]
+    .filter((x): x is string => x !== null)
+    .map((x) => instName(tag, x))
+    .join(" · ");
+  return html`<p class="text-sm text-white/85" data-gw-budget-body=${b.inst}>
+      ${translateText("gw.budget.who_votes", { list })}
+    </p>
+    ${v.bill === undefined || v.bill === null
       ? nothing
-      : lineOf(b.second, vote.secondScore, b.secondNeed)}
-    ${vote.why.map(
-      (w) =>
-        html`<p class=${MUTED}>${translateText(`gw.budget.vote.${w}`)}</p>`,
-    )}
-    <p
-      class="text-sm font-bold ${vote.pass
-        ? "text-emerald-300"
-        : "text-red-300"}"
-      data-gw-budget-pass=${vote.pass ? "yes" : "no"}
-    >
-      ${translateText(vote.pass ? "gw.budget.pass_yes" : "gw.budget.pass_no")}
-    </p>`;
+      : html`<p class="text-sm text-amber-100/90" data-gw-budget-bill>
+          ${translateText("gw.budget.on_agenda", {
+            stage: translateText(`gw.house.stage.${v.bill.stage}`),
+          })}
+        </p>`}`;
 }
 
+/** ww209: where the plan parts from the minister's draft, in words. */
+function differs(
+  c: GwCtx,
+  v: GwBudgetView,
+  plan: GwBudgetPlan,
+): TemplateResult | typeof nothing {
+  const d = v.draft;
+  if (d === null) return nothing;
+  const chips: { key: string; text: string }[] = [];
+  GW_BUDGET_LINES.forEach((l, i) => {
+    const by = plan.shares[i] - d.shares[i];
+    if (by === 0) return;
+    chips.push({
+      key: l,
+      text: translateText(by > 0 ? "gw.budget.more" : "gw.budget.less", {
+        name: lineName(c.seat.tag, i),
+      }),
+    });
+  });
+  GW_BUDGET_SOURCES.forEach((src, i) => {
+    const by = plan.mix[i] - d.mix[i];
+    if (by === 0) return;
+    chips.push({
+      key: src,
+      text: translateText(by > 0 ? "gw.budget.more" : "gw.budget.less", {
+        name: translateText(`gw.budget.source_short.${src}`),
+      }),
+    });
+  });
+  if (taxOf(plan) !== taxOf(d)) {
+    chips.push({
+      key: "tax",
+      text: taxKindWord(taxOf(plan)),
+    });
+  }
+  const dm = d.marks ?? (v.marks ?? []).map((m) => m.id);
+  const pm = marksIn(v, plan);
+  if (dm.length !== pm.length || dm.some((x) => !pm.includes(x))) {
+    chips.push({ key: "marks", text: translateText("gw.budget.marks_moved") });
+  }
+  return html`<div class="space-y-1" data-gw-budget-differs>
+    <div class=${MUTED}>${translateText("gw.budget.differs")}</div>
+    ${chips.length === 0
+      ? html`<p class=${MUTED}>${translateText("gw.budget.same")}</p>`
+      : html`<div class="flex flex-wrap gap-1">
+          ${chips.map(
+            (x) =>
+              html`<span class=${CHIP} data-gw-differ=${x.key}
+                >${x.text}</span
+              >`,
+          )}
+        </div>`}
+  </div>`;
+}
+
+/** The plan as the orders carry it. */
+function putOf(v: GwBudgetView, plan: GwBudgetPlan, credits: boolean) {
+  return {
+    kind: "budget_put" as const,
+    credits,
+    shares: plan.shares,
+    mix: plan.mix,
+    tax: taxOf(plan),
+    marks: marksIn(v, plan),
+  };
+}
+
+/** The old order: the way round (force), or signed where nobody votes it. */
 function send(c: GwCtx, plan: GwBudgetPlan, force: boolean, close: boolean) {
   c.send({ kind: "budget", shares: plan.shares, mix: plan.mix, force });
   if (close) {
@@ -422,38 +577,54 @@ function actions(
   c: GwCtx,
   v: GwBudgetView,
   plan: GwBudgetPlan,
-  vote: GwBudgetVote,
 ): TemplateResult {
   const ok = sharesLeft(plan) === 0;
   const b = v.body;
-  const alone = b?.kind === "alone" && !vote.pass;
-  const main = alone
-    ? translateText("gw.budget.alone", { n: b.forcePrice })
-    : translateText(b === null ? "gw.budget.sign" : "gw.budget.submit");
+  const put = () => {
+    c.send(putOf(v, plan, false));
+    c.ui.budgetOpen = false;
+    c.ui.budgetPlan = null;
+    c.redraw();
+  };
   return html`<div class="space-y-1.5">
+    ${differs(c, v, plan)}
     ${v.refused
       ? html`<p class="text-sm text-amber-200" data-gw-budget-refused>
           ${translateText("gw.budget.refused_now")}
         </p>`
       : html`<p class=${MUTED}>${translateText("gw.budget.unsigned")}</p>`}
-    <button
-      class="w-full rounded border border-amber-300 bg-amber-300/90 px-3 py-2 text-center text-sm font-bold text-slate-900 hover:bg-amber-200 disabled:opacity-40"
-      data-gw-budget-sign
-      ?disabled=${!ok}
-      @click=${() => send(c, plan, false, vote.pass || alone)}
-    >
-      ${main}
-    </button>
-    ${b === null || vote.pass || alone
-      ? nothing
-      : html`<button
-          class="${BTN} w-full text-center"
-          data-gw-budget-force
-          ?disabled=${!ok || v.authority < b.forcePrice}
-          @click=${() => send(c, plan, true, true)}
+    ${b === null
+      ? html`<button
+          class=${GO}
+          data-gw-budget-sign
+          ?disabled=${!ok}
+          @click=${() => send(c, plan, false, true)}
         >
-          ${translateText("gw.budget.force", { n: b.forcePrice })}
-        </button>`}
+          ${translateText("gw.budget.sign")}
+        </button>`
+      : html`<button
+            class=${GO}
+            data-gw-budget-put
+            ?disabled=${!ok}
+            @click=${put}
+          >
+            ${translateText(
+              v.bill === undefined || v.bill === null
+                ? "gw.budget.put"
+                : "gw.budget.put_again",
+            )}
+          </button>
+          <p class=${MUTED}>${translateText("gw.budget.put_hint")}</p>
+          <button
+            class="${BTN} w-full text-center"
+            data-gw-budget-force
+            ?disabled=${!ok || v.authority < b.forcePrice}
+            @click=${() => send(c, plan, true, true)}
+          >
+            ${b.kind === "alone"
+              ? translateText("gw.budget.alone", { n: b.forcePrice })
+              : translateText("gw.budget.force", { n: b.forcePrice })}
+          </button>`}
     ${v.draft === null
       ? nothing
       : html`<button
@@ -467,6 +638,53 @@ function actions(
           ${translateText("gw.budget.reset")}
         </button>`}
   </div>`;
+}
+
+/**
+ * ww209: the war credits, voted apart on the country's rhythm: which come
+ * next and how, borrowing stopped if they were refused, and putting them now.
+ */
+function creditsBox(
+  c: GwCtx,
+  v: GwBudgetView,
+  plan: GwBudgetPlan,
+  cr: GwCreditsView,
+): TemplateResult {
+  const name = moneyName(c, "credits", cr.n);
+  const stopped = cr.stopTo !== null && cr.stopTo > c.data.chapter;
+  // By command (RUS) nothing obliges a vote, but the Duma may be asked.
+  const can = cr.law === null && cr.by !== "decree" && sharesLeft(plan) === 0;
+  return html`<section class=${BOX} data-gw-budget-credits>
+    <h3 class=${HEAD}>${translateText("gw.budget.credits")}</h3>
+    <p class="text-sm font-bold text-white/90">${name}</p>
+    <p class=${MUTED} data-gw-credits-by=${cr.by}>${creditsByLine(cr.by)}</p>
+    <p
+      class="text-sm ${stopped ? "text-amber-200" : "text-white/80"}"
+      data-gw-credits-line=${stopped ? "stopped" : "due"}
+    >
+      ${creditsLine(cr, c.data.chapter)}
+    </p>
+    ${cr.law !== null
+      ? html`<p class="text-sm text-amber-100/90" data-gw-credits-on>
+          ${translateText("gw.budget.credits_on")}
+        </p>`
+      : can
+        ? html`<button
+            class="${BTN} w-full text-center"
+            data-gw-credits-put
+            @click=${() => {
+              c.send(putOf(v, plan, true));
+              c.redraw();
+            }}
+          >
+            ${translateText(
+              cr.by === "command"
+                ? "gw.budget.credits_ask"
+                : "gw.budget.credits_put",
+            )}
+          </button>`
+        : nothing}
+  </section>`;
 }
 
 function status(c: GwCtx, v: GwBudgetView): TemplateResult {
@@ -490,7 +708,6 @@ export function budgetPanel(c: GwCtx): TemplateResult {
   const plan = planOf(c);
   const live = v.meeting;
   const y = budgetYear(v.basis, plan);
-  const vote = voteOf(c, plan);
   const close = () => {
     c.ui.budgetOpen = false;
     c.redraw();
@@ -517,15 +734,18 @@ export function budgetPanel(c: GwCtx): TemplateResult {
         </button>
       </header>
       <div class="grid gap-2.5 md:grid-cols-2">
-        <div class="space-y-2.5">
+        <div class="min-w-0 space-y-2.5">
           ${spending(c, v, plan, live)} ${revenue(c, v, plan, y, live)}
         </div>
-        <div class="space-y-2.5">
+        <div class="min-w-0 space-y-2.5">
           ${numbers(c, v)} ${forecast(c, y, live)}
+          ${v.credits === undefined || v.credits === null
+            ? nothing
+            : creditsBox(c, v, plan, v.credits)}
           <section class=${BOX} data-gw-budget-vote>
-            ${bodyLines(v, vote, c.seat.tag)}
+            ${bodyLines(c, v)}
             ${live
-              ? actions(c, v, plan, vote)
+              ? actions(c, v, plan)
               : html`<p class=${MUTED} data-gw-budget-next>
                   ${v.next === null
                     ? translateText("gw.budget.no_more")
@@ -551,7 +771,6 @@ export function openLedger(c: GwCtx) {
 export function budgetStrip(c: GwCtx): TemplateResult {
   const v = c.seat.world.budget;
   const plan = v.draft ?? v.plan;
-  const vote = voteOf(c, plan);
   return html`<div class="${BOX}" data-gw-budget-strip>
     <div class="flex flex-wrap gap-1">
       ${GW_BUDGET_LINES.map(
@@ -562,12 +781,7 @@ export function budgetStrip(c: GwCtx): TemplateResult {
           >`,
       )}
     </div>
-    ${bodyLines(v, vote, c.seat.tag)}
-    ${v.body?.kind === "alone" && !vote.pass
-      ? html`<p class="text-sm text-amber-200" data-gw-budget-alone>
-          ${translateText("gw.budget.alone", { n: v.body.forcePrice })}
-        </p>`
-      : nothing}
+    ${bodyLines(c, v)}
   </div>`;
 }
 

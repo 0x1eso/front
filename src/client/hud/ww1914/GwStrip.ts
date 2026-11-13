@@ -141,6 +141,14 @@ function standingBar(trust: number, cls = "h-1 w-1 sm:w-2"): TemplateResult {
   </span>`;
 }
 
+/** ww209: its word on the money bill on the agenda, by colour. */
+const PURSE_COLOUR: Readonly<Record<string, string>> = {
+  for: "bg-emerald-300 text-slate-900",
+  against: "bg-red-400 text-slate-900",
+  waver: "bg-yellow-200 text-slate-900",
+  unknown: "bg-slate-500 text-white",
+};
+
 function chipTitle(c: GwCtx, f: GwStripFactionView): string {
   const parts = [
     factionName(c, f.id),
@@ -148,6 +156,13 @@ function chipTitle(c: GwCtx, f: GwStripFactionView): string {
     translateText(`gw.house.temper.${Math.min(4, Math.max(0, f.temper))}`),
   ];
   if (f.ability?.ready === true) parts.push(translateText("gw.strip.ready"));
+  if (f.purse !== undefined && f.purse !== null) {
+    parts.push(
+      translateText("gw.strip.purse", {
+        word: translateText(`gw.lobby.word.${f.purse}`),
+      }),
+    );
+  }
   return parts.join(" · ");
 }
 
@@ -175,6 +190,15 @@ function chip(c: GwCtx, f: GwStripFactionView): TemplateResult {
             data-gw-ability-ready
           ></span>`
         : nothing}
+      ${f.purse === undefined || f.purse === null || gone
+        ? nothing
+        : html`<span
+            class="absolute -bottom-1 left-1/2 -translate-x-1/2 whitespace-nowrap rounded border border-slate-900 px-0.5 text-[9px] font-bold leading-tight ${PURSE_COLOUR[
+              f.purse
+            ]}"
+            data-gw-purse=${f.purse}
+            >${translateText(`gw.lobby.word.${f.purse}`)}</span
+          >`}
     </span>
     <span class="flex min-w-0 flex-col items-start gap-1">
       <span class="max-w-[7rem] truncate text-xs font-bold leading-none">

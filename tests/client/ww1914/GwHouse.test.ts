@@ -24,7 +24,7 @@ import {
   houseChip,
 } from "../../../src/client/hud/ww1914/GwHouse";
 import { promiseText } from "../../../src/client/hud/ww1914/GwText";
-import { GwVote } from "../../../src/client/hud/ww1914/GwVote";
+import { GwVote, voteOverlay } from "../../../src/client/hud/ww1914/GwVote";
 import { tallyAt, votePlan } from "../../../src/client/hud/ww1914/GwVoteModel";
 
 const house = (over: Partial<GwHouseView> = {}): GwHouseView => ({
@@ -410,6 +410,118 @@ describe("the house on the screens: the law book (ww203), the factions", () => {
     expect(v.still).toBe(true);
     v.close();
     expect(v.active).toBe(false);
+  });
+
+  test("ww209: the budget's pinned row bargains, and a defying wing is named in the vote", () => {
+    const spd = {
+      ...agenda().lobby[0],
+      prices: [
+        {
+          id: "spd_bread",
+          kind: "promise" as const,
+          terms: ["session" as const, "war_end" as const],
+        },
+      ],
+      counters: ["text" as const, "against" as const],
+      threats: ["condemn" as const],
+      favour: { can: true, owes: true },
+      wing: {
+        person: "deu_ebert",
+        seats: 30,
+        prices: null,
+        peeled: false,
+        call: true,
+      },
+    };
+    const budget = agenda({
+      law: "deu_budget",
+      text: null,
+      lobby: [spd],
+      money: { kind: "budget", n: 0, year: 1916, fail: "runs_on" },
+    });
+    const rival = agenda({ by: "deu_cons", lobby: [] });
+    const { c, root, sent, q } = bookCtx(
+      { articles: [], agenda: [rival], max: 3, calls: 1, pinned: [budget] },
+      house(),
+    );
+    // Pinned above the agenda, not counted in it, with what losing it does.
+    const pinned = root.querySelector("[data-gw-pinned]")!;
+    expect(
+      pinned.compareDocumentPosition(
+        root.querySelector("[data-gw-agenda-box]")!,
+      ),
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(
+      pinned.querySelector('[data-gw-agenda-money="budget"]'),
+    ).not.toBeNull();
+    expect(pinned.querySelector("[data-gw-agenda-money-fail]")).not.toBeNull();
+    q("[data-gw-agenda-lobby=deu_budget]").click();
+    q('[data-gw-price-term="session"]').click();
+    q("[data-gw-price-favour=spd_bread]").click();
+    q('[data-gw-counter="against"]').click();
+    q("[data-gw-counter-pick=deu_aux]").click();
+    q("[data-gw-lobby-call-favour=deu_spd]").click();
+    q("[data-gw-lobby-press=deu_spd]").click();
+    q('[data-gw-lobby-threat="condemn"]').click();
+    q("[data-gw-wing-call=deu_spd]").click();
+    const law = "deu_budget";
+    const faction = "deu_spd";
+    expect(sent).toEqual([
+      { kind: "bill_term", law, faction, want: "spd_bread", term: "session" },
+      { kind: "bill_favour", law, faction, want: "spd_bread", call: false },
+      {
+        kind: "bill_counter",
+        law,
+        faction,
+        counter: "against",
+        pick: "deu_aux",
+      },
+      { kind: "bill_favour", law, faction, want: null, call: true },
+      { kind: "bill_threat", law, faction, threat: "condemn" },
+      { kind: "bill_peel", law, faction, want: null },
+    ]);
+
+    // The vote: the party casts, then its wing stands up against it, named.
+    const ch: GwBallotChamber = {
+      chamber: "reichstag",
+      size: 397,
+      block: 0,
+      blocks: [
+        { faction: "deu_spd", cast: "for", seats: 96, beat: "firm" },
+        { faction: "deu_centre", cast: "for", seats: 90, beat: "swing" },
+        {
+          faction: "deu_spd",
+          cast: "against",
+          seats: 14,
+          beat: "defy",
+          person: "deu_ebert",
+          wing: true,
+        },
+      ],
+      pass: true,
+      delay: false,
+    };
+    const plan = votePlan(ch, () => null);
+    expect(plan.lines[2].at).toBeGreaterThan(plan.lines[1].at);
+    const now = 0;
+    const v = new GwVote(() => now);
+    const ballot: GwBallot = {
+      uid: 1,
+      law,
+      text: null,
+      chapter: 20,
+      how: "vote",
+      chambers: [ch],
+      pass: true,
+      band: "narrow",
+    };
+    v.offer(null, () => null);
+    expect(v.offer(ballot, () => null)).toBe(true);
+    const scene = document.createElement("div");
+    render(voteOverlay(c, v), scene);
+    const line = scene.querySelector('[data-gw-vote-line="defy"]')!;
+    expect(line.textContent).toContain("gw.vote.wing_of");
+    expect(line.textContent).toContain("gw.vote.beat.defy_by");
   });
 
   test("the 정국 tab lists a bloc's factions in words; the band shows one chip while one is out", () => {

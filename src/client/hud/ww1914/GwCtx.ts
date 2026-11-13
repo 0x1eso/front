@@ -12,7 +12,7 @@ import type {
 import type { GwBudgetPlan } from "@openfront/engine-api/ww1914/GwBudget";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import type { GwAnswerRedo } from "@openfront/engine-api/ww1914/GwDeptWords";
-import type { GwFateMark } from "@openfront/engine-api/ww1914/GwFate";
+import type { GwFate, GwFateMark } from "@openfront/engine-api/ww1914/GwFate";
 import type { GwOrder } from "@openfront/engine-api/ww1914/GwOrders";
 import type { GwPack } from "@openfront/engine-api/ww1914/GwPack";
 import type { GwPlace } from "@openfront/engine-api/ww1914/GwPlaces";
@@ -140,6 +140,8 @@ export interface GwUi {
   bargain?: Record<number, { move: GwBargainMove; place: GwPlace | null }>;
   /** ww205: the beaten seat's yes (true) or no to each place, by claim id. */
   answers?: Record<number, boolean>;
+  /** ww209: the beaten seat's own fate named for a place instead of a no. */
+  tableCounters?: Record<number, GwFate>;
   /** Terms being drawn up. */
   termTag: GwTag | null;
   termGive: GwGiveClause[];
@@ -195,6 +197,8 @@ export interface GwBookDraft {
   armed: string | null;
   /** The article whose sponsor is being picked. */
   sponsor: string | null;
+  /** ww209: `law:faction:kind`, a counter-offer whose pick is open. */
+  counter?: string | null;
 }
 
 export interface GwRuleDraft {

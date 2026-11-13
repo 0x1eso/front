@@ -1,12 +1,13 @@
 import { gwCountry, GwTag } from "@openfront/engine-api/ww1914/GwCountries";
-import type { GwFateMark } from "@openfront/engine-api/ww1914/GwFate";
+import type { GwFate, GwFateMark } from "@openfront/engine-api/ww1914/GwFate";
 import { GW_PLACES, GwPlace } from "@openfront/engine-api/ww1914/GwPlaces";
-import type {
-  GwBargainMove,
-  GwTableClaimView,
-  GwTableLine,
-  GwTableView,
-  GwTableWord,
+import {
+  GW_BARGAIN_MOVES,
+  type GwBargainMove,
+  type GwTableClaimView,
+  type GwTableLine,
+  type GwTableView,
+  type GwTableWord,
 } from "@openfront/engine-api/ww1914/GwTable";
 import { assetUrl } from "@openfront/shared/AssetUrls";
 import { html, nothing, TemplateResult } from "lit";
@@ -29,6 +30,7 @@ import {
   nextFate,
   sameMark,
 } from "./GwFateModel";
+import { bargainMoveWord, dealDueWord } from "./GwMoneyWords";
 import { officeTitle } from "./GwOffice";
 import { SIGN } from "./GwPaper";
 import { BTN, BTN_ON, CHIP, GLASS, HEAD, MUTED } from "./GwStyle";
@@ -716,12 +718,27 @@ const ANSWER_CHIP: Readonly<Record<string, string>> = {
   dropped: "bg-white/10 text-white/60",
 };
 
+/** ww209: the beaten's own fate for a place, in words; "" with none. */
+function counterFate(x: GwTableClaimView): string {
+  if (x.counter === undefined) return "";
+  return markWord({
+    fate: x.counter.fate,
+    for: x.for,
+    client: x.client,
+    term: x.counter.term,
+  });
+}
+
 /** The seat's move on a refused place: insist, step down, trade, let go. */
 function moveRow(
   c: GwCtx,
   x: GwTableClaimView,
   places: readonly GwPlace[],
+  open?: readonly GwBargainMove[],
 ): TemplateResult {
+  // ww209: the moves open on this place, when the table names them.
+  const has = (m: GwBargainMove) => open === undefined || open.includes(m);
+  const more = (open ?? []).filter((m) => GW_BARGAIN_MOVES.indexOf(m) >= 4);
   const picks = (c.ui.bargain ??= {});
   const now = picks[x.id] ?? { move: "insist" as const, place: null };
   const set = (move: GwBargainMove, place: GwPlace | null = null) => {
@@ -739,18 +756,36 @@ function moveRow(
     </button>`;
   return html`<div class="space-y-1" data-gw-moves=${x.id}>
     <div class="grid grid-cols-2 gap-1">
-      ${btn("insist", translateText("gw.bargain.move.insist"))}
-      ${down === null
+      ${has("insist")
+        ? btn("insist", translateText("gw.bargain.move.insist"))
+        : nothing}
+      ${down === null || !has("down")
         ? nothing
         : btn(
             "down",
             translateText("gw.bargain.move.down", { fate: markWord(down) }),
           )}
-      ${places.length === 0
+      ${places.length === 0 || !has("trade")
         ? nothing
         : btn("trade", translateText("gw.bargain.move.trade"))}
-      ${btn("drop", translateText("gw.bargain.move.drop"))}
+      ${has("drop")
+        ? btn("drop", translateText("gw.bargain.move.drop"))
+        : nothing}
     </div>
+    ${more.length === 0
+      ? nothing
+      : html`<div class="flex flex-wrap gap-1" data-gw-moves-more>
+          ${more.map(
+            (m) =>
+              html`<button
+                class="${now.move === m ? BTN_ON : BTN} !px-2 !py-1 text-xs"
+                data-gw-move=${m}
+                @click=${() => set(m)}
+              >
+                ${bargainMoveWord(m, counterFate(x))}
+              </button>`,
+          )}
+        </div>`}
     ${now.move !== "trade"
       ? nothing
       : html`<p class=${MUTED}>${translateText("gw.bargain.trade_pick")}</p>
@@ -772,23 +807,100 @@ function moveRow(
   </div>`;
 }
 
-/** The beaten seat's yes or no to one place. */
-function answerToggle(c: GwCtx, x: GwTableClaimView): TemplateResult {
+/**
+ * The beaten seat's yes or no to one place; ww209: or a fate of its own
+ * named instead of the no (대신 내놓는다).
+ */
+function answerToggle(
+  c: GwCtx,
+  x: GwTableClaimView,
+  fates: readonly GwFate[] = [],
+): TemplateResult {
   const said = (c.ui.answers ??= {});
-  const now = said[x.id];
+  const own = (c.ui.tableCounters ??= {});
+  const now = own[x.id] === undefined ? said[x.id] : undefined;
   const btn = (yes: boolean) =>
     html`<button
       class="${now === yes ? BTN_ON : BTN} !px-2 !py-1 text-center"
       data-gw-say=${yes ? "yes" : "no"}
       @click=${() => {
         said[x.id] = yes;
+        delete own[x.id];
         c.redraw();
       }}
     >
       ${translateText(yes ? "gw.bargain.yes" : "gw.bargain.no")}
     </button>`;
   return html`<div class="grid grid-cols-2 gap-1">
-    ${btn(true)} ${btn(false)}
+      ${btn(true)} ${btn(false)}
+    </div>
+    ${fates.length === 0
+      ? nothing
+      : html`<div
+          class="flex flex-wrap items-center gap-1"
+          data-gw-counter-fates=${x.id}
+        >
+          <span class=${MUTED}
+            >${translateText("gw.bargain.counter_label")}</span
+          >
+          ${fates.map(
+            (fate) =>
+              html`<button
+                class="${own[x.id] === fate ? BTN_ON : BTN} !px-2 !py-1 text-xs"
+                data-gw-counter-fate=${fate}
+                @click=${() => {
+                  own[x.id] = fate;
+                  delete said[x.id];
+                  c.redraw();
+                }}
+              >
+                ${markWord({ fate, for: x.for, client: x.client })}
+              </button>`,
+          )}
+        </div>`}`;
+}
+
+/** ww209: what the talks have put on a place: his counter, terms, a deadline. */
+function claimTerms(
+  c: GwCtx,
+  t: GwTableView,
+  x: GwTableClaimView,
+): TemplateResult | typeof nothing {
+  const words: { key: string; text: string }[] = [];
+  if (x.counter !== undefined) {
+    words.push({
+      key: "counter",
+      text: translateText("gw.bargain.their_counter", {
+        fate: counterFate(x),
+      }),
+    });
+  }
+  if (x.move !== undefined && GW_BARGAIN_MOVES.indexOf(x.move) >= 4) {
+    words.push({ key: "move", text: bargainMoveWord(x.move, counterFate(x)) });
+  }
+  if (x.due !== undefined) {
+    words.push({ key: "due", text: dealDueWord(x.due, c.data.chapter) });
+  }
+  if (x.ultimatum !== undefined) {
+    const last = (t.talk?.round ?? 0) >= x.ultimatum;
+    words.push({
+      key: "ultimatum",
+      text: translateText(
+        last ? "gw.bargain.ultimatum_now" : "gw.bargain.ultimatum",
+        { n: x.ultimatum },
+      ),
+    });
+  }
+  if (words.length === 0) return nothing;
+  return html`<div class="flex flex-wrap gap-1" data-gw-claim-terms>
+    ${words.map(
+      (w) =>
+        html`<span
+          class="${CHIP} ${w.key === "ultimatum" ? "!text-red-200" : ""}"
+          data-gw-claim-term=${w.key}
+          >${w.text}</span
+        >`,
+    )}
   </div>`;
 }
 
@@ -828,11 +940,12 @@ function answerRow(
       : html`<p class="text-sm leading-6 text-white/85" data-gw-why=${x.why!}>
           “${why}”
         </p>`}
+    ${claimTerms(c, t, x)}
     ${due?.kind === "bargain" && due.claims.includes(x.id)
-      ? moveRow(c, x, due.places)
+      ? moveRow(c, x, due.places, due.moves?.[x.id])
       : nothing}
     ${due?.kind === "answer" && due.claims.includes(x.id)
-      ? answerToggle(c, x)
+      ? answerToggle(c, x, due.counters?.[x.id])
       : nothing}
   </div>`;
 }
@@ -855,6 +968,7 @@ function answersBox(c: GwCtx, t: GwTableView) {
   const mine = c.seat.tag === by;
   const picks = c.ui.bargain ?? {};
   const said = c.ui.answers ?? {};
+  const own = c.ui.tableCounters ?? {};
   const tradeOpen =
     due?.kind === "bargain" &&
     due.claims.some(
@@ -911,13 +1025,23 @@ function answersBox(c: GwCtx, t: GwTableView) {
       ? html`<button
             class=${SIGN}
             data-gw-answer-go
-            ?disabled=${due.claims.some((id) => said[id] === undefined)}
+            ?disabled=${due.claims.some(
+              (id) => said[id] === undefined && own[id] === undefined,
+            )}
             @click=${() => {
+              // A fate of its own named instead of a no goes first.
+              const counters = due.claims
+                .filter((id) => own[id] !== undefined)
+                .map((id) => ({ claim: id, fate: own[id], term: null }));
               const answers = due.claims.map((id) => ({
                 claim: id,
-                yes: said[id] === true,
+                yes: own[id] === undefined && said[id] === true,
               }));
               c.ui.answers = {};
+              c.ui.tableCounters = {};
+              if (counters.length > 0) {
+                c.send({ kind: "table_counter", counters });
+              }
               c.send({ kind: "table_answer", answers, walk: false });
             }}
           >

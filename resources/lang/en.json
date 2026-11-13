@@ -2099,6 +2099,7 @@
       "paper": "Count: {word} ({conf})",
       "paper_at": "counted in chapter {n}",
       "paper_none": "No count yet",
+      "pinned": "Budget and credits (outside the agenda)",
       "replaces": "Would replace: {text}",
       "round": "Go round the house",
       "tally": {
@@ -2231,6 +2232,7 @@
       "answer_how": "Accept or refuse each province, then answer.",
       "answer_title": "{by}'s terms",
       "answers_title": "{country}'s answer",
+      "counter_label": "Offer instead:",
       "last": "Their next answer is the last.",
       "mood": "Their mood: {mood}",
       "moods": {
@@ -2269,7 +2271,10 @@
         "waiting": "Awaiting the answer"
       },
       "tap": "Tap a province on the map to decide it on its own.",
+      "their_counter": "Their terms: {fate}",
       "trade_pick": "Ask instead for",
+      "ultimatum": "Ultimatum: by round {n}",
+      "ultimatum_now": "Ultimatum: take it now or the advance resumes",
       "walk": "Walk out of the room",
       "why": {
         "AUH": {
@@ -2397,10 +2402,14 @@
     "budget": {
       "alone": "Sign alone (authority -{n})",
       "balance": "Balance",
-      "body_line": "{body}: {score} against the {need} it needs",
       "bonds_note": "The public would take up {n}% of what is asked",
       "close": "Close",
+      "credits": "War credits",
+      "credits_ask": "Ask the Duma too",
+      "credits_on": "On the agenda: call the vote in the Rule tab.",
+      "credits_put": "Put the credits now",
       "debt_end": "Debt at year's end",
+      "differs": "Where it parts from the minister's draft",
       "drift": {
         "bread": "Bread",
         "morale": "Morale",
@@ -2439,6 +2448,7 @@
       },
       "lender_line": "{name}: up to {cap}%, owed {owed}",
       "lender_shut": "{name}: shut, owed {owed}",
+      "less": "{name}: less",
       "line": {
         "army": "Army and munitions",
         "navy": "Navy",
@@ -2446,6 +2456,12 @@
         "works": "Public works and welfare"
       },
       "load": "Interest takes {n}% of taxes",
+      "mark_cut": "Cut",
+      "mark_keep": "Restore",
+      "mark_of": "{who}'s share ({line})",
+      "mark_out": "cut",
+      "marks_moved": "Earmarks changed",
+      "more": "{name}: more",
       "national": {
         "AUH": "The Hungarian share",
         "DEU": "Colonies and Reichstag sweeteners",
@@ -2470,10 +2486,9 @@
         "war": "The war itself"
       },
       "now": "Now",
+      "on_agenda": "On the agenda: {stage}",
       "open": "Open the ledger",
       "outlay": "Outlay",
-      "pass_no": "It would be refused.",
-      "pass_yes": "It would pass.",
       "percent": "{n}%",
       "prices_end": "Prices at year's end",
       "prices_value": "{n} · {word} (June 1914 = 100)",
@@ -2487,10 +2502,14 @@
       "print_note": "Prices {n} points",
       "printed_more": "Printed on top: {sum}",
       "proposed": "Proposed",
+      "put": "Put it on the agenda",
+      "put_again": "Put it to the house again",
+      "put_hint": "It hangs apart at the top of the house group in the Rule tab. Win the parties there, then call the vote.",
       "refused_now": "Refused. Change it and send it again, force it, or last year's runs on.",
       "reset": "Back to the draft",
       "revenue": "Revenue",
       "rises": "rises",
+      "same": "As the minister drafted it.",
       "sign": "Sign the budget",
       "source": {
         "bonds": "War bonds (% of outlay)",
@@ -2498,9 +2517,14 @@
         "print": "Printing money (% of outlay)",
         "taxes": "Taxes (rate, June 1914 = 100)"
       },
+      "source_short": {
+        "bonds": "bonds",
+        "loans": "loans",
+        "print": "printing",
+        "taxes": "taxes"
+      },
       "spending": "Spending",
       "state": "The state of the money",
-      "submit": "Send it to be passed",
       "tax": {
         "consumption": "Consumption taxes",
         "income": "Income tax",
@@ -2528,17 +2552,7 @@
         "other": "units"
       },
       "unsigned": "Unsigned, the finance holder's draft is signed by proxy.",
-      "vote": {
-        "army_up": "Too much for the army",
-        "home_up": "More for home",
-        "load": "The interest is too heavy",
-        "national_down": "Their line goes down",
-        "national_up": "Their line goes up",
-        "prices": "Prices are too high",
-        "rally": "The first war budget",
-        "taxes_heavy": "The taxes are heavy",
-        "taxes_up": "The taxes go up"
-      }
+      "who_votes": "Voted in: {list}"
     },
     "claims": {
       "ask": "Say on the map what land this war is for.",
@@ -4044,6 +4058,9 @@
     "lobby": {
       "calls": "Calls left this chapter: {n}",
       "calls_none": "No calls left: summoning now takes time.",
+      "counter_label": "My terms instead",
+      "favour_call": "Call in his favour",
+      "favour_owe": "Leave it as a favour owed",
       "hint": "Summon a leader to hear his price, or press him. The count's word on each faction may be wrong.",
       "leave": "Send him off",
       "no_price": "He asks nothing you can give.",
@@ -4056,6 +4073,7 @@
       "pace_label": "Pace",
       "pace_note": "Each chapter's clock runs {min} to {max} seconds. Everyone ready ends it sooner.",
       "pace_note_none": "Chapters have no clock. One ends when everyone is ready, or when the host ends it with End this chapter.",
+      "paid_only": "Word has got round: he takes only what is paid now.",
       "press": {
         "file": "Lay his file on the table",
         "threat": "Threaten a dissolution",
@@ -4089,7 +4107,12 @@
       "summon": "Summon",
       "table_note": "{length}: {n} chapters, {time}. Pace: {pace}.",
       "take": "Agree",
+      "term_label": "By:",
+      "threat_label": "If his party votes against, I will say I shall:",
       "title": "Lobbying",
+      "wing": "Its moderates: {name} · {n} seats",
+      "wing_meet": "Meet apart",
+      "wing_peeled": "Promised apart",
       "word": {
         "against": "Against",
         "for": "For",
@@ -5495,6 +5518,7 @@
         "title": "{chamber}: {cause}"
       },
       "label": "The parties in the house",
+      "purse": "Budget: {word}",
       "ready": "Can be asked",
       "utopia": {
         "ask": "A new head stands at the top: {name}. You can end here, or rule on in {name}'s place.",
@@ -6444,6 +6468,10 @@
       "no_office": "No office",
       "no_topics": "Nothing to raise with them now.",
       "notebook_broken": "Broken",
+      "notebook_deals": "Deals and debts",
+      "notebook_deals_mine": "What I owe",
+      "notebook_deals_theirs": "What I am owed",
+      "notebook_deals_threats": "Threats I made",
       "notebook_decisions": "Decisions taken",
       "notebook_due": "By {date}",
       "notebook_kept": "Kept",
@@ -7359,7 +7387,8 @@
         "pass": "Passed"
       },
       "tally": "{for} for · {against} against · {away} absent",
-      "title": "Vote in the {chamber}"
+      "title": "Vote in the {chamber}",
+      "wing_of": "Part of {faction}"
     },
     "wire": {
       "box": {

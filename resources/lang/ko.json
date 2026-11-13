@@ -17776,7 +17776,11 @@
         "full": "더 쌓을 곳이 없다"
       },
       "trend_is": "흐름: {word}",
-      "trend_why": "가장 큰 까닭: {why}"
+      "trend_why": "가장 큰 까닭: {why}",
+      "notebook_deals": "약속과 빚",
+      "notebook_deals_mine": "내가 진 빚",
+      "notebook_deals_theirs": "내가 받을 빚",
+      "notebook_deals_threats": "내가 한 위협"
     },
     "unknown": {
       "ai": "{country}의 원수는 {word} 인물이었다.",
@@ -17881,7 +17885,6 @@
       "rises": "오른다",
       "falls": "내린다",
       "holds": "그대로",
-      "submit": "표결에 부친다",
       "sign": "예산에 서명한다",
       "alone": "혼자 서명한다 (권위 -{n})",
       "force": "권위로 밀어붙인다 (권위 {n}을(를) 쓴다)",
@@ -17892,9 +17895,6 @@
       "no_more": "남은 예산 회의가 없다.",
       "holder": "재무: {name}",
       "nobody": "이 예산을 막을 기관이 없다.",
-      "body_line": "{body}: {score} (필요 {need})",
-      "pass_yes": "통과한다.",
-      "pass_no": "부결된다.",
       "line": {
         "army": "군비와 군수",
         "navy": "해군",
@@ -17963,17 +17963,6 @@
         "shortfall": "모자라서 찍은 돈",
         "war": "전쟁 자체"
       },
-      "vote": {
-        "taxes_heavy": "세금이 무겁다",
-        "taxes_up": "세금이 오른다",
-        "home_up": "국내 몫이 늘었다",
-        "army_up": "군비가 지나치다",
-        "national_up": "자기 몫이 늘었다",
-        "national_down": "자기 몫이 줄었다",
-        "load": "이자가 무겁다",
-        "prices": "물가가 높다",
-        "rally": "첫 전쟁 예산이다"
-      },
       "prices_word": {
         "down": "내림",
         "same": "그대로",
@@ -17993,6 +17982,30 @@
         "income": "버는 만큼 낸다. 봉급쟁이와 넉넉한 집이 진다.",
         "property": "가진 땅과 재산, 물려주는 재산에 매긴다. 지주와 오래된 부자가 진다.",
         "profits": "전쟁 주문으로 불어난 회사들이 낸다."
+      },
+      "put": "의사일정에 올린다",
+      "put_again": "고쳐서 다시 올린다",
+      "put_hint": "통치 탭 의회 쪽 맨 위에 따로 걸린다. 거기서 정파를 설득하고 표결에 부친다.",
+      "who_votes": "표결하는 곳: {list}",
+      "on_agenda": "의사일정에 올라 있다: {stage}",
+      "differs": "장관 초안과 다른 곳",
+      "same": "장관 초안 그대로다.",
+      "more": "{name} 늘림",
+      "less": "{name} 줄임",
+      "marks_moved": "지역 몫을 바꿈",
+      "mark_of": "{who} 몫 ({line})",
+      "mark_cut": "뺀다",
+      "mark_keep": "되살린다",
+      "mark_out": "빠짐",
+      "credits": "전쟁 공채 표결",
+      "credits_on": "의사일정에 올라 있다. 통치 탭에서 표결에 부친다.",
+      "credits_put": "지금 공채를 올린다",
+      "credits_ask": "두마에도 묻는다",
+      "source_short": {
+        "taxes": "세금",
+        "bonds": "공채",
+        "loans": "차관",
+        "print": "지폐 발행"
       }
     },
     "law": {
@@ -18742,7 +18755,16 @@
         "broken": "그에게 한 약속이 깨진 채다. 만나려 하지 않는다.",
         "creed": "그의 신념에 어긋나는 안이다. 말도 꺼내지 않는다.",
         "held": "약점이 잡혀 자리를 비운다."
-      }
+      },
+      "paid_only": "소문이 돌았다. 그는 지금 치르는 것만 받는다.",
+      "favour_call": "빚을 받는다",
+      "favour_owe": "빚으로 남긴다",
+      "term_label": "기한:",
+      "counter_label": "내가 내놓는다",
+      "wing": "온건파: {name} · {n}석",
+      "wing_peeled": "따로 약속함",
+      "wing_meet": "따로 만난다",
+      "threat_label": "그 당이 반대하면 이렇게 하겠다고 말한다:"
     },
     "treaty": {
       "break": "이 조약을 깬다",
@@ -19511,7 +19533,8 @@
         "lords": "상원이 미뤄 두었다.",
         "no_sitting": "거쳐야 할 원이 열려 있지 않다.",
         "sign": "통과했다. 재가를 기다린다."
-      }
+      },
+      "pinned": "예산과 공채 (의사일정 밖)"
     },
     "vote": {
       "title": "{chamber} 표결",
@@ -19548,7 +19571,8 @@
         "told": "{name}이(가) 표결 결과를 전해 왔다"
       },
       "skip": "건너뛰기",
-      "close": "계속"
+      "close": "계속",
+      "wing_of": "{faction} 일부"
     },
     "strip": {
       "label": "의회의 정당들",
@@ -19600,7 +19624,8 @@
         "end": "여기서 끝낸다",
         "play": "{name}의 자리에서 계속한다",
         "go_on": "계속 다스린다"
-      }
+      },
+      "purse": "예산: {word}"
     },
     "bargain": {
       "propose_title": "조건을 정한다",
@@ -19731,7 +19756,11 @@
           "tired": "나라가 지쳤습니다. {place}, 받아들입니다."
         }
       },
-      "tap": "지도에서 주를 누르면 그 주만 따로 정할 수 있다."
+      "tap": "지도에서 주를 누르면 그 주만 따로 정할 수 있다.",
+      "counter_label": "대신 내놓는다:",
+      "their_counter": "상대의 안: {fate}",
+      "ultimatum": "최후통첩: {n}차까지",
+      "ultimatum_now": "최후통첩: 이번에 받지 않으면 진격한다"
     },
     "society": {
       "axis": {

@@ -15,6 +15,7 @@ import { translateText } from "../../Utils";
 import { billName, textName } from "./GwBook";
 import type { GwCtx } from "./GwCtx";
 import { factionName } from "./GwHouse";
+import { defyLine } from "./GwMoneyWords";
 import { CAST_COLOR, GLASS, HEAD, MUTED } from "./GwStyle";
 import { fullDate, personName } from "./GwText";
 import {
@@ -315,8 +316,10 @@ function stamp(plan: GwVotePlan, animated: boolean): TemplateResult {
 }
 
 function blockName(c: GwCtx, b: GwBallotBlock): string {
-  return b.faction === null
-    ? translateText("gw.vote.others")
+  if (b.faction === null) return translateText("gw.vote.others");
+  // ww209: a wing voting apart (defying its line, or met apart) is part of it.
+  return b.wing === true
+    ? translateText("gw.vote.wing_of", { faction: factionName(c, b.faction) })
     : factionName(c, b.faction);
 }
 
@@ -336,13 +339,22 @@ function logLine(
   animated: boolean,
 ): TemplateResult {
   const cast = castWord(b.cast);
-  const leader = b.beat === "betray" ? leaderOf(c, b.faction) : null;
+  // Who the log names: the leader who broke his word, or (ww209) the man of
+  // a wing who stood up against his own party's line.
+  const name =
+    b.beat === "betray"
+      ? leaderOf(c, b.faction)
+      : b.beat === "defy" && b.person !== undefined
+        ? personName(c.pack, b.person)
+        : null;
   const beat =
     b.beat === "firm"
       ? null
-      : leader !== null
-        ? translateText("gw.vote.beat.betray_by", { name: leader })
-        : translateText(`gw.vote.beat.${b.beat}`);
+      : b.beat === "defy"
+        ? defyLine(name)
+        : name !== null
+          ? translateText("gw.vote.beat.betray_by", { name })
+          : translateText(`gw.vote.beat.${b.beat}`);
   return html`<li
     class="flex items-baseline gap-1.5 text-xs"
     data-gw-vote-line=${b.beat}
@@ -359,7 +371,7 @@ function logLine(
     ${beat === null
       ? nothing
       : html`<span
-          class=${b.beat === "betray"
+          class=${b.beat === "betray" || b.beat === "defy"
             ? "font-bold text-red-300"
             : b.beat === "swing"
               ? "font-bold text-amber-200"

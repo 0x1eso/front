@@ -3,6 +3,7 @@
 // force and what can be brought; the agenda the bills before the house, the
 // count paper's word and the call; the lobby each faction's seats, its word
 // and whether he talks. Words only: no odds, no price before the pick.
+import type { GwMoneyBill } from "@openfront/engine-api/ww1914/GwBudget";
 import type { GwHouseView } from "@openfront/engine-api/ww1914/GwHouse";
 import type {
   GwAgendaView,
@@ -12,11 +13,14 @@ import type {
   GwLobbyView,
 } from "@openfront/engine-api/ww1914/GwLaw";
 import { GW_BOOK_CHAPTERS } from "@openfront/engine-api/ww1914/GwLaw";
+import { moneyBillOf } from "@openfront/engine-lib/ww1914/MoneyRows";
 import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
 import type { GwBookDraft, GwCtx } from "./GwCtx";
 import { timeLeft } from "./GwDept";
 import { factionName } from "./GwHouse";
+import { lobbyExtras, pricePlus, threatButtons, wingRow } from "./GwLobbyDeals";
+import { moneyBillName, moneyFailLine } from "./GwMoneyWords";
 import { officeTitle } from "./GwOffice";
 import { BTN, BTN_ON, CHIP, HEAD, MUTED } from "./GwStyle";
 import { optionSplit, personName } from "./GwText";
@@ -26,8 +30,30 @@ const SMALL = "!px-2 !py-1 max-sm:min-h-10";
 const GO =
   "rounded border border-amber-300 bg-amber-300/90 px-3 py-1.5 text-center text-sm font-bold text-slate-900 hover:bg-amber-200 disabled:opacity-40";
 
-/** The article's name: its draft scene's title. */
+/** ww209: 1916년 예산, 제5차 전쟁 공채; the year absent: this one. */
+export function moneyName(
+  c: GwCtx,
+  kind: GwMoneyBill,
+  n: number,
+  year?: number,
+): string {
+  return moneyBillName({
+    kind,
+    n,
+    year: year ?? Number(c.data.date.slice(0, 4)),
+  });
+}
+
+/**
+ * The article's name: its draft scene's title. ww209: a money bill has no
+ * scene: 1916년 예산, 제5차 전쟁 공채 (its pinned row knows the year).
+ */
 export function billName(c: GwCtx, law: string): string {
+  const money = moneyBillOf(law);
+  if (money !== null) {
+    const row = c.seat.world.book?.pinned?.find((g) => g.law === law);
+    return moneyName(c, money.kind, money.n, row?.money?.year);
+  }
   return c.pack?.scenes[`gw_law_${law}`]?.title ?? law;
 }
 
@@ -386,30 +412,39 @@ function pricesBox(c: GwCtx, g: GwAgendaView, l: GwLobbyView): TemplateResult {
     <p class="text-xs font-bold text-amber-200">
       ${translateText("gw.lobby.price_label")}
     </p>
+    ${l.paidOnly === true
+      ? html`<p class="${MUTED} italic" data-gw-lobby-paid-only>
+          ${translateText("gw.lobby.paid_only")}
+        </p>`
+      : nothing}
     ${(l.prices ?? []).length === 0
       ? html`<p class="${MUTED} italic" data-gw-lobby-no-price>
           ${translateText("gw.lobby.no_price")}
         </p>`
       : (l.prices ?? []).map((p) => {
           const says = priceSays(c, l.faction, p.id);
-          return html`<div class="flex items-start gap-2" data-gw-price=${p.id}>
-            <div class="min-w-0 flex-1 text-sm text-white">
-              <span class=${CHIP}
-                >${translateText(`gw.lobby.price.${p.kind}`)}</span
+          return html`<div class="space-y-1" data-gw-price=${p.id}>
+            <div class="flex items-start gap-2">
+              <div class="min-w-0 flex-1 text-sm text-white">
+                <span class=${CHIP}
+                  >${translateText(`gw.lobby.price.${p.kind}`)}</span
+                >
+                ${says === null
+                  ? nothing
+                  : html`<span class="text-white/85">${says}</span>`}
+              </div>
+              <button
+                class="${BTN} ${SMALL} shrink-0"
+                data-gw-price-take=${p.id}
+                @click=${() => send(p.id)}
               >
-              ${says === null
-                ? nothing
-                : html`<span class="text-white/85">${says}</span>`}
+                ${translateText("gw.lobby.take")}
+              </button>
             </div>
-            <button
-              class="${BTN} ${SMALL} shrink-0"
-              data-gw-price-take=${p.id}
-              @click=${() => send(p.id)}
-            >
-              ${translateText("gw.lobby.take")}
-            </button>
+            ${pricePlus(c, g, l, p)}
           </div>`;
         })}
+    ${lobbyExtras(c, g, l)}
     <div class="flex justify-end">
       <button
         class="${BTN} ${SMALL}"
@@ -471,7 +506,25 @@ function lobbyLine(
               ${translateText("gw.lobby.summon")}
             </button>`
           : nothing}
-        ${l.press.length === 0
+        ${l.favour?.owes === true
+          ? html`<button
+              class="${BTN} ${SMALL}"
+              data-gw-lobby-call-favour=${l.faction}
+              @click=${() => {
+                c.send({
+                  kind: "bill_favour",
+                  law: g.law,
+                  faction: l.faction,
+                  want: null,
+                  call: true,
+                });
+                c.redraw();
+              }}
+            >
+              ${translateText("gw.lobby.favour_call")}
+            </button>`
+          : nothing}
+        ${l.press.length === 0 && (l.threats ?? []).length === 0
           ? nothing
           : html`<button
               class="${pressing ? BTN_ON : BTN} ${SMALL}"
@@ -508,8 +561,10 @@ function lobbyLine(
                 ${translateText(`gw.lobby.press.${how}`)}
               </button>`,
           )}
+          ${threatButtons(c, g, l, () => (d.press = null))}
         </div>`
       : nothing}
+    ${l.wing === undefined || l.wing === null ? nothing : wingRow(c, g, l)}
   </div>`;
 }
 
@@ -536,8 +591,11 @@ function agendaRow(
     translateText("gw.agenda.age", { n: Math.max(1, g.age) }),
   ].filter((x) => x !== null);
   return html`<div
-    class="space-y-1 rounded border border-white/10 p-2"
+    class="space-y-1 rounded border ${g.money === undefined
+      ? "border-white/10"
+      : "border-amber-300/40 bg-amber-300/5"} p-2"
     data-gw-agenda=${g.law}
+    data-gw-agenda-money=${g.money?.kind ?? nothing}
   >
     <div class="flex items-baseline justify-between gap-2 text-sm">
       <span class="font-bold"
@@ -553,6 +611,11 @@ function agendaRow(
       >
     </div>
     <p class=${MUTED}>${who.join(" · ")}</p>
+    ${g.money === undefined
+      ? nothing
+      : html`<p class="text-sm text-amber-100/90" data-gw-agenda-money-fail>
+          ${moneyFailLine(g.money.fail)}
+        </p>`}
     ${g.replaces === null
       ? nothing
       : html`<p class=${MUTED} data-gw-agenda-replaces>
@@ -608,15 +671,33 @@ function agendaRow(
   </div>`;
 }
 
-function agendaBox(c: GwCtx, b: GwBookView, d: GwBookDraft): TemplateResult {
-  return html`<div class="space-y-1.5" data-gw-agenda-box>
-    <h4 class=${HEAD}>
-      ${translateText("gw.agenda.title", { n: b.agenda.length, max: b.max })}
-    </h4>
-    ${b.agenda.length === 0
-      ? html`<p class=${MUTED}>${translateText("gw.agenda.empty")}</p>`
-      : b.agenda.map((g) => agendaRow(c, g, b.calls, d))}
+/**
+ * ww209: the money bills, pinned above the agenda and not counted in it:
+ * the year's budget and the war credits, each as an agenda row.
+ */
+function pinnedBox(
+  c: GwCtx,
+  b: GwBookView,
+  d: GwBookDraft,
+): TemplateResult | typeof nothing {
+  const rows = b.pinned ?? [];
+  if (rows.length === 0) return nothing;
+  return html`<div class="space-y-1.5" data-gw-pinned>
+    <h4 class=${HEAD}>${translateText("gw.agenda.pinned")}</h4>
+    ${rows.map((g) => agendaRow(c, g, b.calls, d))}
   </div>`;
+}
+
+function agendaBox(c: GwCtx, b: GwBookView, d: GwBookDraft): TemplateResult {
+  return html`${pinnedBox(c, b, d)}
+    <div class="space-y-1.5" data-gw-agenda-box>
+      <h4 class=${HEAD}>
+        ${translateText("gw.agenda.title", { n: b.agenda.length, max: b.max })}
+      </h4>
+      ${b.agenda.length === 0
+        ? html`<p class=${MUTED}>${translateText("gw.agenda.empty")}</p>`
+        : b.agenda.map((g) => agendaRow(c, g, b.calls, d))}
+    </div>`;
 }
 
 // ---- The house's standing ----
