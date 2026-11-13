@@ -16010,7 +16010,9 @@
       "election_postponed": "{a}이(가) 전쟁을 이유로 선거를 미뤘다.",
       "party_born": "{a}에 새 정당이 생겼다.",
       "party_gone": "{a}의 정당 하나가 사라졌다.",
-      "party_condemned": "{a} 정부가 정당 하나를 규탄하고 손을 댔다."
+      "party_condemned": "{a} 정부가 정당 하나를 규탄하고 손을 댔다.",
+      "table_promise_leave_kept": "{a}이(가) {b}에 약속한 대로 {place}에서 물러났다.",
+      "table_promise_vote_kept": "{a}이(가) {b}에 약속한 대로 {place}에서 주민 투표가 열렸다."
     },
     "odds": {
       "0": "될 일이 아닙니다.",
@@ -18731,7 +18733,8 @@
         "post": "그의 사람에게 자리",
         "concession": "안을 고쳐 달라",
         "money": "그의 사람들에게 돈",
-        "next": "다음은 그의 법안"
+        "next": "다음은 그의 법안",
+        "favour": "나중에 갚을 신세"
       },
       "take": "들어준다",
       "leave": "그냥 돌려보낸다",

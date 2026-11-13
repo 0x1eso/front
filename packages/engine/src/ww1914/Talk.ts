@@ -148,7 +148,11 @@ function promiseSoon(gw: GreatWar, seat: GwSeatState): boolean {
 }
 
 /** A promise past due: they lose trust in the seat, and they come back. */
-function breakPromise(gw: GreatWar, seat: GwSeatState, x: GwPromise): void {
+export function breakPromise(
+  gw: GreatWar,
+  seat: GwSeatState,
+  x: GwPromise,
+): void {
   x.broken = true;
   const ctx: SceneCtx = { gw, seat, cast: { who: x.who } };
   const w: GwWho = { role: "who" };

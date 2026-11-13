@@ -123,6 +123,26 @@ export const GwDealSchema = z.object({
 });
 export type GwDeal = z.infer<typeof GwDealSchema>;
 
+/**
+ * ww210 (S2): a counter-offer made to a summoned leader (house.counters):
+ * the call it was made on (the talk card's uid), what was offered and his
+ * answer. "more" waits for the seat to take the price he added; the row
+ * goes when the bill leaves the agenda.
+ */
+export const GwCounterStateSchema = z.object({
+  law: Id,
+  faction: Id,
+  card: int,
+  kind: z.enum(GW_COUNTER_KINDS),
+  pick: Id.nullable(),
+  answer: z.enum(GW_COUNTER_ANSWERS),
+  /** "그것에 더해 …": the want id he added; null none. */
+  more: Id.nullable(),
+  /** Taken with his added price: the counter is sealed. */
+  sealed: z.boolean().optional(),
+});
+export type GwCounterState = z.infer<typeof GwCounterStateSchema>;
+
 // ---- What the screen reads ----
 
 /** A summoned leader's counter, once offered: what he said. */

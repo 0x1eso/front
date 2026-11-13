@@ -24,6 +24,7 @@ import type {
 } from "./GreatWarTypes";
 import type { GwActKind } from "./GwActs";
 import type { GwTag } from "./GwCountries";
+import type { GwDealTerm } from "./GwDeals";
 import type {
   GwCardDeptView,
   GwDeptView,
@@ -195,6 +196,8 @@ export interface GwPromiseView {
   due: string;
   kept: boolean;
   broken: boolean;
+  /** ww210: the deadline picked in the lobby (기한); absent: the price's own. */
+  term?: GwDealTerm;
 }
 
 /** What text can call back to: {mem.<key>} is its date. */

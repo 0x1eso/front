@@ -301,6 +301,7 @@ function seatView(gw: GreatWar, seat: GwSeatState): GwSeatView {
       due: dateOf(gw, Math.min(x.due, gwChapters(gw.s.calendar).length - 1)),
       kept: x.kept,
       broken: x.broken,
+      ...(x.term === undefined ? {} : { term: x.term }),
     })),
     memory: seat.memory.map((m) => ({
       key: m.key,

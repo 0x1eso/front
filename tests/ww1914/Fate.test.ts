@@ -18,6 +18,7 @@ import {
   stepTalk,
   tableBargain,
   tablePropose,
+  talkDue,
 } from "@openfront/engine/ww1914/Bargain";
 import { capitulate } from "@openfront/engine/ww1914/Capitulation";
 import {
@@ -358,5 +359,38 @@ describe("a beaten country's fate (ww199)", () => {
     // No treaty: nothing agreed moved, and Germany still holds what it held.
     expect(holderOf(gw, "iasi")).toBe("DEU");
     expect((gw.s.fates ?? []).some((f) => f.of === "ROU")).toBe(false);
+  });
+
+  test("ww210: an ultimatum refused brings the advance back; a ransom keeps the land for money", async () => {
+    const hard = await romaniaAtTheTable("GWTALK4");
+    const cap = hard.at("bucharest").id;
+    const due = talkDue(hard.gw, hard.seat);
+    expect(due?.kind === "bargain" && due.moves?.[cap]).toEqual(
+      expect.arrayContaining(["ultimatum", "ransom", "promise_leave"]),
+    );
+    // The capital is never annexed, whatever is threatened: the war resumes.
+    expect(
+      tableBargain(hard.gw, hard.seat, [
+        { claim: cap, move: "ultimatum", place: null },
+      ]),
+    ).toBeNull();
+    stepTalk(hard.gw, false);
+    expect(hard.t.closed).toBe(true);
+    expect(atWarWith(hard.gw, "DEU", "ROU")).toBe(true);
+
+    const { gw, seat, t, at } = await romaniaAtTheTable("GWTALK5");
+    gw.nation("ROU")!.gauges.money = 3;
+    const id = at("bucharest").id;
+    expect(
+      tableBargain(gw, seat, [{ claim: id, move: "ransom", place: null }]),
+    ).toBeNull();
+    stepTalk(gw, false);
+    expect(at("bucharest")).toMatchObject({
+      state: "traded",
+      move: "ransom",
+      ransom: 3,
+      offer: "reparations",
+    });
+    expect(t.bill.ROU).toBe(3);
   });
 });
