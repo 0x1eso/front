@@ -94,7 +94,8 @@
     "society_rally": "{who}의 무리가 거리에 나와 우리 편을 들었다.",
     "society_protest": "{who}의 무리가 거리에 나와 항의했다.",
     "utopia_node": "{who}의 당이 그리던 일 하나가 이뤄졌다.",
-    "utopia_realised": "{who}의 당이 그리던 나라가 섰다. 온 나라가 그 생각을 따른다."
+    "utopia_realised": "{who}의 당이 그리던 나라가 섰다. 온 나라가 그 생각을 따른다.",
+    "house_defied": "{who}의 무리가 당의 뜻을 어기고 드러내 놓고 반대했다."
   },
   "heads": {
     "house_split": {

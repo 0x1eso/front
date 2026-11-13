@@ -79,6 +79,13 @@ import {
   OUTLOOK_OF_WHIP,
   rowCount,
 } from "./House";
+import {
+  isMoneyBill,
+  moneyLawRow,
+  moneyLost,
+  moneyPassed,
+  moneyWithdrawn,
+} from "./MoneyBills";
 import { summonable } from "./Orders";
 import { trustBy } from "./People";
 import { heatThreat } from "./Powers";
@@ -116,16 +123,25 @@ const MOVING: readonly GwLawState["stage"][] = [
   "sign",
 ];
 
+// ww209: a money bill's row is made from its money row (MoneyBills).
 const rowOf = (id: string): GwLawRow | null =>
-  GW_LAWS.find((r) => r.id === id) ?? null;
+  GW_LAWS.find((r) => r.id === id) ?? moneyLawRow(id);
 
 export function lawStage(n: GwNationState, id: string): GwLawState | null {
   return n.laws.find((x) => x.id === id) ?? null;
 }
 
-/** The bills on the agenda, in the order they joined it. */
+/**
+ * The bills on the agenda, in the order they joined it. ww209: the money
+ * bills sit in their own pinned place (`moneyAgenda`), not counted.
+ */
 export function lawAgenda(n: GwNationState): GwLawState[] {
-  return n.laws.filter((x) => MOVING.includes(x.stage));
+  return n.laws.filter((x) => MOVING.includes(x.stage) && !isMoneyBill(x.id));
+}
+
+/** ww209: the money bills on their pinned place. */
+export function moneyAgenda(n: GwNationState): GwLawState[] {
+  return n.laws.filter((x) => MOVING.includes(x.stage) && isMoneyBill(x.id));
 }
 
 const agendaFull = (n: GwNationState): boolean =>
@@ -242,6 +258,14 @@ function enact(
   // its passing effects run again, on its own text.
   const confirmed = st.kept !== null && st.faces >= 0;
   st.kept = null;
+  // ww209: a money bill is spent by passing: the budget or credits run.
+  if (isMoneyBill(row.id)) {
+    st.faces = -1;
+    st.how = how;
+    toStage(gw, st, "idle");
+    moneyPassed(ctx, st, how);
+    return;
+  }
   st.faces = how === "decreed" && houseRoundFaces(gw, seat) ? -2 : -1;
   toStage(gw, st, "force");
   st.how = how;
@@ -343,7 +367,8 @@ function put(
     }
     if (house.stops === "lords_delay") return;
     if (row.issue !== undefined) holdVote(gw, seat, row.issue);
-    if (house.sign) {
+    // ww209: the sovereign signs his own budget and credits.
+    if (house.sign && !isMoneyBill(row.id)) {
       toStage(gw, st, "sign");
       houseSignCard(gw, seat);
     } else if (house.pass) enact(ctx, st, row, "voted");
@@ -431,6 +456,11 @@ function lose(
   band: GwVoteBand,
   confidence: boolean,
 ): void {
+  // ww209: a money bill lost goes back to the lobby once, or fails for good.
+  if (isMoneyBill(st.id)) {
+    moneyLost({ gw, seat, cast: {} }, st, key, band, confidence);
+    return;
+  }
   const wide = band === "lost_wide";
   st.lost++;
   st.lockTo = gw.s.chapter + (wide ? GW_LOCK_WIDE : GW_LOCK_NARROW);
@@ -469,7 +499,11 @@ function lose(
 }
 
 /** Heat a lost bill puts on the fall row: GW_FALL_HEAT, or the next step. */
-function fallBy(seat: GwSeatState, fall: string, confidence: boolean): number {
+export function fallBy(
+  seat: GwSeatState,
+  fall: string,
+  confidence: boolean,
+): number {
   if (!confidence) return GW_FALL_HEAT;
   const row = GW_GOV.find((r) => r.id === fall && r.tag === seat.tag);
   const heat = govHeat(seat, fall);
@@ -510,6 +544,11 @@ export function lawWithdraw(gw: GreatWar, seat: GwSeatState, id: string): void {
   if (st.origin === "house") return;
   // A decree facing the house can't be taken back: it is voted or lapses.
   if (st.faces !== -1) return;
+  // ww209: a money bill withdrawn: last year's runs on, no credits.
+  if (isMoneyBill(st.id)) {
+    moneyWithdrawn(gw, seat, st);
+    return;
+  }
   reason(gw, seat, "law_withdrawn");
   if (st.kept !== null) {
     backToForce(gw, st);
@@ -1174,7 +1213,7 @@ function articleView(
   };
 }
 
-function agendaView(
+export function agendaView(
   gw: GreatWar,
   seat: GwSeatState,
   n: GwNationState,

@@ -15712,7 +15712,9 @@
       "econ_tribute_paid": "우리를 거느린 나라에 공물을 바치고 있다.",
       "econ_peace": "평화가 이어져 창고가 늘 차 있던 만큼 다시 찬다.",
       "society_fervour": "성난 정파와 들끓는 민심이 질서를 갉아먹는다.",
-      "utopia_protest": "항의 시위"
+      "utopia_protest": "항의 시위",
+      "budget_orders": "군비 예산이 공장의 주문량을 정한다.",
+      "budget_subsidy": "영국의 보조금으로 포탄이 들어온다."
     },
     "mandate": {
       "deu_bread_for_the_winter": "겨울 빵을 남기기",
@@ -16504,7 +16506,17 @@
       "utopia_rally": "{who}의 당이 우리 편에서 집회를 열었다.",
       "utopia_protest": "{who}의 당이 우리에 맞서 거리로 나왔다.",
       "utopia_c_rally": "한 계층이 자기네 당 뒤에 모였다.",
-      "utopia_c_protest": "한 계층이 항의 행진을 벌였다."
+      "utopia_c_protest": "한 계층이 항의 행진을 벌였다.",
+      "money_put_budget": "예산안을 의회에 올렸다.",
+      "money_put_credits": "전쟁 공채 안을 의회에 올렸다.",
+      "money_back": "부결된 안이 다시 의원들에게 돌아갔다. 한 번 더 표결할 수 있다.",
+      "money_confidence_lost": "돈 안이 부결되자 내각이 흔들렸다.",
+      "money_unpaid": "부다페스트가 동의하지 않았다. 헝가리 몫의 돈이 들어오지 않는다.",
+      "money_dissolve_open": "예산이 부결됐다. 의회를 해산하고 다시 물을 수도 있다.",
+      "money_credits_passed": "전쟁 공채가 통과됐다.",
+      "money_credits_stopped": "전쟁 공채가 부결됐다. 다음 공채까지 빚을 낼 수 없어 모자란 돈은 찍어서 메운다.",
+      "money_credits_command": "전쟁 공채는 최고 명령으로 정해졌다.",
+      "money_credits_decree": "전쟁 공채가 칙령으로 나왔다."
     },
     "result": {
       "advance": "전진",

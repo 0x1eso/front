@@ -21,6 +21,19 @@ export interface BallotFaction {
   rebels: number;
   /** `swing`: a deal kept; `betray`: a deal broken; else `firm`. */
   beat: "firm" | "swing" | "betray";
+  /**
+   * ww209: its wing's seats voting apart, after the rest: `defy` openly
+   * against the line, or a peeled wing for (`swing`). Out of `seats`.
+   */
+  apart?: BallotApart;
+}
+
+/** ww209: a faction's wing voting apart, its man named in the log. */
+export interface BallotApart {
+  seats: number;
+  cast: "for" | "against";
+  beat: "defy" | "swing";
+  person: string;
 }
 
 export interface BallotChamberIn {
@@ -72,9 +85,23 @@ export function castChamber(
     beat: GwBallotBeat,
   ): GwBallotBlock => ({ faction, cast, seats, beat });
   let held = 0;
-  for (const f of factions) {
+  for (const whole of factions) {
+    if (whole.seats <= 0) continue;
+    held += whole.seats;
+    // ww209: the wing's seats go apart, after the rest.
+    const apart =
+      whole.apart === undefined || whole.away
+        ? 0
+        : Math.min(whole.apart.seats, whole.seats);
+    if (apart > 0) {
+      late.push({
+        ...block(whole.id, whole.apart!.cast, apart, whole.apart!.beat),
+        person: whole.apart!.person,
+        wing: true,
+      });
+    }
+    const f = { ...whole, seats: whole.seats - apart };
     if (f.seats <= 0) continue;
-    held += f.seats;
     if (f.away) {
       const b = block(
         f.id,

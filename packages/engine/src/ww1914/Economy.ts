@@ -23,6 +23,10 @@ import {
   GW_LINES,
   GW_SEA_MAX,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import {
+  GW_BUDGET_LINES,
+  type GwBudgetLine,
+} from "@openfront/engine-api/ww1914/GwBudget";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import {
   GW_ECON_GAUGES,
@@ -34,6 +38,7 @@ import {
   GW_PLACES,
   type GwPlace,
 } from "@openfront/engine-api/ww1914/GwPlaces";
+import { budgetNorm } from "@openfront/engine-lib/ww1914/BudgetRules";
 import {
   econPerUnit,
   econRow,
@@ -42,6 +47,10 @@ import {
   placeWorth,
 } from "@openfront/engine-lib/ww1914/EconRows";
 import { GW_FRONT_LAND } from "@openfront/engine-lib/ww1914/FrontLand";
+import {
+  GW_ARMY_ORDERS,
+  GW_OWNER_OFF,
+} from "@openfront/engine-lib/ww1914/MoneyRows";
 import { civilFromDays } from "@openfront/engine-lib/ww1936/Calendar";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { warMonths } from "./Eras";
@@ -264,6 +273,17 @@ function frontsUse(gw: GreatWar, n: GwNationState): number {
   return (use * econRow(n.tag).guns) / 100;
 }
 
+/** ww209: the running budget's line off the country's war norm. */
+function offOf(n: GwNationState, line: GwBudgetLine): number {
+  const i = GW_BUDGET_LINES.indexOf(line);
+  return n.budget.plan.shares[i] - budgetNorm(n.tag, true)[i];
+}
+
+/** ww209 (§1): Britain's national share pays the allies' subsidies, a year. */
+const SUBSIDY_SHELLS = 30;
+/** ww209 (§1): Russia's national share mends the railways, a year a point. */
+const RAIL_MENDS = 10;
+
 function warTerms(gw: GreatWar, n: GwNationState, out: GwEconTerms): void {
   const s = gw.s;
   const row = econRow(n.tag);
@@ -275,6 +295,23 @@ function warTerms(gw: GreatWar, n: GwNationState, out: GwEconTerms): void {
   const works = (h.ind * unit.ind * unrest) / 10000;
   push(out.shells, "econ_industry", works);
   push(out.shells, "econ_held", (h.heldInd * unit.ind) / 100);
+  // ww209 (§1): the army line's war orders: the works run to what is bought.
+  push(
+    out.shells,
+    "budget_orders",
+    (works * offOf(n, "army") * GW_ARMY_ORDERS) / 1000,
+  );
+  // ww209 (§1): Britain's subsidies put shells in the allies' hands.
+  const gbr = gw.nation("GBR");
+  if (
+    n.tag !== "GBR" &&
+    gbr !== null &&
+    n.side === "entente" &&
+    n.side === gbr.side
+  ) {
+    const pay = offOf(gbr, "national");
+    if (pay > 0) push(out.shells, "budget_subsidy", pay * SUBSIDY_SHELLS);
+  }
   if (e?.mobilised !== null && e?.mobilised !== undefined) {
     push(out.shells, "econ_mobilised", (works * row.mob) / 100);
   }
@@ -294,7 +331,10 @@ function warTerms(gw: GreatWar, n: GwNationState, out: GwEconTerms): void {
   if (year < 100) {
     push(out.bread, "bread_bad_harvest", -(fields * (100 - year)) / 100);
   }
-  const cut = n.tag === "AUH" && (n.inst.hungary ?? 0) < 2;
+  // ww209 (§1): Hungary's quota cut, Budapest holds its grain back too.
+  const cut =
+    n.tag === "AUH" &&
+    ((n.inst.hungary ?? 0) < 2 || offOf(n, "national") <= -GW_OWNER_OFF);
   if (cut) {
     const held = h.hungary * unit.grain * season * year * GW_ECON.hungaryHeld;
     push(out.bread, "bread_two_halves", -held / 100000000);
@@ -317,7 +357,11 @@ function warTerms(gw: GreatWar, n: GwNationState, out: GwEconTerms): void {
   push(out.bread, "econ_labour", -(row.labour * (100 - n.manpower)) / 100);
   if (row.rail !== undefined && warMonths(gw) >= row.rail.from) {
     const hot = s.threads.includes("rus_rail") && n.tag === "RUS";
-    push(out.bread, "bread_rail", -row.rail.loss - (hot ? 100 : 0));
+    // ww209 (§1): Russia's national share goes on the railways.
+    const mend =
+      n.tag === "RUS" ? Math.max(0, offOf(n, "national")) * RAIL_MENDS : 0;
+    const loss = Math.max(0, row.rail.loss + (hot ? 100 : 0) - mend);
+    push(out.bread, "bread_rail", -loss);
   }
   // Full stores are eaten freely, empty ones rationed.
   const ration = GW_ECON.eatAt[Math.min(3, n.gauges.bread)];

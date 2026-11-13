@@ -77,6 +77,14 @@ import { blocNow } from "./Blocs";
 import { makeCard, placeCard } from "./Desk";
 import { hasFile, pressWithFile } from "./Dossier";
 import type { GreatWar } from "./GreatWar";
+import {
+  isMoneyBill,
+  moneyBillRow,
+  moneyLawRow,
+  moneySide,
+  wingApart,
+  wingDefied,
+} from "./MoneyBills";
 import { moveOpinion } from "./Press";
 import { castOf, holds, runEffects, SceneCtx, sceneOf } from "./SceneRun";
 import { exclusiveShut, factionTrust } from "./Utopia";
@@ -130,12 +138,14 @@ export function factionRow(id: string): GwFactionRow | null {
   return allFactionRows().find((f) => f.id === id) ?? null;
 }
 
+// ww209: a money bill's row is made from its money row (MoneyBills).
 const lawRow = (id: string): GwLawRow | null =>
-  GW_LAWS.find((r) => r.id === id) ?? null;
+  GW_LAWS.find((r) => r.id === id) ?? moneyLawRow(id);
 
 /** The house's row for a bill, if this seat's house runs it. */
 export function billRow(seat: GwSeatState, law: string): GwBillRow | null {
   if (houseRow(seat.tag) === null) return null;
+  if (isMoneyBill(law)) return moneyBillRow(seat, law);
   const b = (gwContent().bills ?? []).find((x) => x.law === law) ?? null;
   return b !== null && lawRow(law)?.tag === seat.tag ? b : null;
 }
@@ -633,7 +643,11 @@ function sideOf(
   if (turned) return { side: -1, broke: deal };
   if (deal && brokenTo(gw, seat, id)) return { side: -1, broke: true };
   const text = st.text === null ? undefined : bill.texts?.[st.text]?.[id];
-  const base = text ?? bill.stance[id] ?? 0;
+  // ww209: a money bill's side is the faction's purse on it.
+  const base =
+    bill.money === true && isMoneyBill(st.id)
+      ? moneySide(gw, seat, st, id)
+      : (text ?? bill.stance[id] ?? 0);
   // ww204 (T): a price brings a faction GW_DEAL_STEP sides over: one against
   // wavers, one wavering is for.
   if (deal) {
@@ -681,14 +695,21 @@ function ballotFactions(
     // the government's side.
     const holds = (deal && !s.broke) || (confidence && s.side > 0);
     const tenths = holds ? 0 : (GW_REBEL_TENTHS[fs.step] ?? 0);
+    // ww209: its wing apart: peeled for, or defying the line (money bills).
+    const apart =
+      s.away === true
+        ? undefined
+        : wingApart(gw, seat, st, f.id, seats, s.side, holds);
+    const rest = seats - (apart?.seats ?? 0);
     return [
       {
         id: f.id,
         seats,
         side: s.side,
         away: s.away === true,
-        rebels: Math.floor((seats * tenths) / 10),
+        rebels: Math.floor((rest * tenths) / 10),
         beat: s.broke ? "betray" : deal ? "swing" : "firm",
+        ...(apart === undefined ? {} : { apart }),
       },
     ];
   });
@@ -1195,6 +1216,14 @@ function vote(
   const pass = count >= 0;
   record(gw, seat, st, counts, how, pass, band);
   judgeWhip(gw, seat, st, count);
+  // ww209: a wing that voted openly against its line: counted, split pressure.
+  const defied = new Set<string>();
+  for (const c of counts) {
+    for (const b of c.cast?.chamber.blocks ?? []) {
+      if (b.beat === "defy" && b.faction !== null) defied.add(b.faction);
+    }
+  }
+  for (const id of defied) wingDefied(gw, seat, id);
   const chambers = new Set(
     chambersOf(houseRow(seat.tag)!, bill).map((c) => c.id),
   );
@@ -1328,7 +1357,10 @@ export function houseBring(
   const n = gw.nation(seat.tag);
   const row = lawRow(law);
   if (n === null || row === null || row.tag !== seat.tag) return false;
-  const on = n.laws.filter((x) => MOVING.includes(x.stage)).length;
+  // ww209: the money bills' pinned place doesn't count.
+  const on = n.laws.filter(
+    (x) => MOVING.includes(x.stage) && !isMoneyBill(x.id),
+  ).length;
   if (on >= GW_AGENDA_MAX) return false;
   let st = n.laws.find((x) => x.id === law);
   if (st !== undefined && st.stage !== "idle") return false;
@@ -1441,7 +1473,10 @@ function unanswered(gw: GreatWar, seat: GwSeatState): void {
 function asksStep(gw: GreatWar, seat: GwSeatState): void {
   const n = gw.nation(seat.tag);
   if (n === null) return;
-  const on = n.laws.filter((x) => MOVING.includes(x.stage)).length;
+  // ww209: the money bills' pinned place doesn't count.
+  const on = n.laws.filter(
+    (x) => MOVING.includes(x.stage) && !isMoneyBill(x.id),
+  ).length;
   if (on >= GW_AGENDA_MAX) return;
   let visited = false;
   for (const row of factionRows(seat.tag)) {

@@ -1,6 +1,9 @@
 import { GwNationState } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import { GW_BUDGET_LINES } from "@openfront/engine-api/ww1914/GwBudget";
 import { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
+import { budgetNorm } from "@openfront/engine-lib/ww1914/BudgetRules";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
+import { GW_OWNER_OFF } from "@openfront/engine-lib/ww1914/MoneyRows";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { playingOn } from "./Aftermath";
 import { authorityStep } from "./Authority";
@@ -104,6 +107,12 @@ function strains(gw: GreatWar, n: GwNationState): void {
   }
 }
 
+/** ww209 (§1): the running budget's line off the norm of war or peace. */
+function lineOff(n: GwNationState, line: "relief" | "works"): number {
+  const i = GW_BUDGET_LINES.indexOf(line);
+  return n.budget.plan.shares[i] - budgetNorm(n.tag, n.atWar.length > 0)[i];
+}
+
 function mood(gw: GreatWar, n: GwNationState): void {
   if (n.gauges.bread === 0 && everyMonths(gw, 2)) {
     moveGauge(gw, n.tag, "order", -1, "order_hunger");
@@ -120,7 +129,13 @@ function mood(gw: GreatWar, n: GwNationState): void {
   if (everyMonths(gw, 3) && heavy < 150) {
     moveGauge(gw, n.tag, "morale", 1, "morale_steadied");
   }
-  if (everyMonths(gw, 4, 2) && n.gauges.bread > 0 && n.gauges.morale > 1) {
+  // ww209 (§1): the streets settle only where the works line is kept.
+  if (
+    everyMonths(gw, 4, 2) &&
+    n.gauges.bread > 0 &&
+    n.gauges.morale > 1 &&
+    lineOff(n, "works") >= 0
+  ) {
     moveGauge(gw, n.tag, "order", 1, "order_steadied");
   }
 }
@@ -168,7 +183,11 @@ function ladder(gw: GreatWar, n: GwNationState): void {
     return;
   }
   const bottom = n.gauges.order === 0;
-  n.lowOrder = bottom ? n.lowOrder + 1 : Math.max(0, n.lowOrder - 1);
+  // ww209 (§1): relief well over the norm keeps the ladder from climbing.
+  const relieved = lineOff(n, "relief") >= GW_OWNER_OFF;
+  n.lowOrder = bottom
+    ? n.lowOrder + (relieved ? 0 : 1)
+    : Math.max(0, n.lowOrder - 1);
   const rung = ladderRung(n.lowOrder, warMonths(gw), GW_HOME[n.tag]?.topFrom);
   if (rung <= n.unrest) {
     if (!bottom && n.unrest > 0 && n.lowOrder === 0) n.unrest--;

@@ -58,7 +58,7 @@ import {
   lawTopic,
   lawWithdraw,
 } from "./Laws";
-import { moneyDo, moneyHolds } from "./MoneyBills";
+import { budgetSign, moneyDo, moneyHolds } from "./MoneyBills";
 import { navalEffect, navalHolds } from "./NavalIntel";
 import { landHolds } from "./Occupation";
 import {
@@ -591,8 +591,11 @@ export function worldEffect(ctx: SceneCtx, e: GwWorldEffect): void {
       return;
     }
     case "budget_sign":
+      // ww209: where the house votes the budget, the draft goes to it.
       if (nation !== null && nation.budget.meeting !== null) {
-        submitBudget(gw, nation, draftOf(nation));
+        if (!budgetSign(gw, nation)) {
+          submitBudget(gw, nation, draftOf(nation));
+        }
       }
       return;
     case "budget_tilt":

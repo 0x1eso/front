@@ -170,6 +170,15 @@ export const GwBudgetStateSchema = z.object({
       lost: int,
     })
     .optional(),
+  /** The year the open meeting's budget is for (1916년 예산). */
+  year: int.optional(),
+  /** How each money bill's last vote went (this meeting, these credits). */
+  voted: z
+    .object({
+      budget: z.enum(["passed", "failed"]).optional(),
+      credits: z.enum(["passed", "failed"]).optional(),
+    })
+    .optional(),
 });
 export type GwBudgetState = z.infer<typeof GwBudgetStateSchema>;
 

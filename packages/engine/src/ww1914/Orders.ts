@@ -247,7 +247,10 @@ export function applyGwOrder(
       return null;
     }
     case "budget":
-      return budgetOrder(gw, seat, { shares: o.shares, mix: o.mix }, o.force);
+      // ww209: unforced, the plan goes to the house (`budget_put`).
+      return o.force
+        ? budgetOrder(gw, seat, { shares: o.shares, mix: o.mix }, true)
+        : budgetPut(gw, seat, { shares: o.shares, mix: o.mix }, false);
     case "law":
       return lawOrder(gw, seat, o.law, o.act, o.sponsor ?? null);
     case "press_censor":

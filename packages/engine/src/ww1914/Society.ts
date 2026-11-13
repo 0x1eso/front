@@ -75,6 +75,7 @@ import type {
   GwFactionRow,
 } from "@openfront/engine-lib/ww1914/HouseRows";
 import type { GwLawRow } from "@openfront/engine-lib/ww1914/LawRows";
+import { GW_SPLIT_PRESSURE } from "@openfront/engine-lib/ww1914/MoneyRows";
 import {
   genericFactionId,
   GW_COMMUNITY_STEPS,
@@ -596,7 +597,12 @@ function splitsAndMerges(gw: GreatWar, seat: GwSeatState): void {
         return r.ideal.side * axisStep(n, r.ideal.axis);
       });
       const torn = leans.some((l) => l >= 2) && leans.some((l) => l <= -2);
-      if ((radical || torn) && splitFaction(gw, seat, row)) continue;
+      // ww209: its wing defied the line, or was peeled, often enough.
+      const pressed = (st.split ?? 0) >= GW_SPLIT_PRESSURE;
+      if ((radical || torn || pressed) && splitFaction(gw, seat, row)) {
+        st.split = 0;
+        continue;
+      }
     }
     if (row.joins !== undefined && smallAlike(seat, row)) {
       joinFactions(gw, seat, row);

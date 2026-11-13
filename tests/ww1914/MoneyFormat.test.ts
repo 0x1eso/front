@@ -33,32 +33,37 @@ const ORDERS: GwOrder[] = [
   },
   {
     kind: "bill_counter",
-    law: "deu_budget",
+    law: "deu_money_budget",
     faction: "deu_centre",
     counter: "region",
     pick: "deu_east_prussia",
   },
   {
     kind: "bill_term",
-    law: "deu_budget",
+    law: "deu_money_budget",
     faction: "deu_centre",
     want: "w1",
     term: "war_end",
   },
   {
     kind: "bill_favour",
-    law: "deu_credits_2",
+    law: "deu_money_credits_2",
     faction: "deu_spd",
     want: null,
     call: true,
   },
   {
     kind: "bill_threat",
-    law: "deu_credits_2",
+    law: "deu_money_credits_2",
     faction: "deu_spd",
     threat: "dissolve",
   },
-  { kind: "bill_peel", law: "deu_credits_2", faction: "deu_spd", want: null },
+  {
+    kind: "bill_peel",
+    law: "deu_money_credits_2",
+    faction: "deu_spd",
+    want: null,
+  },
   {
     kind: "table_counter",
     counters: [{ claim: 3, fate: "vassal", term: null }],
@@ -83,7 +88,7 @@ describe("ww210 money format", () => {
         kind: "threat",
         faction: "deu_spd",
         person: "deu_ebert",
-        law: "deu_credits_2",
+        law: "deu_money_credits_2",
         threat: "file",
         chapter: 5,
         due: 7,
@@ -152,7 +157,9 @@ describe("ww210 money format", () => {
       kind: "credits",
       n: 5,
     });
-    expect(moneyBillOf("deu_budget_2")).toBeNull();
+    expect(moneyBillOf("deu_money_budget_2")).toBeNull();
+    // GBR's 1914 Budget is a law row of its own, not a money bill.
+    expect(moneyBillOf("gbr_budget")).toBeNull();
     expect(moneyBillOf("deu_war_credits")).toBeNull();
   });
 

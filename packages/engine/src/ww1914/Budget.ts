@@ -16,6 +16,7 @@ import {
   GW_BUDGET_DRIFTS,
   GW_BUDGET_LINES,
   GW_BUDGET_SOURCES,
+  GW_MONEY_DEADLINE,
   GW_RAISE_MAX,
   GW_TAX_MAX,
   GW_TAX_MIN,
@@ -54,6 +55,14 @@ import {
 import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
 import {
+  GW_ARMY_OFF,
+  GW_OWNER_OFF,
+  GW_PURSE_IDEALS,
+  GW_TAX_AXIS,
+  moneyRowOf,
+  type GwLineOwner,
+} from "@openfront/engine-lib/ww1914/MoneyRows";
+import {
   civilFromDays,
   formatIsoDate,
 } from "@openfront/engine-lib/ww1936/Calendar";
@@ -61,7 +70,8 @@ import { dissolvedNow, GW_ELECTION_DAYS } from "./Assumes";
 import { econCrisis, econRecord, econTerms, sumOf, whyOf } from "./Economy";
 import type { GreatWar } from "./GreatWar";
 import { chamberSits, houseRow } from "./House";
-import { officeHolder } from "./People";
+import { officeHolder, trustBy } from "./People";
+import { moveAxis, societyDo } from "./Society";
 import {
   chapterOf,
   clampTo,
@@ -87,6 +97,25 @@ const flagsOf = (gw: GreatWar, n: GwNationState): string[] =>
 /** The regime's body, unless a decree carries the budget past it (ww171). */
 const bodyOf = (gw: GreatWar, n: GwNationState): GwBudgetBody | null =>
   budgetBody(n.regime, flagsOf(gw, n));
+
+/** ww209: who votes the budget now; null when a decree carries it. */
+export const budgetBodyOf = bodyOf;
+
+/**
+ * ww209: the country's money goes through its house as bills (MoneyBills):
+ * a seat's country with a house and a money row. Others keep the old way.
+ */
+export function moneyRuns(gw: GreatWar, n: GwNationState): boolean {
+  return (
+    seatsOf(gw, n.tag).length > 0 &&
+    houseRow(n.tag) !== null &&
+    moneyRowOf(gwContent().money, n.tag) !== null
+  );
+}
+
+/** ww209: the budget is a bill in the house now (not by decree). */
+export const moneyVoted = (gw: GreatWar, n: GwNationState): boolean =>
+  moneyRuns(gw, n) && bodyOf(gw, n) !== null;
 
 /** A decree that stands while the house is gone or sent home (not a once). */
 const shutByDecree = (gw: GreatWar, n: GwNationState): boolean => {
@@ -247,7 +276,7 @@ export function moveMoney(
 }
 
 /** Text a seat is shown: `budget_<how>` in the why-log. */
-function tellSeats(gw: GreatWar, n: GwNationState, key: string): void {
+export function tellSeats(gw: GreatWar, n: GwNationState, key: string): void {
   for (const seat of seatsOf(gw, n.tag)) reason(gw, seat, key);
 }
 
@@ -303,9 +332,124 @@ function signEffects(
     if (loadOf(basisOf(gw, n)) >= GW_LOAD_CRUSHING) shiftInst(n, body.inst, -1);
   }
   bindLenders(gw, n, plan);
+  lineOwners(gw, n, plan, war);
+  whoPays(gw, n, plan);
 }
 
-function adopt(
+/** ww209: how far a line of the plan stands off the country's norm. */
+export function lineOff(
+  n: GwNationState,
+  plan: GwBudgetPlan,
+  line: (typeof GW_BUDGET_LINES)[number],
+  war: boolean = n.atWar.length > 0,
+): number {
+  const i = GW_BUDGET_LINES.indexOf(line);
+  return plan.shares[i] - budgetNorm(n.tag, war)[i];
+}
+
+/** ww209: the running plan's line off the norm (Home, Economy read it). */
+export const runningOff = (
+  n: GwNationState,
+  line: (typeof GW_BUDGET_LINES)[number],
+): number => lineOff(n, n.budget.plan, line);
+
+/** ww209: a line's political owner gains or loses by the plan (§1, 5B). */
+function moveOwner(
+  gw: GreatWar,
+  n: GwNationState,
+  owner: GwLineOwner,
+  d: number,
+): void {
+  if (owner.inst !== undefined) shiftInst(n, owner.inst, d);
+  for (const seat of seatsOf(gw, n.tag)) {
+    const ctx = { gw, seat, cast: {} };
+    if (owner.faction !== undefined) {
+      societyDo(ctx, { do: "faction_trust", id: owner.faction, delta: d });
+    }
+    if (owner.community !== undefined) {
+      societyDo(ctx, { do: "community_trust", id: owner.community, delta: d });
+    }
+    const man =
+      owner.office === undefined ? null : officeHolder(gw, seat, owner.office);
+    if (man !== null) trustBy(man, d);
+  }
+}
+
+/**
+ * ww209 (§1): each line far enough off the norm moves its owner; the army
+ * line its weight too; a navy with no repair moves the fleet's mood.
+ */
+function lineOwners(
+  gw: GreatWar,
+  n: GwNationState,
+  plan: GwBudgetPlan,
+  war: boolean,
+): void {
+  const row = moneyRowOf(gwContent().money, n.tag);
+  for (const line of GW_BUDGET_LINES) {
+    const off = lineOff(n, plan, line, war);
+    const at = line === "army" ? GW_ARMY_OFF : GW_OWNER_OFF;
+    if (Math.abs(off) < at) continue;
+    const d = off > 0 ? 1 : -1;
+    if (line === "army") shiftInst(n, "army", d);
+    const owner = row?.owners?.[line];
+    if (owner !== undefined) moveOwner(gw, n, owner, d);
+  }
+  const fleet = row?.fleet;
+  const navy = lineOff(n, plan, "navy", war);
+  if (fleet === undefined || budgetRow(n.tag).navy !== null) return;
+  const scene =
+    navy <= -GW_OWNER_OFF
+      ? fleet.low
+      : navy >= GW_OWNER_OFF
+        ? fleet.high
+        : null;
+  if (scene === undefined || scene === null || !known(scene)) return;
+  for (const seat of seatsOf(gw, n.tag)) {
+    if (seat.scheduled.some((q) => q.scene === scene)) continue;
+    seat.scheduled.push({ scene, chapter: gw.s.chapter + 1 });
+  }
+}
+
+/** Prices past this (per mille) cost the workers a step of trust a year. */
+const PRICES_WORKERS = 1500;
+
+/**
+ * ww209 (§1): who pays. The tax kind moves the factions and communities its
+ * purse touches and the class axis a notch; dear bread (printing, prices)
+ * costs the workers; an earmark pays its community.
+ */
+function whoPays(gw: GreatWar, n: GwNationState, plan: GwBudgetPlan): void {
+  const tax = plan.tax ?? "consumption";
+  const raised = plan.mix[0] > 100;
+  if (raised) moveAxis(n, "class", GW_TAX_AXIS[tax]);
+  const content = gwContent();
+  for (const seat of seatsOf(gw, n.tag)) {
+    const ctx = { gw, seat, cast: {} };
+    for (const c of content.society?.communities ?? []) {
+      if (c.tag !== n.tag || c.ideal.axis !== "class") continue;
+      const side = c.ideal.side > 0 ? "1" : "-1";
+      const want = raised
+        ? (GW_PURSE_IDEALS.class?.[side].taxes?.[tax] ?? 0)
+        : 0;
+      const dear = c.ideal.side > 0 && n.budget.prices > PRICES_WORKERS;
+      const d = want - (dear ? 1 : 0);
+      if (d !== 0)
+        societyDo(ctx, { do: "community_trust", id: c.id, delta: d });
+    }
+    for (const id of plan.marks ?? []) {
+      const mark = content.money?.earmarks.find((e) => e.id === id);
+      if (mark?.community !== undefined) {
+        societyDo(ctx, { do: "community_trust", id: mark.community, delta: 1 });
+      }
+      if (mark?.faction !== undefined) {
+        societyDo(ctx, { do: "support", id: mark.faction, delta: 1 });
+      }
+    }
+  }
+}
+
+export function adopt(
   gw: GreatWar,
   n: GwNationState,
   plan: GwBudgetPlan,
@@ -313,7 +457,12 @@ function adopt(
 ): void {
   const b = n.budget;
   const war = n.atWar.length > 0;
-  b.plan = { shares: [...plan.shares], mix: [...plan.mix] };
+  b.plan = {
+    shares: [...plan.shares],
+    mix: [...plan.mix],
+    ...(plan.tax === undefined ? {} : { tax: plan.tax }),
+    ...(plan.marks === undefined ? {} : { marks: [...plan.marks] }),
+  };
   b.warPlan = b.warPlan || war;
   closeMeeting(gw, n, how);
   signEffects(gw, n, b.plan, war);
@@ -327,11 +476,17 @@ function adopt(
   spendDecree(gw, n);
 }
 
-function closeMeeting(gw: GreatWar, n: GwNationState, how: GwBudgetHow): void {
+export function closeMeeting(
+  gw: GreatWar,
+  n: GwNationState,
+  how: GwBudgetHow,
+): void {
   const b = n.budget;
   b.draft = null;
   b.meeting = null;
   b.refused = false;
+  b.put = null;
+  b.tries = 0;
   b.last = how;
   b.lastChapter = gw.s.chapter;
 }
@@ -440,9 +595,20 @@ function openMeeting(gw: GreatWar, n: GwNationState, year: number): void {
     aiBudget(gw, n, draft);
     return;
   }
-  b.draft = draft;
-  b.meeting = s.chapter + 1;
+  const keep = b.plan;
+  b.draft = {
+    ...draft,
+    ...(keep.tax === undefined ? {} : { tax: keep.tax }),
+    ...(keep.marks === undefined ? {} : { marks: [...keep.marks] }),
+  };
+  // ww209: a budget voted as a bill has GW_MONEY_DEADLINE chapters past its
+  // meeting to pass (MoneyBills).
+  b.meeting = s.chapter + 1 + (moneyVoted(gw, n) ? GW_MONEY_DEADLINE : 0);
   b.refused = false;
+  b.put = null;
+  b.tries = 0;
+  b.year = year;
+  if (b.voted !== undefined) delete b.voted.budget;
   // A war that starts late still has its first budget, not the second year's.
   const outbreak = s.warChapter !== null && s.chapter - s.warChapter <= 1;
   const scene = meetingScene(n, outbreak ? GW_FIRST_WAR_YEAR : year, basis.war);
@@ -467,6 +633,8 @@ function aiBudget(gw: GreatWar, n: GwNationState, draft: GwBudgetPlan): void {
 function closeDue(gw: GreatWar, n: GwNationState): void {
   const b = n.budget;
   if (b.meeting === null || b.meeting > gw.s.chapter) return;
+  // ww209: a budget voted as a bill meets its deadline in MoneyBills.
+  if (moneyVoted(gw, n)) return;
   if (b.refused || b.draft === null) {
     closeMeeting(gw, n, "refused");
     tellSeats(gw, n, "budget_runs_on");
@@ -538,7 +706,13 @@ function flow(gw: GreatWar, n: GwNationState): void {
   const econ = econTerms(gw, n);
   const days = chapterOf(gw).spanDays;
   const basis = basisOf(gw, n);
-  const y = budgetYear(basis, b.plan);
+  // ww209: credits refused: no bonds and no loans this period; the gap is
+  // printed by the bank (the shortfall below).
+  const stopped = (b.credits?.stopTo ?? -1) > gw.s.chapter;
+  const running = stopped
+    ? { ...b.plan, mix: [b.plan.mix[0], 0, 0, b.plan.mix[3]] }
+    : b.plan;
+  const y = budgetYear(basis, running);
   const part = (v: number) => Math.trunc((v * days) / 360);
   const taxes = part(y.taxes);
   const bonds = part(y.bonds);

@@ -22,17 +22,20 @@ import type { GwAxis } from "@openfront/engine-api/ww1914/GwSociety";
 import type { GwCond } from "@openfront/engine-api/ww1914/SceneDsl";
 import type { GwSide } from "./HouseRows";
 
-/** The money bills' law ids: `deu_budget`, `deu_credits_3`. */
+/**
+ * The money bills' law ids: `deu_money_budget`, `deu_money_credits_3`. S1:
+ * not `<tag>_budget`, which is a GW_LAWS row already (GBR's 1914 Budget).
+ */
 export const moneyIds = {
-  budget: (tag: GwTag) => `${tag.toLowerCase()}_budget`,
-  credits: (tag: GwTag, n: number) => `${tag.toLowerCase()}_credits_${n}`,
+  budget: (tag: GwTag) => `${tag.toLowerCase()}_money_budget`,
+  credits: (tag: GwTag, n: number) => `${tag.toLowerCase()}_money_credits_${n}`,
 };
 
 /** A money bill's law id read back; null for any other law. */
 export function moneyBillOf(
   law: string,
 ): { tag: string; kind: GwMoneyBill; n: number } | null {
-  const m = /^([a-z]{3})_(budget|credits)(?:_([0-9]+))?$/.exec(law);
+  const m = /^([a-z]{3})_money_(budget|credits)(?:_([0-9]+))?$/.exec(law);
   if (m === null) return null;
   if (m[2] === "budget") {
     return m[3] === undefined
@@ -168,3 +171,36 @@ export const GW_TAX_AXIS: Readonly<Record<GwTaxKind, number>> = {
   property: 1,
   profits: 1,
 };
+
+/** The row of a country's money bills; null for a country with none. */
+export function moneyRowOf(
+  rows: GwMoneyContent | undefined,
+  tag: string,
+): GwMoneyRow | null {
+  return rows?.rows.find((r) => r.tag === tag) ?? null;
+}
+
+/**
+ * A wing that defies its party's line (beat `defy`): tenths of the wing's
+ * seats that vote openly against, by the faction's temper (0..4). Temper 0:
+ * nobody; 3 and up the whole faction stays away anyway (T tunes).
+ */
+export const GW_DEFY_TENTHS: readonly number[] = [0, 1, 6, 10, 10];
+
+/**
+ * Split pressure (each `defy`, each `peel`) at which the split check splits
+ * the faction (ww208 Society's splits by state, S1).
+ */
+export const GW_SPLIT_PRESSURE = 3;
+
+/** A line this far off the norm is one a faction's purse minds. */
+export const GW_PURSE_OFF = 2;
+
+/** A line this far off the norm moves its political owner at signing. */
+export const GW_OWNER_OFF = 3;
+
+/** The army line this far off the norm moves the army's weight and its man. */
+export const GW_ARMY_OFF = 5;
+
+/** War orders: per mille of the works' shells for each army point off. */
+export const GW_ARMY_ORDERS = 20;
