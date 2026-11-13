@@ -1,12 +1,10 @@
 // Great War 1914 (ww207 §9, U1): the bottom of the screen. One chip a party
 // in the house, by seats (our own SVG mark, or a shield in its bloc colour
 // with its short name; the standing bar, up to three red fervour marks, an
-// amber dot while its ability can be asked, a thin ring of its tree's fill),
-// then 사기 as a long bar and 질서 as an orb that fills as order falls
-// (decision 6C: the names stay, only the look changes). A tap on a chip opens
+// amber dot while its ability can be asked, a thin ring of its tree's fill;
+// ww212: 사기 and 질서 are back in the band, as before). A tap on a chip opens
 // its card: its ideals in words, its support, its leader, its tree (연다), its
 // ability (부탁한다), the lobby and 지지한다 / 규탄한다. Words, not numbers.
-import type { GwGauge } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import {
   axesOf,
   GW_NODE_TIERS,
@@ -20,8 +18,6 @@ import { unsafeSVG } from "lit/directives/unsafe-svg.js";
 import { translateText } from "../../Utils";
 import type { GwCtx } from "./GwCtx";
 import { factionName } from "./GwHouse";
-import { gaugeLevel } from "./GwModel";
-import { gaugeTitle } from "./GwNow";
 import {
   axisName as axisNameOf,
   axisSide,
@@ -38,8 +34,6 @@ import {
 import {
   factionColour,
   fervourMarks,
-  moraleFill,
-  orbFill,
   ringFill,
   shieldLetters,
   STANDING_SEGMENTS,
@@ -234,64 +228,6 @@ function chip(c: GwCtx, f: GwStripFactionView): TemplateResult {
   </button>`;
 }
 
-// ---- The meters ----
-
-function meterTitle(c: GwCtx, g: GwGauge): string {
-  const v = gaugeLevel(g, c.seat.gauges[g] ?? 0);
-  return `${translateText(`gw.ui.gauge_name.${g}`)}: ${translateText(
-    `gw.ui.gauge.${g}.${v}`,
-  )}\n${gaugeTitle(c, g)}`;
-}
-
-function meters(c: GwCtx): TemplateResult {
-  const morale = c.seat.gauges.morale ?? 0;
-  const order = c.seat.gauges.order ?? 0;
-  const bar = moraleFill(morale);
-  const orb = orbFill(order);
-  const word = (g: GwGauge, v: number) =>
-    translateText(`gw.ui.gauge.${g}.${gaugeLevel(g, v)}`);
-  return html`<div
-    class="pointer-events-auto flex h-8 items-center gap-2 sm:h-10 rounded-md border border-white/15 bg-slate-900/85 px-2 text-white"
-    data-gw-meters
-  >
-    <span class="text-xs text-white/70"
-      >${translateText("gw.ui.gauge_name.morale")}</span
-    >
-    <span
-      class="relative h-2.5 min-w-0 flex-1 overflow-hidden rounded-full bg-white/10"
-      role="meter"
-      aria-label=${translateText("gw.ui.gauge_name.morale")}
-      aria-valuetext=${word("morale", morale)}
-      title=${meterTitle(c, "morale")}
-      data-gw-morale=${Math.round(bar * 100)}
-    >
-      <span
-        class="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-amber-500 to-amber-200 transition-[width] duration-700"
-        style="width:${Math.round(bar * 100)}%"
-      ></span>
-    </span>
-    <span
-      class="relative h-7 w-7 shrink-0 overflow-hidden rounded-full sm:h-9 sm:w-9 border ${orb >=
-      0.6
-        ? "border-red-400 shadow-[0_0_8px_rgba(248,113,113,0.7)]"
-        : "border-white/30"} bg-slate-700/50"
-      role="meter"
-      aria-label=${translateText("gw.ui.gauge_name.order")}
-      aria-valuetext=${word("order", order)}
-      title=${meterTitle(c, "order")}
-      data-gw-orb=${Math.round(orb * 100)}
-    >
-      <span
-        class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black to-red-900 transition-[height] duration-700"
-        style="height:${Math.round(orb * 100)}%"
-      ></span>
-    </span>
-    <span class="text-xs text-white/70"
-      >${translateText("gw.ui.gauge_name.order")}</span
-    >
-  </div>`;
-}
-
 const STRIP_STYLE = html`<style>
   @keyframes gwborn {
     from {
@@ -317,43 +253,33 @@ const STRIP_STYLE = html`<style>
 </style>`;
 
 /**
- * The bottom strip. `fit` is the drawer's: on a phone the strip stands on
- * top of the sheet, and while the sheet is open only the meters stay.
+ * The bottom strip: the party chips. `fit` is the drawer's: on a phone the
+ * chips stand on top of the folded sheet and are gone while it is open.
+ * ww212: 사기 and 질서 are back in the band, as before ww208.
  */
 export function strip(
   c: GwCtx,
   fit: "full" | "low" | "fold",
   hidden: boolean,
-): TemplateResult {
+): TemplateResult | typeof nothing {
   const chips = stripFactions(c.seat.world.society);
-  const bottom =
-    fit === "fold"
-      ? "bottom-9"
-      : fit === "low"
-        ? "bottom-[42vh]"
-        : "bottom-[56vh]";
+  if (chips.length === 0) return nothing;
   return html`${STRIP_STYLE}
     <div
       data-gw-strip
-      class="pointer-events-none fixed inset-x-0 ${bottom} z-[896] flex flex-col gap-1 px-1.5 pb-1 sm:bottom-0 sm:pb-1.5 ${fit ===
+      class="pointer-events-none fixed inset-x-0 bottom-9 z-[896] flex flex-col gap-1 px-1.5 pb-1 sm:bottom-0 sm:pb-1.5 ${fit ===
       "fold"
         ? "sm:left-0"
-        : "sm:left-[400px]"} sm:px-2 ${hidden ? "invisible" : ""}"
+        : "max-sm:hidden sm:left-[400px]"} sm:px-2 ${hidden ? "invisible" : ""}"
     >
-      ${chips.length === 0
-        ? nothing
-        : html`<div
-            class="pointer-events-auto flex gap-1.5 overflow-x-auto pt-2 ${fit ===
-            "fold"
-              ? ""
-              : "max-sm:hidden"}"
-            data-gw-strip-chips
-            role="list"
-            aria-label=${translateText("gw.strip.label")}
-          >
-            ${chips.map((f) => chip(c, f))}
-          </div>`}
-      ${meters(c)}
+      <div
+        class="pointer-events-auto flex gap-1.5 overflow-x-auto pt-2"
+        data-gw-strip-chips
+        role="list"
+        aria-label=${translateText("gw.strip.label")}
+      >
+        ${chips.map((f) => chip(c, f))}
+      </div>
     </div>`;
 }
 

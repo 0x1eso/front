@@ -4,7 +4,6 @@ import type { GwStripFactionView } from "@openfront/engine-api/ww1914/GwSociety"
 import type {
   GreatWarData,
   GwCardView,
-  GwSeatView,
 } from "@openfront/engine-api/ww1914/GwView";
 import type {
   GwGaugeView,
@@ -633,16 +632,19 @@ describe("the screens", () => {
     ]);
   });
 
-  test("the band holds the date and three gauges in words", async () => {
+  test("the band holds the date and five gauges in words", async () => {
     const { panel } = await mount(data([card()]));
     expect(panel.querySelector("[data-gw-date]")!.textContent).toBe(
       "1914년 6월 28일",
     );
-    // ww207 (6C): 사기 and 질서 moved to the bottom, a bar and an orb.
-    expect(panel.querySelectorAll("[data-gw-gauges] > span").length).toBe(3);
+    // ww212: 사기 and 질서 are back in the band; the strip has no meters.
+    expect(panel.querySelectorAll("[data-gw-gauges] > span").length).toBe(5);
+    expect(panel.querySelector("[data-gw-band-gauge=morale]")).not.toBeNull();
+    expect(panel.querySelector("[data-gw-band-gauge=order]")).not.toBeNull();
+    expect(panel.querySelector("[data-gw-meters]")).toBeNull();
   });
 
-  test("ww207: the strip by seats, the shield, a gone chip, the orb", async () => {
+  test("ww207: the strip by seats, the shield, a gone chip", async () => {
     const f = (
       id: string,
       seats: number,
@@ -683,8 +685,6 @@ describe("the screens", () => {
         utopia: null,
       },
     });
-    const seat = d.seats[0] as { gauges: GwSeatView["gauges"] };
-    seat.gauges = { ...seat.gauges, morale: 3, order: 1 };
     const { panel } = await mount(d);
     const chips = [...panel.querySelectorAll("[data-gw-chip]")];
     expect(chips.map((x) => x.getAttribute("data-gw-chip"))).toEqual([
@@ -713,13 +713,9 @@ describe("the screens", () => {
     expect(chips[3].getAttribute("data-gw-chip-status")).toBe("gone");
     expect(chips[3].querySelector("[data-gw-ring]")).toBeNull();
     expect(chips[3].className).toContain("grayscale");
-    // 질서 fills as order falls; 사기 is a bar.
-    expect(
-      panel.querySelector("[data-gw-orb]")!.getAttribute("data-gw-orb"),
-    ).toBe("80");
-    expect(
-      panel.querySelector("[data-gw-morale]")!.getAttribute("data-gw-morale"),
-    ).toBe("60");
+    // ww212: no 사기 bar or 질서 orb on the strip.
+    expect(panel.querySelector("[data-gw-orb]")).toBeNull();
+    expect(panel.querySelector("[data-gw-morale]")).toBeNull();
     // A tap opens the card; a gone party's card has nothing to press.
     (chips[3] as HTMLButtonElement).click();
     await panel.updateComplete;
