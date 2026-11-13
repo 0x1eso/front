@@ -169,6 +169,10 @@ export interface GwUi {
   passOpen?: number | null;
   /** ww193: schedule sections unfolded past their first entries. */
   actFold?: string[];
+  /** ww207: the faction card open from the bottom strip; null none. */
+  factionOpen?: string | null;
+  /** ww207: 규탄한다 waiting for its second tap (the faction). */
+  condemnArmed?: string | null;
   /** ww196: the redo picked on an answer (다시 써 오시오), before it goes. */
   redoArmed?: GwAnswerRedo | null;
   /** ww196: the department whose 사람을 붙인다 list is open. */

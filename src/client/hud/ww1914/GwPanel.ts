@@ -52,6 +52,9 @@ import { deskPinLayer, placeSheet } from "./GwPlaceSheet";
 import { GwReplay, replayOverlay } from "./GwReplay";
 import { ruleTab } from "./GwRule";
 import { scheduleTab } from "./GwSchedule";
+import { electOverlay, utopiaCard } from "./GwSocietyTab";
+import { factionCard, strip } from "./GwStrip";
+import { GwElect } from "./GwStripModel";
 import { GLASS } from "./GwStyle";
 import { paintPane, paintTags, speech, tableTab, tableTags } from "./GwTable";
 import { paintCells, tableCells, togglePlace } from "./GwTableModel";
@@ -83,14 +86,14 @@ const KEYFRAMES = html`<style>
   @media (width < 40rem) {
     body:has([data-gw-drawer]) map-controls > div {
       top: auto;
-      bottom: calc(56vh + 0.5rem);
+      bottom: calc(56vh + var(--gw-strip-h, 0px) + 0.5rem);
       translate: none;
     }
     body:has([data-gw-drawer][data-gw-fit="low"]) map-controls > div {
-      bottom: calc(42vh + 0.5rem);
+      bottom: calc(42vh + var(--gw-strip-h, 0px) + 0.5rem);
     }
     body:has([data-gw-drawer][data-gw-fit="fold"]) map-controls > div {
-      bottom: 2.75rem;
+      bottom: calc(2.75rem + var(--gw-strip-h, 0px));
     }
   }
 </style>`;
@@ -128,12 +131,16 @@ export class GwPanel extends LitElement implements Controller {
   private talkTurns = 0;
   /** The band's height last set on --gw-band-h, in CSS px. */
   private bandH = 0;
+  /** ww207: the bottom strip's height last set on --gw-strip-h, in CSS px. */
+  private stripH = -1;
   private map: GwMap | null = null;
   /** The paint over it: the war aims and the table. */
   private painted: GwMapPaint | null = null;
   private replay: GwReplay | null = null;
   /** ww203: the vote scene, each ballot played once. */
   private readonly vote = new GwVote();
+  /** ww207: the election card on the hemicycle, each election played once. */
+  private readonly elect = new GwElect();
   /** The fronts and the date as the last chapter stood: what a replay starts from. */
   private lastFronts: readonly GwFrontView[] = [];
   private lastDate = "";
@@ -230,6 +237,14 @@ export class GwPanel extends LitElement implements Controller {
     window.addEventListener("keydown", (e) => {
       if (e.key !== "Escape") return;
       this.replay?.skip();
+      if (this.elect.active) {
+        this.elect.close();
+        this.requestUpdate();
+      }
+      if (this.ui.factionOpen) {
+        this.ui.factionOpen = null;
+        this.requestUpdate();
+      }
       if (this.vote.active) {
         if (this.vote.still) this.vote.close();
         else this.vote.skip();
@@ -399,6 +414,7 @@ export class GwPanel extends LitElement implements Controller {
       ui.redoArmed = null;
       ui.honourPick = null;
       ui.passOpen = null;
+      ui.condemnArmed = null;
       ui.actFold = [];
       if (data.chapter >= GW_OPENING_CHAPTERS) {
         ui.shelf = shelve(ui.shelf, "played", [seat.tag]);
@@ -411,6 +427,7 @@ export class GwPanel extends LitElement implements Controller {
       house?.ballot ?? null,
       (f) => house?.factions.find((x) => x.id === f)?.bloc ?? null,
     );
+    this.elect.offer(seat.world.society?.election.last ?? null);
     this.lastFronts = seat.world.fronts;
     this.lastDate = data.date;
     if (seat.prologue?.done === false) ui.pastDue = true;
@@ -527,6 +544,14 @@ export class GwPanel extends LitElement implements Controller {
       this.bandH = bandH;
       document.documentElement.style.setProperty("--gw-band-h", `${bandH}px`);
     }
+    // What stands on the bottom (the lenses, the table's line, a phone's
+    // map buttons) stands on the strip.
+    const stripEl = this.querySelector("[data-gw-strip]");
+    const stripH = stripEl === null ? 0 : Math.round(stripEl.clientHeight);
+    if (stripH !== this.stripH) {
+      this.stripH = stripH;
+      document.documentElement.style.setProperty("--gw-strip-h", `${stripH}px`);
+    }
     if (this.querySelector("[data-gw-tag-at]") !== null) {
       this.painted?.keepTags();
     }
@@ -615,6 +640,11 @@ export class GwPanel extends LitElement implements Controller {
         ${talk === null ? nothing : talkView(c, talk.t, talk.card)}
         ${dictCard(c)}`;
     }
+    const fit = ui.folded
+      ? "fold"
+      : ui.paint !== null || ui.tab === "table"
+        ? "low"
+        : "full";
     return html`${KEYFRAMES}${band(c)}${ticker(
         tickerLines(data, seat, this.pack),
         this.news,
@@ -630,11 +660,7 @@ export class GwPanel extends LitElement implements Controller {
           : deskPinLayer(c)}
       <aside
         data-gw-drawer
-        data-gw-fit=${ui.folded
-          ? "fold"
-          : ui.paint !== null || ui.tab === "table"
-            ? "low"
-            : "full"}
+        data-gw-fit=${fit}
         class="${GLASS} pointer-events-auto fixed inset-x-0 bottom-0 z-[898] flex h-[56vh] flex-col text-white sm:inset-x-auto sm:left-0 sm:bottom-auto sm:top-10 sm:h-auto sm:max-h-[calc(100vh-2.5rem)] sm:w-[400px] sm:border-b-0 sm:border-l-0 ${ui.folded
           ? "!h-9"
           : ui.paint !== null || ui.tab === "table"
@@ -671,6 +697,7 @@ export class GwPanel extends LitElement implements Controller {
               ${this.tabBody(c)}
             </div>`}
       </aside>
+      ${strip(c, fit, talk !== null || replaying)}
       ${replaying
         ? nothing
         : html`${paintTags(c)} ${tableTags(c)} ${speech(c)}`}
@@ -681,6 +708,7 @@ export class GwPanel extends LitElement implements Controller {
         : placeSheet(c, ui.spot)}
       ${talk === null ? nothing : talkView(c, talk.t, talk.card)} ${dictCard(c)}
       ${ui.finale && data.finale !== null ? finaleView(c) : nothing}
+      ${factionCard(c)} ${utopiaCard(c)} ${electOverlay(c, this.elect)}
       ${voteOverlay(c, this.vote)}`;
   }
 

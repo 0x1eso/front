@@ -244,7 +244,7 @@ export class GwLens extends LitElement implements Controller {
     const lens = gwMapState.lens;
     return html`<div
       data-gw-lens
-      class="pointer-events-auto fixed left-2 right-2 top-[calc(var(--gw-band-h,2.5rem)_+_2.75rem)] z-[897] flex flex-col gap-1.5 text-white sm:bottom-6 sm:left-auto sm:right-16 sm:top-auto sm:w-[200px] sm:flex-col-reverse"
+      class="pointer-events-auto fixed left-2 right-2 top-[calc(var(--gw-band-h,2.5rem)_+_2.75rem)] z-[897] flex flex-col gap-1.5 text-white sm:bottom-[calc(var(--gw-strip-h,0px)+1.5rem)] sm:left-auto sm:right-16 sm:top-auto sm:w-[200px] sm:flex-col-reverse"
     >
       <div class="flex flex-wrap gap-1.5 sm:flex-col">
         ${GW_LENSES.map((l) => this.button(l))} ${this.railButton(seat)}

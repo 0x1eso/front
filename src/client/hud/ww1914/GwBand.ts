@@ -18,7 +18,13 @@ import { gaugeTitle } from "./GwNow";
 import { CHIP, fillColor, GLASS } from "./GwStyle";
 import { fullDate } from "./GwText";
 
-/** The top band: date, flag, chapter, timer, the crisis, five gauges in words. */
+/**
+ * ww207 (decision 6C): 사기 and 질서 stand at the bottom, a bar and an orb
+ * (GwStrip); the band keeps the other three.
+ */
+const BAND_GAUGES = GW_GAUGES.filter((g) => g !== "morale" && g !== "order");
+
+/** The top band: date, flag, chapter, timer, the crisis, three gauges in words. */
 export function band(c: GwCtx): TemplateResult {
   const { data, seat } = c;
   const country = gwCountry(seat.tag);
@@ -74,7 +80,7 @@ export function band(c: GwCtx): TemplateResult {
           >`
         : nothing}
       <span class="ml-auto hidden gap-2 md:flex" data-gw-gauges>
-        ${GW_GAUGES.map((g) => {
+        ${BAND_GAUGES.map((g) => {
           const v = gaugeLevel(g, seat.gauges[g] ?? 0);
           return html`<span
             class="flex items-center gap-1 text-xs"

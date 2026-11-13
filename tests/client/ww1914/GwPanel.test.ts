@@ -1,8 +1,10 @@
 import type { GwBudgetView } from "@openfront/engine-api/ww1914/GwBudget";
 import { GwPackSchema } from "@openfront/engine-api/ww1914/GwPack";
+import type { GwStripFactionView } from "@openfront/engine-api/ww1914/GwSociety";
 import type {
   GreatWarData,
   GwCardView,
+  GwSeatView,
 } from "@openfront/engine-api/ww1914/GwView";
 import type {
   GwGaugeView,
@@ -631,12 +633,103 @@ describe("the screens", () => {
     ]);
   });
 
-  test("the band holds the date and five gauges in words", async () => {
+  test("the band holds the date and three gauges in words", async () => {
     const { panel } = await mount(data([card()]));
     expect(panel.querySelector("[data-gw-date]")!.textContent).toBe(
       "1914년 6월 28일",
     );
-    expect(panel.querySelectorAll("[data-gw-gauges] > span").length).toBe(5);
+    // ww207 (6C): 사기 and 질서 moved to the bottom, a bar and an orb.
+    expect(panel.querySelectorAll("[data-gw-gauges] > span").length).toBe(3);
+  });
+
+  test("ww207: the strip by seats, the shield, a gone chip, the orb", async () => {
+    const f = (
+      id: string,
+      seats: number,
+      over: Partial<GwStripFactionView> = {},
+    ): GwStripFactionView => ({
+      id,
+      bloc: "workers",
+      status: "in",
+      seats,
+      support: 5,
+      trust: 0,
+      temper: 0,
+      ideals: {},
+      leader: null,
+      affinity: 40,
+      born: false,
+      ability: null,
+      tree: null,
+      promote: false,
+      condemn: false,
+      ...over,
+    });
+    const d = data([], {
+      society: {
+        axes: [{ axis: "rule", step: 1, trend: 0 }],
+        communities: [],
+        factions: [
+          f("deu_centre", 90),
+          f("deu_gone", 0, { status: "gone" }),
+          f("deu_spd", 110, {
+            temper: 4,
+            trust: 2,
+            ability: { power: "p", ready: true, turned: false, why: null },
+          }),
+          f("deu_new", 0, { born: true }),
+        ],
+        election: { last: null, due: {} },
+        utopia: null,
+      },
+    });
+    const seat = d.seats[0] as { gauges: GwSeatView["gauges"] };
+    seat.gauges = { ...seat.gauges, morale: 3, order: 1 };
+    const { panel } = await mount(d);
+    const chips = [...panel.querySelectorAll("[data-gw-chip]")];
+    expect(chips.map((x) => x.getAttribute("data-gw-chip"))).toEqual([
+      "deu_spd",
+      "deu_centre",
+      "deu_new",
+      "deu_gone",
+    ]);
+    // No mark row yet: every chip carries the shield in its bloc colour.
+    expect(
+      chips[0].querySelector("[data-gw-mark]")!.getAttribute("data-gw-mark"),
+    ).toBe("shield");
+    expect(
+      chips[0]
+        .querySelector("[data-gw-fervour]")!
+        .getAttribute("data-gw-fervour"),
+    ).toBe("3");
+    expect(
+      chips[0]
+        .querySelector("[data-gw-standing]")!
+        .getAttribute("data-gw-standing"),
+    ).toBe("5");
+    expect(chips[0].querySelector("[data-gw-ability-ready]")).not.toBeNull();
+    expect(chips[2].querySelector("[data-gw-born]")).not.toBeNull();
+    expect(chips[3].getAttribute("data-gw-chip-status")).toBe("gone");
+    expect(chips[3].querySelector("[data-gw-ring]")).toBeNull();
+    expect(chips[3].className).toContain("grayscale");
+    // 질서 fills as order falls; 사기 is a bar.
+    expect(
+      panel.querySelector("[data-gw-orb]")!.getAttribute("data-gw-orb"),
+    ).toBe("80");
+    expect(
+      panel.querySelector("[data-gw-morale]")!.getAttribute("data-gw-morale"),
+    ).toBe("60");
+    // A tap opens the card; a gone party's card has nothing to press.
+    (chips[3] as HTMLButtonElement).click();
+    await panel.updateComplete;
+    expect(
+      panel.querySelector(
+        "[data-gw-faction-card=deu_gone] [data-gw-card-gone]",
+      ),
+    ).not.toBeNull();
+    expect(
+      panel.querySelector("[data-gw-faction-card] [data-gw-card-acts]"),
+    ).toBeNull();
   });
 
   test("holes and tells", () => {
