@@ -84,7 +84,7 @@ export const GW_UTOPIA_ENDING: GwEnding = "utopia_realised";
 /** The seat flag the new head's rows wait for: `gw_head_<ruler row>` (lane P). */
 export const headFlag = (head: string): string => `gw_head_${head}`;
 /** A faction or a community rallies or protests at most once in so many chapters. */
-const STIR_EVERY = 3;
+const STIR_EVERY = 5;
 /** Strength at which a faction brings its own node law to the house. */
 const STRONG_AT = 3;
 /** A strong faction tries its node law every this many chapters. */

@@ -5,6 +5,7 @@
 // forced revolution still ends the seat. Fixture content: C and W fill the
 // real templates and trees.
 import type { GwOrder } from "@openfront/engine-api/ww1914/GwOrders";
+import { GW_NODE_PRICE } from "@openfront/engine-api/ww1914/GwSociety";
 import type { GwEffect } from "@openfront/engine-api/ww1914/SceneDsl";
 import {
   GW_CONTENT,
@@ -16,7 +17,10 @@ import {
   GW_RULERS,
   type GwRulerRow,
 } from "@openfront/engine-lib/ww1914/RulerRows";
-import type { GwNodeRow } from "@openfront/engine-lib/ww1914/UtopiaRows";
+import {
+  GW_AFFINITY_AXIS,
+  type GwNodeRow,
+} from "@openfront/engine-lib/ww1914/UtopiaRows";
 import type { GreatWar } from "@openfront/engine/ww1914/GreatWar";
 import { factionOf, houseStep } from "@openfront/engine/ww1914/House";
 import { applyGwOrder } from "@openfront/engine/ww1914/Orders";
@@ -187,8 +191,9 @@ describe("ww208 S2 utopias", () => {
     const before = spd.affinity ?? 0;
     utopiaStep(gw);
     // rule 2 and class 1 steps on its side; force against it counts nothing.
-    expect(spd.affinity).toBe(before + 6);
-    spd.affinity = 30;
+    expect(spd.affinity).toBe(before + 3 * GW_AFFINITY_AXIS);
+    // Enough for a moderate node, not then for a bold one.
+    spd.affinity = GW_NODE_PRICE.moderate + GW_NODE_PRICE.bold - 1;
     const open = (id: string) =>
       applyGwOrder(gw, seat, {
         kind: "node_open",
@@ -197,7 +202,7 @@ describe("ww208 S2 utopias", () => {
       });
     expect(open("b1")).toBe("node_shut");
     expect(open("m1")).toBeNull();
-    expect(spd.affinity).toBe(10);
+    expect(spd.affinity).toBe(GW_NODE_PRICE.bold - 1);
     expect(open("b1")).toBe("no_affinity");
     expect(open("m1")).toBe("no_node");
     const tree = treeView(gw, seat, "deu_spd")!;

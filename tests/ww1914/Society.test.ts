@@ -26,6 +26,7 @@ import {
   axisStep,
   electionDue,
   generalElection,
+  GW_BILL_PUSH,
   lawAxes,
   societyStep,
   societyView,
@@ -145,7 +146,7 @@ describe("ww208 society", () => {
       ],
     };
     lawAxes(gw, seat, row, null);
-    expect(n.axes?.class).toBe(1);
+    expect(n.axes?.class).toBe(GW_BILL_PUSH);
     // Twenty bills later, the country stands two steps toward labour.
     n.axes = { class: 20 };
     expect(axisStep(n, "class")).toBe(2);
@@ -250,7 +251,10 @@ describe("ww208 society", () => {
       LAWS[at] = was;
     }
     expect(fra.laws.find((l) => l.id === was.id)?.stage).toBe("force");
-    expect(fra.axes).toEqual({ rule: -1, church: -1 });
+    expect(fra.axes).toEqual({
+      rule: -GW_BILL_PUSH,
+      church: -GW_BILL_PUSH,
+    });
     // AI countries keep no society.
     expect(gw.s.seats.some((x) => x.tag === "FRA")).toBe(false);
   });
@@ -313,7 +317,7 @@ describe("ww208 merge seams", () => {
     spd.step = 2;
     spd.heat = 4;
     const support = supportOf(spd);
-    for (let c = 8; c < 8 + 3 && seat.society?.rally === undefined; c++) {
+    for (let c = 8; c < 8 + 6 && seat.society?.rally === undefined; c++) {
       gw.s.chapter = c;
       spd.step = 2;
       utopiaStep(gw);

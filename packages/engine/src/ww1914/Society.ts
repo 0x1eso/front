@@ -137,6 +137,20 @@ export const GW_BORN_SUPPORT = 2;
 export const GW_JUDGE_COOL = 6;
 /** Seats a promotion brings from the most opposed faction. */
 export const GW_PROMOTE_SEATS = 2;
+/** ww208 tune: notches a bill text's ±1 push moves the axis (a step is 10). */
+export const GW_BILL_PUSH = 5;
+/** ww208 tune: months to a notch of the war's pull on the axes. */
+export const GW_WAR_DRIFT_MONTHS = 2;
+/** ww208 tune: notches every axis must move since the last birth (FP2). */
+export const GW_BIRTH_MOVE = 5;
+/** ww208 tune: percent of a party's support change since the last poll its votes follow. */
+export const GW_SWING_SHARE = 50;
+/** ww208 tune: a party with no seats yet takes support / this of the house in votes. */
+export const GW_NEW_PARTY_SHARE = 80;
+/** ww208 tune: the fervour that wears order down every 8 months, and every 4. */
+export const GW_FERVOUR_AT: readonly [number, number] = [5, 10];
+/** ww208 tune: the most the axes add to or take from a faction's support. */
+export const GW_LEAN_REACH = 3;
 /** Merges by state: both at this support or under. */
 export const GW_MERGE_SUPPORT = 3;
 const AXIS_END = GW_AXIS_MAX * GW_AXIS_NOTCHES;
@@ -228,10 +242,11 @@ const accord = (a: GwIdeals, b: GwIdeals): number => {
   return n;
 };
 
-/** The war's pull, a notch a month (see the head of the file). */
-function warDrift(gw: GreatWar, seat: GwSeatState, months: number): void {
+/** The war's pull, a notch every GW_WAR_DRIFT_MONTHS months (see the head of the file). */
+function warDrift(gw: GreatWar, seat: GwSeatState): void {
   const n = gw.nation(seat.tag);
-  if (n === null || months === 0 || n.atWar.length === 0) return;
+  const months = beats(gw, GW_WAR_DRIFT_MONTHS);
+  if (n === null || n.atWar.length === 0) return;
   const axes = axesOf(seat.tag);
   if (seat.tag === "GBR") {
     if (beats(gw, 3) > 0) moveAxis(n, "rule", -1);
@@ -366,7 +381,7 @@ export function societyStep(gw: GreatWar): void {
     const n = gw.nation(seat.tag);
     soc.was = { ...(n?.axes ?? {}) };
     const months = beats(gw, 1);
-    warDrift(gw, seat, months);
+    warDrift(gw, seat);
     communitiesStep(gw, seat, soc, months);
     supportStep(gw, seat);
     birthStep(gw, seat, soc);
@@ -402,7 +417,8 @@ function targetOf(gw: GreatWar, seat: GwSeatState, st: GwFactionState) {
   const row = factionRow(st.id);
   if (row === null) return 0;
   const ideals = row.ideals ?? {};
-  let t = startSupport(row) + leanOf(gw.nation(seat.tag), ideals);
+  const lean = leanOf(gw.nation(seat.tag), ideals);
+  let t = startSupport(row) + clampTo(lean, -GW_LEAN_REACH, GW_LEAN_REACH);
   for (const c of communitiesOf(seat, ideals)) {
     t += c.size - (communityRow(c.id)?.size ?? c.size);
   }
@@ -558,7 +574,7 @@ function zeitgeistBirth(
   const dirs: Partial<Record<GwAxis, -1 | 1>> = {};
   for (const axis of axesOf(seat.tag)) {
     const moved = (n?.axes?.[axis] ?? 0) - (soc.bornAt[axis] ?? 0);
-    if (Math.abs(moved) < GW_AXIS_NOTCHES) return false;
+    if (Math.abs(moved) < GW_BIRTH_MOVE) return false;
     dirs[axis] = moved > 0 ? 1 : -1;
   }
   let best: { id: string; birth: GwBirthRow | null; score: number } | null =
@@ -750,8 +766,10 @@ function allocate(
     const s = supportOf(st);
     const p = polledOf(st);
     if (s <= 0) return 0;
-    if (now[i] > 0 && p > 0) return Math.trunc((now[i] * s * 100) / p);
-    return Math.trunc((Math.max(size, total) * s * 100) / 40);
+    if (now[i] > 0 && p > 0) {
+      return Math.trunc((now[i] * (p * 100 + (s - p) * GW_SWING_SHARE)) / p);
+    }
+    return Math.trunc((Math.max(size, total) * s * 100) / GW_NEW_PARTY_SHARE);
   });
   const swing = votes.map((v, i) => v - now[i] * 100);
   const weights = list.map((st, i) => {
@@ -946,7 +964,7 @@ function fervour(gw: GreatWar, seat: GwSeatState, soc: GwSocietyState): void {
     if (sitting(st) && st.step >= 2) f += st.step - 1;
   }
   for (const c of soc.communities) if (c.step >= 2) f += c.step - 1;
-  const every = f >= 8 ? 3 : f >= 4 ? 6 : 0;
+  const every = f >= GW_FERVOUR_AT[1] ? 4 : f >= GW_FERVOUR_AT[0] ? 8 : 0;
   if (every === 0) return;
   const k = beats(gw, every);
   if (k > 0) moveGauge(gw, seat.tag, "order", -k, "society_fervour");
@@ -967,7 +985,11 @@ export function lawAxes(
 ): void {
   const n = gw.nation(row.tag);
   const draft = row.draft.find((d) => d.id === text) ?? row.draft[0];
-  if (draft?.axes !== undefined) pushAxes(n, draft.axes);
+  if (draft?.axes !== undefined) {
+    for (const [axis, d] of Object.entries(draft.axes) as [GwAxis, number][]) {
+      moveAxis(n, axis, d * GW_BILL_PUSH);
+    }
+  }
   if (draft?.franchise !== undefined && seat !== null) {
     ensureSociety(gw, seat).franchise[draft.franchise.chamber] =
       draft.franchise.to;

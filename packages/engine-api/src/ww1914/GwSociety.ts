@@ -139,12 +139,12 @@ export type GwNodeKind = (typeof GW_NODE_KINDS)[number];
 /** Affinity runs 0..GW_AFFINITY_MAX; a node costs its tier's price. */
 export const GW_AFFINITY_MAX = 100;
 export const GW_NODE_PRICE: Readonly<Record<GwNodeTier, number>> = {
-  moderate: 20,
-  bold: 35,
-  extreme: 50,
+  moderate: 10,
+  bold: 20,
+  extreme: 30,
 };
 /** Realisation: the axes at its ideals this far, its communities over half. */
-export const GW_REALISE_AXIS = 2;
+export const GW_REALISE_AXIS = 1;
 
 /** The player's word on a utopia's regime change (decision 1B). */
 export const GW_UTOPIA_CHOICES = ["end", "play"] as const;
