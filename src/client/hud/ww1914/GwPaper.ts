@@ -60,7 +60,13 @@ export function slotWord(c: GwCtx, v: GwSlotValue): string {
           return t === undefined ? x : frontLine(t, x);
         }
         case "word":
-          return c.pack?.depts?.words?.[x] ?? x;
+          // ww203: a count's `bill` is a law id and its `swing` faction ids.
+          return (
+            c.pack?.depts?.words?.[x] ??
+            c.pack?.factions?.[x]?.name ??
+            c.pack?.scenes[`gw_law_${x}`]?.title ??
+            x
+          );
       }
     })
     .join(", ");

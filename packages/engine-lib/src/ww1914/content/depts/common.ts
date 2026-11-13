@@ -31,6 +31,7 @@ import {
   GW_PAPER_FORMS,
   GwPaperForm,
 } from "@openfront/engine-api/ww1914/GwDepts";
+import type { GwBillAct } from "@openfront/engine-api/ww1914/GwLaw";
 import type {
   GwPlace,
   GwPlaceGroup,
@@ -907,6 +908,50 @@ const SETTLE_ROWS: readonly GwAnswerRow[] = [
   SETTLE,
 ];
 
+// ---- ww203: 표 계산 (the `count` task) ----
+//
+// The agenda gives this task to the seat's counting office (order
+// `bill_count`); it is never offered. The topic is the bill's law id. The
+// engine fills `tally` (the paper's overall word, GW_LAW_OUTLOOKS) and `swing`
+// (the wavering factions), and writes the word on each faction into the
+// bill's paper itself: these findings are the head's summary of it. Every
+// course acts on the task's bill (`bill_topic`).
+
+const onBill = (a: GwBillAct): GwEffect => act({ do: "bill_topic", act: a });
+
+/**
+ * 공통: {법안} 표 계산. A weak head may swear nobody wavers (the wrong
+ * finding, only where somebody does). Courses: 표결에 부친다 always; 거둬들인다
+ * when short or blocked; 흔들리는 쪽을 붙잡는다 when somebody wavers;
+ * 수정안을 받는다 when it is close.
+ */
+const COUNT: GwAnswerRow = {
+  id: "c_count",
+  nation: SEATS,
+  type: "count",
+  findings: [
+    f("easy", 3, on({ tally: ["easy"] })),
+    f("tight", 3, on({ tally: ["tight"] })),
+    f("short", 3, on({ tally: ["short"] })),
+    f("blocked", 3, on({ tally: ["blocked"] })),
+    f("swing", 2, on({ swing: ANY })),
+    f("price", 1, on({ swing: ANY })),
+    f("whips", 1),
+    f("all_firm", 2, { wrong: true, ...on({ swing: ANY }) }),
+  ],
+  courses: [
+    c("vote", ["bold", "firm"], [onBill("vote")]),
+    c("withdraw", ["calm", "cheap"], [onBill("withdraw")], {
+      slots: { tally: ["short", "blocked"] },
+    }),
+    c("work", ["gentle", "calm"], [onBill("work")], { slots: { swing: ANY } }),
+    c("amend", ["gentle", "cheap"], [onBill("amend")], {
+      slots: { tally: ["tight", "short"] },
+    }),
+    waitCourse("c_count_wait"),
+  ],
+};
+
 /**
  * A course by law, at war: the seat's own bill (lawDraftCard) in place of the
  * common course of that id. Text `depts.answers.c_<type>_law_<tag>`.
@@ -1043,6 +1088,7 @@ export const COMMON_ANSWERS: readonly GwAnswerRow[] = [
   MEN,
   MEN_COLONIES,
   ...SETTLE_ROWS,
+  COUNT,
 ];
 
 export const COMMON_DEPTS: GwDeptContent = {
