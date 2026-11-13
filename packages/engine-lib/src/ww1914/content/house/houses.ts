@@ -79,8 +79,9 @@ export const GBR_HOUSE: GwHouseRow = {
       // ww203: 670 seats (December 1910).
       size: 670,
     },
-    // ww203: the Lords' size is W-GBR's to check; absent, its factions' seats.
-    { id: "lords", kind: "lords", sits: not(GBR_PROROGUED) },
+    // ww203: some 620 peers in 1914 (Lord Lexden; the party shares are not
+    // checked). Bishops and cross-benchers sit as no faction's: away.
+    { id: "lords", kind: "lords", sits: not(GBR_PROROGUED), size: 620 },
   ],
   // Gulland, the chief whip: pack-only, `GBR.house.json` people.
   whip: { past: "gbr_i_gulland" },
