@@ -12535,4 +12535,68 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
       },
     },
   },
+  // ww209 (W-RUS): the fleet's mood (content/money/rus.ts `fleet.low`). The
+  // battleship Gangut at Helsingfors, 19 October 1915 (O.S.): bad food after
+  // a long day's work, officers with German names; 95 arrested, 26 sent to
+  // hard labour (the trial's figures rest on one source, F). It comes by
+  // itself late in a hungry or sour war; the money bills (S1) lay it sooner
+  // while the navy line sits under the norm.
+  {
+    id: "rus_h_gangut",
+    nation: ["RUS"],
+    kind: "crisis",
+    stage: ["war"],
+    when: {
+      kind: "all",
+      of: [
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
+        { kind: "world", of: { is: "war_months", own: true, min: 14 } },
+        {
+          kind: "any",
+          of: [
+            { kind: "gauge", gauge: "bread", max: 1 },
+            { kind: "gauge", gauge: "morale", max: 2 },
+          ],
+        },
+      ],
+    },
+    cast: { navy: { office: "navy" } },
+    salience: 7,
+    tags: ["war", "home"],
+    once: true,
+    variants: [{ id: "base" }],
+    fallback: "court_martial",
+    options: [
+      {
+        id: "court_martial",
+        tell: ["order:+1", "morale:-1"],
+        effects: [
+          { kind: "gauge", gauge: "order", delta: 1 },
+          { kind: "gauge", gauge: "morale", delta: -1 },
+          {
+            kind: "world",
+            of: { do: "community_trust", id: "rus_workers", delta: -1 },
+          },
+          { kind: "remember", key: "k_gangut_hanged" },
+        ],
+      },
+      {
+        id: "feed_them",
+        tell: ["money:-1", "court:-1", "morale:+1"],
+        effects: [
+          { kind: "gauge", gauge: "money", delta: -1 },
+          { kind: "inst", inst: "court", delta: -1 },
+          { kind: "gauge", gauge: "morale", delta: 1 },
+        ],
+      },
+      {
+        id: "scatter",
+        tell: ["stavka:-1"],
+        effects: [
+          { kind: "inst", inst: "stavka", delta: -1 },
+          { kind: "flag", flag: "f_rus_fleet_sullen" },
+        ],
+      },
+    ],
+  },
 ];
