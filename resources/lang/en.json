@@ -7627,6 +7627,7 @@
     "title": "Rewards"
   },
   "saved_games": {
+    "autosave_name": "Auto {n}",
     "code_placeholder": "Paste a shared game link or code",
     "copy_link": "Copy link",
     "delete": "Delete",
@@ -7648,8 +7649,14 @@
     },
     "friends_badge": "With friends",
     "friends_note": "A game with friends: host a lobby and pick it under Resume a saved game.",
+    "game_date": "{month} {year}",
     "link_copied": "Link copied",
     "loading": "Loading…",
+    "mode": {
+      "gw1914": "Great War 1914",
+      "imjin": "Imjin War 1592",
+      "ww1936": "World War 1936"
+    },
     "open": "Open",
     "play": "Play",
     "rename": "Rename",

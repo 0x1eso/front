@@ -2821,6 +2821,7 @@
     "title": "보상"
   },
   "saved_games": {
+    "autosave_name": "자동 {n}",
     "code_placeholder": "공유 링크나 코드를 붙여 넣으세요",
     "copy_link": "링크 복사",
     "delete": "삭제",
@@ -2842,6 +2843,11 @@
     },
     "link_copied": "링크를 복사했습니다",
     "loading": "불러오는 중…",
+    "mode": {
+      "gw1914": "대전쟁 1914",
+      "imjin": "임진왜란 1592",
+      "ww1936": "세계대전 1936"
+    },
     "open": "열기",
     "play": "플레이",
     "rename": "이름 바꾸기",
@@ -2863,6 +2869,7 @@
     "shared_title": "공유된 게임",
     "title": "저장한 게임",
     "unshare": "공유 해제",
+    "game_date": "{year}년 {month}",
     "friends_badge": "친구 판",
     "friends_note": "친구들과 한 판입니다. 방을 만들고 「저장한 판 이어하기」에서 이어 하세요."
   },

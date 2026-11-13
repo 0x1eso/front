@@ -5,7 +5,11 @@ import {
 } from "@openfront/shared/ApiSchemas";
 import { getApiBase } from "./Api";
 import { getAuthHeader } from "./Auth";
-import { LocalSavedGames, openIndexedDbSaves } from "./LocalSavedGames";
+import {
+  LocalSavedGames,
+  openIndexedDbSaves,
+  type SaveMeta,
+} from "./LocalSavedGames";
 import { isSelfHosted } from "./SelfHosted";
 
 // Saved singleplayer games. The API stores the gzipped bytes of a game
@@ -116,10 +120,26 @@ export async function listSavedGames(): Promise<SavedGame[] | false> {
   }
 }
 
+/**
+ * An autosave, into one of three rotating slots. Only the browser's own store
+ * (a self-hosted server) keeps them: an account's saves are the player's own.
+ */
+export function canAutosave(): boolean {
+  return isSelfHosted();
+}
+
+export async function autosaveGame(
+  snapshot: Uint8Array,
+  meta: SaveMeta,
+): Promise<SavedGame | SavedGameError> {
+  if (!canAutosave()) return "rejected";
+  return localSavedGames.autosave(snapshot, meta);
+}
+
 /** Uploads an (uncompressed) snapshot as a new, private save. */
 export async function uploadSavedGame(
   snapshot: Uint8Array,
-  meta: { name: string; map: string; tick: number },
+  meta: SaveMeta,
 ): Promise<SavedGame | SavedGameError> {
   if (isSelfHosted()) return localSavedGames.save(snapshot, meta);
   try {

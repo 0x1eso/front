@@ -1501,8 +1501,22 @@ export const SavedGameSchema = z.object({
   sizeBytes: z.number(),
   public: z.boolean(),
   createdAt: z.string(),
+  // This fork's modes share maps (Great War 1914 is played on the 1936 map),
+  // so a save names its own: the mode, the player's country tag and the
+  // in-game date (YYYY-MM-DD). Kept by the browser's own store; absent on
+  // the API's saves and on a plain game.
+  game: z
+    .object({
+      mode: z.enum(["gw1914", "ww1936", "imjin"]),
+      country: z.string().optional(),
+      date: z.string().optional(),
+    })
+    .optional(),
+  // An autosave: its rotating slot, 1 to 3. Absent on a player's own save.
+  autosave: z.number().int().min(1).max(3).optional(),
 });
 export type SavedGame = z.infer<typeof SavedGameSchema>;
+export type SavedGameInfo = NonNullable<SavedGame["game"]>;
 
 export const SavedGamesListResponseSchema = z.object({
   savedGames: SavedGameSchema.array(),

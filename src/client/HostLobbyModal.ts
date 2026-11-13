@@ -75,6 +75,7 @@ import { IMJIN_OPEN, imjinLobby } from "./ImjinLobby";
 import { SendPickCountryEvent, SendPickSeatEvent } from "./LobbyEvents";
 import { JoinLobbyEvent } from "./Main";
 import { setOpenRoom } from "./OpenRooms";
+import { saveGameLabel, saveTitle } from "./SaveLabel";
 import { isSelfHosted } from "./SelfHosted";
 import { terrainMapFileLoader } from "./TerrainMapFileLoader";
 import { UserSettings } from "./UserSettings";
@@ -1456,7 +1457,12 @@ export class HostLobbyModal extends BaseModal {
                   class="block w-full rounded border border-white/25 bg-white/10 px-3 py-1.5 text-left text-sm text-white hover:bg-white/20"
                   @click=${() => this.resumeSave(save.id)}
                 >
-                  ${save.name}
+                  ${saveTitle(save)}
+                  ${save.game === undefined
+                    ? ""
+                    : html`<span class="block text-xs text-white/60"
+                        >${saveGameLabel(save.game)}</span
+                      >`}
                 </button>`,
             )}
       ${error === null
