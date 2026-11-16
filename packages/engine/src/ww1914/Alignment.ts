@@ -107,10 +107,11 @@ export const GW_REALIGN_PER_MIL: Readonly<
 /**
  * ww222 HM: in the war only a hardline government that is losing goes over,
  * this many in a thousand a long chapter (ww220 §7: the big five on another
- * side in 2-4% of wars, switches included); and what the other side's
+ * side in 2-4% of wars, switches included; ww230: 2, from 5, that was 7%,
+ * four of them Austria's); and what the other side's
  * government adds to its wish to take it in.
  */
-export const GW_SWITCH_PER_MIL = 5;
+export const GW_SWITCH_PER_MIL = 2;
 const GW_SWITCH_WELCOME = 45;
 
 const pairKey = (a: GwTag, b: GwTag) => (a < b ? `${a}_${b}` : `${b}_${a}`);

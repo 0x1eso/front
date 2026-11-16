@@ -177,14 +177,18 @@ export function treatyTerm(gw: GreatWar, row: GwStartTreaty): number {
 const EARLY_LINER_MONTHS = 24;
 /** Readiness a hard president gathers each month after it (preparedness). */
 const EARLY_PUSH = 10;
-/** Readiness at which he takes the country in without the submarine war. */
-export const EARLY_BAR = 90;
+/**
+ * ww230: what a hard president after the early liner takes off America's bar
+ * (before ww230 he needed 90, above the bar: America never came early).
+ */
+export const EARLY_EASE = 10;
 /**
  * ww222 HM: the readiness America's war road needs, below Sea.AMERICA_BAR:
  * with ww221's fleets the submarine war comes later and rarer, and America
- * stayed out of two wars in three (ww220 §7: about two in five).
+ * stayed out of two wars in three (ww220 §7: about two in five). ww230: 20,
+ * with the liners of a restricted war on the road (Sea.americaCan).
  */
-const US_BAR_EASE = 10;
+const US_BAR_EASE = 20;
 /** With Britain in the Central Powers, fighting it costs this, and the bond. */
 const AGAINST_BRITAIN = 10;
 const BRITAIN_BOND = 5;
@@ -194,11 +198,16 @@ const DEU_FRIEND = 2;
 const CENTRAL_ODDS = 10;
 /** Months of war before Washington brokers, and between two offers. */
 export const US_MEDIATE_FROM = 18;
-const US_MEDIATE_EVERY = 6;
+const US_MEDIATE_EVERY = 4;
 /** Odds in 100 that a month the state allows it brings the House mission. */
-const US_MEDIATE_ODDS = 50;
-/** The House missions a war sees at most. */
-const US_MEDIATE_MAX = 3;
+const US_MEDIATE_ODDS = 70;
+/** The House missions a war sees at most (ww230: 4, from 3). */
+const US_MEDIATE_MAX = 4;
+/**
+ * ww230: America's guarantee is worth one weariness to a lead weighing House's
+ * terms (Peace.judgesTalks): more missions alone left the peace at 3% (§7: 6%).
+ */
+const US_GUARANTEE = 1;
 /** Scheduled to every seat at war when America offers (common pack). */
 export const GW_US_MEDIATION = "gw_us_mediation";
 /** Seat flag: the seat took America's offer on its card. */
@@ -232,10 +241,9 @@ export function americaSide(gw: GreatWar): GwSide | null {
   const s = gw.s;
   const n = gw.nation("USA");
   if (n === null) return null;
-  const early = americaEarly(gw) && n.readiness >= EARLY_BAR;
-  if ((americaCan(gw) || early) && n.readiness >= americaBar(gw)) {
-    return "entente";
-  }
+  const bar = americaBar(gw);
+  const early = americaEarly(gw) && n.readiness >= bar - EARLY_EASE;
+  if (early || (americaCan(gw) && n.readiness >= bar)) return "entente";
   const fleet = fleetSide(gw);
   const blockaded = fleet !== null && s.blockade >= GW_SEA_MAX && s.uboat === 0;
   if (
@@ -299,7 +307,8 @@ function americaBrokers(gw: GreatWar): boolean {
 
 /**
  * Both sides' answers: each lead nobody plays judges it as talks of peace
- * (Peace.judgesTalks); every seat at war must have taken it on its card.
+ * (Peace.judgesTalks), America's guarantee eases it; every seat at war must
+ * have taken it on its card.
  */
 function missionAnswered(gw: GreatWar): void {
   const seats = warSeats(gw);
@@ -309,7 +318,11 @@ function missionAnswered(gw: GreatWar): void {
   }
   const leadsYes = (["central", "entente"] as const).every((side) => {
     const lead = sideLead(gw, side);
-    return lead === null || ruledBySeat(gw, lead.tag) || judgesTalks(gw, lead);
+    return (
+      lead === null ||
+      ruledBySeat(gw, lead.tag) ||
+      judgesTalks(gw, lead, US_GUARANTEE)
+    );
   });
   if (seatsYes && leadsYes) {
     news(gw, "us_mediation_peace", "USA");

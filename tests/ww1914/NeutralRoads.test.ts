@@ -6,6 +6,8 @@ import { neutralChoice } from "@openfront/engine/ww1914/Ai";
 import { warMonths } from "@openfront/engine/ww1914/Eras";
 import type { GreatWar } from "@openfront/engine/ww1914/GreatWar";
 import {
+  americaBar,
+  americaSide,
   GW_US_MEDIATION,
   medHolder,
   neutralRoadsStep,
@@ -13,6 +15,7 @@ import {
 } from "@openfront/engine/ww1914/NeutralRoads";
 import { GW_ENTRIES, GW_START_TREATIES } from "@openfront/engine/ww1914/Tables";
 import { honourPct } from "@openfront/engine/ww1914/Wars";
+import { news } from "@openfront/engine/ww1914/World";
 import { beforeEach, describe, expect, test } from "vitest";
 import { gwRunner } from "./util";
 
@@ -118,5 +121,22 @@ describe("America's mediation", () => {
     neutralRoadsStep(gw);
     expect(gw.s.armistice?.kind).toBe("compromise");
     expect(seat.flags).not.toContain("gw_us_mediation_yes");
+  });
+});
+
+describe("America's road", () => {
+  test("a liner sunk in a restricted war brings it in, by its patience", () => {
+    generalWar("entente");
+    const usa = gw.nation("USA")!;
+    usa.ai = "principled";
+    gw.s.uboat = 1;
+    usa.readiness = americaBar(gw);
+    // Boats out without a liner gone down: Washington waits.
+    expect(americaSide(gw)).toBeNull();
+    news(gw, "liner_sunk");
+    expect(americaSide(gw)).toBe("entente");
+    // Short of its patience it still waits.
+    usa.readiness = americaBar(gw) - 1;
+    expect(americaSide(gw)).toBeNull();
   });
 });

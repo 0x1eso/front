@@ -37,9 +37,18 @@ const P_LINER = idHash("gw_liner");
 const P_NOTE = idHash("gw_note");
 const P_UBOAT = idHash("gw_uboat_ai");
 
-/** America reads the sea from this many months of war. */
-const LINER_PCT = 8;
+/**
+ * America reads the sea from this many months of war. ww230: liners 12 in
+ * 100 a month of a restricted war with some boats out (was 8).
+ */
+const LINER_PCT = 12;
 const NOTE_PCT = 12;
+/**
+ * ww230: what Germany's boats out do to America's patience each month of a
+ * restricted war, by boats (Fleets.uboatScale), and each ship they sink.
+ */
+const BOATS_PATIENCE = 1;
+const SUNK_PATIENCE = 2;
 
 const seaOpen = (gw: GreatWar) =>
   gw.s.theatres.find((t) => t.id === "sea")!.open;
@@ -226,12 +235,13 @@ export function setUboats(gw: GreatWar, level: number): void {
   if (to === 2) turn(gw, "uboat_unrestricted");
 }
 
-function uboatStep(gw: GreatWar): void {
+/** The month's sinkings; the ships sunk, which America reads. */
+function uboatStep(gw: GreatWar): number {
   const s = gw.s;
   const deu = gw.nation("DEU");
   // ww220: the boats hunt the side Germany fights (ww222 HM: uboatPrey).
   const prey = uboatPrey(gw);
-  if (deu === null || prey === null) return;
+  if (deu === null || prey === null) return 0;
   const live = fights(deu) && seaOpen(gw);
   let sunk = 0;
   // ww221: few, some or many boats at sea (Fleets.uboatScale; 2 is today's).
@@ -256,6 +266,7 @@ function uboatStep(gw: GreatWar): void {
   });
   if (convoys) built += 2;
   s.shipping = clampTo(s.shipping + sunk - built, 0, GW_SEA_MAX);
+  return Math.max(0, sunk);
 }
 
 /** Sinkings with neutrals aboard, a note decoded: the seed's, by the signature. */
@@ -263,7 +274,9 @@ function incidents(gw: GreatWar): void {
   const s = gw.s;
   const usa = gw.nation("USA");
   if (usa === null || usa.side !== null || s.uboat === 0) return;
-  if (wwRoll(s.seed, P_LINER, s.chapter) % 100 < LINER_PCT * s.uboat) {
+  // ww230: more boats out, more liners in their sights (2, some, is 1x).
+  const liner = (LINER_PCT * s.uboat * uboatScale(gw)) / 2;
+  if (wwRoll(s.seed, P_LINER, s.chapter) % 100 < liner) {
     usa.readiness = clampTo(usa.readiness + 12, 0, 100);
     news(gw, "liner_sunk");
     for (const seat of s.seats) {
@@ -282,15 +295,26 @@ function incidents(gw: GreatWar): void {
   }
 }
 
-/** America comes late and for a reason: the sea, France falling, the loans. */
-function americaStep(gw: GreatWar, warScoreCentral: number): void {
+/**
+ * America comes late and for a reason: the sea, France falling, the loans.
+ * ww230: the sea as the fleets make it, Germany's boats out and the ships
+ * they sink, not the signature alone.
+ */
+function americaStep(
+  gw: GreatWar,
+  warScoreCentral: number,
+  sunk: number,
+): void {
   const s = gw.s;
   const n = gw.nation("USA");
   if (n === null || n.side !== null || ruledBySeat(gw, "USA")) return;
   // The first winter of the war passes before anyone in Washington counts it.
   if (warMonths(gw) < 10) return;
+  const boats = s.uboat === 1 ? BOATS_PATIENCE * uboatScale(gw) : 0;
   const add =
-    (s.uboat === 2 ? 6 : s.uboat === 1 ? 1 : 0) +
+    (s.uboat === 2 ? 6 : 0) +
+    boats +
+    SUNK_PATIENCE * sunk +
     (s.threads.includes("us_loans") ? 1 : 0) +
     (warScoreCentral >= 40 ? 3 : 0);
   n.readiness = clampTo(n.readiness + add, 0, 100);
@@ -300,10 +324,14 @@ function americaStep(gw: GreatWar, warScoreCentral: number): void {
 export const AMERICA_BAR = 80;
 /**
  * America by state, not by date (ww171): the sea war has to reach it, an
- * unrestricted submarine war or the German note read in Washington.
+ * unrestricted submarine war or the German note read in Washington; ww230:
+ * or a liner with Americans aboard gone down to the boats of a restricted
+ * war (its patience, the readiness, decides the rest).
  */
 export const americaCan = (gw: GreatWar) =>
-  gw.s.uboat === 2 || gw.s.news.some((x) => x.key === "note_decoded");
+  gw.s.uboat === 2 ||
+  gw.s.news.some((x) => x.key === "note_decoded") ||
+  (gw.s.uboat > 0 && gw.s.news.some((x) => x.key === "liner_sunk"));
 
 /** Chapter step, before the home front: the two scales move. */
 export function seaStep(gw: GreatWar, warScoreCentral: number): void {
@@ -313,9 +341,9 @@ export function seaStep(gw: GreatWar, warScoreCentral: number): void {
   navalStep(gw);
   blockadeStep(gw);
   aiUboats(gw);
-  uboatStep(gw);
+  const sunk = uboatStep(gw);
   incidents(gw);
-  americaStep(gw, warScoreCentral);
+  americaStep(gw, warScoreCentral, sunk);
 }
 
 /**

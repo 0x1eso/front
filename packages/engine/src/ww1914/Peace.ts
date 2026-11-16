@@ -212,9 +212,14 @@ export function talksAccepted(gw: GreatWar, seat: GwSeatState): boolean {
 
 /**
  * Would a side's lead stop as things stand (ww190: a mediator asks it too)?
- * Nobody stops while winning unless he has been shown the bill.
+ * Nobody stops while winning unless he has been shown the bill. `ease`: what
+ * a mediator's guarantee takes off its stubbornness (ww230: House's).
  */
-export function judgesTalks(gw: GreatWar, foe: GwNationState): boolean {
+export function judgesTalks(
+  gw: GreatWar,
+  foe: GwNationState,
+  ease = 0,
+): boolean {
   if (foe.side === null) return false;
   if (warMonths(gw) < TALKS_MONTHS) return false;
   const theirs = warScore(gw, foe.side!);
@@ -227,7 +232,7 @@ export function judgesTalks(gw: GreatWar, foe: GwNationState): boolean {
   const stubborn = { hardline: 3, principled: 2, opportunist: 1, cautious: 1 }[
     foe.ai
   ];
-  return theirs <= LEVEL_SCORE && tired >= stubborn;
+  return theirs <= LEVEL_SCORE && tired + ease >= stubborn;
 }
 
 /** Talks offered last chapter have their answer now. */
