@@ -73,7 +73,11 @@ import { LandAtlas } from "./LandAtlas";
 import { LandTickClock, ParadropFlights } from "./LandFrame";
 import { AirFxPass } from "./passes/AirFxPass";
 import { AirSortiePass } from "./passes/AirSortiePass";
-import { ArmyTokenPass } from "./passes/ArmyTokenPass";
+import {
+  ArmyTokenPass,
+  type DirectTokenRow,
+  type DirectTokenSource,
+} from "./passes/ArmyTokenPass";
 import { BarPass } from "./passes/BarPass";
 import { BattleMarkerPass } from "./passes/BattleMarkerPass";
 import { BorderComputePass } from "./passes/BorderComputePass";
@@ -299,6 +303,13 @@ export class GPURenderer {
   /** World War 1936 P2: the land war; null without it. */
   private wwLand: WwLandInput | null = null;
   private wwPasses: WwLandPasses | null = null;
+  /** ww218 §5 (Great War 1914): army tokens fed as plain rows; null without. */
+  private direct: {
+    source: DirectTokenSource;
+    atlas: LandAtlas;
+    tokens: ArmyTokenPass;
+    sent: readonly DirectTokenRow[] | null;
+  } | null = null;
   private readonly tokenLayout = new TokenLayoutCache();
   /** Region flags this frame's inputs give, and those the pass last got. */
   private readonly landFlags = new Uint8Array(FLAG_TEX_SIZE * FLAG_TEX_SIZE);
@@ -1998,6 +2009,8 @@ export class GPURenderer {
 
     // World War 1936 P2: battles, plan arrows and army tokens over the names.
     if (this.wwLand !== null) this.drawWwLand(cam, performance.now());
+    // ww218: the Great War's army tokens, the same look.
+    if (this.direct !== null) this.drawDirectTokens(cam, performance.now());
     // P4: convoys, invasions, naval battles, fleets, then the planes above.
     if (this.seaPasses !== null) this.drawWwSeaAir(cam, performance.now());
 
@@ -2197,6 +2210,40 @@ export class GPURenderer {
           };
         }),
     );
+  }
+
+  /**
+   * ww218 §5 (Great War 1914): army tokens from `source` with the 1936
+   * token's program and atlas (ArmyTokenPass.setDirectRows); null removes them.
+   */
+  setDirectTokens(source: DirectTokenSource | null): void {
+    this.disposeDirectTokens();
+    if (source === null) return;
+    const atlas = new LandAtlas(this.gl);
+    this.direct = {
+      source,
+      atlas,
+      tokens: new ArmyTokenPass(this.gl, this.paletteTex, atlas.texture),
+      sent: null,
+    };
+  }
+
+  private disposeDirectTokens(): void {
+    if (this.direct === null) return;
+    this.direct.tokens.dispose();
+    this.direct.atlas.dispose();
+    this.direct = null;
+  }
+
+  private drawDirectTokens(cam: Float32Array, now: number): void {
+    const d = this.direct!;
+    const zoom = this.camera.zoom / renderDpr();
+    const rows = d.source.rows(zoom);
+    if (rows !== d.sent) {
+      d.sent = rows;
+      d.tokens.setDirectRows(rows);
+    }
+    d.tokens.draw(cam, 1 / Math.max(zoom, 1e-6), now / 1000);
   }
 
   /** Great War 1914: the name plates' troop row is left empty. */
@@ -2678,6 +2725,7 @@ export class GPURenderer {
     this.regionBorderPass = null;
     this.disposeRegionModes();
     this.disposeWwLand();
+    this.disposeDirectTokens();
     this.disposeSeaPasses();
     if (this.terrainBytesTex) {
       this.gl.deleteTexture(this.terrainBytesTex);

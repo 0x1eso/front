@@ -62,6 +62,8 @@ import { paintCells, tableCells, togglePlace } from "./GwTableModel";
 import { activeTalk, syncTranscripts, talkView } from "./GwTalk";
 import { installTapTip } from "./GwTapTip";
 import { ticker, tickerLines } from "./GwTicker";
+import { GwTokenSource } from "./GwTokenModel";
+import { tokenSheet } from "./GwTokenSheet";
 import { GwVote, voteOverlay } from "./GwVote";
 
 /** The ticker moves to its next line this often, ms. */
@@ -137,6 +139,8 @@ export class GwPanel extends LitElement implements Controller {
   private map: GwMap | null = null;
   /** The paint over it: the war aims and the table. */
   private painted: GwMapPaint | null = null;
+  /** ww218 §5: the army tokens the renderer draws and a tap may take. */
+  private tokens: GwTokenSource | null = null;
   private replay: GwReplay | null = null;
   /** ww203: the vote scene, each ballot played once. */
   private readonly vote = new GwVote();
@@ -231,6 +235,11 @@ export class GwPanel extends LitElement implements Controller {
       () => this.mapCells(),
       (place) => this.onPlace(place),
     );
+    this.tokens = new GwTokenSource(
+      () => this.tokenInputs(),
+      (tag) => this.game.gwSmallIDOf(tag),
+    );
+    this.mapView.setDirectTokens(this.tokens);
     const tap = (e: { x: number; y: number }) => this.tapMap(e.x, e.y);
     this.eventBus.on(MouseUpEvent, tap);
     this.eventBus.on(TouchEvent, tap);
@@ -252,6 +261,21 @@ export class GwPanel extends LitElement implements Controller {
         this.requestUpdate();
       }
     });
+  }
+
+  /** ww218: the seat's army tokens; none out of war. */
+  private worldTokens(seat: GwSeatView) {
+    return seat.world.tokens ?? [];
+  }
+
+  /** ww218 §5: what the tokens show; none while the map is painted or replayed. */
+  private tokenInputs() {
+    const seat = this.seat();
+    if (seat === null || seat.prologue?.done === false) return null;
+    if (this.replay?.active === true || this.mapCells() !== null) return null;
+    const tokens = this.worldTokens(seat);
+    if (tokens.length === 0) return null;
+    return { tokens, chosen: this.ui.token ?? null };
   }
 
   /** What the map shows painted now; null while it is just the map. */
@@ -304,14 +328,33 @@ export class GwPanel extends LitElement implements Controller {
     if (this.seat() === null || this.map === null) return;
     if (this.mapCells() !== null) {
       this.closeSpot();
+      this.closeToken();
       this.painted?.tap(x, y);
       return;
     }
-    const spot = this.map.spotAt(x, y);
+    // ww218 §5: a token near the tap takes it before the land under it.
+    const hit =
+      this.tokens === null || this.tokenInputs() === null
+        ? null
+        : this.map.tokenAt(this.tokens, x, y);
     this.closeSpot();
+    if (hit !== null) {
+      if (this.ui.token !== hit.key) this.ui.tokenMove = false;
+      this.ui.token = hit.key;
+      this.requestUpdate();
+      return;
+    }
+    this.closeToken();
+    const spot = this.map.spotAt(x, y);
     this.ui.spot = spot;
     this.map.ring(spot?.region ?? null);
     this.requestUpdate();
+  }
+
+  /** ww218: the token's card goes. */
+  private closeToken(): void {
+    this.ui.token = null;
+    this.ui.tokenMove = false;
   }
 
   /** The sheet, and what was being picked on it, go. */
@@ -396,6 +439,7 @@ export class GwPanel extends LitElement implements Controller {
       ui.spot = null;
       ui.postOpen = null;
       ui.postArmed = null;
+      ui.tokenAsked = null;
       ui.research = null;
       ui.budgetPlan = null;
       ui.budgetOpen = false;
@@ -708,6 +752,9 @@ export class GwPanel extends LitElement implements Controller {
       ${ui.spot === null || replaying || painting
         ? nothing
         : placeSheet(c, ui.spot)}
+      ${(ui.token ?? null) === null || replaying || painting
+        ? nothing
+        : tokenSheet(c, this.worldTokens(seat), ui.token!)}
       ${talk === null ? nothing : talkView(c, talk.t, talk.card)} ${dictCard(c)}
       ${ui.finale && data.finale !== null ? finaleView(c) : nothing}
       ${factionCard(c)} ${utopiaCard(c)} ${electOverlay(c, this.elect)}
