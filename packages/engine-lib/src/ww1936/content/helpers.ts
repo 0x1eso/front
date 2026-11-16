@@ -232,9 +232,10 @@ export function mrCourtAi(
 
 /**
  * ww229 MR: a strong neighbour opposes, a democracy rarely and an ally
- * never; a major already at war has other worries. A fascist or communist
- * major seldom turns on a government of its own kind (merge MR: fascist
- * Italy took a war goal on an Iron Guard Romania).
+ * never, and one out of reach seldom; a major already at war has other
+ * worries. A fascist or communist major seldom turns on a government of
+ * its own kind (merge MR: fascist Italy took a war goal on an Iron Guard
+ * Romania).
  */
 export function mrOpposeAi(
   tag: CountryTag,
@@ -246,6 +247,8 @@ export function mrOpposeAi(
     base,
     mods: [
       { if: { kind: "neighbor_of", of: m }, factor: 200 },
+      // A war goal on a country it can't reach is a war without a front.
+      { if: not({ kind: "neighbor_of", of: m }), factor: 30 },
       { if: { kind: "strength_ratio_ge", vs: m, permille: 3000 }, factor: 200 },
       { if: { kind: "ruling", ideology: "democratic" }, factor: 10 },
       { if: { kind: "at_war" }, factor: 30 },
