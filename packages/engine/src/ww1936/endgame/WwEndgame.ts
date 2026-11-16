@@ -71,6 +71,7 @@ import { wakePending } from "./Executions";
 import {
   exileEconomy,
   exilePpFactorPct,
+  offerCivilWarSide,
   resolveTakeovers,
   stepExile,
   takeoverPick,
@@ -398,6 +399,8 @@ export const WwEndgameStateSchema = z.object({
       candidates: zIds(),
       deadlineTick: zInt(),
       pick: zInt(),
+      /** ww224: a civil-war side card; the rebels' side. */
+      rebel: zInt().optional(),
     }),
   ),
   wakeQueue: zIds(),
@@ -488,6 +491,8 @@ export class WwEndgame {
     candidates: number[];
     deadlineTick: number;
     pick: number;
+    /** ww224: a civil-war side card (candidates: the side played now, the other); the rebels' side. */
+    rebel?: number;
   }[] = [];
   wakeQueue: number[] = [];
   dayNotes: [number, number, number, number, number][] = [];
@@ -770,6 +775,11 @@ export class WwEndgame {
     tick: number,
   ): WwOrderBlock | null {
     return takeoverPick(this, client, pick, tick);
+  }
+
+  /** ww224: a civil war began between `gov` and `rebel`; a human side picks which to lead. */
+  offerCivilWarSide(gov: number, rebel: number, tick: number): void {
+    offerCivilWarSide(this, gov, rebel, tick);
   }
 
   // ---- Capitulation (plan decision 9) ----
@@ -1628,6 +1638,7 @@ export class WwEndgame {
         from: c.from,
         candidates: [...c.candidates],
         deadlineTick: c.deadlineTick,
+        ...(c.rebel !== undefined ? { rebel: c.rebel } : {}),
       }));
     }
     // A pending line offer's card shows the line as it is today.

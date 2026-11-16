@@ -10575,6 +10575,15 @@
       "not_open": "Opens after 10 completed focuses or {date}",
       "pack_chip": "Pack: {pack}"
     },
+    "civil_side": {
+      "government": "Government",
+      "government_desc": "Hold the capital and put the uprising down.",
+      "holds": "Holds {regions} regions · divisions {divisions}",
+      "rebels": "Rebels",
+      "rebels_desc": "Lead the uprising and overthrow the government.",
+      "row": "{role}: {country} · {ideology}",
+      "title": "Civil war has broken out. Which side will you lead?"
+    },
     "codename": {
       "c0": "Kestrel",
       "c1": "Heron",

@@ -1,5 +1,9 @@
 import { ID_ARMY } from "@openfront/engine-api/ww1936/DepthTypes";
-import { WW_TAKEOVER_CARD_TICKS } from "@openfront/engine-api/ww1936/EndgameTypes";
+import {
+  WW_TAKEOVER_CARD_TICKS,
+  type WwTakeoverView,
+} from "@openfront/engine-api/ww1936/EndgameTypes";
+import { IDEOLOGIES } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { EventBus } from "@openfront/shared/EventBus";
 import { html, LitElement, nothing, render, TemplateResult } from "lit";
 import { customElement } from "lit/decorators.js";
@@ -37,7 +41,7 @@ export const PICK_WAIT_TICKS = 20;
 
 /** What the takeover card reads (a fake in tests). */
 export type TakeoverGame = NameGame &
-  Partial<Pick<GameView, "wwEconomy" | "wwLand">> &
+  Partial<Pick<GameView, "wwEconomy" | "wwLand" | "wwPolitics">> &
   WwPaceGame;
 
 export interface TakeoverRow {
@@ -48,11 +52,15 @@ export interface TakeoverRow {
   line: string;
   /** "At war: France, United Kingdom"; null at peace. */
   war: string | null;
+  /** ww224, a side card: what leading this side means, then its regions and divisions. */
+  notes?: string[];
 }
 
 export interface TakeoverCardView {
   /** The engine's deadline tick: the card's identity (a new card, a new deadline). */
   deadlineTick: number;
+  /** "Take over a country — same faction"; a civil war's side card asks which side to lead. */
+  title: string;
   rows: TakeoverRow[];
   secondsLeft: number;
   /** Time left, 1 → 0. */
@@ -81,47 +89,55 @@ export function takeoverCardModel(
   if (card === null || card.candidates.length === 0) return null;
   const economy = game.wwEconomy?.() ?? null;
   const land = game.wwLand?.() ?? null;
-  const rows = card.candidates.map((id): TakeoverRow => {
-    const s = economy?.summary(id) ?? null;
-    const name = countryText(game, id);
-    const enemies = enemiesOf(game, id);
-    const named = enemies
-      .slice(0, ENEMIES_SHOWN)
-      .map((e) => countryText(game, e));
-    if (enemies.length > ENEMIES_SHOWN) {
-      named.push(
-        translateText("ww1936.eventui.more", {
-          n: enemies.length - ENEMIES_SHOWN,
-        }),
-      );
-    }
-    return {
-      id,
-      flagUrl: countryFlagUrl(game, id),
-      name,
-      line: translateText("ww1936.takeover.candidate", {
-        country: name,
-        factories: s === null ? 0 : s.civ + s.mil,
-        divisions: divisionsLabel(
-          land?.countries.get(id)?.divisions ?? 0,
-          id,
-          fog,
-        ),
-      }),
-      war:
-        named.length === 0
-          ? null
-          : translateText("ww1936.takeover.at_war", {
-              enemies: named.join(", "),
+  const rows =
+    card.rebel !== undefined
+      ? sideRows(game, card, fog)
+      : card.candidates.map((id): TakeoverRow => {
+          const s = economy?.summary(id) ?? null;
+          const name = countryText(game, id);
+          const enemies = enemiesOf(game, id);
+          const named = enemies
+            .slice(0, ENEMIES_SHOWN)
+            .map((e) => countryText(game, e));
+          if (enemies.length > ENEMIES_SHOWN) {
+            named.push(
+              translateText("ww1936.eventui.more", {
+                n: enemies.length - ENEMIES_SHOWN,
+              }),
+            );
+          }
+          return {
+            id,
+            flagUrl: countryFlagUrl(game, id),
+            name,
+            line: translateText("ww1936.takeover.candidate", {
+              country: name,
+              factories: s === null ? 0 : s.civ + s.mil,
+              divisions: divisionsLabel(
+                land?.countries.get(id)?.divisions ?? 0,
+                id,
+                fog,
+              ),
             }),
-    };
-  });
+            war:
+              named.length === 0
+                ? null
+                : translateText("ww1936.takeover.at_war", {
+                    enemies: named.join(", "),
+                  }),
+          };
+        });
   const left = Math.max(0, card.deadlineTick - game.ticks());
   // The card's window in this game's ticks (wwRealTicks: 75 in the
   // unlimited game), so it is 30 s either way.
   const total = wwWindowTicks(game, WW_TAKEOVER_CARD_TICKS);
   return {
     deadlineTick: card.deadlineTick,
+    title: translateText(
+      card.rebel !== undefined
+        ? "ww1936.civil_side.title"
+        : "ww1936.takeover.title",
+    ),
     rows,
     secondsLeft: wwSeconds(game, left),
     fraction: Math.min(1, left / total),
@@ -129,6 +145,63 @@ export function takeoverCardModel(
       country: rows[0].name,
     }),
   };
+}
+
+/**
+ * ww224: a civil war's side card — the side I play now (the default) and
+ * the other: role and name, its ruling ideology in words, what leading it
+ * means, and the regions it holds and its divisions (through the fog).
+ */
+function sideRows(
+  game: TakeoverGame,
+  card: WwTakeoverView,
+  fog: Pick<FogModel, "countLabel" | "fogOff"> | undefined,
+): TakeoverRow[] {
+  const land = game.wwLand?.() ?? null;
+  const pol = game.wwPolitics?.() ?? null;
+  return card.candidates.map((id): TakeoverRow => {
+    const rebels = id === card.rebel;
+    const ruling = pol?.summary(id)?.ruling ?? -1;
+    const ideology =
+      ruling >= 0 && ruling < IDEOLOGIES.length
+        ? translateText(`ww1936.ideology.${IDEOLOGIES[ruling]}`)
+        : "";
+    let regions = 0;
+    if (land !== null) {
+      for (let r = 0; r < land.controller.length; r++) {
+        if (land.controller[r] === id) regions++;
+      }
+    }
+    const name = countryText(game, id);
+    return {
+      id,
+      flagUrl: countryFlagUrl(game, id),
+      name,
+      line: translateText("ww1936.civil_side.row", {
+        role: translateText(
+          rebels ? "ww1936.civil_side.rebels" : "ww1936.civil_side.government",
+        ),
+        country: name,
+        ideology,
+      }),
+      war: null,
+      notes: [
+        translateText(
+          rebels
+            ? "ww1936.civil_side.rebels_desc"
+            : "ww1936.civil_side.government_desc",
+        ),
+        translateText("ww1936.civil_side.holds", {
+          regions,
+          divisions: divisionsLabel(
+            land?.countries.get(id)?.divisions ?? 0,
+            id,
+            fog,
+          ),
+        }),
+      ],
+    };
+  });
 }
 
 function divisionsLabel(
@@ -247,7 +320,9 @@ export class WwTakeoverCard extends LitElement implements Controller {
     }
     const key = [
       card?.deadlineTick ?? -1,
-      card?.rows.map((r) => r.line + (r.war ?? "")).join("|") ?? "",
+      card?.rows
+        .map((r) => r.line + (r.war ?? "") + (r.notes?.join("") ?? ""))
+        .join("|") ?? "",
       // The second shown changes (2.5 ticks at 400 ms).
       wwSeconds(pace, now),
       this.sent?.pick ?? 0,
@@ -319,9 +394,7 @@ export class WwTakeoverCard extends LitElement implements Controller {
       data-ww-takeover
       class="${CARD_WIDTH} pointer-events-auto flex flex-col gap-1 overflow-y-auto rounded-lg border border-sky-300/80 bg-gray-900/95 px-2 py-1.5 text-xs shadow-xl"
     >
-      <span class="font-bold leading-tight"
-        >${translateText("ww1936.takeover.title")}</span
-      >
+      <span class="font-bold leading-tight">${c.title}</span>
       <div class="h-1 shrink-0 rounded bg-white/10">
         <div
           data-ww-takeover-time
@@ -366,6 +439,9 @@ export class WwTakeoverCard extends LitElement implements Controller {
             ${r.war === null
               ? nothing
               : html`<span class="text-white/70">${r.war}</span>`}
+            ${(r.notes ?? []).map(
+              (n) => html`<span class="text-white/70">${n}</span>`,
+            )}
             ${armed
               ? html`<span data-ww-confirm class="text-amber-200"
                   >${translateText("ww1936.takeover.confirm")}</span

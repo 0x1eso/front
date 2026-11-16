@@ -494,6 +494,8 @@ export interface WwTakeoverView {
   from: number;
   candidates: number[];
   deadlineTick: number;
+  /** ww224: a civil-war side card (candidates: the side played now, then the other); the rebels' side. */
+  rebel?: number;
 }
 /** A side of a white peace offer as its card shows it (computed when it was sent). */
 export interface WwPeaceSideView {

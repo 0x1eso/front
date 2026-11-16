@@ -3872,6 +3872,15 @@
       "not_open": "완료 중점 10개 또는 {date} 이후 열림",
       "pack_chip": "팩: {pack}"
     },
+    "civil_side": {
+      "government": "정부",
+      "government_desc": "수도를 지키고 반란을 진압합니다.",
+      "holds": "지역 {regions}곳 · 사단 {divisions}",
+      "rebels": "반란군",
+      "rebels_desc": "반란을 이끌고 정부를 무너뜨립니다.",
+      "row": "{role}: {country} · {ideology}",
+      "title": "내전이 일어났다. 어느 쪽을 이끌 것인가?"
+    },
     "codename": {
       "c0": "황조롱이",
       "c1": "왜가리",
