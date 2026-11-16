@@ -114,11 +114,15 @@ function ownFront(gw: GreatWar, tag: GwTag, t: GwTheatre): boolean {
   return th !== undefined && th.open && memberEnd(gw, t, tag) !== null;
 }
 
-/** The open fronts `tag` fights on, in theatre order. */
+/** Fronts no train reaches: the sea, and the colonies cut off by the fleets. */
+const NO_RAIL: readonly GwTheatre[] = ["sea", "colonies"];
+
+/** The open fronts `tag` fights on that bands can reach, in theatre order. */
 export function frontsOf(gw: GreatWar, tag: GwTag): GwTheatre[] {
   return gw.s.theatres
     .filter(
-      (t) => t.open && t.id !== "sea" && memberEnd(gw, t.id, tag) !== null,
+      (t) =>
+        t.open && !NO_RAIL.includes(t.id) && memberEnd(gw, t.id, tag) !== null,
     )
     .map((t) => t.id);
 }
@@ -132,10 +136,12 @@ export function moveBlock(
 ): GwOrderBlock | null {
   const n = gw.nation(tag);
   if (n === null || !fights(n) || gw.s.armistice !== null) return "no_front";
-  if (from === to || to === "sea" || !ownFront(gw, tag, to)) return "no_front";
+  if (from === to || NO_RAIL.includes(to) || !ownFront(gw, tag, to)) {
+    return "no_front";
+  }
   if ((n.strength[to] ?? 0) >= BAND_MAX) return "front_full";
   if (from === null) return reserveBands(n) > 0 ? null : "no_band";
-  if (from === "sea" || !ownFront(gw, tag, from)) return "no_front";
+  if (NO_RAIL.includes(from) || !ownFront(gw, tag, from)) return "no_front";
   if ((n.strength[from] ?? 1) <= 1) return "no_band";
   const flying = (n.lift?.fly ?? []).filter((f) => f.from !== null).length;
   if (flying >= flyLimit(gw, tag)) return "in_flight";
@@ -269,9 +275,8 @@ export const BELIEF_RANGE = [0, 40, 20, 10];
 /** Allies on the same coalition, or the same end of this front. */
 function friends(gw: GreatWar, t: GwTheatre, a: GwTag, b: GwTag): boolean {
   if (a === b) return true;
-  const na = gw.nation(a);
-  const nb = gw.nation(b);
-  if (na?.side != null && na.side === nb?.side) return true;
+  const side = gw.nation(a)?.side ?? null;
+  if (side !== null && side === gw.nation(b)?.side) return true;
   const ea = memberEnd(gw, t, a);
   return ea !== null && ea === memberEnd(gw, t, b);
 }
