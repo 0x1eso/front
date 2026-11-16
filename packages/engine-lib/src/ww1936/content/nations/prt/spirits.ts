@@ -11,7 +11,7 @@ export const PRT_SPIRITS: readonly SpiritDef[] = [
   {
     id: "prt_estado_novo",
     icon: "shield",
-    stats: { stabilityBp: 800, coupResistPct: 25, driftNeuBp: 2 },
+    stats: { stabilityBp: 800, coupResistPct: 25 },
   },
   // Salazar's surpluses: a sound escudo, but every escudo counted twice.
   {
