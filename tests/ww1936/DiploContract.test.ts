@@ -448,7 +448,7 @@ describe("diplomacy L0: the digests that never move", () => {
   // not the diplomacy.
   test("the Great War pin is unchanged", () => {
     expect(read("ww1914/GreatWarSnapshot.test.ts")).toContain(
-      'const GW_DIGEST = "28eda37354de02bb";',
+      'const GW_DIGEST = "4f4b979f4d49d2d5";',
     );
   });
 });

@@ -469,9 +469,7 @@ function karlSwitch(gw: GreatWar): void {
   if (!isLongChapter(gw) || !canSwitch(gw, "AUH")) return;
   const seat = s.seats.some(
     (x) =>
-      x.memoir === null &&
-      !x.regent &&
-      gw.nation(x.tag)?.side === "entente",
+      x.memoir === null && !x.regent && gw.nation(x.tag)?.side === "entente",
   );
   if (seat) return;
   if (wwRoll(s.seed, P_KARL_SWITCH, s.chapter) % 1000 >= KARL_SWITCH_PER_MIL) {

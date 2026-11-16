@@ -198,7 +198,13 @@ function holdsHome(f: GwFleet): boolean {
 /** The straits draft for fleet `f`: the fleet, or a squadron from it. */
 function straitsDraft(f: GwFleet, why: GwFleetPaperWhy): Draft | null {
   if (!holdsHome(f)) {
-    return { kind: "move", fleet: f, why, to: "med", mission: "invasion_support" };
+    return {
+      kind: "move",
+      fleet: f,
+      why,
+      to: "med",
+      mission: "invasion_support",
+    };
   }
   const n = squadronOf(f);
   if (n === 0) return null;

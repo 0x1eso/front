@@ -1,6 +1,7 @@
 // ww221 lane A: the Admiralty's papers. A move the admiral is against,
 // signed, overrules him; a sortie paper signed sends the fleet out, and the
 // battle that follows is what the scenes and the diary read. Fixed states only.
+import { GameType } from "@openfront/engine-api/game/GameTypes";
 import type { GwFleet } from "@openfront/engine-api/ww1914/GwFleets";
 import type { GameRunner } from "@openfront/engine/GameRunner";
 import { closeChain } from "@openfront/engine/ww1914/Crises";
@@ -15,7 +16,8 @@ import type { GreatWar } from "@openfront/engine/ww1914/GreatWar";
 import { applyGwOrder } from "@openfront/engine/ww1914/Orders";
 import { officeHolder } from "@openfront/engine/ww1914/People";
 import { describe, expect, test } from "vitest";
-import { gwRunner } from "./util";
+import { wwRunnerCapture } from "../ww1936/util";
+import { gwRunner, HUMAN } from "./util";
 
 const gwOf = (r: GameRunner): GreatWar => r.game.greatWar()!;
 
@@ -165,5 +167,51 @@ describe("the Admiralty's papers", () => {
     expect(fleetBattleHolds(gw, seat, { ...big, area: "baltic" })).toBe(false);
     gw.s.chapter = fought + 3;
     expect(fleetBattleHolds(gw, seat, big)).toBe(false);
+  }, 60000);
+
+  test("ww222 HM: the straits paper sends a squadron of old ships, never the Grand Fleet", async () => {
+    const { runner } = await wwRunnerCapture(
+      {
+        greatWar1914: true,
+        gameType: GameType.Singleplayer,
+        greatWar1914Calendar: "full",
+      },
+      [{ clientID: HUMAN, country: "GBR" }],
+      undefined,
+      "GWFLEET3",
+      HUMAN,
+    );
+    for (let i = 0; i < 2; i++) {
+      runner.addTurn({ turnNumber: runner.game.ticks(), intents: [] });
+      runner.executeNextTick();
+    }
+    const gw = gwOf(runner);
+    gw.s.chain = { topic: "balkan", step: 5, hold: 0, short: false };
+    gw.s.temp = 9;
+    closeChain(gw, "war");
+    gw.s.chapter += 1;
+    const seat = gw.s.seats[0];
+    expect(seat.tag).toBe("GBR");
+    gw.nation("GBR")!.side = "entente";
+    gw.s.fleets = [fleet("gbr_battle_north", "GBR", 22, true)];
+    gw.s.theatres.find((t) => t.id === "straits")!.open = true;
+    const paper = fleetPapersFor(gw, seat).find((p) => p.why === "straits")!;
+    expect(paper).toMatchObject({
+      id: "squadron_gbr_battle_north",
+      kind: "move",
+      to: "med",
+      squadron: true,
+      ships: 4,
+      objects: false,
+    });
+    expect(
+      applyGwOrder(gw, seat, { kind: "fleet_paper", paper: paper.id }),
+    ).toBeNull();
+    const grand = fleetOf(gw, "gbr_battle_north")!;
+    expect(grand).toMatchObject({ ships: 18, area: "north" });
+    expect(grand.to).toBeUndefined();
+    const sq = fleetOf(gw, "gbr_squadron_north")!;
+    expect(sq).toMatchObject({ ships: 4, to: "med", kind: "battle" });
+    expect(sq.mission).toBe("invasion_support");
   }, 60000);
 });

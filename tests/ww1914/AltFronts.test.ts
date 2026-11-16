@@ -4,10 +4,18 @@
 // Britain and Russia meet on the Great Game, Britain and France on the Nile.
 import type { GwTheatre } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
+import { layFleets } from "@openfront/engine/ww1914/Fleets";
+import { fleetTokensView } from "@openfront/engine/ww1914/FleetTokens";
 import type { GreatWar } from "@openfront/engine/ww1914/GreatWar";
 import { canFight } from "@openfront/engine/ww1914/Ladder";
-import { blockaderOf, isBlockaded } from "@openfront/engine/ww1914/Sea";
+import {
+  blockaderOf,
+  isBlockaded,
+  shipperOf,
+  uboatPrey,
+} from "@openfront/engine/ww1914/Sea";
 import { seaHold } from "@openfront/engine/ww1914/Seas";
+import { tokensView } from "@openfront/engine/ww1914/Tokens";
 import {
   declareWar,
   enter,
@@ -65,6 +73,26 @@ describe("Britain in the Central Powers", () => {
     expect(blockaderOf(gw)).toBe("central");
     expect(blockaded("FRA")).toBe(true);
     expect(blockaded("DEU")).toBe(false);
+  });
+});
+
+describe("the merge (ww222 HM)", () => {
+  test("with Britain central the tokens are an ally's, and the U-boats hunt France", () => {
+    layFleets(gw);
+    july();
+    expect(declareWar(gw, "GBR", "FRA", "test")).toBe(true);
+    const seat = gw.s.seats[0];
+    expect(seat.tag).toBe("DEU");
+    const army = (tokensView(gw, seat) ?? []).filter((t) => t.tag === "GBR");
+    expect(army.length).toBeGreaterThan(0);
+    expect(army.every((t) => t.rel === "ally")).toBe(true);
+    const fra = (tokensView(gw, seat) ?? []).filter((t) => t.tag === "FRA");
+    expect(fra.every((t) => t.rel === "foe")).toBe(true);
+    const fleets = fleetTokensView(gw, seat) ?? [];
+    expect(fleets.find((f) => f.tag === "GBR")?.rel).toBe("ally");
+    expect(fleets.find((f) => f.tag === "FRA")?.rel).toBe("foe");
+    expect(uboatPrey(gw)).toBe("entente");
+    expect(shipperOf(gw)).toBe("FRA");
   });
 });
 

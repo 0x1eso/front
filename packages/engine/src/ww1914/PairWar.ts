@@ -480,7 +480,9 @@ const CRISIS_PCT = 15;
 const P_CRISIS = idHash("gw_colonial_crisis");
 
 function crisisPair(gw: GreatWar, a: GwTag, b: GwTag): boolean {
-  if (!CRISIS_PAIRS.some(([x, y]) => (x === a && y === b) || (x === b && y === a))) {
+  if (
+    !CRISIS_PAIRS.some(([x, y]) => (x === a && y === b) || (x === b && y === a))
+  ) {
     return false;
   }
   return campOf(gw, a) === campOf(gw, b);
