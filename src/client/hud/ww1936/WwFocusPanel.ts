@@ -9,7 +9,10 @@ import {
   WwFocusCard,
   WwPolDetail,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
-import { CONTENT } from "@openfront/engine-lib/ww1936/content/registry";
+import {
+  CONTENT,
+  focusOpenTo,
+} from "@openfront/engine-lib/ww1936/content/registry";
 import {
   DescLine,
   describeCondition,
@@ -264,7 +267,10 @@ export class WwFocusPanel extends LitElement implements Controller {
     hideDone: false,
   };
   /** One tree array per tree id, so the layout is computed once. */
-  private readonly trees = new Map<string, readonly FocusDef[]>();
+  private readonly trees = new Map<
+    string,
+    { tree: readonly FocusDef[]; keep: number[] }
+  >();
   private readonly twoTap = new TwoTap();
   private canvas: FocusCanvas | null = null;
   private model: FocusCanvasModel | null = null;
@@ -359,7 +365,7 @@ export class WwFocusPanel extends LitElement implements Controller {
     const c = this.ctx();
     if (c === null) return;
     this.startPending = false;
-    const start = initialCenter(c.detail.cards);
+    const start = initialCenter([...c.cards.values()]);
     this.selected = start;
     this.centerPending = start;
   }
@@ -394,13 +400,28 @@ export class WwFocusPanel extends LitElement implements Controller {
     const treeId =
       (tag === null ? undefined : CONTENT.countryIdx.get(tag)?.tree) ??
       "generic";
-    let tree = this.trees.get(treeId);
-    if (tree === undefined) {
-      tree = CONTENT.treeFocuses[treeId].map((i) => CONTENT.focuses[i]);
-      this.trees.set(treeId, tree);
+    // ww228: only the focuses this country can ever take (the engine's rule);
+    // `keep` maps a shown position to its position in the full tree (the
+    // engine's card index).
+    const key = `${treeId}/${tag ?? ""}`;
+    let shown = this.trees.get(key);
+    if (shown === undefined) {
+      const keep: number[] = [];
+      const full = CONTENT.treeFocuses[treeId].map((i) => CONTENT.focuses[i]);
+      full.forEach((f, i) => {
+        if (tag === null || focusOpenTo(f, tag)) keep.push(i);
+      });
+      shown = { tree: keep.map((i) => full[i]), keep };
+      this.trees.set(key, shown);
     }
-    const cards = new Map(detail.cards.map((c) => [c.idx, c]));
-    const states = tree.map((_, i) => cards.get(i)?.state ?? FOCUS_PREREQ);
+    const { tree, keep } = shown;
+    const byOrig = new Map(detail.cards.map((c) => [c.idx, c]));
+    const cards = new Map<number, WwFocusCard>();
+    keep.forEach((o, j) => {
+      const card = byOrig.get(o);
+      if (card !== undefined) cards.set(j, { ...card, idx: j });
+    });
+    const states = tree.map((_, j) => cards.get(j)?.state ?? FOCUS_PREREQ);
     const pos = (id: string | null | undefined) =>
       id === null || id === undefined ? -1 : tree.findIndex((f) => f.id === id);
     return {
