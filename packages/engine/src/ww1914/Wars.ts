@@ -37,6 +37,7 @@ import {
   GwStartTreaty,
 } from "./Tables";
 import { toReserve } from "./Transfers";
+import { railOpening } from "./WarPower";
 import {
   fights,
   news,
@@ -225,6 +226,12 @@ function refreshTheatre(gw: GreatWar, t: GwTheatreState): void {
       // A front opened in the machine-gun years is dug in from its first day.
       t.trench = Math.min(3, Math.floor(warMonths(gw) / 5));
       news(gw, "front_opened", null, null, t.id);
+      // ww218: the side with the better railways is there first.
+      const first = railOpening(gw, t);
+      if (first !== null) {
+        const dir = first === up ? 1 : -1;
+        t.progress = clampTo(t.progress + dir, -2, 2);
+      }
     }
   } else if (!live) {
     t.open = false;

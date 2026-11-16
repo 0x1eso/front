@@ -50,6 +50,7 @@ import { termsStep } from "./Terms";
 import { treatyStep } from "./Treaties";
 import { utopiaStep } from "./Utopia";
 import { warPlanStep } from "./WarPlan";
+import { powerStep } from "./WarPower";
 import { trimLines } from "./World";
 import { worldFlagsStep } from "./WorldFlags";
 
@@ -63,6 +64,8 @@ export const GW_CHAPTER_STEPS: readonly ((gw: GreatWar) => void)[] = [
   crisisStep,
   ladderStep,
   warStep,
+  // ww218: the rail, the drill and the garrisons, before the fronts (W).
+  powerStep,
   frontsStep,
   frontLandStep,
   capitulationStep,

@@ -54,11 +54,19 @@ import {
 import { civilFromDays } from "@openfront/engine-lib/ww1936/Calendar";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { warMonths } from "./Eras";
+import { warScore } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { holderOf } from "./Land";
 import { officeHolder } from "./People";
 import { endStrain } from "./Strain";
 import { GW_GAUGES_1914 } from "./Tables";
+import {
+  GW_MUNITIONS_LAWS,
+  GW_WOMEN_LAWS,
+  lawInForce,
+  trailingSide,
+  WOMEN_WORKS,
+} from "./WarPower";
 import { memberEnd } from "./Wars";
 import { chapterOf, monthsFrom, news, seatsOf } from "./World";
 
@@ -292,7 +300,9 @@ function warTerms(gw: GreatWar, n: GwNationState, out: GwEconTerms): void {
   const e = n.econ;
   // Shells: the works, less with strikes; held works; mobilised; fronts.
   const unrest = 100 - GW_ECON.unrestPct * Math.min(4, n.unrest);
-  const works = (h.ind * unit.ind * unrest) / 10000;
+  // ww218: women in the works, by law.
+  const women = lawInForce(n, GW_WOMEN_LAWS) ? WOMEN_WORKS : 0;
+  const works = (h.ind * unit.ind * unrest * (100 + women)) / 1000000;
   push(out.shells, "econ_industry", works);
   push(out.shells, "econ_held", (h.heldInd * unit.ind) / 100);
   // ww209 (§1): the army line's war orders: the works run to what is bought.
@@ -310,7 +320,12 @@ function warTerms(gw: GreatWar, n: GwNationState, out: GwEconTerms): void {
     n.side === gbr.side
   ) {
     const pay = offOf(gbr, "national");
-    if (pay > 0) push(out.shells, "budget_subsidy", pay * SUBSIDY_SHELLS);
+    // ww218: a coalition far behind gets twice the money (counterweight).
+    const behind =
+      trailingSide(gw, (x) => warScore(gw, x)) === "entente" ? 2 : 1;
+    if (pay > 0) {
+      push(out.shells, "budget_subsidy", pay * SUBSIDY_SHELLS * behind);
+    }
   }
   if (e?.mobilised !== null && e?.mobilised !== undefined) {
     push(out.shells, "econ_mobilised", (works * row.mob) / 100);
@@ -500,10 +515,12 @@ export function econCrisis(gw: GreatWar, n: GwNationState): void {
   if (n.gauges.bread > 1) delete e.lean;
   else e.lean ??= gw.s.chapter;
   if (e.dry === null && n.gauges.shells === 0) e.dry = gw.s.chapter;
+  // ww218: a munitions ministry mobilises the works without waiting for the
+  // first shell crisis.
+  const ministry = lawInForce(n, GW_MUNITIONS_LAWS);
   if (
-    e.dry !== null &&
     e.mobilised === null &&
-    monthsFrom(gw, e.dry) >= mobDelay(gw, n)
+    (ministry || (e.dry !== null && monthsFrom(gw, e.dry) >= mobDelay(gw, n)))
   ) {
     e.mobilised = gw.s.chapter;
     news(gw, "econ_mobilised", n.tag);

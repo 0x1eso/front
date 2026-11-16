@@ -404,6 +404,9 @@ const FRONT: GwAnswerRow = {
       front: "shift",
       needs: [divisions("few")],
     }),
+    // ww218 (W): the drill and the rail (engine WarPower reads the course).
+    c("drill", ["calm", "firm"], [gauge("money", -1)]),
+    c("rail_army", ["firm", "bold"], [gauge("order", -1)]),
     waitCourse("c_front_wait"),
   ],
 };

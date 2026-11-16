@@ -15,6 +15,7 @@ import { GW_GOV } from "./GovTable";
 import type { GreatWar } from "./GreatWar";
 import { onAppointed } from "./People";
 import { regimeHope } from "./Strain";
+import { powerRegime } from "./WarPower";
 import { defOf, news, reason, seatsOf, turn } from "./World";
 
 export interface GwRegimeRow {
@@ -174,6 +175,7 @@ export function changeRegime(gw: GreatWar, tag: GwTag, to: string): void {
   const row = GW_REGIMES[tag]?.find((r) => r.id === to);
   if (n === null || row === undefined || n.regime === to) return;
   n.regime = to;
+  powerRegime(gw, n);
   const old = n.inst;
   n.inst = institutionsOf(to);
   for (const k of Object.keys(n.inst) as (keyof typeof n.inst)[]) {

@@ -35,6 +35,7 @@ import type { GwPlace } from "./GwPlaces";
 import type { GwPressView } from "./GwPress";
 import type { GwSocietyView } from "./GwSociety";
 import type { GwTokenView } from "./GwTokens";
+import type { GwWarPowerView } from "./GwWarPower";
 
 /** One of the chief of staff's papers; send it back as an `allocate`. */
 export interface GwProposal {
@@ -376,6 +377,8 @@ export interface GwWorldView {
   tokens?: readonly GwTokenView[];
   /** ww219: the war plan as the 작전 tab shows it; absent for a country with none. */
   warPlan?: GwWarPlanView;
+  /** ww218: the four strands of its war power, in words; absent in old views. */
+  warPower?: GwWarPowerView;
 }
 
 /**

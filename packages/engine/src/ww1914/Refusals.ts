@@ -23,6 +23,7 @@ import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
 import type { GreatWar } from "./GreatWar";
 import { beatSince } from "./Rule";
 import { strainOf } from "./Strain";
+import { stayingLevel } from "./WarPower";
 import { memberEnd } from "./Wars";
 import {
   clampTo,
@@ -51,6 +52,8 @@ const SECRET = "fra_army_refusals";
 /** Strain of the west at which a failed attack can set it off; alone. */
 const STRAIN_FAILED = 60;
 const STRAIN_ALONE = 80;
+/** ww218: strain more per staying-power level before refusals (WarPower). */
+const STAY_STRAIN = 5;
 /** Chapters since a failed great attack that still count. */
 const FAILED_WITHIN = 2;
 /** Months an answer holds before an unhealed army refuses again. */
@@ -181,8 +184,10 @@ function breaks(gw: GreatWar, tag: GwTag): boolean {
   if (west === undefined || !west.open) return false;
   const strain = strainOf(gw, "west", tag);
   const morale = n.gauges.morale;
-  if (morale <= 1 && strain >= STRAIN_ALONE) return true;
-  if (morale > 2 || strain < STRAIN_FAILED) return false;
+  // ww218: a country with staying power takes more before its men refuse.
+  const firm = STAY_STRAIN * stayingLevel(gw, n);
+  if (morale <= 1 && strain >= STRAIN_ALONE + firm) return true;
+  if (morale > 2 || strain < STRAIN_FAILED + firm) return false;
   return (gw.s.offensives ?? []).some(
     (o) =>
       o.tag === tag &&
