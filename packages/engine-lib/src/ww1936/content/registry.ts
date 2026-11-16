@@ -186,6 +186,7 @@ import { TEMPLATES_SUN } from "./templates/sun";
 import { TEMPLATES_USA } from "./templates/usa";
 import { START_NAPS } from "./treaties";
 import { NATIONS } from "./nations/index";
+import { isLiveNation } from "./nations/live";
 import type { AiCharacter, NationDef } from "./nations/types";
 
 export interface ContentParts {
@@ -506,7 +507,7 @@ export function joinNations(
   base: ContentParts,
   nations: readonly NationDef[],
 ): ContentParts {
-  const live = nations.filter((n) => n.focuses.length > 0);
+  const live = nations.filter(isLiveNation);
   const byTag = new Map(live.map((n) => [n.tag as CountryTag, n]));
   const lists = <T>(f: (n: NationDef) => readonly T[] | undefined): T[] =>
     live.flatMap((n) => f(n) ?? []);

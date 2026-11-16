@@ -20671,6 +20671,8 @@
       "length_slow_hint": "시간 제한이 없고 한 틱이 4배 길어 1946년 9월 말까지 약 3시간 20분이 걸립니다",
       "length_timed": "50분",
       "length_timed_hint": "50분이 지나면 점수로 승패가 갈립니다",
+      "new_tree": "새 트리",
+      "new_tree_hint": "자기 국가 중점·장비가 있는 나라",
       "nukes": "원자탄 허용",
       "nukes_off": "금지",
       "nukes_on": "허용",
