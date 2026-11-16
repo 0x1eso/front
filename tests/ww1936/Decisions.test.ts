@@ -14,7 +14,9 @@ import {
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
+import { GENERIC_DECISIONS } from "@openfront/engine-lib/ww1936/content/decisions/generic";
 import type { GameRunner } from "@openfront/engine/GameRunner";
+import { evalCondition } from "@openfront/engine/ww1936/politics/Conditions";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
 import {
   cancelMission,
@@ -187,6 +189,31 @@ describe("decisions", () => {
     c.ppMilli = -1;
     expect(decisionBlock(p, deu, "t_locked", 0)).toBe("decision_unavailable");
     expect(decisionBlock(p, deu, "t_costly", 0)).toBe("no_pp");
+  });
+
+  it("ww229 MA2: the rally needs the ruling party below 60%, the purge below 75%", async () => {
+    const { runner, p, deu } = await game();
+    const c = p.country(deu)!;
+    const cond = (id: string) =>
+      GENERIC_DECISIONS.find((d) => d.id === id)!.available!;
+    const ok = (id: string) =>
+      evalCondition(makeCtx(p, deu, deu, 0, runner.game.ticks()), cond(id));
+    c.ruling = 2; // fascist
+    c.pop = [1000, 1000, 5900, 2100];
+    expect([ok("gen_rally"), ok("gen_suppress_opposition")]).toEqual([
+      true,
+      true,
+    ]);
+    c.pop = [1000, 1000, 6000, 2000];
+    expect([ok("gen_rally"), ok("gen_suppress_opposition")]).toEqual([
+      false,
+      true,
+    ]);
+    c.pop = [500, 500, 7500, 1500];
+    expect(ok("gen_suppress_opposition")).toBe(false);
+    // The ceiling reads the ruling party, not the largest one.
+    c.ruling = 3; // neutral
+    expect(ok("gen_rally")).toBe(true);
   });
 
   it("manpower and equipment are paid, newest equipment first", async () => {
