@@ -7,7 +7,6 @@
 // deciding country, target = the candidate (content guideline); its
 // `visible` / `available` see self = the deciding country, target = the
 // candidate.
-import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import {
   equipKey,
   EQUIPMENT_GENS,
@@ -20,7 +19,9 @@ import {
   WwDecisionCard,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { costWith } from "@openfront/engine-lib/ww1936/PoliticsRules";
+import type { ContentRegistry } from "@openfront/engine-lib/ww1936/content/registry";
 import { drawEquip, drawManpower } from "../economy/Stock";
+import { rebelClaimedTag } from "../endgame/RebelTree";
 import { evalCondition, failingLeaves } from "./Conditions";
 import { applyEffects, makeCtx } from "./Dispatch";
 import { payPp } from "./PayPp";
@@ -39,8 +40,26 @@ export function decisionKey(id: DecisionId, target: number): string {
   return target > 0 ? `${id}@${target}` : id;
 }
 
-function isFor(d: DecisionDef, tag: CountryTag): boolean {
-  return d.for === "any" || d.for.includes(tag);
+/** For the country's tag, or (ww229 MA1) the tag its rebels claim to be. */
+function isFor(d: DecisionDef, c: CountryPol): boolean {
+  if (d.for === "any" || d.for.includes(c.tag)) return true;
+  const claim = rebelClaimedTag(c.tag, c.tree);
+  return claim !== null && d.for.includes(claim);
+}
+
+/**
+ * The country's own decision table (content order): its tag's, joined by
+ * the tag its rebels claim to be (ww229 MA1).
+ */
+export function decisionTable(
+  content: ContentRegistry,
+  c: Pick<CountryPol, "tag" | "tree">,
+): readonly number[] {
+  const own = content.decisionsFor.get(c.tag) ?? [];
+  const claim = rebelClaimedTag(c.tag, c.tree);
+  if (claim === null) return own;
+  const theirs = content.decisionsFor.get(claim) ?? [];
+  return [...new Set([...own, ...theirs])].sort((a, b) => a - b);
 }
 
 /** Locked in the data and not unlocked, or locked by a lock_decision effect. */
@@ -129,7 +148,7 @@ export function decisionBlock(
 ): WwOrderBlock | null {
   const c = pol.country(id);
   const d = decisionDef(pol, decision);
-  if (c === null || d === undefined || !isFor(d, c.tag) || isLocked(c, d)) {
+  if (c === null || d === undefined || !isFor(d, c) || isLocked(c, d)) {
     return "decision_unavailable";
   }
   const tick = pol.mg.ticks();
@@ -196,7 +215,7 @@ export function takeDecision(
 ): WwOrderBlock | null {
   const c = pol.country(id);
   const d = decisionDef(pol, decision);
-  if (c === null || d === undefined || !isFor(d, c.tag)) {
+  if (c === null || d === undefined || !isFor(d, c)) {
     return "decision_unavailable";
   }
   // A free take of an untargeted decision ignores the context's target.
@@ -291,7 +310,7 @@ export function stepDecisions(
 export function decisionCards(pol: WwPolitics, id: number): WwDecisionCard[] {
   const c = pol.country(id);
   if (c === null) return [];
-  const own = pol.content.decisionsFor.get(c.tag) ?? [];
+  const own = decisionTable(pol.content, c);
   const list =
     own.length === 0
       ? pol.content.decisionsAny

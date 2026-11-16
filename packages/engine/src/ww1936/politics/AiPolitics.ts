@@ -60,6 +60,7 @@ import {
   aiResourceGap,
 } from "../economy/AiEconomy";
 import type { CountryEconomy } from "../economy/WwEconomy";
+import { rebelClaimedTag } from "../endgame/RebelTree";
 import { aiOverseasWarScore, homeSeaSrs } from "../navy/AiNavy";
 import { candidatesFor } from "./Advisors";
 import { evalCondition } from "./Conditions";
@@ -68,6 +69,7 @@ import {
   decisionCostPp,
   decisionDef,
   decisionKey,
+  decisionTable,
   decisionTargetOk,
 } from "./Decisions";
 import { makeCtx } from "./Dispatch";
@@ -496,19 +498,21 @@ function aiAdvisor(
 // ---- 3. Decisions (spec §18.6-3) ----
 
 /** A country's decisions (its own table and "any"), content order; per content (derived). */
-const DECISIONS_OF = new WeakMap<ContentRegistry, Map<CountryTag, number[]>>();
+const DECISIONS_OF = new WeakMap<ContentRegistry, Map<string, number[]>>();
 
-function decisionsOf(content: ContentRegistry, tag: CountryTag): number[] {
+/** ww229 MA1: rebels on a tree they took with them add the claimed tag's table. */
+function decisionsOf(content: ContentRegistry, c: CountryPol): number[] {
   let m = DECISIONS_OF.get(content);
   if (m === undefined) {
     m = new Map();
     DECISIONS_OF.set(content, m);
   }
-  let l = m.get(tag);
+  const key = `${c.tag}/${rebelClaimedTag(c.tag, c.tree) ?? ""}`;
+  let l = m.get(key);
   if (l === undefined) {
-    const own = content.decisionsFor.get(tag) ?? [];
+    const own = decisionTable(content, c);
     l = [...new Set([...own, ...content.decisionsAny])].sort((a, b) => a - b);
-    m.set(tag, l);
+    m.set(key, l);
   }
   return l;
 }
@@ -575,7 +579,7 @@ function aiDecision(
   const ctx = makeCtx(pol, id, id, 0, tick);
   const targeted = (day + id) % AI_TARGETED_PERIOD_DAYS === 0;
   const options: { i: number; w: number; pp: number }[] = [];
-  for (const i of decisionsOf(pol.content, c.tag)) {
+  for (const i of decisionsOf(pol.content, c)) {
     const d = pol.content.decisions[i];
     if (d.target !== undefined && !targeted) continue;
     // What decisionBlock would refuse first, cheaply: locked, on cooldown.

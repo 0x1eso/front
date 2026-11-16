@@ -1,4 +1,5 @@
 import type { WwOrder } from "@openfront/engine-api/Schemas";
+import { CIVIL_WAR_SLOTS } from "@openfront/engine-api/ww1936/Countries";
 import type { WwOrderBlock } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   FocusBranch,
@@ -225,6 +226,11 @@ interface FocusCtx {
   queue: number[];
   /** The engine refuses every order (gone or capitulated). */
   dead: boolean;
+  /**
+   * ww229 MA1: a civil war's rebels: their AI is off the tree's history
+   * path, so the panel shows no history star or marks for them.
+   */
+  rebel: boolean;
 }
 
 /**
@@ -437,6 +443,8 @@ export class WwFocusPanel extends LitElement implements Controller {
       queue: detail.queue.map((q) => pos(q)).filter((i) => i >= 0),
       // P5 pre-flight §0-1: an exile still runs its focus.
       dead: !wwActive(this.game, me),
+      rebel:
+        tag !== null && (CIVIL_WAR_SLOTS as readonly string[]).includes(tag),
     };
   }
 
@@ -649,6 +657,7 @@ export class WwFocusPanel extends LitElement implements Controller {
       f === null || f.daysMilli <= 0 ? 0 : f.progressMilli / f.daysMilli;
     const key = [
       c.treeId,
+      c.rebel,
       c.states.join(""),
       c.queue.join(","),
       c.states
@@ -666,8 +675,8 @@ export class WwFocusPanel extends LitElement implements Controller {
     hits.forEach((i) => keep.add(i));
     const hidden = hiddenCards(c.tree, this.collapsed, keep);
     const found = c.tree.map((_, i) => hits.includes(i));
-    const star = recommendedIndex(c.tree, c.states, CONTENT.paths[c.treeId]);
-    const path = CONTENT.paths[c.treeId];
+    const path = c.rebel ? undefined : CONTENT.paths[c.treeId];
+    const star = recommendedIndex(c.tree, c.states, path);
     const onPath = new Set(path ?? []);
     const history = c.tree.map((d) => onPath.has(d.id));
     const faded = fadedCards(c.tree, c.states, this.filters, path, keep);

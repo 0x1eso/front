@@ -8,6 +8,7 @@ import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import { KS } from "@openfront/engine-api/ww1936/DepthTypes";
 import { equipKey } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
+  type DecisionDef,
   type FocusDef,
   type HistoryBeat,
   IDEO_COM,
@@ -40,6 +41,10 @@ import {
 import { aiPickFocus } from "@openfront/engine/ww1936/politics/AiFocus";
 import { evalCondition } from "@openfront/engine/ww1936/politics/Conditions";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
+import {
+  decisionBlock,
+  decisionCards,
+} from "@openfront/engine/ww1936/politics/Decisions";
 import {
   applyEffects,
   makeCtx,
@@ -74,7 +79,10 @@ const DEU_T: FocusDef[] = [
   {
     ...focus("deu_t_a", 0),
     tree: "DEU",
-    effects: [{ kind: "set_flag", flag: "deu_t_ready" }],
+    effects: [
+      { kind: "set_flag", flag: "deu_t_ready" },
+      { kind: "unlock_decision", id: "t_unlocked_by_tree" },
+    ],
   },
   {
     ...focus("deu_t_b", 1),
@@ -85,6 +93,18 @@ const DEU_T: FocusDef[] = [
   },
   { ...focus("deu_t_c", 2), tree: "DEU", ai: { base: 0 } },
 ];
+/** ww229 MA1: a decision Germany's tree unlocks, and one only Germany may take. */
+const DEU_DECISIONS: DecisionDef[] = [
+  {
+    id: "t_unlocked_by_tree",
+    category: "political",
+    for: "any",
+    locked: true,
+    ai: { base: 0 },
+  },
+  { id: "t_deu_only", category: "political", for: ["DEU"], ai: { base: 0 } },
+];
+
 /** ww232: beats that name Germany, never due on their own (the test runs them). */
 const DEU_BEATS: HistoryBeat[] = [
   {
@@ -119,6 +139,7 @@ beforeEach(() => {
       ],
       paths: { ...base.paths, DEU: ["deu_t_c", "deu_t_b"] },
       beats: [...HISTORY_BEATS, ...DEU_BEATS],
+      decisions: [...base.decisions, ...DEU_DECISIONS],
       characters: [{ tag: "POL", lean: "revisionist", patrons: ["FRA"] }],
       focusAliases: [{ tree: "POL", from: "gen_t_a", to: "pol_t_a" }],
     }),
@@ -193,6 +214,9 @@ describe("ww232: a major's rebels inherit its tree", () => {
     c.focus = { id: "deu_t_c", progressMilli: 5000 };
     c.flags.set("deu_t_ready", [0, -1]);
     c.flags.set("t_not_read", [0, -1]);
+    // What deu_t_a did; an unlock from elsewhere (an event) stays Germany's.
+    c.unlocked.add("t_unlocked_by_tree");
+    c.unlocked.add("t_unlocked_elsewhere");
 
     expect(startCivilWar(ww.endgame, deu, "communist", g.ticks())).toBe(true);
     const rebel = endId("CW1");
@@ -208,6 +232,21 @@ describe("ww232: a major's rebels inherit its tree", () => {
     expect(focusBlock(pol, rebel, "deu_t_a", false)).toBe("focus_done");
     // The panel reads the engine's tree.
     expect(pol.detail(r).tree).toBe("DEU");
+    // ww229 MA1: the decision the tree unlocked and Germany's own table
+    // come along; the rebels' cards show both.
+    expect(r.unlocked.has("t_unlocked_by_tree")).toBe(true);
+    expect(r.unlocked.has("t_unlocked_elsewhere")).toBe(false);
+    for (const d of ["t_unlocked_by_tree", "t_deu_only"]) {
+      expect(decisionBlock(pol, rebel, d, 0), d).toBeNull();
+      expect(
+        decisionCards(pol, rebel).some((x) => x.id === d),
+        d,
+      ).toBe(true);
+    }
+    // Another country's rebels on the generic tree claim nothing.
+    expect(decisionBlock(pol, endId("ITA"), "t_deu_only", 0)).toBe(
+      "decision_unavailable",
+    );
     // Off the history path: the rebels pick by weight (deu_t_c weighs 0).
     const day = ww.day(g.ticks());
     expect(aiPickFocus(pol, rebel, day)).toBe("deu_t_b");

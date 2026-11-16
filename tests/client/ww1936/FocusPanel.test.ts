@@ -197,6 +197,23 @@ describe("<ww-focus-panel> (spec §21.3)", () => {
     expect(m.q("[data-ww-focus-card]")!.dataset.wwFocusCard).toBe(first);
   });
 
+  it("ww229 MA1: rebels on Germany's tree see no history star or marks", async () => {
+    type Model = { model: { star?: number; history: boolean[] } | null };
+    const own = await mount(polDetail({ deu_rhineland: 0 }));
+    const ownModel = (own.el as unknown as Model).model!;
+    expect(ownModel.star).toBeGreaterThanOrEqual(0);
+    expect(ownModel.history.some((h) => h)).toBe(true);
+    document.body.innerHTML = "";
+    const rebels = await mount(
+      polDetail({ deu_rhineland: 0 }, { smallID: ID("CW1"), tree: "DEU" }),
+      { me: "CW1" },
+    );
+    const m = (rebels.el as unknown as Model).model!;
+    expect(rebels.q("[data-ww-focus-card]")!.dataset.wwFocusCard).toBeDefined();
+    expect(m.star).toBe(-1);
+    expect(m.history.some((h) => h)).toBe(false);
+  });
+
   it("start sends focus_start and a busy tree sends focus_queue", async () => {
     const idle = await mount(
       polDetail({

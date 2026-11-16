@@ -43,6 +43,19 @@ export function rebelOnInheritedTree(
   );
 }
 
+/**
+ * ww229 MA1 (owner): the tag rebels on a tree they took with them claim to
+ * be (the tree is the tag's own: a major's or a minor's national tree); their
+ * decision table is that tag's as well. Null for everyone else.
+ */
+export function rebelClaimedTag(
+  tag: CountryTag,
+  tree: FocusTreeId,
+): CountryTag | null {
+  if (!rebelOnInheritedTree(tag, tree)) return null;
+  return tree in COUNTRIES ? (tree as CountryTag) : null;
+}
+
 export function inheritNationTree(eg: WwEndgame, X: number, R: number): void {
   const pol = eg.ww.politics;
   const xc = pol.country(X);
@@ -57,7 +70,56 @@ export function inheritNationTree(eg: WwEndgame, X: number, R: number): void {
     const v = xc.flags.get(f);
     if (v !== undefined) rc.flags.set(f, [v[0], v[1]]);
   }
+  // ww229 MA1 (owner): the decisions the tree's focuses unlocked (or locked)
+  // for the country stay so for the rebels.
+  for (const d of treeDecisions(pol.content, xc.tree)) {
+    if (xc.unlocked.has(d)) {
+      rc.unlocked.add(d);
+      rc.locked.delete(d);
+    }
+    if (xc.locked.has(d)) rc.locked.add(d);
+  }
   pol.markCountry(R);
+}
+
+/** Decisions by tree (derived from the content, never state). */
+const TREE_DECISIONS = new WeakMap<
+  ContentRegistry,
+  Map<FocusTreeId, readonly string[]>
+>();
+
+/**
+ * ww229 MA1: the decisions a tree's focuses unlock or lock on their own
+ * country (`unlock_decision` / `lock_decision`, also inside `if` and
+ * `random_list`), in first-seen order.
+ */
+export function treeDecisions(
+  content: ContentRegistry,
+  tree: FocusTreeId,
+): readonly string[] {
+  let byTree = TREE_DECISIONS.get(content);
+  if (byTree === undefined) TREE_DECISIONS.set(content, (byTree = new Map()));
+  const known = byTree.get(tree);
+  if (known !== undefined) return known;
+  const out: string[] = [];
+  const effects = (list: readonly Effect[]) => {
+    for (const e of list) {
+      if (e.kind === "if") {
+        effects(e.then);
+        effects(e.else ?? []);
+      } else if (e.kind === "random_list") {
+        for (const o of e.options) effects(o.effects);
+      } else if (e.kind === "unlock_decision" || e.kind === "lock_decision") {
+        const who = (e as { who?: unknown }).who;
+        if (who !== undefined && who !== "self") continue;
+        if (!out.includes(e.id)) out.push(e.id);
+      }
+    }
+  };
+  for (const i of content.treeFocuses[tree])
+    effects(content.focuses[i].effects);
+  byTree.set(tree, out);
+  return out;
 }
 
 /** Flags by tree (derived from the content, never state). */
