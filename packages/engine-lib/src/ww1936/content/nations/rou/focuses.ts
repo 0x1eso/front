@@ -202,7 +202,7 @@ export const ROU_FOCUSES: FocusDef[] = [
     prereq: [["rou_state_of_the_union"]],
     effects: [
       { kind: "pp", amount: 50 },
-      { kind: "popularity", ideology: "neutral", pp: 4 },
+      { kind: "popularity", ideology: "neutral", pp: 2 },
       { kind: "bop", amount: -100 },
     ],
     ai: AI,
@@ -255,7 +255,7 @@ export const ROU_FOCUSES: FocusDef[] = [
     effects: [
       { kind: "set_flag", flag: "rou_legion_crushed" },
       { kind: "bop", amount: -200 },
-      { kind: "popularity", ideology: "fascist", pp: -8 },
+      { kind: "popularity", ideology: "fascist", pp: -4 },
       { kind: "stability", pct: -3 },
       { kind: "fire_event", id: "rou_ev_codreanu_trial", days: 20 },
     ],
@@ -294,7 +294,7 @@ export const ROU_FOCUSES: FocusDef[] = [
       { kind: "add_spirit", id: "rou_sp_royal_dictatorship" },
       { kind: "elections", suspend: true },
       { kind: "bop", amount: -150 },
-      { kind: "popularity", ideology: "neutral", pp: 6 },
+      { kind: "popularity", ideology: "neutral", pp: 3 },
       { kind: "stability", pct: -2 },
     ],
     ai: AI,
@@ -329,7 +329,7 @@ export const ROU_FOCUSES: FocusDef[] = [
     prereq: [["rou_royal_constitution", "rou_legion_in_cabinet"]],
     effects: [
       { kind: "add_spirit", id: "rou_sp_national_rebirth" },
-      { kind: "popularity", ideology: "neutral", pp: 8 },
+      { kind: "popularity", ideology: "neutral", pp: 3 },
       { kind: "pp", amount: 40 },
     ],
     ai: AI,
@@ -1437,7 +1437,7 @@ export const ROU_FOCUSES: FocusDef[] = [
     prereq: [["rou_ploiesti_fields"]],
     effects: [
       { kind: "pp", amount: 40 },
-      { kind: "popularity", ideology: "neutral", pp: 3 },
+      { kind: "popularity", ideology: "neutral", pp: 1 },
       { kind: "stability", pct: 2 },
     ],
     ai: AI,

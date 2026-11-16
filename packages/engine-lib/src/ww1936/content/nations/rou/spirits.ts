@@ -31,7 +31,7 @@ export const ROU_SPIRITS: SpiritDef[] = [
   {
     id: "rou_sp_royal_dictatorship",
     icon: "crown",
-    stats: { stabilityBp: 500, driftNeuBp: 5, ppGainPct: 5 },
+    stats: { stabilityBp: 500, driftNeuBp: 3, ppGainPct: 5 },
   },
   {
     id: "rou_sp_national_rebirth",
