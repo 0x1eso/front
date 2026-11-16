@@ -547,48 +547,56 @@ export class WwFocusPanel extends LitElement implements Controller {
           </button>`,
       )}
       ${grouped || groups.length > 1
-        ? groups.map((g, gi) => {
-            const off = this.collapsed.has(g.key);
-            const name = g.key.startsWith("branch:")
-              ? translateText(
-                  BRANCH_KEYS[g.key.slice(7) as FocusBranch] ??
-                    "ww1936.focusui.chip.all",
-                )
-              : groupLabel(g.key);
-            const tint = GROUP_TINTS[gi % GROUP_TINTS.length];
-            return html`<span
-              class="flex h-9 shrink-0 items-center rounded-full ${off
-                ? "bg-white/5 text-white/50"
-                : "bg-white/15 text-white"}"
-            >
-              <button
-                type="button"
-                data-ww-focus-group-go=${g.key}
-                aria-label=${name}
-                class="flex size-9 items-center justify-center"
-                @click=${() => this.goGroup(c, gi)}
+        ? // ww229 MA3: under 640 px the group chips are one row that scrolls
+          // sideways (15-19 groups filled most of a phone's panel); wider,
+          // the wrapper drops out and they wrap with the filters as before.
+          html`<div
+            data-ww-focus-groups
+            class="flex w-full min-w-0 gap-1 overflow-x-auto sm:contents"
+          >
+            ${groups.map((g, gi) => {
+              const off = this.collapsed.has(g.key);
+              const name = g.key.startsWith("branch:")
+                ? translateText(
+                    BRANCH_KEYS[g.key.slice(7) as FocusBranch] ??
+                      "ww1936.focusui.chip.all",
+                  )
+                : groupLabel(g.key);
+              const tint = GROUP_TINTS[gi % GROUP_TINTS.length];
+              return html`<span
+                class="flex h-9 shrink-0 items-center rounded-full ${off
+                  ? "bg-white/5 text-white/50"
+                  : "bg-white/15 text-white"}"
               >
-                <span
-                  class="size-3 rounded-full"
-                  style="background: rgb(${tint})"
-                ></span>
-              </button>
-              <button
-                type="button"
-                data-ww-focus-group=${g.key}
-                aria-pressed=${String(off)}
-                class="h-9 pr-2.5 text-xs font-semibold"
-                @click=${() => this.toggleGroup(g.key)}
-              >
-                ${translateText(
-                  off
-                    ? "ww1936.focusui.group_collapsed"
-                    : "ww1936.focusui.group_open",
-                  { name, done: g.done, total: g.members.length },
-                )}
-              </button>
-            </span>`;
-          })
+                <button
+                  type="button"
+                  data-ww-focus-group-go=${g.key}
+                  aria-label=${name}
+                  class="flex size-9 items-center justify-center"
+                  @click=${() => this.goGroup(c, gi)}
+                >
+                  <span
+                    class="size-3 rounded-full"
+                    style="background: rgb(${tint})"
+                  ></span>
+                </button>
+                <button
+                  type="button"
+                  data-ww-focus-group=${g.key}
+                  aria-pressed=${String(off)}
+                  class="h-9 pr-2.5 text-xs font-semibold"
+                  @click=${() => this.toggleGroup(g.key)}
+                >
+                  ${translateText(
+                    off
+                      ? "ww1936.focusui.group_collapsed"
+                      : "ww1936.focusui.group_open",
+                    { name, done: g.done, total: g.members.length },
+                  )}
+                </button>
+              </span>`;
+            })}
+          </div>`
         : nothing}
     </div>`;
   }

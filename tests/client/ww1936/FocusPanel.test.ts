@@ -478,6 +478,20 @@ describe("<ww-focus-panel> (spec §21.3)", () => {
     expect(tall.el.querySelectorAll("[data-ww-focus-chip]")).toHaveLength(7);
   });
 
+  it("ww229 MA3: the group chips are one sideways-scrolling row on a phone", async () => {
+    vi.stubGlobal("innerWidth", 390);
+    vi.stubGlobal("innerHeight", 844);
+    const m = await mount(polDetail({ deu_rhineland: 1 }));
+    const row = m.q("[data-ww-focus-groups]")!;
+    expect(
+      row.querySelectorAll("[data-ww-focus-group]").length,
+    ).toBeGreaterThan(1);
+    expect(row.classList.contains("overflow-x-auto")).toBe(true);
+    expect(row.classList.contains("flex-wrap")).toBe(false);
+    // Wider than 640 px the wrapper drops out (display: contents) and the chips wrap as before.
+    expect(row.classList.contains("sm:contents")).toBe(true);
+  });
+
   it("landscape: the detail is a right sheet that closes; portrait: a collapsed bottom row", async () => {
     vi.stubGlobal("innerWidth", 844);
     vi.stubGlobal("innerHeight", 390);
