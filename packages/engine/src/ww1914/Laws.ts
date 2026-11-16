@@ -117,6 +117,9 @@ const AI_NEEDS: Readonly<Record<GwGauge, readonly GwBookChapter[]>> = {
   morale: ["censorship", "war_aims"],
 };
 
+/** ww218: an AI country's pool this low sends it to its conscription rows. */
+const AI_POOL_LOW = 40;
+
 const MOVING: readonly GwLawState["stage"][] = [
   "draft",
   "persuade",
@@ -1055,7 +1058,15 @@ function aiPick(
       n.gauges[a] * GW_GAUGE_MAX[b] - n.gauges[b] * GW_GAUGE_MAX[a] ||
       GW_GAUGES.indexOf(a) - GW_GAUGES.indexOf(b),
   )[0];
-  const wants = AI_NEEDS[weakest];
+  // ww218: munitions at the first shell crisis, more men once the pool runs
+  // low, before the weakest gauge's own rows.
+  const first: GwBookChapter[] = [];
+  if (n.manpower < AI_POOL_LOW) first.push("conscription");
+  if (n.econ?.dry !== null && n.econ?.dry !== undefined) first.push("labour");
+  const wants = [
+    ...first,
+    ...AI_NEEDS[weakest].filter((x) => !first.includes(x)),
+  ];
   const open = GW_LAWS.filter((r) => {
     if (r.tag !== n.tag || r.chapter === undefined) return false;
     if (!wants.includes(r.chapter)) return false;

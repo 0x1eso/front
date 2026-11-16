@@ -15,6 +15,7 @@ import {
   gwTrendOf,
 } from "@openfront/engine-api/ww1914/GwEcon";
 import type { GwSocietyView } from "@openfront/engine-api/ww1914/GwSociety";
+import type { GwWarPowerView } from "@openfront/engine-api/ww1914/GwWarPower";
 import type {
   GwCountryView,
   GwFrontView,
@@ -58,6 +59,7 @@ import { societyView } from "./Society";
 import { foeOn, foeRead, fundView, reads, rivalsOf } from "./Spies";
 import { endStrain, strainWord } from "./Strain";
 import { GW_ACTORS, GW_COMMAND_NAMED_AFTER } from "./Tables";
+import { powerView } from "./WarPower";
 import { sideIn } from "./Wars";
 import { fights, lastOf, ownPeople } from "./World";
 
@@ -387,7 +389,17 @@ export function worldView(gw: GreatWar, seat: GwSeatState): GwWorldView {
     book: moneyBookView(gw, seat, lawBookView(gw, seat)),
     dossier: dealsDossierView(gw, seat, dossierView(gw, seat)),
     ...societyOf(gw, seat),
+    ...powerOfSeat(gw, seat),
   };
+}
+
+/** ww218: the four strands of the seat's war power; absent with no country. */
+function powerOfSeat(
+  gw: GreatWar,
+  seat: GwSeatState,
+): { warPower?: GwWarPowerView } {
+  const warPower = powerView(gw, seat);
+  return warPower === null ? {} : { warPower };
 }
 
 /** ww207: the strip, the axes, the communities; absent for a seat with no house. */

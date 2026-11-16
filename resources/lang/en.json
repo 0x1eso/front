@@ -6717,6 +6717,62 @@
         "hold": "Hold",
         "offensive": "Offensive"
       },
+      "power": {
+        "fire": {
+          "0": "Firepower: short of shells and of the works to make them",
+          "1": "Firepower: enough guns to hold, not to break through",
+          "2": "Firepower: the works keep the guns firing",
+          "3": "Firepower: heavy guns and shells in plenty"
+        },
+        "garrison": "{n} corps are holding occupied land instead of standing at the front.",
+        "hint": "How the country's management reaches the front. These are readings, not stores.",
+        "mobility": {
+          "0": "Mobility: moving a corps takes months",
+          "1": "Mobility: the railways are slow and muddled",
+          "2": "Mobility: the railways move a corps in weeks",
+          "3": "Mobility: the railways run like a clock"
+        },
+        "reserves": {
+          "0": "Reserves: no men left to send",
+          "1": "Reserves: the men run thin",
+          "2": "Reserves: enough men behind the line",
+          "3": "Reserves: men in plenty"
+        },
+        "staying": {
+          "0": "Staying power: the country is close to breaking",
+          "1": "Staying power: the country holds, with grumbling",
+          "2": "Staying power: the country holds steady",
+          "3": "Staying power: the country stands firm behind the war"
+        },
+        "title": "War power",
+        "why": {
+          "bread_none": "no bread for the depots",
+          "drill_0": "recruits go out untrained",
+          "drill_1": "short training",
+          "drill_2": "decent training",
+          "drill_3": "thorough training",
+          "fire_guns": "new methods for the guns",
+          "fire_mobilised": "the works are on war footing",
+          "fire_rising": "the shell output keeps rising",
+          "fire_short": "shells run out faster than they come",
+          "fire_works": "a strong industry",
+          "morale_low": "low spirits",
+          "order_low": "disorder at home",
+          "pool_0": "the pool of men is gone",
+          "pool_1": "the pool is thin",
+          "pool_2": "the pool holds",
+          "pool_3": "a large pool of men",
+          "rail_0": "few lines, poorly run",
+          "rail_1": "lines too few for the army",
+          "rail_2": "a good network",
+          "rail_3": "a dense network under the general staff",
+          "raw_recruits": "many raw recruits just called up",
+          "regime_new": "a new government not yet trusted",
+          "staying_firm": "spirits, order and quiet streets",
+          "unrest": "unrest in the streets",
+          "volunteers": "volunteers only, no conscription"
+        }
+      },
       "powers_sub": "Which side each country is on and how far it has mobilized, as the whole world can see.",
       "powers_title": "The powers",
       "press": {

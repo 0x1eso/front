@@ -37,6 +37,7 @@ import { GW_HOME } from "./HomeTable";
 import { restBlocks } from "./Refusals";
 import { actedOnRead, believedStrain, capturedOrders } from "./Spies";
 import { addStrain, strainOf } from "./Strain";
+import { railOf } from "./WarPower";
 import { memberEnd, membersOf } from "./Wars";
 import {
   defOf,
@@ -127,6 +128,8 @@ const REST = 3;
 const COUNTER_RESERVES = 20;
 const ROUND_RESERVES = 10;
 const COUNTER_CHAPTERS = 2;
+/** ww218: the rail at which a counter's reserves arrive in the same chapter. */
+const RAIL_IN_TIME = 2;
 /** A spoiling blow that works takes this off the weight. */
 const STRIKE_WEIGHT = 20;
 /** Strain at which a staff stops pressing on; a hard one goes further. */
@@ -496,10 +499,13 @@ export function counterReserves(
   const c = gw.s.chapter;
   let here = 0;
   let away = false;
+  // ww218: on good railways the reserves arrive the chapter they are called.
+  const late = railOf(gw, tag) >= RAIL_IN_TIME ? 0 : 1;
   for (const o of list(gw)) {
     for (const a of o.answers) {
       if (a.tag !== tag || a.pick !== "reserves") continue;
-      if (c < a.chapter || c >= a.chapter + COUNTER_CHAPTERS) continue;
+      const from = a.chapter + late;
+      if (c < from || c >= from + COUNTER_CHAPTERS) continue;
       if (o.theatre === t) here += COUNTER_RESERVES;
       else away = true;
     }

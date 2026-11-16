@@ -45,6 +45,7 @@ import {
   GwTableClaimSchema,
   GwTableStateSchema,
 } from "./GwTable";
+import { GwWarPowerStateSchema } from "./GwWarPower";
 
 /** A content id: scene, person, flag, memory key. */
 export const GwIdSchema = z
@@ -803,6 +804,8 @@ export const GwNationStateSchema = z.object({
   econ: GwEconStateSchema.optional(),
   /** ww207: its axes in notches (GwSociety.ts, Society.ts); absent until moved. */
   axes: GwAxesSchema.optional(),
+  /** ww218: its rail, drill and garrisons (WarPower.ts); absent until the war. */
+  warPower: GwWarPowerStateSchema.optional(),
 });
 export type GwNationState = z.infer<typeof GwNationStateSchema>;
 

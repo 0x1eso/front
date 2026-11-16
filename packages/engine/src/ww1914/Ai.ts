@@ -24,6 +24,7 @@ import {
 } from "./Strain";
 import { GW_AI_MAIN, GW_ENTRIES, GW_ENTRY_BAR, GwEntry } from "./Tables";
 import { brokenWords, treatyBars } from "./Treaties";
+import { trailingSide } from "./WarPower";
 import { declareWar, enter, memberEnd, membersOf } from "./Wars";
 import {
   clampTo,
@@ -66,14 +67,29 @@ export function neutralChoice(
   // A side whose heads of state break treaties pays for it (design §9).
   central -= brokenWords(gw, "central") * 10;
   entente -= brokenWords(gw, "entente") * 10;
+  // ww218: a side running away with the war frightens the neutrals into the
+  // other camp (the counterweight).
+  const behind = trailingSide(gw, (x) => warScore(gw, x));
+  if (behind === "central") central += COUNTERWEIGHT_LEAN;
+  if (behind === "entente") entente += COUNTERWEIGHT_LEAN;
   const pick = central > entente ? "central" : "entente";
   return treatyBars(gw, n.tag, pick) ? other(pick) : pick;
 }
 
-/** A side going forward where a neutral is watching draws it in. */
+/** A neutral leans this much more to a coalition far behind. */
+const COUNTERWEIGHT_LEAN = 30;
+
+/**
+ * A side going forward where a neutral is watching draws it in; once one
+ * coalition is far ahead, only the trailing side's advances do (ww218).
+ */
 function momentum(gw: GreatWar, e: GwEntry): number {
+  const behind = trailingSide(gw, (x) => warScore(gw, x));
   const b = gw.s.battles.filter(
-    (x) => x.theatre === e.watches && x.chapter === gw.s.chapter,
+    (x) =>
+      x.theatre === e.watches &&
+      x.chapter === gw.s.chapter &&
+      (behind === null || x.by === behind),
   );
   return b.some((x) => x.result === "break" || x.result === "advance") ? 3 : 0;
 }

@@ -15,6 +15,7 @@ import { outMidWar } from "./Peace";
 import { officeHolder, recordResult } from "./People";
 import { changeRegime, regimeRow, successionStep } from "./Regimes";
 import { seaFor } from "./Sea";
+import { bloodWeary } from "./WarPower";
 import {
   everyMonths,
   fights,
@@ -88,11 +89,20 @@ function bread(gw: GreatWar, n: GwNationState): void {
   seaFor(gw, n);
 }
 
+/** The strains that are the country's weariness of the war. */
+const WEARY_KEYS: readonly string[] = ["order_weary", "morale_weary"];
+
 function strains(gw: GreatWar, n: GwNationState): void {
   const s = gw.s;
   const months = warMonths(gw);
+  // ww218: weariness comes with blood, not dates; the months stay a fallback.
+  const bled = bloodWeary(n);
   for (const r of GW_HOME[n.tag]?.strains ?? []) {
-    if (months < (r.from ?? 0) || !everyMonths(gw, r.every, r.offset ?? 0)) {
+    const weary = WEARY_KEYS.includes(r.key) && bled;
+    if (
+      (months < (r.from ?? 0) && !weary) ||
+      !everyMonths(gw, r.every, r.offset ?? 0)
+    ) {
       continue;
     }
     if (r.thread !== undefined && !s.threads.includes(r.thread)) continue;

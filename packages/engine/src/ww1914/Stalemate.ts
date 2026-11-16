@@ -40,6 +40,7 @@ import { collapsePrisoners } from "./HomeFront";
 import { lineStep, reachedLine } from "./Land";
 import { capturedOrders, wonRaid } from "./Spies";
 import { endIdx, endStrain, setEndStrain, STRAIN_WORN } from "./Strain";
+import { BREAK_PER, stayingLevel } from "./WarPower";
 import { membersOf, sideIn } from "./Wars";
 import {
   clampTo,
@@ -351,11 +352,14 @@ function feedOf(
   const n = gw.nation(membersOf(gw, t.id, side)[0])!;
   const g = n.gauges;
   const k = endIdx(side);
+  // ww218: a country with staying power takes its losses better (WarPower).
+  const stay = stayingLevel(gw, n);
+  const lossFeed = Math.min(
+    LOSS_FEED_MAX,
+    Math.floor(lostHere(gw, t, side) / LOSS_PER_POINT),
+  );
   const feed =
-    Math.min(
-      LOSS_FEED_MAX,
-      Math.floor(lostHere(gw, t, side) / LOSS_PER_POINT),
-    ) +
+    Math.floor((lossFeed * 2) / (2 + stay)) +
     Math.max(0, 3 - g.morale) +
     (g.order === 0 ? 2 : 0) +
     (g.bread === 0 ? 1 : 0) +
@@ -406,7 +410,8 @@ function breakPct(
     4 * (strain - BREAK_FROM) +
       (lead.unrest >= 3 ? 15 : 0) +
       (attacked ? 10 : 0) -
-      (STEADY[t.id] ?? 0),
+      (STEADY[t.id] ?? 0) -
+      BREAK_PER * stayingLevel(gw, lead),
   );
 }
 

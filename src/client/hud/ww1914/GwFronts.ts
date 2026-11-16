@@ -9,6 +9,7 @@ import {
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { GW_PLACES } from "@openfront/engine-api/ww1914/GwPlaces";
 import type { GwTheatreView } from "@openfront/engine-api/ww1914/GwView";
+import { GW_POWER_STRANDS } from "@openfront/engine-api/ww1914/GwWarPower";
 import type {
   GwFrontPrepView,
   GwFrontView,
@@ -591,6 +592,38 @@ function papers(c: GwCtx): TemplateResult | typeof nothing {
   </section>`;
 }
 
+/** ww218: the four strands of the country's war power, in words. */
+function powerCard(c: GwCtx): TemplateResult | typeof nothing {
+  const p = c.seat.world.warPower;
+  if (p === undefined) return nothing;
+  return html`<section
+    data-gw-power
+    class="space-y-1 rounded border border-white/15 bg-black/35 p-2.5"
+  >
+    <h3 class=${HEAD}>${translateText("gw.ui.power.title")}</h3>
+    <p class=${MUTED}>${translateText("gw.ui.power.hint")}</p>
+    ${GW_POWER_STRANDS.map(
+      (k) =>
+        html`<p class="text-sm text-white/85" data-gw-power-strand=${k}>
+          ${translateText(`gw.ui.power.${k}.${p.levels[k]}`)}
+          ${p.why[k].length === 0
+            ? nothing
+            : html`<span class=${MUTED}>
+                ·
+                ${p.why[k]
+                  .map((w) => translateText(`gw.ui.power.why.${w}`))
+                  .join(", ")}
+              </span>`}
+        </p>`,
+    )}
+    ${p.garrison > 0
+      ? html`<p class=${MUTED} data-gw-power-garrison>
+          ${translateText("gw.ui.power.garrison", { n: p.garrison })}
+        </p>`
+      : nothing}
+  </section>`;
+}
+
 /** The fronts tab: every theatre's line, then the papers to sign. */
 export function frontsTab(c: GwCtx): TemplateResult {
   const side = c.seat.world.side;
@@ -605,6 +638,7 @@ export function frontsTab(c: GwCtx): TemplateResult {
             side === null ? "gw.ui.front_key_neutral" : "gw.ui.front_key",
           )}
         </p>`}
+    ${powerCard(c)}
     ${fronts.length > 0
       ? fronts.map((f) => frontCard(c, f))
       : side === null && others.length > 0

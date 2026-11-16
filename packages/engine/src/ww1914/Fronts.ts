@@ -5,6 +5,7 @@ import {
   GW_LINES,
   GW_SIDES,
   GwAlloc,
+  GwNationState,
   GwResearch,
   GwResult,
   GwSeatState,
@@ -68,6 +69,21 @@ import {
   GwWarOrder,
   theatresOf,
 } from "./Tables";
+import {
+  classIntake,
+  DESERT_EVERY,
+  drillOf,
+  fieldStrength,
+  firePct,
+  LIST_HIT,
+  LIST_HIT_PER,
+  RAW_WEAR,
+  REFILL_MEN,
+  refillEvery,
+  stayingLevel,
+  trailingSide,
+  trenchCut,
+} from "./WarPower";
 import { memberEnd, membersOf, refreshTheatres, sideIn } from "./Wars";
 import {
   clampTo,
@@ -253,8 +269,9 @@ export function allocOf(gw: GreatWar, tag: GwTag): GwAlloc | null {
 }
 
 export function bandOf(gw: GreatWar, t: GwTheatre, side: GwSide): number {
-  const bands = membersOf(gw, t, side).map(
-    (tag) => gw.nation(tag)!.strength[t] ?? 1,
+  // ww218: what holds occupied land hard is not at the front (WarPower).
+  const bands = membersOf(gw, t, side).map((tag) =>
+    fieldStrength(gw.nation(tag)!, t),
   );
   if (bands.length === 0) return 0;
   const best = Math.max(...bands);
@@ -270,6 +287,10 @@ function effortOf(gw: GreatWar, t: GwTheatre, side: GwSide): number {
   let out = 0;
   const here = membersOf(gw, t, side);
   const coalition = here.length === 0 ? null : gw.nation(here[0])!.side;
+  // ww218: a coalition far behind gets more from its partners (§2).
+  const behind =
+    coalition !== null &&
+    trailingSide(gw, (x) => warScore(gw, x)) === coalition;
   for (const n of gw.s.nations) {
     if (!fights(n)) continue;
     if (!here.includes(n.tag) && (coalition === null || n.side !== coalition)) {
@@ -283,7 +304,7 @@ function effortOf(gw: GreatWar, t: GwTheatre, side: GwSide): number {
     } else if (!here.includes(n.tag) && a.allyShare > 0) {
       // Men sent to a friend's front.
       if (theatresOf(n.tag).includes(a.main) && a.main !== t) {
-        out += a.allyShare * 2;
+        out += (a.allyShare + (behind ? 1 : 0)) * 2;
       }
     }
   }
@@ -317,7 +338,8 @@ function fireOfNation(gw: GreatWar, tag: GwTag): number {
   const morale = 80 + n.gauges.morale * 8;
   const men =
     (n.manpower < MEN_LOW ? 75 : 100) * ((GW_ARMY_QUALITY[tag] ?? 90) / 100);
-  return Math.floor((shells * morale * men) / 10000);
+  // ww218: the industry behind the guns (WarPower firepower).
+  return Math.floor((shells * morale * men * firePct(n)) / 1000000);
 }
 
 /** The lead's worth multipliers, percent, attack or defence. */
@@ -460,7 +482,8 @@ export function oddsOf(
       12 +
       Math.max(0, reservesOf(gw, t.id, foe) + extraReserves)) *
       (100 +
-        trench * (TRENCH_WORTH_BY[t.id] ?? TRENCH_WORTH) +
+        trench *
+          Math.max(0, (TRENCH_WORTH_BY[t.id] ?? TRENCH_WORTH) - trenchCut(a)) +
         (raid ? 0 : groundOf(gw, t, foe) + eraOf(gw).defence) +
         shield) *
       (50 + holdingFire(gw, t.id, foe) / 2) *
@@ -602,7 +625,9 @@ export function bleed(
       n.wear[t] = 0;
       n.strength[t] = Math.max(1, (n.strength[t] ?? 1) - 1);
     }
-    if (share >= 250) moveGauge(gw, tag, "morale", -1, "casualty_lists");
+    // ww218: a country with staying power bears longer lists.
+    const hit = LIST_HIT + LIST_HIT_PER * stayingLevel(gw, n);
+    if (share >= hit) moveGauge(gw, tag, "morale", -1, "casualty_lists");
   });
 }
 
@@ -775,22 +800,44 @@ function dig(gw: GreatWar, t: GwTheatreState): void {
   }
 }
 
-/** Armies refill towards what they were, while there are men to send. */
-function refill(gw: GreatWar): void {
+/**
+ * Armies refill towards what they were, while there are men to send (ww218):
+ * the pool binds, a refill costs real men, drill sets how often, and with the
+ * pool gone the bands melt.
+ */
+export function refill(gw: GreatWar): void {
   const c = gw.s.chapter;
   for (const n of gw.s.nations) {
     if (!fights(n)) continue;
     // The year's class, and the wounded coming back.
-    n.manpower = Math.min(100, n.manpower + monthsOf(gw));
-    if (c % 2 !== 0 || n.manpower < MEN_LOW) continue;
+    n.manpower = Math.min(100, n.manpower + classIntake(gw, n));
+    if (n.manpower < MEN_LOW) {
+      if (c % DESERT_EVERY === 0) desert(n);
+      continue;
+    }
+    if (c % refillEvery(gw, n) !== 0) continue;
+    const raw = drillOf(gw, n) === 0;
     for (const [t, base] of Object.entries(n.base)) {
       const id = t as GwTheatre;
+      if (n.manpower < REFILL_MEN) break;
       if ((n.strength[id] ?? 0) < (base ?? 0)) {
         n.strength[id] = (n.strength[id] ?? 0) + 1;
-        n.manpower -= 2;
+        n.manpower -= REFILL_MEN;
+        // Men sent without drill come back half a band worn.
+        if (raw) n.wear[id] = Math.max(n.wear[id] ?? 0, RAW_WEAR);
       }
     }
   }
+}
+
+/** No men left: the strongest band shrinks a step (desertion, ww218). */
+function desert(n: GwNationState): void {
+  const ids = (Object.keys(n.strength) as GwTheatre[]).filter(
+    (t) => t !== "sea" && (n.strength[t] ?? 1) > 1,
+  );
+  if (ids.length === 0) return;
+  ids.sort((a, b) => (n.strength[b] ?? 0) - (n.strength[a] ?? 0));
+  n.strength[ids[0]] = (n.strength[ids[0]] ?? 1) - 1;
 }
 
 /** Months a country has been in, at this chapter and at the one before. */
