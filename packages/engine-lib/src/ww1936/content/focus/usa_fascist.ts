@@ -48,6 +48,12 @@ export const NO_CIVIL_WAR: Condition = not(
     { kind: "at_war_with", of: T("CW4") },
     { kind: "at_war_with", of: T("CW5") },
     { kind: "at_war_with", of: T("CW6") },
+    { kind: "at_war_with", of: T("CW7") },
+    { kind: "at_war_with", of: T("CW8") },
+    { kind: "at_war_with", of: T("CW9") },
+    { kind: "at_war_with", of: T("CW10") },
+    { kind: "at_war_with", of: T("CW11") },
+    { kind: "at_war_with", of: T("CW12") },
   ),
 );
 

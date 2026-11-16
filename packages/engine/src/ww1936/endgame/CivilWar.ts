@@ -278,17 +278,24 @@ export function endCivilWar(
 // ---- Helpers ----
 
 /**
- * ww226: the first dormant civil-war slot, else the first lost side's slot
- * that can sleep again (recycleCivilWarSlot), in CIVIL_WAR_SLOTS order.
+ * ww226: the first dormant civil-war slot, else the first gone one (a lost
+ * side, a fallen collaborator) that can sleep again (canRecycleSlot), in
+ * CIVIL_WAR_SLOTS order. `recycle`: put that one to sleep now (afresh).
+ * The collaborators' wake (Collab.collabTag) shares the slots.
  */
-function freeCivilWarSlot(eg: WwEndgame): CountryTag | undefined {
+export function freeCivilWarSlot(
+  eg: WwEndgame,
+  recycle = true,
+): CountryTag | undefined {
   const sc = eg.ww.scenario;
   const ids = CIVIL_WAR_SLOTS.map((t) => [t, sc.smallIdOf(t)] as const).filter(
     ([, id]) => id > 0,
   );
   const dormant = ids.find(([, id]) => eg.countryStateArr[id] === CS_DORMANT);
   if (dormant !== undefined) return dormant[0];
-  return ids.find(([, id]) => recycleCivilWarSlot(eg, id))?.[0];
+  const gone = ids.find(([, id]) => canRecycleSlot(eg, id));
+  if (gone !== undefined && recycle) recycleCivilWarSlot(eg, gone[1]);
+  return gone?.[0];
 }
 
 /**
@@ -299,9 +306,17 @@ function freeCivilWarSlot(eg: WwEndgame): CountryTag | undefined {
  * name and colour cleared. True when it is dormant now.
  */
 export function recycleCivilWarSlot(eg: WwEndgame, id: number): boolean {
-  const ww = eg.ww;
   if (!isCivilWarSlot(eg, id)) return false;
   if (eg.countryStateArr[id] === CS_DORMANT) return true;
+  if (!canRecycleSlot(eg, id)) return false;
+  resetSlot(eg, id);
+  return true;
+}
+
+/** recycleCivilWarSlot's test, changing nothing. */
+function canRecycleSlot(eg: WwEndgame, id: number): boolean {
+  const ww = eg.ww;
+  if (!isCivilWarSlot(eg, id)) return false;
   if (eg.countryStateArr[id] !== CS_GONE || eg.isExile(id)) return false;
   if (eg.humanClientOf(id) !== null) return false;
   if (
@@ -325,6 +340,13 @@ export function recycleCivilWarSlot(eg: WwEndgame, id: number): boolean {
     return false;
   }
   if (ww.air.wingsOf(id).length > 0) return false;
+  if (eg.subjectOf(id) !== null || eg.subjectsOf(id).length > 0) return false;
+  return true;
+}
+
+function resetSlot(eg: WwEndgame, id: number): void {
+  const ww = eg.ww;
+  const sc = ww.scenario;
   const tag = ww.tagOf(id);
   ww.politics.resetCountry(id);
   const ce = ww.economy.country(id);
@@ -366,7 +388,6 @@ export function recycleCivilWarSlot(eg: WwEndgame, id: number): boolean {
   ww.politics.recomputeStats(id);
   eg.setCountryState(id, CS_DORMANT);
   eg.dirtyCountries.add(id);
-  return true;
 }
 
 /** Every own field of `fresh` onto `obj`, but `keep`'s (shared or kept state). */

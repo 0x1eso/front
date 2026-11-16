@@ -4,7 +4,10 @@
 // costs, the exile's legitimacy, the fold when the exile comes home, the
 // AI's monthly check, and the record through snapshot and restore.
 // End map (ww1936end) with the end fixture; Germany claims the Sudetenland.
-import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
+import {
+  CIVIL_WAR_SLOTS,
+  type CountryTag,
+} from "@openfront/engine-api/ww1936/Countries";
 import {
   WW_COLLAB_EXILE_LEGIT_LOSS_BP,
   WW_COLLAB_PP,
@@ -199,7 +202,7 @@ describe(
       expect(eg.nameArg[cw1]).toBe("POL");
       expect(eg.subjectOf(cw1)?.overlord).toBe(deu);
       // Every slot taken.
-      for (const t of ["CW2", "CW3", "CW4", "CW5", "CW6"] as const) {
+      for (const t of CIVIL_WAR_SLOTS.slice(1)) {
         eg.setCountryState(id(t), CS_ACTIVE);
       }
       gone(g, ww, ltu, deu);

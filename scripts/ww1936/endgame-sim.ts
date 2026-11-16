@@ -45,7 +45,10 @@ import {
   GameType,
 } from "@openfront/engine-api/game/GameTypes";
 import type { GameStartInfo } from "@openfront/engine-api/Schemas";
-import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
+import {
+  CIVIL_WAR_SLOTS,
+  type CountryTag,
+} from "@openfront/engine-api/ww1936/Countries";
 import { SUBJECT_LEVELS } from "@openfront/engine-api/ww1936/EndgameTypes";
 import {
   dateOfDay,
@@ -573,7 +576,16 @@ export async function runOne(
       }
       case "news_civil_war_seized":
         // ww226: a change without a civil war (one region, or no slot).
-        row(day, "seized", String(params.tag), String(params.ideology));
+        row(
+          day,
+          "seized",
+          String(params.tag),
+          String(params.ideology),
+          // The civil-war slots' states then (0 dormant, 1 active, 2 gone).
+          CIVIL_WAR_SLOTS.map(
+            (t) => eg.countryStateArr[ww.scenario.smallIdOf(t)],
+          ).join(""),
+        );
         break;
       case "news_uprising": {
         const r = Number(params.region);

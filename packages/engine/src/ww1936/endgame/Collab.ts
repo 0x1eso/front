@@ -52,6 +52,7 @@ import { leaveFaction } from "../politics/Factions";
 import { payPp } from "../politics/PayPp";
 import { addTension, scaledTension } from "../politics/Tension";
 import { activateCountry } from "./Activate";
+import { freeCivilWarSlot, recycleCivilWarSlot } from "./CivilWar";
 import type { StoredCollab } from "./DiploState";
 import { needOf } from "./Garrison";
 import { endSubject } from "./Subjects";
@@ -176,12 +177,8 @@ export function collabTag(
     const id = sc.smallIdOf(named);
     if (id > 0 && eg.countryStateArr[id] === CS_DORMANT) return named;
   }
-  return (
-    CIVIL_WAR_SLOTS.find((t) => {
-      const id = sc.smallIdOf(t);
-      return id > 0 && eg.countryStateArr[id] === CS_DORMANT;
-    }) ?? null
-  );
+  // ww226: a gone slot that can sleep again counts (collabWake wakes it afresh).
+  return freeCivilWarSlot(eg, false) ?? null;
 }
 
 /** Why `from` may not set up a collaborator on `target`'s `regions` (null: it may). */
@@ -254,6 +251,7 @@ export function createCollab(
   const ideology = IDEOLOGIES[pol.country(from)!.ruling];
   const originTag = ww.tagOf(target);
   const slot = (CIVIL_WAR_SLOTS as readonly string[]).includes(tag);
+  if (slot) recycleCivilWarSlot(eg, ww.scenario.smallIdOf(tag));
   const pick = [...regions].sort((a, b) => a - b);
   const id = activateCountry(
     eg,

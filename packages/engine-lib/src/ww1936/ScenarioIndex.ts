@@ -4,7 +4,9 @@ import {
   COUNTRY_TAGS,
   CountryTag,
   DORMANT_TAGS,
+  EXTRA_CIVIL_WAR_SLOTS,
   isDormantTag,
+  isImjinTag,
 } from "@openfront/engine-api/ww1936/Countries";
 import { DAMS, Landmark } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
@@ -141,7 +143,8 @@ export class ScenarioIndex {
   /**
    * Countries in the scenario, in COUNTRY_TAGS order: smallID = index + 1.
    * P5 plan decision 3: the scenario's own countries, then every dormant
-   * slot (DORMANT_TAGS), on every map.
+   * slot (DORMANT_TAGS), on every map (ww226: then 1936's extra civil-war
+   * slots, EXTRA_CIVIL_WAR_SLOTS, on every map but the Imjin War's).
    */
   readonly countries: readonly CountryTag[];
   /** P6 (spec §16.3): the region of each landmark on this map. */
@@ -202,7 +205,14 @@ export class ScenarioIndex {
     const present = new Set(data.countries.map((c) => c.tag));
     const own = COUNTRY_TAGS.filter((t) => present.has(t) && !isDormantTag(t));
     this.scenarioCount = own.length;
-    this.countries = [...own, ...DORMANT_TAGS];
+    // ww226: 1936's extra civil-war slots (not the Imjin War's: its players
+    // stay as they were).
+    const imjin = own.some((t) => isImjinTag(t));
+    this.countries = [
+      ...own,
+      ...DORMANT_TAGS,
+      ...(imjin ? [] : EXTRA_CIVIL_WAR_SLOTS),
+    ];
     for (const c of data.countries) this.capitals.set(c.tag, c.capital);
     for (const s of data.seaZones) this.seaById.set(s.id, s);
     let maxId = 0;
