@@ -23,6 +23,7 @@ import {
   world,
   type GwWarPlanMoment,
 } from "@openfront/engine-api/ww1914/WorldDsl";
+import { RUS_ROAD_DIARY } from "../roads/rus";
 
 const war = world({ is: "war" });
 const command = world({ is: "command" });
@@ -190,6 +191,7 @@ const DIARY: GwDiaryRow[] = [
   day("plan_hindsight", "plan", { when: planNow("hindsight") }),
   // ww219: an estimate of the foe that proved fooled (a surprise, a feint).
   day("fooled", "hindsight", { theatre: [...GW_FOOLED_FRONTS] }),
+  ...RUS_ROAD_DIARY,
 ];
 
 export const RUS_PERSONA: GwPersonaContent = {

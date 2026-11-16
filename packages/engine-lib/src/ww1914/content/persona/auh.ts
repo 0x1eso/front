@@ -29,6 +29,7 @@ import {
   world,
   type GwWarPlanMoment,
 } from "@openfront/engine-api/ww1914/WorldDsl";
+import { AUH_ROAD_DIARY } from "../roads/auh";
 import { inWar, italyIn, since } from "../scenes/auh_act";
 
 const FJ = "franz_joseph";
@@ -231,6 +232,7 @@ const DIARY: GwDiaryRow[] = [
   dy("auh_dy_fj_plan_hindsight", FJ, "plan", { when: planNow("hindsight") }),
   // ww219: an estimate of the foe that proved fooled (a surprise, a feint).
   dy("auh_dy_fj_fooled", FJ, "hindsight", { theatre: [...GW_FOOLED_FRONTS] }),
+  ...AUH_ROAD_DIARY,
 ];
 
 export const AUH_PERSONA: GwPersonaContent = {

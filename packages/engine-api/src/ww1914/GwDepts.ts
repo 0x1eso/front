@@ -849,6 +849,14 @@ export function gwDeptCalled(c: GwDeptContent): string[] {
     ...(c.rivals ?? []).flatMap((r) =>
       r.counter === undefined ? [] : [r.counter],
     ),
+    // ww220: flags and memory keys an answer's course sets are written too.
+    ...(c.answers ?? []).flatMap((a) =>
+      a.courses.flatMap((k) =>
+        k.effects.flatMap((e) =>
+          e.kind === "flag" ? [e.flag] : e.kind === "remember" ? [e.key] : [],
+        ),
+      ),
+    ),
   ];
 }
 

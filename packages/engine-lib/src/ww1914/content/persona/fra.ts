@@ -25,6 +25,7 @@ import {
   world,
   type GwWarPlanMoment,
 } from "@openfront/engine-api/ww1914/WorldDsl";
+import { FRA_ROAD_DIARY } from "../roads/fra";
 
 const NATION: GwRulerPlace["nation"] = ["FRA"];
 const RULER = "poincare";
@@ -164,6 +165,7 @@ const DIARY: GwDiaryRow[] = [
   note("plan_hindsight", "plan", { when: planNow("hindsight") }),
   // ww219: an estimate of the foe that proved fooled (a surprise, a feint).
   note("fooled", "hindsight", { theatre: [...GW_FOOLED_FRONTS] }),
+  ...FRA_ROAD_DIARY,
 ];
 
 export const FRA_PERSONA: GwPersonaContent = {

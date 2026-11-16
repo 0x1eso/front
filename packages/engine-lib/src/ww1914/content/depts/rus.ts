@@ -35,6 +35,7 @@ import {
   role,
 } from "@openfront/engine-api/ww1914/SceneDsl";
 import { world } from "@openfront/engine-api/ww1914/WorldDsl";
+import { RUS_ROAD_ANSWERS } from "../roads/rus";
 
 const war = world({ is: "war" });
 const reign = world({ is: "regime", of: ["tsar", "crown"] });
@@ -863,6 +864,7 @@ const ANSWERS: GwAnswerRow[] = [
     { office: "interior", when: war },
   ),
   ...SETTLE_ANSWERS,
+  ...RUS_ROAD_ANSWERS,
 ];
 
 // ---- Honours at their occasions (design §4) ----

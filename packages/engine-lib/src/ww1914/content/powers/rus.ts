@@ -34,6 +34,11 @@ import {
 import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
 import type { GwPowerRow, GwReactorRow } from "../../PowerRows";
 import { cool, faction, grow, heat, under } from "../house/kit";
+import {
+  RUS_ROAD_POWERS,
+  RUS_ROAD_REACTORS,
+  RUS_ROAD_SCENES,
+} from "../roads/rus";
 
 /** Nicholas still reigns: his own rule, or with a ministry the Duma trusts. */
 const reigns = world({ is: "regime", of: ["tsar", "crown"] });
@@ -1014,6 +1019,7 @@ export const RUS_POWERS: readonly GwPowerRow[] = [
       },
     },
   },
+  ...RUS_ROAD_POWERS,
 ];
 
 /** RUS's own reactors, on top of GW_REACTORS (`nation: "RUS"`). */
@@ -1071,6 +1077,7 @@ export const RUS_REACTORS: readonly GwReactorRow[] = [
     delta: -1,
     key: "rus_pw_r_treason",
   },
+  ...RUS_ROAD_REACTORS,
 ];
 
 /** The result card: silent, laid at once, no options. */
@@ -1150,4 +1157,5 @@ export const RUS_POWER_SCENES: readonly GwScene[] = [
       { id: "base" },
     ],
   ),
+  ...RUS_ROAD_SCENES,
 ];
