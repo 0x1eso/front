@@ -17,6 +17,7 @@ import {
 } from "./Ideology";
 import { lawStep, setLawFree } from "./Laws";
 import { addSpirit, removeSpirit, swapSpirit } from "./Spirits";
+import { addGuarantee } from "./Treaties";
 
 const clampBp = (v: number) => Math.max(0, Math.min(10_000, v));
 
@@ -26,6 +27,30 @@ function insertSorted(list: string[], v: string): void {
   let i = list.length;
   while (i > 0 && list[i - 1] > v) i--;
   list.splice(i, 0, v);
+}
+
+/** ww226: the effect's country runs `actor`'s overlord (its government is set, not fought for). */
+function installedByOverlord(ctx: EffectCtx, actor: number): boolean {
+  return (
+    actor !== ctx.self &&
+    ctx.pol.ww.endgame.subjectOf(actor)?.overlord === ctx.self
+  );
+}
+
+/**
+ * ww226: a set_government became a civil war. A foreign sponsor (the
+ * effect's own country, a coup's) guarantees the rebels; the rest of the
+ * effect list speaks of the new government, so `actor` in the context
+ * (self, from, target) is the rebels from here on.
+ */
+function afterRising(ctx: EffectCtx, actor: number, rebels: number): void {
+  const pol = ctx.pol;
+  if (ctx.self !== actor && pol.living(ctx.self)) {
+    addGuarantee(pol, ctx.self, rebels, ctx.day);
+  }
+  if (ctx.self === actor) ctx.self = rebels;
+  if (ctx.from === actor) ctx.from = rebels;
+  if (ctx.target === actor) ctx.target = rebels;
 }
 
 export function applyPoliticalEffect(
@@ -65,7 +90,16 @@ export function applyPoliticalEffect(
     }
     case "set_government": {
       const i = resolveIdeology(pol, actor, e.ideology);
-      if (i >= 0) setGovernment(pol, actor, i, ctx.tick);
+      if (i < 0) break;
+      // ww226: a country changes its own ruling ideology only by a civil
+      // war; an overlord sets its subject's government, and the Imjin War
+      // keeps its court changes.
+      if (pol.ww.imjin || installedByOverlord(ctx, actor)) {
+        setGovernment(pol, actor, i, ctx.tick);
+        break;
+      }
+      const rebels = civilWar(pol, actor, i, ctx.tick);
+      if (rebels > 0) afterRising(ctx, actor, rebels);
       break;
     }
     case "set_leader":

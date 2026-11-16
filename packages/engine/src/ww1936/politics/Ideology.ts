@@ -17,7 +17,7 @@ import {
   addPopularity,
   largestOther,
 } from "@openfront/engine-lib/ww1936/PoliticsRules";
-import { startCivilWar } from "../endgame/CivilWar";
+import { inCivilWar, startCivilWarSlot } from "../endgame/CivilWar";
 import { advisorFitsIdeology } from "./Advisors";
 import { fitsFactionIdeology, leaveFaction } from "./Factions";
 import { setLawFree } from "./Laws";
@@ -255,24 +255,44 @@ export function setLeader(
   void tick;
 }
 
-/** Spec §5.8 in P3: a violent change of government. */
+/**
+ * Spec §5.8 (ww226: every in-country change of the ruling ideology): a
+ * civil war, the rebels of `ideology` against the government (spec §15).
+ * Returns the rebels' smallID, 0 when none rose. No civil war — nothing
+ * changes — when the ideology already rules, in the Imjin War, or while the
+ * country is already one side of a civil war (that war decides who rules).
+ * A country without land to fight over changes government as before: an
+ * exile or one that no longer plays, or one whose only region is its
+ * capital (or with no civil-war slot free): there the rising takes power at
+ * once, with the strife and the news.
+ */
 export function civilWar(
   pol: WwPolitics,
   id: number,
   ideology: number,
   tick: number,
-): void {
+): number {
   const c = pol.country(id);
-  if (c === null) return;
+  if (c === null || ideology < 0 || ideology > 3 || c.ruling === ideology) {
+    return 0;
+  }
   // ww177: 1936's ideological civil war has no place in the Imjin War
   // (its court and uprisings are P4's).
-  if (pol.ww.imjin) return;
-  // P5 hook (C): a real civil war when lane C splits the country (spec §15).
-  if (startCivilWar(pol.ww.endgame, id, IDEOLOGIES[ideology], tick)) return;
+  if (pol.ww.imjin) return 0;
+  const eg = pol.ww.endgame;
+  if (!eg.isActor(id) || eg.isExile(id)) {
+    setGovernment(pol, id, ideology, tick);
+    return 0;
+  }
+  if (inCivilWar(eg, id)) return 0;
+  const rebels = startCivilWarSlot(eg, id, IDEOLOGIES[ideology], tick);
+  if (rebels > 0) return rebels;
   setGovernment(pol, id, ideology, tick);
   c.stabBaseBp = Math.max(0, c.stabBaseBp - 2500);
   c.wsBaseBp = Math.max(0, c.wsBaseBp - 1000);
   addSpirit(pol, id, "gen_civil_strife", 180, pol.day());
+  eg.news("news_civil_war_seized", { tag: c.tag, ideology: IDEOLOGIES[ideology] });
+  return 0;
 }
 
 /** "largest_other" and "ruling" in effects (spec §5.4, §5.5 content); -1 when unknown. */

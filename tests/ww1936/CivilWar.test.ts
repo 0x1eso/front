@@ -17,10 +17,12 @@ import { snapshotGame } from "@openfront/engine/snapshot/GameSnapshot";
 import { saveDesign } from "@openfront/engine/ww1936/depth/Designs";
 import { declareWar } from "@openfront/engine/ww1936/Diplomacy";
 import { drawPlanes } from "@openfront/engine/ww1936/economy/Buildings";
+import { activateCountry } from "@openfront/engine/ww1936/endgame/Activate";
 import {
   endCivilWar,
   startCivilWar,
 } from "@openfront/engine/ww1936/endgame/CivilWar";
+import { makeSubject } from "@openfront/engine/ww1936/endgame/Subjects";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
 import { civilWar } from "@openfront/engine/ww1936/politics/Ideology";
 import { setLawFree } from "@openfront/engine/ww1936/politics/Laws";
@@ -46,6 +48,37 @@ const CW_EVENT: EventDef = {
   ],
 };
 
+/** ww226: a peaceful-looking change of government, then words for the new one. */
+const GOV_EVENT: EventDef = {
+  id: "test_set_government_fascist",
+  kind: "country",
+  once: "never",
+  options: [
+    {
+      id: "a",
+      ai: { base: 1 },
+      effects: [
+        { kind: "set_government", ideology: "fascist" },
+        { kind: "stability", pct: -10 },
+      ],
+    },
+  ],
+};
+
+/** ww226: the receiver puts its own ideology into `from` (a coup, or an overlord's order). */
+const COUP_EVENT: EventDef = {
+  id: "test_coup_democratic",
+  kind: "country",
+  once: "never",
+  options: [
+    {
+      id: "a",
+      ai: { base: 1 },
+      effects: [{ kind: "set_government", who: "from", ideology: "democratic" }],
+    },
+  ],
+};
+
 /** K5's Spanish end event, reduced to the spirit's lift and the winner's rename. */
 const ESP_END: EventDef = {
   id: "esp_civil_war_ends",
@@ -65,7 +98,13 @@ const ESP_END: EventDef = {
 beforeEach(() =>
   usePoliticsContent(
     endgameFixture({
-      events: [...endgameFixture().events, CW_EVENT, ESP_END],
+      events: [
+        ...endgameFixture().events,
+        CW_EVENT,
+        ESP_END,
+        GOV_EVENT,
+        COUP_EVENT,
+      ],
     }),
   ),
 );
@@ -383,15 +422,16 @@ describe("World War 1936 P5: civil wars (spec §15)", () => {
     expect(ww.politics.legalOwner[KIEV]).toBe(sun);
     expect(ww.land.controller[KIEV]).toBe(sun);
     expect(g.ownerID(ww.scenario.vpTile(ww.scenario.region(KIEV)!))).toBe(sun);
-    expect(eg.countryState(cw)).toBe("gone");
+    // ww226: the lost side's slot sleeps again for the next civil war.
+    expect(eg.countryState(cw)).toBe("dormant");
     expect(eg.isActor(cw)).toBe(false);
     expect(ww.land.rowsOf(cw)).toEqual([]);
     expect(ww.isAtWar(cw, sun)).toBe(false);
     expect(eg.war(warId)!.ended?.winner).toBe(1);
-    // The slot is never used again; nothing goes to a conference.
+    // Nothing goes to a conference.
     step(runner, 60);
     expect(eg.conferences).toEqual([]);
-    expect(eg.countryState(cw)).toBe("gone");
+    expect(eg.countryState(cw)).toBe("dormant");
     expect(ww.land.controller[KIEV]).toBe(sun);
     expect(ww.politics.legalOwner[KIEV]).toBe(sun);
   }, 60_000);
@@ -423,7 +463,7 @@ describe("World War 1936 P5: civil wars (spec §15)", () => {
     );
   }, 60_000);
 
-  it("with all slots used civil_war falls back to the P3 government change", async () => {
+  it("with every slot playing the rising takes power at once, with the news", async () => {
     const s = await started();
     const { ww, eg } = s;
     const sun = endId("SUN");
@@ -432,6 +472,10 @@ describe("World War 1936 P5: civil wars (spec §15)", () => {
     const stab0 = pc.stabBaseBp;
     sovietSplit(s);
     expect(pc.ruling).toBe(IDEO_FAS);
+    expect(eg.endgameNews).toContainEqual({
+      id: "news_civil_war_seized",
+      params: { tag: "SUN", ideology: "fascist" },
+    });
     expect(pc.hasSpirit("gen_civil_strife")).toBe(true);
     expect(pc.stabBaseBp).toBe(Math.max(0, stab0 - 2500));
     expect(ww.politics.legalOwner[KIEV]).toBe(sun);
@@ -443,10 +487,11 @@ describe("World War 1936 P5: civil wars (spec §15)", () => {
     const s = await started();
     const { g, ww, eg } = s;
     const sun = endId("SUN");
+    const ruling = ww.politics.country(sun)!.ruling;
     sovietSplit(s);
-    civilWar(ww.politics, sun, IDEO_DEM, g.ticks());
-    // The government changes instead; the next slot stays asleep.
-    expect(ww.politics.country(sun)!.ruling).toBe(IDEO_DEM);
+    expect(civilWar(ww.politics, sun, IDEO_DEM, g.ticks())).toBe(0);
+    // ww226: the war under way decides; the next slot stays asleep.
+    expect(ww.politics.country(sun)!.ruling).toBe(ruling);
     expect(eg.countryState(endId("CW2"))).toBe("dormant");
     expect(eg.wars.filter((w) => w.kind === "civil")).toHaveLength(1);
   }, 60_000);
@@ -605,5 +650,96 @@ describe("World War 1936 P5: civil wars (spec §15)", () => {
     endCivilWar(eg, eg.warOfPair(cw, sun), 1, g.ticks());
     expect(ww.politics.legalOwner[KIEV]).toBe(pol);
     expect(ww.land.controller[KIEV]).toBe(pol);
+  }, 60_000);
+  it("ww226: set_government to another ideology is a civil war; the effects after it are the rebels'", async () => {
+    const { g, ww, eg } = await started();
+    const [sun, cw] = [endId("SUN"), endId("CW1")];
+    const pc = ww.politics.country(sun)!;
+    const ruling = pc.ruling;
+    ww.politics.queueEvent(GOV_EVENT.id, sun, sun, 0, 0);
+    ww.politics.flushEvents(g.ticks());
+    expect(pc.ruling).toBe(ruling);
+    expect(eg.countryState(cw)).toBe("active");
+    expect(ww.politics.country(cw)!.ruling).toBe(IDEO_FAS);
+    expect(eg.war(eg.warOfPair(cw, sun))?.kind).toBe("civil");
+    // The stability line spoke of the new government: the rebels' 50% − 10%.
+    expect(ww.politics.country(cw)!.stabBaseBp).toBe(4000);
+    // The ruling ideology again: nothing happens.
+    const wars = eg.wars.length;
+    ww.politics.queueEvent(GOV_EVENT.id, cw, cw, 0, 0);
+    ww.politics.flushEvents(g.ticks());
+    expect(eg.wars.length).toBe(wars);
+  }, 60_000);
+
+  it("ww226: a coup splits the target, its sponsor guarantees the rebels; an overlord sets its subject's government", async () => {
+    const { g, ww, eg } = await started();
+    const pol = ww.politics;
+    const [fra, deu, ita, cw] = [
+      endId("FRA"),
+      endId("DEU"),
+      endId("ITA"),
+      endId("CW1"),
+    ];
+    // France (democratic) sponsors democrats in Germany.
+    const deuRuling = pol.country(deu)!.ruling;
+    expect(deuRuling).not.toBe(IDEO_DEM);
+    pol.queueEvent(COUP_EVENT.id, fra, deu, 0, 0);
+    pol.flushEvents(g.ticks());
+    expect(pol.country(deu)!.ruling).toBe(deuRuling);
+    expect(pol.country(cw)!.ruling).toBe(IDEO_DEM);
+    expect(pol.guarantees).toContainEqual(
+      expect.objectContaining({ by: fra, to: cw }),
+    );
+    // Italy as France's puppet: the subject's government is set, no war.
+    makeSubject(eg, ita, fra, "puppet", false, g.ticks());
+    expect(pol.country(ita)!.ruling).toBe(pol.country(fra)!.ruling);
+    pol.country(ita)!.ruling = IDEO_FAS;
+    const wars = eg.wars.length;
+    pol.queueEvent(COUP_EVENT.id, fra, ita, 0, 0);
+    pol.flushEvents(g.ticks());
+    expect(pol.country(ita)!.ruling).toBe(IDEO_DEM);
+    expect(eg.wars.length).toBe(wars);
+    // A woken state takes its government peacefully.
+    const svk = activateCountry(
+      eg,
+      "SVK",
+      { regions: [END.region["slovakia"]], government: { ideology: "fascist" } },
+      g.ticks(),
+    );
+    expect(svk).toBeGreaterThan(0);
+    expect(pol.country(svk)!.ruling).toBe(IDEO_FAS);
+    expect(eg.wars.length).toBe(wars);
+  }, 60_000);
+
+  it("ww226: a lost side's slot sleeps again afresh and the next civil war wakes it", async () => {
+    const s = await started();
+    const { g, ww, eg } = s;
+    const [sun, cw] = [endId("SUN"), endId("CW1")];
+    sovietSplit(s);
+    const rc = ww.politics.country(cw)!;
+    rc.flags.set("test_flag", [0, -1]);
+    rc.firedOnce.add("test_once");
+    ww.economy.country(cw)!.stock[equipKey("infantry_equipment", 1)] += 500;
+    endCivilWar(eg, eg.warOfPair(cw, sun), 1, g.ticks());
+    expect(eg.countryState(cw)).toBe("dormant");
+    expect(eg.nameKey[cw]).toBeNull();
+    expect(eg.nameArg[cw]).toBeNull();
+    expect(rc.flags.size).toBe(0);
+    expect(rc.firedOnce.size).toBe(0);
+    expect(rc.spirits).toEqual([]);
+    expect(ww.economy.country(cw)!.stock.every((n) => n === 0)).toBe(true);
+    expect(ww.scenario.landRegions.some((r) => eg.hasCore(cw, r.id))).toBe(false);
+    // Every other slot plays: the recycled one is the next rebels'.
+    for (const t of CIVIL_WAR_SLOTS.slice(1)) {
+      eg.setCountryState(endId(t), CS_ACTIVE);
+    }
+    step(s.runner, 2);
+    const pc = ww.politics.country(sun)!;
+    addPopularity(pc.pop, IDEO_FAS, 4000 - pc.pop[IDEO_FAS]);
+    expect(startCivilWar(eg, sun, "fascist", g.ticks())).toBe(true);
+    expect(eg.countryState(cw)).toBe("active");
+    expect(ww.politics.country(cw)!.ruling).toBe(IDEO_FAS);
+    expect(ww.isAtWar(cw, sun)).toBe(true);
+    expect(eg.nameArg[cw]).toBe("SUN");
   }, 60_000);
 });
