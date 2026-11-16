@@ -121,7 +121,7 @@ export const COURSE_RAIL_ARMY = "course_rail_army";
  * Occupied places held hard (`rule.hard` >= 2) that tie down one band; a place
  * held lightly (or not yet under a rule row) counts half (ww219 tuning).
  */
-export const GARRISON_PLACES = 3;
+export const GARRISON_PLACES = 4;
 const GARRISON_HARD = 2;
 /** War score at which the trailing coalition gets the counterweight. */
 export const COUNTERWEIGHT_AT = 40;

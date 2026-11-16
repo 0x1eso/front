@@ -19,13 +19,10 @@ import type {
   GwTokenMove,
   GwTokenView,
 } from "@openfront/engine-api/ww1914/GwTokens";
-import {
-  frontLandAt,
-  frontPlaces,
-} from "@openfront/engine-lib/ww1914/FrontLand";
+import { frontPlaces } from "@openfront/engine-lib/ww1914/FrontLand";
 import { GW_CAPITALS } from "@openfront/engine-lib/ww1914/PlaceRules";
 import type { GreatWar } from "./GreatWar";
-import { holderOf, lineStep, reachedLine } from "./Land";
+import { holderOf } from "./Land";
 import { endStrain } from "./Strain";
 import {
   bandTenths,
@@ -82,9 +79,10 @@ const d2 = (a: GwPlace, b: GwPlace) => {
 function anchorsOf(gw: GreatWar, t: GwTheatreState): Record<GwSide, Pt> | null {
   const all = frontPlaces(t.id);
   if (all.length === 0) return null;
-  const land = frontLandAt(t.id, reachedLine(t), lineStep(t), t.salient ?? 0);
+  // ww219 M: who truly holds the place (the map), not the line's reading: a
+  // place the line gives us but no one took (a neutral's) is nobody's here.
   const sideOf = (p: GwPlace): GwSide | null =>
-    land.get(p) ?? sideIn(gw, t.id, holderOf(gw, p));
+    sideIn(gw, t.id, holderOf(gw, p));
   const by: Record<GwSide, GwPlace[]> = { central: [], entente: [] };
   for (const p of all) {
     const s = sideOf(p);
@@ -93,14 +91,21 @@ function anchorsOf(gw: GreatWar, t: GwTheatreState): Record<GwSide, Pt> | null {
   const whole = centre(all)!;
   const out = {} as Record<GwSide, Pt>;
   for (const side of GW_SIDES) {
-    const mine = by[side];
+    let mine = by[side];
     const foe = by[side === "central" ? "entente" : "central"];
+    // ww219 M: an end with no land listed on the front (Russia's in the
+    // Caucasus) stands on any land its side holds, nearest the foe's.
+    if (mine.length === 0 && foe.length > 0) {
+      mine = GW_PLACE_KEYS.filter(
+        (p) => sideIn(gw, t.id, holderOf(gw, p)) === side,
+      );
+    }
     if (mine.length === 0) {
       out[side] = whole;
       continue;
     }
     if (foe.length === 0) {
-      out[side] = centre(mine)!;
+      out[side] = GW_PLACES[medoid(mine)].center;
       continue;
     }
     const near = mine
@@ -108,9 +113,27 @@ function anchorsOf(gw: GreatWar, t: GwTheatreState): Record<GwSide, Pt> | null {
       .sort((a, b) => a.d - b.d || (a.p < b.p ? -1 : 1))
       .slice(0, FRONTIER)
       .map((x) => x.p);
-    out[side] = centre(near)!;
+    // ww219 M: the near place whose centre is nearest their middle, so the
+    // token stands on our own land, never behind the foe's line or at sea.
+    out[side] = GW_PLACES[medoid(near)].center;
   }
   return out;
+}
+
+/** The place of `list` whose centre is nearest the list's middle. */
+function medoid(list: readonly GwPlace[]): GwPlace {
+  const [cx, cy] = centre(list)!;
+  let best = list[0];
+  let bestD = Infinity;
+  for (const p of list) {
+    const [x, y] = GW_PLACES[p].center;
+    const d = (x - cx) * (x - cx) + (y - cy) * (y - cy);
+    if (d < bestD) {
+      bestD = d;
+      best = p;
+    }
+  }
+  return best;
 }
 
 const mid = (a: Pt, b: Pt): Pt => [
@@ -318,7 +341,7 @@ function garrisons(gw: GreatWar, seat: GwSeatState): GwTokenView[] {
       rel: "own",
       theatre: null,
       side: null,
-      at: centre(row.places)!,
+      at: GW_PLACES[medoid(row.places)].center,
       order: null,
       group,
     });
