@@ -12,6 +12,7 @@ import type { EffectCtx } from "./Dispatch";
 import {
   civilWar,
   resolveIdeology,
+  seizePower,
   setGovernment,
   setLeader,
 } from "./Ideology";
@@ -35,22 +36,6 @@ function installedByOverlord(ctx: EffectCtx, actor: number): boolean {
     actor !== ctx.self &&
     ctx.pol.ww.endgame.subjectOf(actor)?.overlord === ctx.self
   );
-}
-
-/**
- * ww226: a set_government became a civil war. A foreign sponsor (the
- * effect's own country, a coup's) guarantees the rebels; the rest of the
- * effect list speaks of the new government, so `actor` in the context
- * (self, from, target) is the rebels from here on.
- */
-function afterRising(ctx: EffectCtx, actor: number, rebels: number): void {
-  const pol = ctx.pol;
-  if (ctx.self !== actor && pol.living(ctx.self)) {
-    addGuarantee(pol, ctx.self, rebels, ctx.day);
-  }
-  if (ctx.self === actor) ctx.self = rebels;
-  if (ctx.from === actor) ctx.from = rebels;
-  if (ctx.target === actor) ctx.target = rebels;
 }
 
 export function applyPoliticalEffect(
@@ -91,15 +76,19 @@ export function applyPoliticalEffect(
     case "set_government": {
       const i = resolveIdeology(pol, actor, e.ideology);
       if (i < 0) break;
-      // ww226: a country changes its own ruling ideology only by a civil
-      // war; an overlord sets its subject's government, and the Imjin War
-      // keeps its court changes.
+      // ww226: a country changes its own ruling ideology only with a civil
+      // war (the old government's side rises, Ideology.seizePower); an
+      // overlord sets its subject's government, and the Imjin War keeps its
+      // court changes.
       if (pol.ww.imjin || installedByOverlord(ctx, actor)) {
         setGovernment(pol, actor, i, ctx.tick);
         break;
       }
-      const rebels = civilWar(pol, actor, i, ctx.tick);
-      if (rebels > 0) afterRising(ctx, actor, rebels);
+      seizePower(pol, actor, i, ctx.tick);
+      // A coup's sponsor (the effect's own country) stands by the new government.
+      if (actor !== ctx.self && pol.living(ctx.self)) {
+        addGuarantee(pol, ctx.self, actor, ctx.day);
+      }
       break;
     }
     case "set_leader":

@@ -256,15 +256,12 @@ export function setLeader(
 }
 
 /**
- * Spec §5.8 (ww226: every in-country change of the ruling ideology): a
- * civil war, the rebels of `ideology` against the government (spec §15).
- * Returns the rebels' smallID, 0 when none rose. No civil war — nothing
- * changes — when the ideology already rules, in the Imjin War, or while the
- * country is already one side of a civil war (that war decides who rules).
- * A country without land to fight over changes government as before: an
- * exile or one that no longer plays, or one whose only region is its
- * capital (or with no civil-war slot free): there the rising takes power at
- * once, with the strife and the news.
+ * Spec §5.8: a violent change of government, the rebels of `ideology`
+ * rising against the government (spec §15). Returns the rebels' smallID,
+ * 0 when none rose. Nothing changes when the ideology already rules, in the
+ * Imjin War, or while the country is already one side of a civil war (that
+ * war decides who rules). A country without land to fight over changes
+ * government instead (riseOrSeize).
  */
 export function civilWar(
   pol: WwPolitics,
@@ -288,11 +285,54 @@ export function civilWar(
   const rebels = startCivilWarSlot(eg, id, IDEOLOGIES[ideology], tick);
   if (rebels > 0) return rebels;
   setGovernment(pol, id, ideology, tick);
+  strifeNews(pol, id, ideology);
+  return 0;
+}
+
+/**
+ * ww226: a country changes its own ruling ideology (set_government: its
+ * focus, event or decision, an election, a crisis, a coup) only with a
+ * civil war — it takes the new government at once, and the old
+ * government's side rises as the rebels (spec §15; a human picks the side,
+ * ww224). Returns the rebels' smallID, 0 when none rose. Nothing changes
+ * when the ideology already rules or the country is already one side of a
+ * civil war (that war decides who rules); a country without land to fight
+ * over changes peacefully — an exile or one that no longer plays — or, with
+ * a single region (or no civil-war slot free), with the strife and the news.
+ */
+export function seizePower(
+  pol: WwPolitics,
+  id: number,
+  ideology: number,
+  tick: number,
+): number {
+  const c = pol.country(id);
+  if (c === null || ideology < 0 || ideology > 3 || c.ruling === ideology) {
+    return 0;
+  }
+  const eg = pol.ww.endgame;
+  if (pol.ww.imjin || !eg.isActor(id) || eg.isExile(id)) {
+    setGovernment(pol, id, ideology, tick);
+    return 0;
+  }
+  if (inCivilWar(eg, id)) return 0;
+  const old = c.ruling;
+  setGovernment(pol, id, ideology, tick);
+  const rebels = startCivilWarSlot(eg, id, IDEOLOGIES[old], tick);
+  if (rebels === 0) strifeNews(pol, id, ideology);
+  return rebels;
+}
+
+/** A change without a civil war: stability −25%, war support −10%, the strife, the news. */
+function strifeNews(pol: WwPolitics, id: number, ideology: number): void {
+  const c = pol.country(id)!;
   c.stabBaseBp = Math.max(0, c.stabBaseBp - 2500);
   c.wsBaseBp = Math.max(0, c.wsBaseBp - 1000);
   addSpirit(pol, id, "gen_civil_strife", 180, pol.day());
-  eg.news("news_civil_war_seized", { tag: c.tag, ideology: IDEOLOGIES[ideology] });
-  return 0;
+  pol.ww.endgame.news("news_civil_war_seized", {
+    tag: c.tag,
+    ideology: IDEOLOGIES[ideology],
+  });
 }
 
 /** "largest_other" and "ruling" in effects (spec §5.4, §5.5 content); -1 when unknown. */

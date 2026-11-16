@@ -4,7 +4,7 @@
 // (jpn_kwantung_break) rise through events.
 import { GameMapSize, GameMapType } from "@openfront/engine-api/game/GameTypes";
 import { CIVIL_WAR_SLOTS } from "@openfront/engine-api/ww1936/Countries";
-import { CS_GONE } from "@openfront/engine-api/ww1936/EndgameTypes";
+import { CS_ACTIVE } from "@openfront/engine-api/ww1936/EndgameTypes";
 import { IDEO_FAS, IDEO_NEU } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import {
   JPN_BRANCHES,
@@ -17,6 +17,7 @@ import {
   createGameRunner,
   type GameRunner,
 } from "@openfront/engine/GameRunner";
+import { endCivilWar } from "@openfront/engine/ww1936/endgame/CivilWar";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
 import { openOptions } from "@openfront/engine/ww1936/politics/Events";
 import { focusFinished } from "@openfront/engine/ww1936/politics/Focus";
@@ -166,7 +167,7 @@ const BASE_FIRST = ["jpn_kodoha_faction", "jpn_young_officers"];
 const wars = (r: GameRunner) => r.game.worldWar()!;
 
 describe("Showa Restoration on the real map", () => {
-  it("the rising seizes power from Japan's neutral start, and the old guard splits the country", async () => {
+  it("the rising seizes power from Japan's neutral start, and the old guard splits the country at once", async () => {
     const r = await jpnGame();
     const c = me(r);
     expect(c.ruling).toBe(IDEO_NEU);
@@ -186,11 +187,7 @@ describe("Showa Restoration on the real map", () => {
     expect(c.ruling).toBe(IDEO_FAS);
     expect(c.hasFlag("jpn_regime_seized", 0)).toBe(true);
     expect(c.hasSpirit("jpn_showa_restoration")).toBe(true);
-    expect(civilWars(r)).toHaveLength(0); // the focus itself starts nothing
-    // The seizure wakes the old establishment (the backlash).
-    expect(c.pop[IDEO_NEU]).toBeGreaterThanOrEqual(2000);
-    run(r, 4000);
-    expect(count(r, REVOLT)).toBeGreaterThanOrEqual(1);
+    // ww226: the seizure itself splits the country, the old guard rising.
     expect(crisis).toBe(0);
     const w = civilWars(r);
     expect(w).toHaveLength(1);
@@ -233,7 +230,7 @@ describe("Showa Restoration on the real map", () => {
 
     // Slots full: the old guard's civil war cannot start, the regime stays.
     for (const t of CIVIL_WAR_SLOTS) {
-      eg.countryStateArr[wars(r).scenario.smallIdOf(t)] = CS_GONE;
+      eg.countryStateArr[wars(r).scenario.smallIdOf(t)] = CS_ACTIVE;
     }
     addPopularity(c.pop, IDEO_NEU, 2500);
     c.stabBaseBp = 0;

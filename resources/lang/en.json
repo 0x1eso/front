@@ -18231,7 +18231,7 @@
       "news_bessarabia": "Romania cedes Bessarabia and northern Bukovina to the Soviet Union.",
       "news_casablanca": "At Casablanca, the Allies declare they will accept only unconditional surrender.",
       "news_civil_war": "Civil war has broken out in {tag}",
-      "news_civil_war_seized": "Without land to fight over, the uprising in {tag} takes power at once",
+      "news_civil_war_seized": "{tag} changes government at once, without a civil war",
       "news_country_created": "{tag} has been created",
       "news_croatian_state": "An Independent State of Croatia is proclaimed in Zagreb under Axis protection.",
       "news_dam_destroyed": "The dam at {region} has been destroyed and the lowlands are flooding.",

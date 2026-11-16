@@ -1279,9 +1279,11 @@ export const WORLD_EVENTS: EventDef[] = [
         id: "a",
         history: true,
         ai: { base: 10 },
+        // ww226: the Conducător rules the government Romania has (its
+        // ideology changes only by a civil war).
         effects: [
-          { kind: "set_government", ideology: "fascist" },
           { kind: "set_leader", person: "title:rou_conducator" },
+          { kind: "popularity", ideology: "fascist", pp: 5 },
           { kind: "stability", pct: -5 },
         ],
       },
@@ -1337,8 +1339,10 @@ export const WORLD_EVENTS: EventDef[] = [
         id: "a",
         history: true,
         ai: { base: 10 },
+        // ww226: the movement rallies the government Japan has (every change
+        // of ideology is a civil war; history's course is not one).
         effects: [
-          { kind: "set_government", ideology: "fascist" },
+          { kind: "popularity", ideology: "ruling", pp: 10 },
           { kind: "stability", pct: 5 },
         ],
       },

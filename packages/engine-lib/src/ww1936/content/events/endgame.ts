@@ -301,8 +301,9 @@ export const ENDGAME_EVENTS: EventDef[] = [
         ai: { base: 80 },
         effects: [
           { kind: "news", id: "news_golden_square" },
-          { kind: "set_government", ideology: "fascist" },
+          // ww226: the coup changes the cabinet, not the ideology (that is a civil war).
           { kind: "set_leader", person: "title:irq_national_defence_head" },
+          { kind: "popularity", ideology: "fascist", pp: 10 },
           { kind: "opinion", of: T("GBR"), value: -50, days: 730 },
           { kind: "opinion", who: T("GBR"), of: "self", value: -50, days: 730 },
           { kind: "war_goal", who: T("GBR"), on: "self", type: "topple" },
@@ -504,7 +505,7 @@ export const ENDGAME_EVENTS: EventDef[] = [
         ai: { base: 80 },
         effects: [
           { kind: "end_war", of: T("GBR") },
-          { kind: "set_government", ideology: "neutral" },
+          // ww226: the regent is back over the same government.
           { kind: "set_leader", person: "title:irq_regent" },
           { kind: "access", of: T("GBR") },
         ],
@@ -840,7 +841,7 @@ export const ENDGAME_EVENTS: EventDef[] = [
         ai: { base: 70 },
         effects: [
           { kind: "news", id: "news_romania_switches" },
-          { kind: "set_government", ideology: "neutral" },
+          // ww226: the king's coup keeps the ideology (a change is a civil war).
           { kind: "set_leader", person: "rou_michael" },
           { kind: "switch_sides", to: T("SUN") },
         ],
@@ -895,7 +896,8 @@ export const ENDGAME_EVENTS: EventDef[] = [
         ai: { base: 90 },
         effects: [
           { kind: "news", id: "news_fatherland_front" },
-          { kind: "set_government", ideology: "communist" },
+          // ww226: the front swings the country, not its ideology (that is a civil war).
+          { kind: "popularity", ideology: "communist", pp: 15 },
           { kind: "switch_sides", to: T("SUN") },
         ],
       },
@@ -983,13 +985,15 @@ export const ENDGAME_EVENTS: EventDef[] = [
         ai: { base: 80 },
         effects: [
           { kind: "news", id: "news_hungary_coup" },
+          // ww226: Hungary is Germany's subject first; an overlord sets its
+          // subject's government (no civil war).
+          { kind: "make_subject", target: "from", level: "integrated" },
           { kind: "set_government", who: "from", ideology: "fascist" },
           {
             kind: "set_leader",
             who: "from",
             person: "title:hun_nation_leader",
           },
-          { kind: "make_subject", target: "from", level: "integrated" },
         ],
       },
       {

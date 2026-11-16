@@ -1118,8 +1118,8 @@ export const ITA_FOCUSES: FocusDef[] = [
     group: "ita_fascism_fate",
     prereq: [["ita_grand_council_vote"]],
     exclusive: ["ita_salo_republic"],
+    // ww226: history's course: a new premier, not a new ideology (that is a civil war).
     effects: [
-      { kind: "set_government", ideology: "neutral" },
       { kind: "set_leader", person: "title:ita_military_premier" },
       { kind: "set_flag", flag: "ita_july_25" },
       { kind: "stability", pct: -5 },

@@ -651,27 +651,29 @@ describe("World War 1936 P5: civil wars (spec §15)", () => {
     expect(ww.politics.legalOwner[KIEV]).toBe(pol);
     expect(ww.land.controller[KIEV]).toBe(pol);
   }, 60_000);
-  it("ww226: set_government to another ideology is a civil war; the effects after it are the rebels'", async () => {
+  it("ww226: set_government to another ideology takes power and the old government's side rises", async () => {
     const { g, ww, eg } = await started();
     const [sun, cw] = [endId("SUN"), endId("CW1")];
     const pc = ww.politics.country(sun)!;
     const ruling = pc.ruling;
+    expect(ruling).not.toBe(IDEO_FAS);
+    const stab0 = pc.stabBaseBp;
     ww.politics.queueEvent(GOV_EVENT.id, sun, sun, 0, 0);
     ww.politics.flushEvents(g.ticks());
-    expect(pc.ruling).toBe(ruling);
+    expect(pc.ruling).toBe(IDEO_FAS);
     expect(eg.countryState(cw)).toBe("active");
-    expect(ww.politics.country(cw)!.ruling).toBe(IDEO_FAS);
+    expect(ww.politics.country(cw)!.ruling).toBe(ruling);
     expect(eg.war(eg.warOfPair(cw, sun))?.kind).toBe("civil");
-    // The stability line spoke of the new government: the rebels' 50% − 10%.
-    expect(ww.politics.country(cw)!.stabBaseBp).toBe(4000);
+    // The effects after it are the new government's own (the split's −10%, then −10%).
+    expect(pc.stabBaseBp).toBe(Math.max(0, stab0 - 1000 - 1000));
     // The ruling ideology again: nothing happens.
     const wars = eg.wars.length;
-    ww.politics.queueEvent(GOV_EVENT.id, cw, cw, 0, 0);
+    ww.politics.queueEvent(GOV_EVENT.id, sun, sun, 0, 0);
     ww.politics.flushEvents(g.ticks());
     expect(eg.wars.length).toBe(wars);
   }, 60_000);
 
-  it("ww226: a coup splits the target, its sponsor guarantees the rebels; an overlord sets its subject's government", async () => {
+  it("ww226: a coup splits the target, its sponsor stands by the new government; an overlord sets its subject's government", async () => {
     const { g, ww, eg } = await started();
     const pol = ww.politics;
     const [fra, deu, ita, cw] = [
@@ -680,15 +682,16 @@ describe("World War 1936 P5: civil wars (spec §15)", () => {
       endId("ITA"),
       endId("CW1"),
     ];
-    // France (democratic) sponsors democrats in Germany.
+    // France (democratic) puts democrats in power in Germany.
     const deuRuling = pol.country(deu)!.ruling;
     expect(deuRuling).not.toBe(IDEO_DEM);
     pol.queueEvent(COUP_EVENT.id, fra, deu, 0, 0);
     pol.flushEvents(g.ticks());
-    expect(pol.country(deu)!.ruling).toBe(deuRuling);
-    expect(pol.country(cw)!.ruling).toBe(IDEO_DEM);
+    expect(pol.country(deu)!.ruling).toBe(IDEO_DEM);
+    expect(pol.country(cw)!.ruling).toBe(deuRuling);
+    expect(ww.isAtWar(cw, deu)).toBe(true);
     expect(pol.guarantees).toContainEqual(
-      expect.objectContaining({ by: fra, to: cw }),
+      expect.objectContaining({ by: fra, to: deu }),
     );
     // Italy as France's puppet: the subject's government is set, no war.
     makeSubject(eg, ita, fra, "puppet", false, g.ticks());
