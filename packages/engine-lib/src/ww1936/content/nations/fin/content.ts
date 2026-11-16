@@ -28,7 +28,7 @@ export const FIN_SPIRITS: readonly SpiritDef[] = [
     id: "fin_civil_guards",
     icon: "infantry",
     stats: {
-      recruitablePct: 5,
+      recruitablePct: 10,
       coupResistPct: 10,
     },
   },
@@ -209,7 +209,7 @@ export const FIN_SPIRITS: readonly SpiritDef[] = [
     stats: {
       stabilityBp: 1000,
       warSupportBp: 1500,
-      defensePct: 5,
+      defensePct: 10,
     },
   },
   {
