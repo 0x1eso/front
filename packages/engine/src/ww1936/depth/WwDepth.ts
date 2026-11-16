@@ -628,6 +628,9 @@ export class WwDepth implements LandDepthHooks {
     startDepthContent(this);
     startConvert(this); // ww78 B3: a major's stock and wings are real from the start
     startArms(this); // ww229: the minors' bought and licensed arms
+    // ww229 MA1: a start design marks its country's stats; no mark crosses
+    // a tick boundary (a restored game has none), so recompute them now.
+    this.flushStats();
     this.rebuildDerived();
     // Plan decision 36: the first update carries every country.
     for (let id = 1; id < this.cap; id++) this.depthDirty.add(id);
