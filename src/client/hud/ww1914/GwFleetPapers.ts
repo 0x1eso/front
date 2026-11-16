@@ -15,7 +15,8 @@ function line(p: GwFleetPaperView): string {
     return translateText("gw.fleet_paper.move_line", {
       area,
       to: translateText(`gw.fleet.area.${p.to}`),
-      eta: translateText(`gw.ui.move_eta.${gwEtaWord(p.eta ?? 1)}`),
+      // At sea, not by rail (gw.ui.move_eta is the army's).
+      eta: translateText(`gw.token.eta.${gwEtaWord(p.eta ?? 1)}`),
     });
   }
   if (p.kind === "sortie") {

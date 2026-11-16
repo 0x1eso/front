@@ -45,6 +45,7 @@ import {
   clampTo,
   fights,
   monthsFrom,
+  monthsOf,
   news,
   other,
   ruledBySeat,
@@ -123,7 +124,11 @@ export const GW_FLEETS: readonly StartRow[] = [
   row("USA", "battle", 10, "atlantic", true),
 ];
 
-/** Months a capital ship and a boat take at the norm (null: none built). */
+/**
+ * Months between capital ships (and boats) at the norm (null: none built).
+ * ww222 M: about history's pace, each ship two or three years on the slip:
+ * Britain some ten more by 1916, America a few.
+ */
 export const GW_FLEET_ROWS: Readonly<
   Partial<
     Record<
@@ -132,7 +137,7 @@ export const GW_FLEET_ROWS: Readonly<
     >
   >
 > = {
-  GBR: { capMonths: 2, subMonths: 4, capTo: ["gbr_battle_north"] },
+  GBR: { capMonths: 4, subMonths: 4, capTo: ["gbr_battle_north"] },
   DEU: { capMonths: 4, subMonths: 2, capTo: ["deu_battle_north"] },
   FRA: { capMonths: 8, subMonths: null, capTo: ["fra_battle_med"] },
   RUS: {
@@ -148,7 +153,7 @@ export const GW_FLEET_ROWS: Readonly<
     ],
   },
   AUH: { capMonths: 9, subMonths: 6, capTo: ["auh_battle_adriatic"] },
-  USA: { capMonths: 3, subMonths: null, capTo: ["usa_battle_atlantic"] },
+  USA: { capMonths: 8, subMonths: null, capTo: ["usa_battle_atlantic"] },
 };
 
 /** Yard points a month at the norm; a ship takes its months x this. */
@@ -272,6 +277,20 @@ export function fleetHold(
 
 /** Beyond this many map tiles from every anchor a zone is the open ocean. */
 const OCEAN_PAST = 160;
+/**
+ * ww222 M: zones the nearest anchor puts in the wrong sea, by the map's name
+ * (checked on the World1936 map): Biscay and the Irish Sea are the Atlantic,
+ * the Ionian, the Aegean and the eastern basin the Mediterranean, and the
+ * Skagerrak (where Jutland was fought) the North Sea.
+ */
+const ZONE_SEA: Readonly<Record<string, GwSeaArea>> = {
+  "Bay of Biscay": "atlantic",
+  "Irish Sea": "atlantic",
+  "Ionian Sea": "med",
+  "Aegean Sea": "med",
+  "Eastern Mediterranean": "med",
+  Skagerrak: "north",
+};
 const ZONE_AREAS = new WeakMap<object, Map<number, GwSeaArea>>();
 
 /** The sea area a map sea zone belongs to: its nearest anchor, derived once. */
@@ -293,7 +312,7 @@ export function zoneArea(gw: GreatWar, z: number): GwSeaArea {
           }
         }
       }
-      map.set(zone.id, best);
+      map.set(zone.id, ZONE_SEA[zone.name] ?? best);
     }
     ZONE_AREAS.set(gw.scenario, map);
   }
@@ -1073,12 +1092,16 @@ function buildStep(gw: GreatWar): void {
   }
 }
 
+/** A yard's capital ships the news reports: the first, then one in this many. */
+const NEWS_EVERY = 3;
+
 function buildCapital(gw: GreatWar, y: GwYard, capTo: readonly string[]): void {
   const id = capTo[y.built % capTo.length];
   y.built++;
   if (fleetOf(gw, id) === null) return;
   addShip(gw, id, 1);
-  news(gw, "fleet_built", y.tag);
+  // ww222 M: the papers mark the first ship and every third after it.
+  if (y.built % NEWS_EVERY === 1) news(gw, "fleet_built", y.tag);
 }
 
 /** Repair in port, losses found out, moves arriving. */
@@ -1167,6 +1190,18 @@ const SORTIE_PCT: Record<string, number> = {
   cautious: 5,
   principled: 8,
 };
+/**
+ * ww222 M: a month's chance in a thousand to seek battle anyway while the odds
+ * are near (a ratio of 0.5 and up, Jutland's): a big North Sea battle in about half the
+ * wars, not in most-none. It still comes only if the foe's fleet is out.
+ */
+const SORTIE_LONG: Record<string, number> = {
+  hardline: 60,
+  opportunist: 45,
+  cautious: 20,
+  principled: 25,
+};
+const LONG_RATIO = 50;
 
 /** A country nobody plays (or a regent's) moves its fleets (§5). */
 function aiFleetsOf(gw: GreatWar, n: GwNationState): void {
@@ -1232,7 +1267,13 @@ function aiFleetsOf(gw: GreatWar, n: GwNationState): void {
     const r = wwRoll(s.seed, P_SORTIE, s.chapter, i) % 100;
     const hungry = s.blockade >= 6 && n.gauges.bread <= 1;
     if (f.wear > 0) continue;
-    if ((ratio >= 80 && r < (SORTIE_PCT[n.ai] ?? 8)) || (hungry && r < 25)) {
+    const long = wwRoll(s.seed, P_SORTIE, s.chapter, 1000 + i) % 1000;
+    const longPct = (SORTIE_LONG[n.ai] ?? 20) * monthsOf(gw);
+    if (
+      (ratio >= 80 && r < (SORTIE_PCT[n.ai] ?? 8)) ||
+      (ratio >= LONG_RATIO && long < longPct) ||
+      (hungry && r < 25)
+    ) {
       orderSortie(gw, f.id, "full");
     }
   }
