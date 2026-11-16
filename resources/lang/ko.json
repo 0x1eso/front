@@ -4587,7 +4587,7 @@
       "gbr_mr_navicerts": "스페인 중립의 대가로 석유를",
       "fra_mr_belgian_alliance": "벨기에에 동맹 복귀를 청한다",
       "usa_mr_hemisphere_aid": "아메리카 원조 제안",
-      "jpn_mr_demand_indies_oil": "인도네시아에 석유 할당량을 요구한다",
+      "jpn_mr_demand_indies_oil": "동인도에 석유 할당량을 요구한다",
       "jpn_mr_demand_north_china": "화북 자치를 요구한다"
     },
     "decision_desc": {
@@ -4968,7 +4968,7 @@
       "gbr_mr_navicerts": "전쟁에 끼어들지 않는다면 봉쇄선을 지나 석유와 밀을 보내겠다고 마드리드에 제안한다.",
       "fra_mr_belgian_alliance": "독자 노선을 버리고 다시 우리 진영에 들어오라고 브뤼셀에 청한다.",
       "usa_mr_hemisphere_aid": "라틴아메리카 나라에 무기와 차관, 기지를 포함한 방위 협정을 제안한다.",
-      "jpn_mr_demand_indies_oil": "인도네시아 석유의 일정 몫을 해마다 팔라고 네덜란드에 요구한다.",
+      "jpn_mr_demand_indies_oil": "동인도 석유의 일정 몫을 해마다 팔라고 네덜란드에 요구한다.",
       "jpn_mr_demand_north_china": "화북의 성들이 우리 영향 아래 스스로 다스리도록 허용하라고 중국에 요구한다."
     },
     "declare": {
@@ -10520,7 +10520,7 @@
       "mr_navicerts_offer": "중립의 대가로 영국 석유를",
       "mr_belgian_alliance_offer": "파리가 복귀를 청하다",
       "mr_hemisphere_aid_offer": "워싱턴의 제안",
-      "mr_indies_oil_demand": "도쿄가 인도네시아 석유를 원하다",
+      "mr_indies_oil_demand": "도쿄가 동인도 석유를 원하다",
       "mr_north_china_demand": "화북에 대한 일본의 요구"
     },
     "eventui": {
@@ -14662,7 +14662,7 @@
       "jpn_mr_concordia_officials": "협화회 관료",
       "jpn_mr_crown_puyi": "푸이에게 통치를 맡긴다",
       "jpn_mr_kwantung_rule": "군이 신징을 다스린다",
-      "jpn_mr_indies_oil_talks": "인도네시아 석유 협상",
+      "jpn_mr_indies_oil_talks": "동인도 석유 협상",
       "jpn_mr_mexican_oil": "멕시코 석유",
       "jpn_mr_north_china_demands": "화북에 대한 요구"
     },
