@@ -34,6 +34,7 @@ import type { GwBookView, GwLawView } from "./GwLaw";
 import type { GwPlace } from "./GwPlaces";
 import type { GwPressView } from "./GwPress";
 import type { GwSocietyView } from "./GwSociety";
+import type { GwTokenView } from "./GwTokens";
 
 /** One of the chief of staff's papers; send it back as an `allocate`. */
 export interface GwProposal {
@@ -68,6 +69,19 @@ export interface GwProposal {
       why: string | null;
     }[];
     feints: readonly GwTheatre[];
+  };
+  /**
+   * ww218: a band moved between fronts (paper id "move"): from a front, or
+   * from the home reserve (null), arriving in `eta` chapters. `asked`: the
+   * ruler asked for it (order move_band); `objects`: the chief is against
+   * it, and signing it overrules him.
+   */
+  move?: {
+    from: GwTheatre | null;
+    to: GwTheatre;
+    eta: number;
+    asked: boolean;
+    objects: boolean;
   };
 }
 
@@ -358,4 +372,6 @@ export interface GwWorldView {
   dossier?: GwDossierView;
   /** ww207: the bottom strip, the axes and communities, the election card; absent with no house. */
   society?: GwSocietyView;
+  /** ww218: army tokens on the map (GwTokens.ts); absent out of war. */
+  tokens?: readonly GwTokenView[];
 }

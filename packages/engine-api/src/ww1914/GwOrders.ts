@@ -488,6 +488,16 @@ export const GwOrderSchema = z.discriminatedUnion("kind", [
       )
       .max(64),
   }),
+  /**
+   * ww218: 다른 전선으로 옮기자고 한다: a band from a front (or the home
+   * reserve, null) to another front. The chief's war papers then carry it
+   * as the paper "move"; signing that (allocate, paper "move") sends it.
+   */
+  z.object({
+    kind: z.literal("move_band"),
+    from: z.enum(GW_THEATRES).nullable(),
+    to: z.enum(GW_THEATRES),
+  }),
 ]);
 export type GwOrder = z.infer<typeof GwOrderSchema>;
 
@@ -592,5 +602,9 @@ export const GW_ORDER_BLOCKS = [
   "paid_only", // word has got round: he takes only what is paid now
   // ww213
   "money_kept", // the budget and voted war credits can't be withdrawn
+  // ww218
+  "no_band", // no band to spare there: one is all that holds it
+  "in_flight", // a band of ours is on the rails already
+  "no_front", // not a front of ours, or the same front
 ] as const;
 export type GwOrderBlock = (typeof GW_ORDER_BLOCKS)[number];

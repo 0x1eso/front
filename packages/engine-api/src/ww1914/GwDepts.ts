@@ -148,7 +148,14 @@ export const GwNeedSchema = z
 export type GwNeed = z.infer<typeof GwNeedSchema>;
 
 /** How a `front` course fills the war paper's proposal (marked as his). */
-export const GW_FRONT_COURSES = ["attack", "hold", "shorten", "shift"] as const;
+export const GW_FRONT_COURSES = [
+  "attack",
+  "hold",
+  "shorten",
+  "shift",
+  // ww218: a band moved to another front (the paper "move").
+  "move",
+] as const;
 
 /**
  * A course (안). `lean`: how it reads to a head's lean; his department's own
