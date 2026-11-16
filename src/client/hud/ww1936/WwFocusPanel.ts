@@ -397,7 +397,9 @@ export class WwFocusPanel extends LitElement implements Controller {
     const detail = view.detail(me);
     if (detail === null) return null;
     const tag = p.countryTag();
+    // ww232: the engine's tree (rebels keep the one they took with them).
     const treeId =
+      detail.tree ??
       (tag === null ? undefined : CONTENT.countryIdx.get(tag)?.tree) ??
       "generic";
     // ww228: only the focuses this country can ever take (the engine's rule);

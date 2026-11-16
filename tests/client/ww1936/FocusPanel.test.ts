@@ -173,6 +173,30 @@ describe("<ww-focus-panel> (spec §21.3)", () => {
     );
   });
 
+  it("ww232: the tree the engine names (a civil war's rebels keep theirs)", async () => {
+    // The country's own row is Germany's; the engine says it plays Britain's.
+    const gbr = CONTENT.treeFocuses.GBR.map((i) => CONTENT.focuses[i]);
+    const first = gbr[0].id;
+    const m = await mount(
+      polDetail(
+        {},
+        {
+          tree: "GBR",
+          cards: gbr.map((f, idx) => ({
+            idx,
+            state: f.id === first ? 3 : 4,
+            failing: [],
+          })),
+          focus: { id: first, progressMilli: 1_000, daysMilli: 70_000 },
+        },
+      ),
+    );
+    expect(m.q("[data-ww-focus-running]")!.textContent).toContain(
+      `[ww1936.focus.${first}]`,
+    );
+    expect(m.q("[data-ww-focus-card]")!.dataset.wwFocusCard).toBe(first);
+  });
+
   it("start sends focus_start and a busy tree sends focus_queue", async () => {
     const idle = await mount(
       polDetail({

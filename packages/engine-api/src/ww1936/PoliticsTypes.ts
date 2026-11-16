@@ -953,6 +953,11 @@ export interface WwEventCard {
 }
 export interface WwPolDetail {
   smallID: number;
+  /**
+   * ww232: the tree the country plays (the focus panel's; a civil war's
+   * rebels keep the one they took with them). Absent: the tag's own row.
+   */
+  tree?: FocusTreeId;
   ppGainMilli: number;
   focus: { id: FocusId; progressMilli: number; daysMilli: number } | null;
   /** The reserved focuses in order (at most WW_FOCUS_QUEUE). */
