@@ -454,15 +454,14 @@ function askFleet(c: GwCtx, id: string, what: GwSeaArea | "sortie"): void {
 }
 
 /**
- * The orders the card sends. Their schema and handling are lane A's
- * (ww221 §4: move_fleet, and the sortie that opens the Admiralty's paper);
- * the cast goes when A's order kinds are in GwOrderSchema.
+ * The orders the card sends (ww221 §4): move_fleet and sortie_fleet put the
+ * ask to the Admiralty, whose paper the ruler then signs (fleet_paper).
  */
 export function fleetMoveOrder(fleet: string, to: GwSeaArea): GwOrder {
-  return { kind: "move_fleet", fleet, to } as unknown as GwOrder;
+  return { kind: "move_fleet", fleet, to };
 }
 export function fleetSortieOrder(fleet: string): GwOrder {
-  return { kind: "sortie_fleet", fleet } as unknown as GwOrder;
+  return { kind: "sortie_fleet", fleet };
 }
 
 /** A closed sea's or sortie's reason in words. */

@@ -469,7 +469,11 @@ export function signFleetPaper(
     reason(gw, seat, pick === "stay" ? "fleet_kept" : "fleet_sortie_signed");
   } else if (p.kind === "move") {
     if (!sendFleet(gw, p.fleet, p.to!)) return "closed";
-    if (p.mission !== undefined) setMission(gw, p.fleet, p.mission);
+    // The duty it takes up on arrival (setMission refuses a fleet under way).
+    const f = fleetOf(gw, p.fleet);
+    if (p.mission !== undefined && p.mission !== "strike" && f !== null) {
+      f.mission = p.mission;
+    }
     reason(gw, seat, "fleet_move_signed");
   } else {
     if (!setMission(gw, p.fleet, p.mission!)) return "closed";
