@@ -6,6 +6,12 @@ import type { MapRenderer } from "../../render/gl/MapRenderer";
 import type { TransformHandler } from "../../TransformHandler";
 import type { GameView } from "../../view";
 import type { GwMapApi, GwSpot } from "./GwCtx";
+import {
+  GW_TOKEN_TAP_PX,
+  type GwTokenPlacement,
+  type GwTokenSource,
+  hitGwToken,
+} from "./GwTokenModel";
 
 /** How near the camera comes to a place. */
 const PLACE_ZOOM = 5;
@@ -90,6 +96,22 @@ export class GwMap implements GwMapApi {
       taken.push({ x: p.x, y: top });
       el.style.transform = `translate(${Math.round(p.x)}px, ${Math.round(top)}px) translate(-50%, -100%)`;
     }
+  }
+
+  /** ww218 §5: the army token within 24 px of a screen point, before any place. */
+  tokenAt(
+    source: GwTokenSource,
+    x: number,
+    y: number,
+  ): GwTokenPlacement | null {
+    const zoom = Math.max(this.transform.scale, 1e-6);
+    const w = this.transform.screenToWorldCoordinatesFloat(x, y);
+    return hitGwToken(
+      source.placements(zoom),
+      w.x,
+      w.y,
+      GW_TOKEN_TAP_PX / zoom,
+    );
   }
 
   /** The land under a screen point, or null for the sea and off the map. */

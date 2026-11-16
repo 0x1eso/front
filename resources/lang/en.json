@@ -5934,6 +5934,72 @@
       "rus_rail": "Russian railway loans",
       "us_loans": "American loans"
     },
+    "token": {
+      "army": "{country} army",
+      "arrive": {
+        "0": "arrives within the month",
+        "1": "arrives in about a month",
+        "2": "arrives in about two months",
+        "3": "arrives in a season"
+      },
+      "asked": "You asked the chief of staff to move troops to {front}. His answer comes with the war papers.",
+      "close": "Close",
+      "closed": "Not possible now",
+      "count": "{army}: {n} divisions",
+      "count_range": "{army}: {lo}–{hi} divisions",
+      "count_unknown": "{army}: size unknown",
+      "due": {
+        "0": "Without your word the chief of staff sends it on himself within the month.",
+        "1": "Without your word the chief of staff sends it on himself in about a month.",
+        "2": "Without your word the chief of staff sends it on himself in about two months.",
+        "3": "Without your word the chief of staff sends it on himself in a season."
+      },
+      "eta": {
+        "0": "within the month",
+        "1": "about a month",
+        "2": "about two months",
+        "3": "a season"
+      },
+      "fill": {
+        "0": "badly depleted",
+        "1": "half empty",
+        "2": "fairly full",
+        "3": "at full strength"
+      },
+      "move": "Propose moving troops to another front",
+      "move_short": "Propose a move",
+      "move_to": "{front} · by rail, {eta}",
+      "move_where": "To which front?",
+      "on_rails": "{from} → {to} · {when}",
+      "order": {
+        "0": "close to breaking",
+        "1": "worn out",
+        "2": "holding",
+        "3": "in good order"
+      },
+      "ours": "Our side",
+      "seen": {
+        "air": "air reconnaissance",
+        "ally": "the ally's word",
+        "codes": "codes read",
+        "contact": "only contact at the line",
+        "none": "no information",
+        "own": "our own army",
+        "report": "intelligence reports"
+      },
+      "sure": {
+        "0": "nothing known",
+        "1": "a rough guess",
+        "2": "fairly reliable",
+        "3": "certain"
+      },
+      "sure_seen": "{sure} ({seen})",
+      "theirs": "Facing us",
+      "title_front": "{front} · {line}",
+      "title_garrison": "Holding down {land}",
+      "title_moving": "On the rails",
+      "title_reserve": "Home reserve"
+    },
     "treaty": {
       "break": "Break this treaty",
       "break_sure": "Break it: the world will remember",

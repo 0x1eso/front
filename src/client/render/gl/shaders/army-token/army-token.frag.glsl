@@ -94,7 +94,18 @@ vec4 countAt(vec4 col, vec2 p, vec2 c, float size, float n) {
   if (k <= float(MAX_NUMBER)) {
     return overTexel(col, atlas(float(NUMBER_CELL0) + k, q / size + 0.5), inCell(q, size));
   }
-  k = min(k, 99.0);
+  if (k >= 99.5) {
+    // ww218: three digits (a Great War army's count), smaller.
+    k = min(k, 999.0);
+    float hund = floor(k / 100.0);
+    float rest = k - hund * 100.0;
+    float tn = floor(rest / 10.0);
+    float s3 = size * 0.75;
+    vec2 e = vec2(size * 0.3, 0.0);
+    col = overTexel(col, atlas(float(NUMBER_CELL0) + hund, (q + e) / s3 + 0.5), inCell(q + e, s3));
+    col = overTexel(col, atlas(float(NUMBER_CELL0) + tn, q / s3 + 0.5), inCell(q, s3));
+    return overTexel(col, atlas(float(NUMBER_CELL0) + rest - tn * 10.0, (q - e) / s3 + 0.5), inCell(q - e, s3));
+  }
   float tens = floor(k / 10.0);
   float ones = k - tens * 10.0;
   float s2 = size * 0.9;
@@ -137,6 +148,8 @@ void main() {
   bool chosen = (flags & 1) != 0;
   int hueI = (flags >> 1) & 7;
   bool pinned = (flags & 16) != 0;
+  // ww218 (Great War 1914): only the order bar is unknown, grey.
+  bool orgGray = (flags & 32) != 0;
   vec3 rim = hueI > 0 ? ZONE_HUES[clamp(hueI - 1, 0, 3)] : edge;
   float rimW = hueI > 0 ? 2.0 : 1.5;
   bool encircled = (state & ENCIRCLED) != 0;
@@ -179,7 +192,12 @@ void main() {
     float dFrame = sdBox(p - symC, vec2(7.0, 7.0), 1.0);
     col = over(col, FRAME, cover(dFrame));
     if (vB.x >= 0.0) col = overTexel(col, tSym, cover(dFrame));
-    if (!division) col = overTexel(col, tNum, cover(sdBox(p - vec2(9.0, 0.0), vec2(9.0, 10.0), 0.0)));
+    if (!division && vB.y > float(MAX_NUMBER) + 0.5) {
+      // ww218: a Great War army's count, two or three digits.
+      col = countAt(col, p, vec2(9.0, 0.0), 20.0, vB.y);
+    } else if (!division) {
+      col = overTexel(col, tNum, cover(sdBox(p - vec2(9.0, 0.0), vec2(9.0, 10.0), 0.0)));
+    }
     if (pinned) {
       // The pin's notch: the box's top-right corner cut off in white.
       float dCut = (20.0 - (p.x - p.y)) * 0.7071;
@@ -201,7 +219,8 @@ void main() {
       col = over(col, vec3(0.55), inOrg * step(x01, 1.0));
     } else {
       col = over(col, STRENGTH, inStr * step(x01, str));
-      col = over(col, ORG, inOrg * step(x01, org));
+      if (orgGray) col = over(col, vec3(0.55), inOrg * step(x01, 1.0));
+      else col = over(col, ORG, inOrg * step(x01, org));
     }
 
     // Army group band under the bars (same colour for the whole group).
@@ -268,7 +287,8 @@ void main() {
       col = over(col, vec3(0.55), inOrg * step(x01, 1.0));
     } else {
       col = over(col, STRENGTH, inStr * step(x01, clamp(vB.z / 1000.0, 0.0, 1.0)));
-      col = over(col, ORG, inOrg * step(x01, clamp(vB.w / 1000.0, 0.0, 1.0)));
+      if (orgGray) col = over(col, vec3(0.55), inOrg * step(x01, 1.0));
+      else col = over(col, ORG, inOrg * step(x01, clamp(vB.w / 1000.0, 0.0, 1.0)));
     }
     // ww44: an attacking army of mine.
     if ((state & EXECUTING) != 0) {

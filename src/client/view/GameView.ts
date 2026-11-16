@@ -363,6 +363,12 @@ export class GameView implements GameLike {
     return this._gwWorld?.tags[smallID - 1] ?? null;
   }
 
+  /** ww218: the smallID of a Great War country's player; null when none plays it. */
+  gwSmallIDOf(tag: GwTag): number | null {
+    const i = this._gwWorld?.tags.indexOf(tag) ?? -1;
+    return i < 0 ? null : i + 1;
+  }
+
   /** World War 1936: wars, capitulations, the preparation end. */
   worldWarData(): WorldWarData | null {
     return this._worldWarData;

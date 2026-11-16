@@ -20,6 +20,10 @@
  * Instances are rewritten only when the layout, the view, the choice or the
  * zoom level changed; nothing is allocated per frame and nothing is drawn
  * without armies.
+ *
+ * ww218 §5 (Great War 1914): setDirectRows feeds the same program, atlas
+ * and instance layout from a plain list of rows (DirectTokenRow) instead of
+ * a WwLandView; a pass fed that way never calls update().
  */
 
 import {
@@ -117,6 +121,40 @@ const GROUP_UNIT = 8;
 const FLAG_CHOSEN = 1;
 const HUE_UNIT = 2;
 const FLAG_PIN = 16;
+/** ww218: only the second (order) bar is unknown: grey (army-token.frag.glsl). */
+const FLAG_ORG_GRAY = 32;
+
+/**
+ * ww218 §5: one token fed directly (Great War 1914), in tile coordinates
+ * after any fan-out. `shown` -1 draws "?"; strength and order in ‰.
+ */
+export interface DirectTokenRow {
+  x: number;
+  y: number;
+  /** KIND_TOKEN, KIND_CHIP or KIND_DOT. */
+  kind: number;
+  /** Palette index: the owner's smallID. */
+  owner: number;
+  /** Atlas cell of the branch symbol; -1 none. */
+  symbol: number;
+  shown: number;
+  strengthPm: number;
+  orgPm: number;
+  /** ARMY_* bits: ARMY_RAIL puts the rail badge on. */
+  state: number;
+  chosen: boolean;
+  /** The "~" of an estimate. */
+  approx: boolean;
+  /** Both bars unknown (a foe's). */
+  gray: boolean;
+  /** Only the order bar unknown (an ally's, a reserve's). */
+  orgGray: boolean;
+}
+
+/** What the renderer asks each frame: the same array while nothing changed. */
+export interface DirectTokenSource {
+  rows(zoom: number): readonly DirectTokenRow[];
+}
 
 /** The flags float: chosen, my counter's zone-hue rim (hue -1: none), a pinned division. */
 export function counterFlags(
@@ -208,6 +246,38 @@ export class ArmyTokenPass {
       gl.vertexAttribDivisor(loc, 1);
     }
     gl.bindVertexArray(null);
+  }
+
+  /**
+   * ww218 §5: the instances are exactly `rows` (no WwLandView, no fog, no
+   * front dots); the 1936 path through update() is untouched.
+   */
+  setDirectRows(rows: readonly DirectTokenRow[]): void {
+    this.buf.ensureCapacity(rows.length);
+    const f = this.buf.float32;
+    let o = 0;
+    for (const r of rows) {
+      f[o] = r.x;
+      f[o + 1] = r.y;
+      f[o + 2] = r.kind;
+      f[o + 3] = r.owner;
+      f[o + 4] = r.symbol;
+      f[o + 5] = r.shown;
+      f[o + 6] = r.gray ? 0 : r.strengthPm;
+      f[o + 7] = r.gray || r.orgGray ? 0 : r.orgPm;
+      f[o + 8] = r.state;
+      f[o + 9] =
+        counterFlags(r.chosen, -1, false) + (r.orgGray ? FLAG_ORG_GRAY : 0);
+      f[o + 10] = 0;
+      f[o + 11] = (r.approx ? FOG_APPROX : 0) | (r.gray ? FOG_GRAY : 0);
+      o += FLOATS;
+    }
+    this.count = rows.length;
+    if (this.count > 0) {
+      const gl = this.gl;
+      gl.bindBuffer(gl.ARRAY_BUFFER, this.buf.buffer);
+      gl.bufferSubData(gl.ARRAY_BUFFER, 0, f, 0, o);
+    }
   }
 
   /** Instances written by the last update (tokens and front-dot rows). */

@@ -185,6 +185,12 @@ export interface GwUi {
   book?: GwBookDraft | null;
   /** ww214: a money bill's paper open with no card of it on the desk. */
   moneyPaper?: string | null;
+  /** ww218: the army token tapped (GwTokenModel.gwTokenKey); its card is open. */
+  token?: string | null;
+  /** ww218: 다른 전선으로 옮기자고 한다 pressed: the destinations show. */
+  tokenMove?: boolean;
+  /** ww218: the move asked this chapter (order move_band), waiting for the chief's paper. */
+  tokenAsked?: { from: GwTheatre | null; to: GwTheatre } | null;
 }
 
 /** ww203: what is open or picked in the 통치 tab's book and agenda. */
