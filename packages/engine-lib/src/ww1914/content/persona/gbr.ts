@@ -19,7 +19,10 @@ import type {
 } from "@openfront/engine-api/ww1914/GwPersona";
 import type { GwCond } from "@openfront/engine-api/ww1914/SceneDsl";
 import { all, not } from "@openfront/engine-api/ww1914/SceneDsl";
-import { world } from "@openfront/engine-api/ww1914/WorldDsl";
+import {
+  world,
+  type GwWarPlanMoment,
+} from "@openfront/engine-api/ww1914/WorldDsl";
 
 const NATION: ["GBR"] = ["GBR"];
 const ASQUITH = "asquith";
@@ -102,6 +105,10 @@ const diary = (
   ...more,
 });
 
+/** ww219: what the war plan did this chapter (Diary's plan moment). */
+const planNow = (now: GwWarPlanMoment): GwCond =>
+  world({ is: "war_plan", now });
+
 const DIARY: GwDiaryRow[] = [
   // To Venetia Stanley, to 12 May 1915.
   diary("v_decision1", ASQUITH, "decision", VENETIA),
@@ -176,6 +183,11 @@ const DIARY: GwDiaryRow[] = [
   diary("l_fill_winter", LG, "filler", { months: [12, 1, 2] }),
   diary("l_fill_spring", LG, "filler", { months: [3, 4, 5] }),
   diary("l_fill_wales", LG, "filler"),
+  // ww219: the war plan redrawn, ready, found empty by the war, and after.
+  diary("plan_begun", ASQUITH, "plan", { when: planNow("begun") }),
+  diary("plan_done", ASQUITH, "plan", { when: planNow("done") }),
+  diary("plan_empty", ASQUITH, "plan", { when: planNow("empty") }),
+  diary("plan_hindsight", ASQUITH, "plan", { when: planNow("hindsight") }),
 ];
 
 export const GBR_PERSONA: GwPersonaContent = {

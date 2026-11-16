@@ -374,4 +374,18 @@ export interface GwWorldView {
   society?: GwSocietyView;
   /** ww218: army tokens on the map (GwTokens.ts); absent out of war. */
   tokens?: readonly GwTokenView[];
+  /** ww219: the war plan as the 작전 tab shows it; absent for a country with none. */
+  warPlan?: GwWarPlanView;
+}
+
+/**
+ * ww219: the seat's war plan (WarPlan.ts). `main`: the front it goes for first
+ * (null: no plan signed); `alt`: the prepared alternative; `redraw`: a redraw
+ * under way, `until` its ISO end date; `empty`: the war came while it ran.
+ */
+export interface GwWarPlanView {
+  main: GwTheatre | null;
+  alt: GwTheatre | null;
+  redraw: { to: GwTheatre | null; until: string } | null;
+  empty: boolean;
 }

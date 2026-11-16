@@ -729,6 +729,32 @@ export const GwPropStateSchema = z.object({
 });
 export type GwPropState = z.infer<typeof GwPropStateSchema>;
 
+/**
+ * ww219: a seat country's war plan (engine/ww1914/WarPlan). The main front is
+ * not stored: Germany's is `s.plan`, the others' GW_PLAN_FRONTS' first. `alt`:
+ * the alternative a finished redraw prepared; `redraw`: one under way (the
+ * plan is empty while it runs; `to` null until the ruler names the front,
+ * `until` its last day); `picked`: the prepared paper signed at the war's
+ * first chapter; `empty`: the war came while the plan was empty; `done`: the
+ * chapter the last redraw finished; `met`: the chapter the plan met the war.
+ * Absent until a redraw begins or the war comes.
+ */
+export const GwWarPlanSchema = z.object({
+  alt: z.enum(GW_THEATRES).nullable(),
+  redraw: z
+    .object({
+      to: z.enum(GW_THEATRES).nullable(),
+      from: z.number().int(),
+      until: z.number().int(),
+    })
+    .nullable(),
+  picked: z.enum(["main", "alt"]).nullable(),
+  empty: z.boolean(),
+  done: z.number().int().nullable(),
+  met: z.number().int().nullable(),
+});
+export type GwWarPlan = z.infer<typeof GwWarPlanSchema>;
+
 export const GwNationStateSchema = z.object({
   tag: z.enum(GW_TAGS),
   gauges: z.record(z.enum(GW_GAUGES), z.number().int()),
@@ -827,6 +853,8 @@ export const GwNationStateSchema = z.object({
       ),
     })
     .optional(),
+  /** ww219: its war plan (WarPlan.ts); absent until a redraw or the war. */
+  warPlan: GwWarPlanSchema.optional(),
 });
 export type GwNationState = z.infer<typeof GwNationStateSchema>;
 

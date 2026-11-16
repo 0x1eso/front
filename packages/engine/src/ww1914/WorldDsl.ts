@@ -89,6 +89,7 @@ import { societyDo, societyHolds } from "./Society";
 import { atPeace, spyEffect, spyHolds } from "./Spies";
 import { collapseHolds } from "./Stalemate";
 import { utopiaDo, utopiaHolds } from "./Utopia";
+import { aimRedraw, altCan, planMoment } from "./WarPlan";
 import { enter } from "./Wars";
 import { clampTo, lastOf, moveGauge, news, reason } from "./World";
 import { flagNow } from "./WorldFlags";
@@ -403,6 +404,11 @@ export function worldHolds(ctx: SceneCtx, c: GwWorldCond): boolean {
       return moneyHolds(ctx, c);
     case "ledger":
       return dealHolds(ctx, c);
+    // ww219
+    case "war_plan":
+      return planMoment(ctx.gw, ctx.seat.tag, c.now);
+    case "plan_alt_can":
+      return altCan(ctx.gw, ctx.seat, c.theatre);
   }
 }
 
@@ -789,6 +795,10 @@ export function worldEffect(ctx: SceneCtx, e: GwWorldEffect): void {
       return;
     case "ledger":
       dealDo(ctx, e);
+      return;
+    // ww219
+    case "plan_redraw":
+      aimRedraw(gw, seat, e.to);
       return;
   }
 }

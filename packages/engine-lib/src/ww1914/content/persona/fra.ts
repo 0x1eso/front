@@ -20,7 +20,10 @@ import type {
 } from "@openfront/engine-api/ww1914/GwPersona";
 import type { GwCond } from "@openfront/engine-api/ww1914/SceneDsl";
 import { flag, not } from "@openfront/engine-api/ww1914/SceneDsl";
-import { world } from "@openfront/engine-api/ww1914/WorldDsl";
+import {
+  world,
+  type GwWarPlanMoment,
+} from "@openfront/engine-api/ww1914/WorldDsl";
 
 const NATION: GwRulerPlace["nation"] = ["FRA"];
 const RULER = "poincare";
@@ -83,6 +86,10 @@ const note = (
 });
 const at = (...theatre: GwTheatre[]) => ({ theatre });
 const inMonths = (...m: number[]) => ({ months: m });
+
+/** ww219: what the war plan did this chapter (Diary's plan moment). */
+const planNow = (now: GwWarPlanMoment): GwCond =>
+  world({ is: "war_plan", now });
 
 const DIARY: GwDiaryRow[] = [
   // A decision of the chapter ({scene}).
@@ -149,6 +156,11 @@ const DIARY: GwDiaryRow[] = [
   note("filler_bordeaux", "filler", { when: bordeaux }),
   note("filler_sea", "filler", { when: atSea }),
   note("filler_deputies", "filler", { when: not(war) }),
+  // ww219: the war plan redrawn, ready, found empty by the war, and after.
+  note("plan_begun", "plan", { when: planNow("begun") }),
+  note("plan_done", "plan", { when: planNow("done") }),
+  note("plan_empty", "plan", { when: planNow("empty") }),
+  note("plan_hindsight", "plan", { when: planNow("hindsight") }),
 ];
 
 export const FRA_PERSONA: GwPersonaContent = {

@@ -9,7 +9,10 @@ import type {
   GwRulerPlace,
 } from "@openfront/engine-api/ww1914/GwPersona";
 import { GwCond, not } from "@openfront/engine-api/ww1914/SceneDsl";
-import { world } from "@openfront/engine-api/ww1914/WorldDsl";
+import {
+  world,
+  type GwWarPlanMoment,
+} from "@openfront/engine-api/ww1914/WorldDsl";
 
 const DEU: ["DEU"] = ["DEU"];
 const war: GwCond = world({ is: "war" });
@@ -94,6 +97,10 @@ const d = (
 });
 
 // §0.6: the Kaiser's marginalia on the chapter's key paper.
+/** ww219: what the war plan did this chapter (Diary's plan moment). */
+const planNow = (now: GwWarPlanMoment): GwCond =>
+  world({ is: "war_plan", now });
+
 const DIARY: GwDiaryRow[] = [
   d("dec_yes", "decision"),
   d("dec_right", "decision"),
@@ -150,6 +157,11 @@ const DIARY: GwDiaryRow[] = [
   d("fill_files", "filler"),
   d("fill_read", "filler"),
   d("fill_hq", "filler", { when: war }),
+  // ww219: the war plan redrawn, ready, found empty by the war, and after.
+  d("plan_begun", "plan", { when: planNow("begun") }),
+  d("plan_done", "plan", { when: planNow("done") }),
+  d("plan_empty", "plan", { when: planNow("empty") }),
+  d("plan_hindsight", "plan", { when: planNow("hindsight") }),
 ];
 
 export const DEU_PERSONA: GwPersonaContent = {

@@ -25,6 +25,7 @@ import {
 import { GW_AI_MAIN, GW_ENTRIES, GW_ENTRY_BAR, GwEntry } from "./Tables";
 import { aiTransfer } from "./Transfers";
 import { brokenWords, treatyBars } from "./Treaties";
+import { inOpening, planFront } from "./WarPlan";
 import { declareWar, enter, memberEnd, membersOf } from "./Wars";
 import {
   clampTo,
@@ -201,11 +202,11 @@ function ownFront(gw: GreatWar, n: GwNationState): GwTheatre | null {
     return th.open && memberEnd(gw, t, n.tag) !== null;
   });
   if (list.length === 0) return null;
-  // The first weeks run on the plan drawn up in peace.
-  const age = gw.s.chapter - (gw.s.warChapter ?? gw.s.chapter);
-  const plan = gw.s.plan;
-  if (n.tag === "DEU" && age <= 3 && (plan === "west" || plan === "east")) {
-    if (list.includes(plan)) return plan;
+  // The first weeks run on the plan drawn up in peace (ww219: every seat
+  // country's war plan).
+  const plan = planFront(gw, n.tag);
+  if (inOpening(gw, n.tag) && plan !== null && list.includes(plan)) {
+    return plan;
   }
   if (russiansOnGermanSoil(gw, n) && list.includes("east")) return "east";
   const best = list

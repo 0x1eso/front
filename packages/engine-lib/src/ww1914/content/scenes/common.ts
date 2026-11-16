@@ -1,5 +1,8 @@
-import type { GwTemperament } from "@openfront/engine-api/ww1914/GreatWarTypes";
-import { GW_TAGS } from "@openfront/engine-api/ww1914/GwCountries";
+import type {
+  GwTemperament,
+  GwTheatre,
+} from "@openfront/engine-api/ww1914/GreatWarTypes";
+import { GW_TAGS, GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import {
   GwCond,
   GwNode,
@@ -9,6 +12,7 @@ import {
   role,
   trustOf,
 } from "@openfront/engine-api/ww1914/SceneDsl";
+import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
 
 // What the engine itself reaches for, in every country. Text is in
 // resources/ww1914/ko/common.json, written without a form of address: the
@@ -68,6 +72,70 @@ const answer: GwNode = {
     },
   ],
 };
+
+/**
+ * ww219: the fronts each seat country can plan for, its main first (engine
+ * WarPlan; Germany's main is `s.plan`). The paper after the 작전 course "계획을
+ * 다시 짠다" asks which road the new plan prepares: one per seat, its other
+ * fronts as options (Germany's: both, the one the plan takes greyed), and the
+ * staff's own pick. Only engine/ww1914/WarPlan.beginRedraw lays it.
+ */
+export const GW_PLAN_FRONTS: Readonly<
+  Partial<Record<GwTag, readonly GwTheatre[]>>
+> = {
+  DEU: ["west", "east"],
+  FRA: ["west", "straits"],
+  RUS: ["east", "caucasus"],
+  AUH: ["balkan", "east", "italy"],
+  GBR: ["west", "straits", "mesopotamia", "palestine"],
+};
+
+/** The roads a seat's redraw can take: Germany's main is `s.plan`, either. */
+export function planRoads(tag: GwTag): readonly GwTheatre[] {
+  const list = GW_PLAN_FRONTS[tag] ?? [];
+  return tag === "DEU" ? list : list.slice(1);
+}
+
+/** The ids of those papers, `gw_plan_redraw_<tag>`. */
+export const GW_PLAN_REDRAW_SCENES: readonly string[] = Object.keys(
+  GW_PLAN_FRONTS,
+).map((tag) => `gw_plan_redraw_${tag.toLowerCase()}`);
+
+function planScenes(): GwScene[] {
+  return (Object.keys(GW_PLAN_FRONTS) as GwTag[]).map((tag) => {
+    const roads = planRoads(tag);
+    return {
+      id: `gw_plan_redraw_${tag.toLowerCase()}`,
+      nation: [tag],
+      kind: "proposal",
+      when: {
+        kind: "any",
+        of: roads.map((theatre) => world({ is: "plan_alt_can", theatre })),
+      },
+      cast: {
+        cos: { any_of: [{ office: "chief_of_staff" }, { office: "war" }] },
+      },
+      salience: 6,
+      tags: ["war"],
+      scheduledOnly: true,
+      variants: [{ id: "base" }],
+      fallback: "staff",
+      options: [
+        ...roads.map((theatre) => ({
+          id: theatre,
+          when: world({ is: "plan_alt_can", theatre }),
+          tell: [],
+          effects: [doWorld({ do: "plan_redraw", to: theatre })],
+        })),
+        {
+          id: "staff",
+          tell: [],
+          effects: [doWorld({ do: "plan_redraw", to: null })],
+        },
+      ],
+    };
+  });
+}
 
 export const COMMON_SCENES: readonly GwScene[] = [
   quiet("gw_quiet_week", { max: 7 }),
@@ -133,4 +201,5 @@ export const COMMON_SCENES: readonly GwScene[] = [
       answer,
     },
   },
+  ...planScenes(),
 ];

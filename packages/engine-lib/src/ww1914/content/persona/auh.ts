@@ -24,7 +24,10 @@ import type {
   GwRulerPlace,
 } from "@openfront/engine-api/ww1914/GwPersona";
 import { any, type GwCond } from "@openfront/engine-api/ww1914/SceneDsl";
-import { world } from "@openfront/engine-api/ww1914/WorldDsl";
+import {
+  world,
+  type GwWarPlanMoment,
+} from "@openfront/engine-api/ww1914/WorldDsl";
 import { inWar, italyIn, since } from "../scenes/auh_act";
 
 const FJ = "franz_joseph";
@@ -130,6 +133,10 @@ const SPRING = [3, 4, 5];
 const SUMMER = [6, 7, 8];
 const AUTUMN = [9, 10, 11];
 
+/** ww219: what the war plan did this chapter (Diary's plan moment). */
+const planNow = (now: GwWarPlanMoment): GwCond =>
+  world({ is: "war_plan", now });
+
 const DIARY: GwDiaryRow[] = [
   // Franz Joseph: the desk note; now and then a few lines to Schratt.
   dy("auh_dy_fj_dec_1", FJ, "decision"),
@@ -216,6 +223,11 @@ const DIARY: GwDiaryRow[] = [
   dy("auh_dy_ff_hind", FF, "hindsight"),
   dy("auh_dy_ff_fill_1", FF, "filler"),
   dy("auh_dy_ff_fill_2", FF, "filler"),
+  // ww219: the war plan redrawn, ready, found empty by the war, and after.
+  dy("auh_dy_fj_plan_begun", FJ, "plan", { when: planNow("begun") }),
+  dy("auh_dy_fj_plan_done", FJ, "plan", { when: planNow("done") }),
+  dy("auh_dy_fj_plan_empty", FJ, "plan", { when: planNow("empty") }),
+  dy("auh_dy_fj_plan_hindsight", FJ, "plan", { when: planNow("hindsight") }),
 ];
 
 export const AUH_PERSONA: GwPersonaContent = {

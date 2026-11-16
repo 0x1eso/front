@@ -16065,7 +16065,9 @@
       "prep_stop": "준비를 거둔다",
       "press_on": "계속 밀어붙인다",
       "stop": "멈춘다",
-      "move": "군단을 옮긴다"
+      "move": "군단을 옮긴다",
+      "plan_main": "짜 둔 계획대로",
+      "plan_alt": "마련해 둔 다른 길로"
     },
     "plan_why": {
       "army": "참모본부가 이 안을 받지 않는다.",
@@ -16526,7 +16528,10 @@
       "money_tilt": "{who}의 무리가 예산안에 자기 수정안을 내 붙였다. 의회는 이제 고친 안을 놓고 셈한다.",
       "move_signed": "군단 하나가 다른 전선으로 가는 열차에 올랐다.",
       "move_reserve": "본국에 있던 새 사단들이 전선으로 떠났다.",
-      "move_overruled": "군단을 옮기는 일로 참모총장의 반대를 물리쳤다."
+      "move_overruled": "군단을 옮기는 일로 참모총장의 반대를 물리쳤다.",
+      "plan_empty_war": "계획을 다시 짜던 중에 전쟁이 왔다. 첫 몇 주는 시간표 없이 싸운다.",
+      "plan_kept": "다시 짜던 계획을 거두었다. 원래 계획이 그대로 선다.",
+      "plan_redrawn": "새 계획이 다 짜였다. 이제 길이 둘이다."
     },
     "result": {
       "advance": "전진",
@@ -17819,7 +17824,31 @@
         "3": "한 철이 꼬박 걸려서"
       },
       "move_agrees": "참모총장도 찬성한다",
-      "move_objects": "참모총장은 반대한다"
+      "move_objects": "참모총장은 반대한다",
+      "war_plan": {
+        "main": "전쟁 계획: {road} 먼저",
+        "none": "전쟁 계획: 정해진 길이 없다",
+        "alt": "다른 길: {road} (마련됨)",
+        "redraw": "다시 짜는 중, {when} 끝난다",
+        "redraw_to": "{road} 길로 다시 짜는 중, {when} 끝난다",
+        "next_year": "내년 {season}",
+        "road": {
+          "west": "서쪽",
+          "east": "동쪽",
+          "balkan": "발칸",
+          "italy": "이탈리아",
+          "straits": "해협",
+          "caucasus": "캅카스",
+          "mesopotamia": "메소포타미아",
+          "palestine": "팔레스타인"
+        },
+        "season": {
+          "spring": "봄쯤",
+          "summer": "여름쯤",
+          "autumn": "가을쯤",
+          "winter": "겨울쯤"
+        }
+      }
     },
     "unknown": {
       "ai": "{country}의 원수는 {word} 인물이었다.",
