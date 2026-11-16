@@ -38,34 +38,9 @@ export const DOM_EVENTS: EventDef[] = [
       },
     ],
   },
-  {
-    // 1944-11-22: the order-in-council sending 16,000 home-defence (NRMA)
-    // conscripts overseas, after the infantry reinforcement shortage.
-    id: "can_conscription_crisis",
-    kind: "country",
-    picture: "crowd",
-    date: { on: "1944-11-22", to: ["CAN"] },
-    trigger: { kind: "at_war_with", of: T("DEU") },
-    options: [
-      {
-        id: "a",
-        history: true,
-        ai: { base: 80 },
-        effects: [
-          { kind: "manpower", amount: 16000 },
-          { kind: "stability", pct: -10 },
-        ],
-      },
-      {
-        id: "b",
-        ai: { base: 20 },
-        effects: [
-          { kind: "war_support", pct: -5 },
-          { kind: "opinion", who: T("GBR"), of: "self", value: -10, days: 365 },
-        ],
-      },
-    ],
-  },
+  // ww229 MA3: can_conscription_crisis (the 1944-11-22 order) is gone: Canada's
+  // own conscription ladder (NRMA, Bill 80, can_ralston_crisis) plays it; both
+  // fired.
   {
     // 1941-12-27: the Prime Minister's New Year article "The Task Ahead" in
     // the Melbourne Herald, turning Australia toward the United States.

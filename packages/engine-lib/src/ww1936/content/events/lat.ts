@@ -77,37 +77,9 @@ export const LAT_EVENTS: EventDef[] = [
       },
     ],
   },
-  {
-    // 1938-03-18: the expropriation decree after the companies refused the
-    // labour award the Supreme Court had upheld on 1938-03-01. Britain broke
-    // off relations on 1938-05-13/20; the companies organised a boycott.
-    id: "mex_oil_crisis",
-    kind: "country",
-    picture: "newspaper",
-    date: { on: "1938-03-18", to: ["MEX"] },
-    options: [
-      {
-        id: "a",
-        history: true,
-        ai: { base: 90 },
-        effects: [
-          { kind: "pp", amount: 50 },
-          { kind: "stability", pct: 5 },
-          { kind: "opinion", who: T("GBR"), of: "self", value: -30, days: 365 },
-          { kind: "add_spirit", id: "mex_oil_boycott", days: 365 },
-        ],
-      },
-      {
-        id: "b",
-        ai: { base: 10 },
-        effects: [
-          { kind: "stability", pct: -5 },
-          { kind: "pp", amount: -25 },
-          { kind: "opinion", who: T("USA"), of: "self", value: 10, days: 365 },
-        ],
-      },
-    ],
-  },
+  // ww229 MA3: mex_oil_crisis (the 1938-03-18 decree) is gone: Mexico's own
+  // tree carries the expropriation (mex_expropriation, the boycott spirit);
+  // both fired, doubling the PP, the stability and the boycott.
   {
     // The first echelon of the FEB sailed from Rio de Janeiro on 1944-07-02
     // aboard the USS General W. A. Mann and landed at Naples on 1944-07-16.

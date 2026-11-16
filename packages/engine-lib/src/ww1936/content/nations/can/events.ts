@@ -2,8 +2,8 @@
 // ww1936.event_desc.<id>, ww1936.event_opt.<id>.<option>. Inside a fired
 // event self is the receiver and from the sender. No event waits for a
 // calendar day: each one fires when its situation arises (the AI judges it).
-// The older dated can_conscription_crisis (events/dom.ts) still fires on
-// its own; these follow the conscription question as the game plays it.
+// These follow the conscription question as the game plays it (ww229 MA3:
+// the older dated can_conscription_crisis is gone).
 import type {
   Condition,
   Effect,

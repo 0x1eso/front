@@ -12622,7 +12622,6 @@
       "can_bcatp_agreement": "Britain, Australia and New Zealand will send recruits to train at Canadian schools, and Canada will pay most of the bill. Ottawa wants its own graduates to serve in Canadian squadrons, not as anonymous reinforcements for the RAF.",
       "can_bloc_populaire": "Young nationalists who led the no campaign found a party of their own to fight conscription in Ottawa and Quebec City alike.",
       "can_ccf_breakthrough": "Midway through the war a poll puts the social democrats ahead of both old parties. Business is alarmed; the Liberals take notes.",
-      "can_conscription_crisis": "Heavy losses in Europe have left the infantry short of trained replacements, and too few home-defence conscripts volunteer to serve abroad. The cabinet is split, and its members from Quebec warn that sending conscripts overseas will divide the country. The Prime Minister must decide.",
       "can_dieppe_raid": "The army has trained in England for years without a battle, and the public asks why. Combined Operations offers a raid in force on a Channel port.",
       "can_duplessis_election": "Quebec's premier calls a snap election to fight Ottawa's war measures. The federal ministers from Quebec say they will resign if he wins, leaving the province no voice against conscription.",
       "can_gouzenko_affair": "A clerk from the Soviet embassy walks into a newspaper office with stolen files: a spy ring reaching into the atomic research. Nobody wants to listen at first.",
@@ -13026,7 +13025,6 @@
       "mex_ev_tankers_idle": "The companies have closed every market they control. Crude piles up in the tanks, spare parts are refused, and the foreign tankers do not come.",
       "mex_ev_trotsky_asylum": "The painter asks the president to give asylum to Leon Trotsky, expelled from Norway and hunted by Stalin. Moscow and the Mexican Communists will be furious.",
       "mex_ev_washington_frowns": "American papers report Mexican oil sailing for Hamburg, Genoa and Yokohama. The State Department asks for an explanation.",
-      "mex_oil_crisis": "The foreign oil companies refuse to accept the labour award upheld by the Supreme Court. Output is stalling and the oil workers' union warns of a general strike. Tonight the President will speak to the nation by radio, and the cabinet must decide what he will announce.",
       "new_state_proclaimed": "A new government has taken charge of these lands and proclaimed its own state. Ministries must be staffed, an army raised and foreign governments approached. Whatever its origins, the administration must first make the state work.",
       "nld_bankers_letter": "The Netherlands Bank and the great houses of Amsterdam write that leaving gold would ruin the guilder's name. The economists in the ministries quietly say the opposite.",
       "nld_belgian_proposal": "Belgium, as uneasy as we are, proposes secret talks between the two general staffs. Berlin would call it a breach of neutrality if it learned of them.",
@@ -13714,10 +13712,6 @@
       "can_ccf_breakthrough": {
         "a": "Take over their programme",
         "b": "Call it socialism and fight it"
-      },
-      "can_conscription_crisis": {
-        "a": "Send sixteen thousand conscripts overseas",
-        "b": "Keep to volunteers"
       },
       "can_dieppe_raid": {
         "a": "Give the division its battle",
@@ -15265,10 +15259,6 @@
         "a": "A sovereign nation sells to whom it likes",
         "b": "Stop the barter trade"
       },
-      "mex_oil_crisis": {
-        "a": "Expropriate the companies",
-        "b": "Seek a settlement"
-      },
       "new_state_proclaimed": {
         "a": "Organise the ministries",
         "b": "Raise a defence force"
@@ -16383,7 +16373,6 @@
       "can_bcatp_agreement": "The Air Training Agreement",
       "can_bloc_populaire": "The Bloc Populaire",
       "can_ccf_breakthrough": "The CCF Leads the Polls",
-      "can_conscription_crisis": "The Conscription Crisis",
       "can_dieppe_raid": "A Raid on the French Coast",
       "can_duplessis_election": "Quebec Goes to the Polls",
       "can_gouzenko_affair": "The Cipher Clerk",
@@ -16787,7 +16776,6 @@
       "mex_ev_tankers_idle": "Tankers Idle at Tampico",
       "mex_ev_trotsky_asylum": "A Request from Diego Rivera",
       "mex_ev_washington_frowns": "Washington Frowns",
-      "mex_oil_crisis": "The Oil Dispute",
       "new_state_proclaimed": "A New Government",
       "nld_bankers_letter": "The Bankers Write to Colijn",
       "nld_belgian_proposal": "Brussels Proposes Staff Talks",
