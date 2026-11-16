@@ -133,8 +133,9 @@ describe("World War 1936 P6 lists", () => {
     expect(after(EFFECT_KINDS, "navy_xp")).toHaveLength(14);
     expect(after(EFFECT_KINDS, "navy_xp")[0]).toBe("doctrine_mastery");
     // After P5 lane E's borders_group (merged after legitimacy_ge).
-    // The research overhaul appends research_slots_ge after them.
-    expect(after(CONDITION_KINDS, "borders_group")).toHaveLength(11);
+    // The research overhaul appends research_slots_ge after them, ww229
+    // character.
+    expect(after(CONDITION_KINDS, "borders_group")).toHaveLength(12);
     expect(after(CONDITION_KINDS, "borders_group")[9]).toBe("nukes_on");
     expect(effectGroup("doctrine_mastery")).toBe("depth");
     expect(effectGroup("cfocus_unlock")).toBe("depth");
