@@ -35,7 +35,6 @@ import {
 } from "@openfront/engine-lib/ww1914/FateRows";
 import { GW_CAPITALS } from "@openfront/engine-lib/ww1914/PlaceRules";
 import {
-  GW_TABLE_AIMS,
   GW_TABLE_CAPITALS,
   GW_TABLE_HEART,
   GW_TABLE_ORDER,
@@ -80,6 +79,7 @@ import {
 import { sessionsLeft } from "./Peace";
 import { moveBond } from "./PeaceYears";
 import { promiseCost } from "./Spies";
+import { aimsOf } from "./TableAims";
 import { weariness } from "./Terms";
 import {
   clampTo,
@@ -370,7 +370,7 @@ export const claimsMade = (t: GwTableState, by: GwTag) =>
 export function placeCost(gw: GreatWar, c: GwTableClaim): number {
   const t = gw.s.table!;
   const place = GW_PLACES[c.place];
-  const known = GW_TABLE_AIMS[c.by]?.includes(c.place) === true;
+  const known = aimsOf(gw, c.by).includes(c.place);
   const papers = seatsOf(gw, c.by)[0]?.flags ?? [];
   let v = COST_BASE;
   if (GW_TABLE_CAPITALS.includes(c.place)) v += COST_CAPITAL;
@@ -661,11 +661,11 @@ const standsOn = (gw: GreatWar) =>
  * What a country nobody plays would ask for, the most wanted first: its own
  * land back where each keeps what it stands on, else what it holds (the
  * longer the dearer to it), then a beaten neighbour's land in reach. Its
- * known case (GW_TABLE_AIMS) ranks a place up; on a map without the places
+ * known case (aimsOf) ranks a place up; on a map without the places
  * only the case and what it holds count. Read off the state, not a list.
  */
 function wishesOf(gw: GreatWar, tag: GwTag): GwPlace[] {
-  const aims = GW_TABLE_AIMS[tag] ?? [];
+  const aims = aimsOf(gw, tag);
   const even = winnerOf(gw) === null;
   const keeps = standsOn(gw);
   const graph = hasLandGraph(gw);
@@ -810,7 +810,7 @@ function partnerFor(gw: GreatWar, c: GwTableClaim): GwTag | null {
     if (holderOf(gw, c.place) === x) return x;
     const seat = seatsOf(gw, x)[0];
     if (seat !== undefined && markOf(seat, c.place) !== null) return x;
-    if (!hasSeat(gw, x) && (GW_TABLE_AIMS[x] ?? []).includes(c.place)) {
+    if (!hasSeat(gw, x) && aimsOf(gw, x).includes(c.place)) {
       return x;
     }
   }

@@ -119,6 +119,23 @@ export const GW_TABLE_AIMS: Readonly<
   BGR: ["skopje", "bitola", "nis", "pristina", "salonika", "constanta"],
 };
 
+/**
+ * ww220 (decision 6B): what a seat would take from an enemy history never
+ * gave it, a short list for each (W1: Britain against France and Russia).
+ * Read with the base list while the two stand on opposite sides
+ * (engine/ww1914/TableAims.aimsOf).
+ */
+export const GW_TABLE_AIMS_VS: Readonly<
+  Partial<Record<GwTag, Partial<Record<GwTag, readonly GwPlace[]>>>>
+> = {
+  // The Channel ports, and the French Africa the Nile front faces.
+  GBR: {
+    FRA: ["calais", "dakar", "tunis", "antananarivo"],
+    // Turkestan behind the Indian frontier, and the Pacific port.
+    RUS: ["tashkent", "samarkand", "vladivostok"],
+  },
+};
+
 /** Where a free port makes sense. */
 export const GW_TABLE_PORTS: readonly GwPlace[] = [
   "antwerp",

@@ -502,6 +502,9 @@ export const GW_ISSUES = [
   "coalition",
   "tighten_blockade",
   "peace_talks",
+  // ww220: a pledge of neutrality toward the other camp, and an alliance with it.
+  "neutrality",
+  "realign",
 ] as const;
 export type GwIssue = (typeof GW_ISSUES)[number];
 

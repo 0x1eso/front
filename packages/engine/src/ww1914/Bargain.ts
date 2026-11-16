@@ -33,10 +33,7 @@ import type {
 } from "@openfront/engine-api/ww1914/GwTable";
 import { gaugeOf } from "@openfront/engine-lib/ww1914/BudgetRules";
 import { GW_CAPITALS } from "@openfront/engine-lib/ww1914/PlaceRules";
-import {
-  GW_TABLE_AIMS,
-  GW_TABLE_HEART,
-} from "@openfront/engine-lib/ww1914/TableRows";
+import { GW_TABLE_HEART } from "@openfront/engine-lib/ww1914/TableRows";
 import { settleSweep } from "./Departments";
 import { aiPartnerWord, markOf, record } from "./Fate";
 import type { GreatWar } from "./GreatWar";
@@ -57,6 +54,7 @@ import {
   word,
   wordsFor,
 } from "./Table";
+import { aimsOf } from "./TableAims";
 import { weariness } from "./Terms";
 import { resumeWar } from "./Wars";
 import { clampTo, news, reason, seatsOf } from "./World";
@@ -788,8 +786,7 @@ function aiMove(
   switch (n.ai) {
     case "hardline": {
       const wanted =
-        (GW_TABLE_AIMS[by] ?? []).includes(c.place) ||
-        holderOf(gw, c.place) === by;
+        aimsOf(gw, by).includes(c.place) || holderOf(gw, c.place) === by;
       const once = (c.insisted ?? 0) === 0 && c.why !== "capital";
       return wanted && once && !insisting ? "insist" : "down";
     }
@@ -811,7 +808,7 @@ function aiPush(gw: GreatWar, by: GwTag, c: GwTableClaim): GwBargainMove {
   const fate = c.fate ?? "annex";
   const can = pushable(c);
   const wanted =
-    (GW_TABLE_AIMS[by] ?? []).includes(c.place) || holderOf(gw, c.place) === by;
+    aimsOf(gw, by).includes(c.place) || holderOf(gw, c.place) === by;
   switch (gw.nation(by)?.ai ?? "cautious") {
     case "hardline":
       return can ? "push" : "down";

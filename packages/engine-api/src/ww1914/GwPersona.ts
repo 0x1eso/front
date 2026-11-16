@@ -97,6 +97,11 @@ export const GW_DIARY_MOMENTS = [
   "filler", // the seat's filler: weather, who came, a book
   "plan", // ww219: the war plan redrawn, ready, or empty when the war came
   "fleet", // ww221: a sea fight, a third lost, months in port, a ship built
+  // ww220: a road toward the other camp: the first feeler, the signature, the
+  // road falling back (Diary.roadMoments).
+  "road_feeler",
+  "road_signed",
+  "road_fell",
 ] as const;
 export type GwDiaryMoment = (typeof GW_DIARY_MOMENTS)[number];
 

@@ -8,7 +8,9 @@ import type {
   GwMemoir,
   GwSeatState,
   GwTheatre,
+  GwTreaty,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import {
   GW_DIARY_HINDSIGHT,
   GwDiaryMoment,
@@ -26,6 +28,7 @@ import {
 } from "@openfront/engine-lib/ww1936/Calendar";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { fleetMomentWeight } from "./FleetPapers";
+import { hasRoad } from "./Alignment";
 import type { GreatWar } from "./GreatWar";
 import {
   noteFindings,
@@ -38,6 +41,7 @@ import { sceneOf } from "./SceneRun";
 import { GW_PASSING, GW_PASSING_BY_SCENE } from "./Tables";
 import { fooledFronts } from "./Transfers";
 import { planMoments } from "./WarPlan";
+import { juneCamp } from "./Wars";
 
 const P_DIARY = idHash("gw_diary");
 
@@ -69,6 +73,10 @@ const W_FOOLED = 4;
 const W_PRIVATE = 3;
 const W_AUDIENCE = 2;
 /** ww219: the plan's moments; the rows tell them apart by `war_plan`. */
+/** ww220: a road's first feeler, its signature, its fall (roadMoments). */
+const W_ROAD: Readonly<
+  Record<"road_feeler" | "road_signed" | "road_fell", number>
+> = { road_feeler: 5, road_signed: 7, road_fell: 5 };
 const W_PLAN: Readonly<Record<GwWarPlanMoment, number>> = {
   empty: 6,
   hindsight: 4,
@@ -193,11 +201,44 @@ export function chapterMoments(
   // ww221: a sea fight, a third of the fleet lost, months in port, a new ship.
   const fleet = fleetMomentWeight(gw, seat.tag);
   if (fleet > 0) out.push(moment("fleet", fleet));
+  // ww220: a road toward the other camp, offered, signed or fallen back.
+  for (const m of roadMoments(gw, seat.tag)) out.push(moment(m, W_ROAD[m]));
   // Heaviest first; a stable order among equals.
   return out
     .map((m, i) => ({ m, i }))
     .sort((a, b) => b.m.weight - a.m.weight || a.i - b.i)
     .map((x) => x.m);
+}
+
+/**
+ * ww220: the road moments of this chapter for `tag`: a pledge or an alliance
+ * offered across the camps (by it or to it), one signed, a road fallen back
+ * (the seat log's `road_fell_*`). A pair counts as a road when it had one in
+ * June 1914 or has one now (Alignment.hasRoad).
+ */
+export function roadMoments(
+  gw: GreatWar,
+  tag: GwTag,
+): ("road_feeler" | "road_signed" | "road_fell")[] {
+  const s = gw.s;
+  const now = s.chapter;
+  const out: ("road_feeler" | "road_signed" | "road_fell")[] = [];
+  const roadTreaty = (t: GwTreaty) =>
+    (t.from === tag || t.to === tag) &&
+    t.clauses.some((c) => c.kind === "alliance" || c.kind === "neutrality") &&
+    (juneCamp(t.from) !== juneCamp(t.to) || hasRoad(gw, t.from, t.to));
+  const mine = s.treaties.filter(roadTreaty);
+  if (mine.some((t) => t.chapter === now && t.state === "offered")) {
+    out.push("road_feeler");
+  }
+  if (mine.some((t) => t.signed === now)) out.push("road_signed");
+  const seat = s.seats.find((x) => x.tag === tag);
+  if (
+    seat?.log.some((l) => l.chapter === now && l.key.startsWith("road_fell_"))
+  ) {
+    out.push("road_fell");
+  }
+  return out;
 }
 
 function monthNow(gw: GreatWar): number {
