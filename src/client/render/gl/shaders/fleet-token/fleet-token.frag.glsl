@@ -171,7 +171,7 @@ void main() {
       if (vB.x >= 0.0) col = overCell(col, p, vec2(-7.0, -1.0), 30.0, vB.x);
       if (unknown) col = question(col, p, vec2(13.5, 0.5), 17.0);
       else if (vB.y >= 0.0) col = number(col, p, vec2(13.5, 0.5), vB.y, 17.0);
-      if (approx) col = tilde(col, p, vec2(11.5, -9.0), 9.0);
+      if (approx) col = tilde(col, p, vec2(12.0, -13.0), 11.0);
 
       float dBars = sdBox(p - vec2(0.0, 16.0), vec2(22.0, 3.6), 1.0);
       col = over(col, vec3(0.0), 0.72 * cover(dBars));
