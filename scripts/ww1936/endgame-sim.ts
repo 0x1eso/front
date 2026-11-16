@@ -221,6 +221,8 @@ export interface RunResult {
   exiles: { day: number; tag: string; host: string }[];
   woken: { day: number; tag: string }[];
   civilWars: { day: number; tag: string; ideology: string }[];
+  /** ww226: every government change (ww1936_government_changed), rebels' set-up included. */
+  govChanges: { day: number; tag: string; ideology: string }[];
   conferences: number;
   treaties: { day: number; losers: string[]; keys: string[] }[];
   uprisings: { day: number; region: number; controller: string }[];
@@ -473,6 +475,7 @@ export async function runOne(
     exiles: [],
     woken: [],
     civilWars: [],
+    govChanges: [],
     conferences: 0,
     treaties: [],
     uprisings: [],
@@ -515,6 +518,16 @@ export async function runOne(
     row(day, "cap", tagOf(loser), tagOf(victor));
     markEvent("capitulation");
     onCap(loser, victor, tick);
+  };
+  const polAll = pol.messageAll.bind(pol);
+  pol.messageAll = (key: string, params: Record<string, string | number> = {}) => {
+    if (key === "ww1936_government_changed") {
+      const day = today();
+      const tag = String(params.countryTag);
+      res.govChanges.push({ day, tag, ideology: String(params.ideology) });
+      row(day, "gov", tag, String(params.ideology));
+    }
+    polAll(key, params);
   };
   const egNews = eg.news.bind(eg);
   eg.news = (id: string, params: Record<string, string | number>) => {
