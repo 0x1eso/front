@@ -5,6 +5,7 @@
 import type { Effect } from "@openfront/engine-api/ww1936/PoliticsDsl";
 import {
   addPopularity,
+  addPopularityCapped,
   addPpCapped,
 } from "@openfront/engine-lib/ww1936/PoliticsRules";
 import { setLaw } from "../economy/LawsRun";
@@ -70,7 +71,10 @@ export function applyPoliticalEffect(
       break;
     case "popularity": {
       const i = resolveIdeology(pol, actor, e.ideology);
-      if (i >= 0) addPopularity(c.pop, i, e.pp * 100);
+      if (i < 0) break;
+      // ww233: no new gain past the ceiling (the Imjin courts keep theirs).
+      if (pol.ww.imjin) addPopularity(c.pop, i, e.pp * 100);
+      else addPopularityCapped(c.pop, i, e.pp * 100);
       break;
     }
     case "set_government": {

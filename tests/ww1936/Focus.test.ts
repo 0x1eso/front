@@ -8,7 +8,10 @@ import type { Effect } from "@openfront/engine-api/ww1936/PoliticsDsl";
 import type { FocusDef } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
-import { dailyPpMilli } from "@openfront/engine-lib/ww1936/PoliticsRules";
+import {
+  dailyPpMilli,
+  WW_POP_GAIN_CEILING_BP,
+} from "@openfront/engine-lib/ww1936/PoliticsRules";
 import type { GameRunner } from "@openfront/engine/GameRunner";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
 import type { EffectCtx } from "@openfront/engine/ww1936/politics/Dispatch";
@@ -88,6 +91,12 @@ const TEST_FOCUSES: FocusDef[] = [
   root("gen_t_needs_c", { prereq: [["gen_t_c"]] }),
   root("gen_t_after_b", { days: 35, prereq: [["gen_t_b"]] }),
   root("gen_t_after_av", { days: 35, prereq: [["gen_t_av"]] }),
+  root("gen_t_pop", {
+    effects: [{ kind: "popularity", ideology: "ruling", pp: 10 }],
+  }),
+  root("gen_t_pop2", {
+    effects: [{ kind: "popularity", ideology: "ruling", pp: 10 }],
+  }),
 ].map((f) => ({ ...f, x: col++, y: 3 }));
 
 const DEU_HUMAN = [{ clientID: HUMAN, country: "DEU" as const }];
@@ -147,6 +156,34 @@ beforeEach(() => {
 afterEach(() => usePoliticsContent(null));
 
 describe("national focus", { timeout: 60_000 }, () => {
+  it("ww233: a focus lifts its ideology to the ceiling, not past it", async () => {
+    const g = (current = await game());
+    const r = g.c.ruling;
+    const others = [0, 1, 2, 3].filter((i) => i !== r);
+    // The ruling party at 80%: the focus's +30 (10 x3) stops at 85%.
+    afterSlot(g, 4);
+    send(g, { kind: "focus_start", focus: "gen_t_pop" });
+    g.c.pop = [0, 0, 0, 0];
+    g.c.pop[r] = 8000;
+    for (const i of others) g.c.pop[i] = others[0] === i ? 1000 : 500;
+    g.c.focus!.progressMilli = 69_000;
+    afterSlot(g, 5);
+    expect(g.c.focus).toBeNull();
+    expect(deuApplied().map((a) => a.kind)).toEqual(["popularity"]);
+    expect(WW_POP_GAIN_CEILING_BP).toBe(8500);
+    expect(g.c.pop[r]).toBe(WW_POP_GAIN_CEILING_BP);
+    expect(g.c.pop.reduce((a, b) => a + b)).toBe(10_000);
+    // A share already above it (a 1936 start) stays, and gains nothing.
+    g.c.pop[r] = 9000;
+    g.c.pop[others[0]] = 500;
+    send(g, { kind: "focus_start", focus: "gen_t_pop2" });
+    expect(g.c.focus?.id).toBe("gen_t_pop2");
+    g.c.focus!.progressMilli = 69_000;
+    afterSlot(g, 6);
+    expect(g.c.focus).toBeNull();
+    expect(g.c.pop[r]).toBe(9000);
+  });
+
   it("a 70-day focus completes on day 70 and applies its effects once", async () => {
     const g = (current = await game());
     // Day 4 has 8 ticks: the order lands after Germany's step of that day.

@@ -20,6 +20,7 @@ import {
   WW_TAKEOVER_CARD_TICKS,
   WW_UPRISING_DAYS,
 } from "@openfront/engine-api/ww1936/EndgameTypes";
+import { IDEO_COM } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import type { EventDef } from "@openfront/engine-lib/ww1936/content/types";
@@ -199,6 +200,9 @@ describe("World War 1936 P5: the endgame snapshot oracle (Review Focus 1)", () =
   it("restoring after a civil war spawn continues exactly", async () => {
     const { runner: a, g, ww, eg } = await started();
     const [sun, cw] = [id("SUN"), id("CW1")];
+    // The fixture's USSR is non-aligned, which (ww226) changes peacefully:
+    // a communist one fights for it.
+    ww.politics.country(sun)!.ruling = IDEO_COM;
     ww.politics.queueEvent(CW_EVENT.id, sun, sun, 0, 0);
     ww.politics.flushEvents(g.ticks());
     expect(eg.countryState(cw)).toBe("active");

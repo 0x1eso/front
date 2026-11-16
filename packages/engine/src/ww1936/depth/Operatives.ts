@@ -34,7 +34,7 @@ import {
   operativeSlots,
   upgradeBit,
 } from "@openfront/engine-lib/ww1936/IntelRules";
-import { addPopularity } from "@openfront/engine-lib/ww1936/PoliticsRules";
+import { addPopularityCapped } from "@openfront/engine-lib/ww1936/PoliticsRules";
 import { wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { addOpinion } from "../politics/Treaties";
 import type { CountryDepth, Operative, WwDepth } from "./WwDepth";
@@ -476,7 +476,7 @@ function abroadMission(d: WwDepth, id: number, o: Operative): void {
       const me = pol.country(id);
       const tc = pol.country(t);
       if (me === null || tc === null) return;
-      addPopularity(tc.pop, me.ruling, BOOST_IDEOLOGY_BP * o.skill);
+      addPopularityCapped(tc.pop, me.ruling, BOOST_IDEOLOGY_BP * o.skill);
       pol.markCountry(t);
       return;
     }
