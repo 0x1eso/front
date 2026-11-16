@@ -12239,6 +12239,7 @@
       "jpn_surrender_effect": "Through neutral governments, Japan has told the Allies it accepts the Potsdam Declaration, and the surrender has been announced to the nation by radio. The armed forces have been ordered to cease fire. The war in Asia and the Pacific is drawing to an end.",
       "lat_rio_conference": "With the United States at war, the foreign ministers of the American republics meet in Rio de Janeiro. Washington asks every delegation to break relations with Germany, Italy and Japan. The final resolution only recommends it, and each government must now decide for itself whether to follow.",
       "ltu_memel_ultimatum": "Berlin demands the Memel Territory, detached from Germany after the war and held by Lithuania since 1923, and hints that any delay will be settled by force. Britain and France have just stood aside over Prague.",
+      "mck_ev_advisers_depart": "Japan no longer holds Manchukuo as its subject. The vice-ministers and staff officers who ran the ministries are packing, and Hsinking must decide how to see them off.",
       "mck_ev_border_clash": "A patrol has crossed a river island that both sides claim, and both sides are now bringing up guns. Neither Hsinking nor Moscow knows exactly where the line runs.",
       "mck_ev_china_at_war": "Japan and China are at war. In Harbin and Mukden people read the official bulletins in public and listen to Chinese radio at home.",
       "mck_ev_concordia_congress": "Delegates from every county come to Hsinking to report on harvests, bandits and taxes. Some of them have prepared speeches the organisers did not write.",
@@ -13139,6 +13140,10 @@
         "a": "Return Memel",
         "b": "Refuse"
       },
+      "mck_ev_advisers_depart": {
+        "a": "Send the advisers home with honours.",
+        "b": "Clear the ministries of them at once."
+      },
       "mck_ev_border_clash": {
         "a": "Fight beside the Kwantung Army.",
         "b": "Ask for a commission to settle it."
@@ -13767,6 +13772,7 @@
       "jpn_surrender_effect": "Japan Surrenders",
       "lat_rio_conference": "The Rio Conference",
       "ltu_memel_ultimatum": "The Memel Ultimatum",
+      "mck_ev_advisers_depart": "The Advisers Pack Their Bags",
       "mck_ev_border_clash": "Shots on the Border",
       "mck_ev_china_at_war": "War Beyond the Wall",
       "mck_ev_concordia_congress": "The Concordia Congress",

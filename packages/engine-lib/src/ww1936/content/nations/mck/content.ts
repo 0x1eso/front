@@ -1503,6 +1503,106 @@ export const MCK_EVENTS: readonly EventDef[] = [
       },
     ],
   },
+  {
+    id: "mck_ev_advisers_depart",
+    kind: "country",
+    picture: "document",
+    receivers: ["MCK"],
+    trigger: {
+      all: [
+        {
+          not: {
+            kind: "is_subject",
+          },
+        },
+        {
+          any: [
+            {
+              kind: "has_spirit",
+              id: "mck_kwantung_grip_iron",
+            },
+            {
+              kind: "has_spirit",
+              id: "mck_kwantung_grip_guidance",
+            },
+            {
+              kind: "has_spirit",
+              id: "mck_kwantung_grip_loosened",
+            },
+          ],
+        },
+      ],
+    },
+    mtthDays: 10,
+    once: "country",
+    options: [
+      {
+        id: "a",
+        history: true,
+        ai: {
+          base: 70,
+        },
+        effects: [
+          {
+            kind: "remove_spirit",
+            id: "mck_kwantung_grip_iron",
+          },
+          {
+            kind: "remove_spirit",
+            id: "mck_kwantung_grip_guidance",
+          },
+          {
+            kind: "remove_spirit",
+            id: "mck_kwantung_grip_loosened",
+          },
+          {
+            kind: "add_spirit",
+            id: "mck_state_of_its_own",
+          },
+          {
+            kind: "stability",
+            pct: 3,
+          },
+        ],
+      },
+      {
+        id: "b",
+        ai: {
+          base: 30,
+        },
+        effects: [
+          {
+            kind: "remove_spirit",
+            id: "mck_kwantung_grip_iron",
+          },
+          {
+            kind: "remove_spirit",
+            id: "mck_kwantung_grip_guidance",
+          },
+          {
+            kind: "remove_spirit",
+            id: "mck_kwantung_grip_loosened",
+          },
+          {
+            kind: "add_spirit",
+            id: "mck_state_of_its_own",
+          },
+          {
+            kind: "opinion",
+            of: {
+              tag: "JPN",
+            },
+            value: -15,
+            days: 365,
+          },
+          {
+            kind: "war_support",
+            pct: 3,
+          },
+        ],
+      },
+    ],
+  },
 ];
 
 export const MCK_DECISIONS: readonly DecisionDef[] = [
