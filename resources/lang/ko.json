@@ -15544,6 +15544,18 @@
         "kermanshah": "케르만샤",
         "hamadan": "하마단",
         "tabriz": "타브리즈"
+      },
+      "great_game": {
+        "merv": "메르브",
+        "herat": "헤라트",
+        "kandahar": "칸다하르",
+        "khyber": "카이베르 고개"
+      },
+      "nile": {
+        "egypt": "이집트",
+        "fashoda": "파쇼다",
+        "chad": "차드호",
+        "congo": "콩고"
       }
     },
     "gauge": {
@@ -16553,7 +16565,11 @@
       "partner_turned": "{country}이(가) 저쪽 진영으로 넘어갔다.",
       "camp_turned_mine": "우리는 이제 새 진영에 선다.",
       "pledge_holds": "중립 약속이 우리를 묶는다. 우리는 빠진다.",
-      "left_coalition": "모든 적과 강화하고 전쟁에서 빠졌다."
+      "left_coalition": "모든 적과 강화하고 전쟁에서 빠졌다.",
+      "front_great_game_won": "중앙아시아: 우리 쪽으로 기울었다.",
+      "front_great_game_lost": "중앙아시아: 우리에게 불리하게 갔다.",
+      "front_nile_won": "나일강: 우리 쪽으로 기울었다.",
+      "front_nile_lost": "나일강: 우리에게 불리하게 갔다."
     },
     "result": {
       "advance": "전진",
@@ -16770,7 +16786,9 @@
       "thrace": "트라키아",
       "low_countries": "저지대",
       "dobruja": "도브루자",
-      "persia": "페르시아"
+      "persia": "페르시아",
+      "great_game": "중앙아시아",
+      "nile": "나일강"
     },
     "thread": {
       "alsace_unrest": "알자스의 불안",
@@ -17296,7 +17314,9 @@
         "dobruja": "도브루자",
         "low_countries": "저지대",
         "persia": "페르시아",
-        "thrace": "트라키아"
+        "thrace": "트라키아",
+        "great_game": "중앙아시아",
+        "nile": "나일강"
       },
       "threads_title": "오래 끓는 일",
       "topic_count": "지금 꺼낼 이야기 {n}개",

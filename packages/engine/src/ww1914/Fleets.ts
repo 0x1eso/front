@@ -347,28 +347,28 @@ export function deriveSea(gw: GreatWar): void {
   }
 }
 
-/** The entente's battle fleet lies in the North Sea (port or out). */
-function grandFleetHome(gw: GreatWar): boolean {
+/** `side`'s battle fleet lies in the North Sea (port or out). */
+function grandFleetHome(gw: GreatWar, side: GwSide = "entente"): boolean {
   return (gw.s.fleets ?? []).some(
     (f) =>
       f.kind === "battle" &&
       f.ships > 0 &&
       f.area === "north" &&
       settled(f) &&
-      sideOf(gw, f.tag) === "entente" &&
+      sideOf(gw, f.tag) === side &&
       fights(gw.nation(f.tag)),
   );
 }
 
-/** The entente's cruisers are out on their stations, north or atlantic. */
-function cruisersOnStation(gw: GreatWar): boolean {
+/** `side`'s cruisers are out on their stations, north or atlantic. */
+function cruisersOnStation(gw: GreatWar, side: GwSide = "entente"): boolean {
   return (gw.s.fleets ?? []).some(
     (f) =>
       f.kind === "cruisers" &&
       f.ships > 0 &&
       out(f) &&
       (f.area === "north" || f.area === "atlantic") &&
-      sideOf(gw, f.tag) === "entente" &&
+      sideOf(gw, f.tag) === side &&
       fights(gw.nation(f.tag)),
   );
 }
@@ -377,14 +377,29 @@ function cruisersOnStation(gw: GreatWar): boolean {
  * Sea.blockadeStep (§2): whether the blockade can tighten (the battle fleet
  * in the north, cruisers on station) and whether it slips with no cruisers.
  * Without fleets in state: today's sea, tighten and never slip for want.
+ * ww222 HM: `by` is the side that holds the main fleet (Sea.blockaderOf).
  */
-export function blockadeHolds(gw: GreatWar): {
+export function blockadeHolds(
+  gw: GreatWar,
+  by: GwSide = "entente",
+): {
   tighten: boolean;
   slips: boolean;
 } {
   if (!fleetsOn(gw)) return { tighten: true, slips: false };
-  const cruisers = cruisersOnStation(gw);
-  return { tighten: grandFleetHome(gw) && cruisers, slips: !cruisers };
+  const cruisers = cruisersOnStation(gw, by);
+  return { tighten: grandFleetHome(gw, by) && cruisers, slips: !cruisers };
+}
+
+/**
+ * ww222 HM: a country's capital ships in the fleets (settled or under way),
+ * or null without fleets in state (Sea.battleFleet's June table then).
+ */
+export function battleShips(gw: GreatWar, tag: GwTag): number | null {
+  if (!fleetsOn(gw)) return null;
+  let k = 0;
+  for (const f of fleetsOf(gw, tag)) if (f.kind === "battle") k += f.ships;
+  return k;
 }
 
 /** Germany's boats at sea: 0 none, 1 few, 2 some, 3 many (§2). */
@@ -398,8 +413,11 @@ export function uboatScale(gw: GreatWar): number {
   return k < 10 ? 1 : k < 25 ? 2 : 3;
 }
 
-/** Entente cruisers on escort in the atlantic save a sinking every 2 chapters. */
-export function escortSaves(gw: GreatWar): number {
+/**
+ * Cruisers on escort in the atlantic save a sinking every 2 chapters: the
+ * side the U-boats hunt (ww222 HM: `side`, the entente's in June 1914's camps).
+ */
+export function escortSaves(gw: GreatWar, side: GwSide = "entente"): number {
   if (gw.s.chapter % 2 !== 0) return 0;
   const on = (gw.s.fleets ?? []).some(
     (f) =>
@@ -408,7 +426,7 @@ export function escortSaves(gw: GreatWar): number {
       out(f) &&
       f.area === "atlantic" &&
       f.mission === "escort" &&
-      sideOf(gw, f.tag) === "entente",
+      sideOf(gw, f.tag) === side,
   );
   return on ? 1 : 0;
 }
@@ -1165,9 +1183,10 @@ function northDrift(gw: GreatWar): void {
   const t = seaTheatre(gw);
   if (t === null || t.since === null || gw.s.chapter % 2 !== 0) return;
   const gbr = gw.nation("GBR");
-  if (gbr === null || !fights(gbr) || gbr.side !== "entente") return;
-  if (grandFleetHome(gw)) return;
-  move(gw, t, "central", GW_LINE_STEP);
+  // ww222 HM: Britain's coalition, whichever it is, holds the North Sea.
+  if (gbr === null || !fights(gbr) || gbr.side === null) return;
+  if (grandFleetHome(gw, gbr.side)) return;
+  move(gw, t, gbr.side === "entente" ? "central" : "entente", GW_LINE_STEP);
 }
 
 // ---- The AI ----

@@ -20,6 +20,8 @@ import {
   GwWar,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
+import { GW_PLACES } from "@openfront/engine-api/ww1914/GwPlaces";
+import { frontPlaces } from "@openfront/engine-lib/ww1914/FrontLand";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import {
   outbreakCamps,
@@ -31,6 +33,7 @@ import { warMonths } from "./Eras";
 import type { GreatWar } from "./GreatWar";
 import { bondOf } from "./PeaceYears";
 import { armyCommander } from "./People";
+import { seaStartLine } from "./Sea";
 import { partnerOut } from "./Strain";
 import {
   GW_BEHIND,
@@ -38,6 +41,7 @@ import {
   GW_ENTRIES,
   GW_FRONT_ENDS,
   GW_MOBILISE,
+  GW_STAND_IN,
   GW_START_TREATIES,
   GW_TRANSFERS,
   GwStartTreaty,
@@ -176,6 +180,68 @@ function tellPair(gw: GreatWar, a: GwTag, b: GwTag, key: string): void {
 
 // ---- The fronts ----
 
+/** ww220: the countries whose own land a front's lines fight over. */
+const HOMES = new Map<GwTheatre, ReadonlySet<GwTag>>();
+function homeOn(t: GwTheatre, tag: GwTag): boolean {
+  let set = HOMES.get(t);
+  if (set === undefined) {
+    set = new Set(frontPlaces(t).map((p) => GW_PLACES[p].owner as GwTag));
+    HOMES.set(t, set);
+  }
+  return set.has(tag);
+}
+
+/**
+ * ww220 (design ww220 §4): the end `tag` stands on at `t` with `side` its
+ * coalition, or its camp (null: none). The new fronts keep their listed ends.
+ * On the ten coalition theatres a country stands with its coalition: Britain
+ * in the Central Powers goes to the west front's German end. A country whose
+ * own land is the front's ground, set against its listed end (Russia with
+ * Germany in the east, Italy with Austria on the Isonzo), stays off it; so do
+ * the armies that would land at Salonika for a Serbia they no longer stand
+ * by. Null: not on this front.
+ */
+export function endFor(
+  t: GwTheatre,
+  tag: GwTag,
+  side: GwSide | null,
+): GwSide | null {
+  const ends = GW_FRONT_ENDS[t];
+  const listed = GW_SIDES.find((e) => ends[e].includes(tag)) ?? null;
+  if (listed === null || side === null || side === listed) return listed;
+  if (!GW_COALITION_FRONTS.includes(t)) return listed;
+  if (homeOn(t, tag)) return null;
+  if (GW_BEHIND[t]?.tags.includes(tag) === true) return null;
+  return side;
+}
+
+/** ww220: the countries on a front's `end` as `sideOf` places them, lead first. */
+function endTags(
+  t: GwTheatre,
+  end: GwSide,
+  sideOf: (tag: GwTag) => GwSide | null,
+): GwTag[] {
+  const ends = GW_FRONT_ENDS[t];
+  return [...ends[end], ...ends[other(end)]].filter(
+    (tag) => endFor(t, tag, sideOf(tag)) === end,
+  );
+}
+
+/**
+ * ww220: the fronts where `a` and `b` would stand on opposite ends with the
+ * camps as they are now (each one's coalition, else the side it would take).
+ */
+export function frontsApart(gw: GreatWar, a: GwTag, b: GwTag): GwTheatre[] {
+  if (a === b) return [];
+  const ca = naturalSide(gw, a);
+  const cb = naturalSide(gw, b);
+  return GW_THEATRES.filter((t) => {
+    const ea = endFor(t, a, ca);
+    const eb = endFor(t, b, cb);
+    return ea !== null && eb !== null && ea !== eb;
+  });
+}
+
 /** Who fights a front now on `end`, the lead first. */
 export function membersOf(gw: GreatWar, t: GwTheatre, end: GwSide): GwTag[] {
   const behind = GW_BEHIND[t];
@@ -197,11 +263,35 @@ export function membersOf(gw: GreatWar, t: GwTheatre, end: GwSide): GwTag[] {
       !gone.includes(tag)
     );
   };
-  const ends = GW_FRONT_ENDS[t];
-  const far = ends[other(end)].filter(live);
-  return ends[end].filter(
+  const sideOf = (tag: GwTag) => gw.nation(tag)?.side ?? null;
+  const near = endTags(t, end, sideOf);
+  const far = endTags(t, other(end), sideOf).filter(live);
+  const out = near.filter(
     (tag) => live(tag) && far.some((f) => atWarWith(gw, tag, f)),
   );
+  return standsIn(gw, t, end, out) ? out : out.filter((x) => !waits(t, x));
+}
+
+const waits = (t: GwTheatre, tag: GwTag) =>
+  GW_STAND_IN[t]?.tags.includes(tag) === true;
+
+/**
+ * ww220: the lesser fleets fight on `end` only without the Royal Navy: not
+ * while it fights there, nor while it would come in on that side and has not
+ * made up its mind (July's France waits for London).
+ */
+function standsIn(
+  gw: GreatWar,
+  t: GwTheatre,
+  end: GwSide,
+  out: readonly GwTag[],
+): boolean {
+  const stand = GW_STAND_IN[t];
+  if (stand === undefined) return true;
+  if (out.includes(stand.unless)) return false;
+  const u = gw.nation(stand.unless);
+  if (u === null || u.out || u.side !== null) return true;
+  return naturalSide(gw, stand.unless) !== end;
 }
 
 /** The end of a front `tag` fights on now, or null. */
@@ -221,7 +311,11 @@ export function memberEnd(
 export function sideIn(gw: GreatWar, t: GwTheatre, tag: GwTag): GwSide | null {
   const n = gw.nation(tag);
   if (n === null) return null;
-  if (n.side !== null && GW_COALITION_FRONTS.includes(t)) return n.side;
+  if (n.side !== null && GW_COALITION_FRONTS.includes(t)) {
+    // ww220: one whose own ground this is, set against its end, is off it.
+    const listed = endFor(t, tag, null) !== null;
+    return listed && endFor(t, tag, n.side) === null ? null : n.side;
+  }
   const ends = GW_FRONT_ENDS[t];
   return (
     GW_SIDES.find(
@@ -243,7 +337,11 @@ function refreshTheatre(gw: GreatWar, t: GwTheatreState): void {
     t.open = true;
     if (t.since === null) {
       t.since = gw.s.chapter;
-      t.line = GW_FRONT_START[t.id];
+      // ww220: the sea war starts where the main fleet stands.
+      t.line =
+        t.id === "sea"
+          ? seaStartLine(gw, GW_FRONT_START.sea)
+          : GW_FRONT_START[t.id];
       // A front opened in the machine-gun years is dug in from its first day.
       t.trench = Math.min(3, Math.floor(warMonths(gw) / 5));
       news(gw, "front_opened", null, null, t.id);
@@ -425,10 +523,18 @@ function transfers(gw: GreatWar, out: GwTag): void {
   }
 }
 
-/** Germany nobody plays still has its generals: most go west, not all. */
+/**
+ * Germany nobody plays still has its generals: most go west, not all. ww220:
+ * against the camps of the day: with Russia out of the other camp the plan is
+ * the west's, with France out of it the east's.
+ */
 export function germanPlan(gw: GreatWar): GwPlan {
   const deu = gw.nation("DEU");
   if (deu === null || gw.s.seats.some((x) => x.tag === "DEU")) return "west";
+  const camp = naturalSide(gw, "DEU");
+  const foe = (t: GwTag) => camp !== null && naturalSide(gw, t) === other(camp);
+  if (foe("FRA") && !foe("RUS")) return "west";
+  if (foe("RUS") && !foe("FRA")) return "east";
   const east = { cautious: 25, principled: 15, opportunist: 10, hardline: 0 };
   return wwRoll(gw.s.seed, P_PLAN, 0) % 100 < east[deu.ai] ? "east" : "west";
 }

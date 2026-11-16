@@ -49,7 +49,8 @@ import { gwRunner } from "./util";
 
 const res = (p: string) => path.join(__dirname, "../../resources", p);
 const json = (p: string) => JSON.parse(fs.readFileSync(res(p), "utf8"));
-const NEW_FRONTS: readonly GwTheatre[] = GW_THEATRES.slice(10);
+// ww171's six; ww220's two (great_game, nile) follow them.
+const NEW_FRONTS: readonly GwTheatre[] = GW_THEATRES.slice(10, 16);
 
 let gw: GreatWar;
 const open = (t: GwTheatre) => gw.s.theatres.find((x) => x.id === t)!.open;
@@ -101,7 +102,9 @@ describe("the fronts", () => {
     expect(reachable("FRA", "ITA")).toBe(true);
     expect(reachable("ROU", "BGR")).toBe(true);
     expect(reachable("DEU", "NLD")).toBe(true);
-    expect(reachable("FRA", "GBR")).toBe(false);
+    // ww220: the Nile front sets Britain and France against each other.
+    expect(reachable("FRA", "GBR")).toBe(true);
+    expect(reachable("GBR", "JPN")).toBe(false);
     expect(reachable("DEU", "AUH")).toBe(false);
   });
 });
@@ -359,7 +362,7 @@ describe("saves and words", () => {
       }
     }
     const en = json("lang/en.json").gw;
-    for (const t of NEW_FRONTS) {
+    for (const t of GW_THEATRES.slice(10)) {
       expect(en.theatre[t], t).toBeDefined();
       expect(en.reason[`front_${t}_won`], t).toBeDefined();
     }

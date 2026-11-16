@@ -3450,6 +3450,12 @@
         "vistula": "the Vistula",
         "warsaw": "Warsaw"
       },
+      "great_game": {
+        "herat": "Herat",
+        "kandahar": "Kandahar",
+        "khyber": "the Khyber Pass",
+        "merv": "Merv"
+      },
       "italy": {
         "adige": "the Adige",
         "isonzo": "the Isonzo",
@@ -3467,6 +3473,12 @@
         "basra": "Basra",
         "kut": "Kut",
         "mosul": "Mosul"
+      },
+      "nile": {
+        "chad": "Lake Chad",
+        "congo": "the Congo",
+        "egypt": "Egypt",
+        "fashoda": "Fashoda"
       },
       "palestine": {
         "damascus": "Damascus",
@@ -4990,12 +5002,16 @@
       "front_dobruja_won": "The Dobruja: it went our way.",
       "front_east_lost": "Eastern Front: it went against us.",
       "front_east_won": "Eastern Front: it went our way.",
+      "front_great_game_lost": "Central Asia: it went against us.",
+      "front_great_game_won": "Central Asia: it went our way.",
       "front_italy_lost": "Italian Front: it went against us.",
       "front_italy_won": "Italian Front: it went our way.",
       "front_low_countries_lost": "The Low Countries: it went against us.",
       "front_low_countries_won": "The Low Countries: it went our way.",
       "front_mesopotamia_lost": "Mesopotamia: it went against us.",
       "front_mesopotamia_won": "Mesopotamia: it went our way.",
+      "front_nile_lost": "The Nile: it went against us.",
+      "front_nile_won": "The Nile: it went our way.",
       "front_palestine_lost": "Palestine: it went against us.",
       "front_palestine_won": "Palestine: it went our way.",
       "front_persia_lost": "Persia: it went against us.",
@@ -6121,9 +6137,11 @@
       "danube": "Romanian Front",
       "dobruja": "The Dobruja",
       "east": "Eastern Front",
+      "great_game": "Central Asia",
       "italy": "Italian Front",
       "low_countries": "The Low Countries",
       "mesopotamia": "Mesopotamia",
+      "nile": "The Nile",
       "palestine": "Palestine",
       "persia": "Persia",
       "sea": "The Sea",
@@ -7304,9 +7322,11 @@
         "danube": "Romania",
         "dobruja": "Dobruja",
         "east": "East",
+        "great_game": "Central Asia",
         "italy": "Italy",
         "low_countries": "Low Countries",
         "mesopotamia": "Mesopotamia",
+        "nile": "Nile",
         "palestine": "Palestine",
         "persia": "Persia",
         "sea": "Sea",

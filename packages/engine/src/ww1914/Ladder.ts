@@ -37,7 +37,7 @@ import { moveRuler } from "./Ruler";
 import { actedOnRead, heldResolve } from "./Spies";
 import { reachable } from "./Tables";
 import { treatyAllies } from "./Treaties";
-import { declareWar, naturalSide, startAllies } from "./Wars";
+import { declareWar, frontsApart, naturalSide, startAllies } from "./Wars";
 import {
   clampTo,
   monthsFrom,
@@ -84,13 +84,14 @@ export function openLadder(gw: GreatWar, tag: GwTag): GwLadder | null {
 /**
  * Two countries one of which could go to war on the other (design ww168 B5):
  * they share a front, they aren't in one coalition, and no treaty binds them
- * (a starting alliance, or a signed alliance or neutrality).
+ * (a starting alliance, or a signed alliance or neutrality). ww220: a front
+ * they would meet on with the camps as they are counts too.
  */
 export function canFight(gw: GreatWar, a: GwTag, b: GwTag): boolean {
   const na = gw.nation(a);
   const nb = gw.nation(b);
   if (na === null || nb === null || na.out || nb.out) return false;
-  if (!reachable(a, b)) return false;
+  if (!reachable(a, b) && frontsApart(gw, a, b).length === 0) return false;
   if (na.side !== null && na.side === nb.side) return false;
   return !startAllies(a, b, true, gw) && !treatyAllies(gw, a, b);
 }

@@ -25,6 +25,7 @@ import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { SCALE_OF } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { holderOf } from "./Land";
+import { isBlockaded, shipperOf } from "./Sea";
 import { atWarWith, membersOf } from "./Wars";
 import {
   clampTo,
@@ -273,10 +274,11 @@ export function hungerOf(gw: GreatWar, tag: GwTag): number {
   const n = gw.nation(tag);
   if (n === null) return 0;
   const s = gw.s;
-  const blockaded = n.side === "central";
+  // ww220: the blockade falls on the side without the main fleet.
+  const blockaded = isBlockaded(gw, n);
   let h = 0;
   if (blockaded) h = band(s.blockade);
-  if (tag === "GBR") h = Math.max(h, band(s.shipping));
+  if (tag === shipperOf(gw)) h = Math.max(h, band(s.shipping));
   const bread = n.gauges.bread;
   h = Math.max(h, bread === 0 ? 2 : bread <= 1 ? 1 : 0);
   if (bread === 0 && blockaded && s.blockade >= 6) h++;

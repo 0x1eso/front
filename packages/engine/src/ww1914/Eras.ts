@@ -272,4 +272,7 @@ export const GW_SEASON: Readonly<
   low_countries: { 11: 10, 12: 15, 1: 15, 2: 15 },
   dobruja: { 12: 15, 1: 20, 2: 15 },
   persia: { 1: 20, 2: 20, 6: 15, 7: 20, 8: 20, 12: 15 },
+  // ww220: the Afghan passes snow up; the Sudan's summer stops a march.
+  great_game: { 11: 20, 12: 30, 1: 35, 2: 35, 3: 20, 7: 15 },
+  nile: { 5: 15, 6: 25, 7: 25, 8: 20 },
 };

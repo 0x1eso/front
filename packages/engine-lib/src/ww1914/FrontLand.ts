@@ -208,6 +208,20 @@ export const GW_FRONT_LAND: Readonly<
     hamadan: { central: ["kermanshah", "hamadan"] },
     tabriz: { central: ["urmia", "tabriz"] },
   },
+  // ww220: the fronts of the camps that moved. The Great Game starts at
+  // Herat, where the Russian railway at Kushka stood at Afghanistan's gate:
+  // Britain going down to Merv takes Turkestan, Russia coming up to the Khyber
+  // takes the Punjab and Sind. The Nile starts at Fashoda (1898): France
+  // coming down the river takes the Sudan and Egypt, Britain going up to Lake
+  // Chad takes French West Africa.
+  great_game: {
+    merv: { central: ["tashkent", "samarkand"] },
+    khyber: { entente: ["lahore", "karachi"] },
+  },
+  nile: {
+    egypt: { entente: ["khartoum", "cairo"] },
+    chad: { central: ["dakar"] },
+  },
 };
 
 /**
@@ -219,6 +233,9 @@ export const GW_FRONT_BARE: Readonly<
 > = {
   alps: ["po"],
   dobruja: ["delta"],
+  // ww220: Afghanistan and the Congo have no region of their own on the map.
+  great_game: ["kandahar"],
+  nile: ["congo"],
 };
 
 /**

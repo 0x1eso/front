@@ -58,6 +58,7 @@ import { warScore } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { holderOf } from "./Land";
 import { officeHolder } from "./People";
+import { blockaderOf, isBlockaded, shipperOf } from "./Sea";
 import { endStrain } from "./Strain";
 import { GW_GAUGES_1914 } from "./Tables";
 import {
@@ -313,16 +314,16 @@ function warTerms(gw: GreatWar, n: GwNationState, out: GwEconTerms): void {
   );
   // ww209 (§1): Britain's subsidies put shells in the allies' hands.
   const gbr = gw.nation("GBR");
+  // ww220: whichever coalition Britain is in.
   if (
     n.tag !== "GBR" &&
     gbr !== null &&
-    n.side === "entente" &&
+    n.side !== null &&
     n.side === gbr.side
   ) {
     const pay = offOf(gbr, "national");
     // ww218: a coalition far behind gets twice the money (counterweight).
-    const behind =
-      trailingSide(gw, (x) => warScore(gw, x)) === "entente" ? 2 : 1;
+    const behind = trailingSide(gw, (x) => warScore(gw, x)) === n.side ? 2 : 1;
     if (pay > 0) {
       push(out.shells, "budget_subsidy", pay * SUBSIDY_SHELLS * behind);
     }
@@ -333,8 +334,10 @@ function warTerms(gw: GreatWar, n: GwNationState, out: GwEconTerms): void {
   // Guns fire freely from full stores and are rationed from empty ones.
   const fire = GW_ECON.fireAt[Math.min(3, n.gauges.shells)];
   push(out.shells, "econ_fronts", -(frontsUse(gw, n) * fire) / 100);
-  const blockaded =
-    n.side === "central" && gw.nation("GBR")?.side === "entente";
+  // ww220: the side without the main fleet; the U-boats sink the other's.
+  const blockaded = isBlockaded(gw, n);
+  const by = blockaderOf(gw);
+  const shipper = shipperOf(gw);
   if (blockaded && s.blockade >= GW_ECON.blockadeShells) {
     push(out.shells, "shells_blockade", -GW_ECON.blockadeShellsLoss);
   }
@@ -364,8 +367,8 @@ function warTerms(gw: GreatWar, n: GwNationState, out: GwEconTerms): void {
   if (blockaded) {
     push(out.bread, "bread_blockade", -(row.imports * s.blockade) / GW_SEA_MAX);
   }
-  if (n.side === "entente" && (n.tag === "GBR" || row.imports >= 100)) {
-    const share = n.tag === "GBR" ? 100 : 50;
+  if (n.side === by && (n.tag === shipper || row.imports >= 100)) {
+    const share = n.tag === shipper ? 100 : 50;
     const sunk = (row.imports * s.shipping * share) / (GW_SEA_MAX * 100);
     push(out.bread, "bread_uboats", -sunk);
   }
@@ -381,7 +384,7 @@ function warTerms(gw: GreatWar, n: GwNationState, out: GwEconTerms): void {
   // Full stores are eaten freely, empty ones rationed.
   const ration = GW_ECON.eatAt[Math.min(3, n.gauges.bread)];
   push(out.bread, "econ_eaters", -(row.eaters * ration) / 100);
-  const trade = blockaded ? s.blockade : n.side === "entente" ? s.shipping : 0;
+  const trade = blockaded ? s.blockade : n.side === by ? s.shipping : 0;
   // Money: trade, cut by the blockade or the U-boats, and the works' taxes.
   const taxed = (works * GW_ECON.worksMoney) / 100;
   push(

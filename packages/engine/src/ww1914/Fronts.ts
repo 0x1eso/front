@@ -172,6 +172,8 @@ const TRENCH_EVERY: Readonly<Partial<Record<GwTheatre, number>>> = {
   low_countries: 3,
   dobruja: 5,
   persia: 6,
+  great_game: 6,
+  nile: 6,
 };
 
 /** What a level of trench adds to a defence, percent. */
@@ -199,6 +201,8 @@ const TRENCH_MAX: Readonly<Partial<Record<GwTheatre, number>>> = {
   low_countries: 3,
   dobruja: 2,
   persia: 1,
+  great_game: 1,
+  nile: 1,
 };
 
 /**
@@ -222,6 +226,9 @@ const GROUND: Readonly<Partial<Record<GwTheatre, Record<string, number>>>> = {
   low_countries: { border: 10, amsterdam: 35 },
   dobruja: { dobrich: 10, constanta: 15 },
   persia: { kermanshah: 20, hamadan: 15 },
+  // ww220: the Hindu Kush passes and the Khyber; the Sudd's marshes.
+  great_game: { herat: 15, kandahar: 20, khyber: 40 },
+  nile: { fashoda: 15, egypt: 20 },
 };
 
 /** Percent chance a theatre nobody's main effort sees a local action. */
@@ -242,6 +249,8 @@ const LOCAL_PCT: Readonly<Record<GwTheatre, number>> = {
   low_countries: 30,
   dobruja: 45,
   persia: 40,
+  great_game: 30,
+  nile: 30,
 };
 
 /** Percent an attack loses for each line past its frontier, where that's hard. */
@@ -260,6 +269,9 @@ const REACH_BY: Readonly<Partial<Record<GwTheatre, number>>> = {
   low_countries: 12,
   dobruja: 12,
   persia: 22,
+  // ww220: deserts and mountains a thousand miles from any railway.
+  great_game: 25,
+  nile: 25,
 };
 
 /** How much war a theatre holds next to the west: casualties, percent. */
@@ -280,6 +292,8 @@ export const SCALE_OF: Readonly<Partial<Record<GwTheatre, number>>> = {
   low_countries: 50,
   dobruja: 25,
   persia: 10,
+  great_game: 8,
+  nile: 6,
 };
 
 export function allocOf(gw: GreatWar, tag: GwTag): GwAlloc | null {
