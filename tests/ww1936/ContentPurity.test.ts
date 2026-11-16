@@ -1,6 +1,7 @@
 // World War 1936 P3 (plan Global Constraints): the content files are data
-// only — no functions, classes, callbacks or eval. Only helpers.ts and
-// registry.ts may hold code. Comments and string literals are not looked at
+// only — no functions, classes, callbacks or eval. Only helpers.ts,
+// registry.ts and nations/live.ts (ww234: which nations are live, for the
+// registry and the lobby's picker) may hold code. Comments and string literals are not looked at
 // (controller ruling R19).
 import fs from "fs";
 import path from "path";
@@ -9,7 +10,7 @@ const ROOT = path.join(
   __dirname,
   "../../packages/engine-lib/src/ww1936/content",
 );
-const CODE_FILES = new Set(["helpers.ts", "registry.ts"]);
+const CODE_FILES = new Set(["helpers.ts", "registry.ts", "nations/live.ts"]);
 const FORBIDDEN = [
   /=>/,
   /\bfunction\b/,
@@ -60,12 +61,13 @@ describe("content purity", () => {
     );
   });
 
-  it("no content file but helpers.ts and registry.ts holds code", () => {
+  it("no content file but helpers.ts, registry.ts and nations/live.ts holds code", () => {
     const all = files(ROOT);
     expect(all.length).toBeGreaterThan(30);
     for (const f of all) {
-      if (CODE_FILES.has(path.basename(f)) && path.dirname(f) === ROOT)
+      if (CODE_FILES.has(path.relative(ROOT, f).split(path.sep).join("/"))) {
         continue;
+      }
       const code = codeOnly(fs.readFileSync(f, "utf8"));
       for (const re of FORBIDDEN) {
         expect(re.test(code), `${path.relative(ROOT, f)}: ${re}`).toBe(false);
