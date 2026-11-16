@@ -4,13 +4,15 @@ import {
   COUNTRY_TAGS,
   CountryTag,
   isDormantTag,
+  isImjinTag,
   MAJOR_TAGS,
 } from "@openfront/engine-api/ww1936/Countries";
 import { assetUrl } from "@openfront/shared/AssetUrls";
 import { html, LitElement, nothing, TemplateResult } from "lit";
-import { customElement, property } from "lit/decorators.js";
+import { customElement, property, state } from "lit/decorators.js";
 import { translateText } from "../../Utils";
 import { FACTION_DOT_CLASS } from "./FactionDot";
+import { nationalTreeTags } from "./NationalTrees";
 
 /**
  * World War 1936 lobby (spec §8.1): the seven majors as cards, then every
@@ -26,9 +28,29 @@ export class CountryPicker extends LitElement {
   @property({ attribute: false }) myClientID = "";
   @property({ attribute: false }) usernames: Map<string, string> = new Map();
   @property({ attribute: false }) selected: CountryTag | null = null;
+  /** ww234: the minors with their own national tree, marked in the list. */
+  @state() private treeTags: ReadonlySet<CountryTag> = new Set();
 
   createRenderRoot() {
     return this;
+  }
+
+  connectedCallback() {
+    super.connectedCallback();
+    nationalTreeTags().then(
+      (tags) => (this.treeTags = tags),
+      (err) => console.error("national trees failed to load:", err),
+    );
+  }
+
+  /** ww234: the quiet chip of a country with its own national tree. */
+  private treeChip(extra = ""): TemplateResult {
+    return html`<span
+      data-ww-tree-mark
+      title=${translateText("ww1936.lobby.new_tree_hint")}
+      class="shrink-0 rounded border border-white/15 px-1 text-[10px] leading-4 text-white/60 ${extra}"
+      >${translateText("ww1936.lobby.new_tree")}</span
+    >`;
   }
 
   private holderOf(tag: CountryTag): string | null {
@@ -103,6 +125,7 @@ export class CountryPicker extends LitElement {
   private row(tag: CountryTag): TemplateResult {
     const holder = this.holderOf(tag);
     const mine = this.selected === tag;
+    const tree = this.treeTags.has(tag);
     return html`<button
       data-tag=${tag}
       aria-pressed=${mine}
@@ -118,9 +141,12 @@ export class CountryPicker extends LitElement {
       <span class="font-semibold text-white">
         ${translateText(`ww1936.country.${tag}`)}
       </span>
+      ${tree ? this.treeChip("ml-auto") : nothing}
       ${holder === null
         ? nothing
-        : html`<span class="ml-auto text-white/60">${holder}</span>`}
+        : html`<span class="${tree ? "" : "ml-auto"} text-white/60"
+            >${holder}</span
+          >`}
     </button>`;
   }
 
@@ -142,6 +168,14 @@ export class CountryPicker extends LitElement {
         <p class="text-sm text-white/70">
           ${translateText("ww1936.lobby.pick_hint")}
         </p>
+        ${this.treeTags.size === 0
+          ? nothing
+          : html`<p
+              data-ww-tree-legend
+              class="flex items-center gap-2 text-xs text-white/60"
+            >
+              ${this.treeChip()} ${translateText("ww1936.lobby.new_tree_hint")}
+            </p>`}
         ${this.selected === null
           ? nothing
           : html`<button
@@ -169,7 +203,9 @@ export class CountryPicker extends LitElement {
                   (t) =>
                     COUNTRIES[t].group === g &&
                     !COUNTRIES[t].major &&
-                    !isDormantTag(t),
+                    !isDormantTag(t) &&
+                    // ww234: nor the Imjin War's Jurchen (its seats are its profile's).
+                    !isImjinTag(t),
                 ).map((t) => this.row(t))}
               </div>
             </section>`,

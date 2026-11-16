@@ -143,6 +143,7 @@ import { TUR_BRANCHES, TUR_FOCUSES, TUR_PATH } from "./focus/tur";
 import { USA_BRANCHES, USA_FOCUSES, USA_PATH } from "./focus/usa";
 import { HISTORY_BEATS } from "./history";
 import { NATIONS } from "./nations/index";
+import { isLiveNation } from "./nations/live";
 import type { AiCharacter, NationDef } from "./nations/types";
 import { PACKS } from "./packs";
 import { PERSONS_DEU } from "./persons/deu";
@@ -509,7 +510,7 @@ export function joinNations(
   base: ContentParts,
   nations: readonly NationDef[],
 ): ContentParts {
-  const live = nations.filter((n) => n.focuses.length > 0);
+  const live = nations.filter(isLiveNation);
   const byTag = new Map(live.map((n) => [n.tag as CountryTag, n]));
   const lists = <T>(f: (n: NationDef) => readonly T[] | undefined): T[] =>
     live.flatMap((n) => f(n) ?? []);

@@ -28025,6 +28025,8 @@
       "length_slow_hint": "No time limit; each tick lasts 4 times longer, so late September 1946 comes after about 3 hours 20 minutes",
       "length_timed": "50 minutes",
       "length_timed_hint": "The war ends on points after 50 minutes",
+      "new_tree": "New tree",
+      "new_tree_hint": "Has its own national focuses and equipment",
       "nukes": "Atomic bombs",
       "nukes_off": "Not allowed",
       "nukes_on": "Allowed",
