@@ -19,7 +19,6 @@ import type { Condition, DecisionDef, Effect, EventDef } from "../types";
 const DEM: Condition = { kind: "ruling", ideology: "democratic" };
 const COM: Condition = { kind: "ruling", ideology: "communist" };
 const FAS: Condition = { kind: "ruling", ideology: "fascist" };
-const NEU: Condition = { kind: "ruling", ideology: "neutral" };
 
 // ---- the minors' acts (their focus ids and flags as they are) ----
 const NLD_BENELUX: Condition = {
