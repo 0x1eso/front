@@ -31,6 +31,7 @@ const P_UBOAT = idHash("gw_df_uboat");
 const P_SORTIE = idHash("gw_df_sortie");
 const P_NOTICE = idHash("gw_df_notice");
 const P_AI = idHash("gw_df_ai");
+const P_PUT_OUT = idHash("gw_df_put_out");
 
 /** The countries with a fleet on the sea front (Tables.GW_FRONT_ENDS.sea). */
 export const GW_NAVAL_POWERS: readonly GwTag[] = ["GBR", "DEU", "USA"];
@@ -105,7 +106,7 @@ export function buildChain(gw: GreatWar, tag: GwTag, use?: number): void {
 }
 
 /** Whether `tag`'s service reads `foe`'s traffic at sea (SA's levels). */
-function readsAtSea(gw: GreatWar, tag: GwTag, foe: GwTag): boolean {
+export function readsAtSea(gw: GreatWar, tag: GwTag, foe: GwTag): boolean {
   return serviceOf(gw, tag).crypt > serviceOf(gw, foe).secure;
 }
 
@@ -197,6 +198,40 @@ export function sortieWarning(
   if (!used) return 0;
   if (read) actedOnRead(gw, holder, lead);
   return read ? WARN_COST_READ : WARN_COST;
+}
+
+/**
+ * ww221: whether `holder`'s chain hears a fleet of `of` put out (Fleets: a
+ * foe that left port unheard still shows in port). No chain, nothing heard.
+ */
+export function hearsPutOut(
+  gw: GreatWar,
+  holder: GwTag,
+  of: GwTag,
+  fleet: number,
+): boolean {
+  if (stationsOf(gw, holder) === 0) return false;
+  const read = readsAtSea(gw, holder, of);
+  return (
+    roll(gw, P_PUT_OUT, idx(gw, holder), fleet) < hearPct(gw, holder, read)
+  );
+}
+
+/** ww221: a chain or a codebook of `foe`'s reaches `tag`'s fleet (words only). */
+export function listenedTo(gw: GreatWar, tag: GwTag, foe: GwTag): boolean {
+  return stationsOf(gw, foe) > 0 || readsAtSea(gw, foe, tag);
+}
+
+/** ww221: `viewer`'s chain heard `of` (a sortie or a boat) within `within` chapters. */
+export function heardOf(
+  gw: GreatWar,
+  viewer: GwTag,
+  of: GwTag,
+  within: number,
+): boolean {
+  return (navalOf(gw, viewer)?.heard ?? []).some(
+    (h) => h.tag === of && gw.s.chapter - h.chapter <= within,
+  );
 }
 
 /** A warning of an enemy sortie went to the fleet of `side`, lately. */

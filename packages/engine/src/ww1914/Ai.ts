@@ -8,6 +8,7 @@ import {
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
+import { aiFleets } from "./Fleets";
 import { aiResearch, pairScore, pressOdds, warScore } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { aiOffensive } from "./Offensives";
@@ -321,6 +322,8 @@ export function aiStep(gw: GreatWar): void {
     seatEntry(gw);
     americaEnters(gw);
     aiTransfer(gw);
+    // ww221: the fleets nobody plays, on what their admirals believe.
+    aiFleets(gw);
     for (const e of GW_ENTRIES) neutralStep(gw, e);
   }
   for (const n of s.nations) {

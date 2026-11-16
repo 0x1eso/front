@@ -36,6 +36,7 @@ import { GW_CAPITALS } from "@openfront/engine-lib/ww1914/PlaceRules";
 import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import { detachedRegions, placeCells } from "./Cells";
 import { posOf } from "./Eras";
+import { fleetHold, zoneArea } from "./Fleets";
 import type { GreatWar } from "./GreatWar";
 import {
   farPos,
@@ -281,11 +282,24 @@ export function reachesGroup(
   if (held.has(g)) return true;
   if ((graph.near.get(g) ?? []).some((x) => held.has(x))) return true;
   const zones = graph.sea.get(g) ?? [];
-  if (zones.length === 0 || !hasSea(gw, tag)) return false;
+  if (zones.length === 0) return false;
   for (const h of held) {
-    if ((graph.sea.get(h) ?? []).some((z) => zones.includes(z))) return true;
+    const shared = (graph.sea.get(h) ?? []).filter((z) => zones.includes(z));
+    if (shared.some((z) => hasSeaAt(gw, tag, z))) return true;
   }
   return false;
+}
+
+/**
+ * ww221: whether `tag` carries an army over sea zone `z`: a fleet of its own,
+ * and its side holds the zone's sea area by its fleets (Fleets.fleetHold);
+ * where no fleet lies, the narrow seas' rule (hasSea).
+ */
+export function hasSeaAt(gw: GreatWar, tag: GwTag, z: number): boolean {
+  const n = gw.nation(tag);
+  if (n === null || !SEA_POWERS.includes(tag)) return false;
+  const hold = n.side === null ? undefined : fleetHold(gw, zoneArea(gw, z));
+  return hold === undefined ? hasSea(gw, tag) : hold === n.side;
 }
 
 /**

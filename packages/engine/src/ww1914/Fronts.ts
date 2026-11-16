@@ -30,6 +30,7 @@ import {
   techShield,
   warMonths,
 } from "./Eras";
+import { fleetsOn, seaJudge, straitsMines, straitsSupport } from "./Fleets";
 import type { GreatWar } from "./GreatWar";
 import { sortieWarning } from "./NavalIntel";
 import {
@@ -407,7 +408,11 @@ export function seasonOf(gw: GreatWar, t: GwTheatre): number {
   return GW_SEASON[t]?.[civilFromDays(gw.s.day).month] ?? 0;
 }
 
-function commandOf(gw: GreatWar, t: GwTheatreState, side: GwSide): number {
+export function commandOf(
+  gw: GreatWar,
+  t: GwTheatreState,
+  side: GwSide,
+): number {
   if (t.commander === null) return 100;
   const p = gw.person(t.commander);
   const def = defOf(t.commander);
@@ -474,7 +479,7 @@ function ordersOn(
 }
 
 /** What those decisions add to an attack by `by`, percent. */
-function orderBias(gw: GreatWar, t: GwTheatre, by: GwSide): number {
+export function orderBias(gw: GreatWar, t: GwTheatre, by: GwSide): number {
   return ordersOn(gw, t).reduce(
     (sum, { o, side }) => sum + (side === by ? o.odds : -o.odds),
     0,
@@ -531,7 +536,8 @@ export function oddsOf(
     edge +
     craftEdge(gw, a, t.id, "attack") -
     craftEdge(gw, d, t.id, "defence") -
-    seasonOf(gw, t.id) -
+    seasonOf(gw, t.id) +
+    (t.id === "straits" ? straitsSupport(gw, by) : 0) -
     reachOf(t, by) * (REACH_BY[t.id] ?? REACH_COST) -
     (home && t.id !== "sea" && !raid ? (HOME_SOIL_BY[t.id] ?? HOME_SOIL) : 0);
   return Math.floor((att * 100) / Math.max(1, def)) + bias;
@@ -583,7 +589,7 @@ export function trenchFaced(gw: GreatWar, t: GwTheatreState): number {
   return Math.max(0, t.trench - eraOf(gw).open);
 }
 
-function resultOf(ratio: number, trench: number): GwResult {
+export function resultOf(ratio: number, trench: number): GwResult {
   if (ratio >= BREAK_AT && trench < 4) return "break";
   if (ratio >= ADVANCE_AT) return "advance";
   if (ratio >= STALEMATE_AT) return "stalemate";
@@ -700,7 +706,7 @@ export function settle(
 }
 
 /** A retreat or a stand signed this chapter moves the line before the guns. */
-function orderSteps(gw: GreatWar, t: GwTheatreState): void {
+export function orderSteps(gw: GreatWar, t: GwTheatreState): void {
   for (const { o, side } of ordersOn(gw, t.id)) {
     if (o.steps !== undefined) move(gw, t, side, o.steps);
   }
@@ -750,6 +756,11 @@ function localPush(gw: GreatWar, t: GwTheatreState): GwSide | null {
 function judge(gw: GreatWar, t: GwTheatreState): void {
   const s = gw.s;
   orderSteps(gw, t);
+  // ww221: the sea is fought by the fleets in state (Fleets.seaJudge).
+  if (t.id === "sea" && fleetsOn(gw)) {
+    seaJudge(gw, t);
+    return;
+  }
   // A great offensive takes the theatre's chapter for itself (ww173).
   if (judgeOffensives(gw, t)) return;
   const ups = GW_FRONT_UP[t.id];
@@ -821,6 +832,8 @@ function judge(gw: GreatWar, t: GwTheatreState): void {
   if (roll <= ROLL_LOW + 3 && result === "repelled") {
     for (const seat of seatsOf(gw, lead)) reason(gw, seat, "bad_luck");
   }
+  // ww221: an entente attack through the Narrows may find the mines.
+  if (by === "entente") straitsMines(gw, t);
 }
 
 function dig(gw: GreatWar, t: GwTheatreState): void {

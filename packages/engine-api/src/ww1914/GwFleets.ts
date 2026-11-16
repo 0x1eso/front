@@ -72,6 +72,8 @@ export const GwFleetSchema = z.object({
   /** Chapter it last put out, and who heard it go (port hides). */
   outAt: z.number().int().optional(),
   heardBy: z.array(z.enum(GW_TAGS)).optional(),
+  /** Came into port from its station after a fight: goes back out repaired. */
+  station: z.boolean().optional(),
 });
 export type GwFleet = z.infer<typeof GwFleetSchema>;
 

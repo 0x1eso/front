@@ -616,9 +616,12 @@ const BUILD: GwAnswerRow = {
     f("race", 1),
   ],
   courses: [
-    c("more", ["bold", "firm"], [gauge("money", -1), temp(1)], {
-      needs: [money("much")],
-    }),
+    c(
+      "more",
+      ["bold", "firm"],
+      [gauge("money", -1), temp(1), remember("c_build_more")],
+      { needs: [money("much")] },
+    ),
     c("as_planned", ["calm"], [remember("c_build_planned")]),
     c("fewer", ["cheap", "gentle"], [gauge("money", 1), temp(-1)]),
     waitCourse("c_build_wait"),

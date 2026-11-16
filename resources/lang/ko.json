@@ -16016,7 +16016,13 @@
       "table_promise_vote_kept": "{a}이(가) {b}에 약속한 대로 {place}에서 주민 투표가 열렸다.",
       "table_protest_builds": "{b}이(가) 누른 {a}의 항의가 중립국 신문에 다시 실린다.",
       "table_protest_pushed": "{a}이(가) {b}의 항의를 누르고 그 땅을 조약에 넣었다.",
-      "band_arrived": "{a}의 새 사단들이 {theatre} 전선에 닿았다."
+      "band_arrived": "{a}의 새 사단들이 {theatre} 전선에 닿았다.",
+      "fleet_battle_even": "{a}과(와) {b}의 함대가 바다에서 맞붙었다. 둘 다 잃고 둘 다 이겼다고 한다.",
+      "fleet_battle_lost": "{a} 함대가 출격했다가 {b} 함대에 밀려 돌아왔다.",
+      "fleet_battle_won": "{a} 함대가 출격해 {b} 함대를 바다에서 이겼다.",
+      "fleet_built": "{a} 함대에 새 전함이 들어왔다.",
+      "goeben": "독일 군함들이 콘스탄티노플로 달아나 튀르크 깃발을 올렸다.",
+      "straits_mines": "{a} 군함들이 해협에서 기뢰에 걸렸다."
     },
     "odds": {
       "0": "될 일이 아닙니다.",

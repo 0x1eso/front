@@ -7,6 +7,7 @@ import {
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { hasTech, warMonths } from "./Eras";
+import { blockadeHolds, escortSaves, fleetStep, uboatScale } from "./Fleets";
 import type { GreatWar } from "./GreatWar";
 import { navalStep, uboatSaves, warnedLately } from "./NavalIntel";
 import {
@@ -41,11 +42,13 @@ function blockadeStep(gw: GreatWar): void {
   // their stations: the blockade tightens sooner and does not slip.
   const warned = warnedLately(gw, "entente");
   const nets = (hasTech(gbr, "mine_nets") ? 4 : 5) - (warned ? 1 : 0);
+  // ww221: the battle fleet in the north and cruisers on station (Fleets).
+  const fleets = blockadeHolds(gw);
   // A fleet that holds the North Sea closes it a little at a time.
-  if (line <= 1 && everyMonths(gw, nets)) {
+  if (line <= 1 && fleets.tighten && everyMonths(gw, nets)) {
     s.blockade = clampTo(s.blockade + 1, 0, GW_SEA_MAX);
   }
-  if (line >= 2 && !warned && everyMonths(gw, 3)) {
+  if ((line >= 2 || fleets.slips) && !warned && everyMonths(gw, 3)) {
     s.blockade = clampTo(s.blockade - 1, 0, GW_SEA_MAX);
   }
   // America is a neutral too, and the list of contraband grows.
@@ -100,10 +103,20 @@ function uboatStep(gw: GreatWar): void {
   if (deu === null || gbr === null || !fights(gbr)) return;
   const live = fights(deu) && seaOpen(gw);
   let sunk = 0;
-  if (live && s.uboat === 1 && everyMonths(gw, 2)) sunk = 1;
-  if (live && s.uboat === 2) sunk = hasTech(deu, "ocean_boats") ? 2 : 1;
+  // ww221: few, some or many boats at sea (Fleets.uboatScale; 2 is today's).
+  const boats = uboatScale(gw);
+  const every = [0, 3, 2, 1][boats];
+  if (live && boats > 0 && s.uboat === 1 && everyMonths(gw, every)) sunk = 1;
+  if (live && boats > 0 && s.uboat === 2) {
+    sunk =
+      boats === 1
+        ? 1
+        : (hasTech(deu, "ocean_boats") ? 2 : 1) + (boats === 3 ? 1 : 0);
+  }
   // ww180: a chain that hears a U-boat and steers the ships off it.
   if (sunk > 0) sunk -= uboatSaves(gw, "DEU");
+  // ww221: cruisers on escort in the atlantic.
+  if (sunk > 0) sunk -= escortSaves(gw);
   let built = everyMonths(gw, 3) ? 1 : 0;
   // ww179: convoys any of the three sail count, not Britain's alone.
   const convoys = (["GBR", "FRA", "USA"] as const).some((t) => {
@@ -163,6 +176,8 @@ export const americaCan = (gw: GreatWar) =>
 
 /** Chapter step, before the home front: the two scales move. */
 export function seaStep(gw: GreatWar, warScoreCentral: number): void {
+  // ww221: the fleets build and repair in peace too.
+  fleetStep(gw);
   if (gw.s.warChapter === null || !isLongChapter(gw)) return;
   navalStep(gw);
   blockadeStep(gw);

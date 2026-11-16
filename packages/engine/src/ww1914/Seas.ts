@@ -9,6 +9,7 @@ import {
   GwSide,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwWorldCond } from "@openfront/engine-api/ww1914/WorldDsl";
+import { fleetHold } from "./Fleets";
 import type { GreatWar } from "./GreatWar";
 import { holderOf } from "./Land";
 import { fights } from "./World";
@@ -29,6 +30,9 @@ function lineOf(gw: GreatWar, id: "sea" | "straits"): number {
 
 /** The side that holds a sea; null if neither. */
 export function seaHold(gw: GreatWar, sea: GwSeaZone): GwSide | null {
+  // ww221: the fleets hold every sea they lie in; the old rules where none do.
+  const fleets = fleetHold(gw, sea);
+  if (fleets !== undefined) return fleets;
   switch (sea) {
     case "north":
       return lineOf(gw, "sea") >= SEA_CENTRAL_FROM ? "central" : "entente";
