@@ -667,6 +667,19 @@ function idText(kind: string, id: string): string {
   return id;
 }
 
+/**
+ * ww235: a flag a condition names, as a short phrase (ww1936.flag.<id>); a
+ * flag without a text yet reads from its id, never as raw snake_case.
+ */
+export function flagText(id: string): string {
+  const key = `ww1936.flag.${id}`;
+  const text = translateText(key);
+  if (text !== key) return text;
+  return translateText("ww1936.pol.flag_unnamed", {
+    name: id.replace(/_+/g, " ").trim(),
+  });
+}
+
 function ideologyParam(v: string): string {
   if (v === "ruling") return translateText("ww1936.pol.ideo_ruling");
   if (v === "largest_other") {
@@ -763,6 +776,8 @@ function paramText(
       return translateText(`ww1936.faction_name.${v}`, { country: "" });
     case "date":
       return dateLabel(dayOfDateIn(v, wwEpoch()));
+    case "flag":
+      return flagText(v);
   }
   return v;
 }
