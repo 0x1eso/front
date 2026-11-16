@@ -922,13 +922,15 @@ export type GwWorldEffect =
   | { do: "road_fall"; tag: GwTag }
   /**
    * The seat offers `tag` the treaty of the road's next step: `pledge`, its
-   * own neutrality (with `spare`: Belgium spared too); `alliance`, both bound.
+   * own neutrality, or with `ask` `tag`'s; `alliance`, both bound. `spare`:
+   * the seat spares Belgium too (Germany's price for Britain's pledge).
    */
   | {
       do: "realign_offer";
       tag: GwTag;
       step: "pledge" | "alliance";
       spare?: boolean;
+      ask?: boolean;
     }
   /** The seat's country changes sides at `tag`'s, if it may (Alignment.switchSide). */
   | { do: "switch_side"; tag: GwTag }
@@ -1439,6 +1441,7 @@ export const GwWorldEffectSchema = z.union([
     tag,
     step: z.enum(["pledge", "alliance"]),
     spare: z.boolean().optional(),
+    ask: z.boolean().optional(),
   }),
   act("switch_side", { tag }),
   act("leave_coalition", {}),

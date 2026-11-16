@@ -54,7 +54,14 @@ const P_REALIGN = idHash("gw_realign");
 const P_ROAD_LEAK = idHash("gw_road_leak");
 
 /** Countries a road runs between: the great powers, and America. */
-export const GW_ROAD_POWERS: readonly GwTag[] = [...GW_GREAT, "USA"];
+export const GW_ROAD_POWERS: readonly GwTag[] = [
+  "DEU",
+  "AUH",
+  "RUS",
+  "FRA",
+  "GBR",
+  "USA",
+];
 
 /**
  * The strongest first, for `leadsOf`: who signs for a side and whose word its
@@ -455,6 +462,8 @@ export function regimeCamp(gw: GreatWar, tag: GwTag): void {
   }
   if (row?.camp !== "neutral") return;
   n.camp = null;
+  // A regime that asks for peace goes to the table the old way (Peace.ts).
+  if (row.seeksPeace) return;
   if (fights(n) && n.side !== null && !ruledBySeat(gw, tag)) {
     leaveCoalition(gw, tag);
   }
@@ -507,8 +516,14 @@ export function onTreatyLeaked(gw: GreatWar, t: GwTreaty): void {
   if (gw.s.warChapter === null || t.state === "offered") {
     roadFall(gw, t.from, t.to, "leak");
   }
-  for (const tag of [t.from, t.to]) {
-    if (turned(gw, tag) && t.state === "signed") {
+  // A camp turned on this alliance in secret: now the world hears it.
+  if (t.state !== "signed" || !has(t, "alliance")) return;
+  for (const [tag, partner] of [
+    [t.from, t.to],
+    [t.to, t.from],
+  ] as const) {
+    const camp = campOf(gw, tag);
+    if (turned(gw, tag) && camp !== null && camp === campOf(gw, partner)) {
       news(gw, "camp_turned", tag);
     }
   }
@@ -605,13 +620,24 @@ function nextOffer(
 ): { step: "pledge" | "alliance"; by: GwTag; to: GwTag } | null {
   const step = roadStep(gw, a, b);
   const bond = bondOf(gw, a, b) ?? 0;
-  if (step === null || warOf(gw, a, b) !== null) return null;
+  if (step === null) return null;
   const open = gw.s.treaties.some(
     (t) => t.state === "offered" && between(t, a, b),
   );
   if (open) return null;
-  // The one less tied to its own lead walks first.
-  const [by, to] = bondToLead(gw, a) <= bondToLead(gw, b) ? [a, b] : [b, a];
+  if (warOf(gw, a, b) !== null) {
+    // In the war: only one that may change sides offers, and only an alliance.
+    const by = canSwitch(gw, a) ? a : canSwitch(gw, b) ? b : null;
+    if (by === null || bond < 0) return null;
+    const to = by === a ? b : a;
+    const camp = gw.nation(to)?.side ?? null;
+    if (camp === null || seatIn(gw, camp, [a, b])) return null;
+    return { step: "alliance", by, to };
+  }
+  // The one less tied to its own lead walks first; even, the lesser power.
+  const rank = (x: GwTag) => GW_LEAD_RANK.indexOf(x);
+  const first = bondToLead(gw, a) - bondToLead(gw, b) || rank(b) - rank(a);
+  const [by, to] = first <= 0 ? [a, b] : [b, a];
   if (step === 2 && bond >= 1 && !pledgedTo(gw, by, to)) {
     return { step: "pledge", by, to };
   }
@@ -631,10 +657,10 @@ function nextOffer(
 export function aiRealign(gw: GreatWar): void {
   const s = gw.s;
   if (s.armistice !== null || !isLongChapter(gw)) return;
-  for (let i = 0; i < GW_ROAD_POWERS.length; i++) {
-    for (let j = i + 1; j < GW_ROAD_POWERS.length; j++) {
-      const a = GW_ROAD_POWERS[i];
-      const b = GW_ROAD_POWERS[j];
+  for (let i = 0; i < GW_GREAT.length; i++) {
+    for (let j = i + 1; j < GW_GREAT.length; j++) {
+      const a = GW_GREAT[i];
+      const b = GW_GREAT[j];
       const offer = nextOffer(gw, a, b);
       if (offer === null || ruledBySeat(gw, offer.by)) continue;
       const n = gw.nation(offer.by);
@@ -646,24 +672,39 @@ export function aiRealign(gw: GreatWar): void {
       const per = GW_REALIGN_PER_MIL[offer.step][n.ai] ?? 0;
       const roll = wwRoll(s.seed, P_REALIGN, s.chapter, idHash(pairKey(a, b)));
       if (roll % 1000 >= per) continue;
-      offerRoad(gw, offer.by, offer.to, offer.step, false);
+      // Britain's price for its neutrality: Belgium spared.
+      const spare =
+        offer.step === "pledge" && offer.by === "GBR" && offer.to === "DEU";
+      if (spare) {
+        offerTreatyFrom(gw, "GBR", "DEU", [
+          { kind: "neutrality", by: "GBR", theatre: null, value: 0 },
+          { kind: "spare", by: "DEU", theatre: null, value: 0 },
+        ]);
+      } else {
+        offerRoad(gw, offer.by, offer.to, offer.step, false);
+      }
     }
   }
 }
 
-/** `by` offers `to` the treaty of a road's step. False when it can't. */
+/**
+ * `by` offers `to` the treaty of a road's step. `pledge`: `by`'s own
+ * neutrality, or with `ask` `to`'s; `spare`: `by` spares Belgium too (what
+ * Germany gives for Britain's pledge). False when it can't.
+ */
 export function offerRoad(
   gw: GreatWar,
   by: GwTag,
   to: GwTag,
   step: "pledge" | "alliance",
   spare: boolean,
+  ask = false,
 ): boolean {
+  const pledger = ask ? to : by;
   const clauses: GwClause[] =
     step === "pledge"
-      ? [{ kind: "neutrality", by, theatre: null, value: 0 }]
+      ? [{ kind: "neutrality", by: pledger, theatre: null, value: 0 }]
       : [{ kind: "alliance", by, theatre: null, value: 0 }];
-  // Germany's pledge to Britain may carry Belgium (`spare`).
   if (spare) clauses.push({ kind: "spare", by, theatre: null, value: 0 });
   return offerTreatyFrom(gw, by, to, clauses) === null;
 }
@@ -723,7 +764,7 @@ export function alignDo(
       roadFall(gw, seat.tag, e.tag, "paper");
       return;
     case "realign_offer":
-      offerRoad(gw, seat.tag, e.tag, e.step, e.spare === true);
+      offerRoad(gw, seat.tag, e.tag, e.step, e.spare === true, e.ask === true);
       return;
     case "switch_side": {
       const to = gw.nation(e.tag)?.side ?? null;
@@ -742,7 +783,7 @@ export function roadsOf(
   tag: GwTag,
 ): { tag: GwTag; road: GwRoad }[] {
   const out: { tag: GwTag; road: GwRoad }[] = [];
-  for (const x of GW_ROAD_POWERS) {
+  for (const x of GW_GREAT) {
     const road = roadOf(gw, tag, x);
     if (road !== null && gw.nation(x)?.out !== true) out.push({ tag: x, road });
   }
