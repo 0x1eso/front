@@ -14,6 +14,7 @@ import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
 import { GW_TABLE_SESSIONS } from "@openfront/engine-lib/ww1914/TableRows";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { GW_AFTER_CHAPTERS } from "./Aftermath";
+import { leadsLeft, leadsOf, sideDoneBy } from "./Alignment";
 import { keepTableDue } from "./Bargain";
 import { hungry } from "./Economy";
 import { warMonths } from "./Eras";
@@ -44,11 +45,6 @@ import {
 const P_MINOR = idHash("gw_minor_out");
 const P_SPENT = idHash("gw_spent");
 
-/** Who leads each side: when they're gone, the side is done. */
-const LEADERS: Readonly<Record<GwSide, readonly GwTag[]>> = {
-  central: ["DEU"],
-  entente: ["FRA", "GBR"],
-};
 /** Countries that can only follow, and leave alone when they can't go on. */
 const FOLLOWERS: readonly GwTag[] = [
   "BGR",
@@ -117,28 +113,19 @@ function followerDone(gw: GreatWar, n: GwNationState): boolean {
   return lost && tired && r % 100 < 35;
 }
 
+/** ww220: the side's leads still fighting, the strongest first (Alignment). */
 function leadersLeft(gw: GreatWar, side: GwSide): GwTag[] {
-  return LEADERS[side].filter((t) => {
-    const n = gw.nation(t);
-    return n?.side === side && fights(n);
-  });
+  return leadsLeft(gw, side);
 }
 
-/**
- * The side is done: Germany gone, or France with Russia gone or Britain alone.
- * A side its leaders never joined (ww171: Vienna and Belgrade alone, say) is
- * done when every member of it is out.
- */
+/** ww220: the side is done (Alignment.sideDoneBy, its camps of the day). */
 function sideDone(gw: GreatWar, side: GwSide): boolean {
-  const members = gw.s.nations.filter((n) => n.side === side);
-  if (members.length === 0) return false;
-  const joined = LEADERS[side].filter((t) => gw.nation(t)?.side === side);
-  if (joined.length === 0) return members.every((n) => n.out);
-  if (side === "central") return leadersLeft(gw, side).length === 0;
-  const fra = gw.nation("FRA")?.out === true;
-  const rus = gw.nation("RUS")?.out === true;
-  if (!joined.includes("FRA")) return leadersLeft(gw, side).length === 0;
-  return fra && (rus || leadersLeft(gw, side).length === 0);
+  return sideDoneBy(gw, side);
+}
+
+/** Who signs a side's armistice: its strongest lead. */
+function signer(gw: GreatWar, side: GwSide): GwTag | null {
+  return leadsOf(gw, side)[0] ?? null;
 }
 
 export function armistice(
@@ -190,10 +177,14 @@ export function peaceStep(gw: GreatWar): void {
       outMidWar(gw, tag, "sued_for_peace");
     }
   }
-  if (sideDone(gw, "central")) armistice(gw, "central_lost", "DEU");
-  else if (sideDone(gw, "entente")) armistice(gw, "entente_lost", "GBR");
-  else if (leaderAsks(gw, "DEU")) armistice(gw, "central_lost", "DEU");
-  else if (bothSpent(gw)) armistice(gw, "compromise", null);
+  if (sideDone(gw, "central")) {
+    armistice(gw, "central_lost", signer(gw, "central"));
+  } else if (sideDone(gw, "entente")) {
+    armistice(gw, "entente_lost", signer(gw, "entente"));
+  } else if (leaderAsks(gw, "DEU")) {
+    const ent = gw.nation("DEU")?.side === "entente";
+    armistice(gw, ent ? "entente_lost" : "central_lost", "DEU");
+  } else if (bothSpent(gw)) armistice(gw, "compromise", null);
   answerTalks(gw);
 }
 
@@ -287,7 +278,7 @@ export function outMidWar(gw: GreatWar, tag: GwTag, why: string): void {
 export function sue(gw: GreatWar, tag: GwTag, why = "sued_for_peace"): void {
   const n = gw.nation(tag);
   if (n === null || n.side === null) return;
-  if (LEADERS[n.side].includes(tag)) {
+  if (leadsOf(gw, n.side).includes(tag)) {
     const left = leadersLeft(gw, n.side).filter((t) => t !== tag);
     if (left.length === 0) {
       armistice(

@@ -190,10 +190,22 @@ export function raiseArms(
 const pairKey = (a: GwTag, b: GwTag) => (a < b ? `${a}_${b}` : `${b}_${a}`);
 
 let pairs: readonly string[] | null = null;
-/** The pairs with a bond: June 1914's treaties, the Entente, London and Petersburg. */
+/**
+ * The pairs with a bond: June 1914's treaties, the Entente, London and
+ * Petersburg; ww220: the rivals a road runs between, and America's.
+ */
 export function bondPairs(): readonly string[] {
   if (pairs !== null) return pairs;
-  const all = new Set<string>(["FRA_GBR", "GBR_RUS"]);
+  const all = new Set<string>([
+    "FRA_GBR",
+    "GBR_RUS",
+    "DEU_GBR",
+    "DEU_RUS",
+    "DEU_FRA",
+    "AUH_RUS",
+    "GBR_USA",
+    "DEU_USA",
+  ]);
   for (const t of GW_START_TREATIES) all.add(pairKey(t.by, t.for));
   pairs = [...all].sort();
   return pairs;

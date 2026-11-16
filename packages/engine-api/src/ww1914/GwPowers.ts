@@ -65,6 +65,8 @@ export const GW_POWER_TAGS = [
   "promote",
   "condemn",
   "ability",
+  // ww220: a road taken toward the other camp (a pledge, an alliance, a switch).
+  "realign",
 ] as const;
 export type GwPowerTag = (typeof GW_POWER_TAGS)[number];
 

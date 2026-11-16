@@ -39,6 +39,7 @@ import {
 import { idHash } from "@openfront/engine-lib/ww1936/Roll";
 import { actViews } from "./Acts";
 import { aimsView } from "./Aims";
+import { roadsOf } from "./Alignment";
 import { askOffers, summonPrice } from "./AskFirst";
 import { claimsView } from "./Claims";
 import {
@@ -388,6 +389,7 @@ function diploView(gw: GreatWar, seat: GwSeatState): GwDiploView {
       .filter((t) => t.from === seat.tag || t.to === seat.tag || t.leaked)
       .map((t) => treatyView(gw, t, seat)),
     wiresLeft: Math.max(0, GW_TELEGRAMS_PER_CHAPTER - seat.wired),
+    roads: roadsOf(gw, seat.tag),
   };
 }
 

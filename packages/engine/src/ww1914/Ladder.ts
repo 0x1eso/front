@@ -92,7 +92,7 @@ export function canFight(gw: GreatWar, a: GwTag, b: GwTag): boolean {
   if (na === null || nb === null || na.out || nb.out) return false;
   if (!reachable(a, b)) return false;
   if (na.side !== null && na.side === nb.side) return false;
-  return !startAllies(a, b, true) && !treatyAllies(gw, a, b);
+  return !startAllies(a, b, true, gw) && !treatyAllies(gw, a, b);
 }
 
 /**

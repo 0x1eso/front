@@ -3,6 +3,7 @@ import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
 import { GW_TIME_EXTRA } from "@openfront/engine-lib/ww1914/TaskRows";
 import { aftermathStep } from "./Aftermath";
 import { aiStep } from "./Ai";
+import { alignStep } from "./Alignment";
 import { alliesStep } from "./Asks";
 import { electionStep } from "./Assumes";
 import { budgetStep } from "./Budget";
@@ -106,6 +107,8 @@ export const GW_CHAPTER_STEPS: readonly ((gw: GreatWar) => void)[] = [
   aftermathStep,
   endingStep,
   treatyStep,
+  // ww220: camps that move: falls, leaks, alliances that turn, the AI's roads.
+  alignStep,
   regentStep,
   telegramStep,
   // ww219: the war plans: redraws run their months, the war meets the plans.

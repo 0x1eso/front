@@ -286,6 +286,8 @@ export const GW_REACTORS: readonly GwReactorRow[] = [
   r("treaty", "allies", 1),
   r("alliance_broken", "allies", -1),
   r("alliance_broken", "neutrals", -1),
+  // ww220: a road toward the other camp; the factions answer per seat (W1/W2).
+  r("realign", "allies", -1),
   r("house_closed", "people", -1, ["parliament"]),
   r("house_closed", "factions", -1, ["parliament", "workers"]),
   r("house_opened", "people", 1, ["parliament"]),

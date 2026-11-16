@@ -21,6 +21,12 @@ import {
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
+import {
+  outbreakCamps,
+  pledgedAgainst,
+  spares,
+  startTreatyLive,
+} from "./Alignment";
 import { warMonths } from "./Eras";
 import type { GreatWar } from "./GreatWar";
 import { bondOf } from "./PeaceYears";
@@ -67,11 +73,20 @@ const CASCADE: Readonly<Partial<Record<GwTag, GwSide>>> = {
   GBR: "entente",
 };
 
-/** The side a country would stand on in the general war, if it is known. */
+/** June 1914's camp: CASCADE, then the neutrals' leanings. */
+export function juneCamp(tag: GwTag): GwSide | null {
+  return CASCADE[tag] ?? GW_ENTRIES.find((e) => e.tag === tag)?.natural ?? null;
+}
+
+/**
+ * The side a country would stand on in the general war, if it is known:
+ * its side, else its camp now (ww220 Alignment: `n.camp`), else June 1914's.
+ */
 export function naturalSide(gw: GreatWar, tag: GwTag): GwSide | null {
   const n = gw.nation(tag);
   if (n !== null && n.side !== null) return n.side;
-  return CASCADE[tag] ?? GW_ENTRIES.find((e) => e.tag === tag)?.natural ?? null;
+  if (n?.camp !== undefined) return n.camp;
+  return juneCamp(tag);
 }
 
 // ---- The pairs ----
@@ -115,7 +130,12 @@ export function pairWars(gw: GreatWar): GwWar[] {
 }
 
 /** The low step every war goes through: the pair, mobilised. */
-function addWar(gw: GreatWar, a: GwTag, b: GwTag, cause: string): boolean {
+export function addWar(
+  gw: GreatWar,
+  a: GwTag,
+  b: GwTag,
+  cause: string,
+): boolean {
   const na = gw.nation(a);
   const nb = gw.nation(b);
   if (a === b || na === null || nb === null || na.out || nb.out) return false;
@@ -435,6 +455,8 @@ export function openGeneral(
     else s.plan = germanPlan(gw);
   }
   turn(gw, "war_began");
+  // ww220: a pledged power starts the war in no camp.
+  outbreakCamps(gw);
   const nb0 = naturalSide(gw, b);
   const sa = naturalSide(gw, a) ?? (nb0 === null ? "central" : other(nb0));
   takeSide(gw, a, sa);
@@ -455,7 +477,8 @@ export function openGeneral(
   refreshTheatres(gw);
   pullTreaties(gw);
   const deu = gw.nation("DEU");
-  if (s.plan === "west" && deu !== null && fights(deu)) {
+  // ww220: a pledge that spares Belgium ties the staff to a frontal plan.
+  if (s.plan === "west" && deu !== null && fights(deu) && !spares(gw, "DEU")) {
     if (atWarWith(gw, "DEU", "FRA")) {
       declareWar(gw, "DEU", "BEL", "plan_west", "belgium_invaded");
       if (atWarWith(gw, "DEU", "BEL")) turn(gw, "belgium_invaded");
@@ -537,10 +560,16 @@ export function declareWar(
  * that forbid a war between the two (an alliance, a protector, kin); a
  * defensive pact can be broken by war, as Italy's and Romania's were.
  */
-export function startAllies(a: GwTag, b: GwTag, binding = false): boolean {
+export function startAllies(
+  a: GwTag,
+  b: GwTag,
+  binding = false,
+  gw?: GreatWar,
+): boolean {
   return GW_START_TREATIES.some(
     (r) =>
       r.kind !== "guarantee" &&
+      (gw === undefined || startTreatyLive(r.id, gw)) &&
       (!binding || r.kind !== "defensive") &&
       ((r.by === a && r.for === b) || (r.by === b && r.for === a)),
   );
@@ -566,6 +595,12 @@ function honours(
   age: number,
 ): boolean {
   const s = gw.s;
+  // ww220: a pledge toward the foe's camp keeps it out; a seat decides itself.
+  const foeSide = gw.nation(foe)?.side ?? null;
+  if (foeSide !== null && pledgedAgainst(gw, row.by, foeSide)) {
+    for (const seat of seatsOf(gw, row.by)) reason(gw, seat, "pledge_holds");
+    return false;
+  }
   if (ruledBySeat(gw, row.by)) {
     if (s.warChapter === s.chapter) return true;
     for (const seat of seatsOf(gw, row.by)) reason(gw, seat, "treaty_calls");
@@ -594,6 +629,7 @@ export function honourPct(gw: GreatWar, row: GwStartTreaty): number {
   const s = gw.s;
   const n = gw.nation(row.by);
   if (n === null || n.out) return 0;
+  if (!startTreatyLive(row.id, gw)) return 0;
   if (ruledBySeat(gw, row.by)) return 100;
   if (row.by === "ROU" && s.secrets.includes("rou_treaty_dead")) return 0;
   let pct = row.pct + HONOUR_BY_AI[n.ai];
@@ -629,7 +665,7 @@ export function pullTreaties(gw: GreatWar): void {
     for (let pass = 0; pass < 8; pass++) {
       let moved = false;
       for (const row of GW_START_TREATIES) {
-        if (row.kind === "guarantee") continue;
+        if (row.kind === "guarantee" || !startTreatyLive(row.id, gw)) continue;
         const by = gw.nation(row.by);
         const of = gw.nation(row.for);
         if (by === null || of === null || by.out || of.out) continue;

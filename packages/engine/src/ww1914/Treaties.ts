@@ -15,6 +15,12 @@ import type { GwOrderBlock } from "@openfront/engine-api/ww1914/GwOrders";
 import { gaugeOf } from "@openfront/engine-lib/ww1914/BudgetRules";
 import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
+import {
+  onTreatyLeaked,
+  onTreatySigned,
+  roadSignTerm,
+  switchTreatyOk,
+} from "./Alignment";
 import type { GreatWar } from "./GreatWar";
 import { enter } from "./Wars";
 import {
@@ -73,6 +79,7 @@ function clauseOk(gw: GreatWar, t: GwTag, to: GwTag, c: GwClause): boolean {
   switch (c.kind) {
     case "alliance":
     case "neutrality":
+    case "spare":
       return true;
     case "loan":
       return c.value >= 1 && c.value <= GW_LOAN_MAX;
@@ -91,19 +98,32 @@ export function offerTreaty(
   to: GwTag,
   clauses: readonly GwClause[],
 ): GwOrderBlock | null {
+  return offerTreatyFrom(gw, seat.tag, to, clauses);
+}
+
+/** ww220: an offer from any country (a seat's order, or Alignment's AI). */
+export function offerTreatyFrom(
+  gw: GreatWar,
+  from: GwTag,
+  to: GwTag,
+  clauses: readonly GwClause[],
+): GwOrderBlock | null {
   const s = gw.s;
-  const n = gw.nation(seat.tag);
+  const n = gw.nation(from);
   const partner = gw.nation(to);
-  if (to === seat.tag || n === null || partner === null) return "no_seat";
-  if (n.atWar.includes(to)) return "at_war";
-  if (clauses.some((c) => !clauseOk(gw, seat.tag, to, c))) return "bad_clause";
+  if (to === from || n === null || partner === null) return "no_seat";
+  // ww220: an alliance across the war only for one that may change sides.
+  if (n.atWar.includes(to) && !switchTreatyOk(gw, from, to, clauses)) {
+    return "at_war";
+  }
+  if (clauses.some((c) => !clauseOk(gw, from, to, c))) return "bad_clause";
   const offered = s.treaties.filter(
-    (t) => t.from === seat.tag && t.chapter === s.chapter,
+    (t) => t.from === from && t.chapter === s.chapter,
   );
   if (offered.length >= OFFERS_PER_CHAPTER) return "too_many";
   s.treaties.push({
     uid: s.nextTreaty++,
-    from: seat.tag,
+    from,
     to,
     clauses: clauses.map((c) => ({ ...c })),
     state: "offered",
@@ -150,6 +170,7 @@ function signTreaty(gw: GreatWar, t: GwTreaty): void {
   moveTrust(gw, t.from, t.to, 1);
   moveTrust(gw, t.to, t.from, 1);
   tellBoth(gw, t, "treaty_signed");
+  onTreatySigned(gw, t);
 }
 
 /** Every AI country remembers; the wronged one remembers more (design §9). */
@@ -187,7 +208,13 @@ export function answerTreaty(
   if (t === undefined || t.state !== "offered" || t.to !== seat.tag) {
     return "no_treaty";
   }
-  if (sign && gw.nation(t.from)?.atWar.includes(t.to) === true) return "at_war";
+  if (
+    sign &&
+    gw.nation(t.from)?.atWar.includes(t.to) === true &&
+    !switchTreatyOk(gw, t.from, t.to, t.clauses)
+  ) {
+    return "at_war";
+  }
   if (sign) {
     signTreaty(gw, t);
   } else {
@@ -247,6 +274,8 @@ function clauseValue(c: GwClause, ai: GwTag): number {
       return mine ? -30 : 10;
     case "alliance":
       return -5;
+    case "spare":
+      return mine ? -10 : 10;
   }
 }
 
@@ -258,6 +287,7 @@ function aiWouldSign(gw: GreatWar, t: GwTreaty): boolean {
   const roll = wwRoll(gw.s.seed, P_AI_TREATY, t.uid) % 21;
   let score = (n.trust[t.from] ?? 0) * 10 + roll - 10;
   for (const c of t.clauses) score += clauseValue(c, t.to);
+  score += roadSignTerm(gw, t);
   if (n.side !== null && n.side === from.side) score += 15;
   score += { opportunist: 10, hardline: -5, cautious: -10, principled: 0 }[
     n.ai
@@ -354,10 +384,14 @@ function checkClause(gw: GreatWar, t: GwTreaty, c: GwClause): boolean {
     }
     case "passage":
       return true;
+    case "spare":
+      if (!by.atWar.includes("BEL")) return true;
+      breakTreaty(gw, t, c.by, "belgium_marched");
+      return false;
   }
 }
 
-function leak(gw: GreatWar, t: GwTreaty): void {
+export function leak(gw: GreatWar, t: GwTreaty): void {
   const s = gw.s;
   t.leaked = true;
   news(gw, "treaty_leaked", t.from, t.to);
@@ -368,6 +402,7 @@ function leak(gw: GreatWar, t: GwTreaty): void {
     moveTrust(gw, n.tag, t.to, -1);
   }
   if (s.warChapter === null) s.temp = clampTo(s.temp + 1, 0, 10);
+  onTreatyLeaked(gw, t);
 }
 
 /** Chapter step: offers answered, clauses read against the world, leaks. */

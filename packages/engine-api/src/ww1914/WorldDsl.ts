@@ -653,7 +653,27 @@ export type GwWorldCond =
   /** The seat's biggest battle fleet has lain in port at least `months`. */
   | { is: "fleet_idle"; months: number }
   /** What the seat's fleets did this chapter (the diary's fleet moment). */
-  | { is: "fleet_now"; now: GwFleetMoment };
+  | { is: "fleet_now"; now: GwFleetMoment }
+  // ---- ww220: camps that move (Alignment.ts, lane A) ----
+  /**
+   * The road between the seat's country (or `of`) and `tag`, by step 0..4
+   * (GW_ROADS: cold, thaw, understanding, pledge, alliance). False when the
+   * two stand in the same camp or the pair has no road.
+   */
+  | ({ is: "road"; tag: GwTag; of?: GwTag } & Range)
+  /**
+   * The camp the seat's country (or `tag`) would stand in if the general war
+   * came now: `of` lists the camps that pass ("neutral": none). `turned`:
+   * only a camp other than June 1914's (true) / only June 1914's (false).
+   */
+  | {
+      is: "camp";
+      tag?: GwTag;
+      of?: (GwSide | "neutral")[];
+      turned?: boolean;
+    }
+  /** The seat's country (or `tag`) may change sides in the war now (Alignment.canSwitch). */
+  | { is: "switch_can"; tag?: GwTag };
 
 export type GwWorldEffect =
   /** Germany's plan for the war to come. */
@@ -930,7 +950,26 @@ export type GwWorldEffect =
    * ww221: the seat's biggest battle fleet is ordered out for the chapter's
    * close ("full" or "part"), or kept in port ("stay"); a scene's sortie.
    */
-  | { do: "fleet_sortie"; way: GwSortiePick };
+  | { do: "fleet_sortie"; way: GwSortiePick }
+  // ---- ww220: camps that move (Alignment.ts, lane A) ----
+  /** The road between the seat's country and `tag` falls a step for a while. */
+  | { do: "road_fall"; tag: GwTag }
+  /**
+   * The seat offers `tag` the treaty of the road's next step: `pledge`, its
+   * own neutrality, or with `ask` `tag`'s; `alliance`, both bound. `spare`:
+   * the seat spares Belgium too (Germany's price for Britain's pledge).
+   */
+  | {
+      do: "realign_offer";
+      tag: GwTag;
+      step: "pledge" | "alliance";
+      spare?: boolean;
+      ask?: boolean;
+    }
+  /** The seat's country changes sides at `tag`'s, if it may (Alignment.switchSide). */
+  | { do: "switch_side"; tag: GwTag }
+  /** The seat's country leaves its coalition by a peace with each foe, not beaten. */
+  | { do: "leave_coalition" };
 
 /** What a faction's rally is turned to: its own support, order, morale. */
 export const GW_RALLY_REWARDS = ["support", "order", "morale"] as const;
@@ -1272,6 +1311,14 @@ export const GwWorldCondSchema = z.union([
   }),
   is("fleet_idle", { months: int.min(1).max(60) }),
   is("fleet_now", { now: z.enum(GW_FLEET_MOMENTS) }),
+  // ww220
+  is("road", { tag, of: tag.optional(), ...range }),
+  is("camp", {
+    tag: tag.optional(),
+    of: z.array(z.enum([...GW_SIDES, "neutral"])).optional(),
+    turned: z.boolean().optional(),
+  }),
+  is("switch_can", { tag: tag.optional() }),
 ]) as unknown as z.ZodType<GwWorldCond>;
 
 export const GwWorldEffectSchema = z.union([
@@ -1435,6 +1482,16 @@ export const GwWorldEffectSchema = z.union([
   act("plan_redraw", { to: theatre.nullable() }),
   // ww221
   act("fleet_sortie", { way: z.enum(GW_SORTIE_PICKS) }),
+  // ww220
+  act("road_fall", { tag }),
+  act("realign_offer", {
+    tag,
+    step: z.enum(["pledge", "alliance"]),
+    spare: z.boolean().optional(),
+    ask: z.boolean().optional(),
+  }),
+  act("switch_side", { tag }),
+  act("leave_coalition", {}),
 ]) as unknown as z.ZodType<GwWorldEffect>;
 
 // ---- Authoring helpers ----

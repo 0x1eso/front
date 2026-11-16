@@ -870,6 +870,12 @@ export const GwNationStateSchema = z.object({
   warPlan: GwWarPlanSchema.optional(),
   /** ww218: its rail, drill and garrisons (WarPower.ts); absent until the war. */
   warPower: GwWarPowerStateSchema.optional(),
+  /**
+   * ww220: where it would stand if the general war came now (Alignment.ts).
+   * Absent: June 1914's camp (Wars.CASCADE); null: no camp (a pledge, a
+   * regime that left the coalition).
+   */
+  camp: z.enum(GW_SIDES).nullable().optional(),
 });
 export type GwNationState = z.infer<typeof GwNationStateSchema>;
 
@@ -2123,6 +2129,8 @@ export const GW_CLAUSE_KINDS = [
   "passage",
   /** `by` is fighting at the other's side by chapter `value`. */
   "entry",
+  /** ww220: `by` won't march through Belgium (a pledge's 벨기에 clause). */
+  "spare",
 ] as const;
 export type GwClauseKind = (typeof GW_CLAUSE_KINDS)[number];
 export const GW_TREATY_CLAUSES_MAX = 6;
@@ -2345,6 +2353,21 @@ export const GW_ACCORD_KINDS = [
   "straits",
 ] as const;
 export type GwAccordKind = (typeof GW_ACCORD_KINDS)[number];
+/**
+ * ww220: the road between two great powers of opposite camps, a reading
+ * (Alignment.roadOf), never a resource. Index = step: cold 냉랭, thaw 해빙,
+ * understanding 양해, pledge 중립 약속, alliance 동맹.
+ */
+export const GW_ROADS = [
+  "cold",
+  "thaw",
+  "understanding",
+  "pledge",
+  "alliance",
+] as const;
+export type GwRoad = (typeof GW_ROADS)[number];
+/** Chapters a fall on a road lasts. */
+export const GW_ROAD_FALL_CHAPTERS = 12;
 /** How land a country holds is ruled (Rule.ts). */
 export const GW_RULE_POLICIES = [
   "army",
@@ -2591,5 +2614,14 @@ export const GreatWarStateSchema = z.object({
   yards: z.array(GwYardSchema).optional(),
   /** Fights between fleets, the last few, in order. */
   seaFights: z.array(GwSeaFightSchema).optional(),
+  /** ww220: GW_START_TREATIES ids a turned country renounced (Alignment.ts). */
+  renounced: z.array(z.string()).optional(),
+  /**
+   * ww220: falls on a road between two powers (Alignment.ts): each lowers the
+   * reading of pair `key` ("A_B", tags sorted) a step until GW_ROAD_FALL_CHAPTERS pass.
+   */
+  roadFalls: z
+    .array(z.object({ key: z.string(), chapter: z.number().int() }))
+    .optional(),
 });
 export type GreatWarState = z.infer<typeof GreatWarStateSchema>;

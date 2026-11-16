@@ -17,6 +17,7 @@ import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { noteFx } from "./ActNote";
 import { afterDo, afterHolds } from "./Aftermath";
 import { agentHolds, hire } from "./Agents";
+import { alignDo, alignHolds } from "./Alignment";
 import { askEffect, askHolds } from "./Asks";
 import { dissolve, dissolvedNow, heldBy, sitsNow } from "./Assumes";
 import { holdVote, voteCount } from "./Authority";
@@ -422,6 +423,11 @@ export function worldHolds(ctx: SceneCtx, c: GwWorldCond): boolean {
       return fleetIdleHolds(ctx.gw, ctx.seat, c);
     case "fleet_now":
       return fleetMoments(ctx.gw, ctx.seat.tag).includes(c.now);
+    // ww220
+    case "road":
+    case "camp":
+    case "switch_can":
+      return alignHolds(ctx.gw, ctx.seat, c);
   }
 }
 
@@ -816,6 +822,13 @@ export function worldEffect(ctx: SceneCtx, e: GwWorldEffect): void {
     // ww221
     case "fleet_sortie":
       sceneSortie(gw, seat, e.way);
+      return;
+    // ww220
+    case "road_fall":
+    case "realign_offer":
+    case "switch_side":
+    case "leave_coalition":
+      alignDo(gw, seat, e);
       return;
   }
 }
