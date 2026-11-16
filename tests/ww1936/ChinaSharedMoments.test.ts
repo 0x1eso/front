@@ -30,6 +30,13 @@ describe("CHN and CCP share their moments", () => {
     expect(stop).toBeLessThan(pact);
   });
 
+  it("no bandit campaign over a pact with the Communists", () => {
+    const f = CONTENT.focuses.find((x) => x.id === "chn_bandit_campaign")!;
+    expect(f.available).toEqual({
+      not: { kind: "nap_with", of: { tag: "CCP" } },
+    });
+  });
+
   it("southern Anhui: one incident, fired by the Nationalists' order", () => {
     const clash = event("ccp_new_fourth_clash");
     expect(clash.date).toBeUndefined();

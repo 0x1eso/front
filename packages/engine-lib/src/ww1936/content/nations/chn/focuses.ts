@@ -626,6 +626,10 @@ export const CHN_FOCUSES: FocusDef[] = [
     prereq: [["chn_nation_not_yet_one"]],
     exclusive: ["chn_stop_civil_war"],
     bypass: NO_CCP,
+    // ww229 MA3: not over a pact with the Communists (the Xi'an promise, the
+    // united front): a campaign then broke the truce in spring 1937 and
+    // Nanjing fought Yan'an and Tokyo at once.
+    available: not({ kind: "nap_with", of: { tag: "CCP" } }),
     effects: [
       { kind: "war_goal", on: { tag: "CCP" }, type: "conquer" },
       { kind: "army_xp", amount: 15 },
