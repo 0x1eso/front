@@ -1,7 +1,8 @@
 // ww229: the Chinese Communists' national events. Most wait on a situation
 // (a focus, the war with Japan, the Nationalists' mood) rather than a date;
-// the P6 pack's date events (ccp_long_march_end, ccp_new_fourth_clash) still
-// fire beside them. self = the receiver, from = the sender of a fired one.
+// the P6 pack's date event ccp_long_march_end still fires beside them, and
+// the Nationalists' side sets off the clash in southern Anhui and the
+// blockade. self = the receiver, from = the sender of a fired one.
 // Event numbers are not tripled. Data only.
 import type { Condition } from "@openfront/engine-api/ww1936/PoliticsDsl";
 import type { EventDef } from "@openfront/engine-api/ww1936/PoliticsTypes";
@@ -200,16 +201,11 @@ export const CCP_EVENTS: EventDef[] = [
     ],
   },
   {
-    // Chongqing closes the roads into the Border Region.
+    // Chongqing closes the roads into the Border Region. ww229 MA3: fired
+    // by the Nationalists' own decision (chn_dec_blockade_border_region),
+    // so the blockade comes only when Chongqing imposes it.
     id: "ccp_ev_blockade",
     kind: "country",
-    receivers: ["CCP"],
-    trigger: all(
-      after("1939-06-01"),
-      TRUCE_CHN,
-      done("ccp_unity_and_struggle"),
-    ),
-    mtthDays: 200,
     picture: "map",
     options: [
       {

@@ -3,7 +3,7 @@
 // in January 1941 (spec §24-7: no glorification of either side).
 // Data only (tests/ww1936/ContentPurity): the helpers come from ../helpers.
 import type { EventDef } from "@openfront/engine-api/ww1936/PoliticsTypes";
-import { all, done, T } from "../helpers";
+import { T } from "../helpers";
 
 export const CCP_EVENTS: EventDef[] = [
   {
@@ -27,12 +27,13 @@ export const CCP_EVENTS: EventDef[] = [
   },
   {
     // The New Fourth Army incident, 7-13 January 1941 (Maolin, southern
-    // Anhui). It needs the united front (the pact) and the New Fourth Army.
+    // Anhui): the Communists' answer. ww229 MA3: no longer dated; the
+    // Nationalists' side of the same incident (chn_ev_south_anhui, option
+    // a) fires it, so the clash happens once and only when Chongqing
+    // ordered it. It needs the pact and the New Fourth Army.
     id: "ccp_new_fourth_clash",
     kind: "country",
     picture: "border",
-    date: { on: "1941-01-07", to: ["CCP"] },
-    trigger: all({ kind: "nap_with", of: T("CHN") }, done("ccp_new_fourth")),
     options: [
       {
         id: "a",

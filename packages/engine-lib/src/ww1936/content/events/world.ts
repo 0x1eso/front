@@ -307,6 +307,12 @@ export const WORLD_EVENTS: EventDef[] = [
         history: true,
         ai: { base: 70 },
         effects: [
+          // ww229 MA3: the incident is what stopped the fighting.
+          {
+            kind: "if",
+            cond: { kind: "at_war_with", of: T("CCP") },
+            then: [{ kind: "end_war", of: T("CCP") }],
+          },
           { kind: "nap", of: T("CCP") },
           { kind: "war_support", pct: 10 },
           { kind: "war_support", who: T("CCP"), pct: 10 },

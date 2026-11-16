@@ -95,7 +95,14 @@ export const CHN_DECISIONS: DecisionDef[] = [
     available: {
       all: [
         { kind: "exists", who: { tag: "CCP" } },
-        { not: { kind: "has_spirit", id: "chn_sp_front_broken" } },
+        // ww229 MA3: a blockade of the united front's Border Region, so only
+        // while the front stands (uneasy or working), not in 1936.
+        {
+          any: [
+            { kind: "has_spirit", id: "chn_sp_front_uneasy" },
+            { kind: "has_spirit", id: "chn_sp_front_solid" },
+          ],
+        },
         { kind: "ruling", ideology: "neutral" },
       ],
     },
@@ -116,6 +123,7 @@ export const CHN_DECISIONS: DecisionDef[] = [
       { kind: "popularity", ideology: "communist", pp: -2 },
       { kind: "opinion", of: { tag: "CCP" }, value: -20, days: 365 },
       { kind: "bop", amount: -30 },
+      { kind: "fire_event", id: "ccp_ev_blockade", to: { tag: "CCP" } },
     ],
     ai: {
       base: 4,

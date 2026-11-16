@@ -94,6 +94,11 @@ export const CHN_EVENTS: EventDef[] = [
           },
           { kind: "opinion", of: { tag: "CCP" }, value: -35, days: 730 },
           { kind: "bop", amount: -40 },
+          {
+            kind: "fire_event",
+            id: "ccp_new_fourth_clash",
+            to: { tag: "CCP" },
+          },
         ],
         history: true,
       },
