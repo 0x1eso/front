@@ -2242,7 +2242,8 @@ function canFoundByFocus(i: PoliticsModelInput): boolean {
   const tag = tagOf(i.game, i.me);
   const detail = i.view.detail(i.me);
   if (tag === null || detail === null) return false;
-  const treeId = content().countryIdx.get(tag)?.tree ?? "generic";
+  const treeId =
+    detail.tree ?? content().countryIdx.get(tag)?.tree ?? "generic";
   const tree = content().treeFocuses[treeId].map((n) => content().focuses[n]);
   return detail.cards.some(
     (c) =>

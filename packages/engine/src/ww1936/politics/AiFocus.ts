@@ -20,6 +20,7 @@ import {
   wwRoll,
 } from "@openfront/engine-lib/ww1936/Roll";
 import { aiPersonality } from "../economy/AiEconomy";
+import { rebelOnInheritedTree } from "../endgame/RebelTree";
 import { evalCondition } from "./Conditions";
 import { makeCtx } from "./Dispatch";
 import {
@@ -211,7 +212,11 @@ export function aiPickFocus(
       if (!focusFinished(pol, c, fid) && startable(fid)) return fid;
     }
   }
-  if (historicalAiActive(pol.mg.config(), day)) {
+  // ww232: rebels on the tree they took with them are off its history.
+  if (
+    historicalAiActive(pol.mg.config(), day) &&
+    !rebelOnInheritedTree(c.tag, c.tree)
+  ) {
     let blocked = 0;
     for (const fid of historyPath(pol, c)) {
       if (focusDef(pol, fid) === undefined || focusFinished(pol, c, fid)) {

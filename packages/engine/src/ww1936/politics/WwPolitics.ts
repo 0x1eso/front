@@ -1461,6 +1461,7 @@ export class WwPolitics {
     const j = c.justification;
     return {
       smallID: id,
+      tree: c.tree,
       ppGainMilli: this.dailyGainMilli(id),
       focus,
       queue: [...c.queue],
