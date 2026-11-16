@@ -130,11 +130,12 @@ export const CONTENT_TARGETS = {
   // ww226: + the ideology routes (generic 16; DEU, ITA, JPN 4; GBR, SUN,
   // USA 8; FRA 12).
   generic: 47,
-  DEU: 104,
+  // ww229 MR1: + the reaction focuses (DEU 8, ITA 5, SUN 7).
+  DEU: 112,
   GBR: 145,
-  SUN: 131,
+  SUN: 138,
   // P5 (P5 spec §18, pre-flight §0-12): the four new trees, 46 each.
-  ITA: 102, // ww226 E: + the crown's own government (ita_royal_dictatorship)
+  ITA: 107, // ww229 MR1 + 5; ww226 E: + the crown's own government (ita_royal_dictatorship)
   JPN: 127,
   FRA: 110,
   USA: 133,

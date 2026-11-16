@@ -9,7 +9,33 @@ import type {
   FocusDef,
   FocusId,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
-import { after, all, any, done, exists, flag, gflag, not, T } from "../helpers";
+import {
+  after,
+  all,
+  any,
+  done,
+  exists,
+  firstOf,
+  flag,
+  gflag,
+  mrCourt,
+  mrGuard,
+  mrOppose,
+  not,
+  T,
+} from "../helpers";
+import {
+  BALKAN_GRC,
+  BALKAN_TUR,
+  BALKAN_YUG,
+  ENTENTE_CSK,
+  ENTENTE_ROU,
+  ITA_BALKAN_OPEN,
+  ITA_DANUBE_OPEN,
+  ITA_OIL_OPEN,
+  RED_BGR,
+  RED_YUG,
+} from "../reactions/mr1Conds";
 
 export const ITA_FOCUSES: FocusDef[] = [
   // ---- A: politics and diplomacy (historical) ----
@@ -2034,5 +2060,150 @@ export const ITA_BRANCHES: BranchPoint[] = [
     historical: "ita_axis_staff_talks",
     alternatives: ["ita_allied_overtures"],
     political: true,
+  },
+];
+
+/**
+ * ww229 MR1 (design ww227 §7): Italy's answers to the minors' moves, below
+ * the tree (rows 18-19): the Balkan sphere, the Rome Protocols, oil.
+ * Joined after the minors (registry.ts joinReactions).
+ */
+export const ITA_MR_FOCUSES: FocusDef[] = [
+  {
+    id: "ita_mr_balkan_sphere",
+    tree: "ITA",
+    x: 4,
+    y: 18,
+    days: 35,
+    branch: "diplomacy",
+    icon: "map",
+    group: "ita_reactions",
+    available: ITA_BALKAN_OPEN,
+    effects: [
+      { kind: "pp", amount: 50 },
+      { kind: "opinion", who: T("BGR"), of: "self", value: 10, days: 730 },
+      { kind: "opinion", who: T("HUN"), of: "self", value: 10, days: 730 },
+    ],
+    ai: { base: 25 },
+  },
+  {
+    id: "ita_mr_arms_for_sofia",
+    tree: "ITA",
+    x: 3,
+    y: 19,
+    days: 35,
+    branch: "diplomacy",
+    icon: "handshake",
+    group: "ita_reactions",
+    prereq: [["ita_mr_balkan_sphere"]],
+    exclusive: ["ita_mr_break_the_bloc"],
+    effects: [
+      mrCourt("BGR"),
+      mrCourt("HUN"),
+      {
+        kind: "if",
+        cond: all(exists("BGR"), not({ kind: "at_war_with", of: T("BGR") })),
+        then: [
+          {
+            kind: "send_equipment",
+            to: T("BGR"),
+            type: "artillery",
+            count: 80,
+          },
+        ],
+      },
+    ],
+    ai: {
+      base: 10,
+      mods: [
+        {
+          if: any(
+            flag("mr_balkan_court"),
+            flag("mr_entente_court"),
+            flag("mr_ironguard_court"),
+          ),
+          factor: 1000,
+        },
+      ],
+    },
+  },
+  {
+    id: "ita_mr_break_the_bloc",
+    tree: "ITA",
+    x: 5,
+    y: 19,
+    days: 35,
+    branch: "army",
+    icon: "sword",
+    group: "ita_reactions",
+    prereq: [["ita_mr_balkan_sphere"]],
+    exclusive: ["ita_mr_arms_for_sofia"],
+    effects: [
+      firstOf([
+        [BALKAN_GRC, [mrOppose("GRC", "conquer")]],
+        [BALKAN_YUG, [mrOppose("YUG", "topple")]],
+        [RED_YUG, [mrOppose("YUG", "topple")]],
+        [RED_BGR, [mrOppose("BGR", "topple")]],
+        [BALKAN_TUR, [mrOppose("GRC", "conquer")]],
+        [ENTENTE_ROU, [mrOppose("YUG", "topple")]],
+        [ENTENTE_CSK, [mrOppose("YUG", "topple")]],
+      ]),
+      { kind: "army_xp", amount: 15 },
+      { kind: "war_support", pct: 5 },
+    ],
+    ai: {
+      base: 5,
+      mods: [
+        {
+          if: any(
+            flag("mr_balkan_oppose"),
+            flag("mr_entente_oppose"),
+            flag("mr_red_oppose"),
+          ),
+          factor: 1000,
+        },
+        { if: { kind: "ruling", ideology: "democratic" }, factor: 0 },
+      ],
+    },
+  },
+  {
+    id: "ita_mr_rome_protocols",
+    tree: "ITA",
+    x: 8,
+    y: 18,
+    days: 35,
+    branch: "diplomacy",
+    icon: "document",
+    group: "ita_reactions",
+    available: ITA_DANUBE_OPEN,
+    effects: [
+      mrGuard("HUN"),
+      { kind: "opinion", of: T("HUN"), value: 20, days: 730 },
+      { kind: "pp", amount: 25 },
+    ],
+    ai: { base: 20 },
+  },
+  {
+    id: "ita_mr_oil_for_the_fleet",
+    tree: "ITA",
+    x: 11,
+    y: 18,
+    days: 70,
+    branch: "industry",
+    icon: "oil",
+    group: "ita_reactions",
+    available: ITA_OIL_OPEN,
+    effects: [
+      { kind: "resource", where: { coreBest: 1 }, res: "oil", amount: 1 },
+      {
+        kind: "if",
+        cond: all(exists("ROU"), not({ kind: "at_war_with", of: T("ROU") })),
+        then: [
+          { kind: "send_equipment", to: T("ROU"), type: "fighter", count: 25 },
+          { kind: "opinion", who: T("ROU"), of: "self", value: 25, days: 730 },
+        ],
+      },
+    ],
+    ai: { base: 20 },
   },
 ];

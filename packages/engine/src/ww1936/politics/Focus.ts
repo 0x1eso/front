@@ -203,7 +203,7 @@ export function cancelFocus(pol: WwPolitics, id: number): WwOrderBlock | null {
  * they only had through an entry that is gone: an entry stays when each of
  * its prerequisite groups has a member finished, running, or kept before it.
  */
-function keepChained(
+export function keepChained(
   pol: WwPolitics,
   c: CountryPol,
   queue: readonly FocusId[],

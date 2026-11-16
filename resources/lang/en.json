@@ -13025,6 +13025,22 @@
       "mex_ev_tankers_idle": "The companies have closed every market they control. Crude piles up in the tanks, spare parts are refused, and the foreign tankers do not come.",
       "mex_ev_trotsky_asylum": "The painter asks the president to give asylum to Leon Trotsky, expelled from Norway and hunted by Stalin. Moscow and the Mexican Communists will be furious.",
       "mex_ev_washington_frowns": "American papers report Mexican oil sailing for Hamburg, Genoa and Yokohama. The State Department asks for an explanation.",
+      "mr_balkan_bloc": "The Balkan Entente has become an alliance with real troops behind it. It guards the borders against Bulgaria and against any great power that reaches into the peninsula.",
+      "mr_danube_csk": "Czechoslovakia has drawn its neighbours into a Danubian federation led from Prague. A democratic power now sits in the middle of Europe, and its fortress line faces Germany.",
+      "mr_danube_hun": "Budapest has united the Danube lands into one federation with one market and one army. It is too large to ignore and too new to trust. Every capital must decide where it stands.",
+      "mr_deu_romanian_turn": "Romania has given up Bessarabia without a fight and asks Germany to protect what remains. It offers its oil and its army in return.",
+      "mr_habsburg_crown": "Hungary has crowned Otto von Habsburg. Legitimists in Vienna are stirring, and the old empire's neighbours fear its return.",
+      "mr_intermarium": "Warsaw has gathered its neighbours into a camp from the Baltic to the Black Sea. It stands in the way of anyone who would cross Poland.",
+      "mr_iron_guard": "The Iron Guard's legionaries now govern in Bucharest. The country with Europe's richest oil fields has a new master, and its old alliances are in doubt.",
+      "mr_little_entente": "The Little Entente has become a real alliance with a joint staff. It was made to hold down Hungary, but its armies can face any power that threatens the borders drawn after the last war.",
+      "mr_nordic_union": "The Nordic states have joined in a defence union. Together they hold the ore, the coasts and the approaches to the Baltic.",
+      "mr_red_balkans": "The communists have taken power in a Balkan capital and speak of a South Slav federation. Moscow sees a friend; the Adriatic and Danube powers see a threat.",
+      "mr_romanian_oil": "Bucharest has signed its oil over to London or Paris. The wells at Ploiești are the nearest oil we could reach, and now the tankers sail the other way.",
+      "mr_straits_closed": "Turkey has closed the Bosporus and the Dardanelles to warships. The Black Sea is cut off from the Mediterranean while Ankara decides otherwise.",
+      "mr_sun_finnish_offer": "Finland will not move its border on the Karelian Isthmus, but it offers us the use of its islands in the Gulf of Finland.",
+      "mr_sun_prague_appeal": "Czechoslovakia refuses Germany's terms and calls on the mutual assistance treaty it signed with us. The treaty binds us only if France marches first.",
+      "mr_swedish_ore": "Stockholm has stopped the iron ore from Kiruna and Luleå. Without it our steel output falls within months.",
+      "mr_turkish_chromium": "Ankara offers its chromium to the highest bidder. Our steel industry needs it for armour and gun barrels, and Turkey asks to be paid in weapons.",
       "new_state_proclaimed": "A new government has taken charge of these lands and proclaimed its own state. Ministries must be staffed, an army raised and foreign governments approached. Whatever its origins, the administration must first make the state work.",
       "nld_bankers_letter": "The Netherlands Bank and the great houses of Amsterdam write that leaving gold would ruin the guilder's name. The economists in the ministries quietly say the opposite.",
       "nld_belgian_proposal": "Belgium, as uneasy as we are, proposes secret talks between the two general staffs. Berlin would call it a breach of neutrality if it learned of them.",
@@ -14027,7 +14043,9 @@
       },
       "csk_munich_dictate": {
         "a": "Accept the terms",
-        "b": "Fight alone"
+        "b": "Fight alone",
+        "c": "Man the border forts",
+        "d": "Invoke the Soviet pact"
       },
       "csk_parachutists": {
         "a": "Send them.",
@@ -14035,7 +14053,8 @@
       },
       "csk_prague_ultimatum": {
         "a": "Sign in Berlin",
-        "b": "Order resistance"
+        "b": "Order resistance",
+        "c": "Fight from the mountains"
       },
       "csk_runciman_mission": {
         "a": "Accept his mediation.",
@@ -14408,7 +14427,8 @@
       },
       "fin_soviet_demands": {
         "a": "Reject the demands",
-        "b": "Yield the isthmus"
+        "b": "Yield the isthmus",
+        "c": "Lease the islands, keep the isthmus"
       },
       "fra_daladier": {
         "a": "Daladier takes office"
@@ -15259,6 +15279,89 @@
         "a": "A sovereign nation sells to whom it likes",
         "b": "Stop the barter trade"
       },
+      "mr_balkan_bloc": {
+        "a": "Court the alliance",
+        "b": "Arm Bulgaria against it",
+        "c": "Prepare to break it",
+        "d": "Wait and see"
+      },
+      "mr_danube_csk": {
+        "a": "Court Prague with aid",
+        "b": "Guarantee the federation",
+        "c": "Mark it as an enemy",
+        "d": "Wait and see"
+      },
+      "mr_danube_hun": {
+        "a": "Court Budapest with aid",
+        "b": "Guarantee the federation",
+        "c": "Mark it as an enemy",
+        "d": "Wait and see"
+      },
+      "mr_deu_romanian_turn": {
+        "a": "Send a military mission",
+        "b": "Keep Bucharest waiting"
+      },
+      "mr_habsburg_crown": {
+        "a": "Recognise the king",
+        "b": "Protest and nothing more",
+        "c": "Prepare to bring him down"
+      },
+      "mr_intermarium": {
+        "a": "Offer a non-aggression pact",
+        "b": "Prepare to break it",
+        "c": "Wait and see"
+      },
+      "mr_iron_guard": {
+        "a": "Court the new government",
+        "b": "Guarantee Romania",
+        "c": "Treat it as an enemy",
+        "d": "Wait and see"
+      },
+      "mr_little_entente": {
+        "a": "Court the alliance",
+        "b": "Arm Hungary against it",
+        "c": "Prepare to break it",
+        "d": "Wait and see"
+      },
+      "mr_nordic_union": {
+        "a": "Court the union",
+        "b": "Guarantee its neutrality",
+        "c": "Treat it as an enemy",
+        "d": "Wait and see"
+      },
+      "mr_red_balkans": {
+        "a": "Send aid",
+        "b": "Guarantee the new government",
+        "c": "Work to overthrow it",
+        "d": "Wait and see"
+      },
+      "mr_romanian_oil": {
+        "a": "Outbid them with arms",
+        "b": "Claim the oil fields",
+        "c": "Do without"
+      },
+      "mr_straits_closed": {
+        "a": "Demand bases on the straits",
+        "b": "Win Ankara over",
+        "c": "Accept it"
+      },
+      "mr_sun_finnish_offer": {
+        "a": "Take the islands",
+        "b": "The isthmus too, or war"
+      },
+      "mr_sun_prague_appeal": {
+        "a": "Only if France marches",
+        "b": "Guarantee Prague and send bombers"
+      },
+      "mr_swedish_ore": {
+        "a": "Pay in guns and aircraft",
+        "b": "Threaten Stockholm",
+        "c": "Get by on stocks"
+      },
+      "mr_turkish_chromium": {
+        "a": "Pay in guns",
+        "b": "Leave the deal"
+      },
       "new_state_proclaimed": {
         "a": "Organise the ministries",
         "b": "Raise a defence force"
@@ -15624,7 +15727,9 @@
       },
       "rou_bessarabia_ultimatum": {
         "a": "Yield the provinces",
-        "b": "Fight for them"
+        "b": "Fight for them",
+        "c": "Yield, and turn to Berlin",
+        "d": "Resist beside our allies"
       },
       "rou_dobruja": {
         "a": "Return the province",
@@ -16182,7 +16287,8 @@
       },
       "yug_tripartite": {
         "a": "Sign the pact",
-        "b": "Refuse to sign"
+        "b": "Refuse to sign",
+        "c": "A non-aggression pact, no more"
       },
       "yug_ustase_abroad": {
         "a": "Hunt them down",
@@ -16776,6 +16882,22 @@
       "mex_ev_tankers_idle": "Tankers Idle at Tampico",
       "mex_ev_trotsky_asylum": "A Request from Diego Rivera",
       "mex_ev_washington_frowns": "Washington Frowns",
+      "mr_balkan_bloc": "The Balkan Entente Arms",
+      "mr_danube_csk": "Prague's Federation",
+      "mr_danube_hun": "The Danubian Federation",
+      "mr_deu_romanian_turn": "Bucharest Turns to Berlin",
+      "mr_habsburg_crown": "A Habsburg in Budapest",
+      "mr_intermarium": "Poland's Camp Between the Seas",
+      "mr_iron_guard": "The Legion Rules Romania",
+      "mr_little_entente": "The Little Entente Arms",
+      "mr_nordic_union": "The Nordic Defence Union",
+      "mr_red_balkans": "A Red Government in the Balkans",
+      "mr_romanian_oil": "Romanian Oil Goes West",
+      "mr_straits_closed": "The Straits Are Closed",
+      "mr_sun_finnish_offer": "Helsinki's Counter-offer",
+      "mr_sun_prague_appeal": "Prague Invokes the Pact",
+      "mr_swedish_ore": "Sweden Stops the Ore",
+      "mr_turkish_chromium": "Turkish Chromium",
       "new_state_proclaimed": "A New Government",
       "nld_bankers_letter": "The Bankers Write to Colijn",
       "nld_belgian_proposal": "Brussels Proposes Staff Talks",
@@ -18383,6 +18505,14 @@
       "deu_moscow_envoy": "An Envoy to Moscow",
       "deu_motorized": "Motorized Infantry",
       "deu_mountain": "Mountain Divisions",
+      "deu_mr_case_otto": "Case Otto",
+      "deu_mr_danube_clearing": "Danubian Clearing Trade",
+      "deu_mr_danubian_question": "The Danubian Question",
+      "deu_mr_northern_ore": "Northern Ore",
+      "deu_mr_northern_pressure": "Pressure on the North",
+      "deu_mr_ore_for_arms": "Guns for Ore",
+      "deu_mr_salzgitter": "Salzgitter Ore Works",
+      "deu_mr_southeast_oil": "Arms for Oil and Chromium",
       "deu_negotiated_end": "Negotiated Peace",
       "deu_new_order_europe": "New Order for Europe",
       "deu_night_fighter": "Night Fighter Wings",
@@ -19397,6 +19527,11 @@
       "ita_mediterranean_pact": "The Mediterranean Accord",
       "ita_motor_industry": "Mobilising the Motor Industry",
       "ita_motorised_divisions": "Motorised Divisions",
+      "ita_mr_arms_for_sofia": "Arms for Sofia and Budapest",
+      "ita_mr_balkan_sphere": "The Balkan Sphere",
+      "ita_mr_break_the_bloc": "Break the Bloc",
+      "ita_mr_oil_for_the_fleet": "Oil for the Fleet",
+      "ita_mr_rome_protocols": "The Rome Protocols",
       "ita_nile_ambition": "The Ambition of the Nile",
       "ita_non_belligerence": "Declaring Non-Belligerence",
       "ita_northern_arsenal": "Arsenal of the North",
@@ -20495,6 +20630,13 @@
       "sun_mixed_economy": "Plan and Market",
       "sun_moderate_economy": "A Moderate Economic Line",
       "sun_mongolia_defence": "Defending Mongolia",
+      "sun_mr_balkan_comrades": "Balkan Comrades",
+      "sun_mr_baltic_security": "Baltic Security",
+      "sun_mr_black_sea_pact": "A Black Sea Pact",
+      "sun_mr_buffer_pacts": "Pacts with the Neighbours",
+      "sun_mr_northern_war_plan": "The Northern War Plan",
+      "sun_mr_straits_bases": "Bases on the Straits",
+      "sun_mr_straits_question": "The Straits Question",
       "sun_national_bolsheviks": "National Bolsheviks",
       "sun_national_revolution": "The National Revolution",
       "sun_nationalities_charter": "Charters for the Republics",
@@ -22302,6 +22444,14 @@
       "deu_moscow_envoy": "Open talks with the ideological enemy. Neither side wants its hands tied over Poland.",
       "deu_motorized": "Form truck-borne infantry divisions that can keep pace with the panzers.",
       "deu_mountain": "Refine the organization and kit of the mountain divisions trained for alpine warfare.",
+      "deu_mr_case_otto": "The army's old plan against a Habsburg return was drawn up for Vienna. Now it is aimed at the new power on the Danube, and the generals prepare to march.",
+      "deu_mr_danube_clearing": "Grain, oil and ore from the Danube paid for in German goods, through clearing accounts that tie each capital to Berlin's market.",
+      "deu_mr_danubian_question": "The small states on the Danube are banding together, or a crown has come back to Budapest. Berlin must decide whether the Danube is a market to win or a wall to break.",
+      "deu_mr_northern_ore": "Our blast furnaces live on Swedish ore, and the North is closing ranks. We must know where the next ship of ore will come from.",
+      "deu_mr_northern_pressure": "If the North will not sell, it will be made to. The staff studies landings on the Scandinavian coast.",
+      "deu_mr_ore_for_arms": "Pay Stockholm in what it lacks: guns, aircraft and factory know-how, in return for the ore trains from Kiruna.",
+      "deu_mr_salzgitter": "The Reichswerke dig the poor ore at Salzgitter. It is costly to smelt, but no foreign government can stop it.",
+      "deu_mr_southeast_oil": "Bucharest has oil and Ankara has chromium, and both want weapons. Trade German guns for what our war economy cannot make.",
       "deu_negotiated_end": "Open talks to end the war in the West and begin rebuilding.",
       "deu_new_order_europe": "Offer the client states a place in a German-led European economic order.",
       "deu_night_fighter": "Form dedicated night-fighter wings of Bf 110s, guided by ground radar.",
@@ -23316,6 +23466,11 @@
       "ita_mediterranean_pact": "Gentlemen's agreements with the other sea powers secure the status quo and keep the trade routes open.",
       "ita_motor_industry": "Fiat, Lancia and Alfa Romeo are asked for trucks and tanks instead of cars.",
       "ita_motorised_divisions": "Trucked infantry divisions such as the Trento and the Trieste are meant to keep pace with the tanks.",
+      "ita_mr_arms_for_sofia": "Bulgaria and Hungary want their lost lands back. Italian guns and money make them Rome's friends against any Balkan bloc.",
+      "ita_mr_balkan_sphere": "The Balkans are changing: new blocs, new governments. Rome means to have the last word across the Adriatic.",
+      "ita_mr_break_the_bloc": "A Balkan alliance at our back is a threat. The army prepares to break it before it grows.",
+      "ita_mr_oil_for_the_fleet": "The fleet runs on imported oil, and the routes from Romania and the Black Sea are no longer sure. Drill new wells at home and pay Bucharest in aircraft.",
+      "ita_mr_rome_protocols": "Renew the protocols that bound Rome, Vienna and Budapest, and promise Hungary that Italy will stand by it.",
       "ita_nile_ambition": "If the Delta falls, Egypt's cotton, the canal and the oil routes of the Middle East lie open to Rome.",
       "ita_non_belligerence": "Germany is at war, but Italy's army and stockpiles are not ready. Rome declares itself neither neutral nor at war.",
       "ita_northern_arsenal": "Most of Italy's heavy industry lies around Turin, Milan and Genoa. New arms works go up in the Po valley.",
@@ -24414,6 +24569,13 @@
       "sun_mixed_economy": "Peasants and craftsmen may sell what is left after the plan. Factories get new managers, and the shops get goods.",
       "sun_moderate_economy": "Slow the pace of heavy industry, ease the burden on the countryside and put more goods in the shops.",
       "sun_mongolia_defence": "Under the 1936 mutual assistance protocol, Soviet troops and engineers move into Mongolia.",
+      "sun_mr_balkan_comrades": "A friendly government on the Danube or in the Balkans needs Moscow's protection and Moscow's rifles.",
+      "sun_mr_baltic_security": "Leningrad lies a day's march from the border, and our northern neighbours are arming or joining blocs. The Baltic approaches must be secured.",
+      "sun_mr_black_sea_pact": "Revive the old friendship with Ankara: a non-aggression pact and an open door for our ships.",
+      "sun_mr_buffer_pacts": "Renew the non-aggression pacts with Helsinki and Warsaw, so that no great power can use their land against us.",
+      "sun_mr_northern_war_plan": "If the neighbours will not keep their distance from our enemies, the border will be moved by force. The Leningrad district draws up its plan.",
+      "sun_mr_straits_bases": "Demand a share in guarding the straits, with Soviet bases on their shores. If Ankara refuses, the army will have a claim to press.",
+      "sun_mr_straits_question": "The Black Sea Fleet can only leave through the Bosporus and the Dardanelles, and Ankara holds the keys.",
       "sun_national_bolsheviks": "Some in the party and the army argue that Russia, not the world revolution, is what matters.",
       "sun_national_revolution": "The legion rises against the party in the name of Russia. The Red Army splits, and the Union goes to civil war.",
       "sun_nationalities_charter": "The union republics receive written charters that fix their languages, schools and local offices. They owe the junta little and expect a lot of it.",
@@ -25237,6 +25399,7 @@
         "deu_armour_doctrine": "Armour doctrine",
         "deu_jets_projects": "Jet projects",
         "deu_occupation": "Occupation",
+        "deu_reactions": "Answers to the neighbours",
         "deu_red_route": "Red Germany",
         "deu_resistance_end": "Resistance and the end",
         "deu_total_war": "Total war",
@@ -25353,6 +25516,7 @@
         "ita_med_war": "Mediterranean war",
         "ita_modern_forces": "Modern forces",
         "ita_navy": "Navy",
+        "ita_reactions": "Answers to the neighbours",
         "ita_red_route": "Red Italy",
         "jpn_cabinet_politics": "Cabinet politics",
         "jpn_continent": "The continent",
@@ -25490,6 +25654,7 @@
         "sun_rb_politics": "Red Bonaparte: politics",
         "sun_rb_power": "Red Bonaparte: power",
         "sun_rb_return": "Red Bonaparte: return",
+        "sun_reactions": "Answers to the neighbours",
         "sun_red_bonaparte": "Red Bonaparte",
         "sun_war_industry": "War industry",
         "sun_war_line": "War line",

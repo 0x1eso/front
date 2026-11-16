@@ -7,6 +7,7 @@ import {
   FocusBranch,
   FocusId,
   WW_BEAT_MAX_SKIP_AHEAD,
+  WW_FOCUS_QUEUE,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import {
   focusOpenTo,
@@ -29,6 +30,7 @@ import {
   focusDef,
   focusFinished,
   holds,
+  keepChained,
   startFocus,
 } from "./Focus";
 import type { CountryPol, WwPolitics } from "./WwPolitics";
@@ -247,8 +249,10 @@ export function aiPickFocus(
 
 /**
  * Spec §18.4 beat "focus": an AI that has neither finished nor is running
- * it starts it now when nothing runs, else queues it first in line in
- * place of what was queued (the running focus is not cancelled).
+ * it starts it now when nothing runs, else queues it first in line (the
+ * running focus is not cancelled). ww229 MR1: what was queued stays behind
+ * it, but for its exclusive partners and what needed them, so a second
+ * beat no longer drops the focus an earlier one queued.
  */
 export function forceFocusNext(
   pol: WwPolitics,
@@ -268,8 +272,19 @@ export function forceFocusNext(
     startFocus(pol, id, focus, pol.mg.ticks());
     return;
   }
-  // The queue it replaces does not block it (an exclusive partner there).
+  // The queue it goes before does not block it (an exclusive partner there).
   const old = c.queue;
   c.queue = [];
-  c.queue = focusBlock(pol, id, focus, true) === null ? [focus] : old;
+  if (focusBlock(pol, id, focus, true) !== null) {
+    c.queue = old;
+    return;
+  }
+  const f = focusDef(pol, focus)!;
+  const behind = old.filter(
+    (q) =>
+      q !== focus &&
+      !(f.exclusive ?? []).includes(q) &&
+      !(focusDef(pol, q)?.exclusive ?? []).includes(focus),
+  );
+  c.queue = keepChained(pol, c, [focus, ...behind], 1).slice(0, WW_FOCUS_QUEUE);
 }

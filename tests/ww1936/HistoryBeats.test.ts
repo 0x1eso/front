@@ -68,9 +68,11 @@ describe("history beats", () => {
       beats.slice(0, HISTORY.length),
       beats.slice(HISTORY.length, HISTORY_BEATS.length),
       beats.slice(HISTORY_BEATS.length, p6),
-      beats.slice(p6),
+      beats.slice(p6, p6 + DEPTH_BEATS.length),
+      // ww229 MR: the majors' reaction beats follow, a block of their own.
+      beats.slice(p6 + DEPTH_BEATS.length),
     ];
-    expect(beats.slice(p6)).toEqual(DEPTH_BEATS);
+    expect(beats.slice(p6, p6 + DEPTH_BEATS.length)).toEqual(DEPTH_BEATS);
     for (const block of blocks) {
       for (let i = 1; i < block.length; i++) {
         expect(dayOfDate(block[i].date), block[i].id).toBeGreaterThanOrEqual(
