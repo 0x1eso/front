@@ -16016,7 +16016,14 @@
       "table_promise_vote_kept": "{a}이(가) {b}에 약속한 대로 {place}에서 주민 투표가 열렸다.",
       "table_protest_builds": "{b}이(가) 누른 {a}의 항의가 중립국 신문에 다시 실린다.",
       "table_protest_pushed": "{a}이(가) {b}의 항의를 누르고 그 땅을 조약에 넣었다.",
-      "band_arrived": "{a}의 새 사단들이 {theatre} 전선에 닿았다."
+      "band_arrived": "{a}의 새 사단들이 {theatre} 전선에 닿았다.",
+      "us_mediation_offer": "{a}이(가) 양쪽 사이에서 강화를 중재하겠다고 나섰다.",
+      "us_mediation_peace": "{a}의 중재로 총성이 멎었다.",
+      "us_mediation_refused": "{a}의 중재 제안이 무산됐다.",
+      "karl_peace_offered": "{a}이(가) {b}에 몰래 단독 강화를 제의했다.",
+      "karl_peace_refused": "{a}이(가) {b}의 비밀 강화 제의를 거절했다.",
+      "karl_peace": "{a}과(와) {b}이(가) 단독 강화를 맺었다.",
+      "vienna_watch": "{a}이(가) {b} 국경을 지켜볼 병력을 남겼다."
     },
     "odds": {
       "0": "될 일이 아닙니다.",
@@ -16531,7 +16538,11 @@
       "move_overruled": "군단을 옮기는 일로 참모총장의 반대를 물리쳤다.",
       "plan_empty_war": "계획을 다시 짜던 중에 전쟁이 왔다. 첫 몇 주는 시간표 없이 싸운다.",
       "plan_kept": "다시 짜던 계획을 거두었다. 원래 계획이 그대로 선다.",
-      "plan_redrawn": "새 계획이 다 짜였다. 이제 길이 둘이다."
+      "plan_redrawn": "새 계획이 다 짜였다. 이제 길이 둘이다.",
+      "us_mediation_peace": "미국의 중재로 전쟁이 지금 자리에서 멈췄다.",
+      "us_mediation_refused": "미국의 중재는 무산됐다. 모두가 멈추려 하지는 않았다.",
+      "us_mediation_declined": "미국 특사를 돌려보냈다.",
+      "vienna_watch": "빈이 단독 강화를 맺었다. 오스트리아 국경을 지킬 병력을 남겨 두었다."
     },
     "result": {
       "advance": "전진",
