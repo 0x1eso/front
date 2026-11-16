@@ -8,7 +8,7 @@ import type {
   FocusDef,
   FocusId,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
-import { T, after, any, flag, gflag, not } from "../helpers";
+import { T, after, all, any, exists, flag, gflag, not } from "../helpers";
 import { GBR_ROYALIST_FOCUSES } from "./gbr_royalist";
 
 // "Each Dominion" effects (spec §19.4 `who`): Canada, Australia,
@@ -1817,6 +1817,214 @@ export const GBR_FOCUSES: FocusDef[] = [
       { kind: "tension", pct: -5 },
     ],
     ai: { base: 10 },
+  },
+  // ---- ww229 MR2 (design ww227 §7): the small nations' question ----
+  // Britain answers what the minors do: guarantees for the Little Entente,
+  // the Low Countries and the oldest ally, the Rock and Spain, the River
+  // Plate and the Dominions. Off the history path; weighted by threat.
+  {
+    id: "gbr_mr_small_nations",
+    tree: "GBR",
+    x: 17,
+    y: 8,
+    days: 35,
+    branch: "diplomacy",
+    icon: "globe",
+    group: "gbr_mr_minors",
+    prereq: [
+      ["gbr_guarantees", "gbr_collective_security", "gbr_imperial_conference"],
+    ],
+    effects: [
+      { kind: "opinion", of: T("NLD"), value: 15, days: 730 },
+      { kind: "opinion", of: T("BEL"), value: 15, days: 730 },
+      { kind: "opinion", of: T("PRT"), value: 15, days: 730 },
+      { kind: "opinion", who: T("NLD"), of: "self", value: 10, days: 730 },
+      { kind: "opinion", who: T("BEL"), of: "self", value: 10, days: 730 },
+      { kind: "opinion", who: T("PRT"), of: "self", value: 10, days: 730 },
+    ],
+    ai: {
+      base: 10,
+      mods: [{ if: { kind: "threat_ge", of: T("DEU"), pct: 30 }, factor: 200 }],
+    },
+  },
+  {
+    id: "gbr_mr_little_entente_guarantees",
+    tree: "GBR",
+    x: 15,
+    y: 9,
+    days: 70,
+    branch: "diplomacy",
+    icon: "shield",
+    group: "gbr_mr_minors",
+    prereq: [["gbr_mr_small_nations"]],
+    available: any(exists("CSK"), exists("ROU"), exists("YUG")),
+    effects: [
+      { kind: "guarantee", of: T("CSK") },
+      { kind: "guarantee", of: T("ROU") },
+      { kind: "guarantee", of: T("YUG") },
+      { kind: "opinion", who: T("CSK"), of: "self", value: 15, days: 730 },
+      { kind: "opinion", who: T("ROU"), of: "self", value: 15, days: 730 },
+      { kind: "opinion", who: T("YUG"), of: "self", value: 15, days: 730 },
+    ],
+    ai: {
+      base: 10,
+      mods: [
+        { if: { kind: "threat_ge", of: T("DEU"), pct: 30 }, factor: 300 },
+        { if: { kind: "ruling", ideology: "fascist" }, factor: 0 },
+        { if: { kind: "ruling", ideology: "communist" }, factor: 20 },
+      ],
+    },
+  },
+  {
+    id: "gbr_mr_oldest_ally",
+    tree: "GBR",
+    x: 16,
+    y: 9,
+    days: 35,
+    branch: "diplomacy",
+    icon: "handshake",
+    group: "gbr_mr_minors",
+    prereq: [["gbr_mr_small_nations"]],
+    available: all(exists("PRT"), not({ kind: "at_war_with", of: T("PRT") })),
+    effects: [
+      { kind: "guarantee", of: T("PRT") },
+      { kind: "opinion", of: T("PRT"), value: 25, days: 1095 },
+      { kind: "opinion", who: T("PRT"), of: "self", value: 25, days: 1095 },
+      { kind: "send_equipment", to: T("PRT"), type: "fighter", count: 20 },
+    ],
+    ai: {
+      base: 10,
+      mods: [
+        { if: { kind: "at_war" }, factor: 200 },
+        {
+          if: {
+            kind: "focus_done",
+            who: T("ESN"),
+            id: "esn_iberian_ultimatum",
+          },
+          factor: 400,
+        },
+      ],
+    },
+  },
+  {
+    id: "gbr_mr_low_countries_talks",
+    tree: "GBR",
+    x: 17,
+    y: 9,
+    days: 70,
+    branch: "diplomacy",
+    icon: "shield",
+    group: "gbr_mr_minors",
+    prereq: [["gbr_mr_small_nations"]],
+    available: any(exists("NLD"), exists("BEL")),
+    effects: [
+      { kind: "guarantee", of: T("NLD") },
+      { kind: "guarantee", of: T("BEL") },
+      { kind: "opinion", who: T("NLD"), of: "self", value: 15, days: 730 },
+      { kind: "opinion", who: T("BEL"), of: "self", value: 15, days: 730 },
+    ],
+    ai: {
+      base: 10,
+      mods: [
+        { if: { kind: "threat_ge", of: T("DEU"), pct: 30 }, factor: 300 },
+        {
+          if: {
+            kind: "focus_done",
+            who: T("NLD"),
+            id: "nld_greater_netherlands",
+          },
+          factor: 300,
+        },
+        { if: { kind: "ruling", ideology: "fascist" }, factor: 0 },
+      ],
+    },
+  },
+  {
+    id: "gbr_mr_iberian_watch",
+    tree: "GBR",
+    x: 18,
+    y: 9,
+    days: 70,
+    branch: "army",
+    icon: "fort",
+    group: "gbr_mr_minors",
+    prereq: [["gbr_mr_small_nations"]],
+    effects: [
+      { kind: "fort", where: { group: "gibraltar" }, amount: 2 },
+      { kind: "opinion", of: T("ESN"), value: 10, days: 730 },
+      { kind: "unlock_decision", id: "gbr_mr_navicerts" },
+    ],
+    ai: {
+      base: 10,
+      mods: [
+        {
+          if: { kind: "focus_done", who: T("ESN"), id: "esn_gibraltar_claim" },
+          factor: 500,
+        },
+        {
+          if: { kind: "flag", who: T("ESN"), flag: "esn_axis_course" },
+          factor: 300,
+        },
+      ],
+    },
+  },
+  {
+    id: "gbr_mr_river_plate",
+    tree: "GBR",
+    x: 19,
+    y: 9,
+    days: 35,
+    branch: "industry",
+    icon: "wheat",
+    group: "gbr_mr_minors",
+    prereq: [["gbr_mr_small_nations"]],
+    available: all(exists("ARG"), not({ kind: "at_war_with", of: T("ARG") })),
+    effects: [
+      { kind: "stability", pct: 2 },
+      { kind: "opinion", of: T("ARG"), value: 20, days: 1095 },
+      { kind: "opinion", who: T("ARG"), of: "self", value: 20, days: 1095 },
+    ],
+    ai: {
+      base: 8,
+      mods: [
+        {
+          if: { kind: "flag", who: T("ARG"), flag: "arg_malvinas_claimed" },
+          factor: 300,
+        },
+        { if: { kind: "at_war" }, factor: 150 },
+      ],
+    },
+  },
+  {
+    id: "gbr_mr_dominion_loyalty",
+    tree: "GBR",
+    x: 17,
+    y: 10,
+    days: 70,
+    branch: "politics",
+    icon: "crown",
+    group: "gbr_mr_minors",
+    prereq: [["gbr_mr_small_nations"]],
+    effects: [
+      { kind: "popularity", who: T("ZAF"), ideology: "democratic", pp: 5 },
+      { kind: "stability", who: T("ZAF"), pct: 5 },
+      { kind: "stability", who: T("CAN"), pct: 3 },
+      { kind: "stability", who: T("AUS"), pct: 3 },
+      { kind: "opinion", who: T("CAN"), of: "self", value: 15, days: 1095 },
+      { kind: "opinion", who: T("AUS"), of: "self", value: 15, days: 1095 },
+      { kind: "opinion", who: T("ZAF"), of: "self", value: 15, days: 1095 },
+    ],
+    ai: {
+      base: 8,
+      mods: [
+        {
+          if: { kind: "pop_ge", who: T("ZAF"), ideology: "neutral", pct: 35 },
+          factor: 300,
+        },
+        { if: { kind: "at_war" }, factor: 200 },
+      ],
+    },
   },
   ...GBR_ROYALIST_FOCUSES,
 ];

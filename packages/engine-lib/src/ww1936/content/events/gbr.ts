@@ -637,10 +637,18 @@ export const GBR_EVENTS: EventDef[] = [
     aiDelayDays: [2, 2],
     picture: "document",
     options: [
+      // ww229 MR2: the answer follows who rules in Pretoria.
       {
         id: "a",
         history: true,
-        ai: { base: 70 },
+        ai: {
+          base: 70,
+          mods: [
+            { if: { kind: "ruling", ideology: "democratic" }, factor: 150 },
+            { if: { kind: "ruling", ideology: "neutral" }, factor: 30 },
+            { if: { kind: "ruling", ideology: "fascist" }, factor: 0 },
+          ],
+        },
         effects: [
           { kind: "join_war", of: T("DEU") },
           { kind: "set_leader", person: "zaf_smuts" },
@@ -648,8 +656,30 @@ export const GBR_EVENTS: EventDef[] = [
       },
       {
         id: "b",
-        ai: { base: 30 },
+        ai: {
+          base: 30,
+          mods: [{ if: { kind: "ruling", ideology: "neutral" }, factor: 300 }],
+        },
         effects: [{ kind: "war_support", pct: -10 }],
+      },
+      {
+        id: "c",
+        available: all(
+          { kind: "ruling", ideology: "fascist" },
+          { kind: "exists", who: T("DEU") },
+        ),
+        ai: { base: 60 },
+        effects: [
+          { kind: "join_faction", of: T("DEU") },
+          { kind: "opinion", of: T("GBR"), value: -40, days: 1095 },
+          {
+            kind: "opinion",
+            who: T("GBR"),
+            of: "self",
+            value: -40,
+            days: 1095,
+          },
+        ],
       },
     ],
   },
@@ -667,8 +697,33 @@ export const GBR_EVENTS: EventDef[] = [
       {
         id: "a",
         history: true,
-        ai: { base: 10 },
+        ai: {
+          base: 10,
+          mods: [
+            { if: { kind: "ruling", ideology: "democratic" }, factor: 300 },
+            { if: { kind: "ruling", ideology: "fascist" }, factor: 0 },
+          ],
+        },
         effects: [{ kind: "join_war", of: T("DEU") }],
+      },
+      // ww229 MR2: a Canada ruled by others may stay out and send only
+      // volunteers.
+      {
+        id: "b",
+        ai: {
+          base: 1,
+          mods: [
+            { if: { kind: "ruling", ideology: "democratic" }, factor: 0 },
+            { if: { kind: "ruling", ideology: "communist" }, factor: 1000 },
+            { if: { kind: "ruling", ideology: "neutral" }, factor: 1500 },
+            { if: { kind: "ruling", ideology: "fascist" }, factor: 3000 },
+          ],
+        },
+        effects: [
+          { kind: "war_support", pct: -5 },
+          { kind: "volunteers", to: T("GBR"), divisions: 1 },
+          { kind: "opinion", who: T("GBR"), of: "self", value: -15, days: 730 },
+        ],
       },
     ],
   },

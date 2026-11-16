@@ -11187,6 +11187,7 @@
       "fin_dec_resettle_karelians": "Resettle the Karelians",
       "fin_dec_swedish_volunteers": "Ask Sweden for Volunteers",
       "fra_dissolve_vichy": "Dissolve the Vichy Regime",
+      "fra_mr_belgian_alliance": "Ask Belgium Back into the Alliance",
       "fra_rearmament_act": "Rearmament Act",
       "fra_social_reform": "Social Reform Programme",
       "gbr_destroyers_for_bases": "Bases for Destroyers",
@@ -11194,6 +11195,7 @@
       "gbr_guarantee_poland": "Guarantee Poland",
       "gbr_guarantee_romania_greece": "Guarantee Romania and Greece",
       "gbr_levant_intervention": "Intervene in the Levant",
+      "gbr_mr_navicerts": "Oil for Spain's Neutrality",
       "gbr_occupy_iceland": "Secure Iceland",
       "gen_annex_subject": "Absorb an Integrated Puppet",
       "gen_coup_com": "Back a Communist Coup",
@@ -11292,6 +11294,8 @@
       "ita_send_ctv": "Send the Volunteer Corps",
       "jpn_army_budget": "Army Budget Priority",
       "jpn_demand_indochina_access": "Demand Access to Indochina",
+      "jpn_mr_demand_indies_oil": "Demand an Oil Quota from the Indies",
+      "jpn_mr_demand_north_china": "Demand Autonomy for North China",
       "jpn_navy_budget": "Navy Budget Priority",
       "lat_join_hemisphere": "Join the Hemisphere Alliance",
       "mck_dec_collective_hamlets": "Collective Hamlets",
@@ -11398,6 +11402,7 @@
       "usa_defense_bill": "National Defense Appropriations",
       "usa_fireside_chat": "Fireside Chat",
       "usa_lobby_congress": "Lobby Congress",
+      "usa_mr_hemisphere_aid": "Hemisphere Aid Offer",
       "usa_oil_embargo": "Oil Embargo on Japan",
       "usa_recognize_exiles": "Recognise the Governments in Exile",
       "usa_volunteer_air_group": "Volunteer Air Group for China",
@@ -11563,6 +11568,7 @@
       "fin_dec_resettle_karelians": "Give the evacuees land from the state and the church and from large estates.",
       "fin_dec_swedish_volunteers": "Call on the volunteer corps the Swedish officers promised.",
       "fra_dissolve_vichy": "With Paris in French hands again, the Provisional Government declares the acts of the Vichy regime void and takes over the territories it still holds.",
+      "fra_mr_belgian_alliance": "Ask Brussels to give up its policy of independence and join our camp again.",
       "fra_rearmament_act": "A large rearmament programme rallies the centre and the right. The balance moves 15 to the right.",
       "fra_social_reform": "Paid holidays and the forty-hour week widen the Popular Front's support. The balance moves 10 to the left.",
       "gbr_destroyers_for_bases": "Offer the United States long leases on Atlantic bases in return for fifty old destroyers.",
@@ -11570,6 +11576,7 @@
       "gbr_guarantee_poland": "Pledge to defend Poland if its independence is threatened, and ask France to join.",
       "gbr_guarantee_romania_greece": "Extend the same pledge of defence to Romania and Greece to hold the eastern Mediterranean.",
       "gbr_levant_intervention": "Prepare an advance from Palestine into Vichy-held Syria and Lebanon.",
+      "gbr_mr_navicerts": "Offer Madrid oil and wheat through our blockade if it stays out of the war.",
       "gbr_occupy_iceland": "With Denmark in German hands, land troops in Iceland before Germany can use it against the Atlantic routes.",
       "gen_annex_subject": "Over 180 days, merge a fully integrated puppet and its army into our own state.",
       "gen_coup_com": "For 90 days, arms and money go to communists abroad; if they reach half the country's support, its government falls.",
@@ -11668,6 +11675,8 @@
       "ita_send_ctv": "Four divisions of the Corpo Truppe Volontarie sail for Spain to fight beside Franco's Nationalists.",
       "jpn_army_budget": "The army's share of the budget grows. The balance moves 10 toward the army.",
       "jpn_demand_indochina_access": "Demand that the authorities of French Indochina let Japanese troops in — first the north, then the south.",
+      "jpn_mr_demand_indies_oil": "Ask the Netherlands to sell us a fixed share of the Indies' oil every year.",
+      "jpn_mr_demand_north_china": "Demand that China let its northern provinces govern themselves under our influence.",
       "jpn_navy_budget": "The navy's share of the budget grows. The balance moves 10 toward the navy.",
       "lat_join_hemisphere": "Ask to join the alliance the United States leads, or the Allies if Washington leads none.",
       "mck_dec_collective_hamlets": "Move the hill villages into walled hamlets and burn what is left, so that the partisans starve.",
@@ -11774,6 +11783,7 @@
       "usa_defense_bill": "Congress funds new arms plants at a political price. Two military factories, support of Congress −5 points.",
       "usa_fireside_chat": "The President speaks to the nation over the radio. Support of Congress +12 points, war support +3%.",
       "usa_lobby_congress": "The administration wins over committee chairs and party whips one by one. Support of Congress +8 points.",
+      "usa_mr_hemisphere_aid": "Offer a Latin American country arms, credit and a defence agreement with bases.",
       "usa_oil_embargo": "Japanese assets in the United States are frozen and oil exports stop. Japan loses most of its fuel imports.",
       "usa_recognize_exiles": "Washington formally recognises the allied governments in exile and receives their envoys, backing their claim to speak for their peoples.",
       "usa_volunteer_air_group": "American pilots leave the services and sign on to fly fighters for China, in aircraft bought on American credit.",
@@ -13027,6 +13037,30 @@
       "mex_ev_trotsky_asylum": "The painter asks the president to give asylum to Leon Trotsky, expelled from Norway and hunted by Stalin. Moscow and the Mexican Communists will be furious.",
       "mex_ev_washington_frowns": "American papers report Mexican oil sailing for Hamburg, Genoa and Yokohama. The State Department asks for an explanation.",
       "mex_oil_crisis": "The foreign oil companies refuse to accept the labour award upheld by the Supreme Court. Output is stalling and the oil workers' union warns of a general strike. Tonight the President will speak to the nation by radio, and the cabinet must decide what he will announce.",
+      "mr_abc_bloc": "Brazil and Argentina, old rivals, have signed a pact of their own. South America has a bloc that does not ask Washington's leave.",
+      "mr_argentina_fascist": "Argentina's new rulers admire Rome and Berlin and say so. Its beef and grain still sail north, and its gold sits in foreign banks.",
+      "mr_australasia": "Australia and New Zealand are now one state. A new power holds the southern Pacific from the Tasman Sea to the Coral Sea.",
+      "mr_belgian_alliance_offer": "France asks Belgium to give up its independent course and return to the alliance. Flemish deputies want no part of French wars; the generals fear facing Germany alone.",
+      "mr_brazil_axis_course": "Brazil's government has chosen friendship with Germany: Krupp guns, German credit and open sympathy in the press. The largest country of South America is slipping away.",
+      "mr_brazil_empire": "Brazil has restored the monarchy that fell in 1889, and Pedro Henrique of Orléans-Braganza wears the crown. Monarchists across the world cheer; republicans in the hemisphere frown.",
+      "mr_cape_republic": "South Africa has left the Crown and proclaimed a republic. The Cape route and the gold of the Rand are no longer the Empire's by right.",
+      "mr_china_axis": "Nanjing has chosen partnership with Germany and its friends, and the German advisers stay. Old friends and old enemies of China must think again.",
+      "mr_china_red": "The Kuomintang's left and the communists have taken the government of China. The largest nation of Asia has turned to the left.",
+      "mr_gibraltar_pressed": "Madrid has made the Rock a goal of its policy and its army. The Admiralty asks how far Britain will go to keep the gate of the Mediterranean.",
+      "mr_greater_netherlands": "The Dutch National Socialists have taken Flanders in the name of one Dietsland. What is left of Belgium looks to the great powers.",
+      "mr_hemisphere_aid_offer": "The United States offers rifles, credit and engineers, and asks for the use of our ports and airfields. Some ministers see a good neighbour; others see the Marines of old.",
+      "mr_iberian_union": "Spain and Portugal are now one state, under one government in Madrid or Lisbon. The western gate of the Mediterranean and the Atlantic coast have one master.",
+      "mr_indies_oil_demand": "A Japanese delegation in Batavia asks for a fixed share of the oil of Borneo and Sumatra. Refusing may bring the Japanese fleet; agreeing will anger London and Washington.",
+      "mr_isthmus_league": "Mexico has gathered the small republics of Central America into a league under its lead. The canal and British Honduras lie within its reach.",
+      "mr_lowlands_united": "The Netherlands and Belgium, once one kingdom and long apart, have joined in a single union. A new middle power now sits at the mouth of the Rhine, between France, Germany and the North Sea.",
+      "mr_malvinas_ultimatum": "Buenos Aires has made the Falkland Islands, its Malvinas, a goal it may fight for. The islands' few settlers and a single company of marines wait for London's answer.",
+      "mr_mexican_oil_axis": "Boycotted by the British and American companies, Mexico sells its oil to the Axis powers by barter. Tankers leave Tampico for Hamburg, Genoa or Yokohama.",
+      "mr_mexico_red": "Mexico's workers' and peasants' government has taken power. On the border of the United States stands a state that calls itself a workers' republic.",
+      "mr_mexico_red_comrades": "A workers' state now stands in North America. It will need arms, advisers and friends to survive next to the United States.",
+      "mr_navicerts_offer": "London offers oil and wheat through its blockade, on one condition: Spain stays out of the war. Our tanks and our bakeries are both half empty.",
+      "mr_north_china_demand": "Tokyo demands that the northern provinces govern themselves, with Japanese advisers and without Nanjing's troops. Students march in Peiping; the generals count their divisions.",
+      "mr_qing_throne": "Puyi, the last emperor of China, has proclaimed a Great Qing again from Manchuria and claims the lands beyond the Wall. The powers must decide what they see: an empire or a puppet.",
+      "mr_wolfram_to_germany": "Wolfram from Iberian mines hardens German armour-piercing shot. Our buyers can pay more than Berlin, or our navy can make the trade harder.",
       "new_state_proclaimed": "A new government has taken charge of these lands and proclaimed its own state. Ministries must be staffed, an army raised and foreign governments approached. Whatever its origins, the administration must first make the state work.",
       "nld_bankers_letter": "The Netherlands Bank and the great houses of Amsterdam write that leaving gold would ruin the guilder's name. The economists in the ministries quietly say the opposite.",
       "nld_belgian_proposal": "Belgium, as uneasy as we are, proposes secret talks between the two general staffs. Berlin would call it a breach of neutrality if it learned of them.",
@@ -13763,7 +13797,8 @@
         "b": "Disallow it"
       },
       "can_parliament_decides": {
-        "a": "Declare war on Germany"
+        "a": "Declare war on Germany",
+        "b": "Stay out, send volunteers only"
       },
       "can_plebiscite_result": {
         "a": "The pledge is lifted",
@@ -15080,7 +15115,9 @@
         "b": "Let them go"
       },
       "jpn_manchukuo_defiance": {
-        "a": "Take up arms"
+        "a": "Take up arms",
+        "b": "Stand apart from every camp",
+        "c": "Go back to China"
       },
       "jpn_nanjing_government": {
         "a": "Recognise the new government",
@@ -15268,6 +15305,138 @@
       "mex_oil_crisis": {
         "a": "Expropriate the companies",
         "b": "Seek a settlement"
+      },
+      "mr_abc_bloc": {
+        "a": "Welcome it as a partner",
+        "b": "Court Brazil and split it",
+        "c": "A rival bloc: freeze its trade",
+        "d": "Leave it alone"
+      },
+      "mr_argentina_fascist": {
+        "a": "Recognise it; trade comes first",
+        "b": "Freeze its gold and its trade",
+        "c": "Arm its neighbour Brazil",
+        "d": "Wait"
+      },
+      "mr_australasia": {
+        "a": "Welcome it",
+        "b": "Guarantee it",
+        "c": "A rival in the south: a war goal",
+        "d": "Wait"
+      },
+      "mr_belgian_alliance_offer": {
+        "a": "Return to the alliance",
+        "b": "Keep our independence",
+        "c": "Secret staff talks only"
+      },
+      "mr_brazil_axis_course": {
+        "a": "Outbid Berlin: a steel loan and arms",
+        "b": "Freeze its trade",
+        "c": "Prepare to bring the regime down",
+        "d": "Wait"
+      },
+      "mr_brazil_empire": {
+        "a": "Recognise the empire",
+        "b": "Withhold recognition",
+        "c": "It is their affair"
+      },
+      "mr_cape_republic": {
+        "a": "Let it go in peace",
+        "b": "Keep it close with gold and trade",
+        "c": "Restore the Crown by force",
+        "d": "Wait"
+      },
+      "mr_china_axis": {
+        "a": "Win it back with credits and arms",
+        "b": "Cut the aid",
+        "c": "Welcome China into the camp",
+        "d": "Wait"
+      },
+      "mr_china_red": {
+        "a": "Back the new China",
+        "b": "Cut the credits and the arms",
+        "c": "Bring the red government down",
+        "d": "Wait"
+      },
+      "mr_gibraltar_pressed": {
+        "a": "Fortify the Rock",
+        "b": "Buy Spain's quiet with oil and wheat",
+        "c": "Strike first"
+      },
+      "mr_greater_netherlands": {
+        "a": "Guarantee Belgium and bring down The Hague's regime",
+        "b": "Arm what is left of Belgium",
+        "c": "Welcome a kindred state",
+        "d": "Stay out of it"
+      },
+      "mr_hemisphere_aid_offer": {
+        "a": "Take the aid and open the bases",
+        "b": "Take the arms, keep the bases",
+        "c": "Refuse Yankee tutelage"
+      },
+      "mr_iberian_union": {
+        "a": "Recognise it and court it",
+        "b": "Guarantee it",
+        "c": "Oppose it: bring its government down",
+        "d": "Wait and see"
+      },
+      "mr_indies_oil_demand": {
+        "a": "Sell a limited quota",
+        "b": "Refuse and freeze Japanese assets",
+        "c": "Stall, and call London and Washington"
+      },
+      "mr_isthmus_league": {
+        "a": "Guarantee Panama and the canal",
+        "b": "A partner, not a rival",
+        "c": "Bring its government down",
+        "d": "Wait"
+      },
+      "mr_lowlands_united": {
+        "a": "Guarantee the union",
+        "b": "Send arms and offer a licence",
+        "c": "It blocks our way: a war goal",
+        "d": "Watch and wait"
+      },
+      "mr_malvinas_ultimatum": {
+        "a": "Send the fleet south",
+        "b": "Talk: a joint commission",
+        "c": "Ask Washington to mediate"
+      },
+      "mr_mexican_oil_axis": {
+        "a": "Buy the oil ourselves",
+        "b": "Embargo Mexico",
+        "c": "Ignore it"
+      },
+      "mr_mexico_red": {
+        "a": "Live with it: no Marines",
+        "b": "Embargo it",
+        "c": "Bring it down",
+        "d": "Wait"
+      },
+      "mr_mexico_red_comrades": {
+        "a": "Send arms and advisers",
+        "b": "Send our greetings"
+      },
+      "mr_navicerts_offer": {
+        "a": "Take the oil and stay out",
+        "b": "Take the oil, promise nothing",
+        "c": "Refuse: Spain is no British client"
+      },
+      "mr_north_china_demand": {
+        "a": "Yield, to buy time",
+        "b": "Not one more province",
+        "c": "Appeal to the League and the powers"
+      },
+      "mr_qing_throne": {
+        "a": "Endorse the emperor",
+        "b": "Refuse to recognise it",
+        "c": "Bring the throne down",
+        "d": "Wait"
+      },
+      "mr_wolfram_to_germany": {
+        "a": "Outbid Berlin",
+        "b": "Squeeze them with the blockade",
+        "c": "Let it pass"
       },
       "new_state_proclaimed": {
         "a": "Organise the ministries",
@@ -16272,7 +16441,8 @@
       },
       "zaf_parliament_vote": {
         "a": "Go to war",
-        "b": "Stay neutral"
+        "b": "Stay neutral",
+        "c": "Side with Berlin"
       }
     },
     "event_title": {
@@ -16788,6 +16958,30 @@
       "mex_ev_trotsky_asylum": "A Request from Diego Rivera",
       "mex_ev_washington_frowns": "Washington Frowns",
       "mex_oil_crisis": "The Oil Dispute",
+      "mr_abc_bloc": "The ABC Bloc",
+      "mr_argentina_fascist": "A New Order in Buenos Aires",
+      "mr_australasia": "Australasia",
+      "mr_belgian_alliance_offer": "Paris Asks Us Back",
+      "mr_brazil_axis_course": "Rio Leans to Berlin",
+      "mr_brazil_empire": "An Emperor in Rio",
+      "mr_cape_republic": "A Republic at the Cape",
+      "mr_china_axis": "China Joins the Axis Side",
+      "mr_china_red": "A Red China",
+      "mr_gibraltar_pressed": "Spain Claims Gibraltar",
+      "mr_greater_netherlands": "A Greater Netherlands",
+      "mr_hemisphere_aid_offer": "Washington's Offer",
+      "mr_iberian_union": "One State for Iberia",
+      "mr_indies_oil_demand": "Tokyo Wants the Indies' Oil",
+      "mr_isthmus_league": "A League of the Isthmus",
+      "mr_lowlands_united": "The Low Countries Unite",
+      "mr_malvinas_ultimatum": "The Falklands Claimed",
+      "mr_mexican_oil_axis": "Mexican Oil for the Axis",
+      "mr_mexico_red": "A Red Mexico",
+      "mr_mexico_red_comrades": "Comrades in Mexico",
+      "mr_navicerts_offer": "British Oil for Neutrality",
+      "mr_north_china_demand": "Japan's Demands on the North",
+      "mr_qing_throne": "The Dragon Throne Restored",
+      "mr_wolfram_to_germany": "Iberian Wolfram for Germany",
       "new_state_proclaimed": "A New Government",
       "nld_bankers_letter": "The Bankers Write to Colijn",
       "nld_belgian_proposal": "Brussels Proposes Staff Talks",
@@ -18874,6 +19068,11 @@
       "fra_mobilisation_readiness": "Ready to Mobilise",
       "fra_modern_fighters": "New Fighter Types",
       "fra_motorised_divisions": "Lorried Infantry",
+      "fra_mr_belgian_question": "The Belgian Question",
+      "fra_mr_entente_arms": "Guns for the Entente",
+      "fra_mr_entente_guarantees": "Guarantees for the Little Entente",
+      "fra_mr_low_countries_shield": "Shield of the Low Countries",
+      "fra_mr_pyrenees": "Guard the Pyrenees",
       "fra_national_council": "The National Council of the Resistance",
       "fra_national_revolution": "The National Revolution",
       "fra_national_union": "National Union Ministry",
@@ -19001,6 +19200,13 @@
       "gbr_merchant_building": "Mass-Produced Merchantmen",
       "gbr_midlands": "Midlands Industry",
       "gbr_ministry_of_supply": "A Ministry of Supply",
+      "gbr_mr_dominion_loyalty": "Loyalty of the Dominions",
+      "gbr_mr_iberian_watch": "Watch on the Peninsula",
+      "gbr_mr_little_entente_guarantees": "Little Entente Guarantees",
+      "gbr_mr_low_countries_talks": "Staff Talks with the Low Countries",
+      "gbr_mr_oldest_ally": "The Oldest Ally",
+      "gbr_mr_river_plate": "River Plate Trade",
+      "gbr_mr_small_nations": "The Small Nations' Question",
       "gbr_mulberry": "Mulberry Harbours",
       "gbr_national_service": "The National Service Act",
       "gbr_nationalisation": "Nationalising Key Industries",
@@ -19505,6 +19711,13 @@
       "jpn_military_ministers": "Serving Officers as Ministers",
       "jpn_military_police": "The Gendarmerie Expanded",
       "jpn_mongol_government": "The Mongol Military Government",
+      "jpn_mr_concordia_officials": "Concordia Officials",
+      "jpn_mr_crown_puyi": "Let Puyi Reign",
+      "jpn_mr_indies_oil_talks": "Talks on the Indies' Oil",
+      "jpn_mr_kwantung_rule": "The Army Rules Hsinking",
+      "jpn_mr_manchukuo_loyalty": "Manchukuo's Loyalty",
+      "jpn_mr_mexican_oil": "Mexican Oil",
+      "jpn_mr_north_china_demands": "Demands on North China",
       "jpn_nanjing_gov": "Backing the Nanjing Government",
       "jpn_nanjing_regime": "A Partner Government",
       "jpn_national_service": "Universal Service",
@@ -20882,6 +21095,12 @@
       "usa_military_government": "The Emergency Government",
       "usa_monroe_reborn": "The Monroe Doctrine Reborn",
       "usa_motor_pool": "An Army on Wheels",
+      "usa_mr_brazil_partnership": "Partnership with Brazil",
+      "usa_mr_china_credits": "Credits for China",
+      "usa_mr_good_neighbour_tested": "The Good Neighbour Under Strain",
+      "usa_mr_hemisphere_guarantees": "Guarantees for the Hemisphere",
+      "usa_mr_non_recognition": "No Recognition for Conquest",
+      "usa_mr_oil_settlement": "Settle the Oil Dispute",
       "usa_national_reunification": "National Reunification",
       "usa_naval_expansion": "Naval Expansion Act",
       "usa_ndrc": "The Defense Research Committee",
@@ -22793,6 +23012,11 @@
       "fra_mobilisation_readiness": "Call-up lists, depots and railway timetables are brought up to date so that the reserves can be called at short notice.",
       "fra_modern_fighters": "Designers are pressed to bring faster monoplane fighters from prototype to squadron service.",
       "fra_motorised_divisions": "Several infantry divisions trade their horses for lorries so that they can keep pace with the tanks.",
+      "fra_mr_belgian_question": "Brussels has left the alliance and calls itself independent. Without Belgium our line ends at its border. We ask King and cabinet to think again.",
+      "fra_mr_entente_arms": "Our allies in the east buy guns where they can. We send them ours and the drawings to build them, so that their armies speak our language.",
+      "fra_mr_entente_guarantees": "Friendship and banquets were never enough. Czechoslovakia, Romania and Yugoslavia want France to say plainly that an attack on them is an attack on France.",
+      "fra_mr_low_countries_shield": "Whatever Brussels decides, we fortify the northern border and give our word to both Belgium and the Netherlands.",
+      "fra_mr_pyrenees": "Spain's new rulers dream of Morocco and Oran. The mountains were our quiet border; they must be held again.",
       "fra_national_council": "Jean Moulin brings the movements of the north and south, the unions and the political parties together in one council that recognises General de Gaulle as its leader.",
       "fra_national_revolution": "The new regime promises a moral renewal of France: land, craft guilds and the family above parties and unions. Many old republicans are dismissed from office.",
       "fra_national_union": "Instead of a left-wing coalition, Paul Reynaud gathers the centre and the moderate right around rearmament and a firm foreign policy.",
@@ -22920,6 +23144,13 @@
       "gbr_merchant_building": "Prefabricated standard hulls come off the slips faster than the U-boats can sink them.",
       "gbr_midlands": "The engineering works of Birmingham and Coventry take on arms contracts.",
       "gbr_ministry_of_supply": "A single ministry takes over buying the Army's weapons and equipment, so contracts and production are handled in one place.",
+      "gbr_mr_dominion_loyalty": "Afrikaner republicans, French Canadians and Australian Labor all doubt that the Empire's wars are theirs. Visits, honours and trade concessions remind them why the Crown is worth keeping.",
+      "gbr_mr_iberian_watch": "Madrid's new rulers talk of Gibraltar. We strengthen the Rock and keep a door open: Spain needs oil and wheat, and only the sea lanes we control can bring them.",
+      "gbr_mr_little_entente_guarantees": "Prague, Bucharest and Belgrade were France's friends, not ours. If they fall one by one, the balance of Europe falls with them. We give them our word as well.",
+      "gbr_mr_low_countries_talks": "The Dutch and Belgian coasts face the Thames. Whoever holds them threatens London. We guarantee both, whatever their governments say about neutrality.",
+      "gbr_mr_oldest_ally": "The alliance with Portugal is older than any other treaty we keep. Lisbon wants proof that it still means something; a guarantee and a few fighters will do.",
+      "gbr_mr_river_plate": "Argentine beef feeds British cities, and British money built Argentine railways. A good price now keeps Buenos Aires friendly, whatever it says about the islands.",
+      "gbr_mr_small_nations": "Every small country from the Scheldt to the Tagus now asks the same thing: will Britain stand by it? The Foreign Office must answer before Berlin or Rome answers for us.",
       "gbr_mulberry": "Prefabricated harbours are towed across the Channel so an invasion need not seize a port.",
       "gbr_national_service": "Every able man owes the Crown a term of service. Recruiting stops being a matter of persuasion, and the age limits are pushed out on both sides.",
       "gbr_nationalisation": "The state takes over coal, steel and the railways and directs their output to rearmament, to the fury of the owners.",
@@ -23424,6 +23655,13 @@
       "jpn_military_ministers": "Restore the rule that only serving generals and admirals may be army and navy ministers. No cabinet can stand if the services refuse to name one.",
       "jpn_military_police": "The Kempeitai gets new posts, new powers and new files. Staff officers and admirals who talk too freely find they are watched.",
       "jpn_mongol_government": "Set up a military government in Inner Mongolia under local Mongol princes, with the Kwantung Army behind it.",
+      "jpn_mr_concordia_officials": "Trained officials and planners run Manchukuo's factories in our interest. A new plant and new methods make the client a real arsenal.",
+      "jpn_mr_crown_puyi": "The emperor wants to rule, not only to sign. Giving him room makes Manchukuo calmer and more loyal, and a little less ours.",
+      "jpn_mr_indies_oil_talks": "Borneo and Sumatra pump the oil our fleet burns. A delegation goes to Batavia to ask for a fixed quota, politely, for now.",
+      "jpn_mr_kwantung_rule": "The Kwantung Army's officers sit behind every minister. Manchukuo obeys, and resents it.",
+      "jpn_mr_manchukuo_loyalty": "Hsinking's ministers bow to Tokyo, but the court, the bureaucrats and the Kwantung Army each pull their own way. We bind them closer before one of them cuts the rope.",
+      "jpn_mr_mexican_oil": "The Anglo-Saxon companies boycott Mexico's oil. We buy it, and Mexico learns who its friends are.",
+      "jpn_mr_north_china_demands": "The northern provinces should govern themselves, away from Nanjing and close to us. We put it to the Chinese government in writing.",
       "jpn_nanjing_gov": "Japan props up a collaborating government in the occupied east to ease the burden of rule.",
       "jpn_nanjing_regime": "Join with Nationalist figures who broke with Chongqing to set up a government in Nanjing over the occupied areas.",
       "jpn_national_service": "Conscription is extended to every able man of age, and the army doubles its yearly intake.",
@@ -24801,6 +25039,12 @@
       "usa_military_government": "The general takes over the government in the name of order. Congress and the states refuse him, and the Union goes to civil war.",
       "usa_monroe_reborn": "The old doctrine is rewritten as a duty to police the whole hemisphere. Invitations go out to the larger republics, and the army trains for operations south of the border.",
       "usa_motor_pool": "Trucks and jeeps replace horses, and every infantry division can move on wheels.",
+      "usa_mr_brazil_partnership": "Rio wants a steel mill, and Krupp offers one. We offer a better loan, engineers and arms, and ask for friendship in return.",
+      "usa_mr_china_credits": "China pays in tung oil and tungsten for rifles it cannot make. The Treasury lends the money, and the ships sail before anyone can stop them.",
+      "usa_mr_good_neighbour_tested": "Our neighbours to the south listen to Berlin's salesmen and Rome's radio. Washington promised not to send the Marines; it can still send credit, arms and friendship.",
+      "usa_mr_hemisphere_guarantees": "No foreign power will take a foothold in the Americas: we guarantee Mexico, Brazil and Panama with its canal.",
+      "usa_mr_non_recognition": "A state made by an army of occupation is no state at all. The United States will not recognise Manchukuo, whatever crown it puts on.",
+      "usa_mr_oil_settlement": "The companies want Mexico punished. A fair settlement and a long purchase contract serve the country better than a feud on our border.",
       "usa_national_reunification": "With the breakaway states beaten or bought off, the government declares the country whole again. Order returns to the streets, and the strain of the split begins to fade.",
       "usa_naval_expansion": "Congress pays for new warships to bring the fleet up to the limits of the naval treaties.",
       "usa_ndrc": "Vannevar Bush's committee ties university labs and industry to military problems.",
@@ -25308,6 +25552,7 @@
         "fra_free_france": "Free France",
         "fra_industry_research": "Industry and research",
         "fra_leagues_route": "The leagues' night",
+        "fra_mr_minors": "Small Allies",
         "fra_national_union": "National union",
         "fra_navy_air": "Navy and air force",
         "fra_popular_front": "Popular Front",
@@ -25320,6 +25565,7 @@
         "gbr_empire": "Empire",
         "gbr_empire_fate": "Fate of the empire",
         "gbr_integration": "Integration",
+        "gbr_mr_minors": "The Small Nations",
         "gbr_navy_war": "Naval war",
         "gbr_prerogative": "Royal prerogative",
         "gbr_red_route": "The general strike",
@@ -25370,6 +25616,7 @@
         "jpn_continent": "The continent",
         "jpn_doctrine": "Doctrine",
         "jpn_economy": "Economy",
+        "jpn_mr_minors": "Manchukuo and the Resources",
         "jpn_red_route": "Red Japan",
         "jpn_showa_fate": "Showa fate",
         "jpn_showa_order": "Showa order",
@@ -25546,6 +25793,7 @@
         "usa_domestic": "Domestic",
         "usa_european_war": "European war",
         "usa_junta_route": "The business plot",
+        "usa_mr_minors": "Hemisphere and China",
         "usa_new_order": "New order",
         "usa_new_order_fate": "Fate of the new order",
         "usa_pacific_war": "Pacific war",

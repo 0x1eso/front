@@ -338,6 +338,8 @@ export const JPN_EVENTS: EventDef[] = [
   },
   {
     // The other side of the break: Manchukuo leaves the camp and fights.
+    // ww229 MR2: Manchukuo answers by its character: fight (the generals'
+    // way), stand apart, or go back to China.
     id: "jpn_manchukuo_defiance",
     kind: "country",
     picture: "border",
@@ -348,7 +350,47 @@ export const JPN_EVENTS: EventDef[] = [
           { kind: "leave_faction" },
           { kind: "declare_war", on: T("JPN") },
         ],
-        ai: { base: 100 },
+        ai: {
+          base: 50,
+          mods: [{ if: { kind: "ruling", ideology: "fascist" }, factor: 150 }],
+        },
+      },
+      {
+        id: "b",
+        effects: [
+          { kind: "leave_faction" },
+          { kind: "stability", pct: 5 },
+          { kind: "opinion", of: T("JPN"), value: -20, days: 730 },
+        ],
+        ai: {
+          base: 30,
+          mods: [
+            { if: { kind: "character", is: "client" }, factor: 150 },
+            { if: { kind: "ruling", ideology: "neutral" }, factor: 200 },
+          ],
+        },
+      },
+      {
+        id: "c",
+        available: { kind: "exists", who: T("CHN") },
+        effects: [
+          { kind: "leave_faction" },
+          { kind: "declare_war", on: T("JPN") },
+          { kind: "opinion", of: T("CHN"), value: 40, days: 1095 },
+          { kind: "opinion", who: T("CHN"), of: "self", value: 40, days: 1095 },
+          { kind: "join_faction", of: T("CHN") },
+        ],
+        ai: {
+          base: 15,
+          mods: [
+            { if: { kind: "ruling", ideology: "democratic" }, factor: 400 },
+            { if: { kind: "ruling", ideology: "communist" }, factor: 300 },
+            {
+              if: { kind: "at_war_with", who: T("CHN"), of: T("JPN") },
+              factor: 200,
+            },
+          ],
+        },
       },
     ],
   },

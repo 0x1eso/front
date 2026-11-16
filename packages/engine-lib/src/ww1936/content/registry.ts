@@ -142,6 +142,8 @@ import { SUN_BRANCHES, SUN_FOCUSES, SUN_PATH } from "./focus/sun";
 import { TUR_BRANCHES, TUR_FOCUSES, TUR_PATH } from "./focus/tur";
 import { USA_BRANCHES, USA_FOCUSES, USA_PATH } from "./focus/usa";
 import { HISTORY_BEATS } from "./history";
+import { NATIONS } from "./nations/index";
+import type { AiCharacter, NationDef } from "./nations/types";
 import { PACKS } from "./packs";
 import { PERSONS_DEU } from "./persons/deu";
 import { PERSONS_ENDGAME } from "./persons/endgame";
@@ -153,6 +155,10 @@ import { PERSONS_LEADERS } from "./persons/leaders";
 import { PERSONS_P4 } from "./persons/p4";
 import { PERSONS_SUN } from "./persons/sun";
 import { PERSONS_USA } from "./persons/usa";
+import {
+  REACTION_DECISIONS_WEST,
+  REACTION_EVENTS_WEST,
+} from "./reactions/west";
 import { REGION_GROUPS } from "./regionGroups";
 import { SPIRITS_DEU } from "./spirits/deu";
 import { SPIRITS_ENDGAME } from "./spirits/endgame";
@@ -185,8 +191,6 @@ import { TEMPLATES_PACK_WORLD } from "./templates/pack_world";
 import { TEMPLATES_SUN } from "./templates/sun";
 import { TEMPLATES_USA } from "./templates/usa";
 import { START_NAPS } from "./treaties";
-import { NATIONS } from "./nations/index";
-import type { AiCharacter, NationDef } from "./nations/types";
 
 export interface ContentParts {
   focuses: readonly FocusDef[];
@@ -518,7 +522,8 @@ export function joinNations(
   }
   const cores = [...base.cores];
   for (const n of live) {
-    if ((n.cores ?? []).length > 0) cores.push({ tag: n.tag, groups: n.cores! });
+    if ((n.cores ?? []).length > 0)
+      cores.push({ tag: n.tag, groups: n.cores! });
   }
   return {
     ...base,
@@ -783,9 +788,29 @@ export const CONTENT_PARTS_BASE: ContentParts = {
   codenames: CODENAME_COUNT,
   continuous: CONTINUOUS_FOCUS_TABLE,
 };
-/** ww229: the 1936 content, the minors' national content joined. */
-export const CONTENT_PARTS: ContentParts = joinNations(
-  CONTENT_PARTS_BASE,
-  NATIONS,
+/**
+ * ww229 MR (design ww227 §7): the majors' reactions to the minors (world
+ * events, the majors' new demands and the minors' answers), appended after
+ * the minors' content so no earlier index moves and the Imjin War (built on
+ * CONTENT_PARTS_BASE) never sees them.
+ */
+export function joinReactions(
+  base: ContentParts,
+  r: {
+    readonly events: readonly EventDef[];
+    readonly decisions: readonly DecisionDef[];
+  },
+): ContentParts {
+  return {
+    ...base,
+    events: [...base.events, ...r.events],
+    decisions: [...base.decisions, ...r.decisions],
+  };
+}
+
+/** ww229: the 1936 content, the minors' national content and the majors' reactions joined. */
+export const CONTENT_PARTS: ContentParts = joinReactions(
+  joinNations(CONTENT_PARTS_BASE, NATIONS),
+  { events: REACTION_EVENTS_WEST, decisions: REACTION_DECISIONS_WEST },
 );
 export const CONTENT: ContentRegistry = buildRegistry(CONTENT_PARTS);
