@@ -17,7 +17,7 @@ import { ladderTargets, sendNote } from "./Ladder";
 import { notedLately } from "./PairWar";
 import { armsRace, bondOf, bondPartners } from "./PeaceYears";
 import { GW_MOBILISE, GW_NOTE_FLAGS, GW_PLAN_FLAGS } from "./Tables";
-import { GW_GREAT, openWar } from "./Wars";
+import { GW_GREAT, naturalSide, openWar } from "./Wars";
 import {
   clampTo,
   isLongChapter,
@@ -86,6 +86,10 @@ const NOTE_PAIRS: Readonly<
     ["FRA", "DEU"],
     ["DEU", "GBR"],
     ["GBR", "DEU"],
+    // ww220: London and Paris over the Nile, as at Fashoda in 1898; only
+    // once the two have fallen out (sparkNote).
+    ["GBR", "FRA"],
+    ["FRA", "GBR"],
   ],
   straits: [
     ["RUS", "OTT"],
@@ -422,6 +426,17 @@ function runLink(gw: GreatWar): void {
 }
 
 /**
+ * ww220: two of one camp that have not fallen out (their bond above -1): no
+ * spark sets them on each other.
+ */
+function friends(gw: GreatWar, a: GwTag, b: GwTag): boolean {
+  const ca = naturalSide(gw, a);
+  return (
+    ca !== null && ca === naturalSide(gw, b) && (bondOf(gw, a, b) ?? 0) > -1
+  );
+}
+
+/**
  * A later spark's top link (ww176): hot enough, it ends in a note between the
  * topic's pair through the ladder (Ladder.sendNote), never in war itself. The
  * other side answers (a seat on its card), and war comes only if the note is
@@ -434,7 +449,8 @@ function sparkNote(gw: GreatWar, topic: GwTopic): void {
   const pairs = (NOTE_PAIRS[topic] ?? []).filter(
     ([from, to]) =>
       ladderTargets(gw, from).includes(to) &&
-      (ruledBySeat(gw, from) || !notedLately(gw, from)),
+      (ruledBySeat(gw, from) || !notedLately(gw, from)) &&
+      !friends(gw, from, to),
   );
   // At the edge the great powers face each other first (ww179).
   const great = ([a, b]: readonly [GwTag, GwTag]) =>

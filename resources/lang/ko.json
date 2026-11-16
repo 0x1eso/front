@@ -15544,6 +15544,18 @@
         "kermanshah": "케르만샤",
         "hamadan": "하마단",
         "tabriz": "타브리즈"
+      },
+      "great_game": {
+        "merv": "메르브",
+        "herat": "헤라트",
+        "kandahar": "칸다하르",
+        "khyber": "카이베르 고개"
+      },
+      "nile": {
+        "egypt": "이집트",
+        "fashoda": "파쇼다",
+        "chad": "차드호",
+        "congo": "콩고"
       }
     },
     "gauge": {
@@ -16531,7 +16543,11 @@
       "move_overruled": "군단을 옮기는 일로 참모총장의 반대를 물리쳤다.",
       "plan_empty_war": "계획을 다시 짜던 중에 전쟁이 왔다. 첫 몇 주는 시간표 없이 싸운다.",
       "plan_kept": "다시 짜던 계획을 거두었다. 원래 계획이 그대로 선다.",
-      "plan_redrawn": "새 계획이 다 짜였다. 이제 길이 둘이다."
+      "plan_redrawn": "새 계획이 다 짜였다. 이제 길이 둘이다.",
+      "front_great_game_won": "중앙아시아: 우리 쪽으로 기울었다.",
+      "front_great_game_lost": "중앙아시아: 우리에게 불리하게 갔다.",
+      "front_nile_won": "나일강: 우리 쪽으로 기울었다.",
+      "front_nile_lost": "나일강: 우리에게 불리하게 갔다."
     },
     "result": {
       "advance": "전진",
@@ -16748,7 +16764,9 @@
       "thrace": "트라키아",
       "low_countries": "저지대",
       "dobruja": "도브루자",
-      "persia": "페르시아"
+      "persia": "페르시아",
+      "great_game": "중앙아시아",
+      "nile": "나일강"
     },
     "thread": {
       "alsace_unrest": "알자스의 불안",
@@ -17273,7 +17291,9 @@
         "dobruja": "도브루자",
         "low_countries": "저지대",
         "persia": "페르시아",
-        "thrace": "트라키아"
+        "thrace": "트라키아",
+        "great_game": "중앙아시아",
+        "nile": "나일강"
       },
       "threads_title": "오래 끓는 일",
       "topic_count": "지금 꺼낼 이야기 {n}개",

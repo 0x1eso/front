@@ -109,6 +109,8 @@ const RAID_PCT: Readonly<Record<GwTheatre, number>> = {
   low_countries: 50,
   dobruja: 45,
   persia: 40,
+  great_game: 35,
+  nile: 35,
 };
 /** One raid in so many goes for a salient (tuned: every raid may, if it goes well). */
 const SALIENT_IN = 1;

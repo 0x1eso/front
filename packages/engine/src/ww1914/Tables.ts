@@ -48,8 +48,25 @@ export const GW_FORCE: Readonly<
     low_countries: 3,
   },
   AUH: { east: 3, balkan: 2, italy: 3, danube: 2 },
-  RUS: { east: 4, caucasus: 3, persia: 1, dobruja: 1 },
-  FRA: { west: 4, balkan: 1, colonies: 1, straits: 1, alps: 2 },
+  RUS: {
+    east: 4,
+    caucasus: 3,
+    persia: 1,
+    dobruja: 1,
+    // ww220: the Baltic and Black Sea fleets; the Turkestan corps.
+    sea: 1,
+    great_game: 1,
+  },
+  FRA: {
+    west: 4,
+    balkan: 1,
+    colonies: 1,
+    straits: 1,
+    alps: 2,
+    // ww220: the French fleet; the African troops of the Sudan and Chad.
+    sea: 1,
+    nile: 1,
+  },
   GBR: {
     west: 2,
     sea: 5,
@@ -59,8 +76,11 @@ export const GW_FORCE: Readonly<
     palestine: 1,
     colonies: 3,
     persia: 1,
+    // ww220: the Indian army on the frontier; the Egyptian and Sudan garrisons.
+    great_game: 1,
+    nile: 1,
   },
-  ITA: { italy: 3, alps: 2 },
+  ITA: { italy: 3, alps: 2, sea: 1 },
   OTT: {
     caucasus: 2,
     straits: 3,
@@ -102,7 +122,8 @@ export const GW_FRONT_ENDS: Readonly<
   straits: SIDES(["OTT"], ["GBR", "FRA"]),
   mesopotamia: SIDES(["OTT"], ["GBR"]),
   palestine: SIDES(["OTT"], ["GBR"]),
-  sea: SIDES(["DEU"], ["GBR", "USA"]),
+  // ww220: the lesser fleets stand in only without Britain (GW_STAND_IN).
+  sea: SIDES(["DEU"], ["GBR", "USA", "FRA", "RUS", "ITA"]),
   colonies: SIDES(["DEU"], ["GBR", "FRA", "JPN"]),
   alps: SIDES(["ITA"], ["FRA"]),
   danube: SIDES(["AUH", "DEU", "BGR"], ["ROU"]),
@@ -110,6 +131,20 @@ export const GW_FRONT_ENDS: Readonly<
   low_countries: SIDES(["DEU"], ["NLD"]),
   dobruja: SIDES(["BGR", "OTT"], ["ROU", "RUS"]),
   persia: SIDES(["OTT", "IRN"], ["RUS", "GBR"]),
+  // ww220: fronts for camps that moved; their end names are labels too.
+  great_game: SIDES(["GBR"], ["RUS"]),
+  nile: SIDES(["GBR"], ["FRA"]),
+};
+
+/**
+ * ww220: who stands on a front only while a greater one is not on its end:
+ * the French, Russian and Italian fleets fight the sea war themselves only
+ * where the Royal Navy does not stand with them.
+ */
+export const GW_STAND_IN: Readonly<
+  Partial<Record<GwTheatre, { tags: readonly GwTag[]; unless: GwTag }>>
+> = {
+  sea: { tags: ["FRA", "RUS", "ITA"], unless: "GBR" },
 };
 
 /** The ten theatres of the coalition war: their ends are the coalitions. */
@@ -147,9 +182,18 @@ export const GW_AI_MAIN: Readonly<
 > = {
   DEU: ["west", "east", "balkan", "italy", "low_countries", "danube"],
   AUH: ["balkan", "east", "italy", "danube"],
-  RUS: ["east", "caucasus", "dobruja", "persia"],
-  FRA: ["west", "straits", "alps"],
-  GBR: ["west", "straits", "mesopotamia", "palestine", "sea", "persia"],
+  RUS: ["east", "caucasus", "dobruja", "persia", "great_game"],
+  FRA: ["west", "straits", "alps", "nile"],
+  GBR: [
+    "west",
+    "straits",
+    "mesopotamia",
+    "palestine",
+    "sea",
+    "persia",
+    "great_game",
+    "nile",
+  ],
   ITA: ["italy", "alps"],
   OTT: ["caucasus", "straits", "palestine", "mesopotamia", "thrace", "persia"],
   USA: ["west"],

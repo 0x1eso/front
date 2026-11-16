@@ -26,11 +26,19 @@ import {
 import { allocOf } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { officeHolder } from "./People";
-import { germanPlan, memberEnd, membersOf } from "./Wars";
+import { GW_AI_MAIN } from "./Tables";
+import {
+  frontsApart,
+  germanPlan,
+  memberEnd,
+  membersOf,
+  naturalSide,
+} from "./Wars";
 import {
   clampTo,
   fights,
   isLongChapter,
+  other,
   reason,
   ruledBySeat,
   seatsOf,
@@ -91,7 +99,24 @@ export function mainOf(gw: GreatWar, tag: GwTag): GwTheatre | null {
     const p = gw.s.plan ?? (ruledBySeat(gw, "DEU") ? "west" : germanPlan(gw));
     return p === "west" || p === "east" ? p : null;
   }
-  return list[0];
+  return campMain(gw, tag) ?? list[0];
+}
+
+/**
+ * ww220: the first of the country's fronts (Tables.GW_AI_MAIN) where it
+ * would meet the other camp as the camps stand today; null if none.
+ */
+function campMain(gw: GreatWar, tag: GwTag): GwTheatre | null {
+  const camp = naturalSide(gw, tag);
+  if (camp === null) return null;
+  const facing = (t: GwTheatre) =>
+    gw.s.nations.some(
+      (n) =>
+        !n.out &&
+        naturalSide(gw, n.tag) === other(camp) &&
+        frontsApart(gw, tag, n.tag).includes(t),
+    );
+  return (GW_AI_MAIN[tag] ?? []).find(facing) ?? null;
 }
 
 /** The alternatives a redraw could prepare now. */

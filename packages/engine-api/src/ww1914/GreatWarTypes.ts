@@ -324,6 +324,11 @@ export const GW_THEATRES = [
   "low_countries",
   "dobruja",
   "persia",
+  // ww220: the pairs history never set against each other, should the camps
+  // move: Britain and Russia over Central Asia, Britain and France over the
+  // Nile. APPEND ONLY.
+  "great_game",
+  "nile",
 ] as const;
 export type GwTheatre = (typeof GW_THEATRES)[number];
 
@@ -353,6 +358,8 @@ export const GW_LINES: Readonly<Record<GwTheatre, readonly string[]>> = {
   low_countries: ["cologne", "aachen", "border", "amsterdam"],
   dobruja: ["varna", "dobrich", "constanta", "delta"],
   persia: ["baghdad_road", "kermanshah", "hamadan", "tabriz"],
+  great_game: ["merv", "herat", "kandahar", "khyber"],
+  nile: ["egypt", "fashoda", "chad", "congo"],
 };
 
 /** ww187: a theatre's first and last lines, the two ends a band can take. */
@@ -382,6 +389,11 @@ export const GW_FRONT_UP: Readonly<Record<GwTheatre, GwSide>> = {
   // ww179: the Ottomans' advance goes up, deeper into Persia (Kermanshah,
   // Hamadan, Tabriz); the Russians' goes down, to the Baghdad road.
   persia: "central",
+  // ww220: the Russians' advance goes up, over Herat and Kandahar to the
+  // Khyber; Britain's goes down, to Merv. On the Nile Britain's goes up, from
+  // Fashoda into French Africa; France's comes down the river to Egypt.
+  great_game: "entente",
+  nile: "central",
 };
 
 /** Index into GW_LINES where a theatre's war begins. */
@@ -402,6 +414,8 @@ export const GW_FRONT_START: Readonly<Record<GwTheatre, number>> = {
   low_countries: 2,
   dobruja: 1,
   persia: 1,
+  great_game: 1,
+  nile: 1,
 };
 
 export const GW_POSTURES = ["offensive", "hold"] as const;
