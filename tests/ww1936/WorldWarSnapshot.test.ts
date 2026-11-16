@@ -497,14 +497,17 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
 // every tree; recycled civil-war slots) merged with ww228: two equal runs.
 // Re-pinned for ww229 wave A1 (eight minors' national trees, their own
 // equipment, ww232's inheriting rebels): two equal runs.
-const WW1936_DIGEST = "22e65b2cb005dd09";
+// Re-pinned for ww229 wave A2 (eight more minors; the rally and purge
+// ceilings): two equal runs.
+const WW1936_DIGEST = "a6411e451ddb5667";
 /**
  * The same game on Easy (the lobby's default in this mode): the AI
  * handicaps and the slower war planning. Pinned with three equal runs.
  * Re-pinned for the ww226 merge: two equal runs.
  * Re-pinned for the ww229 wave A1 merge: two equal runs.
+ * Re-pinned for the ww229 wave A2 merge: two equal runs.
  */
-const WW1936_EASY_DIGEST = "9ccfd41b90a91aba";
+const WW1936_EASY_DIGEST = "0ee1fbcc2f4ae530";
 
 describe("World War 1936 stays deterministic", () => {
   // An all-AI game on the test map, long enough for the calendar's first
