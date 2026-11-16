@@ -77,20 +77,22 @@ export function medHolder(gw: GreatWar): GwSide | null {
 // ---- The neutrals' reasons (R5, R8) ----
 
 /** Italy will not fight the side that holds its coasts. */
-const MED_FEAR = 25;
+const MED_FEAR = 15;
 /** The Triple Alliance counts this much while Vienna pays the Trentino. */
 const TRENTINO_PULL = 15;
 /** Vienna's price, in offer steps, that makes the Triple Alliance real. */
 export const TRENTINO_PRICE = 3;
 /** A neutral that will not stand beside its old enemy. */
-const OLD_ENEMY = 20;
+const OLD_ENEMY = 8;
+/** ww222 HM: Bulgaria's grudge against Serbia's side, lighter than Turkey's. */
+const BGR_OLD_ENEMY = 4;
 /** The dreadnoughts Britain took in August, and the Goeben. */
-const SHIPS_SEIZED = 10;
-const GOEBEN = 10;
+const SHIPS_SEIZED = 4;
+const GOEBEN = 4;
 /** Romania's fear of the Russian army over the Prut. */
-const RUSSIAN_NEXT_DOOR = 15;
+const RUSSIAN_NEXT_DOOR = 5;
 /** Japan goes with the fleet that rules the seas it trades on. */
-const JAPAN_FLEET = 20;
+const JAPAN_FLEET = 35;
 
 const sideOf = (gw: GreatWar, tag: GwTag): GwSide | null => {
   const n = gw.nation(tag);
@@ -127,7 +129,7 @@ export function neutralTerms(
     }
     case "BGR": {
       const srb = sideOf(gw, "SRB");
-      if (srb !== null) add[srb] -= OLD_ENEMY;
+      if (srb !== null) add[srb] -= BGR_OLD_ENEMY;
       break;
     }
     case "ROU": {
@@ -145,7 +147,7 @@ export function neutralTerms(
 }
 
 /** What Italy's Triple Alliance is worth without the Trentino. */
-const NO_TRENTINO = 30;
+const NO_TRENTINO = 20;
 
 /**
  * Wars.honourPct's term for a June 1914 pact the neutrals read for
@@ -172,11 +174,17 @@ export function treatyTerm(gw: GreatWar, row: GwStartTreaty): number {
 // ---- America (R6) ----
 
 /** Months of war within which a liner sunk makes a hard president move. */
-const EARLY_LINER_MONTHS = 18;
+const EARLY_LINER_MONTHS = 24;
 /** Readiness a hard president gathers each month after it (preparedness). */
-const EARLY_PUSH = 6;
+const EARLY_PUSH = 10;
 /** Readiness at which he takes the country in without the submarine war. */
 export const EARLY_BAR = 90;
+/**
+ * ww222 HM: the readiness America's war road needs, below Sea.AMERICA_BAR:
+ * with ww221's fleets the submarine war comes later and rarer, and America
+ * stayed out of two wars in three (ww220 §7: about two in five).
+ */
+const US_BAR_EASE = 10;
 /** With Britain in the Central Powers, fighting it costs this, and the bond. */
 const AGAINST_BRITAIN = 10;
 const BRITAIN_BOND = 5;
@@ -188,9 +196,9 @@ const CENTRAL_ODDS = 10;
 export const US_MEDIATE_FROM = 18;
 const US_MEDIATE_EVERY = 6;
 /** Odds in 100 that a month the state allows it brings the House mission. */
-const US_MEDIATE_ODDS = 35;
+const US_MEDIATE_ODDS = 50;
 /** The House missions a war sees at most. */
-const US_MEDIATE_MAX = 2;
+const US_MEDIATE_MAX = 3;
 /** Scheduled to every seat at war when America offers (common pack). */
 export const GW_US_MEDIATION = "gw_us_mediation";
 /** Seat flag: the seat took America's offer on its card. */
@@ -208,9 +216,10 @@ export function americaEarly(gw: GreatWar): boolean {
 
 /** America's bar to join the Entente: higher when that means fighting Britain. */
 export function americaBar(gw: GreatWar): number {
-  if (sideOf(gw, "GBR") !== "central") return AMERICA_BAR;
+  const bar = AMERICA_BAR - US_BAR_EASE;
+  if (sideOf(gw, "GBR") !== "central") return bar;
   const bond = Math.max(0, bondOf(gw, "GBR", "USA") ?? 0);
-  return AMERICA_BAR + AGAINST_BRITAIN + BRITAIN_BOND * bond;
+  return bar + AGAINST_BRITAIN + BRITAIN_BOND * bond;
 }
 
 /**
@@ -340,8 +349,9 @@ function houseMission(gw: GreatWar): void {
 /** War score at or under which Karl's ministers call the war lost. */
 const KARL_LOST = -20;
 /** Odds in 100 each month the state allows it; the Sixtus copy adds more. */
-const KARL_ODDS = 15;
+const KARL_ODDS = 10;
 const SIXTUS_ODDS = 15;
+const KARL_STREETS = 10;
 /** Berlin's trust after it learns of it. */
 const BERLIN_DISTRUST = -3;
 /** What the watch on Vienna costs Germany's main front. */
@@ -384,9 +394,13 @@ function karlWrites(gw: GreatWar): boolean {
   if (ruledBySeat(gw, "AUH") || auh.regime !== "karl") return false;
   if (!isLongChapter(gw)) return false;
   if (s.news.some((x) => x.key === "karl_peace_offered")) return false;
-  if (auh.unrest < 2 || warScore(gw, auh.side) > KARL_LOST) return false;
+  // ww222 HM: a new reign starts calm (Regimes: unrest 0), so the streets
+  // only add to the odds; the war lost is what makes him write.
+  if (warScore(gw, auh.side) > KARL_LOST) return false;
   const odds =
-    KARL_ODDS + (s.secrets.includes("auh_sixtus_copy") ? SIXTUS_ODDS : 0);
+    KARL_ODDS +
+    (auh.unrest >= 2 ? KARL_STREETS : 0) +
+    (s.secrets.includes("auh_sixtus_copy") ? SIXTUS_ODDS : 0);
   return wwRoll(s.seed, P_KARL, s.chapter) % 100 < odds;
 }
 

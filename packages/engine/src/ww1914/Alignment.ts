@@ -104,6 +104,15 @@ export const GW_REALIGN_PER_MIL: Readonly<
   alliance: { opportunist: 30, principled: 5, cautious: 0, hardline: 20 },
 };
 
+/**
+ * ww222 HM: in the war only a hardline government that is losing goes over,
+ * this many in a thousand a long chapter (ww220 §7: the big five on another
+ * side in 2-4% of wars, switches included); and what the other side's
+ * government adds to its wish to take it in.
+ */
+export const GW_SWITCH_PER_MIL = 5;
+const GW_SWITCH_WELCOME = 45;
+
 const pairKey = (a: GwTag, b: GwTag) => (a < b ? `${a}_${b}` : `${b}_${a}`);
 const between = (t: GwTreaty, a: GwTag, b: GwTag) =>
   (t.from === a && t.to === b) || (t.from === b && t.to === a);
@@ -538,6 +547,11 @@ export function roadSignTerm(gw: GreatWar, t: GwTreaty): number {
   const bond = bondOf(gw, t.from, t.to) ?? 0;
   const step = roadStep(gw, t.from, t.to) ?? 0;
   let term = 10 * bond + 5 * step;
+  // ww222 HM: a great power that leaves the enemy's side is worth having,
+  // whatever lies between: the war's own enmity doesn't weigh against it.
+  if (has(t, "alliance") && warOf(gw, t.from, t.to) !== null) {
+    if (canSwitch(gw, t.from)) return term + GW_SWITCH_WELCOME;
+  }
   // An alliance needs the understanding first.
   if (has(t, "alliance") && groundStep(gw, t.from, t.to) < 2) term -= 30;
   return term;
@@ -675,7 +689,10 @@ export function aiRealign(gw: GreatWar): void {
         // In the war only a hardline government that is losing goes over.
         if (n.ai !== "hardline" || !canSwitch(gw, offer.by)) continue;
       }
-      const per = GW_REALIGN_PER_MIL[offer.step][n.ai] ?? 0;
+      const per =
+        offer.step === "alliance" && s.warChapter !== null
+          ? GW_SWITCH_PER_MIL
+          : (GW_REALIGN_PER_MIL[offer.step][n.ai] ?? 0);
       const roll = wwRoll(s.seed, P_REALIGN, s.chapter, idHash(pairKey(a, b)));
       if (roll % 1000 >= per) continue;
       // Britain's price for its neutrality: Belgium spared.
