@@ -107,6 +107,7 @@ import { tableClaim, tableNext, tablePass, tableWord } from "./Table";
 import { applyReply, summonScenes } from "./Talk";
 import { sendTelegram } from "./Telegrams";
 import { offerTerms } from "./Terms";
+import { moveBandOrder, signMove } from "./Transfers";
 import { answerTreaty, breakOrder, offerTreaty } from "./Treaties";
 import { openNode, realiseUtopia, utopiaChoice } from "./Utopia";
 import { seatPerson } from "./World";
@@ -205,10 +206,15 @@ export function applyGwOrder(
     case "allocate": {
       if (seat.signed === gw.s.chapter) return "signed";
       // The great offensive's papers answer by their id (ww173).
+      // ww218: the paper "move" answers by its id too.
+      const byId =
+        o.paper !== undefined &&
+        (GW_OFFENSIVE_PAPERS.includes(o.paper) || o.paper === "move");
       const paper = proposalsFor(gw, seat).find((p) =>
-        o.paper !== undefined && GW_OFFENSIVE_PAPERS.includes(o.paper)
+        byId
           ? p.id === o.paper && p.main === o.main
           : !GW_OFFENSIVE_PAPERS.includes(p.id) &&
+            p.id !== "move" &&
             p.main === o.main &&
             p.posture === o.posture &&
             p.scale === o.scale &&
@@ -244,6 +250,7 @@ export function applyGwOrder(
         allyShare: paper.allyShare,
         research: o.research,
       };
+      signMove(gw, seat, paper);
       return null;
     }
     case "budget":
@@ -405,6 +412,8 @@ export function applyGwOrder(
       return billPeel(gw, seat, o.law, o.faction, o.want);
     case "table_counter":
       return tableCounter(gw, seat, o.counters);
+    case "move_band":
+      return moveBandOrder(gw, seat, o.from, o.to);
   }
 }
 

@@ -606,5 +606,6 @@ export const GW_ORDER_BLOCKS = [
   "no_band", // no band to spare there: one is all that holds it
   "in_flight", // a band of ours is on the rails already
   "no_front", // not a front of ours, or the same front
+  "front_full", // that front has all the men it can feed
 ] as const;
 export type GwOrderBlock = (typeof GW_ORDER_BLOCKS)[number];

@@ -23,6 +23,7 @@ import {
   worstStrain,
 } from "./Strain";
 import { GW_AI_MAIN, GW_ENTRIES, GW_ENTRY_BAR, GwEntry } from "./Tables";
+import { aiTransfer } from "./Transfers";
 import { brokenWords, treatyBars } from "./Treaties";
 import { declareWar, enter, memberEnd, membersOf } from "./Wars";
 import {
@@ -193,25 +194,6 @@ function russiansOnGermanSoil(gw: GreatWar, n: GwNationState): boolean {
   return east.open && east.line < GW_FRONT_START.east;
 }
 
-/**
- * A seat sends corps east by a signed paper (GW_WAR_ORDERS); a Germany nobody
- * plays does it by itself, a band a chapter, while the west can spare one.
- */
-function corpsEast(gw: GreatWar): void {
-  const n = gw.nation("DEU");
-  if (n === null || !fights(n) || ruledBySeat(gw, "DEU")) return;
-  if (!russiansOnGermanSoil(gw, n)) return;
-  if ((n.base.west ?? 0) <= CORPS_WEST_KEEPS) return;
-  if ((n.base.east ?? 0) >= CORPS_EAST_WANTS) return;
-  for (const [t, step] of [
-    ["west", -1],
-    ["east", 1],
-  ] as const) {
-    n.base[t] = clampTo((n.base[t] ?? 1) + step, 1, 5);
-    n.strength[t] = clampTo((n.strength[t] ?? 1) + step, 1, 5);
-  }
-}
-
 /** Where it can do most: the first of its list that would answer a push. */
 function ownFront(gw: GreatWar, n: GwNationState): GwTheatre | null {
   const list = (GW_AI_MAIN[n.tag] ?? []).filter((t) => {
@@ -234,10 +216,6 @@ function ownFront(gw: GreatWar, n: GwNationState): GwTheatre | null {
     .sort((a, b) => b.odds - a.odds)[0];
   return best.t;
 }
-
-/** What a Germany nobody plays leaves in the west, and wants in the east. */
-const CORPS_WEST_KEEPS = 4;
-const CORPS_EAST_WANTS = 4;
 
 /** Odds under which this character will not send men forward. */
 const ATTACK_FLOOR = {
@@ -325,7 +303,7 @@ export function aiStep(gw: GreatWar): void {
   if (s.warChapter !== null) {
     seatEntry(gw);
     americaEnters(gw);
-    corpsEast(gw);
+    aiTransfer(gw);
     for (const e of GW_ENTRIES) neutralStep(gw, e);
   }
   for (const n of s.nations) {

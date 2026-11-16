@@ -16015,7 +16015,8 @@
       "table_promise_leave_kept": "{a}이(가) {b}에 약속한 대로 {place}에서 물러났다.",
       "table_promise_vote_kept": "{a}이(가) {b}에 약속한 대로 {place}에서 주민 투표가 열렸다.",
       "table_protest_builds": "{b}이(가) 누른 {a}의 항의가 중립국 신문에 다시 실린다.",
-      "table_protest_pushed": "{a}이(가) {b}의 항의를 누르고 그 땅을 조약에 넣었다."
+      "table_protest_pushed": "{a}이(가) {b}의 항의를 누르고 그 땅을 조약에 넣었다.",
+      "band_arrived": "{a}의 새 사단들이 {theatre} 전선에 닿았다."
     },
     "odds": {
       "0": "될 일이 아닙니다.",
@@ -16063,7 +16064,8 @@
       "launch": "예정대로 친다",
       "prep_stop": "준비를 거둔다",
       "press_on": "계속 밀어붙인다",
-      "stop": "멈춘다"
+      "stop": "멈춘다",
+      "move": "군단을 옮긴다"
     },
     "plan_why": {
       "army": "참모본부가 이 안을 받지 않는다.",
@@ -16521,7 +16523,10 @@
       "money_credits_stopped": "전쟁 공채가 부결됐다. 다음 공채까지 빚을 낼 수 없어 모자란 돈은 찍어서 메운다.",
       "money_credits_command": "전쟁 공채는 최고 명령으로 정해졌다.",
       "money_credits_decree": "전쟁 공채가 칙령으로 나왔다.",
-      "money_tilt": "{who}의 무리가 예산안에 자기 수정안을 내 붙였다. 의회는 이제 고친 안을 놓고 셈한다."
+      "money_tilt": "{who}의 무리가 예산안에 자기 수정안을 내 붙였다. 의회는 이제 고친 안을 놓고 셈한다.",
+      "move_signed": "군단 하나가 다른 전선으로 가는 열차에 올랐다.",
+      "move_reserve": "본국에 있던 새 사단들이 전선으로 떠났다.",
+      "move_overruled": "군단을 옮기는 일로 참모총장의 반대를 물리쳤다."
     },
     "result": {
       "advance": "전진",
@@ -16719,7 +16724,8 @@
       "may_fall": "여기서 끝날 수 있음",
       "opinion": "여론",
       "chamber": "하원",
-      "senate": "상원"
+      "senate": "상원",
+      "move": "한 전선의 군단이 다른 전선으로 간다"
     },
     "theatre": {
       "balkan": "발칸",
@@ -16909,7 +16915,11 @@
         "no_threat": "지금 그쪽에는 위협이 먹히지 않습니다.",
         "no_wing": "그 당에는 따로 만날 무리가 없거나 이미 만났습니다.",
         "paid_only": "소문이 돌았습니다. 그는 지금 당장 치르는 것만 받으려 합니다.",
-        "money_kept": "예산안과 전쟁 공채안은 거둬들일 수 없습니다. 고치거나 기한까지 미루거나 표결에 부치십시오."
+        "money_kept": "예산안과 전쟁 공채안은 거둬들일 수 없습니다. 고치거나 기한까지 미루거나 표결에 부치십시오.",
+        "no_band": "거기서 더 뺄 군이 없습니다. 지금 있는 군이 전부입니다.",
+        "in_flight": "이미 철도로 옮기는 군이 있습니다.",
+        "no_front": "우리가 싸우는 전선이 아닙니다.",
+        "front_full": "그 전선은 더 먹일 수 없을 만큼 군이 찼습니다."
       },
       "brief_label": "비서의 메모",
       "calendar": {
@@ -17799,7 +17809,17 @@
       "notebook_deals": "약속과 빚",
       "notebook_deals_mine": "내가 진 빚",
       "notebook_deals_theirs": "내가 받을 빚",
-      "notebook_deals_threats": "내가 한 위협"
+      "notebook_deals_threats": "내가 한 위협",
+      "move_from_reserve": "본국 예비대",
+      "move_line": "{from}에서 {to} 전선으로, {eta}",
+      "move_eta": {
+        "0": "한 달 안에",
+        "1": "철도로 한 달쯤",
+        "2": "철도로 두 달쯤",
+        "3": "한 철이 꼬박 걸려서"
+      },
+      "move_agrees": "참모총장도 찬성한다",
+      "move_objects": "참모총장은 반대한다"
     },
     "unknown": {
       "ai": "{country}의 원수는 {word} 인물이었다.",

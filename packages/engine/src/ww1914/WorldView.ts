@@ -58,6 +58,7 @@ import { societyView } from "./Society";
 import { foeOn, foeRead, fundView, reads, rivalsOf } from "./Spies";
 import { endStrain, strainWord } from "./Strain";
 import { GW_ACTORS, GW_COMMAND_NAMED_AFTER } from "./Tables";
+import { tokensView } from "./Tokens";
 import { sideIn } from "./Wars";
 import { fights, lastOf, ownPeople } from "./World";
 
@@ -387,7 +388,17 @@ export function worldView(gw: GreatWar, seat: GwSeatState): GwWorldView {
     book: moneyBookView(gw, seat, lawBookView(gw, seat)),
     dossier: dealsDossierView(gw, seat, dossierView(gw, seat)),
     ...societyOf(gw, seat),
+    ...tokensOf(gw, seat),
   };
+}
+
+/** ww218: the army tokens; absent while the seat's country is not at war. */
+function tokensOf(
+  gw: GreatWar,
+  seat: GwSeatState,
+): { tokens?: GwWorldView["tokens"] } {
+  const tokens = tokensView(gw, seat);
+  return tokens === undefined ? {} : { tokens };
 }
 
 /** ww207: the strip, the axes, the communities; absent for a seat with no house. */

@@ -8,6 +8,7 @@ import {
   type GwTheatre,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { GW_PLACES } from "@openfront/engine-api/ww1914/GwPlaces";
+import { gwEtaWord } from "@openfront/engine-api/ww1914/GwTokens";
 import type { GwTheatreView } from "@openfront/engine-api/ww1914/GwView";
 import type {
   GwFrontPrepView,
@@ -404,6 +405,30 @@ function otherCard(t: GwTheatreView, side: GwSide | null): TemplateResult {
   </section>`;
 }
 
+/** ww218: the paper "move": where the band goes, how long, the chief's word. */
+function moveLine(m: NonNullable<GwProposal["move"]>): TemplateResult {
+  const from =
+    m.from === null
+      ? translateText("gw.ui.move_from_reserve")
+      : translateText(`gw.ui.theatre.${m.from}`);
+  return html`<div class="space-y-1" data-gw-paper-move=${m.to}>
+    <p class="text-sm text-white/85">
+      ${translateText("gw.ui.move_line", {
+        from,
+        to: translateText(`gw.ui.theatre.${m.to}`),
+        eta: translateText(`gw.ui.move_eta.${gwEtaWord(m.eta)}`),
+      })}
+    </p>
+    ${m.asked
+      ? html`<span class=${CHIP} data-gw-paper-move-word
+          >${translateText(
+            m.objects ? "gw.ui.move_objects" : "gw.ui.move_agrees",
+          )}</span
+        >`
+      : nothing}
+  </div>`;
+}
+
 function paper(c: GwCtx, p: GwProposal): TemplateResult {
   const signed = c.seat.world.signed;
   const research = c.ui.research ?? c.seat.alloc.research;
@@ -426,6 +451,7 @@ function paper(c: GwCtx, p: GwProposal): TemplateResult {
             })}</span
           >
         </div>`}
+    ${p.move === undefined ? nothing : moveLine(p.move)}
     ${p.offensive !== undefined
       ? offensivePicks(c, p)
       : html`<div class="flex flex-wrap gap-1">
@@ -470,7 +496,9 @@ function paper(c: GwCtx, p: GwProposal): TemplateResult {
               scale: p.scale,
               allyShare: p.allyShare,
               research,
-              ...(OFF_PAPERS.includes(p.id) ? { paper: p.id } : {}),
+              ...(OFF_PAPERS.includes(p.id) || p.id === "move"
+                ? { paper: p.id }
+                : {}),
               ...(off === null
                 ? {}
                 : {

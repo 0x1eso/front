@@ -68,6 +68,15 @@ import {
   GwWarOrder,
   theatresOf,
 } from "./Tables";
+import {
+  arrivals,
+  bandTenths,
+  beliefOf,
+  reserveStep,
+  signMove,
+  toReserve,
+  withMove,
+} from "./Transfers";
 import { memberEnd, membersOf, refreshTheatres, sideIn } from "./Wars";
 import {
   clampTo,
@@ -809,12 +818,8 @@ function newArmies(gw: GreatWar): void {
     const [now, was] = monthsIn(gw, n.entered);
     const steps = row.months.filter((m) => m > was && m <= now).length;
     if (steps === 0) continue;
-    n.base[row.theatre] = clampTo((n.base[row.theatre] ?? 0) + steps, 1, 5);
-    n.strength[row.theatre] = clampTo(
-      (n.strength[row.theatre] ?? 0) + steps,
-      1,
-      5,
-    );
+    // ww218: they go to the home reserve first; the chief proposes where.
+    toReserve(gw, row.tag, row.theatre, steps);
     news(gw, "new_armies", row.tag, null, row.theatre);
     const end = sideIn(gw, row.theatre, row.tag);
     if (end !== null) easeStrain(gw, row.theatre, end, -NEW_ARMIES_EASE);
@@ -846,6 +851,7 @@ function signDefaults(gw: GreatWar): void {
     if (first === undefined) continue;
     seat.alloc = { ...seat.alloc, ...planOf(first) };
     signOffensivePaper(gw, seat, first.id, first.main, {});
+    signMove(gw, seat, first);
     reason(gw, seat, "plan_by_default");
   }
 }
@@ -857,6 +863,7 @@ export function signChief(gw: GreatWar, seat: GwSeatState): void {
   if (first === undefined) return;
   seat.alloc = { ...seat.alloc, ...planOf(first) };
   signOffensivePaper(gw, seat, first.id, first.main, {});
+  signMove(gw, seat, first);
   seat.signed = gw.s.chapter;
 }
 
@@ -882,6 +889,8 @@ export function frontsStep(gw: GreatWar): void {
   signDefaults(gw);
   collapseAnswers(gw);
   for (const n of s.nations) n.lostNow = 0;
+  // ww218: bands due by rail join their fronts before the fighting.
+  arrivals(gw);
   offensiveStep(gw);
   // A front opened as this chapter closed waits for its first plans.
   const judged = s.theatres.filter((t) => t.open && t.since !== s.chapter);
@@ -892,6 +901,7 @@ export function frontsStep(gw: GreatWar): void {
   for (const t of s.theatres) if (t.open) dig(gw, t);
   refill(gw);
   newArmies(gw);
+  reserveStep(gw);
   research(gw);
   refreshTheatres(gw);
 }
@@ -952,8 +962,25 @@ export function pairScore(gw: GreatWar, tag: GwTag, foe: GwTag): number {
  * makes him gloomier, true or not.
  */
 function fogOf(gw: GreatWar, seat: GwSeatState, t: GwTheatreState): number {
-  const k = gw.s.theatres.indexOf(t);
   const foe = foeOn(gw, t.id, seat.tag);
+  // ww218: he reads the foe's numbers as the tokens do, a band ~20 points.
+  const counted =
+    foe === null
+      ? 0
+      : (bandTenths(gw.nation(foe)!, t.id) -
+          beliefOf(gw, seat.tag, t.id, foe).tenths) *
+        2;
+  return counted + strainFog(gw, seat, t, foe);
+}
+
+/** The strain report's part of the chief's fog (ww173). */
+function strainFog(
+  gw: GreatWar,
+  seat: GwSeatState,
+  t: GwTheatreState,
+  foe: GwTag | null,
+): number {
+  const k = gw.s.theatres.indexOf(t);
   const believed =
     foe === null ? null : believedStrain(gw, seat.tag, t.id, foe);
   const massing =
@@ -1129,7 +1156,7 @@ export function proposalsFor(gw: GreatWar, seat: GwSeatState): GwProposal[] {
   ) {
     add("help_ally", wants, "hold", "limited", 2, null);
   }
-  return frontMarked(gw, seat, out);
+  return frontMarked(gw, seat, withMove(gw, seat, out));
 }
 
 /** Chapters after a front course that its paper still comes first. */
@@ -1158,6 +1185,8 @@ function frontMarked(
         return attack(p) && (f.theatre === null || p.main === f.theatre);
       case "shift":
         return attack(p) && f.theatre !== null && p.main !== f.theatre;
+      case "move":
+        return p.id === "move";
       default:
         return p.id === "hold_all";
     }

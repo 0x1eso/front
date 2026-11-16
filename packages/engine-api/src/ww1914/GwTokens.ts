@@ -33,7 +33,7 @@ export interface GwTokenMove {
   to: GwTheatre;
   /** Chapters on the way; text by gwEtaWord. */
   eta: number;
-  /** False: greyed, text gw.block.<why>. */
+  /** False: greyed, text gw.ui.block.<why>. */
   open: boolean;
   why: string | null;
 }

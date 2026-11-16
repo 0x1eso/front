@@ -36,8 +36,8 @@ import {
   GW_TRANSFERS,
   GwStartTreaty,
 } from "./Tables";
+import { toReserve } from "./Transfers";
 import {
-  clampTo,
   fights,
   news,
   other,
@@ -392,8 +392,8 @@ function transfers(gw: GreatWar, out: GwTag): void {
   for (const row of GW_TRANSFERS) {
     const n = gw.nation(row.tag);
     if (row.out !== out || n === null || !fights(n)) continue;
-    n.base[row.to] = clampTo((n.base[row.to] ?? 0) + row.bands, 1, 5);
-    n.strength[row.to] = clampTo((n.strength[row.to] ?? 0) + row.bands, 1, 5);
+    // ww218: freed divisions go home first; the chief proposes where.
+    toReserve(gw, row.tag, row.to, row.bands);
   }
 }
 

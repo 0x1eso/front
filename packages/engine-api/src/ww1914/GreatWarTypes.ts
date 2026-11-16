@@ -803,6 +803,30 @@ export const GwNationStateSchema = z.object({
   econ: GwEconStateSchema.optional(),
   /** ww207: its axes in notches (GwSociety.ts, Society.ts); absent until moved. */
   axes: GwAxesSchema.optional(),
+  /**
+   * ww218: bands on the rails and the home reserve (Transfers.ts); absent
+   * until any. `fly`: from a front (null: the reserve) to a front, arriving
+   * at chapter `at`. `reserve`: bands waiting at home, `to` the front they
+   * go to by default, `since` the chapter they came.
+   */
+  lift: z
+    .object({
+      fly: z.array(
+        z.object({
+          from: z.enum(GW_THEATRES).nullable(),
+          to: z.enum(GW_THEATRES),
+          at: z.number().int(),
+        }),
+      ),
+      reserve: z.array(
+        z.object({
+          to: z.enum(GW_THEATRES),
+          n: z.number().int(),
+          since: z.number().int(),
+        }),
+      ),
+    })
+    .optional(),
 });
 export type GwNationState = z.infer<typeof GwNationStateSchema>;
 
@@ -1727,6 +1751,18 @@ export const GwSeatStateSchema = z.object({
   persona: z.lazy(() => GwPersonaStateSchema).optional(),
   /** ww207: communities, births, elections, the utopia (GwSociety.ts); absent until any. */
   society: GwSocietyStateSchema.optional(),
+  /**
+   * ww218: the ruler asked the chief to move a band (order move_band): from a
+   * front or the reserve (null), the chapter asked. Absent until asked;
+   * cleared when signed or stale (Transfers.ts).
+   */
+  moveAsk: z
+    .object({
+      from: z.enum(GW_THEATRES).nullable(),
+      to: z.enum(GW_THEATRES),
+      chapter: z.number().int(),
+    })
+    .optional(),
 });
 export type GwSeatState = z.infer<typeof GwSeatStateSchema>;
 
