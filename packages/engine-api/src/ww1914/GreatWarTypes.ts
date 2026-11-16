@@ -26,6 +26,7 @@ import {
   GwFateRecordSchema,
   GwVassalStateSchema,
 } from "./GwFate";
+import { GwFleetSchema, GwSeaFightSchema, GwYardSchema } from "./GwFleets";
 import { GwHouseStateSchema } from "./GwHouse";
 import { GwLawStateSchema } from "./GwLaw";
 import { GwPlaceSchema } from "./GwPlaces";
@@ -2563,5 +2564,12 @@ export const GreatWarStateSchema = z.object({
       }),
     )
     .optional(),
+  // ww221 (GwFleets.ts): absent until the first chapter step lays them down.
+  /** The fleets, the truth: a seat's view only ever shows its beliefs. */
+  fleets: z.array(GwFleetSchema).optional(),
+  /** Each sea power's yards: progress towards the next ship. */
+  yards: z.array(GwYardSchema).optional(),
+  /** Fights between fleets, the last few, in order. */
+  seaFights: z.array(GwSeaFightSchema).optional(),
 });
 export type GreatWarState = z.infer<typeof GreatWarStateSchema>;
