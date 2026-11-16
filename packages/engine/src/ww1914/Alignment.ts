@@ -559,14 +559,20 @@ export function leadsLeft(gw: GreatWar, side: GwSide): GwTag[] {
  * The side is done: its leads are out, or one is left alone that cannot carry
  * it (only Germany and France can; June 1914's "France with Russia gone").
  * A side no lead joined is done when every member of it is out.
+ * ww222 HM: "left alone" means the others it had are gone; a lead that has
+ * fought alone from the start (Vienna's war on Serbia, Russia in it, Berlin
+ * not yet) is done only when it is out itself.
  */
 export function sideDoneBy(gw: GreatWar, side: GwSide): boolean {
   const members = gw.s.nations.filter((n) => n.side === side);
   if (members.length === 0) return false;
-  if (leadsOf(gw, side).length === 0) return members.every((n) => n.out);
+  const joined = leadsOf(gw, side);
+  if (joined.length === 0) return members.every((n) => n.out);
   const left = leadsLeft(gw, side);
   if (left.length === 0) return true;
-  return left.length === 1 && !CARRIES_ALONE.includes(left[0]);
+  return (
+    joined.length > 1 && left.length === 1 && !CARRIES_ALONE.includes(left[0])
+  );
 }
 
 // ---- The step ----
