@@ -624,4 +624,7 @@ export const GW_ISSUE_TABLE: Readonly<
   coalition: { unionist: 2, hard: 1, moderate: -1, liberal: -1 },
   tighten_blockade: { hard: 2, moderate: -1 },
   peace_talks: { moderate: 2, labour: 2, hard: -2, military: -2 },
+  // ww220: staying out of the other camp's war; going over to it.
+  neutrality: { liberal: 2, labour: 2, moderate: 1, unionist: -2, hard: -1 },
+  realign: { hard: 1, unionist: -2, liberal: -1, labour: -2, moderate: -1 },
 };

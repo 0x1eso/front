@@ -62,8 +62,23 @@ import { COMMON_POWER_SCENES, COMMON_POWERS } from "./powers/common";
 import { DEU_POWER_SCENES, DEU_POWERS, DEU_REACTORS } from "./powers/deu";
 import { FRA_POWER_SCENES, FRA_POWERS, FRA_REACTORS } from "./powers/fra";
 import { GBR_POWER_SCENES, GBR_POWERS, GBR_REACTORS } from "./powers/gbr";
+// ww220 W1: Britain's and Germany's papers on the roads history did not take.
 import { RUS_POWER_SCENES, RUS_POWERS, RUS_REACTORS } from "./powers/rus";
 import { GW_RALLY_SCENES, templateAbilityRows } from "./powers/templates";
+import {
+  DEU_ROAD_DEPTS,
+  DEU_ROAD_PERSONA,
+  DEU_ROAD_POWERS,
+  DEU_ROAD_REACTORS,
+  DEU_ROAD_SCENES,
+} from "./roads/deu";
+import {
+  GBR_ROAD_DEPTS,
+  GBR_ROAD_PERSONA,
+  GBR_ROAD_POWERS,
+  GBR_ROAD_REACTORS,
+  GBR_ROAD_SCENES,
+} from "./roads/gbr";
 import { AUH_STORY_SCENES } from "./scenes/auh_act";
 import { AUH_AFTER_SCENES } from "./scenes/auh_after";
 import { AUH_AGENTS_SCENES } from "./scenes/auh_agents";
@@ -246,6 +261,8 @@ export const GW_ECHOES: readonly GwEcho[] = [
 const SEAT_POWERS: readonly GwPowerRow[] = [
   ...DEU_POWERS,
   ...GBR_POWERS,
+  ...DEU_ROAD_POWERS,
+  ...GBR_ROAD_POWERS,
   ...AUH_POWERS,
   ...RUS_POWERS,
   ...FRA_POWERS,
@@ -343,6 +360,8 @@ export const GW_CONTENT: GwContent = {
         ...GW_RALLY_SCENES,
         ...DEU_POWER_SCENES,
         ...GBR_POWER_SCENES,
+        ...DEU_ROAD_SCENES,
+        ...GBR_ROAD_SCENES,
         ...AUH_POWER_SCENES,
         ...RUS_POWER_SCENES,
         ...FRA_POWER_SCENES,
@@ -470,6 +489,8 @@ export const GW_CONTENT: GwContent = {
     COMMON_DEPTS,
     DEU_DEPTS,
     GBR_DEPTS,
+    DEU_ROAD_DEPTS,
+    GBR_ROAD_DEPTS,
     FRA_DEPTS,
     RUS_DEPTS,
     AUH_DEPTS,
@@ -477,6 +498,8 @@ export const GW_CONTENT: GwContent = {
   persona: joinPersona([
     DEU_PERSONA,
     GBR_PERSONA,
+    DEU_ROAD_PERSONA,
+    GBR_ROAD_PERSONA,
     FRA_PERSONA,
     RUS_PERSONA,
     AUH_PERSONA,
@@ -501,6 +524,8 @@ export const GW_CONTENT: GwContent = {
   reactors: [
     ...DEU_REACTORS,
     ...GBR_REACTORS,
+    ...DEU_ROAD_REACTORS,
+    ...GBR_ROAD_REACTORS,
     ...AUH_REACTORS,
     ...RUS_REACTORS,
     ...FRA_REACTORS,

@@ -96,6 +96,11 @@ export const GW_DIARY_MOMENTS = [
   "hindsight", // an "알고 보니" line
   "filler", // the seat's filler: weather, who came, a book
   "plan", // ww219: the war plan redrawn, ready, or empty when the war came
+  // ww220: a road toward the other camp: the first feeler, the signature, the
+  // road falling back (Diary.roadMoments).
+  "road_feeler",
+  "road_signed",
+  "road_fell",
 ] as const;
 export type GwDiaryMoment = (typeof GW_DIARY_MOMENTS)[number];
 

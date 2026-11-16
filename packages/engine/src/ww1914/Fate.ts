@@ -65,7 +65,6 @@ import {
 } from "@openfront/engine-lib/ww1914/FateRows";
 import { GW_CAPITALS } from "@openfront/engine-lib/ww1914/PlaceRules";
 import {
-  GW_TABLE_AIMS,
   GW_TABLE_CAPITALS,
   GW_TABLE_HEART,
   GW_TABLE_PORTS,
@@ -77,6 +76,7 @@ import { holderOf, moveLand } from "./Land";
 import { hasLandGraph, landGraph, reachesGroup } from "./Occupation";
 import { moveBond } from "./PeaceYears";
 import { beatSince, ruleMonth, ruleOf } from "./Rule";
+import { aimsOf } from "./TableAims";
 import { atWarWith, GW_GREAT, syncAtWar, warOf } from "./Wars";
 import {
   clampTo,
@@ -215,7 +215,7 @@ export function settlePlan(
     (p) => GW_PLACES[p].owner === of && holderOf(gw, p) === me,
   );
   if (held.length === 0) return;
-  const aims = GW_TABLE_AIMS[me] ?? [];
+  const aims = aimsOf(gw, me);
   const side = sideFor(gw, me);
   const cap = GW_CAPITALS[of];
   const near = new Set<string>();
@@ -870,7 +870,7 @@ function makeVassal(
 /** Whether an ally takes a place given to it: a seat does; an AI if it wants it. */
 function allyTakes(gw: GreatWar, ally: GwTag, place: GwPlace): boolean {
   if (ruledBySeat(gw, ally)) return true;
-  if ((GW_TABLE_AIMS[ally] ?? []).includes(place)) return true;
+  if (aimsOf(gw, ally).includes(place)) return true;
   if (!hasLandGraph(gw)) return false;
   return reachesGroup(gw, ally, GW_PLACES[place].group);
 }
@@ -947,7 +947,7 @@ export function applyClaim(gw: GreatWar, c: GwTableClaim): void {
         if (n.tag === by || n.side === null || n.side !== gw.nation(by)?.side) {
           continue;
         }
-        if ((GW_TABLE_AIMS[n.tag] ?? []).includes(place)) {
+        if (aimsOf(gw, n.tag).includes(place)) {
           trustMove(gw, n.tag, by, -1);
         }
       }
@@ -1008,7 +1008,7 @@ export function aiFate(gw: GreatWar, by: GwTag, place: GwPlace): GwFateMark {
   const owner = GW_PLACES[place].owner;
   if (n === null || owner === by) return { fate: "annex" };
   const ai = GW_AI_FATES[n.ai];
-  const aims = GW_TABLE_AIMS[by] ?? [];
+  const aims = aimsOf(gw, by);
   const capital = GW_CAPITALS[owner] === place;
   // The whole country as a vassal: a small one whose capital it holds.
   if (
@@ -1057,8 +1057,7 @@ export function aiPartnerWord(
 ): GwPartnerWord {
   const n = gw.nation(partner);
   const wants =
-    holderOf(gw, c.place) === partner ||
-    (GW_TABLE_AIMS[partner] ?? []).includes(c.place);
+    holderOf(gw, c.place) === partner || aimsOf(gw, partner).includes(c.place);
   if (n === null || !wants) return "yield";
   if (c.fate === "state" && n.ai !== "hardline") return "joint";
   return n.ai === "hardline" || n.ai === "opportunist" ? "hold" : "yield";
