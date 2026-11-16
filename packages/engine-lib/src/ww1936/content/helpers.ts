@@ -44,6 +44,25 @@ export const fire = (id: string, to?: Selector, days?: number): Effect => ({
  * first such branch (in `branches` order) gets +100% once, else land
  * doctrine mastery.
  */
+// ---- ww229 MA2: the ruling party's own push stops at a ceiling ----
+// gen_rally and gen_suppress_opposition used to stack every 180 days on top
+// of the focuses, and every AI country's ruling party sat at 100% within two
+// years: no opposition was left for elections, crises or the ww226 routes.
+// The rally needs the ruling party below 60% (its 90 days of drift add about
+// 13.5 points), the purge below 75%. (Here, not in decisions/generic.ts:
+// content files hold data only.)
+export function rulingBelow(pct: number): Condition {
+  return any(
+    ...(["democratic", "communist", "fascist", "neutral"] as const).map(
+      (ideology) =>
+        all(
+          { kind: "ruling", ideology },
+          not({ kind: "pop_ge", ideology, pct }),
+        ),
+    ),
+  );
+}
+
 export function techExchange(branches: readonly TechBranch[]): {
   ahead: Condition[];
   effect: Effect;
