@@ -29,6 +29,7 @@ import {
   gwTrendOf,
   gwTrendWord,
 } from "@openfront/engine-api/ww1914/GwEcon";
+import { gaugeOf } from "./BudgetRules";
 import { gwContent } from "./content/Content";
 import { GW_RULERS } from "./RulerRows";
 
@@ -154,7 +155,7 @@ function homeSlots(s: GreatWarState, seat: GwSeatState): GwSlots {
   const n = s.nations.find((x) => x.tag === seat.tag);
   if (n === undefined) return {};
   const g = (k: keyof typeof GW_GAUGE_MAX) =>
-    word(level(n.gauges[k] ?? 0, GW_GAUGE_MAX[k]));
+    word(level(gaugeOf(n, k), GW_GAUGE_MAX[k]));
   const out: GwSlots = {
     shells: g("shells"),
     treasury: g("money"),
@@ -174,7 +175,7 @@ function homeSlots(s: GreatWarState, seat: GwSeatState): GwSlots {
     for (const k of GW_ECON_GAUGES) {
       const trend = gwTrendOf(n.econ.rate[k] ?? 0);
       out[`${k}_trend`] = word(
-        gwTrendWord(trend, n.gauges[k] ?? 0, GW_GAUGE_MAX[k]),
+        gwTrendWord(trend, gaugeOf(n, k), GW_GAUGE_MAX[k]),
       );
     }
   }

@@ -443,11 +443,12 @@ describe("diplomacy L0: the digests that never move", () => {
   // front; ww196: answers, honours at their occasions, the person at the
   // desk; ww201: the production step; ww204: the law book, the house by
   // real seats; ww206: the nerve gone; ww208: the living society; ww219: war
-  // power, the war plan, moving bands): the Great War's own rules moved it,
+  // power, the war plan, moving bands; ww223: the treasury for the money
+  // gauge): the Great War's own rules moved it,
   // not the diplomacy.
   test("the Great War pin is unchanged", () => {
     expect(read("ww1914/GreatWarSnapshot.test.ts")).toContain(
-      'const GW_DIGEST = "3e58b8fbb18e25b1";',
+      'const GW_DIGEST = "acc72e96bafa8ee6";',
     );
   });
 });

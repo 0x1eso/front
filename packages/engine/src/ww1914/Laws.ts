@@ -34,6 +34,7 @@ import {
   type GwLawView,
 } from "@openfront/engine-api/ww1914/GwLaw";
 import type { GwOrderBlock } from "@openfront/engine-api/ww1914/GwOrders";
+import { gaugeOf } from "@openfront/engine-lib/ww1914/BudgetRules";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
 import { GW_LAWS } from "@openfront/engine-lib/ww1914/content/scenes/laws";
 import {
@@ -1055,7 +1056,7 @@ function aiPick(
 ): GwLawRow | null {
   const weakest = [...GW_GAUGES].sort(
     (a, b) =>
-      n.gauges[a] * GW_GAUGE_MAX[b] - n.gauges[b] * GW_GAUGE_MAX[a] ||
+      gaugeOf(n, a) * GW_GAUGE_MAX[b] - gaugeOf(n, b) * GW_GAUGE_MAX[a] ||
       GW_GAUGES.indexOf(a) - GW_GAUGES.indexOf(b),
   )[0];
   // ww218: munitions at the first shell crisis, more men once the pool runs

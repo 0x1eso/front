@@ -9,6 +9,7 @@ import {
   GwTheatre,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
+import { gaugeOf } from "@openfront/engine-lib/ww1914/BudgetRules";
 import { civilFromDays } from "@openfront/engine-lib/ww1936/Calendar";
 import { advanceChapter } from "@openfront/engine/ww1914/Chapters";
 import type { GreatWar } from "@openfront/engine/ww1914/GreatWar";
@@ -139,7 +140,7 @@ export async function warShape(
       const n = gw.nation(t)!;
       const x = n.gauges;
       const a = n.alloc ?? (t === tag ? gw.s.seats[0].alloc : null);
-      return `${t} s${x.shells}b${x.bread}$${x.money}m${x.morale}o${x.order} u${n.unrest}L${n.lowOrder} men${n.manpower} w${n.strength.west ?? "-"}e${n.strength.east ?? "-"} ${a?.main ?? "-"}/${a?.posture[0] ?? "-"}${a?.scale[0] ?? "-"}`;
+      return `${t} s${x.shells}b${x.bread}$${gaugeOf(n, "money")}m${x.morale}o${x.order} u${n.unrest}L${n.lowOrder} men${n.manpower} w${n.strength.west ?? "-"}e${n.strength.east ?? "-"} ${a?.main ?? "-"}/${a?.posture[0] ?? "-"}${a?.scale[0] ?? "-"}`;
     };
     const last = gw.s.battles.filter(
       (b) => b.chapter === gw.s.chapter - 1 && b.by !== null,
@@ -176,7 +177,7 @@ export async function warShape(
     shape.techs[tagN] = n.techs;
     const g = n.gauges;
     shape.gauges[tagN] =
-      `s${g.shells} b${g.bread} $${g.money} m${g.morale} o${g.order} men${n.manpower}`;
+      `s${g.shells} b${g.bread} $${gaugeOf(n, "money")} m${g.morale} o${g.order} men${n.manpower}`;
     shape.bands[tagN] = JSON.stringify(n.strength);
   }
   for (const b of gw.s.battles) {

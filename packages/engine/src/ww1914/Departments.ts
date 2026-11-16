@@ -68,6 +68,7 @@ import {
   surer,
 } from "@openfront/engine-lib/ww1914/AnswerSlots";
 import { gwMemoryKeys } from "@openfront/engine-lib/ww1914/AskIndex";
+import { gaugeOf } from "@openfront/engine-lib/ww1914/BudgetRules";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
 import { gwSignPaperIds } from "@openfront/engine-lib/ww1914/FateRows";
 import {
@@ -1011,7 +1012,8 @@ function stallOf(
     wwRoll(gw.s.seed, P_STALL, gw.s.chapter, idHash(`${t.office}_${r}`)) % 100 <
     GW_STALL_PCT[r];
   if (head.trust <= GW_DEPT_DISLOYAL && roll("disloyal")) return "disloyal";
-  const money = gw.nation(seat.tag)?.gauges.money ?? 1;
+  const n = gw.nation(seat.tag);
+  const money = n === null ? 1 : gaugeOf(n, "money");
   const costly = ["money", "arms", "men", "fleet"].includes(t.type ?? "");
   if (costly && money <= 0 && roll("money")) return "money";
   if (rivalOf(gw, seat, t.office, head, null, []) !== null && roll("rival")) {
@@ -1596,7 +1598,8 @@ export function pushTask(
     case "hurry":
     case "money": {
       if (how === "money" && (t.stall ?? null) === null) return "no_push";
-      if ((gw.nation(seat.tag)?.gauges.money ?? 0) <= 0) return "no_push";
+      const n = gw.nation(seat.tag);
+      if (n === null || gaugeOf(n, "money") <= 0) return "no_push";
       moveGauge(gw, seat.tag, "money", -GW_HURRY_MONEY, "dept_hurried");
       t.hurried = true;
       t.stall = null;

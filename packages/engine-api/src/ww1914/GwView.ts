@@ -8,7 +8,6 @@ import type {
   GwBackDirection,
   GwCalendarId,
   GwClause,
-  GwGauge,
   GwGiveClause,
   GwInstitution,
   GwLandMove,
@@ -18,6 +17,7 @@ import type {
   GwReason,
   GwStage,
   GwStamp,
+  GwStat,
   GwTermRefusal,
   GwTheatre,
   GwTreatyState,
@@ -349,7 +349,8 @@ export interface GwSeatView {
   terms?: GwTermsView;
   desk: readonly GwCardView[];
   people: readonly GwPersonView[];
-  gauges: Readonly<Record<GwGauge, number>>;
+  /** ww223: the stats; the money is the treasury (`world.treasury`). */
+  gauges: Readonly<Record<GwStat, number>>;
   inst: Readonly<Partial<Record<GwInstitution, number>>>;
   theatres: readonly GwTheatreView[];
   alloc: GwAlloc;

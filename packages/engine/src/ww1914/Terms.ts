@@ -15,6 +15,7 @@ import {
 import { GwTag, isGwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import type { GwOrderBlock } from "@openfront/engine-api/ww1914/GwOrders";
 import type { GwTermsView } from "@openfront/engine-api/ww1914/GwView";
+import { gaugeOf } from "@openfront/engine-lib/ww1914/BudgetRules";
 import { moveMoney } from "./Budget";
 import { claimsOn } from "./Claims";
 import { warMonths } from "./Eras";
@@ -95,7 +96,7 @@ function giveOpen(
       return (n.offers[me.side] ?? 0) < e.offers[me.side];
     }
     case "credit":
-      return !foe && me.gauges.money >= GIVE_FLOOR;
+      return !foe && gaugeOf(me, "money") >= GIVE_FLOOR;
     case "grain":
       return !foe && me.gauges.bread >= GIVE_FLOOR;
     case "shells":

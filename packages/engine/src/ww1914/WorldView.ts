@@ -1,9 +1,9 @@
 import {
   GW_FRONT_UP,
   GW_GAUGE_MAX,
-  GW_GAUGES,
   GW_LINES,
   GW_SIDES,
+  GW_STATS,
   GwGauge,
   GwOffice,
   GwSeatState,
@@ -23,10 +23,12 @@ import type {
   GwIntelView,
   GwPersonWorldView,
   GwReportView,
+  GwTreasuryView,
   GwWarPlanView,
   GwWorldView,
 } from "@openfront/engine-api/ww1914/GwWorldView";
 import { world } from "@openfront/engine-api/ww1914/WorldDsl";
+import { debtWeight } from "@openfront/engine-lib/ww1914/BudgetRules";
 import { GW_PREMIER_PICKS } from "@openfront/engine-lib/ww1914/StoryRows";
 import {
   civilFromDays,
@@ -34,7 +36,7 @@ import {
 } from "@openfront/engine-lib/ww1936/Calendar";
 import { agentsView } from "./Agents";
 import { tasksShown } from "./Aims";
-import { budgetView } from "./Budget";
+import { basisOf, budgetView } from "./Budget";
 import { craftView } from "./Craft";
 import { dealsDossierView } from "./Deals";
 import { dossierView } from "./Dossier";
@@ -83,7 +85,7 @@ const seaWord = (v: number) => Math.min(3, Math.floor((v + 1) / 3));
 function gaugeView(gw: GreatWar, seat: GwSeatState): GwGaugeView[] {
   const n = gw.nation(seat.tag)!;
   const last = gw.s.chapter - 1;
-  return GW_GAUGES.map((gauge) => ({
+  return GW_STATS.map((gauge) => ({
     gauge,
     value: n.gauges[gauge],
     word: wordOf(gauge, n.gauges[gauge]),
@@ -92,6 +94,27 @@ function gaugeView(gw: GreatWar, seat: GwSeatState): GwGaugeView[] {
       .map((l) => ({ key: l.key, delta: l.delta })),
     ...econView(n.econ, gauge, last),
   }));
+}
+
+/**
+ * ww223: the treasury where the money gauge stood: its sum, where the year's
+ * flow takes it (the budget's balance and the production step, as the money
+ * gauge's trend was) and the debt's weight in a word.
+ */
+function treasuryView(gw: GreatWar, seat: GwSeatState): GwTreasuryView {
+  const n = gw.nation(seat.tag)!;
+  const last = gw.s.chapter - 1;
+  const econ = econView(n.econ, "money", last);
+  return {
+    amount: n.budget.treasury,
+    trend: Math.sign(econ.trend) as -1 | 0 | 1,
+    why: econ.why,
+    debt: debtWeight(basisOf(gw, n)),
+    lines: seat.lines
+      .filter((l) => l.gauge === "money" && l.chapter >= last)
+      .map((l) => ({ key: l.key, delta: l.delta })),
+    step: econ.step,
+  };
 }
 
 /** ww201: the production step's trend, cause and last move of a gauge. */
@@ -347,6 +370,7 @@ export function worldView(gw: GreatWar, seat: GwSeatState): GwWorldView {
       votes: seat.votes.slice(-VOTES_SHOWN),
     },
     gauges: gaugeView(gw, seat),
+    treasury: treasuryView(gw, seat),
     authority: n.authority,
     manpower: n.manpower,
     casualties: n.casualties,

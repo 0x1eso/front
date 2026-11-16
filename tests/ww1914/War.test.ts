@@ -1,5 +1,6 @@
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
+import { budgetRow } from "@openfront/engine-lib/ww1914/BudgetRules";
 import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
 import {
   GW_CONTENT,
@@ -461,9 +462,9 @@ describe("how it stops", () => {
     gw.nation("USA")!.side = "entente";
     gw.s.blockade = 7;
     gw.nation("GBR")!.side = "entente";
-    gw.nation("GBR")!.gauges.money = 2;
+    gw.nation("GBR")!.budget.treasury = budgetRow("GBR").step * 2;
     expect(ownEnding(gw, seat, "victory_peace")).toBe("gbr_end_master");
-    gw.nation("GBR")!.gauges.money = 0;
+    gw.nation("GBR")!.budget.treasury = 0;
     expect(ownEnding(gw, seat, "victory_peace")).toBe("gbr_end_dear_win");
   });
 

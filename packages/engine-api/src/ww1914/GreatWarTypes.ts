@@ -235,6 +235,13 @@ export type GwPersonState = z.infer<typeof GwPersonStateSchema>;
 
 // ---- The country (design §4.1) ----
 
+/**
+ * What a condition, an effect or a reason line names. Four are the country's
+ * own stats (`GW_STATS`); ww223: "money" is no stat but the treasury itself,
+ * read on the country's own scale (BudgetRules `treasuryLevel`: steps of
+ * `budgetRow(tag).step`, 0..3) and moved by sums of the treasury (Budget
+ * `moveMoney`).
+ */
 export const GW_GAUGES = [
   "shells",
   "bread",
@@ -243,6 +250,9 @@ export const GW_GAUGES = [
   "order",
 ] as const;
 export type GwGauge = (typeof GW_GAUGES)[number];
+/** ww223: the stats a country keeps in `gauges`; the money is its treasury. */
+export const GW_STATS = ["shells", "bread", "morale", "order"] as const;
+export type GwStat = (typeof GW_STATS)[number];
 export const GW_GAUGE_MAX: Readonly<Record<GwGauge, number>> = {
   shells: 3,
   bread: 3,
@@ -758,7 +768,7 @@ export type GwWarPlan = z.infer<typeof GwWarPlanSchema>;
 
 export const GwNationStateSchema = z.object({
   tag: z.enum(GW_TAGS),
-  gauges: z.record(z.enum(GW_GAUGES), z.number().int()),
+  gauges: z.record(z.enum(GW_STATS), z.number().int()),
   /** Institutions this country has, -5..5. */
   inst: z.partialRecord(z.enum(GW_INSTITUTIONS), z.number().int()),
   /** Hidden: strength band 1..5 by theatre. */
@@ -812,7 +822,7 @@ export const GwNationStateSchema = z.object({
   spent: z.number().int(),
   /** Chapter it first entered the war; null while neutral. */
   entered: z.number().int().nullable(),
-  /** Its money: `gauges.money` follows from this (engine/ww1914/Budget). */
+  /** Its money: the treasury is what content calls "money" (ww223). */
   budget: GwBudgetStateSchema,
   /** Bills taken up and laws in force; a bill nobody has touched has no row. */
   laws: z.array(GwLawStateSchema),

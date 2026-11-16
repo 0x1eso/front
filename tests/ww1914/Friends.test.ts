@@ -10,6 +10,7 @@ import { gwCraftStart } from "@openfront/engine-api/ww1914/GwCraft";
 import type { GwOrder } from "@openfront/engine-api/ww1914/GwOrders";
 import { GwOrderSchema } from "@openfront/engine-api/ww1914/GwOrders";
 import type { GreatWarData } from "@openfront/engine-api/ww1914/GwView";
+import { gaugeOf } from "@openfront/engine-lib/ww1914/BudgetRules";
 import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
 import { GW_CONTENT } from "@openfront/engine-lib/ww1914/content/Content";
 import { GW_LAWS } from "@openfront/engine-lib/ww1914/content/scenes/laws";
@@ -594,12 +595,12 @@ describe("secret treaties", () => {
 
   it("moves money when a loan is signed", async () => {
     const fresh = gwOf((await friends()).runner);
-    const gbr = fresh.nation("GBR")!.gauges.money;
-    const deu = fresh.nation("DEU")!.gauges.money;
+    const gbr = gaugeOf(fresh.nation("GBR")!, "money");
+    const deu = gaugeOf(fresh.nation("DEU")!, "money");
     const { r } = await signed([clause("loan", "GBR", 1)]);
     const gw = gwOf(r);
-    expect(gw.nation("GBR")!.gauges.money).toBe(gbr - 1);
-    expect(gw.nation("DEU")!.gauges.money).toBe(Math.min(3, deu + 1));
+    expect(gaugeOf(gw.nation("GBR")!, "money")).toBe(gbr - 1);
+    expect(gaugeOf(gw.nation("DEU")!, "money")).toBe(Math.min(3, deu + 1));
   });
 
   it("gives passage as a band of strength, taken back with the treaty", async () => {

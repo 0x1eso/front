@@ -38,7 +38,7 @@ import {
   GW_PLACES,
   type GwPlace,
 } from "@openfront/engine-api/ww1914/GwPlaces";
-import { budgetNorm } from "@openfront/engine-lib/ww1914/BudgetRules";
+import { budgetNorm, gaugeOf } from "@openfront/engine-lib/ww1914/BudgetRules";
 import {
   econPerUnit,
   econRow,
@@ -390,7 +390,7 @@ function warTerms(gw: GreatWar, n: GwNationState, out: GwEconTerms): void {
     (row.trade * (GW_SEA_MAX - trade)) / GW_SEA_MAX + taxed,
   );
   // A full treasury goes on war orders: the ministries spend what they have.
-  if (n.gauges.money >= GW_GAUGE_MAX.money) {
+  if (gaugeOf(n, "money") >= GW_GAUGE_MAX.money) {
     push(out.money, "money_war_costs", -GW_ECON.fullSpend);
   }
 }

@@ -2,9 +2,9 @@
 // the ladder reaches the top. One list per country: a later country adds a list.
 import {
   GW_GAUGE_MAX,
-  GwGauge,
   GwNationState,
   GwOffice,
+  GwStat,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import { GW_RULERS } from "@openfront/engine-lib/ww1914/RulerRows";
@@ -25,7 +25,7 @@ export interface GwRegimeRow {
   /** Where the ladder stands the day it begins. */
   readonly unrest: number;
   /** Gauges it begins with, where they were lower. */
-  readonly floor: Readonly<Partial<Record<GwGauge, number>>>;
+  readonly floor: Readonly<Partial<Record<GwStat, number>>>;
   /** Its first act is to ask for peace. */
   readonly seeksPeace: boolean;
   /** People it brings in, if the cast has them. */
@@ -185,7 +185,7 @@ export function changeRegime(gw: GreatWar, tag: GwTag, to: string): void {
   n.unrest = row.unrest;
   n.lowOrder = 0;
   for (const [g, v] of Object.entries(row.floor)) {
-    const gauge = g as GwGauge;
+    const gauge = g as GwStat;
     n.gauges[gauge] = Math.min(
       GW_GAUGE_MAX[gauge],
       Math.max(n.gauges[gauge], v ?? 0),

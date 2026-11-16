@@ -5,6 +5,8 @@
 import type {
   GwGauge,
   GwInstitution,
+  GwNationState,
+  GwStat,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import {
   GW_BUDGET_DRIFTS,
@@ -45,7 +47,7 @@ export interface GwBudgetRow {
   readonly debt: number;
   /** Percent a year on the debt. */
   readonly interest: number;
-  /** One step of the money gauge, in June 1914's prices. */
+  /** One step of the treasury's scale (`treasuryLevel`), in June 1914's prices. */
   readonly step: number;
   /** Per mille a year prices rise from the war alone. */
   readonly warPrices: number;
@@ -556,16 +558,33 @@ export function budgetYear(b: GwBudgetBasis, plan: GwBudgetPlan): GwBudgetYear {
   };
 }
 
-/** What `gauges.money` reads: room to borrow, from the numbers behind it. */
-export function moneyWord(b: GwBudgetBasis): number {
-  const step = moneyStep(b.tag, b.prices);
-  const load = loadOf(b);
-  const heavy =
-    (load >= GW_LOAD_HEAVY ? 1 : 0) + (load >= GW_LOAD_CRUSHING ? 1 : 0);
-  return clampTo(trunc(b.treasury / step) - heavy, 0, 3);
+/**
+ * ww223: what content calls "money": the treasury on the country's own scale,
+ * whole steps of its row's `step` (about a third of a year's revenue), 0..3.
+ * Neither debt nor prices shrink it: debt drains the treasury through its
+ * interest, prices through what things cost (`moneyStep`).
+ */
+export function treasuryLevel(tag: string, treasury: number): number {
+  return clampTo(trunc(treasury / budgetRow(tag).step), 0, 3);
 }
 
-/** One step of the gauge at today's prices. */
+/** ww223: a gauge as content reads it; "money" is the treasury on its scale. */
+export function gaugeOf(
+  n: Pick<GwNationState, "tag" | "gauges" | "budget">,
+  g: GwGauge,
+): number {
+  return g === "money"
+    ? treasuryLevel(n.tag, n.budget.treasury)
+    : (n.gauges[g] ?? 0);
+}
+
+/** ww223: the debt's weight in a word: 0 light, 1 heavy, 2 crushing. */
+export function debtWeight(b: GwBudgetBasis): 0 | 1 | 2 {
+  const load = loadOf(b);
+  return load >= GW_LOAD_CRUSHING ? 2 : load >= GW_LOAD_HEAVY ? 1 : 0;
+}
+
+/** What one step of the treasury's scale costs at today's prices. */
 export function moneyStep(tag: string, prices: number): number {
   return Math.max(1, trunc((budgetRow(tag).step * prices) / 1000));
 }
@@ -608,7 +627,7 @@ export function tilted(
 /** What the plain gauges want, the same for the finance holder and the AI. */
 export function budgetDraft(
   b: GwBudgetBasis,
-  gauges: Readonly<Record<GwGauge, number>>,
+  gauges: Readonly<Record<GwStat, number>>,
 ): GwBudgetPlan {
   const row = budgetRow(b.tag);
   let shares = [...budgetNorm(b.tag, b.war)];

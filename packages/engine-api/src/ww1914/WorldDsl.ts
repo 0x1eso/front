@@ -243,7 +243,8 @@ export type GwWorldCond =
   /** The best price on the table for a neutral, from the seat's side. */
   | ({ is: "offered"; tag: GwTag } & Range)
   /**
-   * The seat's money. treasury: steps of the money gauge. load: interest as a
+   * The seat's money. treasury: steps of its own scale (ww223: as content
+   * reads "money", BudgetRules `treasuryLevel`, not capped). load: interest as a
    * percent of taxes. prices: percent of June 1914. lent: percent of a year's
    * revenue owed abroad.
    */
