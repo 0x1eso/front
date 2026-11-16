@@ -12,6 +12,7 @@ import {
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import {
   addPopularity,
+  addPopularityCapped,
   addPpCapped,
   costWith,
   dailyPpMilli,
@@ -111,6 +112,20 @@ describe("popularity (spec §5.2)", () => {
     const b = [0, 0, 0, 10_000];
     addPopularity(b, IDEO_NEU, -2500);
     expect(b).toEqual([2500, 0, 0, 7500]);
+  });
+
+  it("ww233: a loss elsewhere lifts no ideology past the ceiling", () => {
+    // Suppressing the fascists (-8 pts) in a country 84% non-aligned: the
+    // non-aligned stop at 85%, the rest goes to the other two by shares.
+    const p = [400, 200, 1000, 8400];
+    addPopularityCapped(p, IDEO_FAS, -800);
+    expect(p).toEqual([867, 433, 200, 8500]);
+    // Already above it (a 1936 start): it keeps its share, gains nothing.
+    const q = [400, 200, 400, 9000];
+    addPopularityCapped(q, IDEO_FAS, -400);
+    expect(q[IDEO_NEU]).toBe(9000);
+    expect(q[IDEO_FAS]).toBe(0);
+    expect(q.reduce((a, b) => a + b)).toBe(10_000);
   });
 
   it("the largest other ideology, ties to the lower index", () => {

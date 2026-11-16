@@ -271,6 +271,26 @@ describe("World War 1936 P5: governments in exile", () => {
     expect(pickHost(eg, pl, deu)).toBe(ltu);
   });
 
+  it("ww233: Poland fallen to the USSR goes into exile in Britain, at war with Germany", async () => {
+    const { g, ww } = await started();
+    const eg = ww.endgame;
+    const [deu, pl, gbr, sun] = ["DEU", "POL", "GBR", "SUN"].map((t) =>
+      endId(t as "DEU"),
+    );
+    const tick = g.ticks();
+    ww.setWar(deu, pl, tick, { kind: "declare" });
+    ww.setWar(deu, gbr, tick, {
+      kind: "into",
+      warId: eg.warOfPair(deu, pl),
+    });
+    ww.setWar(sun, pl, tick, { kind: "declare" });
+    // Nobody fights the USSR: Britain hosts as the enemy of Poland's other enemy.
+    expect(ww.enemiesOf(sun)).toEqual([pl]);
+    ww.addCapitulation(pl, sun, tick);
+    expect(formExile(eg, pl, sun, tick)).toBe(true);
+    expect(eg.exileHost(pl)).toBe(gbr);
+  });
+
   it("legitimacy rises with liberated legal points and falls without", async () => {
     const { g, eg, pl } = await polandInExile();
     const ex = () => eg.exiles[eg.exileIdx.get(pl)!];
