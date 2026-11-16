@@ -10730,6 +10730,7 @@
       "bop_range": "Balance of power of {tag} in band {band}",
       "borders_group": "Holds land bordering {group}",
       "capitulated": "Has capitulated",
+      "character": "The AI's character fits",
       "coastal": "Has a coastline",
       "compliance_ge": "Compliance in {group} at least {pct}%",
       "congress_above": "Congress support above {pct}%",

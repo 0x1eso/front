@@ -59,10 +59,7 @@ import {
 import { histShipMods } from "@openfront/engine-lib/ww1936/hist/AsDesign";
 import { histOwn } from "@openfront/engine-lib/ww1936/hist/Slots";
 import { shipIsStandIn } from "@openfront/engine-lib/ww1936/hist/StartShips";
-import {
-  HIST_COUNTRIES,
-  type HistCountry,
-} from "@openfront/engine-lib/ww1936/hist/Types";
+import { isHistCountry } from "@openfront/engine-lib/ww1936/hist/index";
 import { weakShipStats } from "@openfront/engine-lib/ww1936/hist/WeakGeneric";
 import {
   crossingDays,
@@ -430,8 +427,8 @@ function shipOf(
   // since its owner's techs and stats are hidden from here.
   const tag = ctx.scenario.tagOfSmallId(f.owner);
   if (!ctx.designerOn && design > 0 && tag !== undefined) {
-    const e = (HIST_COUNTRIES as readonly string[]).includes(tag)
-      ? histOwn(tag as HistCountry, "ship")[design - 1]
+    const e = isHistCountry(tag)
+      ? histOwn(tag, "ship")[design - 1]
       : undefined;
     if (e !== undefined && e.family === "ship") {
       const key = `${f.owner}:${cls}:${gen}:${design}`;
@@ -445,7 +442,7 @@ function shipOf(
   }
   return !ctx.designerOn &&
     tag !== undefined &&
-    !(HIST_COUNTRIES as readonly string[]).includes(tag)
+    !isHistCountry(tag)
     ? weakShipStats(plain, cls, gen)
     : plain;
 }

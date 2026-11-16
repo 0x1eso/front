@@ -12,7 +12,7 @@ import { WW_TECHS } from "../WwTechs";
 import { histStatsOf } from "./Convert";
 import type { GearStats } from "./ConvertGear";
 import { tankGroupOf } from "./ConvertTank";
-import { HIST_CATALOGUE } from "./index";
+import { HIST_CATALOGUE, histList } from "./index";
 import { staticGearCostMilli } from "./StaticCost";
 import type { GunEntry, HistCountry, HistEntry, TankEntry } from "./Types";
 
@@ -36,7 +36,7 @@ export function histOwn(
   const k = `${country}:${kind}`;
   let v = OWN[k];
   if (v === undefined) {
-    v = HIST_CATALOGUE[country].filter((e) => histKindOf(e) === kind);
+    v = histList(country).filter((e) => histKindOf(e) === kind);
     OWN[k] = v;
   }
   return v;
@@ -87,7 +87,7 @@ function betterGun(
   ]?.techs[gen - 1];
   let best = base;
   let bestS = histStatsOf(base) as GearStats;
-  for (const e of HIST_CATALOGUE[country]) {
+  for (const e of histList(country)) {
     if (e === base || !isBetterGun(e) || e.role !== type) continue;
     if (e.techs[0] !== keyTech || !e.techs.every((t) => researched.has(t))) {
       continue;
@@ -116,7 +116,7 @@ function baseStaticEntry(
   gen: number,
 ): HistEntry | undefined {
   const name = `${type}:${gen}`;
-  const list = HIST_CATALOGUE[country];
+  const list = histList(country);
   const flagged = list.find((e) => e.staticFor === name);
   if (flagged !== undefined) return flagged;
   const tech = (EQUIPMENT as Record<string, { techs: readonly string[] }>)[type]
@@ -154,7 +154,7 @@ export { tankGroupOf };
  */
 export function histHasTankGroup(tag: string, group: number): boolean {
   if (!(tag in HIST_CATALOGUE)) return false;
-  return HIST_CATALOGUE[tag as HistCountry].some(
+  return histList(tag as HistCountry).some(
     (e) => e.family === "tank" && tankGroupOf(e.role) === group,
   );
 }
@@ -182,7 +182,7 @@ export function histEntriesGatedBy(
   const out: HistEntry[] = [];
   for (const c of Object.keys(HIST_CATALOGUE) as HistCountry[]) {
     if (country !== undefined && c !== country) continue;
-    for (const e of HIST_CATALOGUE[c]) {
+    for (const e of histList(c)) {
       if ((histGatesOf(e) as readonly string[]).includes(tech)) out.push(e);
     }
   }
@@ -236,7 +236,7 @@ function histInUse(e: HistEntry): boolean {
 
 /** A country's entries that can be fielded, in catalogue order. */
 export function histUsable(country: HistCountry): readonly HistEntry[] {
-  return HIST_CATALOGUE[country].filter(histInUse);
+  return histList(country).filter(histInUse);
 }
 
 /** What a generation tech is to a country (ww82 §9). */

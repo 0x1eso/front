@@ -22,7 +22,7 @@ interface FleetMap {
   lines: Readonly<Record<string, string>>;
 }
 
-export const START_FLEET_MAP: Readonly<Record<HistCountry, FleetMap>> = {
+export const START_FLEET_MAP: Readonly<Partial<Record<HistCountry, FleetMap>>> = {
   GBR: {
     exact: {
       gbr_bb_nelson: ["nelson", "rodney"],
@@ -288,7 +288,7 @@ export function startShipPick(
   name: string | null,
 ): StartShipPick | null {
   if (name !== null) return NAME_PICKS.get(name) ?? null;
-  const entry = START_FLEET_MAP[country].numbered[`${cls}_${gen}`];
+  const entry = START_FLEET_MAP[country]?.numbered[`${cls}_${gen}`];
   return entry === undefined ? null : { entry, exact: false };
 }
 
@@ -300,7 +300,7 @@ export function startLinePick(
   name: string | null,
 ): StartShipPick | null {
   if (name !== null) return NAME_PICKS.get(name) ?? null;
-  const entry = START_FLEET_MAP[country].lines[`${cls}_${gen}`];
+  const entry = START_FLEET_MAP[country]?.lines[`${cls}_${gen}`];
   return entry === undefined ? null : { entry, exact: false };
 }
 
@@ -326,7 +326,9 @@ export function shipIsStandIn(
     if (!(tag in START_FLEET_MAP) || -nameIdx > numberedAtStart(tag, cls)) {
       return false;
     }
-    return Object.values(START_FLEET_MAP[tag as HistCountry].numbered).includes(
+    return Object.values(
+      START_FLEET_MAP[tag as HistCountry]?.numbered ?? {},
+    ).includes(
       entry,
     );
   }

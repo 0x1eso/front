@@ -7,6 +7,7 @@ import {
   WW_TITLED_GENERAL_BASE,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { dayOfDate } from "./Calendar";
+import { NATION_CORES } from "./content/nations/cores";
 
 export interface GeneralDef {
   /** Translation key ww1936.general.<id>. */
@@ -55,7 +56,7 @@ function row(
   return { id, tag, att, def, plan, log, traits, ...dates, source };
 }
 
-export const GENERALS: readonly GeneralDef[] = [
+const GENERALS_BASE: readonly GeneralDef[] = [
   {
     id: "rundstedt",
     tag: "DEU",
@@ -972,6 +973,15 @@ export const GENERALS: readonly GeneralDef[] = [
     ["offensive_doctrine"],
     "en.wikipedia Okamura Yasuji: major general 1933, commander of the 11th Army in 1938",
   ),
+];
+
+/**
+ * ww229 (design ww227 §7): the minors' generals (their core.ts), appended
+ * after every earlier row so no id moves.
+ */
+export const GENERALS: readonly GeneralDef[] = [
+  ...GENERALS_BASE,
+  ...NATION_CORES.flatMap((c) => c.generals),
 ];
 
 export function traitMask(traits: readonly GeneralTrait[]): number {

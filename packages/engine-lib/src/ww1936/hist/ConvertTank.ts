@@ -33,7 +33,8 @@ import {
   softCap,
 } from "./ConvertCost";
 import { clampInt, interp, isqrt, resVec, roundInt, Table } from "./Num";
-import { HistTankRole, TankEntry, TankSpec } from "./Types";
+import { clampMinorTank } from "./MinorClamp";
+import { HistTankRole, isHistMajor, TankEntry, TankSpec } from "./Types";
 
 /**
  * Slope multiplier, percent, by plate angle from the vertical. Geometry says
@@ -148,7 +149,7 @@ export interface HistTankStats extends TankDesignStats {
 }
 
 /** Game stats of a tank entry. Pure, integer, deterministic. */
-export function tankStatsOfEntry(e: TankEntry): HistTankStats {
+export function tankStatsRaw(e: TankEntry): HistTankStats {
   const s = e.spec;
   const armorMm = effectiveArmorMm(
     s,
@@ -240,4 +241,13 @@ export function tankStatsOfEntry(e: TankEntry): HistTankStats {
     year: e.year,
     armorMm,
   };
+}
+
+/**
+ * Game stats of an entry. ww229: a minor's own entry has its fight numbers
+ * held between the generic key and the majors' median (MinorClamp.ts).
+ */
+export function tankStatsOfEntry(e: TankEntry): HistTankStats {
+  const s = tankStatsRaw(e);
+  return isHistMajor(e.country) ? s : clampMinorTank(e, s);
 }

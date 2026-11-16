@@ -18,6 +18,7 @@
 // bit-identical on every client.
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import type { WwTechId } from "@openfront/engine-api/ww1936/EconomyTypes";
+import type { NationTag } from "@openfront/engine-api/ww1936/PoliticsTypes";
 
 /** The seven majors that have a catalogue. */
 export const HIST_COUNTRIES = [
@@ -29,7 +30,18 @@ export const HIST_COUNTRIES = [
   "FRA",
   "SUN",
 ] as const satisfies readonly CountryTag[];
-export type HistCountry = (typeof HIST_COUNTRIES)[number];
+export type HistMajor = (typeof HIST_COUNTRIES)[number];
+/**
+ * ww229 (design ww227 §6): a catalogue's country, a major or a minor. A
+ * minor's catalogue is its content/nations/<tag>/core.ts `equipment`; it is
+ * a catalogue country only once that has entries (index.ts isHistCountry).
+ */
+export type HistCountry = HistMajor | NationTag;
+
+/** ww229: one of the seven majors (their numbers are never clamped). */
+export function isHistMajor(tag: string): tag is HistMajor {
+  return (HIST_COUNTRIES as readonly string[]).includes(tag);
+}
 
 /** Fields every entry has. */
 export interface HistBase {

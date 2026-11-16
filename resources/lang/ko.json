@@ -4040,7 +4040,8 @@
       "war_score_share_ge": "{of} 상대 기여 점수 {pct}% 이상",
       "ws_ge": "전쟁지지도 {pct}% 이상",
       "wt_ge": "세계 긴장도 {pct}% 이상",
-      "research_slots_ge": "연구 칸 {count}개 이상"
+      "research_slots_ge": "연구 칸 {count}개 이상",
+      "character": "AI 성향에 맞을 때"
     },
     "congress": {
       "band": "의회 {pct}%",

@@ -5,7 +5,7 @@
 // history beat, no 1936 people, pacts, claims, cores or peace tables.
 import {
   buildRegistry,
-  CONTENT_PARTS,
+  CONTENT_PARTS_BASE,
   ContentParts,
   ContentRegistry,
 } from "../ww1936/content/registry";
@@ -71,15 +71,18 @@ export const IMJIN_OFF_DECISIONS: ReadonlySet<string> = new Set([
   "gen_expand_staff_college",
 ]);
 
+// ww229: built on the 1936 content before the minors' national content
+// (CONTENT_PARTS_BASE), so none of it (spirits, flags, groups, events,
+// decisions, characters) reaches the Imjin War.
 export const IMJIN_CONTENT_PARTS: ContentParts = {
-  ...CONTENT_PARTS,
+  ...CONTENT_PARTS_BASE,
   // ww184: the 1936 generic focus tree is not the Imjin War's: its war
   // preparations (decisions) take its place.
   focuses: [],
   paths: {},
   branchPoints: {},
   events: [
-    ...CONTENT_PARTS.events.filter((e) => e.trigger === undefined),
+    ...CONTENT_PARTS_BASE.events.filter((e) => e.trigger === undefined),
     // ww177 P4 (lane I4a): the court, the flight, the righteous armies.
     ...IMJIN_COURT_EVENTS,
     // ww177 I4b: Japan's politics and the truce (JapanContent.ts).
@@ -92,7 +95,7 @@ export const IMJIN_CONTENT_PARTS: ContentParts = {
     ...DOCTRINE_EVENTS,
   ],
   decisions: [
-    ...CONTENT_PARTS.decisions.filter(
+    ...CONTENT_PARTS_BASE.decisions.filter(
       (d) => d.for === "any" && !IMJIN_OFF_DECISIONS.has(d.id),
     ),
     ...IMJIN_COURT_DECISIONS,
@@ -102,21 +105,21 @@ export const IMJIN_CONTENT_PARTS: ContentParts = {
     ...DOCTRINE_DECISIONS,
   ],
   spirits: [
-    ...CONTENT_PARTS.spirits,
+    ...CONTENT_PARTS_BASE.spirits,
     ...IMJIN_JAPAN_SPIRITS,
     ...JOS_SPIRITS,
     ...IMJIN_JPW_SPIRITS,
     ...DOCTRINE_SPIRITS,
   ],
   flags: [
-    ...CONTENT_PARTS.flags,
+    ...CONTENT_PARTS_BASE.flags,
     ...IMJIN_JAPAN_FLAGS,
     ...JOS_FLAGS,
     ...IMJIN_JPW_FLAGS,
     ...IMJIN_JPW_DECISION_FLAGS,
     ...DOCTRINE_FLAG_IDS,
   ],
-  groups: [...CONTENT_PARTS.groups, ...JOS_GROUPS, ...IMJIN_JPW_GROUPS],
+  groups: [...CONTENT_PARTS_BASE.groups, ...JOS_GROUPS, ...IMJIN_JPW_GROUPS],
   // ww177 merge 3: with their real dates, on the game's calendar.
   persons: withImjinDates([...JOS_PERSONS, ...IMJIN_JPW_PERSONS]),
   beats: [],

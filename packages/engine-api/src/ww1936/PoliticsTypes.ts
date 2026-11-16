@@ -533,6 +533,60 @@ export type PersonId = string;
 export type FlagId = string;
 export type RegionGroupId = string;
 export type TemplateUnlockId = string;
+/** ww229 (design ww227 §2): tier A, HOI4 DLC size (80-120 focuses). */
+export const NATION_TAGS_A = [
+  "POL", "HUN", "ROU", "YUG", "CSK", "GRC", "BGR",
+  "FIN", "SWE", "NOR",
+  "NLD", "BEL", "PRT",
+  "ESR", "ESN", "TUR",
+  "BRA", "ARG", "MEX",
+  "CHN", "CCP", "MCK",
+  "CAN", "AUS", "ZAF",
+] as const satisfies readonly CountryTag[];
+/** ww229: tier B, a full national tree (45-60). */
+export const NATION_TAGS_B = [
+  "AUT", "CHE", "IRL", "DNK", "EST", "LVA", "LTU", "ALB",
+  "IRN", "IRQ", "SAU", "AFG", "THA", "MNG", "ETH", "RAJ",
+  "NZL", "CHL", "COL", "VEN", "PER", "CUB", "URY",
+  "GXC", "YUN", "SXI", "XBM", "SIK",
+] as const satisfies readonly CountryTag[];
+/** ww229: tier C, a small national tree (30-35), dormant states included. */
+export const NATION_TAGS_C = [
+  "LUX", "ISL", "DZG", "YEM", "TIB", "TTU", "NPL", "LBR",
+  "GTM", "HND", "SLV", "NIC", "CRI", "PAN", "HTI", "DOM",
+  "ECU", "BOL", "PRY",
+  "SVK", "HRV", "VIC", "RSI", "RNG", "MEN", "BRM", "PHL",
+] as const satisfies readonly CountryTag[];
+export const NATION_TAGS = [
+  ...NATION_TAGS_A,
+  ...NATION_TAGS_B,
+  ...NATION_TAGS_C,
+] as const;
+export type NationTag = (typeof NATION_TAGS)[number];
+export type NationTier = "A" | "B" | "C";
+/** ww229: a national tree's id (the tag), not a major's or a legacy pack's. */
+export function isNationTree(t: string): t is NationTag {
+  return (NATION_TAGS as readonly string[]).includes(t);
+}
+export function nationTier(t: NationTag): NationTier {
+  if ((NATION_TAGS_A as readonly string[]).includes(t)) return "A";
+  return (NATION_TAGS_B as readonly string[]).includes(t) ? "B" : "C";
+}
+/**
+ * ww229 (design ww227 §8, owner D5): a national tree's branch points deviate
+ * more often than a major's (WW_BRANCH_DEVIATE_PCT / _POLITICAL_PCT).
+ */
+export const WW_NATION_DEVIATE_PCT = 35;
+export const WW_NATION_DEVIATE_POLITICAL_PCT = 25;
+/** ww229 (design ww227 §8): the AI character of a minor. */
+export const AI_LEANS = [
+  "revisionist",
+  "status_quo",
+  "neutral",
+  "client",
+  "opportunist",
+] as const;
+export type AiLean = (typeof AI_LEANS)[number];
 export const FOCUS_TREES = [
   "generic",
   "DEU",
@@ -557,6 +611,12 @@ export const FOCUS_TREES = [
   "lat",
   "dom",
   "new",
+  // ww229 (design ww227 §2), appended: every minor's own national tree, its
+  // tag. A country plays it once its lane fills it (content/nations); until
+  // then it keeps its old tree.
+  ...NATION_TAGS_A,
+  ...NATION_TAGS_B,
+  ...NATION_TAGS_C,
 ] as const;
 export type FocusTreeId = (typeof FOCUS_TREES)[number];
 export const FOCUS_BRANCHES = [

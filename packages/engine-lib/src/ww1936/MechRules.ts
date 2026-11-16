@@ -2,6 +2,7 @@
 // power and continuous focuses. Tables final (plan Task 1 Step 8); lane W3
 // fills the …Block bodies (Task 9).
 import {
+  type BopTag,
   CFOCUS_UNLOCK_DATE,
   CFOCUS_UNLOCK_FOCUSES,
   CONTINUOUS_FOCUSES,
@@ -9,6 +10,7 @@ import {
 } from "@openfront/engine-api/ww1936/DepthTypes";
 import type { WwStats } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { dayOfDate } from "./Calendar";
+import { NATION_CORES } from "./content/nations/cores";
 
 export const CONGRESS = {
   declare: 6_000,
@@ -49,13 +51,20 @@ export function bopBand(valuePm: number): 0 | 1 | 2 | 3 | 4 {
 }
 
 export interface BopDef {
-  tag: "CHN" | "JPN" | "FRA";
+  tag: BopTag;
   startPm: number;
   spirits: readonly (string | null)[];
+  /**
+   * ww229 (a minor's row): ‰ the balance moves each day by itself (absent:
+   * none; China's and France's drifts are their own rules).
+   */
+  driftPm?: number;
+  /** ww229: the mechanism ends when another ideology rules (as France's). */
+  endsOnRulingChange?: true;
 }
 
 /** Spec §13.2; spirit ids per band (null: none) are K5's spirits (content/depth/mech.ts). */
-export const BOP_DEFS: readonly BopDef[] = [
+const BOP_DEFS_BASE: readonly BopDef[] = [
   {
     tag: "CHN",
     startPm: 300,
@@ -77,6 +86,12 @@ export const BOP_DEFS: readonly BopDef[] = [
       "bop_fra_national_union",
     ],
   },
+];
+
+/** ww229 (design ww227 §5): the majors' rows, then each minor's (its core.ts). */
+export const BOP_DEFS: readonly BopDef[] = [
+  ...BOP_DEFS_BASE,
+  ...NATION_CORES.flatMap((c) => c.bop),
 ];
 
 export const CFOCUS_STATS: Readonly<Record<ContinuousFocus, Partial<WwStats>>> =

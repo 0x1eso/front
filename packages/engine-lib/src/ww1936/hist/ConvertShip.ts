@@ -10,7 +10,8 @@ import type { ShipStats } from "@openfront/engine-api/ww1936/NavyTypes";
 import { lineUnitCost, SHIP_BASE } from "../ShipStats";
 import { genOfTechs, scaledCost } from "./ConvertCost";
 import { interp, isqrt, roundInt, Table } from "./Num";
-import { HistShipClass, ShipEntry } from "./Types";
+import { clampMinorShip } from "./MinorClamp";
+import { HistShipClass, isHistMajor, ShipEntry } from "./Types";
 
 /** Standard displacement (t) to hit points. */
 export const SHIP_HP: Table = [
@@ -128,7 +129,7 @@ const DEPTH_CENTI: readonly number[] = [0, 600, 1000, 1400];
 export const HEAVY_MM = 203;
 
 /** Game stats of a ship entry. Pure, integer, deterministic. */
-export function shipStatsOfEntry(e: ShipEntry): ShipStats {
+function shipStatsOfEntryRaw(e: ShipEntry): ShipStats {
   const s = e.spec;
   const b = SHIP_BASE[e.cls];
   const kgMin = (g: { count: number; mm: number; rpm?: number }) => {
@@ -205,4 +206,13 @@ export function shipPowerOf(s: ShipStats): number {
       s.armor / 10 +
       s.speedCentiKn / 50,
   );
+}
+
+/**
+ * Game stats of an entry. ww229: a minor's own entry has its fight numbers
+ * held between the generic key and the majors' median (MinorClamp.ts).
+ */
+export function shipStatsOfEntry(e: ShipEntry): ShipStats {
+  const s = shipStatsOfEntryRaw(e);
+  return isHistMajor(e.country) ? s : clampMinorShip(e, s);
 }

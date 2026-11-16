@@ -185,6 +185,8 @@ import { TEMPLATES_PACK_WORLD } from "./templates/pack_world";
 import { TEMPLATES_SUN } from "./templates/sun";
 import { TEMPLATES_USA } from "./templates/usa";
 import { START_NAPS } from "./treaties";
+import { NATIONS } from "./nations/index";
+import type { AiCharacter, NationDef } from "./nations/types";
 
 export interface ContentParts {
   focuses: readonly FocusDef[];
@@ -226,7 +228,18 @@ export interface ContentParts {
     readonly id: ContinuousFocus;
     readonly icon: string;
   }[];
+  /** ww229 (design ww227 §8): every minor's AI character (joinNations). */
+  characters?: readonly NationCharacter[];
+  /** ww229: a national tree's old focus ids and the focus standing for each. */
+  focusAliases?: readonly {
+    readonly tree: FocusTreeId;
+    readonly from: FocusId;
+    readonly to: FocusId;
+  }[];
 }
+
+/** ww229: a minor's AI character, by tag. */
+export type NationCharacter = AiCharacter & { readonly tag: CountryTag };
 
 export interface ContentRegistry extends ContentParts {
   focusIdx: Map<FocusId, number>;
@@ -280,6 +293,22 @@ export interface ContentRegistry extends ContentParts {
   replacedIn: Record<FocusTreeId, ReadonlySet<FocusId>>;
   /** Pre-flight §0-11: Korea's and Taiwan's regions (P5 groups), never struck. */
   noStrikeRegions: ReadonlySet<number>;
+  /** ww229: the AI character of a minor (design ww227 §8). */
+  characterIdx: Map<CountryTag, NationCharacter>;
+  /** ww229: per national tree, an old focus id → the focus standing for it. */
+  aliasIdx: Map<FocusTreeId, Map<FocusId, FocusId>>;
+}
+
+/**
+ * ww229: the focus a country on `tree` answers for `id` (an old tree's id
+ * its national tree aliases), else `id` itself.
+ */
+export function focusAlias(
+  c: ContentRegistry,
+  tree: FocusTreeId,
+  id: FocusId,
+): FocusId {
+  return c.aliasIdx.get(tree)?.get(id) ?? id;
 }
 
 /** P6 (pre-flight §0-1): the focus's position in `tree`, undefined when the tree has none. */
@@ -396,8 +425,16 @@ export function buildRegistry(p: ContentParts): ContentRegistry {
       for (const r of g.regions) noStrikeRegions.add(r);
     }
   }
+  const aliasIdx = new Map<FocusTreeId, Map<FocusId, FocusId>>();
+  for (const a of p.focusAliases ?? []) {
+    let m = aliasIdx.get(a.tree);
+    if (m === undefined) aliasIdx.set(a.tree, (m = new Map()));
+    m.set(a.from, a.to);
+  }
   return {
     ...p,
+    characterIdx: new Map((p.characters ?? []).map((x) => [x.tag, x])),
+    aliasIdx,
     packs,
     startDoctrines: p.startDoctrines ?? [],
     startThoughts: p.startThoughts ?? [],
@@ -458,8 +495,80 @@ export function mergeClaims(
   return out;
 }
 
-/** Everything in its fixed file order (event numbers follow this order, spec §12.3). */
-export const CONTENT_PARTS: ContentParts = {
+/**
+ * ww229 (design ww227 §2): the minors' national content joined onto `base`.
+ * A nation joins once live (it has focuses): its country row takes its
+ * tree (its tag) and its `politics` changes, its lists are appended after
+ * everything else (no earlier index moves), its claims and cores join its
+ * rows. Every nation's AI character joins, live or not.
+ */
+export function joinNations(
+  base: ContentParts,
+  nations: readonly NationDef[],
+): ContentParts {
+  const live = nations.filter((n) => n.focuses.length > 0);
+  const byTag = new Map(live.map((n) => [n.tag as CountryTag, n]));
+  const lists = <T>(f: (n: NationDef) => readonly T[] | undefined): T[] =>
+    live.flatMap((n) => f(n) ?? []);
+  const paths = { ...base.paths };
+  const branchPoints = { ...base.branchPoints };
+  for (const n of live) {
+    paths[n.tag] = n.path;
+    branchPoints[n.tag] = n.branchPoints;
+  }
+  const cores = [...base.cores];
+  for (const n of live) {
+    if ((n.cores ?? []).length > 0) cores.push({ tag: n.tag, groups: n.cores! });
+  }
+  return {
+    ...base,
+    focuses: [...base.focuses, ...lists((n) => n.focuses)],
+    paths,
+    branchPoints,
+    events: [...base.events, ...lists((n) => n.events)],
+    decisions: [...base.decisions, ...lists((n) => n.decisions)],
+    spirits: [...base.spirits, ...lists((n) => n.spirits)],
+    persons: [...base.persons, ...lists((n) => n.persons)],
+    beats: [...base.beats, ...lists((n) => n.beats)],
+    groups: [...base.groups, ...lists((n) => n.groups)],
+    countries: base.countries.map((c) => {
+      const n = byTag.get(c.tag);
+      return n === undefined ? c : { ...c, ...n.politics, tree: n.tag };
+    }),
+    claims: mergeClaims(
+      base.claims,
+      live
+        .filter((n) => n.claims.length > 0)
+        .map((n) => ({ tag: n.tag, groups: n.claims })),
+    ),
+    factionNames: [...base.factionNames, ...lists((n) => n.factionNames)],
+    templates: [...base.templates, ...lists((n) => n.templates)],
+    flags: [...base.flags, ...lists((n) => n.flags)],
+    cores,
+    seeds: [...base.seeds, ...lists((n) => n.seeds)],
+    characters: [
+      ...(base.characters ?? []),
+      ...nations.map((n) => ({ ...n.character, tag: n.tag })),
+    ],
+    focusAliases: [
+      ...(base.focusAliases ?? []),
+      ...live.flatMap((n) =>
+        Object.entries(n.aliases).map(([from, to]) => ({
+          tree: n.tag,
+          from,
+          to,
+        })),
+      ),
+    ],
+  };
+}
+
+/**
+ * Everything in its fixed file order (event numbers follow this order, spec
+ * §12.3), before the minors' national content. ww229: the Imjin mode builds
+ * on this, so nothing of ww229 reaches it.
+ */
+export const CONTENT_PARTS_BASE: ContentParts = {
   // P5 (plan decision 30): every P5 part after the P3 (and P4) ones.
   focuses: [
     ...GENERIC_FOCUSES,
@@ -674,4 +783,9 @@ export const CONTENT_PARTS: ContentParts = {
   codenames: CODENAME_COUNT,
   continuous: CONTINUOUS_FOCUS_TABLE,
 };
+/** ww229: the 1936 content, the minors' national content joined. */
+export const CONTENT_PARTS: ContentParts = joinNations(
+  CONTENT_PARTS_BASE,
+  NATIONS,
+);
 export const CONTENT: ContentRegistry = buildRegistry(CONTENT_PARTS);

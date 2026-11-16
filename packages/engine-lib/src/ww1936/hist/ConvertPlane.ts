@@ -24,7 +24,8 @@ import {
 } from "./ConvertCost";
 import { RELIABILITY_PM } from "./ConvertTank";
 import { clampInt, interp, isqrt, resVec, Table } from "./Num";
-import { GunGroup, HistAirType, PlaneEntry } from "./Types";
+import { clampMinorPlane } from "./MinorClamp";
+import { GunGroup, HistAirType, isHistMajor, PlaneEntry } from "./Types";
 
 /** Mass of one round by calibre, grams (rifle bullet to 40 mm shell). */
 export const ROUND_GRAMS: Table = [
@@ -187,7 +188,7 @@ export function planeCostMilli(type: HistAirType, costK: number): number {
 }
 
 /** Game stats of a plane entry. Pure, integer, deterministic. */
-export function planeStatsOfEntry(e: PlaneEntry): PlaneDesignStats {
+function planeStatsOfEntryRaw(e: PlaneEntry): PlaneDesignStats {
   const s = e.spec;
   const flux = fluxGramsPerSec(s.guns);
   const fighterLike = FIGHTER_LIKE.has(e.type);
@@ -263,4 +264,13 @@ export function planeStatsOfEntry(e: PlaneEntry): PlaneDesignStats {
       (e.type === "transport_plane" ? DS_CARGO : 0),
     year: e.year,
   };
+}
+
+/**
+ * Game stats of an entry. ww229: a minor's own entry has its fight numbers
+ * held between the generic key and the majors' median (MinorClamp.ts).
+ */
+export function planeStatsOfEntry(e: PlaneEntry): PlaneDesignStats {
+  const s = planeStatsOfEntryRaw(e);
+  return isHistMajor(e.country) ? s : clampMinorPlane(e, s);
 }

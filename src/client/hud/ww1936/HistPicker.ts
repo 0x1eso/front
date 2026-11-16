@@ -16,7 +16,10 @@ import {
   type HistStats,
 } from "@openfront/engine-lib/ww1936/hist/Convert";
 import type { GearStats } from "@openfront/engine-lib/ww1936/hist/ConvertGear";
-import { histEntry } from "@openfront/engine-lib/ww1936/hist/index";
+import {
+  histEntry,
+  isHistCountry,
+} from "@openfront/engine-lib/ww1936/hist/index";
 import {
   histGearChargeMilli,
   histKindOf,
@@ -25,7 +28,6 @@ import {
   histStaticName,
 } from "@openfront/engine-lib/ww1936/hist/Slots";
 import {
-  HIST_COUNTRIES,
   HIST_TANK_ROLES,
   type HistCountry,
   type HistEntry,
@@ -37,11 +39,7 @@ import { designerOn, type DesignerFlagGame } from "./DesignerFlag";
 export function histCountryOfTag(
   tag: string | null | undefined,
 ): HistCountry | null {
-  return tag !== null &&
-    tag !== undefined &&
-    (HIST_COUNTRIES as readonly string[]).includes(tag)
-    ? (tag as HistCountry)
-    : null;
+  return isHistCountry(tag) ? tag : null;
 }
 
 /** One line of a picker: an entry, its pick target and why it is locked (if it is). */

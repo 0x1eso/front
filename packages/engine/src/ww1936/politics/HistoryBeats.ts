@@ -24,7 +24,10 @@ import {
   WW_WAR_GOAL_DAYS,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import type { DeclareWarBlock } from "@openfront/engine-api/ww1936/WorldWarTypes";
-import type { ContentRegistry } from "@openfront/engine-lib/ww1936/content/registry";
+import {
+  type ContentRegistry,
+  focusAlias,
+} from "@openfront/engine-lib/ww1936/content/registry";
 import { historicalAiActive } from "@openfront/engine-lib/ww1936/Pace";
 import { declareWar, declareWarBlock, joinWar } from "../Diplomacy";
 import { forceFocusNext } from "./AiFocus";
@@ -121,9 +124,14 @@ function runAct(
     case "event":
       pol.queueEvent(act.id, a, a, 0, 0);
       return false;
-    case "focus":
-      forceFocusNext(pol, a, act.id);
+    case "focus": {
+      // ww229: a national tree takes the focus its lane aliased to the id.
+      const tree = pol.country(a)?.tree;
+      const id =
+        tree === undefined ? act.id : focusAlias(pol.content, tree, act.id);
+      forceFocusNext(pol, a, id);
       return false;
+    }
     case "diplo": {
       const t = pol.idOfTag(act.target);
       if (t === 0) return false;

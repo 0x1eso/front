@@ -14,6 +14,7 @@ import { dayOfDate } from "@openfront/engine-lib/ww1936/Calendar";
 import { conditionLeaves } from "@openfront/engine-lib/ww1936/Describe";
 import { historicalAiActive } from "@openfront/engine-lib/ww1936/Pace";
 import {
+  focusAlias,
   replacedInTree,
   treePosIn,
 } from "@openfront/engine-lib/ww1936/content/registry";
@@ -157,13 +158,15 @@ function evalLeaf(ctx: EffectCtx, c: LeafCondition): boolean {
       return p.hasSpirit(c.id);
     case "focus_done": {
       // P6 (pre-flight §0-1): the country's tree (a pack's too); a focus
-      // its pack replaces counts as bypassed.
-      if (replacedInTree(pol.content, p.tree, c.id)) return true;
-      const pos = treePosIn(pol.content, p.tree, c.id);
+      // its pack replaces counts as bypassed. ww229: a national tree answers
+      // an old tree's id with the focus its lane aliased to it.
+      const fid = focusAlias(pol.content, p.tree, c.id);
+      if (replacedInTree(pol.content, p.tree, fid)) return true;
+      const pos = treePosIn(pol.content, p.tree, fid);
       return pos !== undefined && p.focusState[pos] !== 0;
     }
     case "focus_in_progress":
-      return p.focus?.id === c.id;
+      return p.focus?.id === focusAlias(pol.content, p.tree, c.id);
     case "decision_taken":
       return p.taken.has(c.id);
     case "has_advisor":
@@ -184,6 +187,9 @@ function evalLeaf(ctx: EffectCtx, c: LeafCondition): boolean {
       return ce?.researched.has(c.tech) ?? false;
     case "factories_ge":
       return ce !== null && ce.totals.civ + ce.totals.mil >= c.count;
+    case "character":
+      // ww229 (design ww227 §8): the minor's AI character (majors have none).
+      return pol.content.characterIdx.get(p.tag)?.lean === c.is;
     case "research_slots_ge":
       return ce !== null && ce.totals.slotCount >= c.count;
     case "divisions_ge":

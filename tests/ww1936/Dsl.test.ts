@@ -59,6 +59,7 @@ const SAMPLE_CONDITIONS: Record<ConditionKind, LeafCondition> = {
   factories_ge: { kind: "factories_ge", count: 50 },
   divisions_ge: { kind: "divisions_ge", count: 24 },
   research_slots_ge: { kind: "research_slots_ge", count: 6 },
+  character: { kind: "character", is: "revisionist" },
   strength_ratio_ge: { kind: "strength_ratio_ge", vs: DEU, permille: 800 },
   army_xp_ge: { kind: "army_xp_ge", amount: 10 },
   owns_group: { kind: "owns_group", group: "sudetenland" },

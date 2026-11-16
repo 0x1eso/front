@@ -32,8 +32,11 @@ import {
   TraitId,
   WAR_GOAL_TYPES,
   WarGoalType,
+  isNationTree,
   WW_BRANCH_DEVIATE_PCT,
   WW_BRANCH_DEVIATE_POLITICAL_PCT,
+  WW_NATION_DEVIATE_PCT,
+  WW_NATION_DEVIATE_POLITICAL_PCT,
   WW_ELECTION_DAYS,
   WW_EVENT_CHAIN_DEPTH,
   WW_STAT_KEYS,
@@ -717,10 +720,17 @@ export class WwPolitics {
       };
     });
     for (const c of this.list()) {
+      // ww229 (design ww227 §8, owner D5): a national tree deviates more.
+      const nation = isNationTree(c.tree);
+      const own = this.content.characterIdx.get(c.tag)?.deviatePct;
       for (const bp of this.content.branchPoints[c.tree] ?? []) {
-        const pct = bp.political
-          ? WW_BRANCH_DEVIATE_POLITICAL_PCT
-          : WW_BRANCH_DEVIATE_PCT;
+        const pct = nation
+          ? bp.political
+            ? (own?.political ?? WW_NATION_DEVIATE_POLITICAL_PCT)
+            : (own?.other ?? WW_NATION_DEVIATE_PCT)
+          : bp.political
+            ? WW_BRANCH_DEVIATE_POLITICAL_PCT
+            : WW_BRANCH_DEVIATE_PCT;
         const a = idHash(c.tag);
         const b = idHash(bp.id);
         let alt: FocusId | null = null;

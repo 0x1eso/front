@@ -31,7 +31,10 @@ import {
   groundSlotOf,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import type { Effect } from "@openfront/engine-api/ww1936/PoliticsDsl";
-import { IDEOLOGIES } from "@openfront/engine-api/ww1936/PoliticsTypes";
+import {
+  IDEOLOGIES,
+  isNationTree,
+} from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { dateOfDay } from "@openfront/engine-lib/ww1936/Calendar";
 import { recruitableMen } from "@openfront/engine-lib/ww1936/EconomyRules";
 import {
@@ -336,8 +339,10 @@ function startPolitics(eg: WwEndgame, id: number, revived: boolean): void {
     c.stabBp = c.stabBaseBp;
     c.wsBp = c.wsBaseBp;
   } else {
-    c.tree = "generic";
-    c.focusState = new Uint8Array(pol.content.treeFocuses.generic.length);
+    // ww229: a state with its own national tree (live) plays it.
+    const row = pol.content.countryIdx.get(c.tag)?.tree;
+    c.tree = row !== undefined && isNationTree(row) ? row : "generic";
+    c.focusState = new Uint8Array(pol.content.treeFocuses[c.tree].length);
     c.focus = null;
     c.queue = [];
     c.ppMilli = 100_000;

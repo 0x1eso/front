@@ -57,6 +57,7 @@ import { setLawFree } from "../politics/Laws";
 import { addSpirit } from "../politics/Spirits";
 import { activateCountry } from "./Activate";
 import { offerCivilWarSide, offerTakeover } from "./Exile";
+import { inheritNationTree } from "./RebelTree";
 import { makeSubject } from "./Subjects";
 import type { WwEndgame } from "./WwEndgame";
 
@@ -166,6 +167,7 @@ export function startCivilWarSlot(
   ww.setWar(slot, X, tick, { kind: "declare", war: "civil" });
   // Laws once at war: P3 §5.6-4 lets a government at war keep its trade law.
   copyLaws(eg, X, slot, ideo);
+  inheritNationTree(eg, X, slot); // ww229: the national tree and its done focuses
   pol.recomputeStats(slot);
   pol.recomputeStats(X);
   pol.markGlobal();

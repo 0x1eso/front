@@ -136,10 +136,11 @@ function bopEnds(d: WwDepth, id: number, tag: string, day: number): boolean {
     return true;
   }
   if (tag === "JPN") return day >= dayOfDate(JPN_END_DATE);
-  if (tag === "FRA") {
+  // ww229: a minor's row may end with its government, as France's does.
+  if (tag === "FRA" || BOP_DEFS[bopDefIndex(tag)]?.endsOnRulingChange) {
     const pol = d.ww.politics;
     const start = IDEOLOGIES.indexOf(
-      pol.content.countryIdx.get(tag)?.ruling ?? "neutral",
+      pol.content.countryIdx.get(tag as CountryTag)?.ruling ?? "neutral",
     );
     return pol.country(id)?.ruling !== start;
   }
@@ -164,7 +165,8 @@ function bopDrift(d: WwDepth, id: number, tag: string, day: number): number {
   if (tag === "FRA") {
     return day >= dayOfDate(FRA_FULL_DRIFT_DATE) || day % 2 === 0 ? 1 : 0;
   }
-  return 0;
+  // ww229: a minor's row drifts by its own ‰ a day.
+  return BOP_DEFS[bopDefIndex(tag)]?.driftPm ?? 0;
 }
 
 /**

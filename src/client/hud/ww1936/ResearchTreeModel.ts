@@ -21,10 +21,7 @@ import {
   TechRelevance,
   techRelevance,
 } from "@openfront/engine-lib/ww1936/hist/Slots";
-import {
-  HIST_COUNTRIES,
-  HistCountry,
-} from "@openfront/engine-lib/ww1936/hist/Types";
+import { isHistCountry } from "@openfront/engine-lib/ww1936/hist/index";
 import {
   leanHasTab,
   researchPersonaOf,
@@ -124,10 +121,8 @@ export function techGear(
   country: string | null,
   researched: ReadonlySet<WwTechId>,
 ): TechGear | null {
-  if (!(HIST_COUNTRIES as readonly (string | null)[]).includes(country)) {
-    return null;
-  }
-  const tag = country as HistCountry;
+  if (!isHistCountry(country)) return null;
+  const tag = country;
   const list = histEntriesGatedBy(tech, tag);
   const first = (e: (typeof list)[number]) => (e.techs[0] === tech ? 0 : 1);
   const relevance = techRelevance(tech, tag);

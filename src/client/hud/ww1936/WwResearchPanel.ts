@@ -13,7 +13,7 @@ import {
   WwTechId,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { IMJIN_TECH_TABS } from "@openfront/engine-lib/imjin/ImjinTechs";
-import { HIST_COUNTRIES } from "@openfront/engine-lib/ww1936/hist/Types";
+import { isHistCountry } from "@openfront/engine-lib/ww1936/hist/index";
 import { WW_TECHS } from "@openfront/engine-lib/ww1936/WwTechs";
 import { html, nothing, svg, TemplateResult } from "lit";
 import { customElement, state } from "lit/decorators.js";
@@ -132,7 +132,6 @@ const NODE_LOOK: Readonly<Record<NodeLook, string>> = {
 const HEAD = 22;
 /** Catalogue names listed on a card before "and N more". */
 const GEAR_SHOWN = 6;
-const HIST_TAGS: ReadonlySet<string> = new Set(HIST_COUNTRIES);
 const histName = (id: string) => translateText(`ww1936.hist.${id}`);
 
 /** A node's line: the country's best one or two names, "+N" for the rest. */
@@ -213,7 +212,7 @@ export class WwResearchPanel extends WwDrawerBase {
   /** A tech's name in my country: the portable weapon goes by its own name. */
   private techLabel(id: WwTechId): string {
     const tag = this.gearCountry();
-    return id === PORTABLE_AT_TECH && tag !== null && HIST_TAGS.has(tag)
+    return id === PORTABLE_AT_TECH && isHistCountry(tag)
       ? translateText(`ww1936.tech_portable.${tag}`)
       : techName(id);
   }

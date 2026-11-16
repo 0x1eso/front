@@ -8,7 +8,10 @@ import {
   WwConditionSchema,
   WwEffectSchema,
 } from "@openfront/engine-api/ww1936/PoliticsDsl";
-import { FOCUS_TREES } from "@openfront/engine-api/ww1936/PoliticsTypes";
+import {
+  FOCUS_TREES,
+  isNationTree,
+} from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { PACK_COUNTRIES } from "@openfront/engine-lib/ww1936/content/packs";
 import { CONTENT } from "@openfront/engine-lib/ww1936/content/registry";
 import { FOCUS_ICONS } from "@openfront/engine-lib/ww1936/content/types";
@@ -32,6 +35,8 @@ const sameTreeOk = (from: string, to: string) =>
  * (the focus view pans and zooms, so a tree may run further down).
  */
 const MAX_ROW = 30;
+/** ww229: a national tree's last column (design ww227 §4: 80-120 focuses). */
+const NATION_MAX_COL = 59;
 
 /** Task 7 draws the icons; until it merges a missing file is fine. */
 const ICONS_PENDING = false;
@@ -88,8 +93,13 @@ describe("focus data", () => {
       const seen = new Set<string>();
       for (const i of treeFocuses[t]) {
         const f = focuses[i];
-        // P6 (spec §11.1): a pack's own focuses in columns 20..35.
-        const [x0, x1] = isPack(f.tree) ? [20, 35] : [0, 19];
+        // P6 (spec §11.1): a pack's own focuses in columns 20..35. ww229: a
+        // national tree is HOI4-wide (NATION_MAX_COL).
+        const [x0, x1] = isPack(f.tree)
+          ? [20, 35]
+          : isNationTree(f.tree)
+            ? [0, NATION_MAX_COL]
+            : [0, 19];
         expect(f.x >= x0 && f.x <= x1 && f.y >= 0 && f.y <= MAX_ROW, f.id).toBe(
           true,
         );
@@ -137,6 +147,8 @@ describe("focus data", () => {
         expect([0, PACK_TARGETS[t]], t).toContain(own);
         continue;
       }
+      // ww229: a national tree's size is its tier's band (NationTrees.test.ts).
+      if (isNationTree(t)) continue;
       expect([0, CONTENT_TARGETS[t]], t).toContain(treeFocuses[t].length);
     }
   });

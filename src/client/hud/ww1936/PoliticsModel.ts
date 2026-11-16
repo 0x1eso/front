@@ -79,12 +79,12 @@ import {
   describeStats,
 } from "@openfront/engine-lib/ww1936/Describe";
 import { scaleSpiritStats } from "@openfront/engine-lib/ww1936/FocusScale";
-import { histEntry } from "@openfront/engine-lib/ww1936/hist/index";
-import { histStaticName } from "@openfront/engine-lib/ww1936/hist/Slots";
 import {
-  HIST_COUNTRIES,
-  type HistCountry,
-} from "@openfront/engine-lib/ww1936/hist/Types";
+  histEntry,
+  isHistCountry,
+} from "@openfront/engine-lib/ww1936/hist/index";
+import { histStaticName } from "@openfront/engine-lib/ww1936/hist/Slots";
+import type { HistCountry } from "@openfront/engine-lib/ww1936/hist/Types";
 import { fogCountLabel } from "@openfront/engine-lib/ww1936/IntelRules";
 import { congressNeedBp } from "@openfront/engine-lib/ww1936/MechRules";
 import { historicalAiActive } from "@openfront/engine-lib/ww1936/Pace";
@@ -771,9 +771,7 @@ function paramText(
 function costHist(i: PoliticsModelInput): HistCountry | null {
   if (designerOn(i.game)) return null;
   const tag = tagOf(i.game, i.me);
-  return tag !== null && (HIST_COUNTRIES as readonly string[]).includes(tag)
-    ? (tag as HistCountry)
-    : null;
+  return isHistCountry(tag) ? tag : null;
 }
 
 /** The name of the entry standing in for a static key (null: the generic name). */

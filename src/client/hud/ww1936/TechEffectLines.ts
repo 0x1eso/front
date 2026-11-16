@@ -32,10 +32,7 @@ import {
 } from "@openfront/engine-lib/ww1936/DesignRules";
 import { genTech } from "@openfront/engine-lib/ww1936/Equipment";
 import { histEntriesGatedBy } from "@openfront/engine-lib/ww1936/hist/Slots";
-import {
-  HIST_COUNTRIES,
-  type HistCountry,
-} from "@openfront/engine-lib/ww1936/hist/Types";
+import { isHistCountry } from "@openfront/engine-lib/ww1936/hist/index";
 import { PROJECT_DEFS } from "@openfront/engine-lib/ww1936/ProjectRules";
 import { WW_TECHS } from "@openfront/engine-lib/ww1936/WwTechs";
 import { translateText } from "../../Utils";
@@ -298,11 +295,11 @@ export function histUnlockLines(
   if (
     country === null ||
     country === undefined ||
-    !(HIST_COUNTRIES as readonly string[]).includes(country)
+    !isHistCountry(country)
   ) {
     return [];
   }
-  const names = histEntriesGatedBy(tech, country as HistCountry).map((e) =>
+  const names = histEntriesGatedBy(tech, country).map((e) =>
     translateText(`ww1936.hist.${e.id}`),
   );
   if (names.length === 0) return [];

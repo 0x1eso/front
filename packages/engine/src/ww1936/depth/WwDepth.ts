@@ -125,6 +125,7 @@ import {
 import { processRaids } from "./Raids";
 import { railGunFortCut, railGunHits, railGunsOfRemovedArmy } from "./RailGuns";
 import { processRockets } from "./Rockets";
+import { startArms } from "./StartArms";
 import { startConvert, startConvertLines } from "./StartConvert";
 import {
   dailyThought,
@@ -626,6 +627,7 @@ export class WwDepth implements LandDepthHooks {
       .sort((a, b) => a - b);
     startDepthContent(this);
     startConvert(this); // ww78 B3: a major's stock and wings are real from the start
+    startArms(this); // ww229: the minors' bought and licensed arms
     this.rebuildDerived();
     // Plan decision 36: the first update carries every country.
     for (let id = 1; id < this.cap; id++) this.depthDirty.add(id);

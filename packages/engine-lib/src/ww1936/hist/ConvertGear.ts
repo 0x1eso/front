@@ -15,7 +15,8 @@ import {
   roundInt,
   Table,
 } from "./Num";
-import { GunEntry, InfantryEntry, SupportEntry } from "./Types";
+import { clampMinorGear } from "./MinorClamp";
+import { GunEntry, InfantryEntry, isHistMajor, SupportEntry } from "./Types";
 
 /** What a gear entry does in the game. */
 export interface GearStats {
@@ -81,7 +82,7 @@ const SUPPORT_REF_USD: Readonly<Record<string, number>> = {
 const GUN_REF_K = { artillery: 8, anti_tank: 3.4, anti_air: 7 } as const;
 
 /** Infantry shoulder arm: rate of fire, range and calibre. */
-export function infantryStatsOfEntry(e: InfantryEntry): GearStats {
+function infantryStatsOfEntryRaw(e: InfantryEntry): GearStats {
   const s = e.spec;
   const effRpm = (s.aimedRpm * (100 + s.autoPct)) / 100;
   const rofPm = (effRpm * 1000) / REF.rifle.effRpm;
@@ -109,7 +110,7 @@ export function infantryStatsOfEntry(e: InfantryEntry): GearStats {
  * radio of the war, far above a 8 km set that needed a truck), so the ratio
  * is two parts reach (square root, the kind's reference) to one part price.
  */
-export function supportStatsOfEntry(e: SupportEntry): GearStats {
+function supportStatsOfEntryRaw(e: SupportEntry): GearStats {
   const s = e.spec;
   const reach = isqrt(
     Math.floor((s.rangeKm * 1_000_000) / SUPPORT_REF[s.kind]),
@@ -131,7 +132,7 @@ export function supportStatsOfEntry(e: SupportEntry): GearStats {
 }
 
 /** Artillery, anti-tank and anti-air guns: weight of fire per minute and reach. */
-export function gunStatsOfEntry(e: GunEntry): GearStats {
+function gunStatsOfEntryRaw(e: GunEntry): GearStats {
   const s = e.spec;
   const ref = REF[e.role];
   const kgMin = s.rpm * s.shellKg * s.barrels;
@@ -150,4 +151,22 @@ export function gunStatsOfEntry(e: GunEntry): GearStats {
         ? resVec(RESOURCE_IDS, { steel: 1, aluminium: 1 })
         : resVec(RESOURCE_IDS, { steel: 2, tungsten: 1 }),
   };
+}
+
+/** Game stats of the entry; ww229: a minor's own is clamped (MinorClamp.ts). */
+export function infantryStatsOfEntry(e: InfantryEntry): GearStats {
+  const s = infantryStatsOfEntryRaw(e);
+  return isHistMajor(e.country) ? s : clampMinorGear(e, s);
+}
+
+/** Game stats of the entry; ww229: a minor's own is clamped (MinorClamp.ts). */
+export function supportStatsOfEntry(e: SupportEntry): GearStats {
+  const s = supportStatsOfEntryRaw(e);
+  return isHistMajor(e.country) ? s : clampMinorGear(e, s);
+}
+
+/** Game stats of the entry; ww229: a minor's own is clamped (MinorClamp.ts). */
+export function gunStatsOfEntry(e: GunEntry): GearStats {
+  const s = gunStatsOfEntryRaw(e);
+  return isHistMajor(e.country) ? s : clampMinorGear(e, s);
 }

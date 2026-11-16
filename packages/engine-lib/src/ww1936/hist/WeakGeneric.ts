@@ -8,6 +8,9 @@
 // number falls from one generation to the next: an earlier generation takes the
 // later one's where that is lower, so new generic gear is never a step back.
 //
+// ww229 (design ww227 §6): the rule reads the majors' catalogues only, so a
+// minor's own catalogue moves no generic number.
+//
 // The rule reads the catalogue, so it follows new entries by itself, and it
 // writes a separate scale: the shared generic numbers stay as they are, since
 // catalogue gear is generic x percent, catalogue ships are percents over the
@@ -40,9 +43,9 @@ import { GearStats } from "./ConvertGear";
 import { planeStatsOfEntry } from "./ConvertPlane";
 import { shipPowerOf, shipStatsOfEntry } from "./ConvertShip";
 import { tankStatsOfEntry } from "./ConvertTank";
-import { HIST_ALL, HIST_CATALOGUE } from "./index";
+import { HIST_MAJOR_ALL, HIST_MAJOR_CATALOGUE } from "./index";
 import { histStaticEntry } from "./Slots";
-import type { HistCountry, PlaneEntry, ShipEntry, TankEntry } from "./Types";
+import type { HistMajor, PlaneEntry, ShipEntry, TankEntry } from "./Types";
 
 /** A generic number is at most this share of the real median. */
 export const WEAK_MEDIAN_PCT = 70;
@@ -125,7 +128,7 @@ const PLANE_GROUPS = new Map<string, Map<number, PlaneEntry[]>>();
 export function realPlanes(type: AirType, gen: number): readonly PlaneEntry[] {
   let g = PLANE_GROUPS.get(type);
   if (g === undefined) {
-    const list = HIST_ALL.filter(
+    const list = HIST_MAJOR_ALL.filter(
       (e): e is PlaneEntry => e.family === "plane" && e.type === type,
     );
     g = byGen(list, (e) => genOfTechs(e.techs, planeTechPrefix(type)));
@@ -259,7 +262,7 @@ const SHIP_GROUPS = new Map<string, Map<number, ShipEntry[]>>();
 export function realShips(cls: ShipClass, gen: number): readonly ShipEntry[] {
   let g = SHIP_GROUPS.get(cls);
   if (g === undefined) {
-    const list = HIST_ALL.filter(
+    const list = HIST_MAJOR_ALL.filter(
       (e): e is ShipEntry => e.family === "ship" && e.cls === cls,
     );
     g = byGen(list, (e) => genOfTechs(e.techs, cls));
@@ -355,7 +358,7 @@ const TANK_ROW = [
 /** Each country's gear entry standing in for a key (a generation with none: the one before it). */
 function gearOfKey(type: string, gen: number): GearStats[] {
   const out: GearStats[] = [];
-  for (const c of Object.keys(HIST_CATALOGUE) as HistCountry[]) {
+  for (const c of Object.keys(HIST_MAJOR_CATALOGUE) as HistMajor[]) {
     for (let g = gen; g >= 1; g--) {
       const e = histStaticEntry(c, type, g);
       if (e === undefined) continue;
@@ -375,7 +378,7 @@ function gearOfKey(type: string, gen: number): GearStats[] {
 /** The real tanks a static tank key answers to. */
 export function realTanks(type: string, gen: number): readonly TankEntry[] {
   const role = type === "light_tank" ? "light" : "medium";
-  const list = HIST_ALL.filter(
+  const list = HIST_MAJOR_ALL.filter(
     (e): e is TankEntry => e.family === "tank" && e.role === role,
   );
   return nearest(
@@ -511,4 +514,31 @@ export function weakKeyRow(
     rowScore(t.stats, j, t.group[j], t.year[j]),
     weakestTankScore(j) - 1,
   );
+}
+
+// ---- ww229: the floor of a minor's own entries (MinorClamp.ts) ----
+
+/** A static ground key's number for field `f` (KS) in generic use; undefined: no such key. */
+export function weakGroundField(
+  type: string,
+  gen: number,
+  f: number,
+): number | undefined {
+  for (let j = 0; j < GROUND_STATIC_SLOTS; j++) {
+    const [t, g] = EQUIP_KEYS[GROUND_EQUIP_KEYS[j]];
+    if (t !== type || g !== gen) continue;
+    return keyRows()[j].get(f) ?? STATIC_KEY_STATS.stats[j * KS_FIELDS + f];
+  }
+  return undefined;
+}
+
+/** A gear key's percent of the generic row in generic use (100: not cut). */
+export function weakGearPct(type: string, gen: number): number {
+  const gear = gearOfKey(type, gen);
+  return gear.length === 0
+    ? 100
+    : weakTarget(
+        100,
+        gear.map((x) => x.statPct),
+      );
 }

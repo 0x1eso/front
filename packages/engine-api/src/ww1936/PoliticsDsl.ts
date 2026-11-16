@@ -46,6 +46,8 @@ import {
 } from "./EndgameTypes";
 import { SHIP_CLASSES, ShipClass } from "./NavyTypes";
 import {
+  AI_LEANS,
+  AiLean,
   IDEOLOGIES,
   Ideology,
   RESERVE_KEYS,
@@ -176,6 +178,8 @@ export const CONDITION_KINDS = [
   "nukes_on",
   // Research overhaul (changes §1.3), appended: the research slots it has.
   "research_slots_ge",
+  // ww229 (design ww227 §8), appended: the country's AI character (lean).
+  "character",
 ] as const;
 export type ConditionKind = (typeof CONDITION_KINDS)[number];
 
@@ -263,9 +267,11 @@ export type LeafCondition = W &
     | { kind: "project_done"; project: SpecialProject }
     | { kind: "has_atomic"; count?: number }
     | { kind: "congress_above" | "energy_below"; pct: number }
-    | { kind: "bop_range"; tag: "CHN" | "JPN" | "FRA"; band: number }
+    | { kind: "bop_range"; tag: (typeof BOP_TAGS)[number]; band: number }
     // Research overhaul (changes §1.3)
     | { kind: "research_slots_ge"; count: number }
+    // ww229 (design ww227 §8)
+    | { kind: "character"; is: AiLean }
   );
 export type Condition =
   | { all: Condition[] }
@@ -812,6 +818,8 @@ export const WwConditionSchema: z.ZodType<Condition> = z.lazy(() =>
     ...leaf(["bop_range"], { tag: z.enum(BOP_TAGS), band: int.min(0).max(4) }),
     // Research overhaul (changes §1.3)
     ...leaf(["research_slots_ge"], { count: int.min(0).max(WW_MAX_SLOTS) }),
+    // ww229 (design ww227 §8)
+    ...leaf(["character"], { is: z.enum(AI_LEANS) }),
   ] as unknown as AnyUnion),
 ) as z.ZodType<Condition>;
 

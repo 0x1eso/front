@@ -17,7 +17,8 @@ import { histStatsOf } from "./Convert";
 import type { GearStats } from "./ConvertGear";
 import { RELIABILITY_PM, tankStatsOfEntry } from "./ConvertTank";
 import { histStaticEntry } from "./Slots";
-import { HIST_COUNTRIES, type HistCountry } from "./Types";
+import { isHistCountry } from "./index";
+import { type HistCountry } from "./Types";
 import { weakKeyRow } from "./WeakGeneric";
 
 // ww91 (B16): an anti-air key also carries its air attack (the gun row of a country scales it).
@@ -135,9 +136,7 @@ export function histStaticKeyTable(
     stats: STATIC_KEY_STATS.stats.slice(),
   };
   fillStaticKeys(
-    (HIST_COUNTRIES as readonly string[]).includes(tag)
-      ? (tag as HistCountry)
-      : null,
+    isHistCountry(tag) ? tag : null,
     t,
     researched,
   );

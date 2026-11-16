@@ -1,9 +1,9 @@
 // ww122: France has real medium tanks (prototypes and projects included) at
 // generations 2 and 3, from the same conversion as the rest.
-import { HIST_CATALOGUE } from "@openfront/engine-lib/ww1936/hist/index";
+import { HIST_MAJOR_CATALOGUE } from "@openfront/engine-lib/ww1936/hist/index";
 
 describe("ww122: French medium tanks", () => {
-  const med = HIST_CATALOGUE.FRA.filter(
+  const med = HIST_MAJOR_CATALOGUE.FRA.filter(
     (e) => e.family === "tank" && e.role === "medium",
   );
   test("generation 2 and 3 have entries, the static keys point at one", () => {

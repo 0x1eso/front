@@ -14,7 +14,10 @@ import {
   equipKey,
   EQUIPMENT_GENS,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
-import { histEntry } from "@openfront/engine-lib/ww1936/hist/index";
+import {
+  histEntry,
+  isHistCountry,
+} from "@openfront/engine-lib/ww1936/hist/index";
 import {
   histKindOf,
   histOwn,
@@ -22,7 +25,6 @@ import {
 } from "@openfront/engine-lib/ww1936/hist/Slots";
 import { fillStaticKeys } from "@openfront/engine-lib/ww1936/hist/StaticKeys";
 import {
-  HIST_COUNTRIES,
   HistCountry,
   HistEntry,
 } from "@openfront/engine-lib/ww1936/hist/Types";
@@ -40,13 +42,11 @@ export function designerOn(d: WwDepth): boolean {
   return d.mg.config().gameConfig().ww1936Designer === true;
 }
 
-/** The catalogue country of a smallID (null: not a major, or the designer is on). */
+/** The catalogue country of a smallID (null: no catalogue, or the designer is on). ww229: a minor with its own. */
 export function histCountryOf(d: WwDepth, id: number): HistCountry | null {
   if (designerOn(d)) return null;
   const tag: CountryTag = d.ww.tagOf(id);
-  return (HIST_COUNTRIES as readonly string[]).includes(tag)
-    ? (tag as HistCountry)
-    : null;
+  return isHistCountry(tag) ? tag : null;
 }
 
 /** Slots at the start of a kind that belong to the country's own catalogue (0 for minors). */

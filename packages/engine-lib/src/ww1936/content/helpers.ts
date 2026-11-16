@@ -10,7 +10,11 @@ import type {
   Effect,
   Selector,
 } from "@openfront/engine-api/ww1936/PoliticsDsl";
-import type { FocusId } from "@openfront/engine-api/ww1936/PoliticsTypes";
+import type {
+  AiWeight,
+  FocusId,
+  Ideology,
+} from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { WW_TECHS } from "../WwTechs";
 
 export const T = (tag: CountryTag): Selector => ({ tag });
@@ -70,4 +74,32 @@ export function techExchange(branches: readonly TechBranch[]): {
           else: [from(i + 1)],
         };
   return { ahead, effect: from(0) };
+}
+
+/** ww229 (design ww227 §8): the movement's share a national route's AI start needs ... */
+export const NATION_ROUTE_POP_PCT = 25;
+/** ... or a country shakier than this (stability, percent). */
+export const NATION_ROUTE_STABILITY_PCT = 40;
+
+/**
+ * ww229 (design ww227 §8): the AI weight of the first focus of a national
+ * tree's route to `ideology`: `bias` (the country's AiCharacter.routeBias,
+ * 0..3) times 2, and nothing unless the movement holds 25% or the country's
+ * stability is under 40%. The route's later steps take a flat weight.
+ */
+export function nationRouteAi(ideology: Ideology, bias = 1): AiWeight {
+  return {
+    base: 2 * Math.max(0, Math.min(3, bias)),
+    mods: [
+      {
+        if: not(
+          any(
+            { kind: "pop_ge", ideology, pct: NATION_ROUTE_POP_PCT },
+            not({ kind: "stability_ge", pct: NATION_ROUTE_STABILITY_PCT }),
+          ),
+        ),
+        factor: 0,
+      },
+    ],
+  };
 }

@@ -719,7 +719,24 @@ export type ContinuousFocus = (typeof CONTINUOUS_FOCUSES)[number];
 export const CFOCUS_UNLOCK_FOCUSES = 10;
 export const CFOCUS_UNLOCK_DATE = "1939-01-01";
 export const CFOCUS_LOCK_DAYS = 30;
-export const BOP_TAGS = ["CHN", "JPN", "FRA"] as const;
+export const BOP_TAGS = [
+  "CHN",
+  "JPN",
+  "FRA",
+  // ww229 (design ww227 §5), appended: the minors' balances; a country's
+  // lane adds its row (content/nations/<tag>/core.ts).
+  "ROU",
+  "YUG",
+  "ESN",
+  "ESR",
+  "POL",
+  "BRA",
+  "ARG",
+  "ZAF",
+  "BEL",
+  "GRC",
+] as const;
+export type BopTag = (typeof BOP_TAGS)[number];
 /** Bands: far left, left, centre, right, far right (spec §13.2, boundaries ±600 / ±200). */
 export const BOP_BANDS = 5;
 export const CONGRESS_START_BP = 3_000;
