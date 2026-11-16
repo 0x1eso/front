@@ -5,7 +5,7 @@ describe("JPN focus tree", () => {
   const jpn = CONTENT.focuses.filter((f) => f.tree === "JPN");
 
   it("has about 123 focuses, each in a group", () => {
-    expect(jpn.length).toBe(123);
+    expect(jpn.length).toBe(127); // ww226: + the communist route
     for (const f of jpn) expect(f.group, f.id).toBeTruthy();
   });
 
