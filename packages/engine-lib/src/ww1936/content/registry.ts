@@ -127,6 +127,16 @@ import { LAT_BRANCHES, LAT_FOCUSES, LAT_PATH } from "./focus/lat";
 import { NEW_BRANCHES, NEW_FOCUSES, NEW_PATH } from "./focus/new";
 import { NOR_BRANCHES, NOR_FOCUSES, NOR_PATH } from "./focus/nor";
 import { POL_BRANCHES, POL_FOCUSES, POL_PATH } from "./focus/pol";
+import {
+  ROUTES_DEU,
+  ROUTES_FRA,
+  ROUTES_GBR,
+  ROUTES_GENERIC,
+  ROUTES_ITA,
+  ROUTES_JPN,
+  ROUTES_SUN,
+  ROUTES_USA,
+} from "./focus/routes";
 import { SPA_BRANCHES, SPA_FOCUSES, SPA_PATH } from "./focus/spa";
 import { SUN_BRANCHES, SUN_FOCUSES, SUN_PATH } from "./focus/sun";
 import { TUR_BRANCHES, TUR_FOCUSES, TUR_PATH } from "./focus/tur";
@@ -460,6 +470,15 @@ export const CONTENT_PARTS: ContentParts = {
     ...LAT_FOCUSES,
     ...DOM_FOCUSES,
     ...NEW_FOCUSES,
+    // ww226: the ideology routes, appended so no earlier focus moves.
+    ...ROUTES_GENERIC,
+    ...ROUTES_DEU,
+    ...ROUTES_GBR,
+    ...ROUTES_SUN,
+    ...ROUTES_ITA,
+    ...ROUTES_JPN,
+    ...ROUTES_FRA,
+    ...ROUTES_USA,
   ],
   paths: {
     generic: GENERIC_PATH,

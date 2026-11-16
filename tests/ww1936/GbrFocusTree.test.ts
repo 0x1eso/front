@@ -5,10 +5,10 @@ import { expect, test } from "vitest";
 
 test("the GBR focus tree is grouped and its forks are exclusive", () => {
   const tree = CONTENT.focuses.filter((f) => f.tree === "GBR");
-  expect(tree.length).toBe(137);
+  expect(tree.length).toBe(145); // ww226: + the communist and crown routes
   const byId = new Map(tree.map((f) => [f.id, f]));
   const fresh = tree.filter((f) => f.group !== undefined);
-  expect(fresh.length).toBe(89);
+  expect(fresh.length).toBe(97);
   for (const f of tree) {
     for (const x of f.exclusive ?? []) {
       expect(byId.get(x)?.exclusive ?? [], `${f.id} / ${x}`).toContain(f.id);

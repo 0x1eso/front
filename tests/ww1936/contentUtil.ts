@@ -127,15 +127,17 @@ export function allConditions(): [string, Condition | undefined][] {
  * empty (0): the content lanes fill them.
  */
 export const CONTENT_TARGETS = {
-  generic: 31,
-  DEU: 100,
-  GBR: 137,
-  SUN: 123,
+  // ww226: + the ideology routes (generic 16; DEU, ITA, JPN 4; GBR, SUN,
+  // USA 8; FRA 12).
+  generic: 47,
+  DEU: 104,
+  GBR: 145,
+  SUN: 131,
   // P5 (P5 spec §18, pre-flight §0-12): the four new trees, 46 each.
-  ITA: 97,
-  JPN: 123,
-  FRA: 98,
-  USA: 125,
+  ITA: 101,
+  JPN: 127,
+  FRA: 110,
+  USA: 133,
   events: 124,
   decisions: 36,
   spirits: 65,
