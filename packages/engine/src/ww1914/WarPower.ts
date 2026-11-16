@@ -38,6 +38,7 @@ import { budgetNorm } from "@openfront/engine-lib/ww1914/BudgetRules";
 import { hasTech, warMonths } from "./Eras";
 import type { GreatWar } from "./GreatWar";
 import { lawStage } from "./Laws";
+import { frontsOf, reserveBands, toReserve } from "./Transfers";
 import { membersOf } from "./Wars";
 import { fights, isLongChapter, monthsFrom, monthsOf, seatsOf } from "./World";
 
@@ -116,8 +117,11 @@ const COURSE_CHAPTERS = 6;
 export const COURSE_RAILS = "course_rails";
 export const COURSE_DRILL = "course_drill";
 export const COURSE_RAIL_ARMY = "course_rail_army";
-/** Occupied places held hard (`rule.hard` >= 2) that tie down one band. */
-export const GARRISON_PLACES = 4;
+/**
+ * Occupied places held hard (`rule.hard` >= 2) that tie down one band; a place
+ * held lightly (or not yet under a rule row) counts half (ww219 tuning).
+ */
+export const GARRISON_PLACES = 3;
 const GARRISON_HARD = 2;
 /** War score at which the trailing coalition gets the counterweight. */
 export const COUNTERWEIGHT_AT = 40;
@@ -325,6 +329,30 @@ export function classIntake(gw: GreatWar, n: GwNationState): number {
   return Math.floor((k * now) / 12) - Math.floor((k * was) / 12);
 }
 
+/** ww219: the pool a conscription law must leave before it forms a band. */
+export const CONSCRIPT_BAND_AT = 50;
+/** Manpower a new band of conscripts takes. */
+export const CONSCRIPT_BAND_MEN = 12;
+/** A front's most bands (Transfers' BAND_MAX). */
+const BAND_TOP = 5;
+
+/**
+ * ww219 (§4 "Reserve"): with every band at strength, a conscription law in
+ * force and the pool deep, the men called form a new band. It goes to the
+ * home reserve first (Transfers.toReserve); one at a time.
+ */
+export function conscriptBand(gw: GreatWar, n: GwNationState): void {
+  if (!lawInForce(n, GW_CONSCRIPTION_LAWS)) return;
+  if (n.manpower < CONSCRIPT_BAND_AT) return;
+  if (reserveBands(n) > 0 || (n.lift?.fly ?? []).some((f) => f.from === null)) {
+    return;
+  }
+  const to = frontsOf(gw, n.tag).find((t) => (n.strength[t] ?? 0) < BAND_TOP);
+  if (to === undefined) return;
+  n.manpower -= CONSCRIPT_BAND_MEN;
+  toReserve(gw, n.tag, to, 1);
+}
+
 /**
  * A band in the field: its strength less what holds occupied land. The
  * garrison comes off the strongest fronts first, never below one band.
@@ -425,8 +453,12 @@ function drillGrowth(gw: GreatWar, n: GwNationState): number {
   return monthly * monthsOf(gw);
 }
 
-/** Hard-held occupied places of each holder this chapter. */
-function hardHeld(gw: GreatWar): Map<GwTag, number> {
+/**
+ * Occupied places of each holder this chapter, in halves: a place held hard
+ * counts two, a lightly held one one. Land of a partner on the same side
+ * doesn't count.
+ */
+export function hardHeld(gw: GreatWar): Map<GwTag, number> {
   const out = new Map<GwTag, number>();
   const own = new Set(
     gw.s.nations
@@ -437,11 +469,13 @@ function hardHeld(gw: GreatWar): Map<GwTag, number> {
     if (holder === undefined || own.has(holder)) continue;
     const owner = GW_PLACES[p as GwPlace]?.owner;
     if (owner === undefined || owner === holder) continue;
+    const side = gw.nation(holder)?.side ?? null;
+    if (side !== null && gw.nation(owner)?.side === side) continue;
     const row = (gw.s.rule ?? []).find(
       (r) => r.by === holder && r.of === owner,
     );
-    if ((row?.hard ?? 1) < GARRISON_HARD) continue;
-    out.set(holder, (out.get(holder) ?? 0) + 1);
+    const halves = (row?.hard ?? 1) >= GARRISON_HARD ? 2 : 1;
+    out.set(holder, (out.get(holder) ?? 0) + halves);
   }
   return out;
 }
@@ -472,7 +506,7 @@ export function powerStep(gw: GreatWar): void {
     const p = ensure(gw, n);
     step(p, "rail", railGrowth(gw, n));
     step(p, "drill", drillGrowth(gw, n));
-    p.garrison = Math.floor((held.get(n.tag) ?? 0) / GARRISON_PLACES);
+    p.garrison = Math.floor((held.get(n.tag) ?? 0) / (2 * GARRISON_PLACES));
   }
 }
 

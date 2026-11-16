@@ -37,7 +37,7 @@ import { GW_HOME } from "./HomeTable";
 import { restBlocks } from "./Refusals";
 import { actedOnRead, believedStrain, capturedOrders } from "./Spies";
 import { addStrain, strainOf } from "./Strain";
-import { railOf } from "./WarPower";
+import { fireLevel, railOf } from "./WarPower";
 import { memberEnd, membersOf } from "./Wars";
 import {
   defOf,
@@ -524,7 +524,11 @@ function prepStep(gw: GreatWar, o: GwOffensive): void {
       (n.manpower >= 40 ? 5 : 0),
   );
   n.manpower = Math.max(0, n.manpower - 3);
-  if (o.method === "long") moveGauge(gw, o.tag, "shells", -1, "off_shells");
+  // ww218 §2: firepower 3 spares the long preparation its first shells step.
+  const spared = o.prepared === 0 && fireLevel(n) >= 3;
+  if (o.method === "long" && !spared) {
+    moveGauge(gw, o.tag, "shells", -1, "off_shells");
+  }
   addStrain(gw, o.theatre, o.tag, -2);
   if (o.prepared === 0) moveGauge(gw, o.tag, "morale", 1, "off_papers_talk");
   o.prepared += monthsOf(gw);

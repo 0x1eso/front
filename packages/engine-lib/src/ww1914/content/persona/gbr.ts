@@ -10,12 +10,13 @@
 // to her sister Sylvia Henley; until Dec 1916 the PM's letter to the King
 // after each cabinet was its only record. BEF GHQ: Saint-Omer, then
 // Montreuil from 30 Mar 1916 (checked). Dates are New Style.
-import type {
-  GwBearer,
-  GwDiaryMoment,
-  GwDiaryRow,
-  GwPersonaContent,
-  GwRulerPlace,
+import {
+  GW_FOOLED_FRONTS,
+  type GwBearer,
+  type GwDiaryMoment,
+  type GwDiaryRow,
+  type GwPersonaContent,
+  type GwRulerPlace,
 } from "@openfront/engine-api/ww1914/GwPersona";
 import type { GwCond } from "@openfront/engine-api/ww1914/SceneDsl";
 import { all, not } from "@openfront/engine-api/ww1914/SceneDsl";
@@ -188,6 +189,8 @@ const DIARY: GwDiaryRow[] = [
   diary("plan_done", ASQUITH, "plan", { when: planNow("done") }),
   diary("plan_empty", ASQUITH, "plan", { when: planNow("empty") }),
   diary("plan_hindsight", ASQUITH, "plan", { when: planNow("hindsight") }),
+  // ww219: an estimate of the foe that proved fooled (a surprise, a feint).
+  diary("fooled", ASQUITH, "hindsight", { theatre: [...GW_FOOLED_FRONTS] }),
 ];
 
 export const GBR_PERSONA: GwPersonaContent = {

@@ -20,6 +20,8 @@ import { offensivesOf } from "./Offensives";
 import { officeHolder } from "./People";
 import { reads, spotBonus } from "./Spies";
 import { easeStrain, endStrain } from "./Strain";
+// ww218 §2 mobility: the rail is the one WarPower.ts keeps and grows.
+import { railOf } from "./WarPower";
 import { memberEnd, membersOf } from "./Wars";
 import {
   clampTo,
@@ -48,23 +50,6 @@ const GIVE_FLOOR_HARD = -10;
 const ASK_CHAPTERS = 1;
 /** Chapters the reserve waits for the ruler's word before the default. */
 const RESERVE_WAIT = 1;
-
-/**
- * ww218 §2 mobility: rail at the start. Lane W stores the grown `rail` on the
- * nation (WarPower.ts); until merged this table is the reading.
- */
-const RAIL_START: Readonly<Partial<Record<GwTag, number>>> = {
-  DEU: 3,
-  FRA: 2,
-  GBR: 2,
-  AUH: 1,
-  RUS: 0,
-};
-
-export function railOf(gw: GreatWar, tag: GwTag): number {
-  void gw;
-  return RAIL_START[tag] ?? 1;
-}
 
 /** Chapters on the way: from a front 4 - rail, from home one fewer; at least 1. */
 export function etaOf(
@@ -448,6 +433,26 @@ export function aiTransfer(gw: GreatWar): void {
   }
 }
 
+/**
+ * ww219: fronts where `viewer`'s count of a foe proved fooled this chapter: a
+ * surprise offensive went in against it, or a feint was called off, on a
+ * front it fights at the other end of (Diary's "알고 보니" line).
+ */
+export function fooledFronts(gw: GreatWar, viewer: GwTag): GwTheatre[] {
+  const out: GwTheatre[] = [];
+  const c = gw.s.chapter;
+  for (const o of gw.s.offensives ?? []) {
+    const shown = o.feint
+      ? o.done === c
+      : o.method === "surprise" && o.launch === c;
+    if (!shown || out.includes(o.theatre)) continue;
+    const mine = memberEnd(gw, o.theatre, viewer);
+    if (mine === null || mine === o.end) continue;
+    out.push(o.theatre);
+  }
+  return out;
+}
+
 // ---- The chief's paper "move" (ww218 §4) ----
 
 interface Chief {
@@ -503,6 +508,7 @@ export function withMove(
   gw: GreatWar,
   seat: GwSeatState,
   out: GwProposal[],
+  keep: GwTheatre | null = null,
 ): GwProposal[] {
   const n = gw.nation(seat.tag);
   if (n === null || out.length === 0) return out;
@@ -523,7 +529,7 @@ export function withMove(
       seat.tag,
       c.anxious ? SHORT_AT_ANXIOUS : SHORT_AT,
       c.bold ? GIVE_FLOOR_HARD : GIVE_FLOOR,
-      c.bold ? c.wants : null,
+      keep ?? (c.bold ? c.wants : null),
     );
     if (m !== null) pick = { ...m, asked: false };
   }

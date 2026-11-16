@@ -63,7 +63,7 @@ import {
 } from "./Departments";
 import { inStage, makeCard, placeCard, repeatable, sceneWear } from "./Desk";
 import { crownPick, fatePaint, treatySign } from "./Fate";
-import { proposalsFor } from "./Fronts";
+import { carriedPaper, proposalsFor } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { answerPetition, holdHonours } from "./Honours";
 import { housePress, housePrice, lobbyCall } from "./House";
@@ -210,7 +210,8 @@ export function applyGwOrder(
       const byId =
         o.paper !== undefined &&
         (GW_OFFENSIVE_PAPERS.includes(o.paper) || o.paper === "move");
-      const paper = proposalsFor(gw, seat).find((p) =>
+      const list = proposalsFor(gw, seat);
+      const paper = list.find((p) =>
         byId
           ? p.id === o.paper && p.main === o.main
           : !GW_OFFENSIVE_PAPERS.includes(p.id) &&
@@ -241,6 +242,11 @@ export function applyGwOrder(
         );
         if (no !== null) return no;
         signOffensivePaper(gw, seat, paper.id, paper.main, pick);
+      }
+      // ww219: a move during a great offensive answers the offensive's paper.
+      const carried = carriedPaper(list, paper);
+      if (carried !== null) {
+        signOffensivePaper(gw, seat, carried.id, carried.main, pick);
       }
       seat.signed = gw.s.chapter;
       seat.alloc = {

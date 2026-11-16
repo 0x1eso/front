@@ -100,6 +100,21 @@ export const GW_DIARY_MOMENTS = [
 export type GwDiaryMoment = (typeof GW_DIARY_MOMENTS)[number];
 
 /**
+ * ww219: the fronts a "hindsight" row about a fooled estimate is for: the
+ * land fronts, where a surprise or a feint can fool the count (Diary.ts).
+ */
+export const GW_FOOLED_FRONTS = [
+  "west",
+  "east",
+  "balkan",
+  "italy",
+  "caucasus",
+  "straits",
+  "mesopotamia",
+  "palestine",
+] as const satisfies readonly (typeof GW_THEATRES)[number][];
+
+/**
  * A diary line (§0.6): Nicholas's diary, Poincaré's notes, the Kaiser's
  * marginalia, Asquith's letters, Franz Joseph's letters to Schratt. `months`:
  * 1..12 for a filler by season. `theatre`: a front moment there. Text

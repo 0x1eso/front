@@ -52,8 +52,6 @@ const DIVS_PER_BAND: Readonly<Partial<Record<GwTag, number>>> = {
 const DIVS_OTHER = 5;
 /** Places of our end nearest the foe that set a token's anchor. */
 const FRONTIER = 3;
-/** Each so many places held hard tie down a band (lane W's garrisons). */
-const GARRISON_PLACES = 4;
 const WEAR_PER_BAND = 8;
 
 type Pt = readonly [number, number];
@@ -281,32 +279,49 @@ function frontToken(
   };
 }
 
-/** Our garrisons: each occupied group held hard, a token of its own. */
+/**
+ * Our garrisons (lane W's effect, WarPower `garrison`): the bands occupied
+ * land ties down, shared out over the groups we hold by how many places each
+ * holds, a hard-held place counting double. A token per group with a share.
+ */
 function garrisons(gw: GreatWar, seat: GwSeatState): GwTokenView[] {
+  const n = gw.nation(seat.tag);
+  const bands = n?.warPower?.garrison ?? 0;
+  if (n === null || bands <= 0) return [];
+  const groups = new Map<GwPlaceGroup, { places: GwPlace[]; halves: number }>();
+  let total = 0;
+  for (const p of GW_PLACE_KEYS) {
+    const owner = GW_PLACES[p].owner;
+    if (owner === seat.tag || holderOf(gw, p) !== seat.tag) continue;
+    const foe = gw.nation(owner);
+    if (foe === null || (n.side !== null && foe.side === n.side)) continue;
+    const r = (gw.s.rule ?? []).find(
+      (x) => x.by === seat.tag && x.of === owner,
+    );
+    const halves = (r?.hard ?? 1) >= 2 ? 2 : 1;
+    const g = GW_PLACES[p].group as GwPlaceGroup;
+    const row = groups.get(g) ?? { places: [], halves: 0 };
+    row.places.push(p);
+    row.halves += halves;
+    groups.set(g, row);
+    total += halves;
+  }
   const out: GwTokenView[] = [];
-  for (const r of gw.s.rule ?? []) {
-    if (r.by !== seat.tag || r.hard < 2) continue;
-    const groups = new Map<GwPlaceGroup, GwPlace[]>();
-    for (const p of GW_PLACE_KEYS) {
-      if (GW_PLACES[p].owner !== r.of || holderOf(gw, p) !== seat.tag) continue;
-      const g = GW_PLACES[p].group as GwPlaceGroup;
-      groups.set(g, [...(groups.get(g) ?? []), p]);
-    }
-    for (const [group, places] of groups) {
-      const tenths = Math.floor((places.length * 10) / GARRISON_PLACES);
-      if (tenths === 0) continue;
-      out.push({
-        ...ownNumbers(divsOf(seat.tag, tenths), 100),
-        kind: "garrison",
-        tag: seat.tag,
-        rel: "own",
-        theatre: null,
-        side: null,
-        at: centre(places)!,
-        order: null,
-        group,
-      });
-    }
+  if (total === 0) return out;
+  for (const [group, row] of groups) {
+    const tenths = Math.floor((bands * 10 * row.halves) / total);
+    if (tenths === 0) continue;
+    out.push({
+      ...ownNumbers(divsOf(seat.tag, tenths), 100),
+      kind: "garrison",
+      tag: seat.tag,
+      rel: "own",
+      theatre: null,
+      side: null,
+      at: centre(row.places)!,
+      order: null,
+      group,
+    });
   }
   return out;
 }

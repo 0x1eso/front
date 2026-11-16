@@ -17,11 +17,12 @@
 // his military chancellery 1911-14 (checked). Diary forms: Franz Joseph's desk note, now and
 // then a short letter to Katharina Schratt; Karl's note written on the court
 // train (no diary of his survives). Rulers are GW_RULERS ids.
-import type {
-  GwBearer,
-  GwDiaryRow,
-  GwPersonaContent,
-  GwRulerPlace,
+import {
+  GW_FOOLED_FRONTS,
+  type GwBearer,
+  type GwDiaryRow,
+  type GwPersonaContent,
+  type GwRulerPlace,
 } from "@openfront/engine-api/ww1914/GwPersona";
 import { any, type GwCond } from "@openfront/engine-api/ww1914/SceneDsl";
 import {
@@ -228,6 +229,8 @@ const DIARY: GwDiaryRow[] = [
   dy("auh_dy_fj_plan_done", FJ, "plan", { when: planNow("done") }),
   dy("auh_dy_fj_plan_empty", FJ, "plan", { when: planNow("empty") }),
   dy("auh_dy_fj_plan_hindsight", FJ, "plan", { when: planNow("hindsight") }),
+  // ww219: an estimate of the foe that proved fooled (a surprise, a feint).
+  dy("auh_dy_fj_fooled", FJ, "hindsight", { theatre: [...GW_FOOLED_FRONTS] }),
 ];
 
 export const AUH_PERSONA: GwPersonaContent = {

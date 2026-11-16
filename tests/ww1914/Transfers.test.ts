@@ -2,7 +2,7 @@
 // "move" and the tokens' beliefs. Fixed states only: no long runs.
 import type { GameRunner } from "@openfront/engine/GameRunner";
 import { closeChain } from "@openfront/engine/ww1914/Crises";
-import { proposalsFor } from "@openfront/engine/ww1914/Fronts";
+import { carriedPaper, proposalsFor } from "@openfront/engine/ww1914/Fronts";
 import type { GreatWar } from "@openfront/engine/ww1914/GreatWar";
 import { applyGwOrder } from "@openfront/engine/ww1914/Orders";
 import { divsOf, tokensView } from "@openfront/engine/ww1914/Tokens";
@@ -10,10 +10,16 @@ import {
   arrivals,
   bandTenths,
   etaOf,
+  fooledFronts,
+  reserveBands,
   reserveStep,
   startMove,
   toReserve,
 } from "@openfront/engine/ww1914/Transfers";
+import {
+  CONSCRIPT_BAND_MEN,
+  conscriptBand,
+} from "@openfront/engine/ww1914/WarPower";
 import { memberEnd } from "@openfront/engine/ww1914/Wars";
 import { describe, expect, test } from "vitest";
 import { gwRunner } from "./util";
@@ -112,6 +118,75 @@ describe("moving bands", () => {
     reserveStep(gw);
     expect(deu.lift?.reserve).toEqual([]);
     expect(deu.lift?.fly[0]).toMatchObject({ from: null, to: "east" });
+  }, 60000);
+});
+
+describe("ww219 merge: the lanes wired together", () => {
+  test("the stored rail sets the eta; conscripts form one band at home", async () => {
+    const { gw } = await war("GWMOVE5");
+    const rus = gw.nation("RUS")!;
+    rus.warPower = {
+      rail: 2,
+      drill: 0,
+      railGrow: 0,
+      drillGrow: 0,
+      garrison: 0,
+    };
+    expect(etaOf(gw, "RUS", "east")).toBe(2);
+    rus.strength.east = 3;
+    for (const t of Object.keys(rus.strength) as "east"[]) {
+      rus.base[t] = rus.strength[t];
+    }
+    rus.manpower = 80;
+    conscriptBand(gw, rus);
+    expect(reserveBands(rus)).toBe(0);
+    rus.laws.push({
+      id: "rus_ratniki",
+      stage: "force",
+      since: gw.s.chapter,
+      support: 0,
+      how: "voted",
+      text: null,
+      lost: 0,
+      after: true,
+    } as (typeof rus.laws)[number]);
+    conscriptBand(gw, rus);
+    conscriptBand(gw, rus);
+    expect(reserveBands(rus)).toBe(1);
+    expect(rus.manpower).toBe(80 - CONSCRIPT_BAND_MEN);
+  }, 60000);
+
+  test("a surprise fools the other end's count; a band moves during an offensive", async () => {
+    const { gw, seat } = await war("GWMOVE6");
+    const end = memberEnd(gw, "west", "DEU")!;
+    gw.s.offensives ??= [];
+    gw.s.offensives.push({
+      tag: "DEU",
+      theatre: "west",
+      end,
+      from: gw.s.chapter - 2,
+      launch: gw.s.chapter,
+      method: "surprise",
+      weight: 40,
+      feint: false,
+      quiet: false,
+      round: 1,
+      seenBy: [],
+      months: 1,
+      prepared: 1,
+      press: null,
+      done: null,
+      codeBy: [],
+      last: null,
+      answers: [],
+    });
+    expect(fooledFronts(gw, "FRA")).toEqual(["west"]);
+    expect(fooledFronts(gw, "DEU")).toEqual([]);
+    toReserve(gw, "DEU", "east", 1);
+    const list = proposalsFor(gw, seat);
+    const move = list.find((p) => p.id === "move");
+    expect(move?.move?.from).toBeNull();
+    expect(["press_on", "stop"]).toContain(carriedPaper(list, move!)?.id);
   }, 60000);
 });
 

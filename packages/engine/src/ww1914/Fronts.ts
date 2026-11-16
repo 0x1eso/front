@@ -35,6 +35,7 @@ import { sortieWarning } from "./NavalIntel";
 import {
   counterReserves,
   feintFronts,
+  GW_OFFENSIVE_PAPERS,
   judgeOffensives,
   methodsFor,
   offensiveFront,
@@ -88,6 +89,7 @@ import {
 } from "./WarPlan";
 import {
   classIntake,
+  conscriptBand,
   DESERT_EVERY,
   drillOf,
   fieldStrength,
@@ -848,16 +850,19 @@ export function refill(gw: GreatWar): void {
     }
     if (c % refillEvery(gw, n) !== 0) continue;
     const raw = drillOf(gw, n) === 0;
+    let short = false;
     for (const [t, base] of Object.entries(n.base)) {
       const id = t as GwTheatre;
       if (n.manpower < REFILL_MEN) break;
       if ((n.strength[id] ?? 0) < (base ?? 0)) {
+        short = true;
         n.strength[id] = (n.strength[id] ?? 0) + 1;
         n.manpower -= REFILL_MEN;
         // Men sent without drill come back half a band worn.
         if (raw) n.wear[id] = Math.max(n.wear[id] ?? 0, RAW_WEAR);
       }
     }
+    if (!short) conscriptBand(gw, n);
   }
 }
 
@@ -916,10 +921,12 @@ export function aiResearch(gw: GreatWar, tag: GwTag): GwResearch {
 function signDefaults(gw: GreatWar): void {
   for (const seat of gw.s.seats) {
     if (seat.signed === gw.s.chapter) continue;
-    const first = proposalsFor(gw, seat).find((p) => p.open);
+    const list = proposalsFor(gw, seat);
+    const first = list.find((p) => p.open);
     if (first === undefined) continue;
     seat.alloc = { ...seat.alloc, ...planOf(first) };
     signOffensivePaper(gw, seat, first.id, first.main, {});
+    signCarried(gw, seat, list, first);
     signMove(gw, seat, first);
     reason(gw, seat, "plan_by_default");
   }
@@ -928,12 +935,38 @@ function signDefaults(gw: GreatWar): void {
 /** The chief's first open paper, signed; a paper already signed stands. */
 export function signChief(gw: GreatWar, seat: GwSeatState): void {
   if (seat.signed === gw.s.chapter) return;
-  const first = proposalsFor(gw, seat).find((p) => p.open);
+  const list = proposalsFor(gw, seat);
+  const first = list.find((p) => p.open);
   if (first === undefined) return;
   seat.alloc = { ...seat.alloc, ...planOf(first) };
   signOffensivePaper(gw, seat, first.id, first.main, {});
+  signCarried(gw, seat, list, first);
   signMove(gw, seat, first);
   seat.signed = gw.s.chapter;
+}
+
+/**
+ * ww219: the great offensive's paper a "move" paper carries (the one whose
+ * plan it keeps), or null: during an offensive the move answers it too.
+ */
+export function carriedPaper(
+  list: readonly GwProposal[],
+  p: GwProposal,
+): GwProposal | null {
+  if (p.id !== "move") return null;
+  const base = list.find((x) => x.open && x.id !== "move");
+  if (base === undefined || base.id === "offensive") return null;
+  return GW_OFFENSIVE_PAPERS.includes(base.id) ? base : null;
+}
+
+function signCarried(
+  gw: GreatWar,
+  seat: GwSeatState,
+  list: readonly GwProposal[],
+  p: GwProposal,
+): void {
+  const c = carriedPaper(list, p);
+  if (c !== null) signOffensivePaper(gw, seat, c.id, c.main, {});
 }
 
 function planOf(p: GwProposal): Omit<GwAlloc, "research"> {
@@ -1176,7 +1209,8 @@ export function proposalsFor(gw: GreatWar, seat: GwSeatState): GwProposal[] {
         null,
       );
     }
-    return out;
+    // ww219: a band can still be moved; the paper carries the offensive's.
+    return withMove(gw, seat, out, going.theatre);
   }
   // ww219: the war found the plan empty: nothing is ready but to hold.
   if (holdOnly(gw, seat.tag)) {

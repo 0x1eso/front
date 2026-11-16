@@ -35,6 +35,7 @@ import {
 } from "./Persona";
 import { sceneOf } from "./SceneRun";
 import { GW_PASSING, GW_PASSING_BY_SCENE } from "./Tables";
+import { fooledFronts } from "./Transfers";
 import { planMoments } from "./WarPlan";
 
 const P_DIARY = idHash("gw_diary");
@@ -62,6 +63,8 @@ const W_BIG = 6;
 const W_FAMILY = 4;
 const W_HEALTH = 4;
 const W_HINDSIGHT = 3;
+/** ww219: a surprise or a feint that fooled the count. */
+const W_FOOLED = 4;
 const W_PRIVATE = 3;
 const W_AUDIENCE = 2;
 /** ww219: the plan's moments; the rows tell them apart by `war_plan`. */
@@ -179,6 +182,10 @@ export function chapterMoments(
   for (const t of told) {
     out.push(moment("hindsight", W_HINDSIGHT, { who: t.by, told: t }));
   }
+  // ww219: a count of the foe that proved fooled, a hindsight line for its front.
+  for (const t of fooledFronts(gw, seat.tag)) {
+    out.push(moment("hindsight", W_FOOLED, { theatre: t }));
+  }
   // ww219: the war plan redrawn, ready, or found empty by the war.
   const plan = planMoments(gw, seat.tag)[0];
   if (plan !== undefined) out.push(moment("plan", W_PLAN[plan]));
@@ -205,8 +212,10 @@ function rowsFor(
     (r) =>
       r.moment === m.moment &&
       (r.months === undefined || r.months.includes(month)) &&
-      (r.theatre === undefined ||
-        (m.theatre !== null && r.theatre.includes(m.theatre))) &&
+      // A fooled count's hindsight (ww219) takes only its front's rows.
+      (r.theatre === undefined
+        ? !(m.moment === "hindsight" && m.theatre !== null)
+        : m.theatre !== null && r.theatre.includes(m.theatre)) &&
       personaRowHolds(gw, seat, r, cast),
   );
 }
@@ -256,7 +265,9 @@ export function writeDiary(
     const taken = lines.map((l) => l.row);
     const row =
       pickRow(gw, seat, rowsFor(gw, seat, m), m, taken) ??
-      (m.moment === "hindsight" ? GW_DIARY_HINDSIGHT : null);
+      (m.moment === "hindsight" && m.theatre === null
+        ? GW_DIARY_HINDSIGHT
+        : null);
     if (row === null) continue;
     kinds.add(m.moment);
     lines.push(entry(m, row));

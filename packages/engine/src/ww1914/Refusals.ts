@@ -1,5 +1,6 @@
-// Great War 1914 (ww190 §4): refusals in an army. France's only, in v1: after
-// a great offensive in the west has failed, with the nerve low and the front
+// Great War 1914 (ww190 §4): refusals in an army. France's in v1; since ww219
+// the other seats' too once their staying power is spent (WarPower): after
+// a great offensive on the front has failed, with the nerve low and the front
 // worn, regiments refuse to go up. Unanswered, it spreads a stage a month: at
 // the second the world knows (`fra_army_refusals`), at the third order breaks
 // and the ladder climbs. The command answers with the courts, with rest (no
@@ -12,6 +13,7 @@ import {
   GwRefusal,
   GwRefusalAnswer,
   GwSeatState,
+  type GwTheatre,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import type {
@@ -43,8 +45,13 @@ export type GwRefusalsEffect = Extract<
   { do: "refusals" | "pardon" }
 >;
 
-/** The armies that can refuse (v1). */
+/** The armies that can refuse: France always (v1). */
 const REFUSERS: readonly GwTag[] = ["FRA"];
+/**
+ * ww219: the other seats' armies refuse too, but only with no staying power
+ * left (WarPower staying 0), on their most strained front.
+ */
+const REFUSERS_SPENT: readonly GwTag[] = ["DEU", "RUS", "AUH", "GBR"];
 const STAGE_MAX = 3;
 /** The world learns of it at this stage. */
 const KNOWN_AT = 2;
@@ -114,7 +121,10 @@ export function answerRefusals(
       break;
     case "rest":
       r.stage--;
-      n.strength.west = Math.max(1, (n.strength.west ?? 1) - 1);
+      {
+        const t = refuseFront(gw, tag) ?? "west";
+        n.strength[t] = Math.max(1, (n.strength[t] ?? 1) - 1);
+      }
       r.restUntil = chapterIn(gw, REST_MONTHS);
       break;
     case "both":
@@ -174,15 +184,38 @@ export function refusalsDo(
 
 // ---- The chapter ----
 
-/** The army's nerve is gone after a great attack in the west failed. */
+/**
+ * The front whose men would refuse: France's west; another's most strained
+ * open front (ties: the first in theatre order). Null: none.
+ */
+function refuseFront(gw: GreatWar, tag: GwTag): GwTheatre | null {
+  if (REFUSERS.includes(tag)) return "west";
+  let best: GwTheatre | null = null;
+  let worst = -1;
+  for (const t of gw.s.theatres) {
+    if (!t.open || t.id === "sea" || memberEnd(gw, t.id, tag) === null) {
+      continue;
+    }
+    const v = strainOf(gw, t.id, tag);
+    if (v > worst) {
+      worst = v;
+      best = t.id;
+    }
+  }
+  return best;
+}
+
+/** The army's nerve is gone after a great attack on its front failed. */
 function breaks(gw: GreatWar, tag: GwTag): boolean {
   const n = gw.nation(tag);
-  if (n === null || !fights(n) || memberEnd(gw, "west", tag) === null) {
-    return false;
-  }
-  const west = gw.s.theatres.find((t) => t.id === "west");
+  if (n === null || !fights(n)) return false;
+  // ww219: the others' men hold while the country has any staying power.
+  if (!REFUSERS.includes(tag) && stayingLevel(gw, n) > 0) return false;
+  const front = refuseFront(gw, tag);
+  if (front === null || memberEnd(gw, front, tag) === null) return false;
+  const west = gw.s.theatres.find((t) => t.id === front);
   if (west === undefined || !west.open) return false;
-  const strain = strainOf(gw, "west", tag);
+  const strain = strainOf(gw, front, tag);
   const morale = n.gauges.morale;
   // ww218: a country with staying power takes more before its men refuse.
   const firm = STAY_STRAIN * stayingLevel(gw, n);
@@ -191,7 +224,7 @@ function breaks(gw: GreatWar, tag: GwTag): boolean {
   return (gw.s.offensives ?? []).some(
     (o) =>
       o.tag === tag &&
-      o.theatre === "west" &&
+      o.theatre === front &&
       !o.feint &&
       o.done !== null &&
       gw.s.chapter - o.done <= FAILED_WITHIN &&
@@ -205,7 +238,11 @@ function stageUp(gw: GreatWar, r: GwRefusal): void {
   r.answer = "none";
   news(gw, `refusals_${r.stage}`, r.tag);
   tell(gw, r.tag, `refusals_${r.stage}`);
-  if (r.stage >= KNOWN_AT && !gw.s.secrets.includes(SECRET)) {
+  if (
+    r.tag === "FRA" &&
+    r.stage >= KNOWN_AT &&
+    !gw.s.secrets.includes(SECRET)
+  ) {
     gw.s.secrets.push(SECRET);
   }
   schedule(gw, r.tag, r.stage);
@@ -234,8 +271,12 @@ function step(gw: GreatWar, tag: GwTag): void {
   }
   const n = gw.nation(tag)!;
   if (!fights(n)) return;
-  // An AI command answers at once, by its character.
-  if (r.answer === "none" && !ruledBySeat(gw, tag)) {
+  // An AI command answers at once, by its character; so does a seat's whose
+  // writers gave it no scene to answer in (ww219).
+  const noScene = !gwContent().scenes.some(
+    (x) => x.id === `${tag.toLowerCase()}_m_refusals_1`,
+  );
+  if (r.answer === "none" && (!ruledBySeat(gw, tag) || noScene)) {
     answerRefusals(gw, tag, n.ai === "hardline" ? "courts" : "both");
     return;
   }
@@ -254,5 +295,5 @@ function step(gw: GreatWar, tag: GwTag): void {
 /** Chapter step, after the home front. */
 export function refusalsStep(gw: GreatWar): void {
   if (!isLongChapter(gw) || gw.s.armistice !== null) return;
-  for (const tag of REFUSERS) step(gw, tag);
+  for (const tag of [...REFUSERS, ...REFUSERS_SPENT]) step(gw, tag);
 }

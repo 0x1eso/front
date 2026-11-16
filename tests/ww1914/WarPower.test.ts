@@ -8,19 +8,21 @@ import { createGameRunner } from "@openfront/engine/GameRunner";
 import { econCrisis, econForget } from "@openfront/engine/ww1914/Economy";
 import { refill } from "@openfront/engine/ww1914/Fronts";
 import type { GreatWar } from "@openfront/engine/ww1914/GreatWar";
+import { refusalsOf, refusalsStep } from "@openfront/engine/ww1914/Refusals";
+import { setEndStrain } from "@openfront/engine/ww1914/Strain";
 import {
   bloodWeary,
   drillOf,
   fieldStrength,
-  firePct,
   fireLevel,
+  firePct,
   powerStep,
   RAW_WEAR,
   REFILL_MEN,
   refillEvery,
   stayingLevel,
 } from "@openfront/engine/ww1914/WarPower";
-import { openGeneral } from "@openfront/engine/ww1914/Wars";
+import { memberEnd, openGeneral } from "@openfront/engine/ww1914/Wars";
 import { describe, expect, test } from "vitest";
 import { realMap } from "./realMap";
 import { startOf } from "./sim/GwSim";
@@ -79,7 +81,10 @@ describe("ww218 war power: the pool and the drill", () => {
     deu.warPower!.drill = 3;
     expect(refillEvery(gw, deu)).toBe(1);
     // No desertion this chapter; the pool is below MEN_LOW: nothing comes.
-    at(gw, longChapter(gw, gw.s.warChapter! + 3, (i) => i % 4 !== 0));
+    at(
+      gw,
+      longChapter(gw, gw.s.warChapter! + 3, (i) => i % 4 !== 0),
+    );
     deu.manpower = 5;
     refill(gw);
     expect(deu.strength.west).toBe(3);
@@ -95,7 +100,10 @@ describe("ww218 war power: the pool and the drill", () => {
     const deu = gw.nation("DEU")!;
     deu.base.west = 3;
     const top = Math.max(...Object.values(deu.strength).map((v) => v ?? 0));
-    at(gw, longChapter(gw, gw.s.warChapter! + 3, (i) => i % 4 === 0));
+    at(
+      gw,
+      longChapter(gw, gw.s.warChapter! + 3, (i) => i % 4 === 0),
+    );
     deu.manpower = 0;
     refill(gw);
     const after = Math.max(...Object.values(deu.strength).map((v) => v ?? 0));
@@ -117,10 +125,16 @@ describe("ww218 war power: the pool and the drill", () => {
     deu.warPower!.drill = 0;
     deu.manpower = 60;
     deu.wear.west = 0;
-    at(gw, longChapter(gw, gw.s.warChapter! + 3, (i) => i % 3 === 1));
+    at(
+      gw,
+      longChapter(gw, gw.s.warChapter! + 3, (i) => i % 3 === 1),
+    );
     refill(gw);
     expect(deu.strength.west).toBe(3);
-    at(gw, longChapter(gw, gw.s.warChapter! + 3, (i) => i % 3 === 0));
+    at(
+      gw,
+      longChapter(gw, gw.s.warChapter! + 3, (i) => i % 3 === 0),
+    );
     refill(gw);
     expect(deu.strength.west).toBe(4);
     expect(deu.wear.west).toBe(RAW_WEAR);
@@ -179,7 +193,10 @@ describe("ww218 war power: the rail, the strands, the anti-snowball", () => {
   test("a munitions ministry mobilises the works at once", async () => {
     const gw = await world("WP_MUNITIONS");
     openGeneral(gw, "DEU", "FRA", "test");
-    at(gw, longChapter(gw, gw.s.warChapter! + 1, () => true));
+    at(
+      gw,
+      longChapter(gw, gw.s.warChapter! + 1, () => true),
+    );
     const deu = gw.nation("DEU")!;
     deu.gauges.shells = 3;
     econCrisis(gw, deu);
@@ -236,11 +253,38 @@ describe("ww218 war power: the rail, the strands, the anti-snowball", () => {
     );
     expect(off).toBe(2);
     expect(fieldStrength(deu, "west")).toBeLessThanOrEqual(3);
-    // Light rule holds the land with fewer men.
+    // Light rule holds the land with half the men (ww219: a place counts half).
     gw.s.rule[0].hard = 1;
+    powerStep(gw);
+    expect(deu.warPower!.garrison).toBe(1);
+    // The land given back, the men come back to the front.
+    gw.s.held = {};
     powerStep(gw);
     expect(deu.warPower!.garrison).toBe(0);
     expect(fieldStrength(deu, "west")).toBe(4);
+  });
+
+  test("ww219: with no staying power left, Germany's men refuse too", async () => {
+    const gw = await germanyShort("WP_REFUSE");
+    const deu = gw.nation("DEU")!;
+    at(
+      gw,
+      longChapter(gw, gw.s.warChapter! + 2, () => true),
+    );
+    const west = gw.s.theatres.find((t) => t.id === "west")!;
+    setEndStrain(west, memberEnd(gw, "west", "DEU")!, 90);
+    deu.gauges.morale = 1;
+    deu.gauges.order = 4;
+    deu.unrest = 0;
+    // Order and calm still give staying power: they hold.
+    expect(stayingLevel(gw, deu)).toBeGreaterThan(0);
+    refusalsStep(gw);
+    expect(refusalsOf(gw, "DEU")).toBeNull();
+    deu.gauges.order = 1;
+    deu.unrest = 3;
+    expect(stayingLevel(gw, deu)).toBe(0);
+    refusalsStep(gw);
+    expect(refusalsOf(gw, "DEU")?.stage).toBe(1);
   });
 
   test("weariness comes with blood", async () => {

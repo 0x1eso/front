@@ -2,11 +2,12 @@
 // (GwPersona.ts). The writer lane W-DEU owns this file and
 // resources/ww1914/ko/DEU.persona.json. Facts: ww196-facts.md (DEU): the GHQ
 // moves, the cabinet chiefs by date, the Kaiser's marginalia.
-import type {
-  GwBearer,
-  GwDiaryRow,
-  GwPersonaContent,
-  GwRulerPlace,
+import {
+  GW_FOOLED_FRONTS,
+  type GwBearer,
+  type GwDiaryRow,
+  type GwPersonaContent,
+  type GwRulerPlace,
 } from "@openfront/engine-api/ww1914/GwPersona";
 import { GwCond, not } from "@openfront/engine-api/ww1914/SceneDsl";
 import {
@@ -162,6 +163,8 @@ const DIARY: GwDiaryRow[] = [
   d("plan_done", "plan", { when: planNow("done") }),
   d("plan_empty", "plan", { when: planNow("empty") }),
   d("plan_hindsight", "plan", { when: planNow("hindsight") }),
+  // ww219: an estimate of the foe that proved fooled (a surprise, a feint).
+  d("fooled", "hindsight", { theatre: [...GW_FOOLED_FRONTS] }),
 ];
 
 export const DEU_PERSONA: GwPersonaContent = {

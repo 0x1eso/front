@@ -11,12 +11,13 @@
 // chef du protocole [K]. His diary is his daily notes, the base of "Au service
 // de la France": dry, exact, sour about ministers, cold about Clemenceau.
 import type { GwTheatre } from "@openfront/engine-api/ww1914/GreatWarTypes";
-import type {
-  GwBearer,
-  GwDiaryMoment,
-  GwDiaryRow,
-  GwPersonaContent,
-  GwRulerPlace,
+import {
+  GW_FOOLED_FRONTS,
+  type GwBearer,
+  type GwDiaryMoment,
+  type GwDiaryRow,
+  type GwPersonaContent,
+  type GwRulerPlace,
 } from "@openfront/engine-api/ww1914/GwPersona";
 import type { GwCond } from "@openfront/engine-api/ww1914/SceneDsl";
 import { flag, not } from "@openfront/engine-api/ww1914/SceneDsl";
@@ -161,6 +162,8 @@ const DIARY: GwDiaryRow[] = [
   note("plan_done", "plan", { when: planNow("done") }),
   note("plan_empty", "plan", { when: planNow("empty") }),
   note("plan_hindsight", "plan", { when: planNow("hindsight") }),
+  // ww219: an estimate of the foe that proved fooled (a surprise, a feint).
+  note("fooled", "hindsight", { theatre: [...GW_FOOLED_FRONTS] }),
 ];
 
 export const FRA_PERSONA: GwPersonaContent = {

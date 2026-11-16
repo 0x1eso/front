@@ -10,11 +10,12 @@
 // chief of staff from Aug 1915; Chemodurov, the Tsar's valet from 1908
 // (en.wikipedia Terenty Ivanovich Chemodurov). He kept a terse diary every
 // day; from the Stavka a daily letter to Alexandra. Dates are N.S.
-import type {
-  GwBearer,
-  GwDiaryRow,
-  GwPersonaContent,
-  GwRulerPlace,
+import {
+  GW_FOOLED_FRONTS,
+  type GwBearer,
+  type GwDiaryRow,
+  type GwPersonaContent,
+  type GwRulerPlace,
 } from "@openfront/engine-api/ww1914/GwPersona";
 import type { GwCond } from "@openfront/engine-api/ww1914/SceneDsl";
 import { all, not } from "@openfront/engine-api/ww1914/SceneDsl";
@@ -187,6 +188,8 @@ const DIARY: GwDiaryRow[] = [
   day("plan_done", "plan", { when: planNow("done") }),
   day("plan_empty", "plan", { when: planNow("empty") }),
   day("plan_hindsight", "plan", { when: planNow("hindsight") }),
+  // ww219: an estimate of the foe that proved fooled (a surprise, a feint).
+  day("fooled", "hindsight", { theatre: [...GW_FOOLED_FRONTS] }),
 ];
 
 export const RUS_PERSONA: GwPersonaContent = {
