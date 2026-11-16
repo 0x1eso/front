@@ -118,11 +118,13 @@ describe("World War 1936 P5 lists", () => {
   it("the other appended values sit after their anchors", () => {
     // P6 (spec §13.1) appends congress.
     // White peace appends truce_active.
+    // ww177 I4b (the Imjin War) appends not_ready.
     expect(after(DECLARE_WAR_BLOCKS, "isolation")).toEqual([
       "subject_restricted",
       "exile",
       "congress",
       "truce_active",
+      "not_ready",
     ]);
     // The diplomacy (ww161) appends its reasons after too_many_support.
     const blocks = after(WW_ORDER_BLOCKS, "railgun_limit");
