@@ -89,6 +89,11 @@ export interface GwFleetPaperView {
   fleetKind: GwFleetKind;
   /** Our ships in it (counts may show as information). */
   ships: number;
+  /**
+   * ww222 HM: a move of a squadron of older battleships detached from the
+   * fleet (`ships` is the squadron's), never the battle fleet itself.
+   */
+  squadron?: boolean;
   area: GwSeaArea;
   /** A move: where, and chapters on the way (gwEtaWord words). */
   to?: GwSeaArea;

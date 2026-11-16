@@ -31,6 +31,7 @@ import {
 import type { GwOrderBlock } from "@openfront/engine-api/ww1914/GwOrders";
 import type { GwWorldCond } from "@openfront/engine-api/ww1914/WorldDsl";
 import {
+  detachSquadron,
   fleetMoveBlock,
   fleetMoves,
   fleetOf,
@@ -173,6 +174,42 @@ interface Draft {
   why: GwFleetPaperWhy;
   to?: GwSeaArea;
   mission?: GwFleetMission;
+  /** ww222 HM: a squadron of this many older battleships, not the fleet. */
+  squadron?: number;
+}
+
+/**
+ * ww222 HM: the squadron of older battleships the Admiralty would send to the
+ * straits from a battle fleet that holds a home sea: a fifth of it, 2 to 4
+ * ships; 0 when it is too small to spare any.
+ */
+const SQUADRON_MAX = 4;
+const SQUADRON_FROM = 8;
+function squadronOf(f: GwFleet): number {
+  if (f.ships < SQUADRON_FROM) return 0;
+  return Math.min(SQUADRON_MAX, Math.max(2, Math.floor(f.ships / 5)));
+}
+
+/** A battle fleet in its own northern home sea holds it: it never goes. */
+function holdsHome(f: GwFleet): boolean {
+  return f.area === homeOf(f) && f.area !== "med" && f.area !== "black";
+}
+
+/** The straits draft for fleet `f`: the fleet, or a squadron from it. */
+function straitsDraft(f: GwFleet, why: GwFleetPaperWhy): Draft | null {
+  if (!holdsHome(f)) {
+    return { kind: "move", fleet: f, why, to: "med", mission: "invasion_support" };
+  }
+  const n = squadronOf(f);
+  if (n === 0) return null;
+  return {
+    kind: "move",
+    fleet: f,
+    why,
+    to: "med",
+    mission: "invasion_support",
+    squadron: n,
+  };
 }
 
 /** His word on a move: thinning the home sea, leaving port, or gladly. */
@@ -221,12 +258,14 @@ function paperOf(
   d: Draft,
 ): GwFleetPaperView {
   const f = d.fleet;
+  const sq = d.squadron !== undefined;
   const base = {
-    id: `${d.kind}_${f.id}`,
+    id: sq ? `squadron_${f.id}` : `${d.kind}_${f.id}`,
     kind: d.kind,
     fleet: f.id,
     fleetKind: f.kind,
-    ships: f.ships,
+    ships: d.squadron ?? f.ships,
+    ...(sq ? { squadron: true } : {}),
     area: f.area,
     why: d.why,
     by: ad.who,
@@ -235,7 +274,10 @@ function paperOf(
   if (d.kind === "move") {
     const move = fleetMoves(gw, f).find((m) => m.to === d.to);
     const block = fleetMoveBlock(gw, f, d.to!);
-    const v = moveVoice(gw, ad, d);
+    // A squadron of old ships leaves the home sea held: he only says so.
+    const v: { voice: GwFleetVoice; objects: boolean } = sq
+      ? { voice: ad.bold ? "eager" : "agrees", objects: false }
+      : moveVoice(gw, ad, d);
     return {
       ...base,
       to: d.to,
@@ -281,13 +323,8 @@ function sendTarget(gw: GreatWar, f: GwFleet): Draft | null {
   const home = homeOf(f);
   const side = sideOfTag(gw, f.tag);
   if (side === "entente" && straitsOpen(gw) && f.area !== "med") {
-    return {
-      kind: "move",
-      fleet: f,
-      why: "dept",
-      to: "med",
-      mission: "invasion_support",
-    };
+    const d = straitsDraft(f, "dept");
+    if (d !== null) return d;
   }
   if (f.area !== home) return { kind: "move", fleet: f, why: "dept", to: home };
   const away = GW_SEA_AREAS.find(
@@ -353,16 +390,11 @@ function ownDrafts(gw: GreatWar, seat: GwSeatState): Draft[] {
           mission: "invasion_support",
         });
       }
-    } else if (seat.tag !== "GBR" || main.ships > 10) {
-      // Britain sends a detachment's worth only from a big fleet; the
-      // paper is the whole fleet's, and the First Sea Lord says what he thinks.
-      out.push({
-        kind: "move",
-        fleet: main,
-        why: "straits",
-        to: "med",
-        mission: "invasion_support",
-      });
+    } else {
+      // ww222 HM: the battle fleet that holds the North Sea stays; the
+      // paper sends a squadron of older battleships from it.
+      const d = straitsDraft(main, "straits");
+      if (d !== null) out.push(d);
     }
   }
   return out;
@@ -468,9 +500,15 @@ export function signFleetPaper(
     if (!orderSortie(gw, p.fleet, pick)) return "closed";
     reason(gw, seat, pick === "stay" ? "fleet_kept" : "fleet_sortie_signed");
   } else if (p.kind === "move") {
-    if (!sendFleet(gw, p.fleet, p.to!)) return "closed";
+    const sent =
+      p.squadron === true
+        ? detachSquadron(gw, p.fleet, p.ships, p.to!)
+        : sendFleet(gw, p.fleet, p.to!)
+          ? p.fleet
+          : null;
+    if (sent === null) return "closed";
     // The duty it takes up on arrival (setMission refuses a fleet under way).
-    const f = fleetOf(gw, p.fleet);
+    const f = fleetOf(gw, sent);
     if (p.mission !== undefined && p.mission !== "strike" && f !== null) {
       f.mission = p.mission;
     }

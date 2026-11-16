@@ -74,7 +74,9 @@ function paper(c: GwCtx, p: GwFleetPaperView): TemplateResult {
     </div>
     <p class="text-sm text-white/85">${line(p)}</p>
     <p class=${MUTED}>
-      ${translateText("gw.fleet_paper.ships", { n: p.ships })}
+      ${p.squadron === true
+        ? translateText("gw.fleet_paper.squadron", { n: p.ships })
+        : translateText("gw.fleet_paper.ships", { n: p.ships })}
     </p>
     ${p.by === null
       ? nothing

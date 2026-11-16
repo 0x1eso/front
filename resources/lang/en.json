@@ -3291,12 +3291,14 @@
         "gbr_battle_north": "Grand Fleet",
         "gbr_cruisers_atlantic": "Atlantic cruisers",
         "gbr_cruisers_north": "Battlecruiser Fleet",
+        "gbr_squadron_north": "Old battleship squadron",
         "gbr_subs_channel": "Channel submarines",
         "ita_battle_med": "battle fleet",
         "ott_battle_black": "Goeben squadron",
         "rus_battle_baltic": "Baltic Fleet",
         "rus_battle_black": "Black Sea Fleet",
-        "usa_battle_atlantic": "Atlantic Fleet"
+        "usa_battle_atlantic": "Atlantic Fleet",
+        "usa_squadron_atlantic": "Old battleship squadron"
       },
       "name_kind": {
         "battle": "battle fleet",
@@ -3394,6 +3396,7 @@
       "say_line": "{name}: \"{say}\"",
       "ships": "{n} ships with it",
       "sortie_line": "Out to sea in the {area}, to seek the enemy",
+      "squadron": "A squadron of {n} older battleships leaves it; the fleet itself stays.",
       "title": "Admiralty papers",
       "warned": "\"The enemy may know and be waiting for us.\"",
       "why": {

@@ -616,6 +616,49 @@ export function sendFleet(gw: GreatWar, id: string, to: GwSeaArea): boolean {
   return true;
 }
 
+/**
+ * ww222 HM: `ships` older battleships leave fleet `id` as a squadron of their
+ * own (`<tag>_squadron_<home>`; one that is already formed takes them in),
+ * which sails for `to`. The battle fleet stays where it is. The squadron's id,
+ * or null when the fleet can't spare them or the way is shut.
+ */
+export function detachSquadron(
+  gw: GreatWar,
+  id: string,
+  ships: number,
+  to: GwSeaArea,
+): string | null {
+  const f = fleetOf(gw, id);
+  if (f === null || f.kind !== "battle" || f.to !== undefined) return null;
+  if (ships <= 0 || ships >= f.ships) return null;
+  if (fleetMoveBlock(gw, f, to) !== null) return null;
+  const sid = `${f.tag.toLowerCase()}_squadron_${homeArea(f)}`;
+  let q = fleetOf(gw, sid);
+  if (q !== null && (q.to !== undefined || q.area !== f.area)) return null;
+  if (q === null) {
+    q = {
+      id: sid,
+      tag: f.tag,
+      kind: "battle",
+      ships: 0,
+      wear: f.wear,
+      area: f.area,
+      port: f.port,
+      mission: "patrol",
+      peak: 0,
+      known: 0,
+    };
+    gw.s.fleets!.push(q);
+  }
+  f.ships -= ships;
+  f.peak = Math.max(f.ships, f.peak - ships);
+  f.known = Math.max(0, f.known - ships);
+  q.ships += ships;
+  q.peak = Math.max(q.peak, q.ships);
+  q.known += ships;
+  return sendFleet(gw, sid, to) ? sid : null;
+}
+
 /** Set a mission; a fleet in port puts out for it. */
 export function setMission(
   gw: GreatWar,

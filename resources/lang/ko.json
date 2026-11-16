@@ -20995,7 +20995,8 @@
           "too_strong": "그 바다에서는 적의 배가 더 많습니다. 도박입니다.",
           "repair": "함대가 툴롱의 독에 들어가 있습니다. 시간이 필요합니다."
         }
-      }
+      },
+      "squadron": "구식 전함 {n}척을 전대로 떼어 보낸다. 함대 본진은 그대로 남는다."
     },
     "fleet": {
       "area": {
@@ -21054,7 +21055,9 @@
         "ott_battle_black": "괴벤 함대",
         "rus_battle_baltic": "발트 함대",
         "rus_battle_black": "흑해 함대",
-        "usa_battle_atlantic": "대서양 함대"
+        "usa_battle_atlantic": "대서양 함대",
+        "gbr_squadron_north": "구식 전함 전대",
+        "usa_squadron_atlantic": "구식 전함 전대"
       },
       "name_kind": {
         "battle": "주력 함대",

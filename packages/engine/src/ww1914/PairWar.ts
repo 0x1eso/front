@@ -23,6 +23,7 @@ import {
 } from "@openfront/engine-lib/ww1914/content/ladder";
 import { GW_TABLE_AIMS } from "@openfront/engine-lib/ww1914/TableRows";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
+import { campOf } from "./Alignment";
 import { cutFrom, revancheOf } from "./Fate";
 import { pairScore } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
@@ -37,6 +38,7 @@ import {
 } from "./Ladder";
 import { holderOf } from "./Land";
 import { capitalHolder } from "./Occupation";
+import { bondOf } from "./PeaceYears";
 import { STRAIN_WORN, worstStrain } from "./Strain";
 import { queuePairTable } from "./Table";
 import { GW_AI_MAIN } from "./Tables";
@@ -463,6 +465,37 @@ export function warCase(gw: GreatWar, from: GwTag, to: GwTag): number {
 }
 
 /**
+ * ww222 HM: Britain and its June partners France and Russia can reach each
+ * other now (HF's nile and great_game). While they still share a camp, a
+ * government nobody plays goes to war with the other only in a crisis on one
+ * of those roads (the bond at CRISIS_BOND or worse), and seldom.
+ */
+const CRISIS_PAIRS: readonly (readonly [GwTag, GwTag])[] = [
+  ["GBR", "FRA"],
+  ["GBR", "RUS"],
+];
+const CRISIS_BOND = -2;
+/** Chances in 100 such a war, once the case is made, goes ahead. */
+const CRISIS_PCT = 15;
+const P_CRISIS = idHash("gw_colonial_crisis");
+
+function crisisPair(gw: GreatWar, a: GwTag, b: GwTag): boolean {
+  if (!CRISIS_PAIRS.some(([x, y]) => (x === a && y === b) || (x === b && y === a))) {
+    return false;
+  }
+  return campOf(gw, a) === campOf(gw, b);
+}
+
+/** A colonial pair within one camp may start a war: a crisis, and a roll. */
+function crisisAllows(gw: GreatWar, a: GwTag, b: GwTag): boolean {
+  if (!crisisPair(gw, a, b)) return true;
+  if ((bondOf(gw, a, b) ?? 0) > CRISIS_BOND) return false;
+  const s = gw.s;
+  const r = wwRoll(s.seed, P_CRISIS, s.chapter, idHash(a + b)) % 100;
+  return r < CRISIS_PCT;
+}
+
+/**
  * Once a month the governments nobody plays look for a war: the strongest
  * case in the world over its bar, a seeded roll, then the ultimatum. Never
  * in the July crisis, which has its own ladder.
@@ -479,6 +512,7 @@ function aiWarStep(gw: GreatWar): void {
     for (const to of ladderTargets(gw, n.tag)) {
       const score = warCase(gw, n.tag, to);
       if (score < 0) continue;
+      if (!crisisAllows(gw, n.tag, to)) continue;
       if (best === null || score > best.score) {
         best = { from: n.tag, to, score };
       }
