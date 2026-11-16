@@ -121,8 +121,6 @@ const gaugeMax = (gauge: GwGauge, max: number): GwCond => ({
   gauge,
   max,
 });
-const chosen = (scene: string, ...picks: string[]): GwCond =>
-  any(...picks.map((p) => chose(scene, p)));
 const seen = (scene: string): GwCond => ({ kind: "seen", scene });
 const keys = (...k: string[]): GwCond => any(...k.map((x) => memory(x)));
 
@@ -512,12 +510,15 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
           gauge("morale", 1),
           doWorld({ do: "command", who: SCHEER, theatre: "sea" }),
           setFlag("f_scheer_fleet"),
+          // ww221: the fleet goes out at the chapter's close (Fleets.ts).
+          doWorld({ do: "fleet_sortie", way: "full" }),
         ],
       ),
       o(
         "hold_port",
         ["army:-1", "court:+1", "morale:-1"],
         [
+          doWorld({ do: "fleet_sortie", way: "stay" }),
           army(-1),
           trustOf(court, 1),
           gauge("morale", -1),
@@ -533,6 +534,7 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
           doWorld({ do: "command", who: SCHEER, theatre: "sea" }),
           setFlag("f_scheer_fleet"),
           setFlag("f_sortie_limit"),
+          doWorld({ do: "fleet_sortie", way: "part" }),
         ],
         memory("k_muller_fleet"),
       ),
@@ -541,20 +543,21 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
   scene({
     id: "deu_s_jutland",
     kind: "report",
-    when: all(
-      war,
-      chosen("deu_s_fleet_out", "let_scheer", "sortie_with_limit"),
-      world({ is: "war_months", own: true, min: 18, max: 29 }),
-    ),
+    // ww221: only a real battle of the battle fleets in the North Sea, so a
+    // game may pass with none; the text follows how it went.
+    when: all(war, world({ is: "fleet_battle", area: "north", min: "big" })),
+    once: true,
     cast: {},
     salience: 8,
     tags: ["war", "tension_down"],
     stamp: "unconfirmed",
     source: "press",
     variants: [
+      v("won", world({ is: "fleet_battle", area: "north", result: "won" })),
+      v("lost", world({ is: "fleet_battle", area: "north", result: "lost" })),
       v("limit", chose("deu_s_fleet_out", "sortie_with_limit")),
-      // ww180: the British were told the fleet was out (NavalIntel).
-      v("met", world({ is: "naval", can: "met" })),
+      // The British were told the fleet was out, and waited.
+      v("met", world({ is: "fleet_battle", area: "north", warned: true })),
       v("gbrout", not(atGBR)),
       v("base"),
     ],

@@ -21,6 +21,7 @@ import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
 import type { GwCtx, GwOffPick } from "./GwCtx";
 import { deptName } from "./GwDept";
+import { fleetPapersSection } from "./GwFleetPapers";
 import { frontMove, frontRead, frontTone, type FrontRead } from "./GwModel";
 import { planWhy } from "./GwOffice";
 import { BTN, BTN_ON, CHIP, HEAD, MUTED } from "./GwStyle";
@@ -746,6 +747,6 @@ export function frontsTab(c: GwCtx): TemplateResult {
             )}
           </h3>
           ${others.map((t) => otherCard(t, side))}`}
-    ${warPlanRow(c)} ${papers(c)}
+    ${warPlanRow(c)} ${papers(c)} ${fleetPapersSection(c)}
   </div>`;
 }

@@ -3237,6 +3237,76 @@
       },
       "with": "{fate} ({what})"
     },
+    "fleet_paper": {
+      "hint": "Each paper is signed on its own. A paper nobody signs lapses, and the fleet stays where it is.",
+      "kind": {
+        "mission": "New duty",
+        "move": "Fleet to another sea",
+        "sortie": "Sortie"
+      },
+      "mission_line": "In the {area}: {mission}",
+      "move_line": "From the {area} to the {to}, {eta}",
+      "overrule": "He is against it. Signing it overrules him.",
+      "pick": {
+        "full": "The main fleets meet head on",
+        "part": "Draw out only part of the enemy fleet",
+        "stay": "Keep it in port"
+      },
+      "say": {
+        "auh": {
+          "agrees": "It can be done, Majesty. The fleet will go.",
+          "eager": "Let the fleet out of Pola for once. The crews are longing for it.",
+          "keep_port": "The fleet does most by staying at Pola. The enemy must watch it all the same.",
+          "repair": "The ships are in dock. They cannot go out yet.",
+          "thin_home": "If the fleet leaves the Adriatic, our coast lies open.",
+          "too_strong": "The Italians and the French together are too many for us."
+        },
+        "deu": {
+          "agrees": "The fleet is ready, Majesty. It waits only for the order.",
+          "eager": "This is what the fleet was built for. Let us go.",
+          "keep_port": "A fleet in being binds the British. Lose it and nothing binds them.",
+          "repair": "The ships are still in the yards. They cannot go out yet.",
+          "thin_home": "If the fleet leaves the Bight, the British come to our coast.",
+          "too_strong": "The British have more ships. We would be giving them what they want."
+        },
+        "fra": {
+          "agrees": "The Marine can do it, Monsieur le Président.",
+          "eager": "Our squadron should be where the war is. Send it.",
+          "keep_port": "Our battleships are few. Better to keep them than to lose them.",
+          "repair": "The squadron is in dock at Toulon. It needs time.",
+          "thin_home": "Empty the Mediterranean and the Austrians come out.",
+          "too_strong": "The enemy has more ships there. It would be a gamble."
+        },
+        "gbr": {
+          "agrees": "It can be done. The Grand Fleet can spare it.",
+          "eager": "Give me the ships and I will open the way myself.",
+          "keep_port": "The fleet is safest at Scapa. We need not seek a battle.",
+          "repair": "Half the squadron is in dock. Give the yards a month.",
+          "thin_home": "Empty the North Sea and the blockade comes undone.",
+          "too_strong": "Their fleet is bigger than the papers say. Not now."
+        },
+        "rus": {
+          "agrees": "It can be done, Your Majesty, if the way stays open.",
+          "eager": "The sea is ours to take. Let us not wait for the Germans.",
+          "keep_port": "The ships are better behind the minefields. We have few to lose.",
+          "repair": "The ships are under repair. The yards ask for time.",
+          "thin_home": "Take the ships away and the capital's sea is empty.",
+          "too_strong": "The enemy is stronger at sea. We would lose what we cannot build again."
+        }
+      },
+      "say_line": "{name}: \"{say}\"",
+      "ships": "{n} ships with it",
+      "sortie_line": "Out to sea in the {area}, to seek the enemy",
+      "title": "Admiralty papers",
+      "warned": "\"The enemy may know and be waiting for us.\"",
+      "why": {
+        "asked": "You asked for it",
+        "dept": "The navy department's proposal",
+        "home_lost": "Our home waters are lost",
+        "shipping": "Too many merchantmen are sunk",
+        "straits": "The straits are being fought for"
+      }
+    },
     "front": {
       "alps": {
         "alps": "the Alpine passes",
@@ -4785,6 +4855,11 @@
       "file_nothing": "The police found nothing on {who}.",
       "file_opened": "The police have made up a file on {who}.",
       "file_refused": "{who} called the file a lie, and it was: the police were wrong.",
+      "fleet_kept": "The fleet was kept in port.",
+      "fleet_mission_signed": "A fleet was given a new duty.",
+      "fleet_move_signed": "A fleet was sent to another sea.",
+      "fleet_overruled": "The Admiralty was overruled on the fleet.",
+      "fleet_sortie_signed": "The fleet was ordered out to sea.",
       "flu_wave_1": "The influenza is in the army.",
       "flu_wave_2": "The influenza is back.",
       "flu_wave_3": "The influenza came a third time.",
@@ -6169,6 +6244,8 @@
         "dept_busy": "That department is already at work on something.",
         "ended": "The game is over.",
         "faction_cool": "That was done to them lately; not again yet.",
+        "fleet_moving": "That fleet is already on its way.",
+        "fleet_repair": "That fleet is in the yards for repair.",
         "front_full": "That front has all the men it can feed.",
         "gift_given": "They have had a gift this chapter.",
         "in_flight": "Our men are on the rails already.",
@@ -6195,6 +6272,7 @@
         "no_faction": "There is no such party, or it is gone.",
         "no_fate": "That fate can't be painted there now.",
         "no_favour": "Nothing is owed to call in, or nothing to owe.",
+        "no_fleet": "That fleet can't do that.",
         "no_footing": "The footing can't be raised now.",
         "no_front": "That is not a front of ours.",
         "no_gift": "That gift can't go to them now.",
@@ -6235,6 +6313,7 @@
         "prologue": "The years come first.",
         "recess": "That house has already voted this month.",
         "room_shut": "The ruler is away: nobody is received this chapter.",
+        "sea_shut": "The way there is held against us.",
         "signed": "This chapter's paper is already signed.",
         "slow_spent": "No more extensions this chapter.",
         "sounded": "You have already heard him on this, this chapter.",

@@ -10,6 +10,7 @@
 // chief of staff from Aug 1915; Chemodurov, the Tsar's valet from 1908
 // (en.wikipedia Terenty Ivanovich Chemodurov). He kept a terse diary every
 // day; from the Stavka a daily letter to Alexandra. Dates are N.S.
+import type { GwFleetMoment } from "@openfront/engine-api/ww1914/GwFleetPapers";
 import {
   GW_FOOLED_FRONTS,
   type GwBearer,
@@ -114,6 +115,10 @@ const day = (
   more: Partial<GwDiaryRow> = {},
 ): GwDiaryRow => ({ id: `rus_dy_${id}`, nation: ["RUS"], moment, ...more });
 
+/** ww221: what the fleets did this chapter (Diary's fleet moment). */
+const fleetNow = (now: GwFleetMoment): GwCond =>
+  world({ is: "fleet_now", now });
+
 /** ww219: what the war plan did this chapter (Diary's plan moment). */
 const planNow = (now: GwWarPlanMoment): GwCond =>
   world({ is: "war_plan", now });
@@ -190,6 +195,14 @@ const DIARY: GwDiaryRow[] = [
   day("plan_hindsight", "plan", { when: planNow("hindsight") }),
   // ww219: an estimate of the foe that proved fooled (a surprise, a feint).
   day("fooled", "hindsight", { theatre: [...GW_FOOLED_FRONTS] }),
+  // ww221: the fleets: a battle, a third lost, months in port, a new ship.
+  day("fleet_won", "fleet", { when: fleetNow("won") }),
+  day("fleet_lost", "fleet", { when: fleetNow("lost") }),
+  day("fleet_even", "fleet", { when: fleetNow("even") }),
+  day("fleet_third_lost", "fleet", { when: fleetNow("third_lost") }),
+  day("fleet_idle", "fleet", { when: fleetNow("idle") }),
+  day("fleet_built", "fleet", { when: fleetNow("built") }),
+  day("fleet_fooled", "fleet", { when: fleetNow("fooled") }),
 ];
 
 export const RUS_PERSONA: GwPersonaContent = {

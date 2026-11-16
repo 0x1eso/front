@@ -729,10 +729,21 @@ const ANSWERS: GwAnswerRow[] = [
       f("hiding", 2, { wrong: true, when: war }),
     ],
     [
-      c("sortie", ["bold"], [opinion("press", 1), pressure("naval", 1)], {
+      c(
+        "sortie",
+        ["bold"],
+        [
+          opinion("press", 1),
+          pressure("naval", 1),
+          { kind: "remember", key: "c_fleet_sortie" },
+        ],
+        { when: war },
+      ),
+      c("guard", ["calm", "wait"], [], { when: war }),
+      // ww221: the Admiralty's move paper (FleetPapers.ts).
+      c("send", ["bold", "firm"], [{ kind: "remember", key: "c_fleet_send" }], {
         when: war,
       }),
-      c("guard", ["calm", "wait"], [], { when: war }),
       c("tighten", ["firm"], [blockade(1), trust("USA", -1)], {
         when: war,
         then: ["gw_o_usa_loans"],

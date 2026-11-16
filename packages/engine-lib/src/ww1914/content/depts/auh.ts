@@ -620,6 +620,10 @@ const ANSWERS: GwAnswerRow[] = [
       c("uboats", ["firm"], [gauge("money", -1), trust("DEU", 1)], {
         when: inWar,
       }),
+      // ww221: the Admiralty's move paper (FleetPapers.ts).
+      c("send", ["bold", "firm"], [{ kind: "remember", key: "c_fleet_send" }], {
+        when: inWar,
+      }),
       c("build", ["bold"], [gauge("money", -1), inst("hungary", -1)], {
         when: peace,
       }),

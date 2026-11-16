@@ -26,6 +26,7 @@ import {
   GwFateRecordSchema,
   GwVassalStateSchema,
 } from "./GwFate";
+import { GwFleetAskSchema } from "./GwFleetPapers";
 import { GwFleetSchema, GwSeaFightSchema, GwYardSchema } from "./GwFleets";
 import { GwHouseStateSchema } from "./GwHouse";
 import { GwLawStateSchema } from "./GwLaw";
@@ -1794,6 +1795,15 @@ export const GwSeatStateSchema = z.object({
       to: z.enum(GW_THEATRES),
       chapter: z.number().int(),
     })
+    .optional(),
+  /**
+   * ww221: the ruler's asks to the Admiralty (orders move_fleet, sortie_fleet),
+   * one per fleet; its papers carry them (FleetPapers.ts). Absent until asked.
+   */
+  fleetAsks: z.array(GwFleetAskSchema).optional(),
+  /** ww221: the Admiralty's papers signed this chapter, by id, and when. */
+  fleetDone: z
+    .object({ chapter: z.number().int(), ids: z.array(GwIdSchema) })
     .optional(),
 });
 export type GwSeatState = z.infer<typeof GwSeatStateSchema>;

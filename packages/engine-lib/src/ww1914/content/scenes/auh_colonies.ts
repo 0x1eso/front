@@ -100,6 +100,8 @@ export const AUH_COLONIES_SCENES: readonly GwScene[] = [
       atSea,
       months(30),
       any(w({ is: "hunger", min: 1 }), low("morale", 2)),
+      // ww221: the crews of a fleet that lies in port.
+      w({ is: "fleet_idle", months: 6 }),
     ),
     cast: { navy: NAVY },
     vs: [["red", w({ is: "unrest", min: 2 })], ["base"]],

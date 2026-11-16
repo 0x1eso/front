@@ -39,6 +39,7 @@ import { craftView } from "./Craft";
 import { dealsDossierView } from "./Deals";
 import { dossierView } from "./Dossier";
 import { eraOf, researchView } from "./Eras";
+import { fleetPapersFor } from "./FleetPapers";
 import { ownFronts, proposalsFor } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { houseView } from "./House";
@@ -393,9 +394,19 @@ export function worldView(gw: GreatWar, seat: GwSeatState): GwWorldView {
     dossier: dealsDossierView(gw, seat, dossierView(gw, seat)),
     ...societyOf(gw, seat),
     ...tokensOf(gw, seat),
+    ...fleetPapersOf(gw, seat),
     ...warPlanOf(gw, seat),
     ...powerOfSeat(gw, seat),
   };
+}
+
+/** ww221: the Admiralty's papers; absent with none. */
+function fleetPapersOf(
+  gw: GreatWar,
+  seat: GwSeatState,
+): { fleetPapers?: GwWorldView["fleetPapers"] } {
+  const fleetPapers = fleetPapersFor(gw, seat);
+  return fleetPapers.length === 0 ? {} : { fleetPapers };
 }
 
 /** ww218: the army tokens; absent while the seat's country is not at war. */

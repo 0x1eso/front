@@ -760,6 +760,12 @@ const ANSWERS: GwAnswerRow[] = [
         then: ["fra_cs_otranto"],
       }),
       course("convoys", ["calm", "gentle"], [gauge("bread", 1)]),
+      // ww221: the Admiralty's move paper (FleetPapers.ts).
+      course(
+        "send",
+        ["bold", "firm"],
+        [{ kind: "remember", key: "c_fleet_send" }],
+      ),
       course("harbour", ["wait", "cheap"], [], { wait: true }),
     ],
   ),

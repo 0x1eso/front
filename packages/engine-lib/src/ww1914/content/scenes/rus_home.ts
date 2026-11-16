@@ -12558,6 +12558,8 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
             { kind: "gauge", gauge: "morale", max: 2 },
           ],
         },
+        // ww221: the crews mutiny on a fleet that lies in port.
+        { kind: "world", of: { is: "fleet_idle", months: 6 } },
       ],
     },
     cast: { navy: { office: "navy" } },

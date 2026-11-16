@@ -112,6 +112,13 @@ import {
   GwSignHow,
 } from "./GwFate";
 import {
+  GW_FLEET_MOMENTS,
+  GW_SORTIE_PICKS,
+  type GwFleetMoment,
+  type GwSortiePick,
+} from "./GwFleetPapers";
+import { GW_SEA_AREAS, type GwSeaArea } from "./GwFleets";
+import {
   GW_ASK_STAGES,
   GW_CHAMBERS,
   GW_FACTION_STATUS,
@@ -624,7 +631,28 @@ export type GwWorldCond =
   /** What the seat's war plan did this chapter (the diary's plan moment). */
   | { is: "war_plan"; now: GwWarPlanMoment }
   /** The seat's staff could prepare that front as the plan's alternative. */
-  | { is: "plan_alt_can"; theatre: GwTheatre };
+  | { is: "plan_alt_can"; theatre: GwTheatre }
+  // ---- ww221: the fleets (Fleets.ts, FleetPapers.ts) ----
+  /**
+   * A fight between fleets lately (this chapter or the last `within`, default
+   * 1) that the seat's country fought in; `area` there, `min` "big" for battle
+   * fleets on both sides; `result` from the seat's side; `warned`: the side
+   * that was struck knew in time.
+   */
+  | {
+      is: "fleet_battle";
+      area?: GwSeaArea;
+      min?: "small" | "big";
+      result?: "won" | "lost" | "even";
+      warned?: boolean;
+      within?: number;
+      /** Any country's fight, not only the seat's own (a news report). */
+      any?: boolean;
+    }
+  /** The seat's biggest battle fleet has lain in port at least `months`. */
+  | { is: "fleet_idle"; months: number }
+  /** What the seat's fleets did this chapter (the diary's fleet moment). */
+  | { is: "fleet_now"; now: GwFleetMoment };
 
 export type GwWorldEffect =
   /** Germany's plan for the war to come. */
@@ -896,7 +924,12 @@ export type GwWorldEffect =
   /** ww208 merge: the reward the player picked on a rally card (FP2). */
   | { do: "rally_reward"; reward: GwRallyReward }
   /** ww219: the redraw under way is aimed at that front (null: the staff's pick). */
-  | { do: "plan_redraw"; to: GwTheatre | null };
+  | { do: "plan_redraw"; to: GwTheatre | null }
+  /**
+   * ww221: the seat's biggest battle fleet is ordered out for the chapter's
+   * close ("full" or "part"), or kept in port ("stay"); a scene's sortie.
+   */
+  | { do: "fleet_sortie"; way: GwSortiePick };
 
 /** What a faction's rally is turned to: its own support, order, morale. */
 export const GW_RALLY_REWARDS = ["support", "order", "morale"] as const;
@@ -1227,6 +1260,17 @@ export const GwWorldCondSchema = z.union([
   // ww219
   is("war_plan", { now: z.enum(GW_WAR_PLAN_MOMENTS) }),
   is("plan_alt_can", { theatre }),
+  // ww221
+  is("fleet_battle", {
+    area: z.enum(GW_SEA_AREAS).optional(),
+    min: z.enum(["small", "big"]).optional(),
+    result: z.enum(["won", "lost", "even"]).optional(),
+    warned: z.boolean().optional(),
+    within: int.min(0).max(12).optional(),
+    any: z.boolean().optional(),
+  }),
+  is("fleet_idle", { months: int.min(1).max(60) }),
+  is("fleet_now", { now: z.enum(GW_FLEET_MOMENTS) }),
 ]) as unknown as z.ZodType<GwWorldCond>;
 
 export const GwWorldEffectSchema = z.union([
@@ -1388,6 +1432,8 @@ export const GwWorldEffectSchema = z.union([
   act("rally_reward", { reward: z.enum(GW_RALLY_REWARDS) }),
   // ww219
   act("plan_redraw", { to: theatre.nullable() }),
+  // ww221
+  act("fleet_sortie", { way: z.enum(GW_SORTIE_PICKS) }),
 ]) as unknown as z.ZodType<GwWorldEffect>;
 
 // ---- Authoring helpers ----

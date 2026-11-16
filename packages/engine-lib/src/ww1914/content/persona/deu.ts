@@ -2,6 +2,7 @@
 // (GwPersona.ts). The writer lane W-DEU owns this file and
 // resources/ww1914/ko/DEU.persona.json. Facts: ww196-facts.md (DEU): the GHQ
 // moves, the cabinet chiefs by date, the Kaiser's marginalia.
+import type { GwFleetMoment } from "@openfront/engine-api/ww1914/GwFleetPapers";
 import {
   GW_FOOLED_FRONTS,
   type GwBearer,
@@ -98,6 +99,10 @@ const d = (
 });
 
 // §0.6: the Kaiser's marginalia on the chapter's key paper.
+/** ww221: what the fleets did this chapter (Diary's fleet moment). */
+const fleetNow = (now: GwFleetMoment): GwCond =>
+  world({ is: "fleet_now", now });
+
 /** ww219: what the war plan did this chapter (Diary's plan moment). */
 const planNow = (now: GwWarPlanMoment): GwCond =>
   world({ is: "war_plan", now });
@@ -165,6 +170,14 @@ const DIARY: GwDiaryRow[] = [
   d("plan_hindsight", "plan", { when: planNow("hindsight") }),
   // ww219: an estimate of the foe that proved fooled (a surprise, a feint).
   d("fooled", "hindsight", { theatre: [...GW_FOOLED_FRONTS] }),
+  // ww221: the fleets: a battle, a third lost, months in port, a new ship.
+  d("fleet_won", "fleet", { when: fleetNow("won") }),
+  d("fleet_lost", "fleet", { when: fleetNow("lost") }),
+  d("fleet_even", "fleet", { when: fleetNow("even") }),
+  d("fleet_third_lost", "fleet", { when: fleetNow("third_lost") }),
+  d("fleet_idle", "fleet", { when: fleetNow("idle") }),
+  d("fleet_built", "fleet", { when: fleetNow("built") }),
+  d("fleet_fooled", "fleet", { when: fleetNow("fooled") }),
 ];
 
 export const DEU_PERSONA: GwPersonaContent = {

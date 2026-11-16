@@ -29,6 +29,7 @@ import type { GwAgentsView, GwPropView } from "./GwAgents";
 import type { GwBudgetView } from "./GwBudget";
 import type { GwTag } from "./GwCountries";
 import type { GwCraftView } from "./GwCraft";
+import type { GwFleetPaperView } from "./GwFleetPapers";
 import type { GwFleetTokenView } from "./GwFleets";
 import type { GwDossierView, GwHouseView } from "./GwHouse";
 import type { GwBookView, GwLawView } from "./GwLaw";
@@ -382,6 +383,8 @@ export interface GwWorldView {
   warPower?: GwWarPowerView;
   /** ww221: fleet tokens on the map (GwFleets.ts); absent out of war. */
   fleets?: readonly GwFleetTokenView[];
+  /** ww221: the Admiralty's papers to sign (GwFleetPapers.ts); absent with none. */
+  fleetPapers?: readonly GwFleetPaperView[];
 }
 
 /**

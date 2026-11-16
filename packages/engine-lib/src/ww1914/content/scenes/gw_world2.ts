@@ -183,8 +183,8 @@ const NEWS: readonly GwScene[] = [
     when: all(
       w({ is: "entered", tag: "GBR", side: "entente" }),
       w({ is: "entered", tag: "DEU", side: "central" }),
-      // The fleets come out once the blockade has held a year and a half.
-      months(18),
+      // ww221: only when the battle fleets really met in the North Sea.
+      w({ is: "fleet_battle", area: "north", min: "big", any: true }),
     ),
     salience: 5,
     tags: ["war"],
