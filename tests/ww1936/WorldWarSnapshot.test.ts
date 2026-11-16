@@ -493,12 +493,15 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
 // Re-pinned for the ww162 release (battle planner lines, need-driven line
 // planner, AI step 2, diplomacy, the AI's separate peace on held points):
 // two equal runs.
-const WW1936_DIGEST = "21a1bef2284f2d2a";
+// Re-pinned for ww226 (an ideology change is a civil war; ideology routes in
+// every tree; recycled civil-war slots) merged with ww228: two equal runs.
+const WW1936_DIGEST = "d82caad6b04bb0fa";
 /**
  * The same game on Easy (the lobby's default in this mode): the AI
  * handicaps and the slower war planning. Pinned with three equal runs.
+ * Re-pinned for the ww226 merge: two equal runs.
  */
-const WW1936_EASY_DIGEST = "a4ad594cc7a315c0";
+const WW1936_EASY_DIGEST = "a6b944bc6fc495ba";
 
 describe("World War 1936 stays deterministic", () => {
   // An all-AI game on the test map, long enough for the calendar's first
