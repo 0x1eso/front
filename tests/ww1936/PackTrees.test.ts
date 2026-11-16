@@ -4,6 +4,8 @@
 // country's; a pack's history path skips what the country cannot take.
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import {
+  CONTENT,
+  focusOpenTo,
   inTree,
   replacedInTree,
   treePosIn,
@@ -21,6 +23,29 @@ import { stepTo, wwRunner } from "./util";
 afterEach(() => usePoliticsContent(null));
 
 describe("World War 1936 P6: pack trees", () => {
+  it("ww228: a pack country is offered only the shared focuses and its own", () => {
+    const hun = CONTENT.countryIdx.get("HUN")!;
+    const ids = CONTENT.treeFocuses[hun.tree]
+      .map((i) => CONTENT.focuses[i])
+      .filter((f) => focusOpenTo(f, "HUN"))
+      .map((f) => f.id);
+    expect(ids).not.toContain("rou_ploiesti");
+    expect(CONTENT.focuses.some((f) => f.id === "rou_ploiesti")).toBe(true);
+    for (const i of CONTENT.treeFocuses[hun.tree]) {
+      const f = CONTENT.focuses[i];
+      expect(ids.includes(f.id)).toBe(
+        f.countries === undefined || f.countries.includes("HUN"),
+      );
+    }
+    const rou = CONTENT.countryIdx.get("ROU")!;
+    expect(
+      CONTENT.treeFocuses[rou.tree]
+        .map((i) => CONTENT.focuses[i])
+        .filter((f) => focusOpenTo(f, "ROU"))
+        .map((f) => f.id),
+    ).toContain("rou_ploiesti");
+  });
+
   it("a pack tree is the generic tree minus replaced focuses plus the pack's own", async () => {
     const content = depthFixture();
     usePoliticsContent(content);

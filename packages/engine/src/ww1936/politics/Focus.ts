@@ -10,6 +10,7 @@ import {
   type WwFocusCard,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import {
+  focusOpenTo,
   inTree,
   replacedInTree,
   treePosIn,
@@ -74,7 +75,7 @@ export function focusBlock(
     c === null ||
     f === undefined ||
     !inTree(pol.content, c.tree, focus) ||
-    (f.countries !== undefined && !f.countries.includes(c.tag))
+    !focusOpenTo(f, c.tag)
   ) {
     return "focus_unavailable";
   }

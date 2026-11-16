@@ -300,6 +300,18 @@ export function inTree(
   return c.posInTree[tree].has(id);
 }
 
+/**
+ * ww228: a country can ever take the focus in its tree: it names no
+ * countries (the pack's shared and the generic focuses) or names this tag.
+ * One rule for the engine's refusal, the AI and the focus panel.
+ */
+export function focusOpenTo(
+  f: { readonly countries?: readonly CountryTag[] },
+  tag: CountryTag,
+): boolean {
+  return f.countries === undefined || f.countries.includes(tag);
+}
+
 /** P6: a generic focus the tree's pack replaces (it counts as bypassed). */
 export function replacedInTree(
   c: ContentRegistry,
