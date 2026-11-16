@@ -49,6 +49,24 @@ const RALLY_DRIFT: Effect = {
   ],
 };
 
+// ---- ww229 MA2: the ruling party's own push stops at a ceiling ----
+// gen_rally and gen_suppress_opposition used to stack every 180 days on top
+// of the focuses, and every AI country's ruling party sat at 100% within two
+// years: no opposition was left for elections, crises or the ww226 routes.
+// The rally needs the ruling party below 60% (its 90 days of drift add about
+// 13.5 points), the purge below 75%.
+function rulingBelow(pct: number) {
+  return any(
+    ...(["democratic", "communist", "fascist", "neutral"] as const).map(
+      (ideology) =>
+        all(
+          { kind: "ruling", ideology },
+          not({ kind: "pop_ge", ideology, pct }),
+        ),
+    ),
+  );
+}
+
 // ---- gen_coup_*: the coup succeeds when the backed ideology reaches half the target's support ----
 const COUP_FAILED: Effect[] = [
   { kind: "stability", who: "target", pct: 5 },
@@ -61,6 +79,7 @@ export const GENERIC_DECISIONS: DecisionDef[] = [
     id: "gen_rally",
     category: "political",
     for: "any",
+    available: rulingBelow(60),
     cost: { pp: 50 },
     cooldownDays: 180,
     effects: [
@@ -73,7 +92,10 @@ export const GENERIC_DECISIONS: DecisionDef[] = [
     id: "gen_suppress_opposition",
     category: "political",
     for: "any",
-    available: not({ kind: "ruling", ideology: "democratic" }),
+    available: all(
+      not({ kind: "ruling", ideology: "democratic" }),
+      rulingBelow(75),
+    ),
     cost: { pp: 75 },
     cooldownDays: 180,
     effects: [
