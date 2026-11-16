@@ -157,6 +157,7 @@ import { PERSONS_SUN } from "./persons/sun";
 import { PERSONS_USA } from "./persons/usa";
 import { MR1_REACTIONS } from "./reactions/mr1";
 import type { ReactionDef } from "./reactions/types";
+import { MR2_REACTIONS } from "./reactions/west";
 import { REGION_GROUPS } from "./regionGroups";
 import { SPIRITS_DEU } from "./spirits/deu";
 import { SPIRITS_ENDGAME } from "./spirits/endgame";
@@ -821,7 +822,7 @@ export function joinReactions(
 }
 
 /** ww229 MR: every lane's reactions, in lane order. */
-export const REACTIONS: readonly ReactionDef[] = [MR1_REACTIONS];
+export const REACTIONS: readonly ReactionDef[] = [MR1_REACTIONS, MR2_REACTIONS];
 
 /** ww229: the 1936 content, the minors' national content and the majors' reactions joined. */
 export const CONTENT_PARTS: ContentParts = joinReactions(

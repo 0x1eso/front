@@ -132,13 +132,13 @@ export const CONTENT_TARGETS = {
   generic: 47,
   // ww229 MR1: + the reaction focuses (DEU 8, ITA 5, SUN 7).
   DEU: 112,
-  GBR: 145,
+  GBR: 152, // ww229 MR2: + 7 reactions to the minors
   SUN: 138,
   // P5 (P5 spec §18, pre-flight §0-12): the four new trees, 46 each.
   ITA: 107, // ww229 MR1 + 5; ww226 E: + the crown's own government (ita_royal_dictatorship)
-  JPN: 127,
-  FRA: 110,
-  USA: 133,
+  JPN: 134, // ww229 MR2: + 7
+  FRA: 115, // ww229 MR2: + 5
+  USA: 139, // ww229 MR2: + 6
   events: 124,
   decisions: 36,
   spirits: 65,

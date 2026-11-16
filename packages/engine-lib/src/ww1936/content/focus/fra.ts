@@ -10,7 +10,7 @@ import type {
   FocusDef,
   FocusId,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
-import { T, after, all, any, not } from "../helpers";
+import { T, after, all, any, exists, not } from "../helpers";
 
 export const FRA_FOCUSES: FocusDef[] = [
   // ---- A: politics, the historical road ----
@@ -1888,6 +1888,150 @@ export const FRA_FOCUSES: FocusDef[] = [
       { kind: "resource", where: { best: 1 }, res: "aluminium", amount: 3 },
     ],
     ai: { base: 10 },
+  },
+  // ---- ww229 MR2 (design ww227 §7): France's small allies ----
+  // The Little Entente's guarantees and arms, Belgium's neutrality, the
+  // Low Countries' border and the Pyrenees. Off the history path.
+  {
+    id: "fra_mr_entente_guarantees",
+    tree: "FRA",
+    x: 5,
+    y: 4,
+    days: 70,
+    branch: "diplomacy",
+    icon: "shield",
+    group: "fra_mr_minors",
+    prereq: [["fra_little_entente"]],
+    available: any(exists("CSK"), exists("ROU"), exists("YUG")),
+    effects: [
+      { kind: "guarantee", of: T("CSK") },
+      { kind: "guarantee", of: T("ROU") },
+      { kind: "guarantee", of: T("YUG") },
+    ],
+    ai: {
+      base: 10,
+      mods: [
+        { if: { kind: "threat_ge", of: T("DEU"), pct: 30 }, factor: 300 },
+        { if: { kind: "ruling", ideology: "fascist" }, factor: 0 },
+      ],
+    },
+  },
+  {
+    id: "fra_mr_entente_arms",
+    tree: "FRA",
+    x: 5,
+    y: 5,
+    days: 35,
+    branch: "army",
+    icon: "artillery",
+    group: "fra_mr_minors",
+    prereq: [["fra_mr_entente_guarantees"]],
+    effects: [
+      { kind: "send_equipment", to: T("ROU"), type: "artillery", count: 60 },
+      { kind: "send_equipment", to: T("YUG"), type: "artillery", count: 60 },
+      {
+        kind: "research_bonus",
+        who: T("ROU"),
+        branch: "artillery",
+        pct: 50,
+        uses: 1,
+      },
+      {
+        kind: "research_bonus",
+        who: T("YUG"),
+        branch: "artillery",
+        pct: 50,
+        uses: 1,
+      },
+      { kind: "opinion", who: T("ROU"), of: "self", value: 15, days: 730 },
+      { kind: "opinion", who: T("YUG"), of: "self", value: 15, days: 730 },
+    ],
+    ai: { base: 10 },
+  },
+  {
+    id: "fra_mr_belgian_question",
+    tree: "FRA",
+    x: 3,
+    y: 4,
+    days: 35,
+    branch: "diplomacy",
+    icon: "handshake",
+    group: "fra_mr_minors",
+    prereq: [["fra_eastern_alliances", "fra_channel_flotilla"]],
+    available: exists("BEL"),
+    effects: [
+      { kind: "opinion", of: T("BEL"), value: 15, days: 730 },
+      { kind: "unlock_decision", id: "fra_mr_belgian_alliance" },
+    ],
+    ai: {
+      base: 10,
+      mods: [{ if: { kind: "threat_ge", of: T("DEU"), pct: 30 }, factor: 200 }],
+    },
+  },
+  {
+    id: "fra_mr_low_countries_shield",
+    tree: "FRA",
+    x: 3,
+    y: 5,
+    days: 70,
+    branch: "army",
+    icon: "fort",
+    group: "fra_mr_minors",
+    prereq: [["fra_mr_belgian_question"]],
+    effects: [
+      { kind: "fort", where: { borderWith: T("BEL"), n: 2 }, amount: 1 },
+      { kind: "guarantee", of: T("BEL") },
+      { kind: "guarantee", of: T("NLD") },
+    ],
+    ai: {
+      base: 10,
+      mods: [
+        { if: { kind: "threat_ge", of: T("DEU"), pct: 30 }, factor: 200 },
+        {
+          if: {
+            kind: "focus_done",
+            who: T("NLD"),
+            id: "nld_greater_netherlands",
+          },
+          factor: 300,
+        },
+        { if: { kind: "ruling", ideology: "fascist" }, factor: 0 },
+      ],
+    },
+  },
+  {
+    id: "fra_mr_pyrenees",
+    tree: "FRA",
+    x: 2,
+    y: 4,
+    days: 70,
+    branch: "army",
+    icon: "fort",
+    group: "fra_mr_minors",
+    prereq: [
+      [
+        "fra_non_intervention",
+        "fra_popular_front_spain",
+        "fra_channel_flotilla",
+      ],
+    ],
+    effects: [
+      { kind: "fort", where: { borderWith: T("ESN"), n: 2 }, amount: 1 },
+      { kind: "war_support", pct: 2 },
+    ],
+    ai: {
+      base: 8,
+      mods: [
+        {
+          if: { kind: "flag", who: T("ESN"), flag: "esn_imperial_claims" },
+          factor: 400,
+        },
+        {
+          if: { kind: "focus_done", who: T("ESN"), id: "esn_iberian_crown" },
+          factor: 300,
+        },
+      ],
+    },
   },
 ];
 

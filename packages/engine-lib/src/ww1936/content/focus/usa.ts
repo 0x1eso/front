@@ -8,7 +8,7 @@ import type {
   FocusDef,
   FocusId,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
-import { T, after, all, any, done, flag, not } from "../helpers";
+import { T, after, all, any, done, exists, flag, not } from "../helpers";
 import { USA_FASCIST_FOCUSES, USA_OPEN_DEMOCRACY } from "./usa_fascist";
 
 // The 1936 depression spirit may already have been eased by the P3 event
@@ -1969,6 +1969,209 @@ export const USA_FOCUSES: FocusDef[] = [
     ai: { base: 8 },
   },
   ...USA_FASCIST_FOCUSES,
+  // ---- ww229 MR2 (design ww227 §7): the Good Neighbour tested ----
+  // The hemisphere's minors (aid, oil, guarantees) and China and Manchukuo.
+  // Off the history path; weighted by what the minors do.
+  {
+    id: "usa_mr_good_neighbour_tested",
+    tree: "USA",
+    x: 3,
+    y: 4,
+    days: 70,
+    branch: "diplomacy",
+    icon: "handshake",
+    group: "usa_mr_minors",
+    prereq: [["usa_pan_american_pact", "usa_good_neighbor"]],
+    effects: [
+      { kind: "opinion", who: T("MEX"), of: "self", value: 15, days: 1095 },
+      { kind: "opinion", who: T("BRA"), of: "self", value: 15, days: 1095 },
+      { kind: "opinion", who: T("ARG"), of: "self", value: 10, days: 1095 },
+      { kind: "unlock_decision", id: "usa_mr_hemisphere_aid" },
+    ],
+    ai: {
+      base: 10,
+      mods: [
+        {
+          if: { kind: "flag", who: T("BRA"), flag: "bra_axis_course" },
+          factor: 400,
+        },
+        {
+          if: { kind: "ruling", who: T("ARG"), ideology: "fascist" },
+          factor: 300,
+        },
+        {
+          if: { kind: "flag", who: T("MEX"), flag: "mex_axis_courted" },
+          factor: 400,
+        },
+      ],
+    },
+  },
+  {
+    id: "usa_mr_oil_settlement",
+    tree: "USA",
+    x: 2,
+    y: 5,
+    days: 35,
+    branch: "industry",
+    icon: "oil",
+    group: "usa_mr_minors",
+    prereq: [["usa_mr_good_neighbour_tested"]],
+    available: all(
+      { kind: "flag", who: T("MEX"), flag: "mex_oil_nationalised" },
+      not({ kind: "at_war_with", of: T("MEX") }),
+    ),
+    effects: [
+      { kind: "fuel", amount: 5000 },
+      { kind: "pp", who: T("MEX"), amount: 50 },
+      { kind: "opinion", of: T("MEX"), value: 20, days: 1095 },
+      { kind: "opinion", who: T("MEX"), of: "self", value: 25, days: 1095 },
+    ],
+    ai: {
+      base: 10,
+      mods: [
+        {
+          if: { kind: "flag", who: T("MEX"), flag: "mex_oil_deu" },
+          factor: 400,
+        },
+        {
+          if: { kind: "flag", who: T("MEX"), flag: "mex_oil_jpn" },
+          factor: 400,
+        },
+      ],
+    },
+  },
+  {
+    id: "usa_mr_brazil_partnership",
+    tree: "USA",
+    x: 3,
+    y: 5,
+    days: 70,
+    branch: "industry",
+    icon: "steel",
+    group: "usa_mr_minors",
+    prereq: [["usa_mr_good_neighbour_tested"]],
+    available: all(exists("BRA"), not({ kind: "at_war_with", of: T("BRA") })),
+    effects: [
+      {
+        kind: "research_bonus",
+        who: T("BRA"),
+        branch: "industry",
+        pct: 100,
+        uses: 1,
+      },
+      {
+        kind: "send_equipment",
+        to: T("BRA"),
+        type: "infantry_equipment",
+        count: 1000,
+      },
+      { kind: "opinion", who: T("BRA"), of: "self", value: 25, days: 1095 },
+    ],
+    ai: {
+      base: 10,
+      mods: [
+        {
+          if: { kind: "flag", who: T("BRA"), flag: "bra_axis_course" },
+          factor: 400,
+        },
+        {
+          if: { kind: "flag", who: T("BRA"), flag: "bra_krupp_order" },
+          factor: 200,
+        },
+      ],
+    },
+  },
+  {
+    id: "usa_mr_hemisphere_guarantees",
+    tree: "USA",
+    x: 4,
+    y: 5,
+    days: 70,
+    branch: "diplomacy",
+    icon: "shield",
+    group: "usa_mr_minors",
+    prereq: [["usa_mr_good_neighbour_tested"]],
+    effects: [
+      { kind: "guarantee", of: T("MEX") },
+      { kind: "guarantee", of: T("BRA") },
+      { kind: "guarantee", of: T("PAN") },
+    ],
+    ai: {
+      base: 8,
+      mods: [
+        { if: { kind: "threat_ge", of: T("DEU"), pct: 30 }, factor: 300 },
+        {
+          if: { kind: "focus_done", who: T("MEX"), id: "mex_isthmus_league" },
+          factor: 300,
+        },
+        { if: { kind: "ruling", ideology: "fascist" }, factor: 0 },
+      ],
+    },
+  },
+  {
+    id: "usa_mr_china_credits",
+    tree: "USA",
+    x: 5,
+    y: 4,
+    days: 70,
+    branch: "diplomacy",
+    icon: "document",
+    group: "usa_mr_minors",
+    prereq: [["usa_china_aid"]],
+    available: all(exists("CHN"), not({ kind: "at_war_with", of: T("CHN") })),
+    effects: [
+      {
+        kind: "send_equipment",
+        to: T("CHN"),
+        type: "infantry_equipment",
+        count: 2000,
+      },
+      { kind: "opinion", who: T("CHN"), of: "self", value: 20, days: 1095 },
+    ],
+    ai: {
+      base: 10,
+      mods: [
+        {
+          if: { kind: "at_war_with", who: T("CHN"), of: T("JPN") },
+          factor: 300,
+        },
+        {
+          if: { kind: "focus_done", who: T("CHN"), id: "chn_axis_partner" },
+          factor: 0,
+        },
+      ],
+    },
+  },
+  {
+    id: "usa_mr_non_recognition",
+    tree: "USA",
+    x: 6,
+    y: 4,
+    days: 35,
+    branch: "diplomacy",
+    icon: "scales",
+    group: "usa_mr_minors",
+    prereq: [["usa_china_aid", "usa_philippine_independence"]],
+    available: exists("MCK"),
+    effects: [
+      { kind: "opinion", of: T("MCK"), value: -25, days: 1095 },
+      { kind: "opinion", of: T("JPN"), value: -10, days: 730 },
+      { kind: "opinion", who: T("CHN"), of: "self", value: 15, days: 1095 },
+    ],
+    ai: {
+      base: 8,
+      mods: [
+        {
+          if: { kind: "focus_done", who: T("MCK"), id: "mck_dragon_throne" },
+          factor: 400,
+        },
+        {
+          if: { kind: "at_war_with", who: T("CHN"), of: T("JPN") },
+          factor: 200,
+        },
+      ],
+    },
+  },
 ];
 
 /** Spec §18.5 "역사 경로", in order (the alternatives are not on it). */

@@ -13,7 +13,18 @@ import type {
   FocusDef,
   FocusId,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
-import { after, all, any, done, fire, flag, gflag, not, T } from "../helpers";
+import {
+  after,
+  all,
+  any,
+  done,
+  exists,
+  fire,
+  flag,
+  gflag,
+  not,
+  T,
+} from "../helpers";
 import { JPN_SHOWA_FOCUSES, JPN_SHOWA_RULE } from "./jpn_showa";
 
 export const JPN_FOCUSES: FocusDef[] = [
@@ -1828,6 +1839,187 @@ export const JPN_FOCUSES: FocusDef[] = [
   },
   // The Showa Restoration (jpn_showa.ts).
   ...JPN_SHOWA_FOCUSES,
+  // ---- ww229 MR2 (design ww227 §7): Manchukuo's loyalty ----
+  // Puyi's state and its throne, the Indies' oil, the northern provinces and
+  // Mexican oil. Off the history path; weighted by what the minors do.
+  {
+    id: "jpn_mr_manchukuo_loyalty",
+    tree: "JPN",
+    x: 14,
+    y: 6,
+    days: 70,
+    branch: "politics",
+    icon: "flag",
+    group: "jpn_mr_minors",
+    prereq: [["jpn_kwantung_autonomy", "jpn_continental_railways"]],
+    available: { kind: "subject_of", who: T("MCK"), of: "self" },
+    effects: [
+      { kind: "stability", who: T("MCK"), pct: 5 },
+      { kind: "autonomy", who: T("MCK"), pct: -10 },
+      { kind: "opinion", who: T("MCK"), of: "self", value: 20, days: 1095 },
+    ],
+    ai: {
+      base: 10,
+      mods: [
+        {
+          if: { kind: "flag", who: T("MCK"), flag: "mck_kwantung_rebuffed" },
+          factor: 400,
+        },
+        {
+          if: { kind: "focus_done", who: T("MCK"), id: "mck_qing_restoration" },
+          factor: 300,
+        },
+      ],
+    },
+  },
+  {
+    id: "jpn_mr_concordia_officials",
+    tree: "JPN",
+    x: 13,
+    y: 7,
+    days: 35,
+    branch: "industry",
+    icon: "industry",
+    group: "jpn_mr_minors",
+    prereq: [["jpn_mr_manchukuo_loyalty"]],
+    available: { kind: "subject_of", who: T("MCK"), of: "self" },
+    effects: [
+      {
+        kind: "research_bonus",
+        who: T("MCK"),
+        branch: "industry",
+        pct: 50,
+        uses: 1,
+      },
+      {
+        kind: "build",
+        who: T("MCK"),
+        where: { best: 1 },
+        building: "civ",
+        count: 1,
+      },
+    ],
+    ai: { base: 8 },
+  },
+  {
+    id: "jpn_mr_crown_puyi",
+    tree: "JPN",
+    x: 15,
+    y: 7,
+    days: 70,
+    branch: "politics",
+    icon: "crown",
+    group: "jpn_mr_minors",
+    prereq: [["jpn_mr_manchukuo_loyalty"]],
+    exclusive: ["jpn_mr_kwantung_rule"],
+    available: { kind: "subject_of", who: T("MCK"), of: "self" },
+    effects: [
+      { kind: "stability", who: T("MCK"), pct: 5 },
+      { kind: "popularity", who: T("MCK"), ideology: "neutral", pp: 5 },
+      { kind: "autonomy", who: T("MCK"), pct: 10 },
+      { kind: "opinion", who: T("MCK"), of: "self", value: 30, days: 1095 },
+    ],
+    ai: {
+      base: 8,
+      mods: [
+        {
+          if: { kind: "focus_done", who: T("MCK"), id: "mck_qing_restoration" },
+          factor: 400,
+        },
+        { if: { kind: "ruling", ideology: "democratic" }, factor: 200 },
+      ],
+    },
+  },
+  {
+    id: "jpn_mr_kwantung_rule",
+    tree: "JPN",
+    x: 16,
+    y: 7,
+    days: 70,
+    branch: "army",
+    icon: "sword",
+    group: "jpn_mr_minors",
+    prereq: [["jpn_mr_manchukuo_loyalty"]],
+    exclusive: ["jpn_mr_crown_puyi"],
+    available: { kind: "subject_of", who: T("MCK"), of: "self" },
+    effects: [
+      { kind: "autonomy", who: T("MCK"), pct: -15 },
+      { kind: "stability", who: T("MCK"), pct: -5 },
+      { kind: "army_xp", amount: 10 },
+    ],
+    ai: {
+      base: 12,
+      mods: [
+        {
+          if: { kind: "flag", who: T("MCK"), flag: "mck_kwantung_rebuffed" },
+          factor: 300,
+        },
+        { if: { kind: "ruling", ideology: "fascist" }, factor: 150 },
+      ],
+    },
+  },
+  {
+    id: "jpn_mr_indies_oil_talks",
+    tree: "JPN",
+    x: 12,
+    y: 7,
+    days: 70,
+    branch: "diplomacy",
+    icon: "oil",
+    group: "jpn_mr_minors",
+    prereq: [["jpn_southern_resources"]],
+    available: exists("NLD"),
+    effects: [{ kind: "unlock_decision", id: "jpn_mr_demand_indies_oil" }],
+    ai: {
+      base: 10,
+      mods: [{ if: { kind: "fuel_ratio_below", pct: 50 }, factor: 300 }],
+    },
+  },
+  {
+    id: "jpn_mr_mexican_oil",
+    tree: "JPN",
+    x: 12,
+    y: 8,
+    days: 35,
+    branch: "industry",
+    icon: "oil",
+    group: "jpn_mr_minors",
+    prereq: [["jpn_mr_indies_oil_talks"]],
+    available: all(exists("MEX"), not({ kind: "at_war_with", of: T("MEX") })),
+    effects: [
+      { kind: "opinion", of: T("MEX"), value: 20, days: 730 },
+      { kind: "opinion", who: T("MEX"), of: "self", value: 20, days: 730 },
+      {
+        kind: "if",
+        cond: { kind: "flag", who: T("MEX"), flag: "mex_oil_jpn" },
+        then: [{ kind: "fuel", amount: 10_000 }],
+      },
+    ],
+    ai: {
+      base: 8,
+      mods: [
+        {
+          if: { kind: "flag", who: T("MEX"), flag: "mex_oil_jpn" },
+          factor: 400,
+        },
+        { if: { kind: "fuel_ratio_below", pct: 50 }, factor: 200 },
+      ],
+    },
+  },
+  {
+    id: "jpn_mr_north_china_demands",
+    tree: "JPN",
+    x: 8,
+    y: 5,
+    days: 35,
+    branch: "diplomacy",
+    icon: "document",
+    group: "jpn_mr_minors",
+    prereq: [["jpn_north_china_question"]],
+    available: exists("CHN"),
+    effects: [{ kind: "unlock_decision", id: "jpn_mr_demand_north_china" }],
+    ai: { base: 10 },
+  },
 ];
 
 /** Spec §18.3 history path (with the two renamed ids). */
