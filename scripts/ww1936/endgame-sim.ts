@@ -568,6 +568,10 @@ export async function runOne(
         markEvent("treaty");
         break;
       }
+      case "news_civil_war_seized":
+        // ww226: a change without a civil war (one region, or no slot).
+        row(day, "seized", String(params.tag), String(params.ideology));
+        break;
       case "news_uprising": {
         const r = Number(params.region);
         const c = tagOf(lastAdmin.get(r) ?? 0);

@@ -301,7 +301,8 @@ export const ENDGAME_EVENTS: EventDef[] = [
         ai: { base: 80 },
         effects: [
           { kind: "news", id: "news_golden_square" },
-          // ww226: the coup changes the cabinet, not the ideology (that is a civil war).
+          // ww226: Iraq stays non-aligned, so the armistice after it is no
+          // civil war on history's course.
           { kind: "set_leader", person: "title:irq_national_defence_head" },
           { kind: "popularity", ideology: "fascist", pp: 10 },
           { kind: "opinion", of: T("GBR"), value: -50, days: 730 },
@@ -896,8 +897,7 @@ export const ENDGAME_EVENTS: EventDef[] = [
         ai: { base: 90 },
         effects: [
           { kind: "news", id: "news_fatherland_front" },
-          // ww226: the front swings the country, not its ideology (that is a civil war).
-          { kind: "popularity", ideology: "communist", pp: 15 },
+          { kind: "set_government", ideology: "communist" },
           { kind: "switch_sides", to: T("SUN") },
         ],
       },
@@ -985,15 +985,13 @@ export const ENDGAME_EVENTS: EventDef[] = [
         ai: { base: 80 },
         effects: [
           { kind: "news", id: "news_hungary_coup" },
-          // ww226: Hungary is Germany's subject first; an overlord sets its
-          // subject's government (no civil war).
-          { kind: "make_subject", target: "from", level: "integrated" },
           { kind: "set_government", who: "from", ideology: "fascist" },
           {
             kind: "set_leader",
             who: "from",
             person: "title:hun_nation_leader",
           },
+          { kind: "make_subject", target: "from", level: "integrated" },
         ],
       },
       {

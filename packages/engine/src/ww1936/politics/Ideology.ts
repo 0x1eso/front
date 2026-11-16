@@ -6,6 +6,7 @@ import {
   IDEO_COM,
   IDEO_DEM,
   IDEO_FAS,
+  IDEO_NEU,
   IDEOLOGIES,
   PersonId,
   WW_CRISIS_COOLDOWN_DAYS,
@@ -260,8 +261,9 @@ export function setLeader(
  * rising against the government (spec §15). Returns the rebels' smallID,
  * 0 when none rose. Nothing changes when the ideology already rules, in the
  * Imjin War, or while the country is already one side of a civil war (that
- * war decides who rules). A country without land to fight over changes
- * government instead (riseOrSeize).
+ * war decides who rules). A non-aligned government (ww226, the owner's
+ * ruling) and a country without land to fight over change government
+ * instead.
  */
 export function civilWar(
   pol: WwPolitics,
@@ -277,11 +279,12 @@ export function civilWar(
   // (its court and uprisings are P4's).
   if (pol.ww.imjin) return 0;
   const eg = pol.ww.endgame;
-  if (!eg.isActor(id) || eg.isExile(id)) {
+  if (inCivilWar(eg, id)) return 0;
+  // ww226 (owner's ruling): a non-aligned government changes peacefully.
+  if (c.ruling === IDEO_NEU || !eg.isActor(id) || eg.isExile(id)) {
     setGovernment(pol, id, ideology, tick);
     return 0;
   }
-  if (inCivilWar(eg, id)) return 0;
   const rebels = startCivilWarSlot(eg, id, IDEOLOGIES[ideology], tick);
   if (rebels > 0) return rebels;
   setGovernment(pol, id, ideology, tick);
@@ -296,9 +299,10 @@ export function civilWar(
  * government's side rises as the rebels (spec §15; a human picks the side,
  * ww224). Returns the rebels' smallID, 0 when none rose. Nothing changes
  * when the ideology already rules or the country is already one side of a
- * civil war (that war decides who rules); a country without land to fight
- * over changes peacefully — an exile or one that no longer plays — or, with
- * a single region (or no civil-war slot free), with the strife and the news.
+ * civil war (that war decides who rules). A non-aligned government (the
+ * owner's ruling) changes peacefully, as does a country without land to
+ * fight over — an exile or one that no longer plays — or, with a single
+ * region (or no civil-war slot free), with the strife and the news.
  */
 export function seizePower(
   pol: WwPolitics,
@@ -311,11 +315,17 @@ export function seizePower(
     return 0;
   }
   const eg = pol.ww.endgame;
-  if (pol.ww.imjin || !eg.isActor(id) || eg.isExile(id)) {
+  if (!pol.ww.imjin && inCivilWar(eg, id)) return 0;
+  // ww226 (owner's ruling): a non-aligned government changes peacefully.
+  if (
+    c.ruling === IDEO_NEU ||
+    pol.ww.imjin ||
+    !eg.isActor(id) ||
+    eg.isExile(id)
+  ) {
     setGovernment(pol, id, ideology, tick);
     return 0;
   }
-  if (inCivilWar(eg, id)) return 0;
   const old = c.ruling;
   setGovernment(pol, id, ideology, tick);
   const rebels = startCivilWarSlot(eg, id, IDEOLOGIES[old], tick);

@@ -4,7 +4,11 @@ import { AIR_TYPES } from "@openfront/engine-api/ww1936/AirTypes";
 import { CIVIL_WAR_SLOTS } from "@openfront/engine-api/ww1936/Countries";
 import { equipKey } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { CS_ACTIVE } from "@openfront/engine-api/ww1936/EndgameTypes";
-import { IDEO_DEM, IDEO_FAS } from "@openfront/engine-api/ww1936/PoliticsTypes";
+import {
+  IDEO_DEM,
+  IDEO_FAS,
+  IDEO_NEU,
+} from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import type { EventDef } from "@openfront/engine-lib/ww1936/content/types";
 import {
@@ -24,6 +28,10 @@ import {
 } from "@openfront/engine/ww1936/endgame/CivilWar";
 import { makeSubject } from "@openfront/engine/ww1936/endgame/Subjects";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
+import {
+  applyEffects,
+  makeCtx,
+} from "@openfront/engine/ww1936/politics/Dispatch";
 import { civilWar } from "@openfront/engine/ww1936/politics/Ideology";
 import { setLawFree } from "@openfront/engine/ww1936/politics/Laws";
 import { addSpirit } from "@openfront/engine/ww1936/politics/Spirits";
@@ -671,6 +679,26 @@ describe("World War 1936 P5: civil wars (spec §15)", () => {
     ww.politics.queueEvent(GOV_EVENT.id, sun, sun, 0, 0);
     ww.politics.flushEvents(g.ticks());
     expect(eg.wars.length).toBe(wars);
+  }, 60_000);
+
+  it("ww226 (owner's ruling): a non-aligned government changes peacefully; fascist → non-aligned is a civil war", async () => {
+    const { g, ww, eg } = await started();
+    const pol = ww.politics;
+    const [deu, est, cw] = [endId("DEU"), endId("EST"), endId("CW1")];
+    pol.country(est)!.ruling = IDEO_NEU;
+    applyEffects(makeCtx(pol, est, est, 0, g.ticks()), [
+      { kind: "set_government", ideology: "fascist" },
+    ]);
+    expect(pol.country(est)!.ruling).toBe(IDEO_FAS);
+    expect(eg.wars).toEqual([]);
+    expect(eg.countryState(cw)).toBe("dormant");
+    expect(pol.country(deu)!.ruling).toBe(IDEO_FAS);
+    applyEffects(makeCtx(pol, deu, deu, 0, g.ticks()), [
+      { kind: "set_government", ideology: "neutral" },
+    ]);
+    expect(pol.country(deu)!.ruling).toBe(IDEO_NEU);
+    expect(pol.country(cw)!.ruling).toBe(IDEO_FAS);
+    expect(eg.war(eg.warOfPair(cw, deu))?.kind).toBe("civil");
   }, 60_000);
 
   it("ww226: a coup splits the target, its sponsor stands by the new government; an overlord sets its subject's government", async () => {

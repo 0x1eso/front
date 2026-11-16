@@ -134,7 +134,7 @@ export const CONTENT_TARGETS = {
   GBR: 145,
   SUN: 131,
   // P5 (P5 spec §18, pre-flight §0-12): the four new trees, 46 each.
-  ITA: 101,
+  ITA: 102, // ww226 E: + the crown's own government (ita_royal_dictatorship)
   JPN: 127,
   FRA: 110,
   USA: 133,

@@ -1170,6 +1170,25 @@ export const ITA_FOCUSES: FocusDef[] = [
     },
   },
   {
+    // ww226: the road off history's course: the crown keeps power itself,
+    // and the fascists rise against it (every change is a civil war).
+    id: "ita_royal_dictatorship",
+    tree: "ITA",
+    x: 4,
+    y: 11,
+    days: 35,
+    branch: "politics",
+    icon: "crown",
+    group: "ita_fascism_fate",
+    prereq: [["ita_badoglio_govt"]],
+    effects: [
+      { kind: "set_government", ideology: "neutral" },
+      { kind: "set_leader", person: "title:ita_military_premier" },
+      { kind: "stability", pct: -5 },
+    ],
+    ai: { base: 2 },
+  },
+  {
     id: "ita_armistice_cassibile",
     tree: "ITA",
     x: 3,

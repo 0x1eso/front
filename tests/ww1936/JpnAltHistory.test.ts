@@ -17,7 +17,6 @@ import {
   createGameRunner,
   type GameRunner,
 } from "@openfront/engine/GameRunner";
-import { endCivilWar } from "@openfront/engine/ww1936/endgame/CivilWar";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
 import { openOptions } from "@openfront/engine/ww1936/politics/Events";
 import { focusFinished } from "@openfront/engine/ww1936/politics/Focus";
@@ -167,7 +166,7 @@ const BASE_FIRST = ["jpn_kodoha_faction", "jpn_young_officers"];
 const wars = (r: GameRunner) => r.game.worldWar()!;
 
 describe("Showa Restoration on the real map", () => {
-  it("the rising seizes power from Japan's neutral start, and the old guard splits the country at once", async () => {
+  it("the rising seizes power from Japan's neutral start, and the old guard splits the country", async () => {
     const r = await jpnGame();
     const c = me(r);
     expect(c.ruling).toBe(IDEO_NEU);
@@ -187,7 +186,11 @@ describe("Showa Restoration on the real map", () => {
     expect(c.ruling).toBe(IDEO_FAS);
     expect(c.hasFlag("jpn_regime_seized", 0)).toBe(true);
     expect(c.hasSpirit("jpn_showa_restoration")).toBe(true);
-    // ww226: the seizure itself splits the country, the old guard rising.
+    expect(civilWars(r)).toHaveLength(0); // the focus itself starts nothing
+    // The seizure wakes the old establishment (the backlash).
+    expect(c.pop[IDEO_NEU]).toBeGreaterThanOrEqual(2000);
+    run(r, 4000);
+    expect(count(r, REVOLT)).toBeGreaterThanOrEqual(1);
     expect(crisis).toBe(0);
     const w = civilWars(r);
     expect(w).toHaveLength(1);
