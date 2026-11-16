@@ -79,6 +79,58 @@ export function addPopularity(pop: number[], i: number, delta: number): void {
   pop[i] += d;
 }
 
+/**
+ * ww233 (owner's rule): the share a focus, decision, event, daily drift or
+ * an operative's campaign can lift an ideology to. 85% leaves the other
+ * three at least 15% between them: enough for an election to swing, a
+ * regime crisis to build and a ww226 civil war to have a side. A government
+ * change (at least 50%) and a civil war's split are not capped, and a share
+ * already above it (a 1936 start) stays: only new gains stop.
+ */
+export const WW_POP_GAIN_CEILING_BP = 8500;
+
+/**
+ * addPopularity under the ww233 ceiling: a gain for `i` stops at
+ * `ceiling`; a loss is taken in full, but no other ideology is lifted past
+ * the ceiling (or past its own share before, when that was higher) by it:
+ * the excess goes to the remaining two by their shares (evenly when both
+ * are 0). The sum stays exactly 10,000.
+ */
+export function addPopularityCapped(
+  pop: number[],
+  i: number,
+  delta: number,
+  ceiling: number = WW_POP_GAIN_CEILING_BP,
+): void {
+  let d = Math.trunc(delta);
+  if (d > 0) d = Math.min(d, Math.max(0, ceiling - pop[i]));
+  if (d === 0) return;
+  if (d > 0) {
+    addPopularity(pop, i, d);
+    return;
+  }
+  const before = [pop[0], pop[1], pop[2], pop[3]];
+  addPopularity(pop, i, d);
+  for (let j = 0; j < 4; j++) {
+    if (j === i) continue;
+    const excess = pop[j] - Math.max(before[j], ceiling);
+    if (excess <= 0) continue;
+    let a = -1;
+    let b = -1;
+    for (let k = 0; k < 4; k++) {
+      if (k === i || k === j) continue;
+      if (a < 0) a = k;
+      else b = k;
+    }
+    const tot = pop[a] + pop[b];
+    const toA =
+      tot === 0 ? Math.trunc(excess / 2) : Math.trunc((excess * pop[a]) / tot);
+    pop[j] -= excess;
+    pop[a] += toA;
+    pop[b] += excess - toA;
+  }
+}
+
 /** Largest ideology other than `ruling` (ties: lower index). */
 export function largestOther(pop: readonly number[], ruling: number): number {
   let best = -1;

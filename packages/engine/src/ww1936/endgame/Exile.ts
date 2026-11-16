@@ -60,26 +60,46 @@ function hasLand(eg: WwEndgame, id: number): boolean {
 }
 
 /**
- * Spec §10.2: among `victor`'s enemies that still play on their own land
- * (not `loser`, not capitulated, not exiles): the loser's faction (its
- * leader first), a guarantor, a member of its side in one of its wars,
- * else the most factories (civilian + military; ties the smaller smallID).
- * 0: no host.
+ * Spec §10.2, ww233 (owner's rule): who may host `loser`. Any country at
+ * war with `victor` or with another of the loser's enemies (its enemies'
+ * enemies: Britain fighting Germany hosts a Poland that fell to the USSR),
+ * itself not at war with the loser, that still plays on its own land (not
+ * capitulated, not an exile).
  */
-export function pickHost(eg: WwEndgame, loser: number, victor: number): number {
-  const pol = eg.ww.politics;
-  if (victor === 0) return 0;
-  const cands = eg.ww
-    .enemiesOf(victor)
+function hostCandidates(
+  eg: WwEndgame,
+  loser: number,
+  victor: number,
+): number[] {
+  const ww = eg.ww;
+  const pool = new Set<number>(ww.enemiesOf(victor));
+  for (const e of ww.enemiesOf(loser)) {
+    for (const h of ww.enemiesOf(e)) pool.add(h);
+  }
+  return [...pool]
     .filter(
       (h) =>
         h !== loser &&
+        h !== victor &&
+        !ww.isAtWar(loser, h) &&
         eg.countryStateArr[h] === CS_ACTIVE &&
         !eg.ww.isCapitulated(h) &&
         !eg.isExile(h) &&
         hasLand(eg, h),
     )
     .sort((a, b) => a - b);
+}
+
+/**
+ * Spec §10.2: among the host candidates (above): the loser's faction (its
+ * leader first), a guarantor, a member of its side in one of its wars,
+ * else the strongest, by the most factories (civilian + military; ties the
+ * smaller smallID). 0: no host.
+ */
+export function pickHost(eg: WwEndgame, loser: number, victor: number): number {
+  const pol = eg.ww.politics;
+  if (victor === 0) return 0;
+  const cands = hostCandidates(eg, loser, victor);
   if (cands.length === 0) return 0;
   const byF = (a: number, b: number) =>
     eg.factoriesOf(b) - eg.factoriesOf(a) || a - b;

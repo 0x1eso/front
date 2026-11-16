@@ -16,6 +16,7 @@ import {
 import { dateOfDay, dayOfDateIn } from "@openfront/engine-lib/ww1936/Calendar";
 import {
   addPopularity,
+  addPopularityCapped,
   largestOther,
 } from "@openfront/engine-lib/ww1936/PoliticsRules";
 import { inCivilWar, startCivilWarSlot } from "../endgame/CivilWar";
@@ -63,7 +64,10 @@ export function dailyIdeology(
   const c = pol.country(id)!;
   for (let i = 0; i < 4; i++) {
     const d = c.stats[DRIFT_KEYS[i]];
-    if (d !== 0) addPopularity(c.pop, i, d);
+    if (d === 0) continue;
+    // ww233: the spirits' drift stops at the ceiling too (not in the Imjin War).
+    if (pol.ww.imjin) addPopularity(c.pop, i, d);
+    else addPopularityCapped(c.pop, i, d);
   }
   // ww177 P4 (lane I4a): the Imjin courts hold no elections and have no
   // regime crisis; Joseon's court shift is its own scene (imjin/JoseonMing).
