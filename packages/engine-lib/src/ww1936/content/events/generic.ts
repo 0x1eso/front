@@ -38,7 +38,8 @@ export const GENERIC_EVENTS: EventDef[] = [
         id: "b",
         available: all(not(DEM_MAJORITY), OTHER_MAJORITY),
         effects: [{ kind: "set_government", ideology: "largest_other" }],
-        ai: { base: 70 },
+        // ww226: the winners' government is a civil war now: 70 → 40.
+        ai: { base: 40 },
       },
       {
         id: "c",
@@ -48,7 +49,8 @@ export const GENERIC_EVENTS: EventDef[] = [
           { kind: "popularity", ideology: "democratic", pp: 5 },
           { kind: "elections", postponeDays: 365 },
         ],
-        ai: { base: 30 },
+        // ww226: 30 → 60 (postponing is the safer road).
+        ai: { base: 60 },
       },
       {
         id: "d",
