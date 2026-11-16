@@ -106,7 +106,7 @@ export const AUS_SPIRITS: readonly SpiritDef[] = [
     },
   },
   {
-    id: "aus_pacific_power",
+    id: "aus_sp_pacific_power",
     icon: "star_plain",
     stats: {
       warSupportBp: 300,
@@ -162,7 +162,7 @@ export const AUS_SPIRITS: readonly SpiritDef[] = [
     },
   },
   {
-    id: "aus_independent_companies",
+    id: "aus_sp_independent_companies",
     icon: "sword",
     stats: {
       reconPct: 10,
@@ -186,7 +186,7 @@ export const AUS_SPIRITS: readonly SpiritDef[] = [
     },
   },
   {
-    id: "aus_graving_dock",
+    id: "aus_sp_graving_dock",
     icon: "factory",
     stats: {
       repairPct: 15,
@@ -223,7 +223,7 @@ export const AUS_SPIRITS: readonly SpiritDef[] = [
     },
   },
   {
-    id: "aus_allied_base",
+    id: "aus_sp_allied_base",
     icon: "globe",
     stats: {
       reinforcePct: 10,

@@ -1771,7 +1771,7 @@ export const AUS_FOCUSES: readonly FocusDef[] = [
     effects: [
       {
         kind: "add_spirit",
-        id: "aus_pacific_power",
+        id: "aus_sp_pacific_power",
       },
       {
         kind: "pp",
@@ -2644,7 +2644,7 @@ export const AUS_FOCUSES: readonly FocusDef[] = [
     effects: [
       {
         kind: "add_spirit",
-        id: "aus_independent_companies",
+        id: "aus_sp_independent_companies",
       },
     ],
     ai: {
@@ -2954,7 +2954,7 @@ export const AUS_FOCUSES: readonly FocusDef[] = [
       },
       {
         kind: "add_spirit",
-        id: "aus_graving_dock",
+        id: "aus_sp_graving_dock",
       },
     ],
     ai: {
@@ -3463,7 +3463,7 @@ export const AUS_FOCUSES: readonly FocusDef[] = [
       },
       {
         kind: "add_spirit",
-        id: "aus_allied_base",
+        id: "aus_sp_allied_base",
       },
     ],
     ai: {
