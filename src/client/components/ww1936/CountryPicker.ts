@@ -4,6 +4,7 @@ import {
   COUNTRY_TAGS,
   CountryTag,
   isDormantTag,
+  isImjinTag,
   MAJOR_TAGS,
 } from "@openfront/engine-api/ww1936/Countries";
 import { assetUrl } from "@openfront/shared/AssetUrls";
@@ -202,7 +203,9 @@ export class CountryPicker extends LitElement {
                   (t) =>
                     COUNTRIES[t].group === g &&
                     !COUNTRIES[t].major &&
-                    !isDormantTag(t),
+                    !isDormantTag(t) &&
+                    // ww234: nor the Imjin War's Jurchen (its seats are its profile's).
+                    !isImjinTag(t),
                 ).map((t) => this.row(t))}
               </div>
             </section>`,
