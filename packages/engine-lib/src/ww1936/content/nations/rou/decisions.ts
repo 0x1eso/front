@@ -4,7 +4,7 @@
 // rou_oil_leverage opens the embargo on Germany. The Crown and the Legion
 // pull the balance of power. Data only.
 import type { DecisionDef } from "@openfront/engine-api/ww1936/PoliticsTypes";
-import { all, exists, flag, not, T } from "../../helpers";
+import { all, any, exists, flag, not, T } from "../../helpers";
 
 export const ROU_DECISIONS: DecisionDef[] = [
   {
@@ -14,12 +14,24 @@ export const ROU_DECISIONS: DecisionDef[] = [
     locked: true,
     available: { kind: "ruling", ideology: "neutral" },
     cost: { pp: 50 },
-    cooldownDays: 180,
+    cooldownDays: 120,
     effects: [
       { kind: "bop", amount: -100 },
       { kind: "stability", pct: 3 },
     ],
-    ai: { base: 10 },
+    // The crown leans on decrees when the Legion holds the street.
+    ai: {
+      base: 5,
+      mods: [
+        {
+          if: any(
+            { kind: "bop_range", tag: "ROU", band: 3 },
+            { kind: "bop_range", tag: "ROU", band: 4 },
+          ),
+          factor: 400,
+        },
+      ],
+    },
   },
   {
     id: "rou_legion_concession",

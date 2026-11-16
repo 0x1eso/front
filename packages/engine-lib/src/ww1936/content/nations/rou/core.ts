@@ -78,7 +78,7 @@ export const CORE_ROU: NationCore = {
   bop: [
     {
       tag: "ROU",
-      startPm: 100,
+      startPm: 0,
       spirits: [
         "rou_bop_royal_dictatorship",
         "rou_bop_crown_holds",
