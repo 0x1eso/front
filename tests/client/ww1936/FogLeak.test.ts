@@ -961,6 +961,15 @@ describe("fog leaks (spec §8.9)", () => {
       "hud/ww1936/ArmyHudModel.ts",
       "hud/ww1936/LandSelection.ts",
       "hud/ww1936/WwAirZoneCard.ts",
+      // ww225: the news ticker watches every army only to spot a retreat, and
+      // shows a line only when I own the army or fought it (owner/foe is me).
+      "hud/ww1936/WwNewsTicker.ts",
+      // ww225: a convoy group shows only when mine or inside my own fleet's
+      // sight (convoyGroupsShown); its fleets read is only my fleets.
+      "render/gl/passes/ConvoyFxPass.ts",
+      // ww225: a naval battle marker shows only when a fleet in it is visible
+      // through fogOfNavy (fleetView(..).visible).
+      "render/gl/passes/NavalBattleMarkerPass.ts",
       "hud/ww1936/WwNukeFlow.ts",
       "hud/ww1936/DepthMiscModel.ts",
       // T1b review: my volunteers, the volunteers serving in my country

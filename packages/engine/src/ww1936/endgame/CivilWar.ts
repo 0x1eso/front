@@ -50,7 +50,7 @@ import { governmentLeader, setGovernment } from "../politics/Ideology";
 import { setLawFree } from "../politics/Laws";
 import { addSpirit } from "../politics/Spirits";
 import { activateCountry } from "./Activate";
-import { offerTakeover } from "./Exile";
+import { offerCivilWarSide, offerTakeover } from "./Exile";
 import { makeSubject } from "./Subjects";
 import type { WwEndgame } from "./WwEndgame";
 
@@ -153,6 +153,8 @@ export function startCivilWar(
   pol.recomputeStats(X);
   pol.markGlobal();
   eg.news("news_civil_war", { tag, ideology });
+  // ww224: X's human picks the side to lead (the government by default).
+  offerCivilWarSide(eg, X, slot, tick);
   return true;
 }
 

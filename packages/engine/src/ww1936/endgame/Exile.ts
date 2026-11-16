@@ -686,6 +686,43 @@ export function offerTakeover(
 }
 
 /**
+ * ww224: a civil war split a human's country (or the Spanish war began
+ * with one side human): its human gets a side card, the same 30 s takeover
+ * card with two rows — the side it plays now (first: the default when the
+ * time runs out) and the other side, when that one is AI. `rebel` names
+ * the rebels' side for the card's words. No card when both sides are human.
+ */
+export function offerCivilWarSide(
+  eg: WwEndgame,
+  gov: number,
+  rebel: number,
+  tick: number,
+): void {
+  for (const [from, other] of [
+    [gov, rebel],
+    [rebel, gov],
+  ] as const) {
+    const client = eg.humanClientOf(from);
+    if (client === null) continue;
+    if (eg.isHumanControlled(other) || !eg.isActor(other)) continue;
+    eg.takeoverCards = eg.takeoverCards.filter((c) => c.client !== client);
+    eg.takeoverCards.push({
+      client,
+      from,
+      candidates: [from, other],
+      deadlineTick:
+        tick + wwRealTicks(eg.mg.config().gameConfig(), WW_TAKEOVER_CARD_TICKS),
+      pick: 0,
+      rebel,
+    });
+    eg.takeoverCards.sort((a, b) =>
+      a.client < b.client ? -1 : a.client > b.client ? 1 : 0,
+    );
+    eg.dirtyTakeover = true;
+  }
+}
+
+/**
  * Spec §11.3 (plan decision 35), order 8: in clientID order, every card
  * picked or past its deadline — the pick (else the first candidate) when
  * no human has it and it still plays, else the first such candidate left,
@@ -703,6 +740,20 @@ export function resolveTakeovers(eg: WwEndgame, tick: number): void {
   const free = (id: number) =>
     id > 0 && !eg.isHumanControlled(id) && eg.isActor(id);
   for (const c of due) {
+    // ww224: a side card — staying (the default) changes nothing; the
+    // other side, while it still plays on its own, is taken over. The
+    // country left behind plays on under the AI with its event cards.
+    if (c.rebel !== undefined) {
+      const to = c.pick > 0 ? c.pick : c.from;
+      if (to === c.from || !free(to)) continue;
+      eg.setControl(c.client, to);
+      eg.messageAll("ww1936_takeover", {
+        client: c.client,
+        fromTag: eg.ww.tagOf(c.from),
+        toTag: eg.ww.tagOf(to),
+      });
+      continue;
+    }
     const first = c.pick > 0 ? c.pick : (c.candidates[0] ?? 0);
     const to = free(first) ? first : (c.candidates.find(free) ?? 0);
     const old = pol.country(c.from);

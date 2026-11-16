@@ -15,6 +15,7 @@ import { addPopularity } from "@openfront/engine-lib/ww1936/PoliticsRules";
 import type { GameRunner } from "@openfront/engine/GameRunner";
 import { snapshotGame } from "@openfront/engine/snapshot/GameSnapshot";
 import { saveDesign } from "@openfront/engine/ww1936/depth/Designs";
+import { declareWar } from "@openfront/engine/ww1936/Diplomacy";
 import { drawPlanes } from "@openfront/engine/ww1936/economy/Buildings";
 import {
   endCivilWar,
@@ -462,6 +463,66 @@ describe("World War 1936 P5: civil wars (spec §15)", () => {
     const b = await wwRestore(a, HUMANS, END_MAP);
     expect(b.game.worldWar()!.endgame.countryState(cw)).toBe("active");
     lockstep(a, b, 60);
+  }, 60_000);
+
+  it("ww224: a human's split offers a side card; the rebels' pick moves the control, no pick keeps the government", async () => {
+    const [sun, cw] = [endId("SUN"), endId("CW1")];
+    // Picking the rebels: the human leads them; the government is the AI's.
+    const a = await started(HUMANS);
+    expect(startCivilWar(a.eg, sun, "fascist", a.g.ticks())).toBe(true);
+    const card = a.eg.takeoverCards.find((c) => c.client === "HUMANSUN")!;
+    expect(card).toMatchObject({ from: sun, candidates: [sun, cw], rebel: cw });
+    expect(a.eg.takeData()!.takeover).toEqual([
+      expect.objectContaining({ client: "HUMANSUN", rebel: cw }),
+    ]);
+    expect(a.eg.takeoverPickBy("HUMANSUN", endId("FRA"), a.g.ticks())).toBe(
+      "no_takeover",
+    );
+    expect(a.eg.takeoverPickBy("HUMANSUN", cw, a.g.ticks())).toBeNull();
+    step(a.runner, 2);
+    expect(a.eg.takeoverCards).toEqual([]);
+    expect(a.eg.controlledBy("HUMANSUN")).toBe(cw);
+    expect(a.eg.humanClientOf(cw)).toBe("HUMANSUN");
+    expect(a.eg.isHumanControlled(sun)).toBe(false);
+    // The rebels lose: the takeover path follows as before (no faction
+    // for the rebels, so no candidate: spectating).
+    endCivilWar(a.eg, a.eg.warOfPair(cw, sun), 1, a.g.ticks());
+    expect(a.eg.takeoverCards).toEqual([]);
+    expect(a.eg.controlledBy("HUMANSUN")).toBe(0);
+    // No pick: when the 30 s run out the human keeps the government.
+    const b = await started(HUMANS);
+    expect(startCivilWar(b.eg, sun, "fascist", b.g.ticks())).toBe(true);
+    const due = b.eg.takeoverCards[0].deadlineTick;
+    stepTo(b.runner, due + 2);
+    expect(b.eg.takeoverCards).toEqual([]);
+    expect(b.eg.controlledBy("HUMANSUN")).toBeNull();
+    expect(b.eg.humanClientOf(sun)).toBe("HUMANSUN");
+    expect(b.eg.isHumanControlled(cw)).toBe(false);
+    // The Spanish war goes the same way (the end map has no Spain: France
+    // stands in for the Nationalists, the human Soviet Union for the Republic).
+    const c = await started(HUMANS);
+    const fra = endId("FRA");
+    const realTag = c.ww.scenario.tagOfSmallId.bind(c.ww.scenario);
+    vi.spyOn(c.ww.scenario, "tagOfSmallId").mockImplementation((id) =>
+      id === fra ? "ESN" : id === sun ? "ESR" : realTag(id),
+    );
+    const players = [fra, sun].map((id) => c.g.playerBySmallID(id));
+    declareWar(
+      c.g,
+      c.ww,
+      players[0] as never,
+      players[1] as never,
+      c.g.ticks(),
+    );
+    vi.restoreAllMocks();
+    expect(c.eg.takeoverCards).toEqual([
+      expect.objectContaining({
+        client: "HUMANSUN",
+        from: sun,
+        candidates: [sun, fra],
+        rebel: fra,
+      }),
+    ]);
   }, 60_000);
 
   it("the Spanish pair's civil war end queues esp_civil_war_ends", async () => {

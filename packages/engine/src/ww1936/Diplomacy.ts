@@ -128,7 +128,15 @@ export function declareWar(
     ...(war !== undefined ? { war } : {}),
     ...(g !== undefined ? { goal: { type: g.type, group: g.group } } : {}),
   };
-  if (ww.setWar(a, b, tick, link)) joined.push(b);
+  if (ww.setWar(a, b, tick, link)) {
+    joined.push(b);
+    // ww224: the Spanish war is a civil war — a human Spain picks a side
+    // (the Republic is the government, the Nationalists the rebels).
+    if (war === "civil" && isSpanishPair(ww, a, b)) {
+      const esr = ww.scenario.tagOfSmallId(a) === "ESR" ? a : b;
+      ww.endgame.offerCivilWarSide(esr, esr === a ? b : a, tick);
+    }
+  }
   const warId = ww.endgame.warOfPair(a, b);
   const faction = ww.factionOf(b);
   if (faction !== null) {

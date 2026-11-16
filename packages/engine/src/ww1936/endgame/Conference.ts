@@ -1049,7 +1049,9 @@ export function finishConference(
       client !== null &&
       !back &&
       !eg.isActor(L) &&
-      !eg.takeoverCards.some((x) => x.client === client)
+      !eg.takeoverCards.some(
+        (x) => x.client === client && x.rebel === undefined,
+      )
     ) {
       offerTakeover(eg, client, L, tick);
     }
