@@ -50,7 +50,7 @@ describe("CHN and CCP share their moments", () => {
     const d = CONTENT.decisions.find(
       (x) => x.id === "chn_dec_blockade_border_region",
     )!;
-    expect(fires(d.effects, blockade.id)).toBe(true);
+    expect(fires(d.effects ?? [], blockade.id)).toBe(true);
     // Only while the united front stands (no 1936 blockade).
     expect(JSON.stringify(d.available)).toContain("chn_sp_front_uneasy");
   });
