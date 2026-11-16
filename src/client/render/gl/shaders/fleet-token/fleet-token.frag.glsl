@@ -8,6 +8,8 @@ precision highp float;
 //     repair) and a red dot when short of fuel; the chosen fleet's outline
 //     breathes. No ensigns, no insignia: colour and silhouette only.
 //   1 chip: the ship count in the country's colour (zoomed out).
+//   ww221 (Great War 1914): flag 4 puts a "~" by the count (an estimate),
+//     flag 8 a "?" in its place (nothing known), on a token or a chip.
 //   2 text chip: up to five atlas glyphs on a dark, green, red or owner chip.
 //     ww162: a style past 3 also carries (bits 2-8) a strength bar under
 //     the chip, ‰ / 10 + 1, and (bits 9+) a count badge at its top left (an
@@ -101,6 +103,36 @@ vec4 glow(vec4 col, float d) {
   return over(col, GLOW, g * (0.6 + 0.25 * sin(uTime * 3.5)));
 }
 
+// ww221: the "~" of an estimate, `w` px wide, centred on c (white on a dark rim).
+vec4 tilde(vec4 col, vec2 p, vec2 c, float w) {
+  vec2 q = p - c;
+  float k = 6.2831853 / w;
+  float a = w * 0.16;
+  float slope = -a * k * cos(q.x * k);
+  float d = abs(q.y + a * sin(q.x * k)) / sqrt(1.0 + slope * slope) - w * 0.1;
+  d = max(d, abs(q.x) - w * 0.5);
+  col = over(col, vec3(0.05), 0.75 * cover(d - 1.0));
+  return over(col, vec3(1.0), cover(d));
+}
+
+// ww221: a "?" `h` px high centred on c (white on a dark rim).
+vec4 question(vec4 col, vec2 p, vec2 c, float h) {
+  vec2 q = (p - c) / h;
+  float t = 0.075;
+  vec2 a = q - vec2(0.0, -0.18);
+  float ang = atan(a.y, a.x);
+  // The hook: a ring open at its lower left (y grows down).
+  float dHook = abs(length(a) - 0.2) - t;
+  if (ang > 1.5708) dHook = 1.0;
+  // The stem from the hook's bottom, then the dot.
+  vec2 s = q - vec2(0.0, clamp(q.y, 0.02, 0.16));
+  float dStem = length(s) - t;
+  float dDot = length(q - vec2(0.0, 0.34)) - t * 1.2;
+  float d = min(min(dHook, dStem), dDot) * h;
+  col = over(col, vec3(0.05), 0.75 * cover(d - 1.2));
+  return over(col, vec3(1.0), cover(d));
+}
+
 float glyphAt(int i) {
   if (i == 0) return vB.x;
   if (i == 1) return vB.y;
@@ -126,6 +158,9 @@ void main() {
   if (kind < 1.5) {
     int state = int(vC.y + 0.5);
     bool chosen = mod(vC.z, 2.0) > 0.5;
+    int tokenFlags = int(vC.z + 0.5);
+    bool approx = (tokenFlags & 4) != 0;
+    bool unknown = (tokenFlags & 8) != 0;
     if (kind < 0.5) {
       float dBox = sdBox(p, vec2(22.0, 11.0), 3.0);
       if (chosen) col = glow(col, sdBox(p - vec2(0.0, 3.5), vec2(23.0, 15.0), 4.0));
@@ -134,7 +169,9 @@ void main() {
       // The silhouette, darkened a little below so white reads on pale colours.
       col = over(col, vec3(0.0), 0.25 * cover(sdBox(p - vec2(-7.0, 0.0), vec2(13.5, 6.5), 3.0)));
       if (vB.x >= 0.0) col = overCell(col, p, vec2(-7.0, -1.0), 30.0, vB.x);
-      if (vB.y >= 0.0) col = number(col, p, vec2(13.5, 0.5), vB.y, 17.0);
+      if (unknown) col = question(col, p, vec2(13.5, 0.5), 17.0);
+      else if (vB.y >= 0.0) col = number(col, p, vec2(13.5, 0.5), vB.y, 17.0);
+      if (approx) col = tilde(col, p, vec2(11.5, -9.0), 9.0);
 
       float dBars = sdBox(p - vec2(0.0, 16.0), vec2(22.0, 3.6), 1.0);
       col = over(col, vec3(0.0), 0.72 * cover(dBars));
@@ -154,7 +191,11 @@ void main() {
       if (chosen) col = glow(col, dBox);
       col = over(col, edge, cover(dBox));
       col = over(col, terr, cover(dBox + 1.25));
-      if (vB.y >= 0.0) col = number(col, p, vec2(0.0, 0.5), vB.y, 15.0);
+      if (unknown) col = question(col, p, vec2(0.0, 0.5), 15.0);
+      else if (approx) {
+        col = tilde(col, p, vec2(-8.0, 0.5), 7.0);
+        if (vB.y >= 0.0) col = number(col, p, vec2(3.5, 0.5), vB.y, 15.0);
+      } else if (vB.y >= 0.0) col = number(col, p, vec2(0.0, 0.5), vB.y, 15.0);
       if ((state & ST_BATTLE) != 0) {
         float d = length(p - vec2(12.0, -7.0)) - 3.2;
         col = over(col, vec3(0.1), cover(d - 1.0));

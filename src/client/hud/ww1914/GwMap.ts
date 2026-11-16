@@ -7,6 +7,12 @@ import type { TransformHandler } from "../../TransformHandler";
 import type { GameView } from "../../view";
 import type { GwMapApi, GwSpot } from "./GwCtx";
 import {
+  GW_FLEET_TAP_PX,
+  type GwFleetPlacement,
+  type GwFleetSource,
+  hitGwFleet,
+} from "./GwFleetModel";
+import {
   GW_TOKEN_TAP_PX,
   type GwTokenPlacement,
   type GwTokenSource,
@@ -112,6 +118,31 @@ export class GwMap implements GwMapApi {
       w.y,
       GW_TOKEN_TAP_PX / zoom,
     );
+  }
+
+  /**
+   * ww221 §3: the fleet token within 24 px of a screen point, with its
+   * squared distance in tiles (a tap between a fleet and an army takes the nearer).
+   */
+  fleetAt(
+    source: GwFleetSource,
+    x: number,
+    y: number,
+  ): { at: GwFleetPlacement; d2: number } | null {
+    const zoom = Math.max(this.transform.scale, 1e-6);
+    const w = this.transform.screenToWorldCoordinatesFloat(x, y);
+    return hitGwFleet(
+      source.placements(zoom),
+      w.x,
+      w.y,
+      GW_FLEET_TAP_PX / zoom,
+    );
+  }
+
+  /** ww221: the squared distance in tiles from a screen point to a token's middle. */
+  tileDist2(x: number, y: number, at: { x: number; y: number }): number {
+    const w = this.transform.screenToWorldCoordinatesFloat(x, y);
+    return (at.x + 0.5 - w.x) ** 2 + (at.y + 0.5 - w.y) ** 2;
   }
 
   /** The land under a screen point, or null for the sea and off the map. */

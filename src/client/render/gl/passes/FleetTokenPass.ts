@@ -16,6 +16,10 @@
  *
  * Instances are rewritten only when the layout moved or the view, the
  * choice or the viewer changed; nothing is allocated per frame.
+ *
+ * ww221 §3 (Great War 1914): setDirectRows feeds the same program, atlas
+ * and putToken from a plain list of rows (DirectFleetRow) instead of a
+ * WwNavyView; a pass fed that way never calls update().
  */
 
 import type {
@@ -62,6 +66,10 @@ export const ST_LOW_FUEL = 4;
 /** Token flags. */
 export const TOKEN_CHOSEN = 1;
 export const TOKEN_DOCKED = 2;
+/** ww221: the count is an estimate: "~" by it (fleet-token.frag.glsl). */
+export const TOKEN_APPROX = 4;
+/** ww221: nothing is known of the count: "?" in its place. */
+export const TOKEN_UNKNOWN = 8;
 /** Text chip styles. */
 export const TEXT_DARK = 0;
 export const TEXT_GREEN = 1;
@@ -449,6 +457,49 @@ export function fleetStateBits(state: string, flags: number): number {
   return s;
 }
 
+/**
+ * ww221 §3: one fleet token fed directly (Great War 1914), in tile
+ * coordinates after any fan-out. Bars and the count -1: unknown (grey, "?").
+ */
+export interface DirectFleetRow {
+  x: number;
+  y: number;
+  /** KIND_TOKEN or KIND_CHIP. */
+  kind: number;
+  /** Palette index: the owner's smallID. */
+  owner: number;
+  /** Silhouette cell (SHIP_CELL); -1 none. */
+  cell: number;
+  ships: number;
+  hpPm: number;
+  orgPm: number;
+  /** Mission badge cell; -1 none. */
+  mission: number;
+  /** ST_* bits: battle, repair. */
+  state: number;
+  chosen: boolean;
+  docked: boolean;
+  /** The "~" of an estimate. */
+  approx: boolean;
+  /** "?" for the count. */
+  unknown: boolean;
+}
+
+/** ww221: a direct row's token flags (chosen, docked, "~", "?"). */
+export function directFleetFlags(r: DirectFleetRow): number {
+  return (
+    (r.chosen ? TOKEN_CHOSEN : 0) |
+    (r.docked ? TOKEN_DOCKED : 0) |
+    (r.approx && !r.unknown ? TOKEN_APPROX : 0) |
+    (r.unknown ? TOKEN_UNKNOWN : 0)
+  );
+}
+
+/** What the renderer asks each frame: the same array while nothing changed. */
+export interface DirectFleetSource {
+  rows(zoom: number): readonly DirectFleetRow[];
+}
+
 /** ww177: an Imjin ship's silhouette, screen px. */
 const IMJIN_SHIP_PX = 14;
 
@@ -567,6 +618,34 @@ export class FleetTokenPass {
       }
     }
     b.upload();
+  }
+
+  /**
+   * ww221 §3: the instances are exactly `rows` (the chosen one last, on
+   * top); the 1936 path through update() is untouched.
+   */
+  setDirectRows(rows: readonly DirectFleetRow[]): void {
+    const b = this.batch;
+    b.begin(rows.length);
+    for (const r of rows) if (!r.chosen) this.putDirect(r);
+    for (const r of rows) if (r.chosen) this.putDirect(r);
+    b.upload();
+  }
+
+  private putDirect(r: DirectFleetRow): void {
+    this.batch.putToken(
+      r.x,
+      r.y,
+      r.kind,
+      r.owner,
+      r.cell,
+      r.unknown ? -1 : r.ships,
+      r.hpPm,
+      r.orgPm,
+      r.mission,
+      r.state,
+      directFleetFlags(r),
+    );
   }
 
   private cacheAttrs(fleets: readonly FleetSummary[], view: WwNavyView): void {
