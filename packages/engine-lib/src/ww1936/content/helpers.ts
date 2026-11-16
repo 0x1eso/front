@@ -13,6 +13,7 @@ import type {
 import type {
   AiWeight,
   FocusId,
+  HistoryBeat,
   Ideology,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { WW_TECHS } from "../WwTechs";
@@ -102,4 +103,191 @@ export function nationRouteAi(ideology: Ideology, bias = 1): AiWeight {
       },
     ],
   };
+}
+
+/**
+ * ww229 MR: the effects of the first case whose condition holds, as a
+ * chain of `if`s (none holds: nothing). For a reaction whose minor is
+ * whichever one founded the bloc.
+ */
+export function firstOf(
+  cases: readonly (readonly [Condition, readonly Effect[]])[],
+): Effect {
+  const [[cond, then], ...rest] = cases;
+  return {
+    kind: "if",
+    cond,
+    then: [...then],
+    ...(rest.length > 0 ? { else: [firstOf(rest)] } : {}),
+  };
+}
+
+/** ww229 MR: the minor is there and not at war with the major. */
+function mrOpen(tag: CountryTag): Condition {
+  return all(exists(tag), not({ kind: "at_war_with", of: T(tag) }));
+}
+
+/**
+ * ww229 MR (design ww227 §7): a major courts a minor: goodwill both ways,
+ * rifles, and technical help for its factories (the licence offer).
+ */
+export function mrCourt(tag: CountryTag): Effect {
+  return {
+    kind: "if",
+    cond: mrOpen(tag),
+    then: [
+      { kind: "opinion", who: T(tag), of: "self", value: 25, days: 730 },
+      { kind: "opinion", of: T(tag), value: 15, days: 730 },
+      {
+        kind: "send_equipment",
+        to: T(tag),
+        type: "infantry_equipment",
+        count: 1500,
+      },
+      {
+        kind: "research_bonus",
+        who: T(tag),
+        branch: "industry",
+        pct: 25,
+        uses: 1,
+      },
+    ],
+  };
+}
+
+/** ww229 MR: a major guarantees a minor. */
+export function mrGuard(tag: CountryTag): Effect {
+  return {
+    kind: "if",
+    cond: mrOpen(tag),
+    then: [
+      { kind: "guarantee", of: T(tag) },
+      { kind: "opinion", who: T(tag), of: "self", value: 20, days: 730 },
+    ],
+  };
+}
+
+/** ww229 MR: a major opposes a minor with a war goal (a claim names its group). */
+export function mrOppose(
+  tag: CountryTag,
+  type: "conquer" | "claim" | "topple",
+  group?: string,
+): Effect {
+  return {
+    kind: "if",
+    cond: mrOpen(tag),
+    then: [
+      { kind: "war_goal", on: T(tag), type, ...(group ? { group } : {}) },
+      { kind: "tension", pct: 2 },
+      { kind: "opinion", who: T(tag), of: "self", value: -30, days: 730 },
+    ],
+  };
+}
+
+type Mods = NonNullable<AiWeight["mods"]>;
+
+/** ww229 MR: kin governments court each other; so do friends and allies. */
+export function mrCourtAi(
+  tag: CountryTag,
+  base = 30,
+  extra: Mods = [],
+): AiWeight {
+  const m = T(tag);
+  return {
+    base,
+    mods: [
+      ...(["fascist", "communist", "democratic"] as const).map((ideology) => ({
+        if: all(
+          { kind: "ruling", ideology },
+          { kind: "ruling", who: m, ideology },
+        ),
+        factor: 300,
+      })),
+      { if: { kind: "opinion_ge", of: m, value: 30 }, factor: 150 },
+      { if: { kind: "same_faction", of: m }, factor: 300 },
+      { if: { kind: "at_war_with", of: m }, factor: 0 },
+      ...extra,
+    ],
+  };
+}
+
+/**
+ * ww229 MR: a strong neighbour opposes, a democracy rarely and an ally
+ * never; a major already at war has other worries.
+ */
+export function mrOpposeAi(
+  tag: CountryTag,
+  base = 15,
+  extra: Mods = [],
+): AiWeight {
+  const m = T(tag);
+  return {
+    base,
+    mods: [
+      { if: { kind: "neighbor_of", of: m }, factor: 200 },
+      { if: { kind: "strength_ratio_ge", vs: m, permille: 3000 }, factor: 200 },
+      { if: { kind: "ruling", ideology: "democratic" }, factor: 10 },
+      { if: { kind: "at_war" }, factor: 30 },
+      { if: { kind: "same_faction", of: m }, factor: 0 },
+      { if: { kind: "opinion_ge", of: m, value: 30 }, factor: 30 },
+      ...extra,
+    ],
+  };
+}
+
+/** ww229 MR: democracies guarantee; a major at war or a minor in a camp, rarely. */
+export function mrGuardAi(
+  tag: CountryTag,
+  base = 15,
+  extra: Mods = [],
+): AiWeight {
+  const m = T(tag);
+  return {
+    base,
+    mods: [
+      { if: { kind: "ruling", ideology: "democratic" }, factor: 300 },
+      { if: { kind: "at_war" }, factor: 50 },
+      { if: { kind: "in_faction", who: m }, factor: 30 },
+      { if: { kind: "at_war_with", of: m }, factor: 0 },
+      ...extra,
+    ],
+  };
+}
+
+/** ww229 MR: the country is `tag`. */
+export const isTag = (tag: CountryTag): Condition => ({ kind: "tag", tag });
+/** ww229 MR: set a flag on the country. */
+export const setFlag = (f: string): Effect => ({ kind: "set_flag", flag: f });
+
+/**
+ * ww229 MR: a historical AI's reaction focus: a "focus" beat that waits for
+ * its situation (`when`) the whole war, from the first spring.
+ */
+export function focusBeat(
+  id: string,
+  actor: CountryTag,
+  focus: FocusId,
+  when: Condition,
+): HistoryBeat {
+  return {
+    id,
+    date: "1936-03-01",
+    actor,
+    act: { kind: "focus", id: focus },
+    when,
+    windowDays: 3300,
+  };
+}
+
+/** ww229 MA2: the ruling party holds less than `pct` percent. */
+export function rulingBelow(pct: number): Condition {
+  return any(
+    ...(["democratic", "communist", "fascist", "neutral"] as const).map(
+      (ideology) =>
+        all(
+          { kind: "ruling", ideology },
+          not({ kind: "pop_ge", ideology, pct }),
+        ),
+    ),
+  );
 }

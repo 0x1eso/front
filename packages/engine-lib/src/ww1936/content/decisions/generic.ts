@@ -6,7 +6,7 @@
 import { WW_MAX_SLOTS } from "@openfront/engine-api/ww1936/EconomyTypes";
 import type { Effect } from "@openfront/engine-api/ww1936/PoliticsDsl";
 import type { DecisionDef } from "@openfront/engine-api/ww1936/PoliticsTypes";
-import { all, any, not, techExchange } from "../helpers";
+import { all, any, not, rulingBelow, techExchange } from "../helpers";
 
 // ---- gen_tech_exchange: "the faction leader has a technology we lack", branch by branch ----
 // Research overhaul (changes §2.6): every researchable tech of the branch,
@@ -54,18 +54,7 @@ const RALLY_DRIFT: Effect = {
 // of the focuses, and every AI country's ruling party sat at 100% within two
 // years: no opposition was left for elections, crises or the ww226 routes.
 // The rally needs the ruling party below 60% (its 90 days of drift add about
-// 13.5 points), the purge below 75%.
-function rulingBelow(pct: number) {
-  return any(
-    ...(["democratic", "communist", "fascist", "neutral"] as const).map(
-      (ideology) =>
-        all(
-          { kind: "ruling", ideology },
-          not({ kind: "pop_ge", ideology, pct }),
-        ),
-    ),
-  );
-}
+// 13.5 points), the purge below 75% (helpers.rulingBelow).
 
 // ---- gen_coup_*: the coup succeeds when the backed ideology reaches half the target's support ----
 const COUP_FAILED: Effect[] = [

@@ -7,7 +7,31 @@ import type {
   FocusDef,
   FocusId,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
-import { after, all, any, done, exists, gflag, not, T } from "../helpers";
+import {
+  after,
+  all,
+  any,
+  done,
+  exists,
+  firstOf,
+  gflag,
+  mrCourt,
+  mrOppose,
+  not,
+  T,
+} from "../helpers";
+import {
+  DANUBE_CSK,
+  DANUBE_HUN,
+  DEU_DANUBE_OPEN,
+  DEU_NORTH_OPEN,
+  DEU_SOUTHEAST_OPEN,
+  ENTENTE_ROU,
+  HABSBURG,
+  NORDIC_FIN,
+  NORDIC_SWE,
+  ORE_EMBARGO,
+} from "../reactions/mr1Conds";
 
 export const DEU_FOCUSES: FocusDef[] = [
   // ---- A: politics and diplomacy (historical) ----
@@ -1922,5 +1946,241 @@ export const DEU_BRANCHES: BranchPoint[] = [
     historical: "deu_loyalty_oath",
     alternatives: ["deu_valkyrie"],
     political: true,
+  },
+];
+
+/**
+ * ww229 MR1 (design ww227 §7): Germany's answers to the minors' moves,
+ * below the tree (rows 18-19). Each opens when the minors' content makes
+ * it a question; the event Berlin answers first sets the AI's side
+ * (mr_*_court / mr_*_oppose). Joined after the minors (registry.ts
+ * joinReactions), never in the Imjin content.
+ */
+export const DEU_MR_FOCUSES: FocusDef[] = [
+  {
+    id: "deu_mr_danubian_question",
+    tree: "DEU",
+    x: 2,
+    y: 18,
+    days: 35,
+    branch: "diplomacy",
+    icon: "map",
+    group: "deu_reactions",
+    available: DEU_DANUBE_OPEN,
+    effects: [
+      { kind: "pp", amount: 50 },
+      { kind: "stability", pct: 2 },
+    ],
+    ai: { base: 25 },
+  },
+  {
+    id: "deu_mr_case_otto",
+    tree: "DEU",
+    x: 1,
+    y: 19,
+    days: 35,
+    branch: "army",
+    icon: "sword",
+    group: "deu_reactions",
+    prereq: [["deu_mr_danubian_question"]],
+    exclusive: ["deu_mr_danube_clearing"],
+    effects: [
+      firstOf([
+        [any(HABSBURG, DANUBE_HUN), [mrOppose("HUN", "topple")]],
+        [DANUBE_CSK, [mrOppose("CSK", "topple")]],
+        [ENTENTE_ROU, [mrOppose("ROU", "topple")]],
+        [{ kind: "always", value: true }, [mrOppose("CSK", "topple")]],
+      ]),
+      { kind: "army_xp", amount: 15 },
+      { kind: "war_support", pct: 5 },
+    ],
+    ai: {
+      base: 5,
+      mods: [
+        {
+          if: any(
+            { kind: "flag", flag: "mr_danube_oppose" },
+            { kind: "flag", flag: "mr_entente_oppose" },
+          ),
+          factor: 1000,
+        },
+        { if: { kind: "ruling", ideology: "democratic" }, factor: 0 },
+      ],
+    },
+  },
+  {
+    id: "deu_mr_danube_clearing",
+    tree: "DEU",
+    x: 3,
+    y: 19,
+    days: 35,
+    branch: "diplomacy",
+    icon: "handshake",
+    group: "deu_reactions",
+    prereq: [["deu_mr_danubian_question"]],
+    exclusive: ["deu_mr_case_otto"],
+    effects: [
+      { kind: "opinion", who: T("HUN"), of: "self", value: 20, days: 730 },
+      { kind: "opinion", who: T("ROU"), of: "self", value: 20, days: 730 },
+      { kind: "opinion", who: T("YUG"), of: "self", value: 20, days: 730 },
+      { kind: "opinion", who: T("BGR"), of: "self", value: 20, days: 730 },
+      { kind: "pp", amount: 25 },
+      { kind: "stability", pct: 2 },
+    ],
+    ai: {
+      base: 10,
+      mods: [
+        {
+          if: any(
+            { kind: "flag", flag: "mr_danube_court" },
+            { kind: "flag", flag: "mr_entente_court" },
+          ),
+          factor: 1000,
+        },
+      ],
+    },
+  },
+  {
+    id: "deu_mr_northern_ore",
+    tree: "DEU",
+    x: 6,
+    y: 18,
+    days: 35,
+    branch: "industry",
+    icon: "steel",
+    group: "deu_reactions",
+    available: DEU_NORTH_OPEN,
+    effects: [{ kind: "pp", amount: 35 }],
+    ai: { base: 25 },
+  },
+  {
+    id: "deu_mr_salzgitter",
+    tree: "DEU",
+    x: 5,
+    y: 19,
+    days: 70,
+    branch: "industry",
+    icon: "mine",
+    group: "deu_reactions",
+    prereq: [["deu_mr_northern_ore"]],
+    effects: [
+      { kind: "resource", where: { coreBest: 1 }, res: "steel", amount: 3 },
+    ],
+    ai: { base: 15, mods: [{ if: ORE_EMBARGO, factor: 300 }] },
+  },
+  {
+    id: "deu_mr_ore_for_arms",
+    tree: "DEU",
+    x: 7,
+    y: 19,
+    days: 35,
+    branch: "diplomacy",
+    icon: "handshake",
+    group: "deu_reactions",
+    prereq: [["deu_mr_northern_ore"]],
+    exclusive: ["deu_mr_northern_pressure"],
+    effects: [
+      mrCourt("SWE"),
+      {
+        kind: "if",
+        cond: all(exists("SWE"), not({ kind: "at_war_with", of: T("SWE") })),
+        then: [
+          {
+            kind: "send_equipment",
+            to: T("SWE"),
+            type: "artillery",
+            count: 150,
+          },
+          { kind: "send_equipment", to: T("SWE"), type: "fighter", count: 40 },
+        ],
+      },
+    ],
+    ai: {
+      base: 10,
+      mods: [
+        {
+          if: any(
+            { kind: "flag", flag: "mr_ore_court" },
+            { kind: "flag", flag: "mr_nordic_court" },
+          ),
+          factor: 1000,
+        },
+      ],
+    },
+  },
+  {
+    id: "deu_mr_northern_pressure",
+    tree: "DEU",
+    x: 8,
+    y: 19,
+    days: 35,
+    branch: "army",
+    icon: "sword",
+    group: "deu_reactions",
+    prereq: [["deu_mr_northern_ore"]],
+    exclusive: ["deu_mr_ore_for_arms"],
+    effects: [
+      firstOf([
+        [any(ORE_EMBARGO, NORDIC_SWE), [mrOppose("SWE", "topple")]],
+        [NORDIC_FIN, [mrOppose("FIN", "topple")]],
+        [{ kind: "always", value: true }, [mrOppose("NOR", "topple")]],
+      ]),
+      { kind: "army_xp", amount: 10 },
+      { kind: "navy_xp", amount: 10 },
+    ],
+    ai: {
+      base: 5,
+      mods: [
+        {
+          if: any(
+            { kind: "flag", flag: "mr_ore_oppose" },
+            { kind: "flag", flag: "mr_nordic_oppose" },
+          ),
+          factor: 1000,
+        },
+        { if: { kind: "ruling", ideology: "democratic" }, factor: 0 },
+      ],
+    },
+  },
+  {
+    id: "deu_mr_southeast_oil",
+    tree: "DEU",
+    x: 11,
+    y: 18,
+    days: 35,
+    branch: "diplomacy",
+    icon: "oil",
+    group: "deu_reactions",
+    available: DEU_SOUTHEAST_OPEN,
+    effects: [
+      {
+        kind: "if",
+        cond: all(exists("ROU"), not({ kind: "at_war_with", of: T("ROU") })),
+        then: [
+          {
+            kind: "send_equipment",
+            to: T("ROU"),
+            type: "artillery",
+            count: 100,
+          },
+          { kind: "send_equipment", to: T("ROU"), type: "fighter", count: 20 },
+          { kind: "opinion", who: T("ROU"), of: "self", value: 25, days: 730 },
+        ],
+      },
+      {
+        kind: "if",
+        cond: all(exists("TUR"), not({ kind: "at_war_with", of: T("TUR") })),
+        then: [
+          {
+            kind: "send_equipment",
+            to: T("TUR"),
+            type: "artillery",
+            count: 100,
+          },
+          { kind: "opinion", who: T("TUR"), of: "self", value: 20, days: 730 },
+        ],
+      },
+    ],
+    ai: { base: 20 },
   },
 ];

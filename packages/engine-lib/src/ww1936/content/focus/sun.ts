@@ -12,7 +12,34 @@ import type {
   FocusDef,
   FocusId,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
-import { after, any, done, fire, flag, gflag, not, T } from "../helpers";
+import {
+  after,
+  all,
+  any,
+  done,
+  exists,
+  fire,
+  firstOf,
+  flag,
+  gflag,
+  mrCourt,
+  mrGuard,
+  mrOppose,
+  not,
+  T,
+} from "../helpers";
+import {
+  DANUBE_CSK,
+  FIN_REFUSED,
+  INTERMARIUM,
+  NORDIC_FIN,
+  NORDIC_SWE,
+  RED_BGR,
+  RED_YUG,
+  SUN_BALTIC_OPEN,
+  SUN_COMRADES_OPEN,
+  SUN_STRAITS_OPEN,
+} from "../reactions/mr1Conds";
 import { SUN_BONAPARTE_FOCUSES } from "./sun_bonaparte";
 
 /** Every spirit the purge gives: the three stages and the eight control focuses'. */
@@ -2102,5 +2129,189 @@ export const SUN_BRANCHES: readonly BranchPoint[] = [
     historical: "sun_ocean_fleet",
     alternatives: ["sun_coastal_defence"],
     political: false,
+  },
+];
+
+/**
+ * ww229 MR1 (design ww227 §7): the Soviet answers to the minors' moves,
+ * below the tree (rows 18-19): Baltic security, the straits, the Balkan
+ * comrades. Joined after the minors (registry.ts joinReactions).
+ */
+export const SUN_MR_FOCUSES: FocusDef[] = [
+  {
+    id: "sun_mr_baltic_security",
+    tree: "SUN",
+    x: 2,
+    y: 18,
+    days: 35,
+    branch: "diplomacy",
+    icon: "shield",
+    group: "sun_reactions",
+    available: SUN_BALTIC_OPEN,
+    effects: [
+      { kind: "pp", amount: 50 },
+      { kind: "army_xp", amount: 10 },
+    ],
+    ai: { base: 25 },
+  },
+  {
+    id: "sun_mr_buffer_pacts",
+    tree: "SUN",
+    x: 1,
+    y: 19,
+    days: 35,
+    branch: "diplomacy",
+    icon: "dove",
+    group: "sun_reactions",
+    prereq: [["sun_mr_baltic_security"]],
+    exclusive: ["sun_mr_northern_war_plan"],
+    effects: [
+      {
+        kind: "if",
+        cond: all(exists("FIN"), not({ kind: "at_war_with", of: T("FIN") })),
+        then: [
+          { kind: "nap", of: T("FIN") },
+          { kind: "opinion", who: T("FIN"), of: "self", value: 20, days: 730 },
+        ],
+      },
+      {
+        kind: "if",
+        cond: all(exists("POL"), not({ kind: "at_war_with", of: T("POL") })),
+        then: [
+          { kind: "nap", of: T("POL") },
+          { kind: "opinion", who: T("POL"), of: "self", value: 20, days: 730 },
+        ],
+      },
+    ],
+    ai: {
+      base: 10,
+      mods: [
+        {
+          if: any(flag("mr_nordic_court"), flag("mr_intermarium_court")),
+          factor: 1000,
+        },
+      ],
+    },
+  },
+  {
+    id: "sun_mr_northern_war_plan",
+    tree: "SUN",
+    x: 3,
+    y: 19,
+    days: 35,
+    branch: "army",
+    icon: "sword",
+    group: "sun_reactions",
+    prereq: [["sun_mr_baltic_security"]],
+    exclusive: ["sun_mr_buffer_pacts"],
+    effects: [
+      firstOf([
+        [
+          any(FIN_REFUSED, NORDIC_FIN),
+          [mrOppose("FIN", "claim", "karelian_isthmus")],
+        ],
+        [INTERMARIUM, [mrOppose("POL", "topple")]],
+        [NORDIC_SWE, [mrOppose("FIN", "claim", "karelian_isthmus")]],
+        [{ kind: "always", value: true }, [mrOppose("FIN", "topple")]],
+      ]),
+      { kind: "army_xp", amount: 15 },
+      { kind: "war_support", pct: 5 },
+    ],
+    ai: {
+      base: 5,
+      mods: [
+        {
+          if: any(flag("mr_nordic_oppose"), flag("mr_intermarium_oppose")),
+          factor: 1000,
+        },
+        { if: { kind: "ruling", ideology: "democratic" }, factor: 0 },
+      ],
+    },
+  },
+  {
+    id: "sun_mr_straits_question",
+    tree: "SUN",
+    x: 5,
+    y: 18,
+    days: 35,
+    branch: "diplomacy",
+    icon: "ship",
+    group: "sun_reactions",
+    available: SUN_STRAITS_OPEN,
+    effects: [
+      { kind: "pp", amount: 35 },
+      { kind: "navy_xp", amount: 10 },
+    ],
+    ai: { base: 25 },
+  },
+  {
+    id: "sun_mr_straits_bases",
+    tree: "SUN",
+    x: 4,
+    y: 19,
+    days: 35,
+    branch: "army",
+    icon: "sword",
+    group: "sun_reactions",
+    prereq: [["sun_mr_straits_question"]],
+    exclusive: ["sun_mr_black_sea_pact"],
+    effects: [
+      mrOppose("TUR", "claim", "turkish_straits"),
+      { kind: "tension", pct: 2 },
+      { kind: "army_xp", amount: 10 },
+    ],
+    ai: {
+      base: 5,
+      mods: [
+        { if: flag("mr_straits_oppose"), factor: 1000 },
+        { if: { kind: "ruling", ideology: "democratic" }, factor: 0 },
+      ],
+    },
+  },
+  {
+    id: "sun_mr_black_sea_pact",
+    tree: "SUN",
+    x: 6,
+    y: 19,
+    days: 35,
+    branch: "diplomacy",
+    icon: "handshake",
+    group: "sun_reactions",
+    prereq: [["sun_mr_straits_question"]],
+    exclusive: ["sun_mr_straits_bases"],
+    effects: [
+      {
+        kind: "if",
+        cond: all(exists("TUR"), not({ kind: "at_war_with", of: T("TUR") })),
+        then: [
+          { kind: "nap", of: T("TUR") },
+          { kind: "opinion", who: T("TUR"), of: "self", value: 30, days: 730 },
+        ],
+      },
+      { kind: "pp", amount: 25 },
+    ],
+    ai: {
+      base: 10,
+      mods: [{ if: flag("mr_straits_court"), factor: 1000 }],
+    },
+  },
+  {
+    id: "sun_mr_balkan_comrades",
+    tree: "SUN",
+    x: 8,
+    y: 18,
+    days: 35,
+    branch: "diplomacy",
+    icon: "star_plain",
+    group: "sun_reactions",
+    available: SUN_COMRADES_OPEN,
+    effects: [
+      firstOf([
+        [RED_YUG, [mrGuard("YUG"), mrCourt("YUG")]],
+        [RED_BGR, [mrGuard("BGR"), mrCourt("BGR")]],
+        [DANUBE_CSK, [mrGuard("CSK"), mrCourt("CSK")]],
+      ]),
+    ],
+    ai: { base: 25 },
   },
 ];
