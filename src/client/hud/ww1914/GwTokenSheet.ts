@@ -6,6 +6,11 @@
 import type { GwTheatre } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import { gwCountry } from "@openfront/engine-api/ww1914/GwCountries";
+import type {
+  GwFleetTokenView,
+  GwSeaArea,
+} from "@openfront/engine-api/ww1914/GwFleets";
+import type { GwOrder } from "@openfront/engine-api/ww1914/GwOrders";
 import {
   gwEtaWord,
   type GwTokenMove,
@@ -16,8 +21,10 @@ import { html, nothing, type TemplateResult } from "lit";
 import { translateText } from "../../Utils";
 import type { GwCtx } from "./GwCtx";
 import { gwName } from "./GwFateModel";
+import { gwFleetKey } from "./GwFleetModel";
 import { BTN, GLASS, HEAD, MUTED } from "./GwStyle";
-import { frontLine, textOrNull } from "./GwText";
+import { placeName } from "./GwTableModel";
+import { frontLine, personName, textOrNull } from "./GwText";
 import { gwTokenKey } from "./GwTokenModel";
 
 const BOX = "space-y-1.5 rounded border border-white/15 bg-black/35 p-2.5";
@@ -272,6 +279,343 @@ export function tokenSheet(
         class="${BTN} min-h-10 flex-1 text-center"
         data-gw-token-close
         @click=${() => close(c)}
+      >
+        ${translateText("gw.token.close")}
+      </button>
+    </footer>
+  </aside>`;
+}
+
+// ── ww221 §3: the fleet variant ─────────────────────────────────────────────
+// The card a tapped fleet token opens, in the same frame: the sea and the
+// fleet, ours and theirs in that sea in words (counts as information), the
+// Admiralty's word, and two asks whose results come later through the
+// Admiralty's papers: "다른 바다로 보내자고 한다" and "출격을 명한다".
+
+const area = (a: GwSeaArea) => translateText(`gw.fleet.area.${a}`);
+
+/** A fleet's sailing time in words: 0 this month .. 3 a season (gw.token.eta). */
+export function fleetEtaWord(eta: number): number {
+  return Math.max(0, Math.min(3, Math.round(eta)));
+}
+
+/** "대함대", or "순양함대" for a fleet with no name of its own. */
+export function fleetName(f: GwFleetTokenView): string {
+  return (
+    textOrNull(`gw.fleet.name.${f.id}`) ??
+    translateText(`gw.fleet.name_kind.${f.kind}`)
+  );
+}
+
+/** "독일 대양함대 전함 13~21척", "영국 대함대 전함 22척", "… · 몇 척인지 모른다". */
+export function fleetCount(f: GwFleetTokenView): string {
+  const fleet = translateText("gw.fleet.fleet", {
+    country: gwName(f.tag),
+    name: fleetName(f),
+  });
+  const kind = translateText(`gw.fleet.kind.${f.kind}`);
+  if (f.ships === null || f.sure <= 0) {
+    return translateText("gw.fleet.count_unknown", { fleet, kind });
+  }
+  if (f.rel !== "own" && f.lo !== f.hi) {
+    return translateText("gw.fleet.count_range", {
+      fleet,
+      kind,
+      lo: f.lo,
+      hi: f.hi,
+    });
+  }
+  return translateText("gw.fleet.count", { fleet, kind, n: f.ships });
+}
+
+/** Where it lies: "스캐파플로 항구에 있다", or for a foe last seen there "… 있는 것으로 보인다". */
+export function fleetPortLine(f: GwFleetTokenView): string | null {
+  if (!f.port) return null;
+  const which = f.seen === "last" ? "port_seen" : "port";
+  return f.homePort === null
+    ? translateText(`gw.fleet.${which}_none`)
+    : translateText(`gw.fleet.${which}`, { port: placeName(f.homePort) });
+}
+
+/** The words after the count: how worn, what it does, how sure and why. */
+export function fleetWords(f: GwFleetTokenView): string[] {
+  const out: string[] = [];
+  if (f.fill !== null) {
+    out.push(translateText(`gw.fleet.fill.${fillWord(f.fill)}`));
+  }
+  if (f.repair) out.push(translateText("gw.fleet.repair"));
+  if (f.fought) out.push(translateText("gw.fleet.fought"));
+  if (f.to !== undefined) {
+    out.push(
+      translateText("gw.fleet.sailing", {
+        to: area(f.to),
+        when: translateText(`gw.token.arrive.${fleetEtaWord(f.eta ?? 1)}`),
+      }),
+    );
+  } else if (!f.port && f.mission !== null) {
+    out.push(translateText(`gw.fleet.mission.${f.mission}`));
+  }
+  if (f.rel !== "own") {
+    out.push(
+      translateText("gw.token.sure_seen", {
+        sure: translateText(
+          `gw.token.sure.${Math.max(0, Math.min(3, f.sure))}`,
+        ),
+        seen: translateText(`gw.fleet.seen.${f.seen}`),
+      }),
+    );
+  }
+  return out;
+}
+
+/** The card's title: "북해 · 대함대 (스캐파플로)". */
+export function fleetTitle(f: GwFleetTokenView): string {
+  const t = translateText("gw.fleet.title", {
+    area: area(f.area),
+    name: fleetName(f),
+  });
+  return f.homePort === null ? t : `${t} (${placeName(f.homePort)})`;
+}
+
+/** The fleets the card lists: every fleet believed in the tapped one's sea. */
+export function fleetsHere(
+  all: readonly GwFleetTokenView[],
+  f: GwFleetTokenView,
+): { ours: GwFleetTokenView[]; theirs: GwFleetTokenView[] } {
+  const here = all.filter((x) => x.area === f.area);
+  return {
+    ours: here.filter((x) => x.rel !== "foe"),
+    theirs: here.filter((x) => x.rel === "foe"),
+  };
+}
+
+/**
+ * What the Admiralty says of one of our fleets, in words (no odds, no
+ * result): a key under gw.fleet.say, or null when it has nothing to add.
+ */
+export function fleetSay(
+  all: readonly GwFleetTokenView[],
+  f: GwFleetTokenView,
+): string | null {
+  if (f.rel !== "own") return null;
+  if (f.repair) return "repair";
+  if (f.to !== undefined) return "sailing";
+  const foes = all.filter(
+    (x) => x.rel === "foe" && x.area === f.area && x.kind === "battle",
+  );
+  if (f.kind === "battle" && f.area === "north" && f.tag === "GBR") {
+    return "blockade";
+  }
+  if (f.port && f.ships !== null && foes.some((x) => x.hi > f.ships!)) {
+    return "wait";
+  }
+  if (!f.port && foes.some((x) => x.port)) return "watch";
+  if (f.kind === "subs") return "subs";
+  return "ready";
+}
+
+/** The Admiralty's man: the First Sea Lord where there is one, else the navy minister. */
+function admiral(c: GwCtx): { id: string; office: string } | null {
+  const p =
+    c.seat.people.find((x) => x.office === "sea_lord") ??
+    c.seat.people.find((x) => x.office === "navy");
+  return p === undefined || p.office === null
+    ? null
+    : { id: p.id, office: p.office };
+}
+
+function fleetRow(f: GwFleetTokenView, on: boolean): TemplateResult {
+  const port = fleetPortLine(f);
+  return html`<div
+    class="flex items-start gap-2 text-sm ${on ? "text-amber-100" : ""}"
+    data-gw-fleet-row=${gwFleetKey(f)}
+  >
+    ${flag(f.tag)}
+    <div class="min-w-0">
+      <div>${fleetCount(f)}</div>
+      <div class=${MUTED}>${fleetWords(f).join(" · ")}</div>
+      ${port === null
+        ? nothing
+        : html`<div class=${MUTED} data-gw-fleet-port>${port}</div>`}
+    </div>
+  </div>`;
+}
+
+function closeFleet(c: GwCtx): void {
+  c.ui.fleet = null;
+  c.ui.fleetMove = false;
+  c.redraw();
+}
+
+function askFleet(c: GwCtx, id: string, what: GwSeaArea | "sortie"): void {
+  c.ui.fleetAsked = { ...(c.ui.fleetAsked ?? {}), [id]: what };
+  c.ui.fleetMove = false;
+  c.redraw();
+}
+
+/**
+ * The orders the card sends. Their schema and handling are lane A's
+ * (ww221 §4: move_fleet, and the sortie that opens the Admiralty's paper);
+ * the cast goes when A's order kinds are in GwOrderSchema.
+ */
+export function fleetMoveOrder(fleet: string, to: GwSeaArea): GwOrder {
+  return { kind: "move_fleet", fleet, to } as unknown as GwOrder;
+}
+export function fleetSortieOrder(fleet: string): GwOrder {
+  return { kind: "sortie_fleet", fleet } as unknown as GwOrder;
+}
+
+/** A closed sea's or sortie's reason in words. */
+function blockWhy(why: string | null): string {
+  return (
+    (why === null ? null : textOrNull(`gw.ui.block.${why}`)) ??
+    translateText("gw.fleet.closed")
+  );
+}
+
+/** Once 다른 바다로 보내자고 한다 is pressed: the seas, with how long. */
+function fleetMoveBox(
+  c: GwCtx,
+  f: GwFleetTokenView,
+): TemplateResult | typeof nothing {
+  if (c.ui.fleetMove !== true || f.rel !== "own") return nothing;
+  const moves = f.moves ?? [];
+  if (moves.length === 0) return nothing;
+  return html`<section class=${BOX} data-gw-fleet-moves>
+    <div class=${MUTED}>${translateText("gw.fleet.move_where")}</div>
+    ${moves.map(
+      (m) =>
+        html`<button
+          class="${BTN} min-h-10 w-full"
+          data-gw-fleet-move=${m.to}
+          ?disabled=${!m.open}
+          @click=${() => {
+            c.send(fleetMoveOrder(f.id, m.to));
+            askFleet(c, f.id, m.to);
+          }}
+        >
+          <div>
+            ${translateText("gw.fleet.move_to", {
+              area: area(m.to),
+              eta: translateText(`gw.token.eta.${fleetEtaWord(m.eta)}`),
+            })}
+          </div>
+          ${m.open
+            ? nothing
+            : html`<div class=${MUTED}>${blockWhy(m.why)}</div>`}
+        </button>`,
+    )}
+  </section>`;
+}
+
+/** The card of a tapped fleet token; nothing when it has gone from the view. */
+export function fleetSheet(
+  c: GwCtx,
+  fleets: readonly GwFleetTokenView[],
+  key: string,
+): TemplateResult | typeof nothing {
+  const f = fleets.find((x) => gwFleetKey(x) === key);
+  if (f === undefined) return nothing;
+  const { ours, theirs } = fleetsHere(fleets, f);
+  const asked = c.ui.fleetAsked?.[f.id] ?? null;
+  const own = f.rel === "own";
+  const canMove = own && asked === null && (f.moves ?? []).length > 0;
+  const sortie = own && asked === null ? (f.sortie ?? null) : null;
+  const say = fleetSay(fleets, f);
+  const man = say === null ? null : admiral(c);
+  const moveBtn = canMove
+    ? html`<button
+        class="${BTN} min-h-10 flex-1 text-center sm:w-full sm:flex-none"
+        data-gw-fleet-ask
+        @click=${(e: Event) => {
+          c.ui.fleetMove = c.ui.fleetMove !== true;
+          c.redraw();
+          const sheet = (e.currentTarget as HTMLElement).closest(
+            "[data-gw-fleet-sheet]",
+          );
+          requestAnimationFrame(() =>
+            sheet
+              ?.querySelector("[data-gw-fleet-moves]")
+              ?.scrollIntoView?.({ block: "nearest" }),
+          );
+        }}
+      >
+        <span class="sm:hidden">${translateText("gw.fleet.move_short")}</span>
+        <span class="max-sm:hidden">${translateText("gw.fleet.move")}</span>
+      </button>`
+    : nothing;
+  const sortieBtn =
+    sortie === null
+      ? nothing
+      : html`<button
+          class="${BTN} min-h-10 flex-1 text-center sm:w-full sm:flex-none"
+          data-gw-fleet-sortie
+          title=${sortie.open ? "" : blockWhy(sortie.why)}
+          ?disabled=${!sortie.open}
+          @click=${() => {
+            c.send(fleetSortieOrder(f.id));
+            askFleet(c, f.id, "sortie");
+          }}
+        >
+          <span class="sm:hidden"
+            >${translateText("gw.fleet.sortie_short")}</span
+          >
+          <span class="max-sm:hidden">${translateText("gw.fleet.sortie")}</span>
+        </button>`;
+  return html`<aside
+    data-gw-fleet-sheet=${key}
+    class="${GLASS} pointer-events-auto fixed inset-x-0 bottom-0 z-[905] flex h-[42vh] flex-col text-white sm:inset-x-auto sm:bottom-auto sm:right-3 sm:top-24 sm:h-auto sm:max-h-[calc(100vh-7rem)] sm:w-[340px] sm:rounded-md"
+  >
+    <div class="min-h-0 flex-1 space-y-2 overflow-y-auto p-3">
+      <header class="flex items-center gap-2">
+        <h3 class="${HEAD} !text-base">${fleetTitle(f)}</h3>
+        <button
+          class="${MUTED} ml-auto min-h-10 px-2 hover:text-white max-sm:hidden"
+          data-gw-fleet-close
+          @click=${() => closeFleet(c)}
+        >
+          ✕
+        </button>
+      </header>
+      ${ours.length === 0
+        ? nothing
+        : html`<section class=${BOX} data-gw-fleet-ours>
+            <div class=${MUTED}>${translateText("gw.token.ours")}</div>
+            ${ours.map((x) => fleetRow(x, gwFleetKey(x) === key))}
+          </section>`}
+      ${theirs.length === 0
+        ? nothing
+        : html`<section class=${BOX} data-gw-fleet-theirs>
+            <div class=${MUTED}>${translateText("gw.token.theirs")}</div>
+            ${theirs.map((x) => fleetRow(x, gwFleetKey(x) === key))}
+          </section>`}
+      ${say === null || man === null
+        ? nothing
+        : html`<p class="text-sm italic" data-gw-fleet-say=${say}>
+            ${translateText("gw.fleet.say_by", {
+              office: translateText(`gw.office.${man.office}`),
+              name: personName(c.pack, man.id),
+              say: translateText(`gw.fleet.say.${say}`),
+            })}
+          </p>`}
+      ${asked === null
+        ? nothing
+        : html`<p class="${BOX} text-sm" data-gw-fleet-asked>
+            ${asked === "sortie"
+              ? translateText("gw.fleet.asked_sortie")
+              : translateText("gw.fleet.asked", { area: area(asked) })}
+          </p>`}
+      ${fleetMoveBox(c, f)}
+      <div class="flex flex-col gap-2 max-sm:hidden">
+        ${moveBtn} ${sortieBtn}
+      </div>
+    </div>
+    <footer class="flex shrink-0 gap-2 border-t border-white/10 p-2 sm:hidden">
+      ${moveBtn} ${sortieBtn}
+      <button
+        class="${BTN} min-h-10 flex-1 text-center"
+        data-gw-fleet-close
+        @click=${() => closeFleet(c)}
       >
         ${translateText("gw.token.close")}
       </button>

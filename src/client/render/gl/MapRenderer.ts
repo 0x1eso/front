@@ -41,6 +41,7 @@ import type {
   UnitState,
 } from "../types";
 import type { DirectTokenSource } from "./passes/ArmyTokenPass";
+import type { DirectFleetSource } from "./passes/FleetTokenPass";
 import type { OccupationSource } from "./passes/OccupationPass";
 import type { PeaceMapSource } from "./passes/PeaceMapPass";
 import type { SpawnCenter } from "./passes/SpawnOverlayPass";
@@ -81,6 +82,7 @@ export class MapRenderer {
   private storedWwDepth: WwDepthView | null = null;
   private troopNumbersHidden = false;
   private storedDirectTokens: DirectTokenSource | null = null;
+  private storedDirectFleets: DirectFleetSource | null = null;
   private storedStrikeSound: ((loud: boolean) => void) | null = null;
   // Layer state that survives context loss (GPU textures do not).
   private layerVisibility = new Map<string, boolean>();
@@ -202,6 +204,9 @@ export class MapRenderer {
     if (this.troopNumbersHidden) this.renderer?.hideTroopNumbers();
     if (this.storedDirectTokens !== null) {
       this.renderer?.setDirectTokens(this.storedDirectTokens);
+    }
+    if (this.storedDirectFleets !== null) {
+      this.renderer?.setDirectFleets(this.storedDirectFleets);
     }
     if (this.storedWwNavy !== null) this.renderer?.setWwNavy(this.storedWwNavy);
     if (this.storedWwAir !== null) this.renderer?.setWwAir(this.storedWwAir);
@@ -563,6 +568,12 @@ export class MapRenderer {
   setDirectTokens(source: DirectTokenSource | null): void {
     this.storedDirectTokens = source;
     this.renderer?.setDirectTokens(source);
+  }
+
+  /** ww221 §3 (Great War 1914): fleet tokens fed as plain rows (FleetTokenPass.setDirectRows). */
+  setDirectFleets(source: DirectFleetSource | null): void {
+    this.storedDirectFleets = source;
+    this.renderer?.setDirectFleets(source);
   }
 
   /** Great War 1914: the name plates show no troop count (nobody has a troop count there). */

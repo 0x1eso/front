@@ -29,6 +29,7 @@ import { deskTab, reader } from "./GwDesk";
 import { dictCard } from "./GwDict";
 import { diploTab, finaleView } from "./GwDiplo";
 import { loadGwFaces } from "./GwFace";
+import { GwFleetSource } from "./GwFleetModel";
 import { frontsTab } from "./GwFronts";
 import { intelTab } from "./GwIntel";
 import { setMapBusy, setMapCovered } from "./GwLensModel";
@@ -63,7 +64,7 @@ import { activeTalk, syncTranscripts, talkView } from "./GwTalk";
 import { installTapTip } from "./GwTapTip";
 import { ticker, tickerLines } from "./GwTicker";
 import { GwTokenSource } from "./GwTokenModel";
-import { tokenSheet } from "./GwTokenSheet";
+import { fleetSheet, tokenSheet } from "./GwTokenSheet";
 import { GwVote, voteOverlay } from "./GwVote";
 
 /** The ticker moves to its next line this often, ms. */
@@ -141,6 +142,8 @@ export class GwPanel extends LitElement implements Controller {
   private painted: GwMapPaint | null = null;
   /** ww218 §5: the army tokens the renderer draws and a tap may take. */
   private tokens: GwTokenSource | null = null;
+  /** ww221 §3: the fleet tokens the renderer draws and a tap may take. */
+  private fleets: GwFleetSource | null = null;
   private replay: GwReplay | null = null;
   /** ww203: the vote scene, each ballot played once. */
   private readonly vote = new GwVote();
@@ -240,6 +243,11 @@ export class GwPanel extends LitElement implements Controller {
       (tag) => this.game.gwSmallIDOf(tag),
     );
     this.mapView.setDirectTokens(this.tokens);
+    this.fleets = new GwFleetSource(
+      () => this.fleetInputs(),
+      (tag) => this.game.gwSmallIDOf(tag),
+    );
+    this.mapView.setDirectFleets(this.fleets);
     const tap = (e: { x: number; y: number }) => this.tapMap(e.x, e.y);
     this.eventBus.on(MouseUpEvent, tap);
     this.eventBus.on(TouchEvent, tap);
@@ -276,6 +284,21 @@ export class GwPanel extends LitElement implements Controller {
     const tokens = this.worldTokens(seat);
     if (tokens.length === 0) return null;
     return { tokens, chosen: this.ui.token ?? null };
+  }
+
+  /** ww221: the seat's fleet tokens; none out of war. */
+  private worldFleets(seat: GwSeatView) {
+    return seat.world.fleets ?? [];
+  }
+
+  /** ww221 §3: what the fleet tokens show; none while the map is painted or replayed. */
+  private fleetInputs() {
+    const seat = this.seat();
+    if (seat === null || seat.prologue?.done === false) return null;
+    if (this.replay?.active === true || this.mapCells() !== null) return null;
+    const fleets = this.worldFleets(seat);
+    if (fleets.length === 0) return null;
+    return { fleets, chosen: this.ui.fleet ?? null };
   }
 
   /** What the map shows painted now; null while it is just the map. */
@@ -329,6 +352,7 @@ export class GwPanel extends LitElement implements Controller {
     if (this.mapCells() !== null) {
       this.closeSpot();
       this.closeToken();
+      this.closeFleet();
       this.painted?.tap(x, y);
       return;
     }
@@ -337,7 +361,23 @@ export class GwPanel extends LitElement implements Controller {
       this.tokens === null || this.tokenInputs() === null
         ? null
         : this.map.tokenAt(this.tokens, x, y);
+    // ww221 §3: so does a fleet token; between the two, the nearer.
+    const ship =
+      this.fleets === null || this.fleetInputs() === null
+        ? null
+        : this.map.fleetAt(this.fleets, x, y);
     this.closeSpot();
+    if (
+      ship !== null &&
+      (hit === null || ship.d2 < this.map.tileDist2(x, y, hit))
+    ) {
+      this.closeToken();
+      if (this.ui.fleet !== ship.at.key) this.ui.fleetMove = false;
+      this.ui.fleet = ship.at.key;
+      this.requestUpdate();
+      return;
+    }
+    this.closeFleet();
     if (hit !== null) {
       if (this.ui.token !== hit.key) this.ui.tokenMove = false;
       this.ui.token = hit.key;
@@ -355,6 +395,12 @@ export class GwPanel extends LitElement implements Controller {
   private closeToken(): void {
     this.ui.token = null;
     this.ui.tokenMove = false;
+  }
+
+  /** ww221: the fleet's card goes. */
+  private closeFleet(): void {
+    this.ui.fleet = null;
+    this.ui.fleetMove = false;
   }
 
   /** The sheet, and what was being picked on it, go. */
@@ -440,6 +486,7 @@ export class GwPanel extends LitElement implements Controller {
       ui.postOpen = null;
       ui.postArmed = null;
       ui.tokenAsked = null;
+      ui.fleetAsked = null;
       ui.research = null;
       ui.budgetPlan = null;
       ui.budgetOpen = false;
@@ -755,6 +802,9 @@ export class GwPanel extends LitElement implements Controller {
       ${(ui.token ?? null) === null || replaying || painting
         ? nothing
         : tokenSheet(c, this.worldTokens(seat), ui.token!)}
+      ${(ui.fleet ?? null) === null || replaying || painting
+        ? nothing
+        : fleetSheet(c, this.worldFleets(seat), ui.fleet!)}
       ${talk === null ? nothing : talkView(c, talk.t, talk.card)} ${dictCard(c)}
       ${ui.finale && data.finale !== null ? finaleView(c) : nothing}
       ${factionCard(c)} ${utopiaCard(c)} ${electOverlay(c, this.elect)}

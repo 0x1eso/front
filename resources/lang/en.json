@@ -3237,6 +3237,101 @@
       },
       "with": "{fate} ({what})"
     },
+    "fleet": {
+      "area": {
+        "adriatic": "Adriatic",
+        "atlantic": "Atlantic",
+        "baltic": "Baltic",
+        "black": "Black Sea",
+        "channel": "Channel",
+        "med": "Mediterranean",
+        "north": "North Sea"
+      },
+      "asked": "You asked the Admiralty to send the fleet to the {area}. The answer comes up in its papers.",
+      "asked_sortie": "You ordered the fleet out. How it fights comes up in the Admiralty's papers.",
+      "closed": "It cannot go there now",
+      "count": "{fleet} · {n} {kind}",
+      "count_range": "{fleet} · {lo}-{hi} {kind}",
+      "count_unknown": "{fleet} · {kind}, how many is unknown",
+      "fill": {
+        "0": "badly damaged",
+        "1": "much damage",
+        "2": "light damage",
+        "3": "sound"
+      },
+      "fleet": "{country} {name}",
+      "fought": "fought this month",
+      "kind": {
+        "battle": "capital ships",
+        "cruisers": "cruisers",
+        "subs": "submarines"
+      },
+      "mission": {
+        "escort": "escorting",
+        "invasion_support": "covering a landing",
+        "patrol": "on patrol",
+        "raid": "raiding",
+        "strike": "out to fight"
+      },
+      "move": "Ask to send it to another sea",
+      "move_short": "Send",
+      "move_to": "{area} · {eta}",
+      "move_where": "Which sea?",
+      "name": {
+        "auh_battle_adriatic": "Imperial fleet",
+        "auh_subs_adriatic": "U-boat flotilla",
+        "deu_battle_north": "High Seas Fleet",
+        "deu_cruisers_atlantic": "East Asia Squadron",
+        "deu_cruisers_med": "Mediterranean Division",
+        "deu_cruisers_north": "scouting cruisers",
+        "deu_subs_north": "U-boat fleet",
+        "fra_battle_med": "Mediterranean fleet",
+        "gbr_battle_north": "Grand Fleet",
+        "gbr_cruisers_atlantic": "Atlantic cruisers",
+        "gbr_cruisers_north": "Battlecruiser Fleet",
+        "gbr_subs_channel": "Channel submarines",
+        "ita_battle_med": "battle fleet",
+        "ott_battle_black": "Goeben squadron",
+        "rus_battle_baltic": "Baltic Fleet",
+        "rus_battle_black": "Black Sea Fleet",
+        "usa_battle_atlantic": "Atlantic Fleet"
+      },
+      "name_kind": {
+        "battle": "battle fleet",
+        "cruisers": "cruiser squadron",
+        "subs": "submarine flotilla"
+      },
+      "port": "lies in port at {port}",
+      "port_none": "lies in port",
+      "port_seen": "seems to be in port at {port}",
+      "port_seen_none": "seems to be in port",
+      "repair": "under repair",
+      "sailing": "sailing for the {to} · {when}",
+      "say": {
+        "blockade": "If we leave the North Sea, the blockade comes apart.",
+        "ready": "We wait for your orders.",
+        "repair": "Until the ships are mended, we cannot put out.",
+        "sailing": "We are on our way, and will report when we arrive.",
+        "subs": "The boats are out; we hear from them now and then.",
+        "wait": "They may be bigger than us. A fleet in port still guards the sea.",
+        "watch": "They are in port. If we go, they will come out."
+      },
+      "say_by": "{office} {name}: “{say}”",
+      "seen": {
+        "air": "zeppelins and seaplanes",
+        "ally": "an ally's word",
+        "codes": "signals read",
+        "contact": "our cruisers are there",
+        "heard": "radio direction-finding",
+        "last": "as last seen",
+        "none": "nothing known",
+        "own": "our fleet",
+        "programme": "building programmes"
+      },
+      "sortie": "Order the fleet out",
+      "sortie_short": "Sortie",
+      "title": "{area} · {name}"
+    },
     "fleet_paper": {
       "hint": "Each paper is signed on its own. A paper nobody signs lapses, and the fleet stays where it is.",
       "kind": {

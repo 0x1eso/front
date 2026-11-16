@@ -92,6 +92,8 @@ import {
   FleetTokenPass,
   ShipAtlas,
   ShipSpriteProgram,
+  type DirectFleetRow,
+  type DirectFleetSource,
 } from "./passes/FleetTokenPass";
 import { FxPass } from "./passes/fx-pass";
 import { InvasionArrowPass } from "./passes/InvasionArrowPass";
@@ -309,6 +311,14 @@ export class GPURenderer {
     atlas: LandAtlas;
     tokens: ArmyTokenPass;
     sent: readonly DirectTokenRow[] | null;
+  } | null = null;
+  /** ww221 §3 (Great War 1914): fleet tokens fed as plain rows; null without. */
+  private directFleets: {
+    source: DirectFleetSource;
+    atlas: ShipAtlas;
+    sprites: ShipSpriteProgram;
+    fleets: FleetTokenPass;
+    sent: readonly DirectFleetRow[] | null;
   } | null = null;
   private readonly tokenLayout = new TokenLayoutCache();
   /** Region flags this frame's inputs give, and those the pass last got. */
@@ -2011,6 +2021,10 @@ export class GPURenderer {
     if (this.wwLand !== null) this.drawWwLand(cam, performance.now());
     // ww218: the Great War's army tokens, the same look.
     if (this.direct !== null) this.drawDirectTokens(cam, performance.now());
+    // ww221: the Great War's fleet tokens, the 1936 fleet look.
+    if (this.directFleets !== null) {
+      this.drawDirectFleets(cam, performance.now());
+    }
     // P4: convoys, invasions, naval battles, fleets, then the planes above.
     if (this.seaPasses !== null) this.drawWwSeaAir(cam, performance.now());
 
@@ -2244,6 +2258,49 @@ export class GPURenderer {
       d.tokens.setDirectRows(rows);
     }
     d.tokens.draw(cam, 1 / Math.max(zoom, 1e-6), now / 1000);
+  }
+
+  /**
+   * ww221 §3 (Great War 1914): fleet tokens from `source` with the 1936
+   * fleet token's program and atlas (FleetTokenPass.setDirectRows); null
+   * removes them.
+   */
+  setDirectFleets(source: DirectFleetSource | null): void {
+    this.disposeDirectFleets();
+    if (source === null) return;
+    const atlas = new ShipAtlas(this.gl);
+    const sprites = new ShipSpriteProgram(
+      this.gl,
+      this.paletteTex,
+      atlas.texture,
+    );
+    this.directFleets = {
+      source,
+      atlas,
+      sprites,
+      fleets: new FleetTokenPass(this.gl, sprites),
+      sent: null,
+    };
+  }
+
+  private disposeDirectFleets(): void {
+    const d = this.directFleets;
+    if (d === null) return;
+    d.fleets.dispose();
+    d.sprites.dispose();
+    d.atlas.dispose();
+    this.directFleets = null;
+  }
+
+  private drawDirectFleets(cam: Float32Array, now: number): void {
+    const d = this.directFleets!;
+    const zoom = this.camera.zoom / renderDpr();
+    const rows = d.source.rows(zoom);
+    if (rows !== d.sent) {
+      d.sent = rows;
+      d.fleets.setDirectRows(rows);
+    }
+    d.fleets.draw(cam, 1 / Math.max(zoom, 1e-6), now / 1000);
   }
 
   /** Great War 1914: the name plates' troop row is left empty. */
@@ -2726,6 +2783,7 @@ export class GPURenderer {
     this.disposeRegionModes();
     this.disposeWwLand();
     this.disposeDirectTokens();
+    this.disposeDirectFleets();
     this.disposeSeaPasses();
     if (this.terrainBytesTex) {
       this.gl.deleteTexture(this.terrainBytesTex);

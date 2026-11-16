@@ -20940,6 +20940,101 @@
           "repair": "함대가 툴롱의 독에 들어가 있습니다. 시간이 필요합니다."
         }
       }
+    },
+    "fleet": {
+      "area": {
+        "adriatic": "아드리아해",
+        "atlantic": "대서양",
+        "baltic": "발트해",
+        "black": "흑해",
+        "channel": "영불해협",
+        "med": "지중해",
+        "north": "북해"
+      },
+      "asked": "해군성에 함대를 {area}(으)로 보내자고 했습니다. 답은 해군성 서류로 올라옵니다.",
+      "asked_sortie": "출격을 명했습니다. 어떻게 싸울지는 해군성 서류로 올라옵니다.",
+      "closed": "지금은 그 바다로 갈 수 없습니다",
+      "count": "{fleet} {kind} {n}척",
+      "count_range": "{fleet} {kind} {lo}~{hi}척",
+      "count_unknown": "{fleet} · {kind}, 몇 척인지 모른다",
+      "fill": {
+        "0": "크게 상했다",
+        "1": "손상이 꽤 있다",
+        "2": "손상 적음",
+        "3": "멀쩡하다"
+      },
+      "fleet": "{country} {name}",
+      "fought": "이번 달 싸웠다",
+      "kind": {
+        "battle": "전함",
+        "cruisers": "순양함",
+        "subs": "잠수함"
+      },
+      "mission": {
+        "escort": "호송 중",
+        "invasion_support": "상륙 지원 중",
+        "patrol": "순찰 중",
+        "raid": "습격 중",
+        "strike": "출격 중"
+      },
+      "move": "다른 바다로 보내자고 한다",
+      "move_short": "보내자고 한다",
+      "move_to": "{area} · {eta}",
+      "move_where": "어느 바다로?",
+      "name": {
+        "auh_battle_adriatic": "제국 함대",
+        "auh_subs_adriatic": "잠수정대",
+        "deu_battle_north": "대양함대",
+        "deu_cruisers_atlantic": "동아시아 분함대",
+        "deu_cruisers_med": "지중해 분함대",
+        "deu_cruisers_north": "정찰 순양함대",
+        "deu_subs_north": "유보트 함대",
+        "fra_battle_med": "지중해 함대",
+        "gbr_battle_north": "대함대",
+        "gbr_cruisers_atlantic": "대서양 순양함대",
+        "gbr_cruisers_north": "순양전함대",
+        "gbr_subs_channel": "해협 잠수함대",
+        "ita_battle_med": "주력 함대",
+        "ott_battle_black": "괴벤 함대",
+        "rus_battle_baltic": "발트 함대",
+        "rus_battle_black": "흑해 함대",
+        "usa_battle_atlantic": "대서양 함대"
+      },
+      "name_kind": {
+        "battle": "주력 함대",
+        "cruisers": "순양함대",
+        "subs": "잠수함대"
+      },
+      "port": "{port} 항구에 있다",
+      "port_none": "항구에 있다",
+      "port_seen": "{port} 항구에 있는 것으로 보인다",
+      "port_seen_none": "항구에 있는 것으로 보인다",
+      "repair": "수리 중",
+      "sailing": "{to}(으)로 가는 중 · {when}",
+      "say": {
+        "blockade": "북해를 비우면 봉쇄가 풀립니다.",
+        "ready": "명령만 내리십시오.",
+        "repair": "배를 다 고치기 전에는 나갈 수 없습니다.",
+        "sailing": "가는 길입니다. 닿으면 보고드리겠습니다.",
+        "subs": "잠수함들은 바다에 나가 있습니다. 소식은 가끔 들어옵니다.",
+        "wait": "저쪽이 더 클지도 모릅니다. 항구에 있어도 바다는 지킵니다.",
+        "watch": "저들은 항구에 있습니다. 우리가 자리를 비우면 나올 겁니다."
+      },
+      "say_by": "{office} {name}: “{say}”",
+      "seen": {
+        "air": "비행선과 수상기 정찰",
+        "ally": "동맹국의 통보",
+        "codes": "암호 해독",
+        "contact": "우리 순양함이 같은 바다에 있다",
+        "heard": "무전 방향 탐지",
+        "last": "마지막으로 본 대로",
+        "none": "정보 없음",
+        "own": "우리 함대",
+        "programme": "건함 계획은 다 알려져 있다"
+      },
+      "sortie": "출격을 명한다",
+      "sortie_short": "출격",
+      "title": "{area} · {name}"
     }
   },
   "imjin": {

@@ -13,6 +13,7 @@ import type { GwBudgetPlan } from "@openfront/engine-api/ww1914/GwBudget";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import type { GwAnswerRedo } from "@openfront/engine-api/ww1914/GwDeptWords";
 import type { GwFate, GwFateMark } from "@openfront/engine-api/ww1914/GwFate";
+import type { GwSeaArea } from "@openfront/engine-api/ww1914/GwFleets";
 import type { GwOrder } from "@openfront/engine-api/ww1914/GwOrders";
 import type { GwPack } from "@openfront/engine-api/ww1914/GwPack";
 import type { GwPlace } from "@openfront/engine-api/ww1914/GwPlaces";
@@ -191,6 +192,12 @@ export interface GwUi {
   tokenMove?: boolean;
   /** ww218: the move asked this chapter (order move_band), waiting for the chief's paper. */
   tokenAsked?: { from: GwTheatre | null; to: GwTheatre } | null;
+  /** ww221: the fleet token tapped (GwFleetModel.gwFleetKey); its card is open. */
+  fleet?: string | null;
+  /** ww221: 다른 바다로 보내자고 한다 pressed: the seas show. */
+  fleetMove?: boolean;
+  /** ww221: what was asked of the Admiralty this chapter, per fleet id: a sea, or a sortie. */
+  fleetAsked?: Readonly<Record<string, GwSeaArea | "sortie">> | null;
 }
 
 /** ww203: what is open or picked in the 통치 tab's book and agenda. */
