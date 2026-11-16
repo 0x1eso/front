@@ -114,9 +114,7 @@ describe("ww229 MR1: the majors' reactions (real map and content)", () => {
     while (!opened() && ww.day(runner.game.ticks()) < until) step(runner);
     expect(opened()).toBe(true);
     // A later focus beat goes first and keeps the one queued before it.
-    if (deu.focus === null) {
-      deu.focus = { id: "deu_mr_danubian_question", progressMilli: 0 };
-    }
+    deu.focus ??= { id: "deu_mr_danubian_question", progressMilli: 0 };
     deu.queue = ["deu_mr_southeast_oil"];
     forceFocusNext(pol, ids[0], "deu_mr_northern_ore");
     expect(deu.queue).toEqual(["deu_mr_northern_ore", "deu_mr_southeast_oil"]);
