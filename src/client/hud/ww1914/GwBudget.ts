@@ -33,6 +33,9 @@ import {
 import { instName } from "./GwOffice";
 import { BTN, BTN_ON, CHIP, GLASS, HEAD, MUTED } from "./GwStyle";
 import { fullDate, personName, textOrNull } from "./GwText";
+import { moneyText } from "./GwTreasury";
+
+export { moneyText };
 
 const BOX = "space-y-1.5 rounded border border-white/15 bg-black/35 p-2.5";
 const GO =
@@ -41,27 +44,6 @@ const STEP =
   "rounded border border-white/25 bg-white/10 px-1.5 text-xs hover:bg-white/20 disabled:opacity-30";
 /** How many reason lines each number shows. */
 const NOTES_SHOWN = 3;
-
-const unit = (tag: string) =>
-  textOrNull(`gw.budget.unit.${tag}`) ?? translateText("gw.budget.unit.other");
-
-/** Whole millions as a Korean sum: 1559 is 15억 6천만, 66 is 6,600만. */
-export function moneyText(tag: string, millions: number): string {
-  const v = Math.abs(millions);
-  if (v === 0) return `0 ${unit(tag)}`;
-  const sign = millions < 0 ? "-" : "";
-  const eok = Math.floor(v / 100);
-  const rest = Math.round((v % 100) / 10);
-  const head =
-    eok === 0
-      ? `${(v * 100).toLocaleString("en-US")}만`
-      : rest === 0
-        ? `${eok.toLocaleString("en-US")}억`
-        : rest === 10
-          ? `${(eok + 1).toLocaleString("en-US")}억`
-          : `${eok.toLocaleString("en-US")}억 ${rest}천만`;
-  return `${sign}${head} ${unit(tag)}`;
-}
 
 /** Per mille as the player reads it, June 1914 being 100. */
 export const pricesText = (prices: number) => Math.round(prices / 10);

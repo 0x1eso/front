@@ -17,8 +17,12 @@ import {
 import { gaugeTitle } from "./GwNow";
 import { CHIP, fillColor, GLASS } from "./GwStyle";
 import { fullDate } from "./GwText";
+import { treasuryBand } from "./GwTreasury";
 
-/** The top band: date, flag, chapter, timer, the crisis, five gauges in words. */
+/**
+ * The top band: date, flag, chapter, timer, the crisis, four gauges in words
+ * and the treasury (ww223) in its own money where the money gauge stood.
+ */
 export function band(c: GwCtx): TemplateResult {
   const { data, seat } = c;
   const country = gwCountry(seat.tag);
@@ -75,6 +79,7 @@ export function band(c: GwCtx): TemplateResult {
         : nothing}
       <span class="ml-auto hidden gap-2 md:flex" data-gw-gauges>
         ${GW_GAUGES.map((g) => {
+          if (g === "money") return treasuryBand(c);
           const v = gaugeLevel(g, seat.gauges[g] ?? 0);
           return html`<span
             class="flex items-center gap-1 text-xs"

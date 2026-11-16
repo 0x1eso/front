@@ -286,6 +286,14 @@ const budget = (over: Partial<GwBudgetView> = {}): GwBudgetView => ({
 
 const world = (over: Partial<GwWorldView> = {}): GwWorldView => ({
   budget: budget(),
+  treasury: {
+    amount: 3000,
+    trend: 0,
+    why: null,
+    debt: 0,
+    lines: [],
+    step: null,
+  },
   laws: [],
   press: null,
   war: {
@@ -367,7 +375,7 @@ const data = (
           rivals: ["deu_moltke"],
         },
       ],
-      gauges: { shells: 2, bread: 2, money: 2, morale: 3, order: 3 },
+      gauges: { shells: 2, bread: 2, morale: 3, order: 3 },
       inst: { army: 0 },
       theatres: [],
       alloc: {
@@ -1071,7 +1079,7 @@ describe("the screens", () => {
   // its largest cause, and the 지금 line for what it moved at the turn.
   test("the production step shows as a trend word and a 지금 line", async () => {
     const g = (
-      gauge: "shells" | "bread" | "money" | "morale",
+      gauge: "shells" | "bread" | "morale",
       value: number,
       over: Partial<GwGaugeView> = {},
     ): GwGaugeView => ({
@@ -1098,9 +1106,17 @@ describe("the screens", () => {
           why: "bread_blockade",
           step: { delta: -2, key: "bread_blockade" },
         }),
-        g("money", 3, { trend: 1, why: "econ_trade" }),
         g("morale", 3),
       ],
+      // ww223: the treasury itself where the money gauge stood.
+      treasury: {
+        amount: 1559,
+        trend: 1,
+        why: "econ_trade",
+        debt: 2,
+        lines: [{ key: "money_scene", delta: -1 }],
+        step: { delta: 1, key: "econ_trade" },
+      },
     });
     const { panel } = await mount(d);
     // The 지금 box, on the desk a phone sees: one line a moved gauge, the
@@ -1109,6 +1125,7 @@ describe("the screens", () => {
       "gw.ui.now.war_none",
       "gw.ui.now.step.shells.up",
       "gw.ui.now.step.bread.down_big",
+      "gw.ui.now.step.money.up",
       "gw.ui.now.crisis",
       "gw.ui.now.wait_none",
     ]);
@@ -1140,6 +1157,26 @@ describe("the screens", () => {
       "gw.ui.trend_is",
       "gw.ui.trend_why",
     ]);
+    // ww223: the treasury reads as the sum in the country's money, where it
+    // is heading, and the debt on its own; never a cut of the sum.
+    const money = panel.querySelector("[data-gw-band-gauge=money]")!;
+    expect(money.querySelector("[data-gw-treasury]")!.textContent).toContain(
+      "15억 6천만",
+    );
+    expect(
+      money
+        .querySelector("[data-gw-treasury-trend]")!
+        .getAttribute("data-gw-treasury-trend"),
+    ).toBe("rising");
+    expect(money.querySelector("[data-gw-treasury-debt]")).not.toBeNull();
+    expect(title("money")).toEqual([
+      "gw.ui.gauge_hint.money",
+      "gw.ui.trend_is",
+      "gw.ui.trend_why",
+      "gw.ui.treasury.debt_hint",
+      "gw.ui.gauge_why",
+      "▼ money_scene",
+    ]);
     // The country tab: the word beside each gauge the step feeds; at the top
     // and still rising there is no room; morale has none.
     panel.querySelector<HTMLButtonElement>("[data-gw-tab=country]")!.click();
@@ -1151,7 +1188,7 @@ describe("the screens", () => {
     expect(["shells", "bread", "money", "morale"].map(trend)).toEqual([
       "rising",
       "falling_fast",
-      "full",
+      "rising",
       null,
     ]);
     expect(
