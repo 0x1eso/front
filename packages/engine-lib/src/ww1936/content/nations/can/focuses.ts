@@ -31,6 +31,11 @@ const AI_RISE: AiWeight = {
   base: 2,
   mods: [{ if: { kind: "stability_ge", pct: 40 }, factor: 0 }],
 };
+/** A war-time step: urgent once Canada is at war. */
+const AI_WAR: AiWeight = {
+  base: 10,
+  mods: [{ if: { kind: "at_war" }, factor: 500 }],
+};
 /** The Liberal balance: what a democratic Canada does. */
 const AI_LIB: AiWeight = {
   base: 10,
@@ -800,7 +805,7 @@ export const CAN_FOCUSES: readonly FocusDef[] = [
       { kind: "add_advisor_candidate", person: "can_howe" },
       { kind: "build", where: { best: 2 }, building: "mil", count: 2 },
     ],
-    ai: AI10,
+    ai: AI_WAR,
   },
   {
     id: "can_crown_plants",
@@ -1734,7 +1739,7 @@ export const CAN_FOCUSES: readonly FocusDef[] = [
         then: [{ kind: "declare_war", on: T("DEU") }],
       },
     ],
-    ai: AI10,
+    ai: AI_WAR,
   },
   {
     id: "can_stay_out",
@@ -1980,7 +1985,7 @@ export const CAN_FOCUSES: readonly FocusDef[] = [
       { kind: "war_support", pct: 3 },
       { kind: "unlock_decision", id: "can_victory_bonds" },
     ],
-    ai: AI10,
+    ai: AI_WAR,
   },
   {
     id: "can_national_registration",
@@ -1997,7 +2002,7 @@ export const CAN_FOCUSES: readonly FocusDef[] = [
       { kind: "unlock_decision", id: "can_nrma_act" },
       { kind: "unlock_decision", id: "can_price_ceiling" },
     ],
-    ai: AI10,
+    ai: AI_WAR,
   },
   {
     id: "can_conscription_if_necessary",
@@ -2016,7 +2021,7 @@ export const CAN_FOCUSES: readonly FocusDef[] = [
       { kind: "unlock_decision", id: "can_overseas_draft" },
       { kind: "war_support", pct: 3 },
     ],
-    ai: AI10,
+    ai: AI_WAR,
   },
   {
     id: "can_volunteers_only",
@@ -2050,7 +2055,7 @@ export const CAN_FOCUSES: readonly FocusDef[] = [
       { kind: "popularity", ideology: "neutral", pp: -3 },
       { kind: "add_advisor_candidate", person: "can_st_laurent" },
     ],
-    ai: AI10,
+    ai: AI_WAR,
   },
   {
     id: "can_veterans_charter",
