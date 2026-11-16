@@ -588,8 +588,19 @@ const FLEET: GwAnswerRow = {
     f("weak_foe", 3, { wrong: true, slots: { fleet: ["low"] } }),
   ],
   courses: [
-    c("sortie", ["bold"], [gauge("money", -1), opinion("press", 1)]),
+    c(
+      "sortie",
+      ["bold"],
+      [
+        gauge("money", -1),
+        opinion("press", 1),
+        // ww221: the Admiralty draws up a sortie paper (FleetPapers.ts).
+        remember("c_fleet_sortie"),
+      ],
+    ),
     c("guard", ["calm", "cheap"], [remember("c_fleet_guard")]),
+    // ww221: 다른 바다로 보내자고 한다: the Admiralty's move paper.
+    c("send", ["bold", "firm"], [remember("c_fleet_send")]),
     c("tighten", ["firm"], [act({ do: "blockade", delta: 1 })], {
       when: entente,
     }),

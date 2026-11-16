@@ -11,6 +11,7 @@
 // chef du protocole [K]. His diary is his daily notes, the base of "Au service
 // de la France": dry, exact, sour about ministers, cold about Clemenceau.
 import type { GwTheatre } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import type { GwFleetMoment } from "@openfront/engine-api/ww1914/GwFleetPapers";
 import {
   GW_FOOLED_FRONTS,
   type GwBearer,
@@ -88,6 +89,10 @@ const note = (
 const at = (...theatre: GwTheatre[]) => ({ theatre });
 const inMonths = (...m: number[]) => ({ months: m });
 
+/** ww221: what the fleets did this chapter (Diary's fleet moment). */
+const fleetNow = (now: GwFleetMoment): GwCond =>
+  world({ is: "fleet_now", now });
+
 /** ww219: what the war plan did this chapter (Diary's plan moment). */
 const planNow = (now: GwWarPlanMoment): GwCond =>
   world({ is: "war_plan", now });
@@ -164,6 +169,14 @@ const DIARY: GwDiaryRow[] = [
   note("plan_hindsight", "plan", { when: planNow("hindsight") }),
   // ww219: an estimate of the foe that proved fooled (a surprise, a feint).
   note("fooled", "hindsight", { theatre: [...GW_FOOLED_FRONTS] }),
+  // ww221: the fleets: a battle, a third lost, months in port, a new ship.
+  note("fleet_won", "fleet", { when: fleetNow("won") }),
+  note("fleet_lost", "fleet", { when: fleetNow("lost") }),
+  note("fleet_even", "fleet", { when: fleetNow("even") }),
+  note("fleet_third_lost", "fleet", { when: fleetNow("third_lost") }),
+  note("fleet_idle", "fleet", { when: fleetNow("idle") }),
+  note("fleet_built", "fleet", { when: fleetNow("built") }),
+  note("fleet_fooled", "fleet", { when: fleetNow("fooled") }),
 ];
 
 export const FRA_PERSONA: GwPersonaContent = {

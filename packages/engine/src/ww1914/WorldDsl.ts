@@ -34,6 +34,12 @@ import { fileEffect, fileHolds } from "./Dossier";
 import { closeSeat, SEPARATE_PEACE } from "./Endings";
 import { eraOf, hasTech } from "./Eras";
 import { fateDo, fateHolds } from "./Fate";
+import {
+  fleetBattleHolds,
+  fleetIdleHolds,
+  fleetMoments,
+  sceneSortie,
+} from "./FleetPapers";
 import { signChief, warScore } from "./Fronts";
 import { govBeaten, govHeat, govHeatBy, govSoon, pollOf } from "./Government";
 import { homeFrontDo, homeFrontHolds } from "./HomeFront";
@@ -409,6 +415,13 @@ export function worldHolds(ctx: SceneCtx, c: GwWorldCond): boolean {
       return planMoment(ctx.gw, ctx.seat.tag, c.now);
     case "plan_alt_can":
       return altCan(ctx.gw, ctx.seat, c.theatre);
+    // ww221
+    case "fleet_battle":
+      return fleetBattleHolds(ctx.gw, ctx.seat, c);
+    case "fleet_idle":
+      return fleetIdleHolds(ctx.gw, ctx.seat, c);
+    case "fleet_now":
+      return fleetMoments(ctx.gw, ctx.seat.tag).includes(c.now);
   }
 }
 
@@ -799,6 +812,10 @@ export function worldEffect(ctx: SceneCtx, e: GwWorldEffect): void {
     // ww219
     case "plan_redraw":
       aimRedraw(gw, seat, e.to);
+      return;
+    // ww221
+    case "fleet_sortie":
+      sceneSortie(gw, seat, e.way);
       return;
   }
 }

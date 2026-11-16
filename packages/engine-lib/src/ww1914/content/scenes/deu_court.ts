@@ -1202,7 +1202,11 @@ const COURT_SCENES: GwScene[] = [
   scene("deu_k_kiel", "crisis", {
     when: all(
       world({ is: "war_months", min: 41 }),
-      any(unrestMin(3), flag("f_sortie_ordered")),
+      // ww221: unrest alone moves the crews of a fleet that lies in port.
+      any(
+        all(unrestMin(3), world({ is: "fleet_idle", months: 6 })),
+        flag("f_sortie_ordered"),
+      ),
     ),
     cast: { navy: R_NAVY, interior: R_INTERIOR },
     salience: 9,

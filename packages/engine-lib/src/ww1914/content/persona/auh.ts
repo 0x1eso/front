@@ -17,6 +17,7 @@
 // his military chancellery 1911-14 (checked). Diary forms: Franz Joseph's desk note, now and
 // then a short letter to Katharina Schratt; Karl's note written on the court
 // train (no diary of his survives). Rulers are GW_RULERS ids.
+import type { GwFleetMoment } from "@openfront/engine-api/ww1914/GwFleetPapers";
 import {
   GW_FOOLED_FRONTS,
   type GwBearer,
@@ -134,6 +135,10 @@ const SPRING = [3, 4, 5];
 const SUMMER = [6, 7, 8];
 const AUTUMN = [9, 10, 11];
 
+/** ww221: what the fleets did this chapter (Diary's fleet moment). */
+const fleetNow = (now: GwFleetMoment): GwCond =>
+  world({ is: "fleet_now", now });
+
 /** ww219: what the war plan did this chapter (Diary's plan moment). */
 const planNow = (now: GwWarPlanMoment): GwCond =>
   world({ is: "war_plan", now });
@@ -231,6 +236,20 @@ const DIARY: GwDiaryRow[] = [
   dy("auh_dy_fj_plan_hindsight", FJ, "plan", { when: planNow("hindsight") }),
   // ww219: an estimate of the foe that proved fooled (a surprise, a feint).
   dy("auh_dy_fj_fooled", FJ, "hindsight", { theatre: [...GW_FOOLED_FRONTS] }),
+  // ww221: the fleets: a battle, a third lost, months in port, a new ship.
+  dy("auh_dy_fj_fleet_won", FJ, "fleet", { when: fleetNow("won") }),
+  dy("auh_dy_fj_fleet_lost", FJ, "fleet", { when: fleetNow("lost") }),
+  dy("auh_dy_fj_fleet_even", FJ, "fleet", { when: fleetNow("even") }),
+  dy("auh_dy_fj_fleet_third_lost", FJ, "fleet", {
+    when: fleetNow("third_lost"),
+  }),
+  dy("auh_dy_fj_fleet_idle", FJ, "fleet", { when: fleetNow("idle") }),
+  dy("auh_dy_fj_fleet_built", FJ, "fleet", { when: fleetNow("built") }),
+  dy("auh_dy_fj_fleet_fooled", FJ, "fleet", { when: fleetNow("fooled") }),
+  dy("auh_dy_karl_fleet_won", KARL, "fleet", { when: fleetNow("won") }),
+  dy("auh_dy_karl_fleet_lost", KARL, "fleet", { when: fleetNow("lost") }),
+  dy("auh_dy_karl_fleet_idle", KARL, "fleet", { when: fleetNow("idle") }),
+  dy("auh_dy_karl_fleet_fooled", KARL, "fleet", { when: fleetNow("fooled") }),
 ];
 
 export const AUH_PERSONA: GwPersonaContent = {

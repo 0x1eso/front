@@ -829,6 +829,8 @@ const CROWN_LETTER: readonly GwScene[] = [
       war,
       unrest(1),
       world({ is: "war_months", own: true, min: 41, max: 47 }),
+      // ww221: the crews of a fleet that lies in port.
+      world({ is: "fleet_idle", months: 6 }),
     ),
     cast: { navy: { office: "navy" } },
     salience: 7,

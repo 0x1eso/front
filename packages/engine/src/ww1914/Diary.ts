@@ -25,6 +25,7 @@ import {
   formatIsoDate,
 } from "@openfront/engine-lib/ww1936/Calendar";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
+import { fleetMomentWeight } from "./FleetPapers";
 import type { GreatWar } from "./GreatWar";
 import {
   noteFindings,
@@ -189,6 +190,9 @@ export function chapterMoments(
   // ww219: the war plan redrawn, ready, or found empty by the war.
   const plan = planMoments(gw, seat.tag)[0];
   if (plan !== undefined) out.push(moment("plan", W_PLAN[plan]));
+  // ww221: a sea fight, a third of the fleet lost, months in port, a new ship.
+  const fleet = fleetMomentWeight(gw, seat.tag);
+  if (fleet > 0) out.push(moment("fleet", fleet));
   // Heaviest first; a stable order among equals.
   return out
     .map((m, i) => ({ m, i }))

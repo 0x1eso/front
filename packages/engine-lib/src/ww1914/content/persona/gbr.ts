@@ -10,6 +10,7 @@
 // to her sister Sylvia Henley; until Dec 1916 the PM's letter to the King
 // after each cabinet was its only record. BEF GHQ: Saint-Omer, then
 // Montreuil from 30 Mar 1916 (checked). Dates are New Style.
+import type { GwFleetMoment } from "@openfront/engine-api/ww1914/GwFleetPapers";
 import {
   GW_FOOLED_FRONTS,
   type GwBearer,
@@ -106,6 +107,10 @@ const diary = (
   ...more,
 });
 
+/** ww221: what the fleets did this chapter (Diary's fleet moment). */
+const fleetNow = (now: GwFleetMoment): GwCond =>
+  world({ is: "fleet_now", now });
+
 /** ww219: what the war plan did this chapter (Diary's plan moment). */
 const planNow = (now: GwWarPlanMoment): GwCond =>
   world({ is: "war_plan", now });
@@ -191,6 +196,14 @@ const DIARY: GwDiaryRow[] = [
   diary("plan_hindsight", ASQUITH, "plan", { when: planNow("hindsight") }),
   // ww219: an estimate of the foe that proved fooled (a surprise, a feint).
   diary("fooled", ASQUITH, "hindsight", { theatre: [...GW_FOOLED_FRONTS] }),
+  // ww221: the fleets: a battle, a third lost, months in port, a new ship.
+  diary("fleet_won", ASQUITH, "fleet", { when: fleetNow("won") }),
+  diary("fleet_lost", ASQUITH, "fleet", { when: fleetNow("lost") }),
+  diary("fleet_even", ASQUITH, "fleet", { when: fleetNow("even") }),
+  diary("fleet_third_lost", ASQUITH, "fleet", { when: fleetNow("third_lost") }),
+  diary("fleet_idle", ASQUITH, "fleet", { when: fleetNow("idle") }),
+  diary("fleet_built", ASQUITH, "fleet", { when: fleetNow("built") }),
+  diary("fleet_fooled", ASQUITH, "fleet", { when: fleetNow("fooled") }),
 ];
 
 export const GBR_PERSONA: GwPersonaContent = {

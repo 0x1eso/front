@@ -63,6 +63,11 @@ import {
 } from "./Departments";
 import { inStage, makeCard, placeCard, repeatable, sceneWear } from "./Desk";
 import { crownPick, fatePaint, treatySign } from "./Fate";
+import {
+  moveFleetOrder,
+  signFleetPaper,
+  sortieFleetOrder,
+} from "./FleetPapers";
 import { carriedPaper, proposalsFor } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { answerPetition, holdHonours } from "./Honours";
@@ -420,6 +425,13 @@ export function applyGwOrder(
       return tableCounter(gw, seat, o.counters);
     case "move_band":
       return moveBandOrder(gw, seat, o.from, o.to);
+    // ww221: the Admiralty's papers (FleetPapers.ts).
+    case "move_fleet":
+      return moveFleetOrder(gw, seat, o.fleet, o.to);
+    case "sortie_fleet":
+      return sortieFleetOrder(gw, seat, o.fleet);
+    case "fleet_paper":
+      return signFleetPaper(gw, seat, o.paper, o.pick);
   }
 }
 

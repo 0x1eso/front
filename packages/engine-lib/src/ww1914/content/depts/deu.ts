@@ -897,6 +897,10 @@ const ANSWERS: GwAnswerRow[] = [
         then: ["deu_w_fleet_out"],
       }),
       co("in_being", ["calm", "wait"], []),
+      // ww221: the Admiralty's move paper (FleetPapers.ts).
+      co("send", ["bold", "firm"], [mem("c_fleet_send")], {
+        when: atWar("GBR"),
+      }),
       co("uboat_zone", ["firm", "bold"], [opinion("army", 1)], {
         when: atWar("GBR"),
         then: ["deu_w_sub_note"],

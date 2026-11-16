@@ -2730,6 +2730,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
         id: "stay_in_pola",
         tell: ["cos:-1"],
         effects: [
+          { kind: "world", of: { do: "fleet_sortie", way: "stay" } },
           {
             kind: "person_trust",
             who: {
@@ -2754,6 +2755,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
         id: "raid_coast",
         tell: ["morale:+1", "shells:-1", "navy:-1"],
         effects: [
+          { kind: "world", of: { do: "fleet_sortie", way: "part" } },
           {
             kind: "gauge",
             gauge: "morale",

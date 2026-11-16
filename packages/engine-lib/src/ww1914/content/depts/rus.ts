@@ -693,6 +693,8 @@ const ANSWERS: GwAnswerRow[] = [
       c("mine_baltic", ["calm", "cheap"], [gauge("money", -1)], {
         then: ["rus_cs_baltic_mines"],
       }),
+      // ww221: the Admiralty's move paper (FleetPapers.ts).
+      c("send", ["bold", "firm"], [remember("c_fleet_send")], { when: war }),
       c("keep_harbour", ["wait"], [remember("rus_ans_fleet_kept")], {
         wait: true,
       }),

@@ -27,6 +27,8 @@ import {
   GW_TASK_PUSHES,
 } from "./GwDeptWords";
 import { GW_CLIENTS, GW_FATE_TERMS, GW_FATES, GW_SIGN_HOWS } from "./GwFate";
+import { GW_SORTIE_PICKS } from "./GwFleetPapers";
+import { GW_FLEET_BLOCKS, GW_SEA_AREAS } from "./GwFleets";
 import { GW_PRESS_HOWS } from "./GwLaw";
 import { GW_SERVICE_BRANCHES, GW_SERVICE_SHARE_MAX } from "./GwSpies";
 import { GW_BARGAIN_MOVES, GW_TABLE_TRADES, GW_TABLE_WORDS } from "./GwTable";
@@ -498,6 +500,23 @@ export const GwOrderSchema = z.discriminatedUnion("kind", [
     from: z.enum(GW_THEATRES).nullable(),
     to: z.enum(GW_THEATRES),
   }),
+  /**
+   * ww221: 다른 바다로 보내자고 한다: one of our fleets to another sea. The
+   * Admiralty's papers then carry it; signing that (fleet_paper) sends it.
+   */
+  z.object({
+    kind: z.literal("move_fleet"),
+    fleet: Id,
+    to: z.enum(GW_SEA_AREAS),
+  }),
+  /** ww221: 출격을 명한다: the Admiralty draws up a sortie paper for it. */
+  z.object({ kind: z.literal("sortie_fleet"), fleet: Id }),
+  /** ww221: an Admiralty paper signed; a sortie paper names its pick. */
+  z.object({
+    kind: z.literal("fleet_paper"),
+    paper: Id,
+    pick: z.enum(GW_SORTIE_PICKS).optional(),
+  }),
 ]);
 export type GwOrder = z.infer<typeof GwOrderSchema>;
 
@@ -607,5 +626,8 @@ export const GW_ORDER_BLOCKS = [
   "in_flight", // a band of ours is on the rails already
   "no_front", // not a front of ours, or the same front
   "front_full", // that front has all the men it can feed
+  // ww221: the fleets (GwFleets.GW_FLEET_BLOCKS, in its order)
+  ...GW_FLEET_BLOCKS,
+  "no_fleet", // not one of our fleets, or it can't do that
 ] as const;
 export type GwOrderBlock = (typeof GW_ORDER_BLOCKS)[number];

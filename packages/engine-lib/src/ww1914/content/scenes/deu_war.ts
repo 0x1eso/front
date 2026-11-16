@@ -2635,6 +2635,7 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
         id: "stay_port",
         tell: [],
         effects: [
+          { kind: "world", of: { do: "fleet_sortie", way: "stay" } },
           {
             kind: "flag",
             flag: "f_fleet_port",
@@ -2656,6 +2657,7 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
         },
         tell: ["morale:+1", "trust:+1", "trust:-1"],
         effects: [
+          { kind: "world", of: { do: "fleet_sortie", way: "full" } },
           {
             kind: "flag",
             flag: "f_fleet_sortie",
@@ -2693,6 +2695,7 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
         },
         tell: ["morale:+1", "gbr:-1", "trust:+1"],
         effects: [
+          { kind: "world", of: { do: "fleet_sortie", way: "part" } },
           {
             kind: "flag",
             flag: "f_coast_raid",

@@ -1451,22 +1451,16 @@ const WAR_SCENES: readonly GwScene[] = [
     id: "gbr_w_jutland",
     kind: "crisis",
     stage: WAR,
-    when: all(
-      war,
-      world({ is: "war_months", own: true, min: 17, max: 29 }),
-      any(
-        world({
-          is: "battle",
-          theatre: "sea",
-          of: ["break", "advance", "stalemate", "repelled"],
-        }),
-        world({ is: "war_age", min: 20 }),
-      ),
-    ),
+    // ww221: only a real battle of the battle fleets in the North Sea, so a
+    // game may pass with none; the text follows how it went.
+    when: all(war, world({ is: "fleet_battle", area: "north", min: "big" })),
+    once: true,
     cast: { navy: holder("navy") },
     salience: 7,
     tags: ["war"],
     variants: [
+      v("won", world({ is: "fleet_battle", area: "north", result: "won" })),
+      v("lost", world({ is: "fleet_battle", area: "north", result: "lost" })),
       v(
         "sea_lost",
         world({ is: "front", theatre: "sea", from: "channel", to: "atlantic" }),
