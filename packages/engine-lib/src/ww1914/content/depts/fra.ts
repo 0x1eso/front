@@ -45,6 +45,7 @@ import {
   role,
 } from "@openfront/engine-api/ww1914/SceneDsl";
 import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
+import { FRA_ROAD_ANSWERS } from "../roads/fra";
 
 const NATION: GwScene["nation"] = ["FRA"];
 
@@ -992,6 +993,7 @@ const ANSWERS: GwAnswerRow[] = [
       }),
     ],
   ),
+  ...FRA_ROAD_ANSWERS,
 ];
 
 // ---- Honours at their occasions (ww196 §4) ----

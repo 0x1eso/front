@@ -47,6 +47,11 @@ import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
 import type { GwSide } from "../../HouseRows";
 import type { GwPowerOption, GwPowerRow, GwReactorRow } from "../../PowerRows";
 import { beatPlot, grow, heat, startLaw, warAge } from "../house/kit";
+import {
+  FRA_ROAD_POWERS,
+  FRA_ROAD_REACTORS,
+  FRA_ROAD_SCENES,
+} from "../roads/fra";
 
 // ---- Words ----
 
@@ -1129,6 +1134,7 @@ export const FRA_POWERS: readonly GwPowerRow[] = [
     strong: [gauge("morale", 1), inst("senate", 1), inst("army", -1)],
     turned: [inst("senate", -1), gauge("morale", -1)],
   }),
+  ...FRA_ROAD_POWERS,
 ];
 
 /** FRA's own reactors, on top of GW_REACTORS (`nation: "FRA"`). */
@@ -1180,6 +1186,7 @@ export const FRA_REACTORS: readonly GwReactorRow[] = [
     key: "fra_react_minority",
     does: [heat("fra_minority", 1)],
   },
+  ...FRA_ROAD_REACTORS,
 ];
 
 // ---- The result cards ----
@@ -1278,4 +1285,5 @@ export const FRA_POWER_SCENES: readonly GwScene[] = [
   ...["radicals", "sfio", "catholics", "af", "tiger"].map((f) =>
     card(`fra_pw_ab_${f}_r`, ["home"], [v("base")]),
   ),
+  ...FRA_ROAD_SCENES,
 ];

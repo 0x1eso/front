@@ -87,6 +87,11 @@ import type { GwPowerOption, GwPowerRow, GwReactorRow } from "../../PowerRows";
 import { REICHSRAT_OPEN } from "../house/houses";
 import { cool, heat, isLaw, temper } from "../house/kit";
 import { gauge, inst, low, men } from "../laws/kit";
+import {
+  AUH_ROAD_POWERS,
+  AUH_ROAD_REACTORS,
+  AUH_ROAD_SCENES,
+} from "../roads/auh";
 
 const war: GwCond = world({ is: "war" });
 const atWar = (tag: GwTag): GwCond => ({ kind: "at_war", tag });
@@ -1105,6 +1110,7 @@ export const AUH_POWERS: readonly GwPowerRow[] = [
       },
     },
   }),
+  ...AUH_ROAD_POWERS,
 ];
 
 /**
@@ -1160,6 +1166,7 @@ export const AUH_REACTORS: readonly GwReactorRow[] = [
     key: "auh_react_harsh_kin",
     delta: -1,
   },
+  ...AUH_ROAD_REACTORS,
 ];
 
 /** Result cards and other scenes the rows call. */
@@ -1225,4 +1232,5 @@ export const AUH_POWER_SCENES: readonly GwScene[] = [
   card("auh_pw_ab_czech_r"),
   card("auh_pw_ab_legions_r"),
   card("auh_pw_ab_unions_r"),
+  ...AUH_ROAD_SCENES,
 ];

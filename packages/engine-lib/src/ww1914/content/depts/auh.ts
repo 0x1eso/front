@@ -37,6 +37,7 @@ import {
 } from "@openfront/engine-api/ww1914/SceneDsl";
 import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
 import { REICHSRAT_OPEN } from "../house/houses";
+import { AUH_ROAD_ANSWERS } from "../roads/auh";
 import {
   atWar,
   berlinAt,
@@ -1044,6 +1045,7 @@ const ANSWERS: GwAnswerRow[] = [
       topic: ["ALB", "GRC", "BGR", "OTT", "BEL", "FRA", "DEU", "GBR"],
     },
   ),
+  ...AUH_ROAD_ANSWERS,
 ];
 
 // ---- Task rows: Austria's own types (common types need none) ----

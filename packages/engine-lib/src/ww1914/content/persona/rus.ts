@@ -24,6 +24,7 @@ import {
   world,
   type GwWarPlanMoment,
 } from "@openfront/engine-api/ww1914/WorldDsl";
+import { RUS_ROAD_DIARY } from "../roads/rus";
 
 const war = world({ is: "war" });
 const command = world({ is: "command" });
@@ -203,6 +204,7 @@ const DIARY: GwDiaryRow[] = [
   day("fleet_idle", "fleet", { when: fleetNow("idle") }),
   day("fleet_built", "fleet", { when: fleetNow("built") }),
   day("fleet_fooled", "fleet", { when: fleetNow("fooled") }),
+  ...RUS_ROAD_DIARY,
 ];
 
 export const RUS_PERSONA: GwPersonaContent = {

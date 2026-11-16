@@ -30,6 +30,7 @@ import {
   world,
   type GwWarPlanMoment,
 } from "@openfront/engine-api/ww1914/WorldDsl";
+import { AUH_ROAD_DIARY } from "../roads/auh";
 import { inWar, italyIn, since } from "../scenes/auh_act";
 
 const FJ = "franz_joseph";
@@ -250,6 +251,7 @@ const DIARY: GwDiaryRow[] = [
   dy("auh_dy_karl_fleet_lost", KARL, "fleet", { when: fleetNow("lost") }),
   dy("auh_dy_karl_fleet_idle", KARL, "fleet", { when: fleetNow("idle") }),
   dy("auh_dy_karl_fleet_fooled", KARL, "fleet", { when: fleetNow("fooled") }),
+  ...AUH_ROAD_DIARY,
 ];
 
 export const AUH_PERSONA: GwPersonaContent = {

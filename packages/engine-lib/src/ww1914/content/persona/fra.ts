@@ -26,6 +26,7 @@ import {
   world,
   type GwWarPlanMoment,
 } from "@openfront/engine-api/ww1914/WorldDsl";
+import { FRA_ROAD_DIARY } from "../roads/fra";
 
 const NATION: GwRulerPlace["nation"] = ["FRA"];
 const RULER = "poincare";
@@ -177,6 +178,7 @@ const DIARY: GwDiaryRow[] = [
   note("fleet_idle", "fleet", { when: fleetNow("idle") }),
   note("fleet_built", "fleet", { when: fleetNow("built") }),
   note("fleet_fooled", "fleet", { when: fleetNow("fooled") }),
+  ...FRA_ROAD_DIARY,
 ];
 
 export const FRA_PERSONA: GwPersonaContent = {

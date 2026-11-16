@@ -134,6 +134,21 @@ export const GW_TABLE_AIMS_VS: Readonly<
     // Turkestan behind the Indian frontier, and the Pacific port.
     RUS: ["tashkent", "samarkand", "vladivostok"],
   },
+  // W2: Russia against Britain, the Great Game's old dream of the Indus; and
+  // against Japan, the south of Sakhalin lost in 1905, and Korea.
+  RUS: {
+    GBR: ["lahore", "karachi", "delhi"],
+    JPN: ["toyohara", "seoul"],
+  },
+  // W2: France against Britain, the Nile of Fashoda, and the Gold Coast and
+  // Nigeria between its own West African lands.
+  FRA: {
+    GBR: ["khartoum", "cairo", "accra", "lagos"],
+  },
+  // W2: Austria against Germany, the Silesia Maria Theresa lost in 1742.
+  AUH: {
+    DEU: ["breslau", "oppeln", "kattowitz"],
+  },
 };
 
 /** Where a free port makes sense. */
