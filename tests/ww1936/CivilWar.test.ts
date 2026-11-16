@@ -700,6 +700,30 @@ describe("World War 1936 P5: civil wars (spec §15)", () => {
     expect(eg.wars.length).toBe(wars);
   }, 60_000);
 
+  it("ww231: after a split each side's ruling ideology keeps a solid majority on its side", async () => {
+    // civil_war: the government keeps its own base (a live democratic
+    // Czechoslovakia had 0% democratic, 98% non-aligned after its split).
+    const s = await started();
+    const [sun, cw] = [endId("SUN"), endId("CW1")];
+    const pc = s.ww.politics.country(sun)!;
+    pc.pop = [2000, 100, 6000, 1900]; // dem 20%, com 1%, fas 60%, neu 19%
+    sovietSplit(s);
+    expect(pc.ruling).toBe(IDEO_COM);
+    expect(pc.pop).toEqual([1538, 7000, 0, 1462]);
+    expect(s.ww.politics.country(cw)!.pop[IDEO_FAS]).toBe(7000);
+    // seizePower (ww226): the new government takes power, the old side rises.
+    const t = await started();
+    const tc = t.ww.politics.country(sun)!;
+    tc.pop = [1900, 6000, 100, 2000];
+    t.ww.politics.queueEvent(GOV_EVENT.id, sun, sun, 0, 0);
+    t.ww.politics.flushEvents(t.g.ticks());
+    expect(tc.ruling).toBe(IDEO_FAS);
+    expect(t.ww.politics.country(cw)!.pop[IDEO_COM]).toBe(7000);
+    expect(tc.pop[IDEO_FAS]).toBeGreaterThanOrEqual(7000);
+    expect(tc.pop[IDEO_COM]).toBe(0);
+    expect(tc.pop.reduce((a, b) => a + b, 0)).toBe(10000);
+  }, 60_000);
+
   it("ww226 (owner's ruling): a non-aligned government changes peacefully; fascist → non-aligned is a civil war", async () => {
     const { g, ww, eg } = await started();
     const pol = ww.politics;

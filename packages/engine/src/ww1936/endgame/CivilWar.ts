@@ -65,6 +65,11 @@ import type { WwEndgame } from "./WwEndgame";
 const REBEL_POP_BP = 7000;
 const REBEL_STAB_BP = 5000;
 const REBEL_WS_BP = 7000;
+/**
+ * ww231: the government's own ideology keeps at least this vote on its side
+ * (the rebels took theirs; their share no longer goes all to the others).
+ */
+const GOV_POP_BP = 7000;
 /** Spec §15.4: the government's stability base falls by 10%. */
 const GOV_STAB_LOSS_BP = 1000;
 /** P3 spec §5.8: gen_civil_strife lasts 180 days. */
@@ -916,6 +921,12 @@ function splitPolitics(
   addSpirit(pol, R, "gen_civil_strife", STRIFE_DAYS, day);
   // X: the ideology's vote to the others, stability −10%, the strife.
   addPopularity(xc.pop, ideo, -xc.pop[ideo]);
+  // ww231: the government's ideology keeps a solid majority on its side (a
+  // live democratic Czechoslovakia kept 0% democratic, 98% non-aligned);
+  // the other two are scaled as they stood.
+  if (xc.pop[xc.ruling] < GOV_POP_BP) {
+    addPopularity(xc.pop, xc.ruling, GOV_POP_BP - xc.pop[xc.ruling]);
+  }
   xc.stabBaseBp = Math.max(0, xc.stabBaseBp - GOV_STAB_LOSS_BP);
   addSpirit(pol, X, "gen_civil_strife", STRIFE_DAYS, day);
   pol.markCountry(X);
