@@ -2,13 +2,17 @@
 // starves the Central side slowly; Germany's submarines answer, and every step
 // up costs America's patience. Two numbers and a signature.
 import {
+  GW_LINES,
   GW_SEA_MAX,
   GwNationState,
+  GwSide,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { hasTech, warMonths } from "./Eras";
 import type { GreatWar } from "./GreatWar";
 import { navalStep, uboatSaves, warnedLately } from "./NavalIntel";
+import { naturalSide } from "./Wars";
 import {
   clampTo,
   everyMonths,
@@ -16,6 +20,7 @@ import {
   isLongChapter,
   moveGauge,
   news,
+  other,
   reason,
   ruledBySeat,
   turn,
@@ -32,20 +37,118 @@ const NOTE_PCT = 12;
 const seaOpen = (gw: GreatWar) =>
   gw.s.theatres.find((t) => t.id === "sea")!.open;
 
+// ---- ww220: whoever holds the main fleet blockades the other side ----
+
+/**
+ * The battle fleet a country brings to the scales, by its dreadnoughts in the
+ * summer of 1914. ww221's fleets take this over once they are merged.
+ */
+const BATTLE_FLEET: Readonly<Partial<Record<GwTag, number>>> = {
+  GBR: 10,
+  DEU: 6,
+  USA: 4,
+  FRA: 3,
+  JPN: 2,
+  ITA: 2,
+  AUH: 2,
+  RUS: 1,
+};
+
+export function battleFleet(gw: GreatWar, tag: GwTag): number {
+  const n = gw.nation(tag);
+  return n === null || !fights(n) ? 0 : (BATTLE_FLEET[tag] ?? 0);
+}
+
+/**
+ * ww220 (design ww220 §4): the side that holds the main fleet: Britain's
+ * coalition, or the one it would join while it makes up its mind; else the
+ * side with the stronger battle fleet; null when neither, or both alike. The
+ * blockade falls on the other side, and the U-boats are the other side's
+ * answer.
+ */
+export function blockaderOf(gw: GreatWar): GwSide | null {
+  const gbr = gw.nation("GBR");
+  if (gbr !== null && gbr.side !== null) return gbr.side;
+  const camp = gbr === null || gbr.out ? null : naturalSide(gw, "GBR");
+  if (camp !== null) return camp;
+  const sum: Record<GwSide, number> = { central: 0, entente: 0 };
+  for (const n of gw.s.nations) {
+    if (n.side !== null) sum[n.side] += battleFleet(gw, n.tag);
+  }
+  if (sum.central === sum.entente) return null;
+  return sum.central > sum.entente ? "central" : "entente";
+}
+
+/** ww220: the biggest fleet of `side` in the war, the list's first on a tie. */
+export function fleetLead(gw: GreatWar, side: GwSide): GwTag | null {
+  let best: GwTag | null = null;
+  let most = 0;
+  for (const n of gw.s.nations) {
+    const k = n.side === side ? battleFleet(gw, n.tag) : 0;
+    if (k > most) {
+      best = n.tag;
+      most = k;
+    }
+  }
+  return best;
+}
+
+/**
+ * ww220: the main fleet's side while that fleet is at war: not while Britain
+ * still makes up its mind, nor when no ship of the side fights.
+ */
+export function fleetAtWar(gw: GreatWar): GwSide | null {
+  const gbr = gw.nation("GBR");
+  const undecided =
+    gbr !== null &&
+    gbr.side === null &&
+    !gbr.out &&
+    naturalSide(gw, "GBR") !== null;
+  const by = undecided ? null : blockaderOf(gw);
+  return by !== null && fleetLead(gw, by) !== null ? by : null;
+}
+
+/** ww220: a country the blockade falls on: in the coalition without the main fleet. */
+export function isBlockaded(gw: GreatWar, n: GwNationState): boolean {
+  const by = blockaderOf(gw);
+  return by !== null && n.side !== null && n.side !== by;
+}
+
+/** ww220: whose merchant fleet the U-boats sink: the main fleet's nation. */
+export function shipperOf(gw: GreatWar): GwTag {
+  const by = blockaderOf(gw);
+  return (by === null ? null : fleetLead(gw, by)) ?? "GBR";
+}
+
+/**
+ * ww220: where the sea line starts: at the North Sea when the main fleet is
+ * the entente's, at the Channel (the mirror) when it is the Central Powers'.
+ */
+export function seaStartLine(gw: GreatWar, start: number): number {
+  return blockaderOf(gw) === "central"
+    ? GW_LINES.sea.length - 1 - start
+    : start;
+}
+
+/** The sea line from which the North Sea is the Central Powers' (Seas.ts). */
+const SEA_CENTRAL_FROM = 2;
+
 function blockadeStep(gw: GreatWar): void {
   const s = gw.s;
-  const gbr = gw.nation("GBR");
-  if (gbr === null || !fights(gbr) || !seaOpen(gw)) return;
+  const by = blockaderOf(gw);
+  const lead = by === null ? null : gw.nation(fleetLead(gw, by) ?? "GBR");
+  if (by === null || lead === null || !seaOpen(gw)) return;
   const line = s.theatres.find((t) => t.id === "sea")!.line;
   // ww180: told in time when the enemy's fleet puts out, the cruisers keep
   // their stations: the blockade tightens sooner and does not slip.
-  const warned = warnedLately(gw, "entente");
-  const nets = (hasTech(gbr, "mine_nets") ? 4 : 5) - (warned ? 1 : 0);
+  const warned = warnedLately(gw, by);
+  const nets = (hasTech(lead, "mine_nets") ? 4 : 5) - (warned ? 1 : 0);
   // A fleet that holds the North Sea closes it a little at a time.
-  if (line <= 1 && everyMonths(gw, nets)) {
+  const holds = (line >= SEA_CENTRAL_FROM ? "central" : "entente") === by;
+  if (holds && everyMonths(gw, nets)) {
     s.blockade = clampTo(s.blockade + 1, 0, GW_SEA_MAX);
   }
-  if (line >= 2 && !warned && everyMonths(gw, 3)) {
+  if (!holds && !warned && everyMonths(gw, 3)) {
     s.blockade = clampTo(s.blockade - 1, 0, GW_SEA_MAX);
   }
   // America is a neutral too, and the list of contraband grows.
@@ -66,10 +169,13 @@ function aiUboats(gw: GreatWar): void {
   const deu = gw.nation("DEU");
   if (deu === null || !fights(deu) || ruledBySeat(gw, "DEU")) return;
   const months = warMonths(gw);
+  // ww220: the boats answer a blockade by the other side's main fleet.
+  const by = blockaderOf(gw);
   if (
     s.uboat === 0 &&
     s.blockade >= 3 &&
-    gw.nation("GBR")?.side === "entente"
+    deu.side !== null &&
+    by === other(deu.side)
   ) {
     if (deu.ai !== "principled" || s.blockade >= 5) setUboats(gw, 1);
     return;
@@ -96,8 +202,9 @@ export function setUboats(gw: GreatWar, level: number): void {
 function uboatStep(gw: GreatWar): void {
   const s = gw.s;
   const deu = gw.nation("DEU");
-  const gbr = gw.nation("GBR");
-  if (deu === null || gbr === null || !fights(gbr)) return;
+  // ww220: the boats hunt the main fleet's side; with it, Germany has none to.
+  const by = blockaderOf(gw);
+  if (deu === null || by === null || deu.side === by) return;
   const live = fights(deu) && seaOpen(gw);
   let sunk = 0;
   if (live && s.uboat === 1 && everyMonths(gw, 2)) sunk = 1;
@@ -178,7 +285,7 @@ export function seaStep(gw: GreatWar, warScoreCentral: number): void {
  */
 export function seaFor(gw: GreatWar, n: GwNationState): void {
   const s = gw.s;
-  if (n.tag === "GBR" && s.shipping >= 9 && everyMonths(gw, 3)) {
+  if (n.tag === shipperOf(gw) && s.shipping >= 9 && everyMonths(gw, 3)) {
     moveGauge(gw, n.tag, "order", -1, "order_hunger");
   }
 }

@@ -45,15 +45,9 @@ import {
   ranOn,
   reachedLine,
 } from "./Land";
+import { fleetAtWar } from "./Sea";
 import { atWarWith, memberEnd, sideIn } from "./Wars";
-import {
-  fights,
-  isLongChapter,
-  monthsFrom,
-  news,
-  other,
-  seatsOf,
-} from "./World";
+import { isLongChapter, monthsFrom, news, other, seatsOf } from "./World";
 
 /**
  * Places occupation may move in a chapter, with the fronts' small bites
@@ -228,18 +222,16 @@ function heldGroups(gw: GreatWar, tag: GwTag): Set<string> {
 
 /**
  * The side that rules the narrow seas: the central powers with the sea line
- * at the Channel or beyond, the entente while Britain fights on its side and
- * the line is no further; null when nobody does.
+ * at the Channel or beyond, the entente while the main fleet fights on its
+ * side (ww220: Britain's, or the stronger without it) and the line is no
+ * further; null when nobody does.
  */
 export function seaSide(gw: GreatWar): GwSide | null {
   const t = gw.s.theatres.find((x) => x.id === "sea");
   const line =
     t?.since === null || t === undefined ? GW_FRONT_START.sea : t.line;
   if (t?.since !== null && line >= SEA_CHANNEL) return "central";
-  const gbr = gw.nation("GBR");
-  if (gbr?.side === "entente" && fights(gbr) && line < SEA_CHANNEL) {
-    return "entente";
-  }
+  if (fleetAtWar(gw) === "entente" && line < SEA_CHANNEL) return "entente";
   return null;
 }
 

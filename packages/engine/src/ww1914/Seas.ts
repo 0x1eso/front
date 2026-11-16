@@ -11,7 +11,8 @@ import {
 import type { GwWorldCond } from "@openfront/engine-api/ww1914/WorldDsl";
 import type { GreatWar } from "./GreatWar";
 import { holderOf } from "./Land";
-import { fights } from "./World";
+import { blockaderOf } from "./Sea";
+import { fights, other } from "./World";
 
 export type GwSeaCond = Extract<GwWorldCond, { is: "sea_hold" }>;
 
@@ -54,8 +55,11 @@ export function seaHold(gw: GreatWar, sea: GwSeaZone): GwSide | null {
       }
       return fights(gw.nation("AUH")) ? "central" : null;
     }
-    case "med":
-      return gw.s.shipping >= MED_LOST_AT ? "central" : "entente";
+    case "med": {
+      // ww220: the main fleet's side, until the U-boats take it.
+      const by = blockaderOf(gw) ?? "entente";
+      return gw.s.shipping >= MED_LOST_AT ? other(by) : by;
+    }
   }
 }
 
