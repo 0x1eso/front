@@ -499,15 +499,18 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
 // equipment, ww232's inheriting rebels): two equal runs.
 // Re-pinned for ww229 wave A2 (eight more minors; the rally and purge
 // ceilings): two equal runs.
-const WW1936_DIGEST = "a6411e451ddb5667";
+// Re-pinned for ww233 (the popularity ceiling; enemies' enemies may host an
+// exile): two equal runs.
+const WW1936_DIGEST = "ff9b0f576ba221ad";
 /**
  * The same game on Easy (the lobby's default in this mode): the AI
  * handicaps and the slower war planning. Pinned with three equal runs.
  * Re-pinned for the ww226 merge: two equal runs.
  * Re-pinned for the ww229 wave A1 merge: two equal runs.
  * Re-pinned for the ww229 wave A2 merge: two equal runs.
+ * Re-pinned for ww233: two equal runs.
  */
-const WW1936_EASY_DIGEST = "0ee1fbcc2f4ae530";
+const WW1936_EASY_DIGEST = "aaa0127ad6f09651";
 
 describe("World War 1936 stays deterministic", () => {
   // An all-AI game on the test map, long enough for the calendar's first
