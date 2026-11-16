@@ -85,7 +85,7 @@ import { WwLandView } from "./WwLandView";
 import { sideKeyOf, WwNavyView } from "./WwNavyView";
 import { WwPoliticsView } from "./WwPoliticsView";
 
-/** Territory colours of the civil-war slots (CW1..CW6), distinct from the gray default. */
+/** Territory colours of the civil-war slots (CW1..CW12), distinct from the gray default. */
 const CIVIL_WAR_COLORS = [
   "#c2410c",
   "#0e7490",
@@ -93,6 +93,13 @@ const CIVIL_WAR_COLORS = [
   "#4d7c0f",
   "#be123c",
   "#a16207",
+  // ww226: CW7-CW12.
+  "#7c3aed",
+  "#047857",
+  "#b45309",
+  "#1d4ed8",
+  "#9f1239",
+  "#3f6212",
 ] as const;
 
 function readCosmeticVisibility(): CosmeticVisibility {

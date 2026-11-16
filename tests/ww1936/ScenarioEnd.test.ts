@@ -64,7 +64,7 @@ describe("World War 1936 P5: the end test map", () => {
 
   it("the players: the ten countries, then the 14 dormant slots", () => {
     expect(END.scenarioCount).toBe(10);
-    expect(END.players).toBe(24);
+    expect(END.players).toBe(30); // ww226: + CW7-CW12
     expect(endId("DEU")).toBe(1);
     expect(endId("CSK")).toBe(7);
     expect(endId("LTU")).toBe(10);

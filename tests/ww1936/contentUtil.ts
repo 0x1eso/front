@@ -146,7 +146,7 @@ export const CONTENT_TARGETS = {
   peace: 14,
   p5Groups: 70,
   p5Beats: 40,
-  dormant: 14,
+  dormant: 20, // ww226: + CW7-CW12
 } as const;
 
 /** P6 (spec §11.1 table): each regional pack's own focuses (Phase A: K1–K4). */

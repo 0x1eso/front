@@ -16,9 +16,10 @@ const FLAGS = path.join(__dirname, "../../resources/flags");
 
 describe("the 1936 country table", () => {
   test("79 unique tags and P5's 14 dormant slots, each with a definition", () => {
-    // ww177: the three Imjin War tags after the dormant slots.
-    expect(COUNTRY_TAGS).toHaveLength(79 + 14 + 3);
-    expect(new Set(COUNTRY_TAGS).size).toBe(79 + 14 + 3);
+    // ww177: the three Imjin War tags after the dormant slots; ww226: then
+    // 1936's six extra civil-war slots.
+    expect(COUNTRY_TAGS).toHaveLength(79 + 14 + 3 + 6);
+    expect(new Set(COUNTRY_TAGS).size).toBe(79 + 14 + 3 + 6);
     expect(COUNTRY_TAGS.slice(79, 93)).toEqual([...DORMANT_TAGS]);
     expect(Object.keys(COUNTRIES).sort()).toEqual([...COUNTRY_TAGS].sort());
     expect(isCountryTag("DEU")).toBe(true);

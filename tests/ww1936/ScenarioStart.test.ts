@@ -6,6 +6,7 @@ import {
 import { GameUpdateType } from "@openfront/engine-api/game/GameUpdates";
 import {
   DORMANT_TAGS,
+  EXTRA_CIVIL_WAR_SLOTS,
   isDormantTag,
 } from "@openfront/engine-api/ww1936/Countries";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
@@ -45,6 +46,8 @@ describe("World War 1936 start", () => {
       "SUN",
       "POL",
       ...DORMANT_TAGS,
+      // ww226: 1936's extra civil-war slots.
+      ...EXTRA_CIVIL_WAR_SLOTS,
     ]);
     expect(g.worldWar()!.scenario.scenarioTags()).toEqual([
       "DEU",
@@ -75,7 +78,7 @@ describe("World War 1936 start", () => {
     // P5 plan decision 4: dormant nation players, no land.
     const dormant = g.allPlayers().slice(6);
     expect(dormant.map((p) => p.smallID())).toEqual(
-      DORMANT_TAGS.map((_, i) => 7 + i),
+      [...DORMANT_TAGS, ...EXTRA_CIVIL_WAR_SLOTS].map((_, i) => 7 + i),
     );
     for (const p of dormant) {
       expect(p.type()).toBe(PlayerType.Nation);

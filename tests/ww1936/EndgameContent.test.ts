@@ -3,6 +3,7 @@
 import {
   COUNTRY_TAGS,
   DORMANT_TAGS,
+  EXTRA_CIVIL_WAR_SLOTS,
 } from "@openfront/engine-api/ww1936/Countries";
 import { OCCUPATION_LAWS } from "@openfront/engine-api/ww1936/EndgameTypes";
 import {
@@ -76,7 +77,7 @@ describe("World War 1936 P5: endgame content", () => {
   it("every dormant slot has its politics (popularity sums to 100, the new pack's tree)", () => {
     if (DORMANT_POLITICS.length === 0) return;
     expect(DORMANT_POLITICS.map((c) => c.tag).sort()).toEqual(
-      [...DORMANT_TAGS].sort(),
+      [...DORMANT_TAGS, ...EXTRA_CIVIL_WAR_SLOTS].sort(),
     );
     for (const c of DORMANT_POLITICS) {
       expect(c.popularity.reduce((a, b) => a + b, 0) * 100, c.tag).toBe(

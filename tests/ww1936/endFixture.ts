@@ -79,10 +79,11 @@ export const END = {
   ) as Partial<Record<CountryTag, number>>,
   /** Land edges [a, b, border, km, river, strait]. */
   edges: SCENARIO.edges,
-  /** How many players (the scenario's countries and the 14 dormant slots). */
+  /** How many players (the scenario's countries, the 14 dormant slots, ww226: the 6 extra civil-war slots). */
   players: ORDER.length,
   /** How many of them are the scenario's countries. */
-  scenarioCount: ORDER.length - DORMANT_TAGS.length,
+  scenarioCount:
+    ORDER.length - DORMANT_TAGS.length - EXTRA_CIVIL_WAR_SLOTS.length,
 };
 
 /** smallID of `tag` on the end map (throws when it is not there). */

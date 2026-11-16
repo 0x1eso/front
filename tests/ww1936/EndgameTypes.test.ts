@@ -49,7 +49,8 @@ describe("World War 1936 P5 lists", () => {
   it("the 14 dormant slots are the last 14 tags, in order, and never picked", () => {
     expect(DORMANT_TAGS).toHaveLength(14);
     // ww177: the Imjin War tags (IMJIN_TAGS) come after them.
-    expect(COUNTRY_TAGS.slice(-17, -3)).toEqual([...DORMANT_TAGS]);
+    // ww226: then 1936's six extra civil-war slots.
+    expect(COUNTRY_TAGS.slice(-23, -9)).toEqual([...DORMANT_TAGS]);
     expect(DORMANT_TAGS.every(isDormantTag)).toBe(true);
     expect(isDormantTag("DEU")).toBe(false);
     expect(PICK_ORDER.some((t) => isDormantTag(t))).toBe(false);

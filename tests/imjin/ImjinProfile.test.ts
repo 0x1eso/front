@@ -43,8 +43,9 @@ describe("the profile seam", () => {
   });
 
   test("the Imjin tags come after an explicit dormant list, outside the 1936 lobby", () => {
-    expect(COUNTRY_TAGS.slice(-3)).toEqual([...IMJIN_TAGS]);
-    expect(COUNTRY_TAGS.slice(-17, -3)).toEqual([...DORMANT_TAGS]);
+    // ww226: 1936's six extra civil-war slots come after them.
+    expect(COUNTRY_TAGS.slice(-9, -6)).toEqual([...IMJIN_TAGS]);
+    expect(COUNTRY_TAGS.slice(-23, -9)).toEqual([...DORMANT_TAGS]);
     for (const t of IMJIN_TAGS) {
       expect(MAJOR_TAGS).not.toContain(t);
       expect(PICK_ORDER).not.toContain(t);
