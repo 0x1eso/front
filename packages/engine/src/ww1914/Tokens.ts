@@ -94,11 +94,15 @@ function anchorsOf(gw: GreatWar, t: GwTheatreState): Record<GwSide, Pt> | null {
     let mine = by[side];
     const foe = by[side === "central" ? "entente" : "central"];
     // ww219 M: an end with no land listed on the front (Russia's in the
-    // Caucasus) stands on any land its side holds, nearest the foe's.
+    // Caucasus) stands on its members' own land it still holds, nearest the
+    // foe's; failing that, on any land its side holds.
     if (mine.length === 0 && foe.length > 0) {
-      mine = GW_PLACE_KEYS.filter(
+      const members = membersOf(gw, t.id, side);
+      const held = GW_PLACE_KEYS.filter(
         (p) => sideIn(gw, t.id, holderOf(gw, p)) === side,
       );
+      const home = held.filter((p) => members.includes(GW_PLACES[p].owner));
+      mine = home.length > 0 ? home : held;
     }
     if (mine.length === 0) {
       out[side] = whole;
