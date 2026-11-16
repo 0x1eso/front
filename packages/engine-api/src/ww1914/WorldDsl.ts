@@ -624,7 +624,27 @@ export type GwWorldCond =
   /** What the seat's war plan did this chapter (the diary's plan moment). */
   | { is: "war_plan"; now: GwWarPlanMoment }
   /** The seat's staff could prepare that front as the plan's alternative. */
-  | { is: "plan_alt_can"; theatre: GwTheatre };
+  | { is: "plan_alt_can"; theatre: GwTheatre }
+  // ---- ww220: camps that move (Alignment.ts, lane A) ----
+  /**
+   * The road between the seat's country (or `of`) and `tag`, by step 0..4
+   * (GW_ROADS: cold, thaw, understanding, pledge, alliance). False when the
+   * two stand in the same camp or the pair has no road.
+   */
+  | ({ is: "road"; tag: GwTag; of?: GwTag } & Range)
+  /**
+   * The camp the seat's country (or `tag`) would stand in if the general war
+   * came now: `of` lists the camps that pass ("neutral": none). `turned`:
+   * only a camp other than June 1914's (true) / only June 1914's (false).
+   */
+  | {
+      is: "camp";
+      tag?: GwTag;
+      of?: (GwSide | "neutral")[];
+      turned?: boolean;
+    }
+  /** The seat's country (or `tag`) may change sides in the war now (Alignment.canSwitch). */
+  | { is: "switch_can"; tag?: GwTag };
 
 export type GwWorldEffect =
   /** Germany's plan for the war to come. */
@@ -896,7 +916,24 @@ export type GwWorldEffect =
   /** ww208 merge: the reward the player picked on a rally card (FP2). */
   | { do: "rally_reward"; reward: GwRallyReward }
   /** ww219: the redraw under way is aimed at that front (null: the staff's pick). */
-  | { do: "plan_redraw"; to: GwTheatre | null };
+  | { do: "plan_redraw"; to: GwTheatre | null }
+  // ---- ww220: camps that move (Alignment.ts, lane A) ----
+  /** The road between the seat's country and `tag` falls a step for a while. */
+  | { do: "road_fall"; tag: GwTag }
+  /**
+   * The seat offers `tag` the treaty of the road's next step: `pledge`, its
+   * own neutrality (with `spare`: Belgium spared too); `alliance`, both bound.
+   */
+  | {
+      do: "realign_offer";
+      tag: GwTag;
+      step: "pledge" | "alliance";
+      spare?: boolean;
+    }
+  /** The seat's country changes sides at `tag`'s, if it may (Alignment.switchSide). */
+  | { do: "switch_side"; tag: GwTag }
+  /** The seat's country leaves its coalition by a peace with each foe, not beaten. */
+  | { do: "leave_coalition" };
 
 /** What a faction's rally is turned to: its own support, order, morale. */
 export const GW_RALLY_REWARDS = ["support", "order", "morale"] as const;
@@ -1227,6 +1264,14 @@ export const GwWorldCondSchema = z.union([
   // ww219
   is("war_plan", { now: z.enum(GW_WAR_PLAN_MOMENTS) }),
   is("plan_alt_can", { theatre }),
+  // ww220
+  is("road", { tag, of: tag.optional(), ...range }),
+  is("camp", {
+    tag: tag.optional(),
+    of: z.array(z.enum([...GW_SIDES, "neutral"])).optional(),
+    turned: z.boolean().optional(),
+  }),
+  is("switch_can", { tag: tag.optional() }),
 ]) as unknown as z.ZodType<GwWorldCond>;
 
 export const GwWorldEffectSchema = z.union([
@@ -1388,6 +1433,15 @@ export const GwWorldEffectSchema = z.union([
   act("rally_reward", { reward: z.enum(GW_RALLY_REWARDS) }),
   // ww219
   act("plan_redraw", { to: theatre.nullable() }),
+  // ww220
+  act("road_fall", { tag }),
+  act("realign_offer", {
+    tag,
+    step: z.enum(["pledge", "alliance"]),
+    spare: z.boolean().optional(),
+  }),
+  act("switch_side", { tag }),
+  act("leave_coalition", {}),
 ]) as unknown as z.ZodType<GwWorldEffect>;
 
 // ---- Authoring helpers ----

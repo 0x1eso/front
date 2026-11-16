@@ -531,10 +531,29 @@ function treatyWriter(c: GwCtx): TemplateResult {
 }
 
 /** The diplomacy tab. */
+/** ww220: the roads to the other camp's powers, in words. */
+function roads(c: GwCtx): TemplateResult | typeof nothing {
+  const rows = c.seat.diplo.roads ?? [];
+  if (rows.length === 0) return nothing;
+  return html`<section class=${BOX} data-gw-roads>
+    <h3 class=${HEAD}>${translateText("gw.diplo.roads")}</h3>
+    <p class=${MUTED}>${translateText("gw.diplo.roads_hint")}</p>
+    ${rows.map(
+      (r) =>
+        html`<p class="flex items-center gap-2 text-sm" data-gw-road=${r.tag}>
+          ${flag(r.tag)} ${countryName(r.tag)}
+          <span class="text-amber-200"
+            >${translateText(`gw.road.${r.road}`)}</span
+          >
+        </p>`,
+    )}
+  </section>`;
+}
+
 export function diploTab(c: GwCtx): TemplateResult {
   const treaties = c.seat.diplo.treaties;
   return html`<div class="space-y-2.5" data-gw-diplo>
-    ${table(c)}${slowVote(c)}${hostClose(c)}${wires(c)}
+    ${table(c)}${slowVote(c)}${hostClose(c)}${roads(c)}${wires(c)}
     <section class=${BOX} data-gw-treaties>
       <h3 class=${HEAD}>${translateText("gw.diplo.treaties")}</h3>
       ${treaties.length === 0

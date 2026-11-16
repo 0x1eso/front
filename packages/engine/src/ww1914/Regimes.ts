@@ -10,6 +10,7 @@ import { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import { GW_RULERS } from "@openfront/engine-lib/ww1914/RulerRows";
 import { daysFromCivil } from "@openfront/engine-lib/ww1936/Calendar";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
+import { regimeCamp } from "./Alignment";
 import { GW_AUTHORITY } from "./AuthorityTable";
 import { GW_GOV } from "./GovTable";
 import type { GreatWar } from "./GreatWar";
@@ -44,6 +45,11 @@ export interface GwRegimeRow {
    * his row says; only the tree's new head sits in it (decision 1B).
    */
   readonly removes?: boolean;
+  /**
+   * ww220 (Alignment.ts): `neutral`, it leaves its coalition by a peace with
+   * each foe (not beaten) and stands in no camp; `turn`, it may change sides.
+   */
+  readonly camp?: "neutral" | "turn";
 }
 
 const form = (
@@ -66,7 +72,7 @@ export const GW_REGIMES: Readonly<
 > = {
   DEU: [
     form("empire", "republic"),
-    form("republic", null, { seeksPeace: true, unrest: 2 }),
+    form("republic", null, { seeksPeace: true, unrest: 2, camp: "neutral" }),
     // ww207: the utopias' forms. A parliamentary monarchy keeps Wilhelm; a
     // council republic has no place for him.
     form("deu_parl", "republic", { unrest: 0, floor: {}, keeps: true }),
@@ -78,7 +84,12 @@ export const GW_REGIMES: Readonly<
     form("war_cabinet", "national"),
     form("national", null),
     // ww207: a Labour government (Henderson's, the head of Labour's utopia).
-    form("gbr_labour", null, { unrest: 0, floor: {}, removes: true }),
+    form("gbr_labour", null, {
+      unrest: 0,
+      floor: {},
+      removes: true,
+      camp: "neutral",
+    }),
   ],
   AUH: [
     form("dual_monarchy", "federation"),
@@ -94,7 +105,7 @@ export const GW_REGIMES: Readonly<
       floor: {},
       flag: "w_auh_ff_throne",
     }),
-    form("federation", null, { unrest: 2 }),
+    form("federation", null, { unrest: 2, camp: "turn" }),
     form("austria_republic", null, { unrest: 1 }),
     form("crown_remnant", null, { unrest: 1 }),
     // ww207: the utopias' forms. Both keep whoever reigns.
@@ -104,7 +115,7 @@ export const GW_REGIMES: Readonly<
   RUS: [
     form("tsar", "provisional"),
     form("crown", "provisional", { floor: { order: 2 } }),
-    form("regency", "provisional", { unrest: 2 }),
+    form("regency", "provisional", { unrest: 2, camp: "neutral" }),
     form("rep", null, { unrest: 2 }),
     form("provisional", null, {
       unrest: 2,
@@ -116,7 +127,12 @@ export const GW_REGIMES: Readonly<
       retires: ["rus_fredericks"],
     }),
     // ww207: the Bolsheviks' utopia; no place for the Tsar.
-    form("rus_soviet", null, { unrest: 0, floor: {}, removes: true }),
+    form("rus_soviet", null, {
+      unrest: 0,
+      floor: {},
+      removes: true,
+      camp: "neutral",
+    }),
   ],
   // France (ww166): the President stays whatever the form. `fra_union` is the
   // sacred union a scene declares, `fra_tiger` Clemenceau's government (the
@@ -209,6 +225,7 @@ export function changeRegime(gw: GreatWar, tag: GwTag, to: string): void {
   news(gw, `regime_${to}`, tag);
   turn(gw, `regime_${to}@${tag}`);
   regimeHope(gw, tag);
+  regimeCamp(gw, tag);
   for (const seat of seatsOf(gw, tag)) {
     reason(gw, seat, `regime_${to}`);
     seat.desk = seat.desk.filter((c) => !oldOrder(tag, to, c.scene));

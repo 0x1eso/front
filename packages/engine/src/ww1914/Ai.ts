@@ -8,6 +8,7 @@ import {
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
+import { navalAccord, pledgedAgainst } from "./Alignment";
 import { aiResearch, pairScore, pressOdds, warScore } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { aiOffensive } from "./Offensives";
@@ -27,7 +28,7 @@ import { aiTransfer } from "./Transfers";
 import { brokenWords, treatyBars } from "./Treaties";
 import { inOpening, planFront } from "./WarPlan";
 import { trailingSide } from "./WarPower";
-import { declareWar, enter, memberEnd, membersOf } from "./Wars";
+import { declareWar, enter, memberEnd, membersOf, naturalSide } from "./Wars";
 import {
   clampTo,
   everyMonths,
@@ -175,12 +176,18 @@ function britainStep(gw: GreatWar): void {
   const s = gw.s;
   const n = gw.nation("GBR");
   if (n === null || n.side !== null || n.out || ruledBySeat(gw, "GBR")) return;
+  // ww220: a Britain whose camp turned comes in by its alliance (Treaties).
+  if (naturalSide(gw, "GBR") === "central") return;
   const bel = gw.nation("BEL");
   const attacker = bel === null || bel.out ? undefined : bel.atWar[0];
   const belgium = attacker !== undefined;
   if (!belgium && s.warChapter === null) return;
+  // ww220: no British entry while its pledge to the other camp holds.
+  if (pledgedAgainst(gw, "GBR", "central") && !belgium) return;
   const west = s.theatres.find((t) => t.id === "west")!;
-  const add = belgium ? 40 + n.lean * 20 : 6 + n.lean * 4;
+  let add = belgium ? 40 + n.lean * 20 : 6 + n.lean * 4;
+  // ww220: a naval accord in force and Belgium untouched: half the pull.
+  if (!belgium && navalAccord(gw)) add = Math.trunc(add / 2);
   const france = west.line >= 4 ? 25 : 0;
   // ww190: the Entente's bond, five a step either way.
   const entente = 5 * (bondOf(gw, "FRA", "GBR") ?? 0);

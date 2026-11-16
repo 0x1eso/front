@@ -17,6 +17,7 @@ import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { noteFx } from "./ActNote";
 import { afterDo, afterHolds } from "./Aftermath";
 import { agentHolds, hire } from "./Agents";
+import { alignDo, alignHolds } from "./Alignment";
 import { askEffect, askHolds } from "./Asks";
 import { dissolve, dissolvedNow, heldBy, sitsNow } from "./Assumes";
 import { holdVote, voteCount } from "./Authority";
@@ -409,6 +410,11 @@ export function worldHolds(ctx: SceneCtx, c: GwWorldCond): boolean {
       return planMoment(ctx.gw, ctx.seat.tag, c.now);
     case "plan_alt_can":
       return altCan(ctx.gw, ctx.seat, c.theatre);
+    // ww220
+    case "road":
+    case "camp":
+    case "switch_can":
+      return alignHolds(ctx.gw, ctx.seat, c);
   }
 }
 
@@ -799,6 +805,13 @@ export function worldEffect(ctx: SceneCtx, e: GwWorldEffect): void {
     // ww219
     case "plan_redraw":
       aimRedraw(gw, seat, e.to);
+      return;
+    // ww220
+    case "road_fall":
+    case "realign_offer":
+    case "switch_side":
+    case "leave_coalition":
+      alignDo(gw, seat, e);
       return;
   }
 }

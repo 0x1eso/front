@@ -16,6 +16,7 @@ import type {
   GwOffice,
   GwOpening,
   GwReason,
+  GwRoad,
   GwStage,
   GwStamp,
   GwTermRefusal,
@@ -313,6 +314,11 @@ export interface GwDiploView {
   treaties: readonly GwTreatyView[];
   /** Telegrams this seat can still send this chapter. */
   wiresLeft: number;
+  /**
+   * ww220: the road between the seat's country and each power of the other
+   * camp, as a word (Alignment.roadOf); absent or empty where it has none.
+   */
+  roads?: readonly { tag: GwTag; road: GwRoad }[];
 }
 
 export interface GwSeatView {

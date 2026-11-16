@@ -23,6 +23,7 @@ import {
   daysFromCivil,
   formatIsoDate,
 } from "@openfront/engine-lib/ww1936/Calendar";
+import { spareCost } from "./Alignment";
 import { allocOf } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { officeHolder } from "./People";
@@ -179,7 +180,8 @@ export function sidePlan(gw: GreatWar, t: GwTheatre, by: GwSide): number {
     (a, tag) => a + planOn(gw, tag, t),
     0,
   );
-  return clampTo(sum, PLAN_EMPTY, PLAN_READY);
+  // ww220: a pledge that spares Belgium ties the staff to a frontal plan.
+  return clampTo(sum, PLAN_EMPTY, PLAN_READY) - spareCost(gw, t, by);
 }
 
 /**

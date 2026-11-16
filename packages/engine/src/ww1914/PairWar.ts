@@ -146,7 +146,7 @@ function joinsWar(gw: GreatWar, a: GwTag, b: GwTag): boolean {
     (x) =>
       x !== a &&
       ((me.side !== null && gw.nation(x)?.side === me.side) ||
-        startAllies(a, x) ||
+        startAllies(a, x, false, gw) ||
         treatyAllies(gw, a, x)),
   );
 }

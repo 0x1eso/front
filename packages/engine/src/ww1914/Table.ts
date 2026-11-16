@@ -200,10 +200,15 @@ function chairs(gw: GreatWar): GwTag[] {
     return n.side === winner || seatsOf(gw, tag).length > 0;
   };
   const first: GwSide = winner ?? "entente";
-  return [
-    ...GW_TABLE_ORDER[first].filter(seated),
-    ...GW_TABLE_ORDER[other(first)].filter(seated),
-  ];
+  // ww220: by the side each fought on, the lists only a tie-break.
+  const list = [...GW_TABLE_ORDER[first], ...GW_TABLE_ORDER[other(first)]];
+  const rank = (tag: GwTag) => {
+    const side = gw.nation(tag)!.side!;
+    const own = GW_TABLE_ORDER[side].indexOf(tag);
+    const at = own >= 0 ? own : 100 + list.indexOf(tag);
+    return (side === first ? 0 : 1000) + at;
+  };
+  return list.filter(seated).sort((a, b) => rank(a) - rank(b));
 }
 
 /** The table as the armistice leaves it. */
