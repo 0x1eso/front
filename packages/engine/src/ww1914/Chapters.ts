@@ -49,6 +49,7 @@ import { telegramStep } from "./Telegrams";
 import { termsStep } from "./Terms";
 import { treatyStep } from "./Treaties";
 import { utopiaStep } from "./Utopia";
+import { warPlanStep } from "./WarPlan";
 import { trimLines } from "./World";
 import { worldFlagsStep } from "./WorldFlags";
 
@@ -104,6 +105,8 @@ export const GW_CHAPTER_STEPS: readonly ((gw: GreatWar) => void)[] = [
   treatyStep,
   regentStep,
   telegramStep,
+  // ww219: the war plans: redraws run their months, the war meets the plans.
+  warPlanStep,
 ];
 
 export function allReady(gw: GreatWar): boolean {

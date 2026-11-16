@@ -51,6 +51,7 @@ import {
 import { firstRegime } from "./Regimes";
 import { addStrain } from "./Strain";
 import { GW_AI_MAIN, GW_START_TREATIES } from "./Tables";
+import { hasPlan, planFront, wentOtherWay } from "./WarPlan";
 import {
   atWarWith,
   germanPlan,
@@ -1173,9 +1174,11 @@ export function rivalsOf(gw: GreatWar, a: GwTag): GwTag[] {
 /**
  * Where `tag`'s main force goes on the war's first day: Germany's plan (the
  * one in the safe if none is signed), else its main effort, else its first
- * front.
+ * front. ww219: a seat country's war plan (WarPlan.planFront): in peace its
+ * main front, none while a redraw leaves it empty.
  */
 export function planOf(gw: GreatWar, tag: GwTag): GwTheatre | null {
+  if (hasPlan(tag)) return planFront(gw, tag);
   if (tag === "DEU") {
     const p = gw.s.plan ?? (ruledBySeat(gw, "DEU") ? "west" : germanPlan(gw));
     if (p === "west" || p === "east") return p;
@@ -1262,7 +1265,31 @@ export function planEdge(gw: GreatWar, t: GwTheatre, by: GwSide): number {
         planOf(gw, f) === t &&
         membersOf(gw, t, r).some((m) => heldPlan(gw, m, f) === t),
     );
-  return (knew(by, foe) ? PLAN_EDGE : 0) - (knew(foe, by) ? PLAN_EDGE : 0);
+  // ww219: a side that read a plan the war went around took the wrong road.
+  const fooled = (r: GwSide, of: GwSide) =>
+    membersOf(gw, t, of).some((f) => wentOtherWayFrom(gw, f, t, r));
+  return (
+    (knew(by, foe) ? PLAN_EDGE : 0) -
+    (knew(foe, by) ? PLAN_EDGE : 0) +
+    (fooled(foe, by) ? PLAN_EDGE : 0) -
+    (fooled(by, foe) ? PLAN_EDGE : 0)
+  );
+}
+
+/**
+ * ww219: `f` went for its prepared alternative while side `r`'s agents read
+ * its main plan on `t` in peace.
+ */
+function wentOtherWayFrom(
+  gw: GreatWar,
+  f: GwTag,
+  t: GwTheatre,
+  r: GwSide,
+): boolean {
+  return (
+    wentOtherWay(gw, f, t) &&
+    membersOf(gw, t, r).some((m) => heldPlan(gw, m, f) === t)
+  );
 }
 
 /**

@@ -16,6 +16,7 @@ import {
   GwDiaryView,
 } from "@openfront/engine-api/ww1914/GwPersona";
 import { GW_READ_ONLY_KINDS } from "@openfront/engine-api/ww1914/SceneDsl";
+import type { GwWarPlanMoment } from "@openfront/engine-api/ww1914/WorldDsl";
 import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
 import {
@@ -34,6 +35,7 @@ import {
 } from "./Persona";
 import { sceneOf } from "./SceneRun";
 import { GW_PASSING, GW_PASSING_BY_SCENE } from "./Tables";
+import { planMoments } from "./WarPlan";
 
 const P_DIARY = idHash("gw_diary");
 
@@ -62,6 +64,13 @@ const W_HEALTH = 4;
 const W_HINDSIGHT = 3;
 const W_PRIVATE = 3;
 const W_AUDIENCE = 2;
+/** ww219: the plan's moments; the rows tell them apart by `war_plan`. */
+const W_PLAN: Readonly<Record<GwWarPlanMoment, number>> = {
+  empty: 6,
+  hindsight: 4,
+  done: 3,
+  begun: 3,
+};
 
 export interface DiaryMoment {
   moment: GwDiaryMoment;
@@ -170,6 +179,9 @@ export function chapterMoments(
   for (const t of told) {
     out.push(moment("hindsight", W_HINDSIGHT, { who: t.by, told: t }));
   }
+  // ww219: the war plan redrawn, ready, or found empty by the war.
+  const plan = planMoments(gw, seat.tag)[0];
+  if (plan !== undefined) out.push(moment("plan", W_PLAN[plan]));
   // Heaviest first; a stable order among equals.
   return out
     .map((m, i) => ({ m, i }))

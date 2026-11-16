@@ -68,6 +68,14 @@ import {
   GwWarOrder,
   theatresOf,
 } from "./Tables";
+import {
+  altOf,
+  holdOnly,
+  mainOf,
+  offersPlans,
+  planFront,
+  sidePlan,
+} from "./WarPlan";
 import { memberEnd, membersOf, refreshTheatres, sideIn } from "./Wars";
 import {
   clampTo,
@@ -380,12 +388,26 @@ function openingBias(gw: GreatWar, t: GwTheatre, by: GwSide): number {
   return planBias(gw, t, by) + planEdge(gw, t, by);
 }
 
-/** The plans of August: the first chapters run on what was drawn in peace. */
+/**
+ * The plans of August: the first chapters run on what was drawn in peace.
+ * ww219: every seat country's war plan (WarPlan.sidePlan), not only Germany's.
+ */
 function planBias(gw: GreatWar, t: GwTheatre, by: GwSide): number {
   const s = gw.s;
   const first =
     s.warChapter !== null && s.chapter <= s.warChapter + OPENING_CHAPTERS;
-  if (first && by === "central" && t === s.plan) return 25;
+  const plans = sidePlan(gw, t, by);
+  return plans + secretsBias(gw, t, by, first);
+}
+
+/** The world's secrets of August on the first fronts. */
+function secretsBias(
+  gw: GreatWar,
+  t: GwTheatre,
+  by: GwSide,
+  first: boolean,
+): number {
+  const s = gw.s;
   if (t === "west" && by === "central" && first) {
     if (s.secrets.includes("bel_forts_strong")) return -12;
   }
@@ -1011,9 +1033,12 @@ export function proposalsFor(gw: GreatWar, seat: GwSeatState): GwProposal[] {
   if (mine.length === 0) return [];
   const cos = officeHolder(gw, seat, "chief_of_staff");
   const camps = cos === null ? [] : (defOf(cos.id)?.camps ?? []);
+  // ww219: the chief wants what the war plan prepared, his own camp aside.
   const wants: GwTheatre = pickMain(
     mine.map((t) => t.id),
-    gw.s.plan === "east" || camps.includes("east") ? "east" : "west",
+    camps.includes("east")
+      ? "east"
+      : (planFront(gw, seat.tag) ?? (gw.s.plan === "east" ? "east" : "west")),
   );
   const painted = claimFront(
     gw,
@@ -1078,6 +1103,23 @@ export function proposalsFor(gw: GreatWar, seat: GwSeatState): GwProposal[] {
       );
     }
     return out;
+  }
+  // ww219: the war found the plan empty: nothing is ready but to hold.
+  if (holdOnly(gw, seat.tag)) {
+    add("hold_all", wants, "hold", "limited", 0, null);
+    return out;
+  }
+  // ww219: a redrawn plan: the war's first paper offers both prepared plans.
+  if (offersPlans(gw, seat.tag)) {
+    const ids = mine.map((t) => t.id);
+    const main = mainOf(gw, seat.tag);
+    const alt = altOf(gw, seat.tag);
+    if (main !== null && alt !== null && ids.includes(main)) {
+      add("plan_main", main, "offensive", scale, 0, null);
+    }
+    if (alt !== null && ids.includes(alt)) {
+      add("plan_alt", alt, "offensive", scale, 0, null);
+    }
   }
   // A chief who can read his own odds doesn't send a paper he doesn't believe.
   const floor = bold ? BOLD_FLOOR : PRESS_FLOOR;

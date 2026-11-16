@@ -619,7 +619,12 @@ export type GwWorldCond =
   | ({ is: "split_pressure"; id: string } & Range)
   // ---- ww209: the ledger (Deals.ts, S2) ----
   /** A ledger row of that kind with that faction, of that fate (absent: open). */
-  | { is: "ledger"; kind: GwDealKind; id?: string; fate?: GwDealFate };
+  | { is: "ledger"; kind: GwDealKind; id?: string; fate?: GwDealFate }
+  // ---- ww219: the war plan (WarPlan.ts) ----
+  /** What the seat's war plan did this chapter (the diary's plan moment). */
+  | { is: "war_plan"; now: GwWarPlanMoment }
+  /** The seat's staff could prepare that front as the plan's alternative. */
+  | { is: "plan_alt_can"; theatre: GwTheatre };
 
 export type GwWorldEffect =
   /** Germany's plan for the war to come. */
@@ -889,11 +894,25 @@ export type GwWorldEffect =
   /** A ledger row with the faction: he owes a favour, or the seat owes him one. */
   | { do: "ledger"; kind: "owe" | "owed"; id: string }
   /** ww208 merge: the reward the player picked on a rally card (FP2). */
-  | { do: "rally_reward"; reward: GwRallyReward };
+  | { do: "rally_reward"; reward: GwRallyReward }
+  /** ww219: the redraw under way is aimed at that front (null: the staff's pick). */
+  | { do: "plan_redraw"; to: GwTheatre | null };
 
 /** What a faction's rally is turned to: its own support, order, morale. */
 export const GW_RALLY_REWARDS = ["support", "order", "morale"] as const;
 export type GwRallyReward = (typeof GW_RALLY_REWARDS)[number];
+
+/**
+ * ww219: what a seat's war plan did this chapter: a redraw began or was done,
+ * the war came while it was empty, or the opening it spoiled is over.
+ */
+export const GW_WAR_PLAN_MOMENTS = [
+  "begun",
+  "done",
+  "empty",
+  "hindsight",
+] as const;
+export type GwWarPlanMoment = (typeof GW_WAR_PLAN_MOMENTS)[number];
 
 const int = z.number().int();
 const yearMonth = z.string().regex(/^19[0-9]{2}-[01][0-9]$/);
@@ -1205,6 +1224,9 @@ export const GwWorldCondSchema = z.union([
     id: GwIdSchema.optional(),
     fate: z.enum(GW_DEAL_FATES).optional(),
   }),
+  // ww219
+  is("war_plan", { now: z.enum(GW_WAR_PLAN_MOMENTS) }),
+  is("plan_alt_can", { theatre }),
 ]) as unknown as z.ZodType<GwWorldCond>;
 
 export const GwWorldEffectSchema = z.union([
@@ -1364,6 +1386,8 @@ export const GwWorldEffectSchema = z.union([
   act("split_pressure", { id: GwIdSchema, delta: int }),
   act("ledger", { kind: z.enum(["owe", "owed"]), id: GwIdSchema }),
   act("rally_reward", { reward: z.enum(GW_RALLY_REWARDS) }),
+  // ww219
+  act("plan_redraw", { to: theatre.nullable() }),
 ]) as unknown as z.ZodType<GwWorldEffect>;
 
 // ---- Authoring helpers ----

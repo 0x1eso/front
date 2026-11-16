@@ -137,6 +137,7 @@ import {
 import { pollSlots } from "./Society";
 import { inOpening } from "./Story";
 import { spendTime, timeLeft } from "./Time";
+import { beginRedraw, keepPlan } from "./WarPlan";
 import { moveGauge, ownPeople, reasonOf, seatPerson, stageOf } from "./World";
 
 const P_LEAK = idHash("gw_dept_leak");
@@ -1421,6 +1422,9 @@ function takeCourse(
   ) {
     settlePlan(gw, seat, p.topic, row.settle);
   }
+  // ww219: the war plan's courses in peace: redraw it, or keep it as drawn.
+  if (p.type === "front" && row.id === "redraw") beginRedraw(gw, seat);
+  if (p.type === "front" && row.id === "keep") keepPlan(gw, seat);
   // ww197: a front course marks the chief's next war paper (§3 `front`).
   if (row.front !== undefined) {
     const t = GW_THEATRES.find((x) => x === p.topic) ?? null;

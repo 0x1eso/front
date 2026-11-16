@@ -95,6 +95,7 @@ export const GW_DIARY_MOMENTS = [
   "health",
   "hindsight", // an "알고 보니" line
   "filler", // the seat's filler: weather, who came, a book
+  "plan", // ww219: the war plan redrawn, ready, or empty when the war came
 ] as const;
 export type GwDiaryMoment = (typeof GW_DIARY_MOMENTS)[number];
 

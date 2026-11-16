@@ -32,6 +32,7 @@ import { SPY_SCENES } from "@openfront/engine-lib/ww1914/content/acts/common";
 import { GW_CAPITAL_CALLED } from "@openfront/engine-lib/ww1914/content/capital";
 import { GW_CONTENT } from "@openfront/engine-lib/ww1914/content/Content";
 import { GW_LADDER_CALLED } from "@openfront/engine-lib/ww1914/content/ladder";
+import { GW_PLAN_REDRAW_SCENES } from "@openfront/engine-lib/ww1914/content/scenes/common";
 import {
   GW_OFFENSIVE_CALLED,
   GW_STALL_CALLED,
@@ -146,6 +147,8 @@ describe("content", () => {
       ...GW_AFTER_CALLED,
       // ww193 merge: brought by the departments (products, counter-papers).
       ...gwDeptCalled(GW_CONTENT.depts ?? {}),
+      // ww219: laid by WarPlan.beginRedraw after the 작전 course.
+      ...GW_PLAN_REDRAW_SCENES,
     ];
     // ww190: the engine lays these; the deal never draws them.
     for (const s of scenes.filter((x) => GW_AFTER_CALLED.includes(x.id))) {

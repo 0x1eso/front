@@ -22,6 +22,7 @@ import type {
   GwIntelView,
   GwPersonWorldView,
   GwReportView,
+  GwWarPlanView,
   GwWorldView,
 } from "@openfront/engine-api/ww1914/GwWorldView";
 import { world } from "@openfront/engine-api/ww1914/WorldDsl";
@@ -58,6 +59,7 @@ import { societyView } from "./Society";
 import { foeOn, foeRead, fundView, reads, rivalsOf } from "./Spies";
 import { endStrain, strainWord } from "./Strain";
 import { GW_ACTORS, GW_COMMAND_NAMED_AFTER } from "./Tables";
+import { warPlanView } from "./WarPlan";
 import { sideIn } from "./Wars";
 import { fights, lastOf, ownPeople } from "./World";
 
@@ -387,6 +389,7 @@ export function worldView(gw: GreatWar, seat: GwSeatState): GwWorldView {
     book: moneyBookView(gw, seat, lawBookView(gw, seat)),
     dossier: dealsDossierView(gw, seat, dossierView(gw, seat)),
     ...societyOf(gw, seat),
+    ...warPlanOf(gw, seat),
   };
 }
 
@@ -397,4 +400,13 @@ function societyOf(
 ): { society?: GwSocietyView } {
   const society = moneyStripView(gw, seat, societyView(gw, seat));
   return society === undefined ? {} : { society };
+}
+
+/** ww219: the war plan's line, only for a country with a plan. */
+function warPlanOf(
+  gw: GreatWar,
+  seat: GwSeatState,
+): { warPlan?: GwWarPlanView } {
+  const v = warPlanView(gw, seat.tag);
+  return v === undefined ? {} : { warPlan: v };
 }

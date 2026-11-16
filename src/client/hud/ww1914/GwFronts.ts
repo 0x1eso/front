@@ -13,6 +13,7 @@ import type {
   GwFrontPrepView,
   GwFrontView,
   GwProposal,
+  GwWarPlanView,
 } from "@openfront/engine-api/ww1914/GwWorldView";
 import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
@@ -591,6 +592,63 @@ function papers(c: GwCtx): TemplateResult | typeof nothing {
   </section>`;
 }
 
+/** ww219: a season word for an ISO date, "next year" past today's year. */
+function seasonWhen(until: string, today: string): string {
+  const month = Number(until.slice(5, 7));
+  const season =
+    month >= 3 && month <= 5
+      ? "spring"
+      : month >= 6 && month <= 8
+        ? "summer"
+        : month >= 9 && month <= 11
+          ? "autumn"
+          : "winter";
+  const word = translateText(`gw.ui.war_plan.season.${season}`);
+  // A winter's January still belongs to the winter that began in December.
+  const year = Number(until.slice(0, 4)) - (month <= 2 ? 1 : 0);
+  return year > Number(today.slice(0, 4))
+    ? translateText("gw.ui.war_plan.next_year", { season: word })
+    : word;
+}
+
+/**
+ * ww219: the war plan in words, for the 작전 tab in peace: where it goes
+ * first, the prepared alternative, or the redraw and when it ends.
+ */
+export function warPlanLine(plan: GwWarPlanView, today: string): string {
+  const road = (t: GwTheatre) => translateText(`gw.ui.war_plan.road.${t}`);
+  const head =
+    plan.main === null
+      ? translateText("gw.ui.war_plan.none")
+      : translateText("gw.ui.war_plan.main", { road: road(plan.main) });
+  if (plan.redraw !== null) {
+    const when = seasonWhen(plan.redraw.until, today);
+    return `${head} · ${
+      plan.redraw.to === null
+        ? translateText("gw.ui.war_plan.redraw", { when })
+        : translateText("gw.ui.war_plan.redraw_to", {
+            road: road(plan.redraw.to),
+            when,
+          })
+    }`;
+  }
+  if (plan.alt !== null) {
+    return `${head} · ${translateText("gw.ui.war_plan.alt", {
+      road: road(plan.alt),
+    })}`;
+  }
+  return head;
+}
+
+/** ww219: the plan's line while the seat's country fights nowhere. */
+function warPlanRow(c: GwCtx): TemplateResult | typeof nothing {
+  const plan = c.seat.world.warPlan;
+  if (plan === undefined || c.seat.world.fronts.length > 0) return nothing;
+  return html`<p class="text-sm text-white/80" data-gw-war-plan>
+    ${warPlanLine(plan, c.data.date)}
+  </p>`;
+}
+
 /** The fronts tab: every theatre's line, then the papers to sign. */
 export function frontsTab(c: GwCtx): TemplateResult {
   const side = c.seat.world.side;
@@ -626,6 +684,6 @@ export function frontsTab(c: GwCtx): TemplateResult {
             )}
           </h3>
           ${others.map((t) => otherCard(t, side))}`}
-    ${papers(c)}
+    ${warPlanRow(c)} ${papers(c)}
   </div>`;
 }

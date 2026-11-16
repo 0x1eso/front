@@ -18,7 +18,10 @@ import type {
 } from "@openfront/engine-api/ww1914/GwPersona";
 import type { GwCond } from "@openfront/engine-api/ww1914/SceneDsl";
 import { all, not } from "@openfront/engine-api/ww1914/SceneDsl";
-import { world } from "@openfront/engine-api/ww1914/WorldDsl";
+import {
+  world,
+  type GwWarPlanMoment,
+} from "@openfront/engine-api/ww1914/WorldDsl";
 
 const war = world({ is: "war" });
 const command = world({ is: "command" });
@@ -110,6 +113,10 @@ const day = (
   more: Partial<GwDiaryRow> = {},
 ): GwDiaryRow => ({ id: `rus_dy_${id}`, nation: ["RUS"], moment, ...more });
 
+/** ww219: what the war plan did this chapter (Diary's plan moment). */
+const planNow = (now: GwWarPlanMoment): GwCond =>
+  world({ is: "war_plan", now });
+
 const DIARY: GwDiaryRow[] = [
   // Fillers: the weather by month.
   day("jan", "filler", { months: [1] }),
@@ -175,6 +182,11 @@ const DIARY: GwDiaryRow[] = [
   // "알고 보니".
   day("hindsight", "hindsight"),
   day("hindsight_war", "hindsight", { when: war }),
+  // ww219: the war plan redrawn, ready, found empty by the war, and after.
+  day("plan_begun", "plan", { when: planNow("begun") }),
+  day("plan_done", "plan", { when: planNow("done") }),
+  day("plan_empty", "plan", { when: planNow("empty") }),
+  day("plan_hindsight", "plan", { when: planNow("hindsight") }),
 ];
 
 export const RUS_PERSONA: GwPersonaContent = {
