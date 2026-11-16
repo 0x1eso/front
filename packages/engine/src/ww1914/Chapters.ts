@@ -29,6 +29,7 @@ import { ladderStep } from "./Ladder";
 import { frontLandStep } from "./Land";
 import { lawStep } from "./Laws";
 import { moneyStep } from "./MoneyBills";
+import { neutralRoadsStep } from "./NeutralRoads";
 import { occupationStep } from "./Occupation";
 import { warStep } from "./PairWar";
 import { nextConferenceChapter, skipToConference } from "./Peace";
@@ -113,6 +114,8 @@ export const GW_CHAPTER_STEPS: readonly ((gw: GreatWar) => void)[] = [
   telegramStep,
   // ww219: the war plans: redraws run their months, the war meets the plans.
   warPlanStep,
+  // ww220 N: America's early entry and mediation, Karl's own peace.
+  neutralRoadsStep,
 ];
 
 export function allReady(gw: GreatWar): boolean {

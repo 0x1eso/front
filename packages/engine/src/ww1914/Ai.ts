@@ -12,10 +12,10 @@ import { aiFleets } from "./Fleets";
 import { navalAccord, pledgedAgainst } from "./Alignment";
 import { aiResearch, pairScore, pressOdds, warScore } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
+import { americaSide, neutralTerms } from "./NeutralRoads";
 import { aiOffensive } from "./Offensives";
 import { peaceStep } from "./Peace";
 import { bondOf } from "./PeaceYears";
-import { AMERICA_BAR, americaCan } from "./Sea";
 import { believedStrain } from "./Spies";
 import {
   easeStrain,
@@ -76,6 +76,10 @@ export function neutralChoice(
   const behind = trailingSide(gw, (x) => warScore(gw, x));
   if (behind === "central") central += COUNTERWEIGHT_LEAN;
   if (behind === "entente") entente += COUNTERWEIGHT_LEAN;
+  // ww220 R5/R8: its own reasons (the sea, the Trentino, old enemies).
+  const terms = neutralTerms(gw, n, e);
+  central += terms.central;
+  entente += terms.entente;
   const pick = central > entente ? "central" : "entente";
   return treatyBars(gw, n.tag, pick) ? other(pick) : pick;
 }
@@ -105,7 +109,10 @@ function momentum(gw: GreatWar, e: GwEntry): number {
 function bids(gw: GreatWar, e: GwEntry, n: GwNationState): void {
   const s = gw.s;
   for (const side of ["central", "entente"] as const) {
-    const leader = gw.s.seats.some((x) => gw.nation(x.tag)?.side === side);
+    // ww220: a regent's side bids like any government nobody plays.
+    const leader = gw.s.seats.some(
+      (x) => ruledBySeat(gw, x.tag) && gw.nation(x.tag)?.side === side,
+    );
     if (leader) continue;
     const held = n.offers[side] ?? 0;
     if (held >= e.offers[side]) continue;
@@ -207,9 +214,11 @@ function britainStep(gw: GreatWar): void {
 function americaEnters(gw: GreatWar): void {
   const n = gw.nation("USA");
   if (n === null || n.side !== null || n.out || ruledBySeat(gw, "USA")) return;
-  if (!americaCan(gw) || n.readiness < AMERICA_BAR) return;
-  enter(gw, "USA", "entente", "america_entered");
-  easeStrain(gw, "west", "entente", -NEW_ARMIES_EASE);
+  // ww220 R6: the early liner, Britain's camp and the Central road too.
+  const side = americaSide(gw);
+  if (side === null) return;
+  enter(gw, "USA", side, "america_entered");
+  easeStrain(gw, "west", side, -NEW_ARMIES_EASE);
 }
 
 /** Russians past the frontier: no German staff leaves that alone. */

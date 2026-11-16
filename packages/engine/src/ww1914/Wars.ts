@@ -31,6 +31,7 @@ import {
 } from "./Alignment";
 import { warMonths } from "./Eras";
 import type { GreatWar } from "./GreatWar";
+import { treatyTerm } from "./NeutralRoads";
 import { bondOf } from "./PeaceYears";
 import { armyCommander } from "./People";
 import { seaStartLine } from "./Sea";
@@ -743,6 +744,8 @@ export function honourPct(gw: GreatWar, row: GwStartTreaty): number {
   if (row.kind === "protector" && s.temp >= 6) pct += 10;
   // ww190: the bond between the two, ten a step either way.
   pct += 10 * (bondOf(gw, row.by, row.for) ?? 0);
+  // ww220 R5/R8: Italy's Trentino and sea, Romania's Russian neighbour.
+  pct += treatyTerm(gw, row);
   return pct;
 }
 

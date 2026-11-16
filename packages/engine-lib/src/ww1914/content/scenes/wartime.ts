@@ -11,6 +11,7 @@ import {
   GwScene,
   inst_,
   not,
+  setFlag,
 } from "@openfront/engine-api/ww1914/SceneDsl";
 import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
 
@@ -676,6 +677,16 @@ const ENDGAME: GwScene[] = [
         [doWorld({ do: "armistice", kind: "compromise" })],
       ),
       opt("refuse", [], [why("peace_refused")]),
+    ],
+  ),
+  // ww220 R6: the House mission; NeutralRoads reads the flag as it closes.
+  called(
+    "gw_us_mediation",
+    everyone,
+    ["foreign", "tension_down"],
+    [
+      opt("accept", [], [setFlag("gw_us_mediation_yes")]),
+      opt("refuse", [], [why("us_mediation_declined")]),
     ],
   ),
 ];
