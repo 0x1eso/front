@@ -350,7 +350,11 @@ const MR1_EVENTS: EventDef[] = [
     options: [
       {
         id: "a",
-        ai: mrOpposeAi("TUR", 15, [{ if: isTag("SUN"), factor: 200 }]),
+        // Germany has no Black Sea fleet: the closure is not its quarrel.
+        ai: mrOpposeAi("TUR", 15, [
+          { if: isTag("SUN"), factor: 200 },
+          { if: isTag("DEU"), factor: 20 },
+        ]),
         effects: [
           mrOppose("TUR", "claim", "turkish_straits"),
           setFlag("mr_straits_oppose"),

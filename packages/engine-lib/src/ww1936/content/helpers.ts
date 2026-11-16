@@ -232,7 +232,9 @@ export function mrCourtAi(
 
 /**
  * ww229 MR: a strong neighbour opposes, a democracy rarely and an ally
- * never; a major already at war has other worries.
+ * never; a major already at war has other worries. A fascist or communist
+ * major seldom turns on a government of its own kind (merge MR: fascist
+ * Italy took a war goal on an Iron Guard Romania).
  */
 export function mrOpposeAi(
   tag: CountryTag,
@@ -249,6 +251,13 @@ export function mrOpposeAi(
       { if: { kind: "at_war" }, factor: 30 },
       { if: { kind: "same_faction", of: m }, factor: 0 },
       { if: { kind: "opinion_ge", of: m, value: 30 }, factor: 30 },
+      ...(["fascist", "communist"] as const).map((ideology) => ({
+        if: all(
+          { kind: "ruling", ideology },
+          { kind: "ruling", who: m, ideology },
+        ),
+        factor: 25,
+      })),
       ...extra,
     ],
   };
