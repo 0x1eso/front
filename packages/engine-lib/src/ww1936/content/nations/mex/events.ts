@@ -38,10 +38,10 @@ export const MEX_EVENTS: EventDef[] = [
     kind: "country",
     receivers: ["MEX"],
     trigger: all(
-      { kind: "pop_ge", ideology: "fascist", pct: 12 },
-      not({ kind: "ruling", ideology: "fascist" }),
+      { kind: "ruling", ideology: "neutral" },
+      not(flag("mex_calles_truce")),
     ),
-    mtthDays: 200,
+    mtthDays: 300,
     picture: "crowd",
     options: [
       {
@@ -337,7 +337,6 @@ export const MEX_EVENTS: EventDef[] = [
     trigger: all(
       { kind: "focus_done", id: "mex_expropriation" },
       { kind: "ruling", ideology: "neutral" },
-      { kind: "pop_ge", ideology: "fascist", pct: 10 },
     ),
     mtthDays: 150,
     picture: "column",
@@ -400,7 +399,7 @@ export const MEX_EVENTS: EventDef[] = [
     trigger: all(
       after("1940-01-01"),
       { kind: "ruling", ideology: "neutral" },
-      { kind: "pop_ge", ideology: "democratic", pct: 12 },
+      { kind: "focus_done", id: "mex_the_succession" },
     ),
     mtthDays: 150,
     picture: "crowd",
@@ -451,7 +450,8 @@ export const MEX_EVENTS: EventDef[] = [
         },
         effects: [
           { kind: "war_support", pct: 6 },
-          { kind: "join_war", of: T("USA") },
+          // join_war: into the war against `of`.
+          { kind: "join_war", of: T("DEU") },
           { kind: "unlock_decision", id: "lat_join_hemisphere" },
         ],
       },

@@ -89,7 +89,7 @@ export const MEX_FOCUSES: FocusDef[] = [
     exclusive: ["mex_truce_with_calles"],
     effects: [
       { kind: "set_flag", flag: "mex_calles_exiled" },
-      { kind: "popularity", ideology: "neutral", pp: 3 },
+      { kind: "popularity", ideology: "neutral", pp: 2 },
       { kind: "stability", pct: -2 },
       { kind: "fire_event", id: "mex_ev_calles_exiled", days: 5 },
     ],
@@ -146,7 +146,7 @@ export const MEX_FOCUSES: FocusDef[] = [
     effects: [
       { kind: "remove_spirit", id: "mex_sp_land_hunger" },
       { kind: "add_spirit", id: "mex_sp_ejidos" },
-      { kind: "popularity", ideology: "neutral", pp: 3 },
+      { kind: "popularity", ideology: "neutral", pp: 1 },
       { kind: "stability", pct: 3 },
     ],
     ai: AI,
@@ -180,7 +180,6 @@ export const MEX_FOCUSES: FocusDef[] = [
     prereq: [["mex_agrarian_reform"]],
     effects: [
       { kind: "stability", pct: 2 },
-      { kind: "popularity", ideology: "neutral", pp: 2 },
       { kind: "pp", amount: 25 },
     ],
     ai: AI,
@@ -213,7 +212,6 @@ export const MEX_FOCUSES: FocusDef[] = [
     group: "mex_cardenismo",
     prereq: [["mex_agrarian_reform", "mex_socialist_education"]],
     effects: [
-      { kind: "popularity", ideology: "neutral", pp: 2 },
       { kind: "popularity", ideology: "communist", pp: 2 },
       { kind: "stability", pct: 2 },
     ],
@@ -231,7 +229,7 @@ export const MEX_FOCUSES: FocusDef[] = [
     prereq: [["mex_laguna_ejidos"]],
     effects: [
       { kind: "stability", pct: 3 },
-      { kind: "popularity", ideology: "neutral", pp: 2 },
+      { kind: "popularity", ideology: "neutral", pp: 1 },
     ],
     ai: AI,
   },
@@ -282,7 +280,7 @@ export const MEX_FOCUSES: FocusDef[] = [
     effects: [
       { kind: "set_leader", person: "mex_avila_camacho" },
       { kind: "stability", pct: 4 },
-      { kind: "popularity", ideology: "neutral", pp: 3 },
+      { kind: "popularity", ideology: "neutral", pp: 2 },
       { kind: "opinion", who: T("USA"), of: "self", value: 20, days: 365 },
     ],
     ai: AI,
@@ -337,7 +335,7 @@ export const MEX_FOCUSES: FocusDef[] = [
     effects: [
       { kind: "pp", amount: 50 },
       { kind: "stability", pct: 3 },
-      { kind: "popularity", ideology: "neutral", pp: 3 },
+      { kind: "popularity", ideology: "neutral", pp: 2 },
     ],
     ai: AI,
   },
@@ -1632,7 +1630,6 @@ export const MEX_FOCUSES: FocusDef[] = [
     prereq: [["mex_colegio_militar", "mex_defensas_rurales"]],
     effects: [
       { kind: "stability", pct: 2 },
-      { kind: "popularity", ideology: "neutral", pp: 2 },
       { kind: "remove_spirit", id: "mex_sp_revolutionary_generals" },
     ],
     ai: AI,

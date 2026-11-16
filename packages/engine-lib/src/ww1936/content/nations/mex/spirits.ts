@@ -54,7 +54,7 @@ export const MEX_SPIRITS: SpiritDef[] = [
   {
     id: "mex_sp_corporate_party",
     icon: "scales",
-    stats: { ppGainPct: 10, coupResistPct: 20, driftNeuBp: 3 },
+    stats: { ppGainPct: 10, coupResistPct: 20 },
   },
   {
     id: "mex_sp_ejidos",
