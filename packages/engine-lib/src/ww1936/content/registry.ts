@@ -158,6 +158,7 @@ import { PERSONS_USA } from "./persons/usa";
 import {
   REACTION_DECISIONS_WEST,
   REACTION_EVENTS_WEST,
+  REACTION_FLAGS_WEST,
 } from "./reactions/west";
 import { REGION_GROUPS } from "./regionGroups";
 import { SPIRITS_DEU } from "./spirits/deu";
@@ -799,18 +800,24 @@ export function joinReactions(
   r: {
     readonly events: readonly EventDef[];
     readonly decisions: readonly DecisionDef[];
+    readonly flags: readonly string[];
   },
 ): ContentParts {
   return {
     ...base,
     events: [...base.events, ...r.events],
     decisions: [...base.decisions, ...r.decisions],
+    flags: [...base.flags, ...r.flags],
   };
 }
 
 /** ww229: the 1936 content, the minors' national content and the majors' reactions joined. */
 export const CONTENT_PARTS: ContentParts = joinReactions(
   joinNations(CONTENT_PARTS_BASE, NATIONS),
-  { events: REACTION_EVENTS_WEST, decisions: REACTION_DECISIONS_WEST },
+  {
+    events: REACTION_EVENTS_WEST,
+    decisions: REACTION_DECISIONS_WEST,
+    flags: REACTION_FLAGS_WEST,
+  },
 );
 export const CONTENT: ContentRegistry = buildRegistry(CONTENT_PARTS);

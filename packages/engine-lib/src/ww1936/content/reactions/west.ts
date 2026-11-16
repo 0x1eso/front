@@ -1244,6 +1244,8 @@ export const REACTION_EVENTS_WEST: EventDef[] = [
     // gbr_mr_navicerts: oil and wheat for staying out of the war.
     id: "mr_navicerts_offer",
     kind: "country",
+    // Asked again after the cooldown: answered every time.
+    once: "never",
     picture: "document",
     options: [
       {
@@ -1298,6 +1300,8 @@ export const REACTION_EVENTS_WEST: EventDef[] = [
     // fra_mr_belgian_alliance: Paris asks Brussels back into the alliance.
     id: "mr_belgian_alliance_offer",
     kind: "country",
+    // Asked again after the cooldown: answered every time.
+    once: "never",
     picture: "table",
     options: [
       {
@@ -1353,12 +1357,15 @@ export const REACTION_EVENTS_WEST: EventDef[] = [
     // usa_mr_hemisphere_aid: Washington offers arms, credits and bases.
     id: "mr_hemisphere_aid_offer",
     kind: "country",
+    // Asked again after the cooldown: answered every time.
+    once: "never",
     picture: "table",
     options: [
       {
         // Take the aid and open the bases.
         id: "a",
         effects: [
+          { kind: "set_flag", flag: "mr_us_aid_answered", days: 730 },
           { kind: "access", of: "from" },
           {
             kind: "send_equipment",
@@ -1385,6 +1392,7 @@ export const REACTION_EVENTS_WEST: EventDef[] = [
         // Take the arms, keep the bases and the neutrality.
         id: "b",
         effects: [
+          { kind: "set_flag", flag: "mr_us_aid_answered", days: 730 },
           {
             kind: "send_equipment",
             who: "from",
@@ -1406,6 +1414,7 @@ export const REACTION_EVENTS_WEST: EventDef[] = [
         // Refuse Yankee tutelage.
         id: "c",
         effects: [
+          { kind: "set_flag", flag: "mr_us_aid_answered", days: 730 },
           { kind: "war_support", pct: 2 },
           { kind: "opinion", of: "from", value: -15, days: 730 },
           { kind: "opinion", who: "from", of: "self", value: -15, days: 730 },
@@ -1426,6 +1435,8 @@ export const REACTION_EVENTS_WEST: EventDef[] = [
     // jpn_mr_demand_indies_oil: Tokyo asks the Indies for an oil quota.
     id: "mr_indies_oil_demand",
     kind: "country",
+    // Asked again after the cooldown: answered every time.
+    once: "never",
     picture: "document",
     options: [
       {
@@ -1484,6 +1495,8 @@ export const REACTION_EVENTS_WEST: EventDef[] = [
     // jpn_mr_demand_north_china: autonomy for the northern provinces.
     id: "mr_north_china_demand",
     kind: "country",
+    // Asked again after the cooldown: answered every time.
+    once: "never",
     picture: "document",
     options: [
       {
@@ -1601,6 +1614,8 @@ export const REACTION_DECISIONS_WEST: DecisionDef[] = [
         ),
         not({ kind: "at_war_with", of: "self" }),
         not({ kind: "same_faction", of: "self" }),
+        // Answered in the last two years: not asked again yet.
+        not(flag("mr_us_aid_answered")),
       ),
     },
     cost: { pp: 30 },
@@ -1657,3 +1672,6 @@ export const REACTION_DECISIONS_WEST: DecisionDef[] = [
     },
   },
 ];
+
+/** The flags the reactions set (the minors' own flags are theirs). */
+export const REACTION_FLAGS_WEST: string[] = ["mr_us_aid_answered"];
