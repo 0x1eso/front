@@ -300,10 +300,18 @@ export const BGR_FOCUSES: FocusDef[] = [
     group: "bgr_crown",
     prereq: [["bgr_professor_at_the_head", "bgr_curb_the_legions"]],
     effects: [
+      // After the Tsar's death the regency keeps its own spirit.
       {
-        kind: "swap_spirit",
-        from: "bgr_sp_tsars_personal_rule",
-        to: "bgr_sp_tsars_firm_rule",
+        kind: "if",
+        cond: { kind: "has_spirit", id: "bgr_sp_tsars_personal_rule" },
+        then: [
+          {
+            kind: "swap_spirit",
+            from: "bgr_sp_tsars_personal_rule",
+            to: "bgr_sp_tsars_firm_rule",
+          },
+        ],
+        else: [{ kind: "stability", pct: 2 }],
       },
       { kind: "popularity", ideology: "neutral", pp: 3 },
     ],
