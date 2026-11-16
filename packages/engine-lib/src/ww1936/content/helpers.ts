@@ -103,3 +103,19 @@ export function nationRouteAi(ideology: Ideology, bias = 1): AiWeight {
     ],
   };
 }
+
+/**
+ * ww229 MA2: the ruling party's popularity is below `pct` (gen_rally and
+ * gen_suppress_opposition stop at a ceiling).
+ */
+export function rulingBelow(pct: number): Condition {
+  return any(
+    ...(["democratic", "communist", "fascist", "neutral"] as const).map(
+      (ideology) =>
+        all(
+          { kind: "ruling", ideology },
+          not({ kind: "pop_ge", ideology, pct }),
+        ),
+    ),
+  );
+}
