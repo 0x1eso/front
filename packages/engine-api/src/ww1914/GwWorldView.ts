@@ -7,7 +7,6 @@ import type {
   GwChainOutcome,
   GwEra,
   GwFactKind,
-  GwGauge,
   GwIssue,
   GwMemoir,
   GwNews,
@@ -20,6 +19,7 @@ import type {
   GwSide,
   GwSource,
   GwStamp,
+  GwStat,
   GwTech,
   GwTempo,
   GwTheatre,
@@ -99,8 +99,27 @@ export interface GwFrontPrepView {
   ready: boolean;
 }
 
+/**
+ * ww223: the treasury itself, where the money gauge stood: the sum in the
+ * country's money, where it is heading and the debt's weight in a word.
+ */
+export interface GwTreasuryView {
+  /** Millions in the country's money, as the budget counts it. */
+  amount: number;
+  /** -1 falling, 0 holding, 1 rising: text gw.ui.treasury.trend.<word>. */
+  trend: -1 | 0 | 1;
+  /** The largest cause in the trend's direction; gw.line.<why>. */
+  why: string | null;
+  /** The debt: 0 light, 1 heavy, 2 crushing; text gw.ui.treasury.debt.<n>. */
+  debt: 0 | 1 | 2;
+  /** Why it moved in the last chapter; text gw.line.<key>; delta its sign. */
+  lines: readonly { key: string; delta: number }[];
+  /** What the chapter's turn did to it, when worth telling (the 지금 line). */
+  step: { delta: number; key: string } | null;
+}
+
 export interface GwGaugeView {
-  gauge: GwGauge;
+  gauge: GwStat;
   value: number;
   /** Text: gw.gauge.<gauge>.<word>. */
   word: number;
@@ -320,6 +339,7 @@ export interface GwWarView {
 export interface GwWorldView {
   war: GwWarView;
   gauges: readonly GwGaugeView[];
+  treasury: GwTreasuryView;
   authority: number;
   manpower: number;
   casualties: number;

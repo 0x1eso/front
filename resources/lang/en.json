@@ -6715,12 +6715,6 @@
           "2": "Getting by",
           "3": "Plentiful"
         },
-        "money": {
-          "0": "Empty",
-          "1": "Tight",
-          "2": "Holding",
-          "3": "Ample"
-        },
         "morale": {
           "0": "Broken",
           "1": "Sunk",
@@ -6746,7 +6740,7 @@
       },
       "gauge_hint": {
         "bread": "Bread: whether the towns have enough to eat.",
-        "money": "Money: how long the treasury can keep paying.",
+        "money": "Treasury: the money the state has now. Taxes, loans and what the country makes fill it; spending, the interest on the debt and decisions use it. When it runs out, the gap is printed and prices rise.",
         "morale": "Morale: how willing the soldiers and the people are to go on.",
         "order": "Order: how calm the streets and factories are.",
         "shells": "Shells: how much ammunition the army has for the fronts."
@@ -6759,7 +6753,7 @@
         "shells": "Shells"
       },
       "gauge_why": "What moved it in the last chapter:",
-      "gauges_sub": "The five things the country lives on. Under each, what moved it in the last chapter.",
+      "gauges_sub": "The four things the country lives on, and its treasury. The lines below say what moved them in the last chapter.",
       "gauges_title": "The country",
       "inst": {
         "0": "Hostile",
@@ -6883,10 +6877,8 @@
             "up_big": "Bread went up sharply: {why}"
           },
           "money": {
-            "down": "The treasury got a notch worse: {why}",
-            "down_big": "The treasury got much worse: {why}",
-            "up": "The treasury got a notch better: {why}",
-            "up_big": "The treasury got much better: {why}"
+            "down": "The treasury shrank: {why}",
+            "up": "The treasury grew: {why}"
           },
           "shells": {
             "down": "Shells went down a notch: {why}",
@@ -7299,6 +7291,18 @@
       "threads_title": "Long-running matters",
       "threads_title_sub": "Troubles that run over many chapters and can flare up again.",
       "topic_count": "{n} things to talk about now",
+      "treasury": {
+        "debt": {
+          "1": "heavy debt",
+          "2": "crushed by debt"
+        },
+        "debt_hint": "Each year the interest on the debt goes out of the treasury first.",
+        "trend": {
+          "falling": "falling",
+          "holding": "holding",
+          "rising": "rising"
+        }
+      },
       "trench_hint": "The deeper the trenches, the harder it is for either side to break through.",
       "trench_now": "Trenches: {what}",
       "trench_word": {

@@ -369,7 +369,7 @@ function blankTheatre(id: GwTheatre): GwTheatreState {
 export function blankNation(tag: GwTag): GwNationState {
   return {
     tag,
-    gauges: { shells: 2, bread: 2, money: 2, morale: 3, order: 3 },
+    gauges: { shells: 2, bread: 2, morale: 3, order: 3 },
     inst: institutionsOf(firstRegime(tag)),
     strength: {},
     trust: {},

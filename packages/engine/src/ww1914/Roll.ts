@@ -70,8 +70,10 @@ function openingOf(roll: number): GwOpening {
 function rollNation(gw: GreatWar, n: GwNationState, i: number): void {
   const seed = gw.s.seed;
   n.ai = GW_AI_KINDS[wwRoll(seed, P_AI, i) % GW_AI_KINDS.length];
-  Object.assign(n.gauges, GW_GAUGES_1914[n.tag] ?? {});
-  n.budget = budgetStart(n.tag, n.gauges.money);
+  // ww223: the table's money is the treasury it opens with, in steps.
+  const { money, ...stats } = GW_GAUGES_1914[n.tag] ?? {};
+  Object.assign(n.gauges, stats);
+  n.budget = budgetStart(n.tag, money ?? 2);
   n.manpower = GW_MANPOWER[n.tag] ?? 20;
   n.readiness = GW_ENTRIES.find((e) => e.tag === n.tag)?.start ?? 0;
   const force = GW_FORCE[n.tag] ?? {};

@@ -30,6 +30,7 @@ import {
   GwVariant,
   GwWho,
 } from "@openfront/engine-api/ww1914/SceneDsl";
+import { gaugeOf } from "@openfront/engine-lib/ww1914/BudgetRules";
 import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
 import {
   GwContent,
@@ -382,7 +383,7 @@ export function holds(ctx: SceneCtx, c: GwCond): boolean {
     case "temp":
       return inRange(s.temp, c);
     case "gauge":
-      return nation !== null && inRange(nation.gauges[c.gauge], c);
+      return nation !== null && inRange(gaugeOf(nation, c.gauge), c);
     case "inst":
       return inRange(nation?.inst[c.inst] ?? 0, c);
     case "trust":
@@ -485,7 +486,7 @@ export function holds(ctx: SceneCtx, c: GwCond): boolean {
     }
     case "nation_gauge": {
       const n = gw.nation(c.tag);
-      return n !== null && inRange(n.gauges[c.gauge], c);
+      return n !== null && inRange(gaugeOf(n, c.gauge), c);
     }
     case "world":
       return worldHolds(ctx, c.of);
@@ -630,17 +631,21 @@ export function runEffect(ctx: SceneCtx, e: GwEffect): void {
     case "gauge":
       if (nation !== null && fx !== undefined) {
         // An act's gauge move is a gauge line too, under the act's kind.
-        const was = nation.budget.treasury + nation.gauges[e.gauge];
-        moveGauge(gw, seat.tag, e.gauge, e.delta, `act_${fx.kind}`);
-        const now = nation.budget.treasury + nation.gauges[e.gauge];
-        moved(`fx_gauge_${e.gauge}`, was, now);
+        // ww223: the money is the treasury, so its sum is what moved.
+        const g = e.gauge;
+        const val = () =>
+          g === "money" ? nation.budget.treasury : nation.gauges[g];
+        const was = val();
+        moveGauge(gw, seat.tag, g, e.delta, `act_${fx.kind}`);
+        moved(`fx_gauge_${g}`, was, val());
       } else if (nation !== null && e.gauge === "money") {
         moveMoney(gw, nation, e.delta, "money_scene");
-      } else if (nation !== null) {
-        nation.gauges[e.gauge] = clamp(
-          nation.gauges[e.gauge] + e.delta,
+      } else if (nation !== null && e.gauge !== "money") {
+        const g = e.gauge;
+        nation.gauges[g] = clamp(
+          nation.gauges[g] + e.delta,
           0,
-          GW_GAUGE_MAX[e.gauge],
+          GW_GAUGE_MAX[g],
         );
       }
       return;

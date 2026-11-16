@@ -12,6 +12,7 @@ import {
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import type { GwOrderBlock } from "@openfront/engine-api/ww1914/GwOrders";
+import { gaugeOf } from "@openfront/engine-lib/ww1914/BudgetRules";
 import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import type { GreatWar } from "./GreatWar";
@@ -129,7 +130,7 @@ function passage(gw: GreatWar, t: GwTreaty, c: GwClause, delta: number): void {
 /** What a loan moves: false when the payer can't pay. */
 function payLoan(gw: GreatWar, t: GwTreaty, c: GwClause): boolean {
   const payer = gw.nation(c.by);
-  if (payer === null || payer.gauges.money < c.value) return false;
+  if (payer === null || gaugeOf(payer, "money") < c.value) return false;
   moveGauge(gw, c.by, "money", -c.value, "treaty_loan_paid");
   moveGauge(gw, partnerOf(t, c.by), "money", c.value, "treaty_loan_got");
   return true;

@@ -333,13 +333,16 @@ describe("gauges and the home front", () => {
     gw.s.seats[0].signed = -1;
     playChapter(runner);
     const g = seat(runner).world.gauges;
+    // ww223: the money is no gauge but the treasury, its own view.
     expect(g.map((x) => x.gauge)).toEqual([
       "shells",
       "bread",
-      "money",
       "morale",
       "order",
     ]);
+    const t = seat(runner).world.treasury;
+    expect(t.amount).toBe(gw.nation("DEU")!.budget.treasury);
+    expect([-1, 0, 1]).toContain(t.trend);
     for (const x of g) {
       expect(x.word).toBeGreaterThanOrEqual(0);
       expect(x.word).toBeLessThanOrEqual(3);
@@ -561,7 +564,9 @@ describe("the end", () => {
       "opportunist",
       "principled",
     ]) {
-      expect(json, word).not.toContain(word);
+      // A whole word: ww219's move reason "no_band" (no army there) hides
+      // nothing.
+      expect(json, word).not.toMatch(new RegExp(`\\b${word}\\b`));
     }
     const hidden = gw.s.secrets.filter((x) => !gw.s.seats[0].known.includes(x));
     for (const id of hidden) expect(json).not.toContain(id);

@@ -10,11 +10,13 @@ import {
   budgetValid,
   budgetVote,
   budgetYear,
+  debtWeight,
+  gaugeOf,
   GW_BUDGET_BODIES,
   GW_DRIFT_STEP,
-  moneyWord,
   outlayOf,
   tilted,
+  treasuryLevel,
 } from "@openfront/engine-lib/ww1914/BudgetRules";
 import {
   GW_BUDGET_DATES,
@@ -164,14 +166,16 @@ describe("the rule", () => {
     expect(dear.why.order).toBe("order_prices");
   });
 
-  test("the money gauge follows the numbers", () => {
+  test("ww223: the money is the treasury itself, on the country's own scale", () => {
     const row = budgetRow("DEU");
-    expect(moneyWord(basis({ treasury: row.step * 2 + 1 }))).toBe(2);
-    expect(moneyWord(basis({ treasury: 0 }))).toBe(0);
-    // Too much interest takes room to borrow however full the treasury.
-    expect(
-      moneyWord(basis({ treasury: row.step * 3, debt: 60000 })),
-    ).toBeLessThan(3);
+    expect(treasuryLevel("DEU", row.step * 2 + 1)).toBe(2);
+    expect(treasuryLevel("DEU", 0)).toBe(0);
+    // A large treasury under a crushing debt and dear prices never reads
+    // empty: the debt says so on its own, and drains through its interest.
+    const heavy = basis({ treasury: row.step * 3, debt: 200000, prices: 3000 });
+    expect(treasuryLevel("DEU", heavy.treasury)).toBe(3);
+    expect(debtWeight(heavy)).toBe(2);
+    expect(debtWeight(basis({ treasury: row.step * 3 }))).toBe(0);
     expect(budgetStart("GBR", 3).treasury).toBeGreaterThan(
       budgetRow("GBR").step * 3,
     );
@@ -410,7 +414,7 @@ describe("no dead ends", () => {
     // ww201: only what the land and trade bring in, under a step.
     expect(n.budget.treasury).toBeLessThan(budgetRow("DEU").step);
     expect(n.budget.prices).toBeGreaterThan(was);
-    expect(n.gauges.money).toBe(0);
+    expect(gaugeOf(n, "money")).toBe(0);
     expect(seat.log.some((l) => l.key === "budget_shortfall")).toBe(true);
   });
 
@@ -432,16 +436,23 @@ describe("no dead ends", () => {
     const { gw, n, seat } = await war();
     const step = budgetRow("DEU").step;
     n.budget.treasury = step * 2 + 10;
-    n.gauges.money = 2;
-    const was = n.budget.prices;
+    n.budget.prices = 1000;
+    n.budget.debt = 60000;
     const ctx = { gw, seat, cast: {} };
     const { runEffects } = await import("@openfront/engine/ww1914/SceneRun");
+    // ww223: a step's cost is drawn from the treasury, and the treasury is
+    // what reads; the heavy debt takes nothing off it.
     runEffects(ctx, [{ kind: "gauge", gauge: "money", delta: -1 }]);
-    expect(n.gauges.money).toBe(1);
+    expect(n.budget.treasury).toBe(step + 10);
+    expect(gaugeOf(n, "money")).toBe(1);
+    expect(seat.lines[seat.lines.length - 1]).toMatchObject({
+      gauge: "money",
+      delta: -1,
+    });
     runEffects(ctx, [{ kind: "gauge", gauge: "money", delta: -3 }]);
-    expect(n.gauges.money).toBe(0);
+    expect(gaugeOf(n, "money")).toBe(0);
     expect(n.budget.treasury).toBe(0);
-    expect(n.budget.prices).toBeGreaterThan(was);
+    expect(n.budget.prices).toBeGreaterThan(1000);
   });
 
   test("what piles up moves a gauge a step, with its reason", async () => {

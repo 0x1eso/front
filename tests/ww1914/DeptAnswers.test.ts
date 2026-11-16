@@ -12,6 +12,7 @@ import {
   answerSlots,
   slotsHold,
 } from "@openfront/engine-lib/ww1914/AnswerSlots";
+import { budgetRow, gaugeOf } from "@openfront/engine-lib/ww1914/BudgetRules";
 import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
 import {
   GW_CONTENT,
@@ -225,7 +226,7 @@ describe("department answers (ww196)", () => {
 
   test("서두르게 한다 clears a stall; 거둔다 frees the department", async () => {
     const { gw, st } = await deu();
-    gw.nation("DEU")!.gauges.money = 2;
+    gw.nation("DEU")!.budget.treasury = budgetRow("DEU").step * 2;
     expect(give(gw, st)).toBeNull();
     const t = deptState(st).tasks[0];
     t.stall = "rival";
@@ -241,7 +242,7 @@ describe("department answers (ww196)", () => {
     expect(t.stall).toBeNull();
     expect(t.hurried).toBe(true);
     expect(t.due).toBeLessThanOrEqual(due);
-    expect(gw.nation("DEU")!.gauges.money).toBeLessThan(2);
+    expect(gaugeOf(gw.nation("DEU")!, "money")).toBeLessThan(2);
     expect(
       applyGwOrder(gw, st, {
         kind: "task_push",
@@ -312,7 +313,7 @@ describe("the production step in the heads' answers (ww201)", () => {
     delete n.econ;
     expect(holds("c_arms", "arms")).toEqual([]);
     n.gauges.shells = 1;
-    n.gauges.money = 3;
+    n.budget.treasury = budgetRow(n.tag).step * 3;
     n.econ = {
       rate: { shells: -400, bread: 0, money: 120 },
       why: { shells: "econ_fronts", bread: "", money: "econ_trade" },

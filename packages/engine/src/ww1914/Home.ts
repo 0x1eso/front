@@ -1,7 +1,7 @@
 import { GwNationState } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { GW_BUDGET_LINES } from "@openfront/engine-api/ww1914/GwBudget";
 import { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
-import { budgetNorm } from "@openfront/engine-lib/ww1914/BudgetRules";
+import { budgetNorm, gaugeOf } from "@openfront/engine-lib/ww1914/BudgetRules";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
 import { GW_OWNER_OFF } from "@openfront/engine-lib/ww1914/MoneyRows";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
@@ -130,7 +130,7 @@ function mood(gw: GreatWar, n: GwNationState): void {
   if (n.gauges.morale === 0 && everyMonths(gw, 2, 1)) {
     moveGauge(gw, n.tag, "order", -1, "order_despair");
   }
-  if (n.gauges.money === 0 && everyMonths(gw, 4)) {
+  if (gaugeOf(n, "money") === 0 && everyMonths(gw, 4)) {
     moveGauge(gw, n.tag, "order", -1, "order_unpaid");
   }
   const heavy = n.lostNow;
@@ -154,7 +154,7 @@ function mood(gw: GreatWar, n: GwNationState): void {
 function aiConcedes(gw: GreatWar, n: GwNationState): void {
   const s = gw.s;
   if (seatsOf(gw, n.tag).length > 0 || n.unrest === 0) return;
-  const broke = n.gauges.money === 0;
+  const broke = gaugeOf(n, "money") === 0;
   const pct = (GW_HOME[n.tag]?.concedes ?? GW_CONCEDES) >> (broke ? 1 : 0);
   const roll = wwRoll(s.seed, P_CONCEDE, s.chapter, s.nations.indexOf(n)) % 100;
   if (roll >= pct) return;

@@ -9,6 +9,7 @@ import {
 import { gwRealmName } from "@openfront/engine-api/ww1914/GwFate";
 import type { GwPlace } from "@openfront/engine-api/ww1914/GwPlaces";
 import type { GwTableClaim } from "@openfront/engine-api/ww1914/GwTable";
+import { budgetRow } from "@openfront/engine-lib/ww1914/BudgetRules";
 import {
   GW_FATE_TERM_DAYS,
   gwSignPaperIds,
@@ -434,7 +435,7 @@ describe("a beaten country's fate (ww199)", () => {
     expect(atWarWith(hard.gw, "DEU", "ROU")).toBe(true);
 
     const { gw, seat, t, at } = await romaniaAtTheTable("GWTALK5");
-    gw.nation("ROU")!.gauges.money = 3;
+    gw.nation("ROU")!.budget.treasury = budgetRow("ROU").step * 3;
     const id = at("bucharest").id;
     expect(
       tableBargain(gw, seat, [{ claim: id, move: "ransom", place: null }]),

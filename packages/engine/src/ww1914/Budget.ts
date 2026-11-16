@@ -49,7 +49,6 @@ import {
   GwLender,
   loadOf,
   moneyStep,
-  moneyWord,
   printedPrices,
   tilted,
 } from "@openfront/engine-lib/ww1914/BudgetRules";
@@ -238,25 +237,35 @@ export function basisOf(gw: GreatWar, n: GwNationState): GwBudgetBasis {
   };
 }
 
-/** The money gauge follows the numbers; `key` says why when it moves. */
-function syncMoney(gw: GreatWar, n: GwNationState, key: string): void {
-  const was = n.gauges.money;
-  const now = moneyWord(basisOf(gw, n));
-  if (now === was) return;
-  n.gauges.money = now;
+/**
+ * ww223: the treasury moved by `moved`; `key` says why in the seat's lines
+ * (gauge "money", the treasury's own; its delta is the move's sign).
+ */
+function moneyLine(
+  gw: GreatWar,
+  n: GwNationState,
+  key: string,
+  moved: number,
+): void {
+  if (moved === 0) return;
   for (const seat of seatsOf(gw, n.tag)) {
     seat.lines.push({
       gauge: "money",
       key,
-      delta: now - was,
+      delta: Math.sign(moved),
       chapter: gw.s.chapter,
     });
   }
 }
 
+/** ww223: the least move of the treasury a chapter's flow tells. */
+function notableOf(tag: string): number {
+  return Math.trunc(budgetRow(tag).step / 4);
+}
+
 /**
- * A scene or a strain moves the money gauge: a step of the treasury, at today's
- * prices. What the treasury hasn't got is printed.
+ * A scene or a strain moves the money by steps: a step of the treasury's
+ * scale, at today's prices. What the treasury hasn't got is printed.
  */
 export function moveMoney(
   gw: GreatWar,
@@ -267,6 +276,7 @@ export function moveMoney(
   const b = n.budget;
   const sum = delta * moneyStep(n.tag, b.prices);
   const left = b.treasury + sum;
+  const was = b.treasury;
   note(n, "treasury", "scenes", Math.max(left, 0) - b.treasury);
   b.treasury = Math.max(0, left);
   if (left < 0) {
@@ -274,7 +284,8 @@ export function moveMoney(
     b.prices = Math.min(GW_PRICES_MAX, b.prices + up);
     note(n, "prices", "shortfall", up);
   }
-  syncMoney(gw, n, key);
+  // What wasn't there was printed: the line says the money went all the same.
+  moneyLine(gw, n, key, b.treasury === was ? sum : b.treasury - was);
 }
 
 /** Text a seat is shown: `budget_<how>` in the why-log. */
@@ -714,6 +725,7 @@ function seaRepair(gw: GreatWar, n: GwNationState, dir: number): void {
 /** One chapter's slice of the year. */
 function flow(gw: GreatWar, n: GwNationState): void {
   const b = n.budget;
+  const opened = b.treasury;
   econCrisis(gw, n);
   const econ = econTerms(gw, n);
   const days = chapterOf(gw).spanDays;
@@ -785,10 +797,12 @@ function flow(gw: GreatWar, n: GwNationState): void {
   const net = balance + sumOf(econ.money);
   const budgetKey = y.balance < 0 ? "money_war_costs" : "money_budget_up";
   const why = whyOf(econ.money, net, [budgetKey, balance]);
-  const was = n.gauges.money;
   const key = why === "" ? budgetKey : why;
-  syncMoney(gw, n, key);
-  econRecord(gw, n, "money", net, why, n.gauges.money - was, key);
+  // ww223: a move worth a quarter of a step is told; less is the flow.
+  const moved = b.treasury - opened;
+  const told = Math.abs(moved) >= Math.max(1, notableOf(n.tag));
+  if (told) moneyLine(gw, n, key, moved);
+  econRecord(gw, n, "money", net, why, told ? Math.sign(moved) : 0, key);
 }
 
 /** Shares what was borrowed among the open lenders, by what each will give. */
@@ -970,14 +984,15 @@ export function budgetItem(
     const sum = Math.trunc(
       (budgetRow(n.tag).revenue * b.prices * pct) / 100000,
     );
+    const was = b.treasury;
     b.treasury = Math.max(0, b.treasury + sum);
     note(n, "treasury", "scenes", sum);
+    moneyLine(gw, n, "money_scene", b.treasury - was);
   } else {
     const sum = Math.trunc((b[item] * pct) / 100);
     b[item] = Math.max(item === "prices" ? 1000 : 0, b[item] + sum);
     note(n, item, "scenes", sum);
   }
-  syncMoney(gw, n, "money_budget_up");
 }
 
 /** The draft asks `delta` more of a source, inside what the rule allows. */
@@ -1001,7 +1016,8 @@ export function budgetFact(
   const b = n.budget;
   switch (what) {
     case "treasury":
-      return Math.trunc(b.treasury / moneyStep(n.tag, b.prices));
+      // ww223: steps of the country's own scale, as content reads the money.
+      return Math.trunc(b.treasury / budgetRow(n.tag).step);
     case "load":
       return loadOf(basisOf(gw, n));
     case "prices":

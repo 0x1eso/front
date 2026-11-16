@@ -31,6 +31,7 @@ import type {
   GwTableView,
   GwTableWhy,
 } from "@openfront/engine-api/ww1914/GwTable";
+import { gaugeOf } from "@openfront/engine-lib/ww1914/BudgetRules";
 import { GW_CAPITALS } from "@openfront/engine-lib/ww1914/PlaceRules";
 import {
   GW_TABLE_AIMS,
@@ -339,7 +340,7 @@ function tradeAnswer(
 ): { yes: boolean; why: GwTableWhy } {
   const n = gw.nation(c.against);
   if (c.move === "ransom") {
-    const can = n !== null && n.gauges.money >= (c.ransom ?? 1);
+    const can = n !== null && gaugeOf(n, "money") >= (c.ransom ?? 1);
     return can ? { yes: true, why: "soft" } : { yes: false, why: "army" };
   }
   if (c.move === "favour_neutral" && alliesFight(gw, c.against)) {

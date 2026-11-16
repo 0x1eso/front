@@ -19,6 +19,7 @@ import {
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import type { GwFrontPrepView } from "@openfront/engine-api/ww1914/GwWorldView";
+import { gaugeOf } from "@openfront/engine-lib/ww1914/BudgetRules";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { eraOf, hasTech } from "./Eras";
@@ -424,7 +425,7 @@ function prepare(
     blank(tag, feint, fEnd, s.chapter, method, months, quiet, true),
   );
   const n = gw.nation(tag)!;
-  if (n.gauges.money > 0) moveGauge(gw, tag, "money", -1, "off_feint");
+  if (gaugeOf(n, "money") > 0) moveGauge(gw, tag, "money", -1, "off_feint");
   else moveGauge(gw, tag, "shells", -1, "off_feint");
 }
 
@@ -1010,7 +1011,7 @@ export function aiOffensive(
   const months = n.ai === "hardline" ? 1 : n.ai === "cautious" ? 3 : 1;
   const feints = feintFronts(gw, n.tag, main);
   const feint =
-    n.ai === "opportunist" && n.gauges.money >= 2 && feints.length > 0
+    n.ai === "opportunist" && gaugeOf(n, "money") >= 2 && feints.length > 0
       ? feints[0]
       : null;
   prepare(gw, n.tag, main, method, months, n.ai === "cautious", feint);

@@ -23,6 +23,7 @@ import {
   reasonText,
   reportText,
 } from "./GwText";
+import { treasuryRow } from "./GwTreasury";
 
 const BOX = "space-y-1.5 rounded border border-white/15 bg-black/35 p-2.5";
 
@@ -45,38 +46,41 @@ function gauges(c: GwCtx): TemplateResult {
     ${sub("gw.ui.gauges_sub")}
     ${c.seat.world.gauges.map((w) => {
       const v = gaugeLevel(w.gauge, w.value);
+      // ww223: the treasury stands where the money gauge stood, before morale.
+      const money = w.gauge === "morale" ? treasuryRow(c) : nothing;
       // ww201: beside the level, where the production step is taking it.
       const trend = trendWordOf(w);
       const cause = trendCause(w);
-      return html`<div class="space-y-0.5" data-gw-gauge=${w.gauge}>
-        <div class="flex justify-between gap-2 text-sm">
-          <span class="shrink-0 text-white/70"
-            >${translateText(`gw.ui.gauge_name.${w.gauge}`)}</span
-          >
-          <span class="text-right"
-            >${translateText(`gw.ui.gauge.${w.gauge}.${v}`)}${trend === null
-              ? nothing
-              : html`<span class="text-white/60" data-gw-trend=${trend}>
-                  · ${translateText(`gw.ui.trend.${trend}`)}</span
-                >`}</span
-          >
-        </div>
-        ${bar(gaugeFill(w.gauge, v))}
-        <span class="sr-only">${v}/${GW_GAUGE_MAX[w.gauge]}</span>
-        ${cause === null
-          ? nothing
-          : html`<p class=${MUTED} data-gw-trend-why=${cause}>
-              ${translateText("gw.ui.trend_why", {
-                why: gaugeLineText(c.pack, cause),
-              })}
-            </p>`}
-        ${w.lines.map(
-          (l) =>
-            html`<p class=${MUTED} data-gw-line=${l.key}>
-              ${l.delta > 0 ? "▲" : "▼"} ${gaugeLineText(c.pack, l.key)}
-            </p>`,
-        )}
-      </div>`;
+      return html`${money}
+        <div class="space-y-0.5" data-gw-gauge=${w.gauge}>
+          <div class="flex justify-between gap-2 text-sm">
+            <span class="shrink-0 text-white/70"
+              >${translateText(`gw.ui.gauge_name.${w.gauge}`)}</span
+            >
+            <span class="text-right"
+              >${translateText(`gw.ui.gauge.${w.gauge}.${v}`)}${trend === null
+                ? nothing
+                : html`<span class="text-white/60" data-gw-trend=${trend}>
+                    · ${translateText(`gw.ui.trend.${trend}`)}</span
+                  >`}</span
+            >
+          </div>
+          ${bar(gaugeFill(w.gauge, v))}
+          <span class="sr-only">${v}/${GW_GAUGE_MAX[w.gauge]}</span>
+          ${cause === null
+            ? nothing
+            : html`<p class=${MUTED} data-gw-trend-why=${cause}>
+                ${translateText("gw.ui.trend_why", {
+                  why: gaugeLineText(c.pack, cause),
+                })}
+              </p>`}
+          ${w.lines.map(
+            (l) =>
+              html`<p class=${MUTED} data-gw-line=${l.key}>
+                ${l.delta > 0 ? "▲" : "▼"} ${gaugeLineText(c.pack, l.key)}
+              </p>`,
+          )}
+        </div>`;
     })}
   </section>`;
 }

@@ -124,7 +124,7 @@ export function nowLines(
  * turn: "포탄이 한 칸 늘었다: <why>".
  */
 function stepLines(seat: GwSeatView, pack: GwPack | null): GwNowLine[] {
-  return (seat.world.gauges ?? []).flatMap((g) => {
+  const out = (seat.world.gauges ?? []).flatMap((g) => {
     const step = g.step ?? null;
     if (step === null || step.delta === 0) return [];
     const way = step.delta > 0 ? "up" : "down";
@@ -136,6 +136,15 @@ function stepLines(seat: GwSeatView, pack: GwPack | null): GwNowLine[] {
       },
     ];
   });
+  // ww223: the treasury rose or fell by a sum worth telling, in words.
+  const step = seat.world.treasury?.step ?? null;
+  if (step !== null && step.delta !== 0) {
+    out.push({
+      key: `gw.ui.now.step.money.${step.delta > 0 ? "up" : "down"}`,
+      params: { why: gaugeLineText(pack, step.key) },
+    });
+  }
+  return out;
 }
 
 /**
