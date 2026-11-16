@@ -13,6 +13,7 @@ import {
   inTree,
 } from "@openfront/engine-lib/ww1936/content/registry";
 import { createGameRunner } from "@openfront/engine/GameRunner";
+import { forceFocusNext } from "@openfront/engine/ww1936/politics/AiFocus";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
 import { focusFinished } from "@openfront/engine/ww1936/politics/Focus";
 import { loadMapFiles } from "@openfront/shared/GameMapLoader";
@@ -112,5 +113,12 @@ describe("ww229 MR1: the majors' reactions (real map and content)", () => {
     const until = dayOfDate("1936-03-01") + 25;
     while (!opened() && ww.day(runner.game.ticks()) < until) step(runner);
     expect(opened()).toBe(true);
+    // A later focus beat goes first and keeps the one queued before it.
+    if (deu.focus === null) {
+      deu.focus = { id: "deu_mr_danubian_question", progressMilli: 0 };
+    }
+    deu.queue = ["deu_mr_southeast_oil"];
+    forceFocusNext(pol, ids[0], "deu_mr_northern_ore");
+    expect(deu.queue).toEqual(["deu_mr_northern_ore", "deu_mr_southeast_oil"]);
   }, 300_000);
 });
