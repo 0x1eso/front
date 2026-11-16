@@ -657,8 +657,7 @@ export class WwPolitics {
       }
     }
     // Controller ruling R7: startLeader first (Japan's 1936 prime minister).
-    c.leader =
-      d?.startLeader ?? d?.leaders[ruling] ?? `title:leader_${ruling}`;
+    c.leader = d?.startLeader ?? d?.leaders[ruling] ?? `title:leader_${ruling}`;
     c.stabBp = c.stabBaseBp;
     c.wsBp = c.wsBaseBp;
     c.focusState = new Uint8Array(this.content.treeFocuses[c.tree].length);
@@ -673,7 +672,10 @@ export class WwPolitics {
   resetCountry(id: number): void {
     const c = this.countries[id];
     if (c === null || c === undefined) return;
-    const fresh = new CountryPol(id, c.tag) as unknown as Record<string, unknown>;
+    const fresh = new CountryPol(id, c.tag) as unknown as Record<
+      string,
+      unknown
+    >;
     const dst = c as unknown as Record<string, unknown>;
     // The stats object is the economy's too (rebuildDerived): it stays.
     for (const k of Object.keys(fresh)) if (k !== "stats") dst[k] = fresh[k];

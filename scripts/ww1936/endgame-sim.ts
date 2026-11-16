@@ -520,7 +520,10 @@ export async function runOne(
     onCap(loser, victor, tick);
   };
   const polAll = pol.messageAll.bind(pol);
-  pol.messageAll = (key: string, params: Record<string, string | number> = {}) => {
+  pol.messageAll = (
+    key: string,
+    params: Record<string, string | number> = {},
+  ) => {
     if (key === "ww1936_government_changed") {
       const day = today();
       const tag = String(params.countryTag);

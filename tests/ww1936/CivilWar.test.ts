@@ -5,6 +5,7 @@ import { CIVIL_WAR_SLOTS } from "@openfront/engine-api/ww1936/Countries";
 import { equipKey } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { CS_ACTIVE } from "@openfront/engine-api/ww1936/EndgameTypes";
 import {
+  IDEO_COM,
   IDEO_DEM,
   IDEO_FAS,
   IDEO_NEU,
@@ -82,7 +83,9 @@ const COUP_EVENT: EventDef = {
     {
       id: "a",
       ai: { base: 1 },
-      effects: [{ kind: "set_government", who: "from", ideology: "democratic" }],
+      effects: [
+        { kind: "set_government", who: "from", ideology: "democratic" },
+      ],
     },
   ],
 };
@@ -129,6 +132,19 @@ async function started(humans: typeof HUMANS = []) {
   stepTo(runner, WW_PREP_TICKS + 2);
   const g = runner.game;
   const ww = g.worldWar()!;
+  // ww226: the test content has no politics rows (everyone non-aligned, who
+  // changes without a civil war): the majors rule as in 1936.
+  const rule = [
+    ["SUN", IDEO_COM],
+    ["DEU", IDEO_FAS],
+    ["ITA", IDEO_FAS],
+    ["FRA", IDEO_DEM],
+    ["GBR", IDEO_DEM],
+  ] as const;
+  for (const [t, i] of rule) {
+    const c = ww.politics.country(endId(t));
+    if (c !== null) c.ruling = i;
+  }
   return { runner, g, ww, eg: ww.endgame };
 }
 
@@ -559,6 +575,9 @@ describe("World War 1936 P5: civil wars (spec §15)", () => {
     vi.spyOn(c.ww.scenario, "tagOfSmallId").mockImplementation((id) =>
       id === fra ? "ESN" : id === sun ? "ESR" : realTag(id),
     );
+    // Both non-aligned here, as the Spanish pair starts (no declaration rule in the way).
+    c.ww.politics.country(fra)!.ruling = IDEO_NEU;
+    c.ww.politics.country(sun)!.ruling = IDEO_NEU;
     const players = [fra, sun].map((id) => c.g.playerBySmallID(id));
     declareWar(
       c.g,
@@ -734,7 +753,10 @@ describe("World War 1936 P5: civil wars (spec §15)", () => {
     const svk = activateCountry(
       eg,
       "SVK",
-      { regions: [END.region["slovakia"]], government: { ideology: "fascist" } },
+      {
+        regions: [END.region["slovakia"]],
+        government: { ideology: "fascist" },
+      },
       g.ticks(),
     );
     expect(svk).toBeGreaterThan(0);
@@ -759,7 +781,9 @@ describe("World War 1936 P5: civil wars (spec §15)", () => {
     expect(rc.firedOnce.size).toBe(0);
     expect(rc.spirits).toEqual([]);
     expect(ww.economy.country(cw)!.stock.every((n) => n === 0)).toBe(true);
-    expect(ww.scenario.landRegions.some((r) => eg.hasCore(cw, r.id))).toBe(false);
+    expect(ww.scenario.landRegions.some((r) => eg.hasCore(cw, r.id))).toBe(
+      false,
+    );
     // Every other slot plays: the recycled one is the next rebels'.
     for (const t of CIVIL_WAR_SLOTS.slice(1)) {
       eg.setCountryState(endId(t), CS_ACTIVE);

@@ -23,6 +23,7 @@ import {
   IDEOLOGIES,
   Ideology,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
+import { startLaws } from "@openfront/engine-lib/ww1936/EconomyStart";
 import {
   civilWarColor,
   civilWarNameKey,
@@ -35,14 +36,11 @@ import { addPopularity } from "@openfront/engine-lib/ww1936/PoliticsRules";
 import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import { seaPath } from "@openfront/engine-lib/ww1936/SeaGraph";
 import { SHIP_BASE } from "@openfront/engine-lib/ww1936/ShipStats";
-import { startLaws } from "@openfront/engine-lib/ww1936/EconomyStart";
-import { CountryAir } from "../air/WwAir";
 import { handOverWing } from "../air/Wings";
+import { CountryAir } from "../air/WwAir";
+import { receiveKey } from "../depth/DesignCopy";
 import { emptyCountry } from "../depth/WwDepth";
 import { CountryEconomy } from "../economy/WwEconomy";
-import { CountryLand } from "../land/WwLand";
-import { CountryNavy } from "../navy/WwNavy";
-import { receiveKey } from "../depth/DesignCopy";
 import {
   evictDivisions,
   transferArmyTo,
@@ -50,7 +48,9 @@ import {
   transferRegionPeaceful,
 } from "../land/PoliticsBridge";
 import type { Army } from "../land/WwLand";
+import { CountryLand } from "../land/WwLand";
 import { navalPortsOf } from "../navy/Ports";
+import { CountryNavy } from "../navy/WwNavy";
 import { leaveFaction } from "../politics/Factions";
 import { governmentLeader, setGovernment } from "../politics/Ideology";
 import { setLawFree } from "../politics/Laws";
@@ -122,7 +122,8 @@ export function startCivilWarSlot(
     share,
   );
   // ww226: the rebels always get land when there is more than the capital.
-  if (rebel.length === 0) rebel = fallbackRebelRegions(sc, cands, capital, seeds, share);
+  if (rebel.length === 0)
+    rebel = fallbackRebelRegions(sc, cands, capital, seeds, share);
   if (rebel.length === 0) return 0;
   const rebelSet = new Set(rebel);
   // What stands and docks there before the land moves (the woken slot may
@@ -303,7 +304,9 @@ export function recycleCivilWarSlot(eg: WwEndgame, id: number): boolean {
   if (eg.countryStateArr[id] === CS_DORMANT) return true;
   if (eg.countryStateArr[id] !== CS_GONE || eg.isExile(id)) return false;
   if (eg.humanClientOf(id) !== null) return false;
-  if (eg.takeoverCards.some((c) => c.from === id || c.candidates.includes(id))) {
+  if (
+    eg.takeoverCards.some((c) => c.from === id || c.candidates.includes(id))
+  ) {
     return false;
   }
   if (eg.wars.some((w) => w.ended === null && eg.member(w, id) !== null)) {
@@ -311,7 +314,10 @@ export function recycleCivilWarSlot(eg: WwEndgame, id: number): boolean {
   }
   const sc = ww.scenario;
   for (const r of sc.landRegions) {
-    if (ww.politics.legalOwner[r.id] === id || ww.land.controller[r.id] === id) {
+    if (
+      ww.politics.legalOwner[r.id] === id ||
+      ww.land.controller[r.id] === id
+    ) {
       return false;
     }
   }
@@ -364,7 +370,11 @@ export function recycleCivilWarSlot(eg: WwEndgame, id: number): boolean {
 }
 
 /** Every own field of `fresh` onto `obj`, but `keep`'s (shared or kept state). */
-function renew<T extends object>(obj: T, fresh: T, keep: readonly string[]): void {
+function renew<T extends object>(
+  obj: T,
+  fresh: T,
+  keep: readonly string[],
+): void {
   const src = fresh as unknown as Record<string, unknown>;
   const dst = obj as unknown as Record<string, unknown>;
   for (const k of Object.keys(src)) if (!keep.includes(k)) dst[k] = src[k];
@@ -385,7 +395,9 @@ function fallbackRebelRegions(
   seeds: readonly number[],
   shareBp: number,
 ): number[] {
-  const rest = [...new Set(cands)].filter((r) => r !== capital).sort((a, b) => a - b);
+  const rest = [...new Set(cands)]
+    .filter((r) => r !== capital)
+    .sort((a, b) => a - b);
   if (rest.length === 0) return [];
   const restSet = new Set(rest);
   const fromSeeds = [...new Set(seeds)].filter((r) => restSet.has(r));
