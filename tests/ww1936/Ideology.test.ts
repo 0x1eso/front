@@ -496,11 +496,14 @@ describe("ideology", () => {
     for (const t of CIVIL_WAR_SLOTS) {
       p.ww.endgame.setCountryState(p.ww.scenario.smallIdOf(t), CS_ACTIVE);
     }
-    expect(resolveIdeology(p, pl, "largest_other")).toBe(IDEO_DEM);
+    // ww226: a non-aligned government changes without any of this.
+    c.ruling = IDEO_FAS;
+    const want = resolveIdeology(p, pl, "largest_other");
+    expect(want).not.toBe(IDEO_FAS);
     c.stabBaseBp = 2000;
     c.wsBaseBp = 4000;
-    civilWar(p, pl, resolveIdeology(p, pl, "largest_other"), g.ticks());
-    expect(c.ruling).toBe(IDEO_DEM);
+    civilWar(p, pl, want, g.ticks());
+    expect(c.ruling).toBe(want);
     expect(c.stabBaseBp).toBe(0);
     expect(c.wsBaseBp).toBe(3000);
     expect(c.spirits).toContainEqual({

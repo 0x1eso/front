@@ -1279,9 +1279,11 @@ export const WORLD_EVENTS: EventDef[] = [
         id: "a",
         history: true,
         ai: { base: 10 },
+        // ww226: Romania stays non-aligned under the Conducător, so its 1944
+        // turn (romania_switches) is no civil war on history's course.
         effects: [
-          { kind: "set_government", ideology: "fascist" },
           { kind: "set_leader", person: "title:rou_conducator" },
+          { kind: "popularity", ideology: "fascist", pp: 5 },
           { kind: "stability", pct: -5 },
         ],
       },
@@ -1337,6 +1339,7 @@ export const WORLD_EVENTS: EventDef[] = [
         id: "a",
         history: true,
         ai: { base: 10 },
+        // ww226: Japan is non-aligned here, so the change is peaceful.
         effects: [
           { kind: "set_government", ideology: "fascist" },
           { kind: "stability", pct: 5 },

@@ -6,6 +6,7 @@ import {
   IDEO_COM,
   IDEO_DEM,
   IDEO_FAS,
+  IDEO_NEU,
   IDEOLOGIES,
   PersonId,
   WW_CRISIS_COOLDOWN_DAYS,
@@ -17,7 +18,7 @@ import {
   addPopularity,
   largestOther,
 } from "@openfront/engine-lib/ww1936/PoliticsRules";
-import { startCivilWar } from "../endgame/CivilWar";
+import { inCivilWar, startCivilWarSlot } from "../endgame/CivilWar";
 import { advisorFitsIdeology } from "./Advisors";
 import { fitsFactionIdeology, leaveFaction } from "./Factions";
 import { setLawFree } from "./Laws";
@@ -255,24 +256,93 @@ export function setLeader(
   void tick;
 }
 
-/** Spec §5.8 in P3: a violent change of government. */
+/**
+ * Spec §5.8: a violent change of government, the rebels of `ideology`
+ * rising against the government (spec §15). Returns the rebels' smallID,
+ * 0 when none rose. Nothing changes when the ideology already rules, in the
+ * Imjin War, or while the country is already one side of a civil war (that
+ * war decides who rules). A non-aligned government (ww226, the owner's
+ * ruling) and a country without land to fight over change government
+ * instead.
+ */
 export function civilWar(
   pol: WwPolitics,
   id: number,
   ideology: number,
   tick: number,
-): void {
+): number {
   const c = pol.country(id);
-  if (c === null) return;
+  if (c === null || ideology < 0 || ideology > 3 || c.ruling === ideology) {
+    return 0;
+  }
   // ww177: 1936's ideological civil war has no place in the Imjin War
   // (its court and uprisings are P4's).
-  if (pol.ww.imjin) return;
-  // P5 hook (C): a real civil war when lane C splits the country (spec §15).
-  if (startCivilWar(pol.ww.endgame, id, IDEOLOGIES[ideology], tick)) return;
+  if (pol.ww.imjin) return 0;
+  const eg = pol.ww.endgame;
+  if (inCivilWar(eg, id)) return 0;
+  // ww226 (owner's ruling): a non-aligned government changes peacefully.
+  if (c.ruling === IDEO_NEU || !eg.isActor(id) || eg.isExile(id)) {
+    setGovernment(pol, id, ideology, tick);
+    return 0;
+  }
+  const rebels = startCivilWarSlot(eg, id, IDEOLOGIES[ideology], tick);
+  if (rebels > 0) return rebels;
   setGovernment(pol, id, ideology, tick);
+  strifeNews(pol, id, ideology);
+  return 0;
+}
+
+/**
+ * ww226: a country changes its own ruling ideology (set_government: its
+ * focus, event or decision, an election, a crisis, a coup) only with a
+ * civil war — it takes the new government at once, and the old
+ * government's side rises as the rebels (spec §15; a human picks the side,
+ * ww224). Returns the rebels' smallID, 0 when none rose. Nothing changes
+ * when the ideology already rules or the country is already one side of a
+ * civil war (that war decides who rules). A non-aligned government (the
+ * owner's ruling) changes peacefully, as does a country without land to
+ * fight over — an exile or one that no longer plays — or, with a single
+ * region (or no civil-war slot free), with the strife and the news.
+ */
+export function seizePower(
+  pol: WwPolitics,
+  id: number,
+  ideology: number,
+  tick: number,
+): number {
+  const c = pol.country(id);
+  if (c === null || ideology < 0 || ideology > 3 || c.ruling === ideology) {
+    return 0;
+  }
+  const eg = pol.ww.endgame;
+  if (!pol.ww.imjin && inCivilWar(eg, id)) return 0;
+  // ww226 (owner's ruling): a non-aligned government changes peacefully.
+  if (
+    c.ruling === IDEO_NEU ||
+    pol.ww.imjin ||
+    !eg.isActor(id) ||
+    eg.isExile(id)
+  ) {
+    setGovernment(pol, id, ideology, tick);
+    return 0;
+  }
+  const old = c.ruling;
+  setGovernment(pol, id, ideology, tick);
+  const rebels = startCivilWarSlot(eg, id, IDEOLOGIES[old], tick);
+  if (rebels === 0) strifeNews(pol, id, ideology);
+  return rebels;
+}
+
+/** A change without a civil war: stability −25%, war support −10%, the strife, the news. */
+function strifeNews(pol: WwPolitics, id: number, ideology: number): void {
+  const c = pol.country(id)!;
   c.stabBaseBp = Math.max(0, c.stabBaseBp - 2500);
   c.wsBaseBp = Math.max(0, c.wsBaseBp - 1000);
   addSpirit(pol, id, "gen_civil_strife", 180, pol.day());
+  pol.ww.endgame.news("news_civil_war_seized", {
+    tag: c.tag,
+    ideology: IDEOLOGIES[ideology],
+  });
 }
 
 /** "largest_other" and "ruling" in effects (spec §5.4, §5.5 content); -1 when unknown. */

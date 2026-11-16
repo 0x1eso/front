@@ -92,5 +92,11 @@ export const PACK_COUNTRIES: Readonly<
     "CW4",
     "CW5",
     "CW6",
+    "CW7",
+    "CW8",
+    "CW9",
+    "CW10",
+    "CW11",
+    "CW12",
   ],
 };

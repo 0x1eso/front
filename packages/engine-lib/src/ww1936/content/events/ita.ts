@@ -79,8 +79,9 @@ export const ITA_EVENTS: EventDef[] = [
         history: true,
         available: GRAND_COUNCIL_CRISIS,
         ai: { base: 90 },
+        // ww226: the king's premier takes over the government Italy has
+        // (its ideology changes only by a civil war).
         effects: [
-          { kind: "set_government", ideology: "neutral" },
           { kind: "set_leader", person: "title:ita_military_premier" },
           { kind: "stability", pct: -10 },
           { kind: "set_flag", flag: "ita_july_25" },

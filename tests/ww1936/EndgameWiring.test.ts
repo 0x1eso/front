@@ -48,7 +48,8 @@ describe("World War 1936 P5: the endgame's wiring", () => {
     step(runner, 2);
     const g = runner.game;
     const ww = g.worldWar()!;
-    expect(g.allPlayers()).toHaveLength(24);
+    // ww226: + 1936's six extra civil-war slots (25-30).
+    expect(g.allPlayers()).toHaveLength(30);
     for (let id = 11; id <= 24; id++) {
       const p = g.playerBySmallID(id);
       expect(p.isPlayer() && p.numTilesOwned()).toBe(0);

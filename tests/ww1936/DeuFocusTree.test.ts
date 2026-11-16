@@ -6,12 +6,12 @@ describe("DEU focus tree", () => {
   const ids = new Set(deu.map((f) => f.id));
 
   it("has about 100 focuses with unique cells", () => {
-    expect(deu.length).toBe(100);
-    expect(new Set(deu.map((f) => `${f.x},${f.y}`)).size).toBe(100);
+    expect(deu.length).toBe(104); // ww226: + the communist route
+    expect(new Set(deu.map((f) => `${f.x},${f.y}`)).size).toBe(104);
   });
 
   it("groups every new focus and keeps its forks exclusive", () => {
-    expect(deu.filter((f) => f.group !== undefined).length).toBe(50);
+    expect(deu.filter((f) => f.group !== undefined).length).toBe(54);
     for (const [a, b] of [
       ["deu_fall_gelb", "deu_barbarossa_first"],
       ["deu_fall_gelb", "deu_med_strategy"],

@@ -987,7 +987,7 @@ export const FRA_FOCUSES: FocusDef[] = [
     ),
     effects: [
       { kind: "separate_peace", with: T("DEU") },
-      { kind: "set_government", ideology: "neutral" },
+      // ww226: the armistice government keeps the ideology (a change is a civil war).
       { kind: "war_support", pct: -10 },
     ],
     ai: { base: 40 },

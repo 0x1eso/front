@@ -301,8 +301,10 @@ export const ENDGAME_EVENTS: EventDef[] = [
         ai: { base: 80 },
         effects: [
           { kind: "news", id: "news_golden_square" },
-          { kind: "set_government", ideology: "fascist" },
+          // ww226: Iraq stays non-aligned, so the armistice after it is no
+          // civil war on history's course.
           { kind: "set_leader", person: "title:irq_national_defence_head" },
+          { kind: "popularity", ideology: "fascist", pp: 10 },
           { kind: "opinion", of: T("GBR"), value: -50, days: 730 },
           { kind: "opinion", who: T("GBR"), of: "self", value: -50, days: 730 },
           { kind: "war_goal", who: T("GBR"), on: "self", type: "topple" },
@@ -504,7 +506,7 @@ export const ENDGAME_EVENTS: EventDef[] = [
         ai: { base: 80 },
         effects: [
           { kind: "end_war", of: T("GBR") },
-          { kind: "set_government", ideology: "neutral" },
+          // ww226: the regent is back over the same government.
           { kind: "set_leader", person: "title:irq_regent" },
           { kind: "access", of: T("GBR") },
         ],
@@ -840,7 +842,7 @@ export const ENDGAME_EVENTS: EventDef[] = [
         ai: { base: 70 },
         effects: [
           { kind: "news", id: "news_romania_switches" },
-          { kind: "set_government", ideology: "neutral" },
+          // ww226: the king's coup keeps the ideology (a change is a civil war).
           { kind: "set_leader", person: "rou_michael" },
           { kind: "switch_sides", to: T("SUN") },
         ],

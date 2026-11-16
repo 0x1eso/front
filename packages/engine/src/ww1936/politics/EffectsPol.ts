@@ -12,11 +12,13 @@ import type { EffectCtx } from "./Dispatch";
 import {
   civilWar,
   resolveIdeology,
+  seizePower,
   setGovernment,
   setLeader,
 } from "./Ideology";
 import { lawStep, setLawFree } from "./Laws";
 import { addSpirit, removeSpirit, swapSpirit } from "./Spirits";
+import { addGuarantee } from "./Treaties";
 
 const clampBp = (v: number) => Math.max(0, Math.min(10_000, v));
 
@@ -26,6 +28,14 @@ function insertSorted(list: string[], v: string): void {
   let i = list.length;
   while (i > 0 && list[i - 1] > v) i--;
   list.splice(i, 0, v);
+}
+
+/** ww226: the effect's country runs `actor`'s overlord (its government is set, not fought for). */
+function installedByOverlord(ctx: EffectCtx, actor: number): boolean {
+  return (
+    actor !== ctx.self &&
+    ctx.pol.ww.endgame.subjectOf(actor)?.overlord === ctx.self
+  );
 }
 
 export function applyPoliticalEffect(
@@ -65,7 +75,20 @@ export function applyPoliticalEffect(
     }
     case "set_government": {
       const i = resolveIdeology(pol, actor, e.ideology);
-      if (i >= 0) setGovernment(pol, actor, i, ctx.tick);
+      if (i < 0) break;
+      // ww226: a country changes its own ruling ideology only with a civil
+      // war (the old government's side rises, Ideology.seizePower); an
+      // overlord sets its subject's government, and the Imjin War keeps its
+      // court changes.
+      if (pol.ww.imjin || installedByOverlord(ctx, actor)) {
+        setGovernment(pol, actor, i, ctx.tick);
+        break;
+      }
+      seizePower(pol, actor, i, ctx.tick);
+      // A coup's sponsor (the effect's own country) stands by the new government.
+      if (actor !== ctx.self && pol.living(ctx.self)) {
+        addGuarantee(pol, ctx.self, actor, ctx.day);
+      }
       break;
     }
     case "set_leader":

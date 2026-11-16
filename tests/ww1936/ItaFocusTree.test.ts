@@ -4,7 +4,7 @@ describe("ITA focus tree", () => {
   const ita = CONTENT.focuses.filter((f) => f.tree === "ITA");
 
   it("is about a hundred focuses, each with a group and a unique cell", () => {
-    expect(ita.length).toBe(97);
+    expect(ita.length).toBe(102); // ww226: + the communist route, the crown's own government
     expect(ita.every((f) => !!f.group)).toBe(true);
     expect(new Set(ita.map((f) => `${f.x},${f.y}`)).size).toBe(ita.length);
   });

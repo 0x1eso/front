@@ -28,20 +28,17 @@ describe("World War 1936 P5: the dormant slots", () => {
       "BRM",
       "PHL",
     ]);
-    expect([...CIVIL_WAR_SLOTS]).toEqual([
-      "CW1",
-      "CW2",
-      "CW3",
-      "CW4",
-      "CW5",
-      "CW6",
-    ]);
+    expect([...CIVIL_WAR_SLOTS]).toEqual(
+      Array.from({ length: 12 }, (_, i) => `CW${i + 1}`),
+    );
+    // ww226: CW7-CW12 are 1936's only, after the Imjin War tags.
     expect([...DORMANT_TAGS]).toEqual([
       ...NAMED_DORMANT_TAGS,
-      ...CIVIL_WAR_SLOTS,
+      ...CIVIL_WAR_SLOTS.slice(0, 6),
     ]);
     // ww177: the Imjin War tags (IMJIN_TAGS) come after them.
-    expect(COUNTRY_TAGS.slice(-17, -3)).toEqual([...DORMANT_TAGS]);
+    expect(COUNTRY_TAGS.slice(-23, -9)).toEqual([...DORMANT_TAGS]);
+    expect(COUNTRY_TAGS.slice(-6)).toEqual(CIVIL_WAR_SLOTS.slice(6));
   });
 
   it("the named slots with land hold its cores from 1936", () => {

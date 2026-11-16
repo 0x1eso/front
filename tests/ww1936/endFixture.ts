@@ -5,6 +5,7 @@ import {
   COUNTRY_TAGS,
   CountryTag,
   DORMANT_TAGS,
+  EXTRA_CIVIL_WAR_SLOTS,
   isDormantTag,
 } from "@openfront/engine-api/ww1936/Countries";
 import fs from "fs";
@@ -36,6 +37,8 @@ const present = new Set(SCENARIO.countries.map((c) => c.tag));
 const ORDER: CountryTag[] = [
   ...COUNTRY_TAGS.filter((t) => present.has(t) && !isDormantTag(t)),
   ...DORMANT_TAGS,
+  // ww226: 1936's extra civil-war slots.
+  ...EXTRA_CIVIL_WAR_SLOTS,
 ];
 const regionOfTile = (tag: CountryTag): number => {
   const c = SCENARIO.countries.find((x) => x.tag === tag);
@@ -76,10 +79,11 @@ export const END = {
   ) as Partial<Record<CountryTag, number>>,
   /** Land edges [a, b, border, km, river, strait]. */
   edges: SCENARIO.edges,
-  /** How many players (the scenario's countries and the 14 dormant slots). */
+  /** How many players (the scenario's countries, the 14 dormant slots, ww226: the 6 extra civil-war slots). */
   players: ORDER.length,
   /** How many of them are the scenario's countries. */
-  scenarioCount: ORDER.length - DORMANT_TAGS.length,
+  scenarioCount:
+    ORDER.length - DORMANT_TAGS.length - EXTRA_CIVIL_WAR_SLOTS.length,
 };
 
 /** smallID of `tag` on the end map (throws when it is not there). */

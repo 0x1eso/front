@@ -118,6 +118,14 @@ export const COUNTRY_TAGS = [
   "JOS",
   "MIN",
   "JUR",
+  // ww226: six more civil-war slots, 1936's only (ScenarioIndex adds them
+  // after the dormant slots when the scenario is not the Imjin War's).
+  "CW7",
+  "CW8",
+  "CW9",
+  "CW10",
+  "CW11",
+  "CW12",
 ] as const;
 export type CountryTag = (typeof COUNTRY_TAGS)[number];
 
@@ -136,7 +144,11 @@ export const NAMED_DORMANT_TAGS = [
   "BRM",
   "PHL",
 ] as const;
-/** P5 spec §3.5, §15: the civil-war slots (a breakaway side's country). */
+/**
+ * P5 spec §3.5, §15: the civil-war slots (a breakaway side's country; also
+ * the collaborators', Collab). ww226: CW7-CW12 (EXTRA_CIVIL_WAR_SLOTS) are
+ * 1936's only; in the Imjin War they are not in the scenario (smallID 0).
+ */
 export const CIVIL_WAR_SLOTS = [
   "CW1",
   "CW2",
@@ -144,6 +156,21 @@ export const CIVIL_WAR_SLOTS = [
   "CW4",
   "CW5",
   "CW6",
+  "CW7",
+  "CW8",
+  "CW9",
+  "CW10",
+  "CW11",
+  "CW12",
+] as const;
+/** ww226: the extra civil-war slots (1936 only, after DORMANT_TAGS). */
+export const EXTRA_CIVIL_WAR_SLOTS = [
+  "CW7",
+  "CW8",
+  "CW9",
+  "CW10",
+  "CW11",
+  "CW12",
 ] as const;
 /**
  * P5 spec §3.2: every dormant slot, in COUNTRY_TAGS order. An explicit list
@@ -169,7 +196,10 @@ export const DORMANT_TAGS = [
   | (typeof CIVIL_WAR_SLOTS)[number]
 )[];
 export function isDormantTag(t: string): boolean {
-  return (DORMANT_TAGS as readonly string[]).includes(t);
+  return (
+    (DORMANT_TAGS as readonly string[]).includes(t) ||
+    (EXTRA_CIVIL_WAR_SLOTS as readonly string[]).includes(t)
+  );
 }
 
 /**
@@ -398,6 +428,12 @@ export const COUNTRIES: Readonly<Record<CountryTag, CountryDef>> = {
   CW4: def("Breakaway State 4", "ww_cw_neutral", [128, 128, 128], "europe"),
   CW5: def("Breakaway State 5", "ww_cw_neutral", [128, 128, 128], "europe"),
   CW6: def("Breakaway State 6", "ww_cw_neutral", [128, 128, 128], "europe"),
+  CW7: def("Breakaway State 7", "ww_cw_neutral", [128, 128, 128], "europe"),
+  CW8: def("Breakaway State 8", "ww_cw_neutral", [128, 128, 128], "europe"),
+  CW9: def("Breakaway State 9", "ww_cw_neutral", [128, 128, 128], "europe"),
+  CW10: def("Breakaway State 10", "ww_cw_neutral", [128, 128, 128], "europe"),
+  CW11: def("Breakaway State 11", "ww_cw_neutral", [128, 128, 128], "europe"),
+  CW12: def("Breakaway State 12", "ww_cw_neutral", [128, 128, 128], "europe"),
   // ww177 (Imjin design §1-2): Joseon and Ming are the war's powers, the
   // Jurchen an AI minor on the north edge. No faction: who stands with whom
   // is the war's own state.

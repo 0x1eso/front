@@ -4,7 +4,7 @@
 import { GameMapSize, GameMapType } from "@openfront/engine-api/game/GameTypes";
 import { CIVIL_WAR_SLOTS } from "@openfront/engine-api/ww1936/Countries";
 import { BUILDING_IDS } from "@openfront/engine-api/ww1936/EconomyTypes";
-import { CS_GONE } from "@openfront/engine-api/ww1936/EndgameTypes";
+import { CS_ACTIVE } from "@openfront/engine-api/ww1936/EndgameTypes";
 import type { EventDef } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { IDEO_COM, IDEO_NEU } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { SUN_EVENTS } from "@openfront/engine-lib/ww1936/content/events/sun";
@@ -15,6 +15,7 @@ import {
   createGameRunner,
   type GameRunner,
 } from "@openfront/engine/GameRunner";
+import { endCivilWar } from "@openfront/engine/ww1936/endgame/CivilWar";
 import { evalCondition } from "@openfront/engine/ww1936/politics/Conditions";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
 import {
@@ -72,6 +73,20 @@ const spiritsOf = (r: GameRunner) =>
   me(r)
     .spirits.map((s) => s.id)
     .filter((s) => s.startsWith("sun_purge") || s.startsWith("sun_ctl"));
+
+/** ww226: the country's civil war ends with its government on top. */
+const govWins = (r: GameRunner, tag: "USA" | "SUN" | "JPN") => {
+  const ww = r.game.worldWar()!;
+  const id = pol(r.game).idOfTag(tag);
+  const w = ww.endgame.wars.find(
+    (x) =>
+      x.kind === "civil" &&
+      x.ended === null &&
+      x.sides.some((s) => s.members[0]?.id === id),
+  )!;
+  const side = w.sides.findIndex((s) => s.members[0]?.id === id) as 0 | 1;
+  endCivilWar(ww.endgame, w.id, side, r.game.ticks());
+};
 
 describe("Soviet purge: stages, control focuses, ending, troubles", () => {
   it("control focuses stack on the stage; ending removes all and leaves an aftermath by length; troubles start in year 3 and stop with the purge", async () => {
@@ -176,10 +191,12 @@ describe("Soviet purge: stages, control focuses, ending, troubles", () => {
       ["sun_moderate_economy", "sun_party_concordat"],
     ]);
 
+    // ww226: the seizure's civil war (the communists rise), won by the army.
+    govWins(r, "SUN");
     // Slots full and a shaky regime: the card offers only the civil war, which cannot start.
     const eg = r.game.worldWar()!.endgame;
     for (const t of CIVIL_WAR_SLOTS) {
-      eg.countryStateArr[r.game.worldWar()!.scenario.smallIdOf(t)] = CS_GONE;
+      eg.countryStateArr[r.game.worldWar()!.scenario.smallIdOf(t)] = CS_ACTIVE;
     }
     c.stabBaseBp = 0;
     c.stabBp = 0;
@@ -199,6 +216,7 @@ describe("Soviet purge: stages, control focuses, ending, troubles", () => {
         .endgame.wars.filter(
           (w) =>
             w.kind === "civil" &&
+            w.ended === null &&
             w.sides.some((s) => s.members.some((m) => m.id === id)),
         ),
     ).toHaveLength(0);
@@ -254,6 +272,8 @@ describe("Soviet purge: stages, control focuses, ending, troubles", () => {
     const c = me(r);
     mark(r, ["sun_army_reformers"]);
     runFocus(r, "sun_red_bonaparte");
+    // ww226: the seizure's civil war, won by the army regime.
+    govWins(r, "SUN");
     // The defence commissar sits in his seat when the old circle is dismissed.
     c.advisors[3] = "sun_voroshilov";
     runFocus(r, "sun_old_guard_dismissed");

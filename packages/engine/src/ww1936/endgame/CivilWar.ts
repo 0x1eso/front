@@ -23,6 +23,7 @@ import {
   IDEOLOGIES,
   Ideology,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
+import { startLaws } from "@openfront/engine-lib/ww1936/EconomyStart";
 import {
   civilWarColor,
   civilWarNameKey,
@@ -36,7 +37,10 @@ import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import { seaPath } from "@openfront/engine-lib/ww1936/SeaGraph";
 import { SHIP_BASE } from "@openfront/engine-lib/ww1936/ShipStats";
 import { handOverWing } from "../air/Wings";
+import { CountryAir } from "../air/WwAir";
 import { receiveKey } from "../depth/DesignCopy";
+import { emptyCountry } from "../depth/WwDepth";
+import { CountryEconomy } from "../economy/WwEconomy";
 import {
   evictDivisions,
   transferArmyTo,
@@ -44,7 +48,9 @@ import {
   transferRegionPeaceful,
 } from "../land/PoliticsBridge";
 import type { Army } from "../land/WwLand";
+import { CountryLand } from "../land/WwLand";
 import { navalPortsOf } from "../navy/Ports";
+import { CountryNavy } from "../navy/WwNavy";
 import { leaveFaction } from "../politics/Factions";
 import { governmentLeader, setGovernment } from "../politics/Ideology";
 import { setLawFree } from "../politics/Laws";
@@ -66,10 +72,10 @@ const COUNTRY_NAME_PREFIX = "ww1936.country.";
 
 /**
  * Spec §15.1: `smallID` splits; true when a civil war began (P3 then does
- * nothing more). False — P3's government change instead — when the
- * ideology already rules, the country does not play (or is an exile, or is
- * already one side of a civil war), every civil-war slot is used, or the
- * split leaves the rebels nothing.
+ * nothing more). False when the ideology already rules, the country does
+ * not play (or is an exile, or is already one side of a civil war), no
+ * civil-war slot is free (ww226: a lost side's slot is used again), or it
+ * has no land to split (ww226: a single region).
  */
 export function startCivilWar(
   eg: WwEndgame,
@@ -77,19 +83,26 @@ export function startCivilWar(
   ideology: Ideology,
   tick: number,
 ): boolean {
+  return startCivilWarSlot(eg, smallID, ideology, tick) > 0;
+}
+
+/** startCivilWar: the rebels' smallID, 0 when no civil war began. */
+export function startCivilWarSlot(
+  eg: WwEndgame,
+  smallID: number,
+  ideology: Ideology,
+  tick: number,
+): number {
   const ww = eg.ww;
   const sc = ww.scenario;
   const pol = ww.politics;
   const X = smallID;
   const c = pol.country(X);
   const ideo = IDEOLOGIES.indexOf(ideology);
-  if (c === null || ideo < 0 || c.ruling === ideo) return false;
-  if (!eg.isActor(X) || eg.isExile(X) || inCivilWar(eg, X)) return false;
-  const slotTag = CIVIL_WAR_SLOTS.find((t) => {
-    const id = sc.smallIdOf(t);
-    return id > 0 && eg.countryStateArr[id] === CS_DORMANT;
-  });
-  if (slotTag === undefined) return false;
+  if (c === null || ideo < 0 || c.ruling === ideo) return 0;
+  if (!eg.isActor(X) || eg.isExile(X) || inCivilWar(eg, X)) return 0;
+  const slotTag = freeCivilWarSlot(eg);
+  if (slotTag === undefined) return 0;
   const share = civilWarShareBp(c.pop[ideo]);
   const cands = sc.landRegions
     .filter((r) => pol.legalOwner[r.id] === X && ww.land.controller[r.id] === X)
@@ -99,15 +112,19 @@ export function startCivilWar(
   const seeds = pol.content.seeds
     .filter((s) => s.tag === tag && s.ideology === ideology)
     .flatMap((s) => pol.content.groupIdx.get(s.group)?.regions ?? []);
-  const rebel = splitRegionsForCivilWar(
-    regionGraph(sc),
+  const graph = regionGraph(sc);
+  let rebel = splitRegionsForCivilWar(
+    graph,
     cands,
     capital,
     seeds,
     (r) => sc.region(r)?.vp ?? 0,
     share,
   );
-  if (rebel.length === 0) return false;
+  // ww226: the rebels always get land when there is more than the capital.
+  if (rebel.length === 0)
+    rebel = fallbackRebelRegions(sc, cands, capital, seeds, share);
+  if (rebel.length === 0) return 0;
   const rebelSet = new Set(rebel);
   // What stands and docks there before the land moves (the woken slot may
   // evict X's divisions; a port changing sides sends X's fleets away).
@@ -142,7 +159,7 @@ export function startCivilWar(
       f.docked = h.docked;
       eg.ww.navy.markFleet(f.id);
     }
-    return false;
+    return 0;
   }
   splitForces(eg, X, slot, rebelSet, share, before, portShips);
   splitPolitics(eg, X, slot, ideo, tick);
@@ -155,7 +172,7 @@ export function startCivilWar(
   eg.news("news_civil_war", { tag, ideology });
   // ww224: X's human picks the side to lead (the government by default).
   offerCivilWarSide(eg, X, slot, tick);
-  return true;
+  return slot;
 }
 
 /**
@@ -253,12 +270,200 @@ export function endCivilWar(
   pol.markGlobal();
   land.markCountry(W);
   land.markCountry(L);
+  // ww226: a lost side's slot sleeps again for the next civil war (later,
+  // freeCivilWarSlot, while a human still holds it).
+  recycleCivilWarSlot(eg, L);
 }
 
 // ---- Helpers ----
 
+/**
+ * ww226: the first dormant civil-war slot, else the first gone one (a lost
+ * side, a fallen collaborator) that can sleep again (canRecycleSlot), in
+ * CIVIL_WAR_SLOTS order. `recycle`: put that one to sleep now (afresh).
+ * The collaborators' wake (Collab.collabTag) shares the slots.
+ */
+export function freeCivilWarSlot(
+  eg: WwEndgame,
+  recycle = true,
+): CountryTag | undefined {
+  const sc = eg.ww.scenario;
+  const ids = CIVIL_WAR_SLOTS.map((t) => [t, sc.smallIdOf(t)] as const).filter(
+    ([, id]) => id > 0,
+  );
+  const dormant = ids.find(([, id]) => eg.countryStateArr[id] === CS_DORMANT);
+  if (dormant !== undefined) return dormant[0];
+  const gone = ids.find(([, id]) => canRecycleSlot(eg, id));
+  if (gone !== undefined && recycle) recycleCivilWarSlot(eg, gone[1]);
+  return gone?.[0];
+}
+
+/**
+ * ww226: a civil-war slot whose side lost (gone, no exile, holding nothing,
+ * no human on it or a takeover card from it) sleeps again as on day 0: its
+ * politics, economy, army lists, air, navy and depth rows afresh (the land
+ * templates stay, the first one trains its first army), no cores, its
+ * name and colour cleared. True when it is dormant now.
+ */
+export function recycleCivilWarSlot(eg: WwEndgame, id: number): boolean {
+  if (!isCivilWarSlot(eg, id)) return false;
+  if (eg.countryStateArr[id] === CS_DORMANT) return true;
+  if (!canRecycleSlot(eg, id)) return false;
+  resetSlot(eg, id);
+  return true;
+}
+
+/** recycleCivilWarSlot's test, changing nothing. */
+function canRecycleSlot(eg: WwEndgame, id: number): boolean {
+  const ww = eg.ww;
+  if (!isCivilWarSlot(eg, id)) return false;
+  if (eg.countryStateArr[id] !== CS_GONE || eg.isExile(id)) return false;
+  if (eg.humanClientOf(id) !== null) return false;
+  if (
+    eg.takeoverCards.some((c) => c.from === id || c.candidates.includes(id))
+  ) {
+    return false;
+  }
+  if (eg.wars.some((w) => w.ended === null && eg.member(w, id) !== null)) {
+    return false;
+  }
+  const sc = ww.scenario;
+  for (const r of sc.landRegions) {
+    if (
+      ww.politics.legalOwner[r.id] === id ||
+      ww.land.controller[r.id] === id
+    ) {
+      return false;
+    }
+  }
+  if (ww.land.rowsOf(id).length > 0 || ww.navy.fleetsOf(id).length > 0) {
+    return false;
+  }
+  if (ww.air.wingsOf(id).length > 0) return false;
+  if (eg.subjectOf(id) !== null || eg.subjectsOf(id).length > 0) return false;
+  return true;
+}
+
+function resetSlot(eg: WwEndgame, id: number): void {
+  const ww = eg.ww;
+  const sc = ww.scenario;
+  const tag = ww.tagOf(id);
+  ww.politics.resetCountry(id);
+  const ce = ww.economy.country(id);
+  if (ce !== null) {
+    renew(ce, new CountryEconomy(id, tag, ce.major, startLaws(tag)), [
+      "stats",
+      "onTechChanged",
+      "statsVer",
+    ]);
+    ww.economy.markCountryDirty(id);
+  }
+  const cl = ww.land.country(id);
+  if (cl !== null) {
+    renew(cl, new CountryLand(id, tag), [
+      "templates",
+      "nextTemplateId",
+      "presetSeen",
+    ]);
+    ww.land.markCountry(id);
+  }
+  const ca = ww.air.country(id);
+  if (ca !== null) {
+    renew(ca, new CountryAir(id, tag), []);
+    ww.air.markCountry(id);
+  }
+  const cn = ww.navy.country(id);
+  if (cn !== null) renew(cn, new CountryNavy(id, tag), []);
+  if (ww.depth.countries[id] !== null && ww.depth.countries[id] !== undefined) {
+    ww.depth.countries[id] = emptyCountry();
+    ww.depth.markCountry(id);
+  }
+  for (const r of sc.landRegions) eg.removeCore(id, r.id);
+  eg.nameKey[id] = null;
+  eg.nameArg[id] = null;
+  eg.color[id] = -1;
+  ww.clearCapitulation(id);
+  eg.setCapitulationBase(id, 0);
+  ww.clearAuto(id);
+  ww.politics.recomputeStats(id);
+  eg.setCountryState(id, CS_DORMANT);
+  eg.dirtyCountries.add(id);
+}
+
+/** Every own field of `fresh` onto `obj`, but `keep`'s (shared or kept state). */
+function renew<T extends object>(
+  obj: T,
+  fresh: T,
+  keep: readonly string[],
+): void {
+  const src = fresh as unknown as Record<string, unknown>;
+  const dst = obj as unknown as Record<string, unknown>;
+  for (const k of Object.keys(src)) if (!keep.includes(k)) dst[k] = src[k];
+}
+
+/**
+ * ww226: the split gave the rebels nothing (no points to share, or every
+ * pick was a 0-point region the government's side kept): the content's
+ * seed regions, else of the largest group of regions away from the
+ * capital (connected without it; ties: the smaller first id) the share's
+ * count of regions, at least one, from its region farthest from the
+ * capital. Empty only when the capital is all there is.
+ */
+function fallbackRebelRegions(
+  sc: ScenarioIndex,
+  cands: readonly number[],
+  capital: number,
+  seeds: readonly number[],
+  shareBp: number,
+): number[] {
+  const rest = [...new Set(cands)]
+    .filter((r) => r !== capital)
+    .sort((a, b) => a - b);
+  if (rest.length === 0) return [];
+  const restSet = new Set(rest);
+  const fromSeeds = [...new Set(seeds)].filter((r) => restSet.has(r));
+  if (fromSeeds.length > 0) return fromSeeds.sort((a, b) => a - b);
+  const nb = (r: number) =>
+    [...new Set(sc.edgesOf(r).map((e) => e.to))]
+      .filter((x) => restSet.has(x))
+      .sort((a, b) => a - b);
+  let best: number[] = [];
+  const seen = new Set<number>();
+  for (const r of rest) {
+    if (seen.has(r)) continue;
+    const group = [r];
+    seen.add(r);
+    for (let h = 0; h < group.length; h++) {
+      for (const n of nb(group[h])) {
+        if (seen.has(n)) continue;
+        seen.add(n);
+        group.push(n);
+      }
+    }
+    if (group.length > best.length) best = group;
+  }
+  const want = Math.max(
+    1,
+    Math.min(best.length, Math.floor((cands.length * shareBp) / 10000)),
+  );
+  const dist = distancesFrom(sc, [capital]);
+  const far = (r: number) => dist.get(r) ?? Number.MAX_SAFE_INTEGER;
+  const start = [...best].sort((a, b) => far(b) - far(a) || a - b)[0];
+  const out = [start];
+  const inOut = new Set(out);
+  for (let h = 0; h < out.length && out.length < want; h++) {
+    for (const n of nb(out[h])) {
+      if (out.length >= want) break;
+      if (inOut.has(n)) continue;
+      inOut.add(n);
+      out.push(n);
+    }
+  }
+  return out.sort((a, b) => a - b);
+}
+
 /** A side's first member (a party, not a joiner) of an ongoing civil war. */
-function inCivilWar(eg: WwEndgame, id: number): boolean {
+export function inCivilWar(eg: WwEndgame, id: number): boolean {
   return eg.wars.some(
     (w) =>
       w.kind === "civil" &&

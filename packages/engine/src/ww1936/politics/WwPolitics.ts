@@ -618,36 +618,7 @@ export class WwPolitics {
    * the economy's start adds recompute the stats as they come.
    */
   start(): void {
-    for (const c of this.list()) {
-      const d = this.content.countryIdx.get(c.tag);
-      const ruling = d?.ruling ?? "neutral";
-      c.ruling = IDEOLOGIES.indexOf(ruling);
-      if (d !== undefined) {
-        c.pop = d.popularity.map((p) => p * 100);
-        c.stabBaseBp = d.stability * 100;
-        c.wsBaseBp = d.warSupport * 100;
-        if (d.firstElection !== undefined) {
-          c.nextElectionDay = dayOfDate(d.firstElection);
-        }
-        for (const s of d.spirits ?? []) {
-          c.spirits.push({ id: s, untilDay: -1, addedDay: 0 });
-        }
-        for (const s of d.timedSpirits ?? []) {
-          c.spirits.push({
-            id: s.id,
-            untilDay: dayOfDate(s.until),
-            addedDay: 0,
-          });
-        }
-      }
-      // Controller ruling R7: startLeader first (Japan's 1936 prime minister).
-      c.leader =
-        d?.startLeader ?? d?.leaders[ruling] ?? `title:leader_${ruling}`;
-      c.stabBp = c.stabBaseBp;
-      c.wsBp = c.wsBaseBp;
-      c.focusState = new Uint8Array(this.content.treeFocuses[c.tree].length);
-      this.recomputeStats(c.smallID);
-    }
+    for (const c of this.list()) this.startCountry(c);
     for (const [x, y] of this.content.startNaps) {
       const a = this.idOfTag(x);
       const b = this.idOfTag(y);
@@ -659,6 +630,71 @@ export class WwPolitics {
         startTreaty: true,
       });
     }
+    this.polGlobalDirty = true;
+  }
+
+  /** Spec §19.10: a country's starting values (its row of the table). */
+  private startCountry(c: CountryPol): void {
+    const d = this.content.countryIdx.get(c.tag);
+    const ruling = d?.ruling ?? "neutral";
+    c.ruling = IDEOLOGIES.indexOf(ruling);
+    if (d !== undefined) {
+      c.pop = d.popularity.map((p) => p * 100);
+      c.stabBaseBp = d.stability * 100;
+      c.wsBaseBp = d.warSupport * 100;
+      if (d.firstElection !== undefined) {
+        c.nextElectionDay = dayOfDate(d.firstElection);
+      }
+      for (const s of d.spirits ?? []) {
+        c.spirits.push({ id: s, untilDay: -1, addedDay: 0 });
+      }
+      for (const s of d.timedSpirits ?? []) {
+        c.spirits.push({
+          id: s.id,
+          untilDay: dayOfDate(s.until),
+          addedDay: 0,
+        });
+      }
+    }
+    // Controller ruling R7: startLeader first (Japan's 1936 prime minister).
+    c.leader = d?.startLeader ?? d?.leaders[ruling] ?? `title:leader_${ruling}`;
+    c.stabBp = c.stabBaseBp;
+    c.wsBp = c.wsBaseBp;
+    c.focusState = new Uint8Array(this.content.treeFocuses[c.tree].length);
+    this.recomputeStats(c.smallID);
+  }
+
+  /**
+   * ww226: a civil-war slot whose side lost goes dormant again as it was on
+   * day 0 (its row of the table, the generic tree), and what other
+   * countries hold on it (treaties, opinions, war goals) lapses.
+   */
+  resetCountry(id: number): void {
+    const c = this.countries[id];
+    if (c === null || c === undefined) return;
+    const fresh = new CountryPol(id, c.tag) as unknown as Record<
+      string,
+      unknown
+    >;
+    const dst = c as unknown as Record<string, unknown>;
+    // The stats object is the economy's too (rebuildDerived): it stays.
+    for (const k of Object.keys(fresh)) if (k !== "stats") dst[k] = fresh[k];
+    c.tree = this.content.countryIdx.get(c.tag)?.tree ?? "generic";
+    this.startCountry(c);
+    this.threatBp[id] = 0;
+    this.guarantees = this.guarantees.filter((g) => g.by !== id && g.to !== id);
+    this.naps = this.naps.filter((n) => n.a !== id && n.b !== id);
+    this.access = this.access.filter((a) => a.by !== id && a.from !== id);
+    this.opinions = this.opinions.filter((o) => o.a !== id && o.b !== id);
+    this.delayed = this.delayed.filter((d) => d.to !== id);
+    for (const o of this.list()) {
+      if (o.smallID === id) continue;
+      if (o.justification?.on === id) o.justification = null;
+      o.warGoals = o.warGoals.filter((g) => g.on !== id);
+      o.declaredOn = o.declaredOn.filter((x) => x !== id);
+      o.improveCooldown.delete(id);
+    }
+    this.markCountry(id);
     this.polGlobalDirty = true;
   }
 

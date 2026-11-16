@@ -4,7 +4,7 @@
 // (jpn_kwantung_break) rise through events.
 import { GameMapSize, GameMapType } from "@openfront/engine-api/game/GameTypes";
 import { CIVIL_WAR_SLOTS } from "@openfront/engine-api/ww1936/Countries";
-import { CS_GONE } from "@openfront/engine-api/ww1936/EndgameTypes";
+import { CS_ACTIVE } from "@openfront/engine-api/ww1936/EndgameTypes";
 import { IDEO_FAS, IDEO_NEU } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import {
   JPN_BRANCHES,
@@ -233,7 +233,7 @@ describe("Showa Restoration on the real map", () => {
 
     // Slots full: the old guard's civil war cannot start, the regime stays.
     for (const t of CIVIL_WAR_SLOTS) {
-      eg.countryStateArr[wars(r).scenario.smallIdOf(t)] = CS_GONE;
+      eg.countryStateArr[wars(r).scenario.smallIdOf(t)] = CS_ACTIVE;
     }
     addPopularity(c.pop, IDEO_NEU, 2500);
     c.stabBaseBp = 0;

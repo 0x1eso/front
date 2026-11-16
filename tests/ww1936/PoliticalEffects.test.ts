@@ -200,9 +200,9 @@ describe("political effects", () => {
     expect(c.stats.warSupportBp).toBeGreaterThan(0);
     const base = c.stabBaseBp;
     run([{ kind: "civil_war", ideology: "communist" }]);
+    // ww226 (owner's ruling): a non-aligned government changes peacefully.
     expect(c.ruling).toBe(IDEO_COM);
-    expect(c.stabBaseBp).toBe(Math.max(0, base - 2500));
-    expect(c.hasSpirit("gen_civil_strife")).toBe(true);
+    expect(c.stabBaseBp).toBe(base);
   });
 
   it("set_law: free skips everything; otherwise P1's order path; law_step", async () => {

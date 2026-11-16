@@ -2,7 +2,7 @@
 // The deep test map has no US: Britain stands in for it, as in Congress.test.
 import { GameMapSize, GameMapType } from "@openfront/engine-api/game/GameTypes";
 import { CIVIL_WAR_SLOTS } from "@openfront/engine-api/ww1936/Countries";
-import { CS_GONE } from "@openfront/engine-api/ww1936/EndgameTypes";
+import { CS_ACTIVE } from "@openfront/engine-api/ww1936/EndgameTypes";
 import { IDEO_DEM, IDEO_FAS } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import {
   USA_BRANCHES,
@@ -22,6 +22,7 @@ import {
   dissolveCongress,
 } from "@openfront/engine/ww1936/depth/Congress";
 import { declareWarBlock } from "@openfront/engine/ww1936/Diplomacy";
+import { endCivilWar } from "@openfront/engine/ww1936/endgame/CivilWar";
 import { evalCondition } from "@openfront/engine/ww1936/politics/Conditions";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
 import { makeCtx } from "@openfront/engine/ww1936/politics/Dispatch";
@@ -219,6 +220,19 @@ const civilWars = (r: GameRunner) => {
     );
 };
 const dayOf = (r: GameRunner) => r.game.worldWar()!.day(r.game.ticks());
+/** ww226: the country's civil war ends with its government on top. */
+const govWins = (r: GameRunner, tag: "USA" | "SUN" | "JPN") => {
+  const ww = r.game.worldWar()!;
+  const id = pol(r.game).idOfTag(tag);
+  const w = ww.endgame.wars.find(
+    (x) =>
+      x.kind === "civil" &&
+      x.ended === null &&
+      x.sides.some((s) => s.members[0]?.id === id),
+  )!;
+  const side = w.sides.findIndex((s) => s.members[0]?.id === id) as 0 | 1;
+  endCivilWar(ww.endgame, w.id, side, r.game.ticks());
+};
 
 describe("USA fascist path on the real map", () => {
   it("legal route: a prepared player is not rebelled against, and may declare on Mexico", async () => {
@@ -240,9 +254,13 @@ describe("USA fascist path on the real map", () => {
     const d = r.game.worldWar()!.depth;
     expect(c.ruling).toBe(IDEO_FAS);
     expect(d.mech.congressDissolved).toBe(true);
+    // ww226: the seizure is a civil war at once; the government wins it,
+    // and the democrats, gone with the rebels, do not rise again.
+    expect(civilWars(r)).toHaveLength(1);
+    govWins(r, "USA");
     run(r, 9000); // about 300 days after the seizure
     expect(uprisings(r)).toBe(0);
-    expect(civilWars(r)).toHaveLength(0);
+    expect(civilWars(r).filter((w) => w.ended === null)).toHaveLength(0);
     expect(c.ruling).toBe(IDEO_FAS);
     const g = r.game;
     expect(
@@ -270,6 +288,9 @@ describe("USA fascist path on the real map", () => {
     mark(r, ["usa_share_wealth", "usa_radio_priest", "usa_coup_path"]);
     runFocus(r, "usa_seize_washington");
     const c = me(r);
+    // ww226: the seizure's civil war, won; the democrats grow back over 20%.
+    govWins(r, "USA");
+    addPopularity(c.pop, IDEO_DEM, 2500 - c.pop[IDEO_DEM]);
     c.stabBaseBp = 9500; // steady: stability stays at 25% or more
     const before = c.pop[0];
     expect(before).toBeGreaterThanOrEqual(2000);
@@ -290,7 +311,7 @@ describe("USA fascist path on the real map", () => {
     expect(c.pop[0]).toBeLessThan(before);
     expect(c.stabBaseBp).toBeLessThan(stab);
     expect(c.ruling).toBe(IDEO_FAS);
-    expect(civilWars(r)).toHaveLength(0);
+    expect(civilWars(r).filter((w) => w.ended === null)).toHaveLength(0);
   }, 600_000);
 
   it("coup route: the democrats rise, the country splits, the human keeps the USA", async () => {
@@ -304,13 +325,10 @@ describe("USA fascist path on the real map", () => {
       runFocus(r, f);
     }
     const c = me(r);
-    const split = dayOf(r);
-    expect(civilWars(r)).toHaveLength(0); // the focus itself starts nothing
-    run(r, 9000);
-    expect(uprisings(r)).toBeGreaterThanOrEqual(1);
+    // ww226: the seizure itself splits the country, the democrats rising.
     const wars = civilWars(r);
     expect(wars).toHaveLength(1);
-    expect(dayOf(r)).toBeGreaterThan(split);
+    expect(dayOf(r)).toBeGreaterThan(0);
     const usa = pol(r.game).idOfTag("USA");
     const sc = r.game.worldWar()!.scenario;
     let mine = 0;
@@ -333,12 +351,13 @@ describe("USA fascist path on the real map", () => {
   it("civil-war slots full: the uprising's civil war leaves the US fascist and Congress dissolved", async () => {
     const r = await usaGame();
     mark(r, ["usa_share_wealth", "usa_radio_priest", "usa_coup_path"]);
-    runFocus(r, "usa_seize_washington");
-    const c = me(r);
     const eg = r.game.worldWar()!.endgame;
     for (const t of CIVIL_WAR_SLOTS) {
-      eg.countryStateArr[r.game.worldWar()!.scenario.smallIdOf(t)] = CS_GONE;
+      eg.countryStateArr[r.game.worldWar()!.scenario.smallIdOf(t)] = CS_ACTIVE;
     }
+    // ww226: no slot: the seizure takes power at once, with the strife.
+    runFocus(r, "usa_seize_washington");
+    const c = me(r);
     c.stabBaseBp = 0; // not steady: the only option is the civil war
     let n = 0;
     while (uprisings(r) === 0 && n++ < 6000) run(r, 1);
