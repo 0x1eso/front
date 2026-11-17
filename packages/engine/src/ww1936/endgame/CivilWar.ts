@@ -26,7 +26,8 @@ import {
 import { startLaws } from "@openfront/engine-lib/ww1936/EconomyStart";
 import {
   civilWarColor,
-  civilWarNameKey,
+  civilWarNameKeys,
+  type CivilWarNameKind,
   civilWarShareBp,
   packRgb,
   RegionGraphView,
@@ -115,6 +116,7 @@ export function startCivilWarSlot(
     .map((r) => r.id);
   const capital = capitalRegionOf(eg, X, cands);
   const tag = nameTagOf(eg, X);
+  const base = nameBaseOf(eg, X);
   const seeds = pol.content.seeds
     .filter((s) => s.tag === tag && s.ideology === ideology)
     .flatMap((s) => pol.content.groupIdx.get(s.group)?.regions ?? []);
@@ -148,8 +150,9 @@ export function startCivilWarSlot(
       techAll: true,
       faction: "none",
       government: { ideology },
-      nameKey: civilWarNameKey(ideology),
-      nameArg: tag,
+      // ww237: its own name, never one a living country carries.
+      nameKey: pickCivilWarName(eg, base, ideology),
+      nameArg: base,
       color: packRgb(civilWarColor(COUNTRIES[tag].color, ideology)),
     },
     tick,
@@ -494,6 +497,41 @@ function nameTagOf(eg: WwEndgame, id: number): CountryTag {
     if (COUNTRIES[t] !== undefined) return t;
   }
   return eg.ww.tagOf(id);
+}
+
+/**
+ * ww237: the country a new side of `id` is named after: the one `id`'s own
+ * template names ({country} of "자유 {country}": a side of a side rises in
+ * the same country), else nameTagOf's. Never a civil-war slot while it
+ * has a name to give.
+ */
+export function nameBaseOf(eg: WwEndgame, id: number): CountryTag {
+  const arg = eg.nameArg[id];
+  if (arg !== null && COUNTRIES[arg as CountryTag] !== undefined) {
+    return arg as CountryTag;
+  }
+  return nameTagOf(eg, id);
+}
+
+/**
+ * ww237: the name key a side split from `base` wakes with: the first of
+ * civilWarNameKeys(base, kind) that no living country (neither dormant nor
+ * gone) carries with the same {country}. Two sides never share a name.
+ */
+export function pickCivilWarName(
+  eg: WwEndgame,
+  base: CountryTag,
+  kind: CivilWarNameKind,
+): string {
+  const taken = new Set<string>();
+  for (let id = 1; id < eg.size; id++) {
+    const st = eg.countryStateArr[id];
+    if (st === CS_DORMANT || st === CS_GONE) continue;
+    const key = eg.nameKey[id];
+    if (key !== null && eg.nameArg[id] === base) taken.add(key);
+  }
+  const keys = civilWarNameKeys(base, kind);
+  return keys.find((k) => !taken.has(k)) ?? keys[0];
 }
 
 /**

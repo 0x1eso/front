@@ -106,8 +106,27 @@ export function wwWindowTicks(game: WwPaceGame, ticks: number): number {
   return gc === undefined ? ticks : wwRealTicks(gc, ticks);
 }
 
+/**
+ * ww237: the running game's names by tag (GameView sets it; null outside a
+ * 1936 game): a civil-war side's, a collaborator's, a renamed country's
+ * (WwEndgameView.liveName); null for a country with no name of its own.
+ */
+let liveNames: ((tag: CountryTag) => string | null) | null = null;
+
+export function setLiveCountryNames(
+  names: ((tag: CountryTag) => string | null) | null,
+): void {
+  liveNames = names;
+}
+
+/**
+ * A country's name on every screen: its name in the running game (a
+ * civil-war side "독일 소비에트 공화국", never its slot's "임시 정부"),
+ * else its scenario name. The one helper every 1936 screen names a
+ * country by, a tag at hand (countryText: a smallID).
+ */
 export function countryName(tag: CountryTag): string {
-  return translateText(`ww1936.country.${tag}`);
+  return liveNames?.(tag) ?? translateText(`ww1936.country.${tag}`);
 }
 
 const FACTION_KEYS: Readonly<Record<FactionId, string>> = {

@@ -5,6 +5,7 @@ import {
 } from "@openfront/engine-lib/ww1936/scenario/Profile";
 import type { SavedGameInfo } from "@openfront/shared/ApiSchemas";
 import type { GameView } from "../../view/GameView";
+import { countryText } from "../ww1936/EndgameNames";
 import { today } from "../ww1936/WorldWarModel";
 
 // What a save records of the running game (SavedGame.game), and when an
@@ -34,7 +35,10 @@ export function saveInfoOf(game: GameView): SavedGameInfo | null {
   const d = dateOfDay(today(game), wwEpochDays(gc));
   return {
     mode: isImjin(gc) ? "imjin" : "ww1936",
-    ...(tag === null ? {} : { country: tag }),
+    // ww237: the name the game shows it by (a civil-war side's own).
+    ...(tag === null || me === null
+      ? {}
+      : { country: tag, countryName: countryText(game, me.smallID()) }),
     date: `${d.year}-${pad(d.month)}-${pad(d.day)}`,
   };
 }

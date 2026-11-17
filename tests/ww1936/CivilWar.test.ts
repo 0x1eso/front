@@ -3,7 +3,11 @@
 import { AIR_TYPES } from "@openfront/engine-api/ww1936/AirTypes";
 import { CIVIL_WAR_SLOTS } from "@openfront/engine-api/ww1936/Countries";
 import { equipKey } from "@openfront/engine-api/ww1936/EconomyTypes";
-import { CS_ACTIVE } from "@openfront/engine-api/ww1936/EndgameTypes";
+import {
+  CS_ACTIVE,
+  CS_DORMANT,
+  CS_GONE,
+} from "@openfront/engine-api/ww1936/EndgameTypes";
 import {
   IDEO_COM,
   IDEO_DEM,
@@ -25,9 +29,11 @@ import { drawPlanes } from "@openfront/engine/ww1936/economy/Buildings";
 import { activateCountry } from "@openfront/engine/ww1936/endgame/Activate";
 import {
   endCivilWar,
+  pickCivilWarName,
   startCivilWar,
 } from "@openfront/engine/ww1936/endgame/CivilWar";
 import { makeSubject } from "@openfront/engine/ww1936/endgame/Subjects";
+import type { WwEndgame } from "@openfront/engine/ww1936/endgame/WwEndgame";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
 import {
   applyEffects,
@@ -36,6 +42,7 @@ import {
 import { civilWar } from "@openfront/engine/ww1936/politics/Ideology";
 import { setLawFree } from "@openfront/engine/ww1936/politics/Laws";
 import { addSpirit } from "@openfront/engine/ww1936/politics/Spirits";
+import { readFileSync } from "node:fs";
 import { diffGraphs, diffSnapshots } from "../util/Snapshot";
 import { TEST_TANK } from "./depthFixture";
 import { END, endId } from "./endFixture";
@@ -155,6 +162,37 @@ function sovietSplit({ g, ww }: Started): void {
   const sun = endId("SUN");
   ww.politics.queueEvent(CW_EVENT.id, sun, sun, 0, 0);
   ww.politics.flushEvents(g.ticks());
+}
+
+/** ww237: the Korean text of a dotted key, from the shipped ko.json. */
+const KO = JSON.parse(
+  readFileSync(
+    new URL("../../resources/lang/ko.json", import.meta.url),
+    "utf8",
+  ),
+) as Record<string, unknown>;
+function ko(key: string): string {
+  let v: unknown = KO;
+  for (const p of key.split(".")) v = (v as Record<string, unknown>)?.[p];
+  if (typeof v !== "string") throw new Error(`no ko text: ${key}`);
+  return v;
+}
+
+/** ww237: every living country's name, as WwEndgameView.displayName reads it. */
+function livingNames(eg: WwEndgame): string[] {
+  const out: string[] = [];
+  for (let id = 1; id < eg.size; id++) {
+    const st = eg.countryStateArr[id];
+    if (st === CS_DORMANT || st === CS_GONE) continue;
+    const key = eg.nameKey[id];
+    const arg = eg.nameArg[id];
+    out.push(
+      key === null
+        ? ko(`ww1936.country.${eg.ww.tagOf(id)}`)
+        : ko(key).replace("{country}", arg ? ko(`ww1936.country.${arg}`) : ""),
+    );
+  }
+  return out;
 }
 
 function lockstep(a: GameRunner, b: GameRunner, ticks: number): void {
@@ -277,7 +315,8 @@ describe("World War 1936 P5: civil wars (spec §15)", () => {
     expect(pc.stabBaseBp).toBe(Math.max(0, stab0 - 1000));
     expect(pc.hasSpirit("gen_civil_strife")).toBe(true);
     // Name, colour, flag, news.
-    expect(eg.nameKey[cw]).toBe("ww1936.cw_name.fascist");
+    // ww237: the Soviet fascists' own name (content/endgame/names).
+    expect(eg.nameKey[cw]).toBe("ww1936.cw_name.sun_fascist");
     expect(eg.nameArg[cw]).toBe("SUN");
     expect(eg.color[cw]).toBe(packRgb(civilWarColor([150, 30, 30], "fascist")));
     expect(eg.flagOf(cw)).toBe("ww_cw_fascist");
@@ -505,6 +544,37 @@ describe("World War 1936 P5: civil wars (spec §15)", () => {
     expect(ww.politics.legalOwner[KIEV]).toBe(sun);
     expect(ww.hasWar(sun)).toBe(false);
     expect(eg.wars).toEqual([]);
+  }, 60_000);
+
+  it("ww237: every side carries its own name; no two living countries share one", async () => {
+    const s = await started();
+    const { g, eg } = s;
+    const [sun, fra] = [endId("SUN"), endId("FRA")];
+    const [cw1, cw2, cw3] = [endId("CW1"), endId("CW2"), endId("CW3")];
+    sovietSplit(s);
+    expect(eg.nameKey[cw1]).toBe("ww1936.cw_name.sun_fascist");
+    expect(startCivilWar(eg, fra, "communist", g.ticks())).toBe(true);
+    expect(eg.nameKey[cw2]).toBe("ww1936.cw_name.fra_communist");
+    expect(eg.nameArg[cw2]).toBe("FRA");
+    // A second Soviet fascist side would not repeat the first one's name.
+    expect(pickCivilWarName(eg, "SUN", "fascist")).toBe(
+      "ww1936.cw_name.fascist",
+    );
+    // The rebels win and are the Soviet Union; their democrats rise named
+    // after it (never after the slot, "임시 정부"), apart from the government.
+    endCivilWar(eg, eg.warOfPair(cw1, sun), 0, g.ticks());
+    expect(startCivilWar(eg, cw1, "democratic", g.ticks())).toBe(true);
+    expect(eg.nameKey[cw3]).toBe("ww1936.cw_name.sun_democratic");
+    expect(eg.nameArg[cw3]).toBe("SUN");
+    const names = livingNames(eg);
+    expect(names).toContain(ko("ww1936.cw_name.sun_democratic"));
+    expect(names).toContain(ko("ww1936.country.SUN"));
+    expect(names).toContain(ko("ww1936.cw_name.fra_communist"));
+    expect(new Set(names).size).toBe(names.length);
+    for (const n of names) {
+      expect(n).not.toContain("분리 국가");
+      expect(n).not.toBe(ko("ww1936.country.CW1"));
+    }
   }, 60_000);
 
   it("a country in a civil war does not split again", async () => {

@@ -50,6 +50,11 @@ export class WwControllerChangedEvent implements GameEvent {
 
 export class WwEndgameView {
   countries = new Map<number, WwCountryView>();
+  /**
+   * ww237: the last name each country carried: a civil-war slot that lost
+   * and sleeps again (its name cleared) keeps it in the news and the logs.
+   */
+  private lastNamed = new Map<number, WwCountryView>();
   controllers: [string, number][] = [];
   wars: WwWarSummary[] = [];
   conferenceView: WwConferenceView | null = null;
@@ -91,7 +96,10 @@ export class WwEndgameView {
 
   /** Merges one update: every present field; occupation, aid and cores by key; news appended. */
   apply(d: WwEndgameData): void {
-    for (const c of d.countries ?? []) this.countries.set(c.smallID, c);
+    for (const c of d.countries ?? []) {
+      this.countries.set(c.smallID, c);
+      if (c.nameKey) this.lastNamed.set(c.smallID, c);
+    }
     if (d.controllers !== undefined) {
       this.controllers = d.controllers.map(([c, i]) => [c, i]);
     }
@@ -129,16 +137,27 @@ export class WwEndgameView {
 
   /** Spec §3.5: the map label and every country name on screen. */
   displayName(smallID: number, tagOf: (id: number) => CountryTag): string {
-    const c = this.countries.get(smallID);
-    if (c?.nameKey) {
-      return translateText(
-        c.nameKey,
-        c.nameArg
-          ? { country: translateText(`ww1936.country.${c.nameArg}`) }
-          : {},
-      );
-    }
-    return translateText(`ww1936.country.${tagOf(smallID)}`);
+    return (
+      this.liveName(smallID) ??
+      translateText(`ww1936.country.${tagOf(smallID)}`)
+    );
+  }
+
+  /**
+   * ww237: the name the engine gave a country (a civil-war side, a
+   * collaborator, a rename), else the last one it carried; null for a
+   * country that never had one (its scenario name stands).
+   */
+  liveName(smallID: number): string | null {
+    const live = this.countries.get(smallID);
+    const c = live?.nameKey ? live : this.lastNamed.get(smallID);
+    if (!c?.nameKey) return null;
+    return translateText(
+      c.nameKey,
+      c.nameArg
+        ? { country: translateText(`ww1936.country.${c.nameArg}`) }
+        : {},
+    );
   }
 
   /**

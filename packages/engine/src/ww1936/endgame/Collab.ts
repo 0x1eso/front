@@ -52,7 +52,12 @@ import { leaveFaction } from "../politics/Factions";
 import { payPp } from "../politics/PayPp";
 import { addTension, scaledTension } from "../politics/Tension";
 import { activateCountry } from "./Activate";
-import { freeCivilWarSlot, recycleCivilWarSlot } from "./CivilWar";
+import {
+  freeCivilWarSlot,
+  nameBaseOf,
+  pickCivilWarName,
+  recycleCivilWarSlot,
+} from "./CivilWar";
 import type { StoredCollab } from "./DiploState";
 import { needOf } from "./Garrison";
 import { endSubject } from "./Subjects";
@@ -266,8 +271,9 @@ export function createCollab(
       faction: "none",
       ...(slot
         ? {
-            nameKey: COLLAB_NAME_KEY,
-            nameArg: originTag,
+            // ww237: "<country> 국가", or another form when one carries it.
+            nameKey: pickCivilWarName(eg, nameBaseOf(eg, target), "collab"),
+            nameArg: nameBaseOf(eg, target),
             color: packRgb(civilWarColor(COUNTRIES[originTag].color, ideology)),
           }
         : {}),

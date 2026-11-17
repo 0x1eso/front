@@ -35,7 +35,7 @@ import {
 } from "@openfront/engine-lib/ww1936/IntelRules";
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view/GameView";
-import { enemiesOf } from "./WorldWarModel";
+import { countryName, enemiesOf } from "./WorldWarModel";
 
 /** The department upgrade of each domain (civil: ag_civil_dept …). */
 export const DEPARTMENT: Readonly<Record<number, AgencyUpgrade>> = {
@@ -339,7 +339,7 @@ export class IntelModel {
       if (id === me || depth?.summary(id) === undefined) continue;
       rows.push({
         id,
-        name: translateText(`ww1936.country.${tag}`),
+        name: countryName(tag),
         flag: COUNTRIES[tag].flag,
         atWar: wars.has(id),
         neighbour: neighbours.has(id),

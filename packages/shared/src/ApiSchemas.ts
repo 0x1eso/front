@@ -1509,6 +1509,9 @@ export const SavedGameSchema = z.object({
     .object({
       mode: z.enum(["gw1914", "ww1936", "imjin"]),
       country: z.string().optional(),
+      // ww237: the country's name as the game showed it ("독일 소비에트
+      // 공화국" for a civil-war side), in the language it was saved in.
+      countryName: z.string().optional(),
       date: z.string().optional(),
     })
     .optional(),

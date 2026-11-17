@@ -32,6 +32,7 @@ import type {
   TemplateDef,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import type { Ideology } from "@openfront/engine-api/ww1936/PoliticsTypes";
+import { CIVIL_WAR_NAMES } from "./content/endgame/names";
 
 // ---- Peace conference (spec §6.2, §6.3) ----
 
@@ -655,5 +656,42 @@ export function packRgb([r, g, b]: readonly [number, number, number]): number {
 /** Spec §3.5: ww1936.cw_name.<ideology> with {country}. */
 export function civilWarNameKey(ideology: Ideology): string {
   return `ww1936.cw_name.${ideology}`;
+}
+
+/** ww237: what a woken side rises as: an ideology, or a collaborator. */
+export type CivilWarNameKind = Ideology | "collab";
+const NAME_KINDS: readonly CivilWarNameKind[] = [
+  "democratic",
+  "communist",
+  "fascist",
+  "neutral",
+  "collab",
+];
+const OWN_NAMES = new Map<string, string>(
+  CIVIL_WAR_NAMES.map((n) => [`${n.tag}:${n.ideology}`, n.key]),
+);
+
+/**
+ * ww237: the names a side split from `tag` may carry, best first, every one
+ * with {country} = `tag` (an own name ignores it): its own name
+ * (content/endgame/names), the kind's template (ww1936.cw_name.<kind>), the
+ * template's other forms (<kind>_2, <kind>_3), then the other kinds' in the same
+ * order. Fifteen forms or more, all different, for twelve slots: the caller
+ * takes the first that no living country carries.
+ */
+export function civilWarNameKeys(
+  tag: CountryTag,
+  kind: CivilWarNameKind,
+): string[] {
+  const forms = (k: CivilWarNameKind): string[] => {
+    const own = OWN_NAMES.get(`${tag}:${k}`);
+    const base = [
+      `ww1936.cw_name.${k}`,
+      `ww1936.cw_name.${k}_2`,
+      `ww1936.cw_name.${k}_3`,
+    ];
+    return own === undefined ? base : [own, ...base];
+  };
+  return [kind, ...NAME_KINDS.filter((k) => k !== kind)].flatMap(forms);
 }
 export type { CountryTag };

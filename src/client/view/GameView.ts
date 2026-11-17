@@ -48,6 +48,7 @@ import {
 import { PlayerCosmetics, WirePlayer } from "@openfront/shared/WireSchemas";
 import { noteGwRun } from "../GwRecentRuns";
 import { setGwRealms } from "../hud/ww1914/GwFateModel";
+import { setLiveCountryNames } from "../hud/ww1936/WorldWarModel";
 import { useWwCalendar } from "../hud/ww1936/WwClientCalendar";
 import { computeAllianceClusters } from "../render/frame/derive/AllianceClusters";
 import { extractAttackRings } from "../render/frame/derive/AttackRings";
@@ -232,6 +233,7 @@ export class GameView implements GameLike {
       fillGreatWarOwners(this._map, this._mapData.scenario, this._gwWorld);
     }
     const scenario = this.worldWarScenario();
+    setLiveCountryNames(null);
     if (scenario !== null) {
       // ww177: the profile's calendar (epoch, the Imjin date line).
       const gc = this._config.gameConfig();
@@ -253,6 +255,12 @@ export class GameView implements GameLike {
       this._wwNavy = new WwNavyView(scenario, me, side);
       this._wwAir = new WwAirView(scenario, me, side);
       this._wwEndgame = new WwEndgameView();
+      // ww237: every screen's countryName(tag) reads this game's names.
+      const eg = this._wwEndgame;
+      setLiveCountryNames((tag) => {
+        const id = scenario.smallIdOf(tag);
+        return id > 0 ? eg.liveName(id) : null;
+      });
       this._wwDepth = new WwDepthView();
       // ww92: template screens read the stats and key table the engine uses.
       const econ = this._wwEconomy;

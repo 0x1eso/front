@@ -34,7 +34,9 @@ function monthOf(iso: string): string | null {
 /** "대전쟁 1914 · 독일 · 1915년 3월": the mode, the country, the month. */
 export function saveGameLabel(info: SavedGameInfo): string {
   const parts = [saveModeName(info.mode)];
-  if (info.country !== undefined) {
+  // ww237: the name the game showed (a civil-war side's own), else the tag's.
+  if (info.countryName !== undefined) parts.push(info.countryName);
+  else if (info.country !== undefined) {
     parts.push(countryName(info.mode, info.country));
   }
   const month = info.date === undefined ? null : monthOf(info.date);

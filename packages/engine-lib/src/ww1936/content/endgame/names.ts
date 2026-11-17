@@ -1,0 +1,92 @@
+// World War 1936 ww237 (the owner: "내전날때 분리국가로 표시되게 하지 말고
+// 각자 이름이 있게 해"): a civil-war side's own name, by the country it
+// splits from and the ideology it rises for. Without a row the side takes
+// the ideology's template (ww1936.cw_name.<ideology>: "자유 {country}").
+// Spain (ESN, ESR) keeps its names: no rows.
+import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
+import type { Ideology } from "@openfront/engine-api/ww1936/PoliticsTypes";
+
+export interface CivilWarNameDef {
+  readonly tag: CountryTag;
+  readonly ideology: Ideology;
+  /** ww1936.cw_name.<tag>_<ideology>: the side's whole name, no params. */
+  readonly key: string;
+}
+
+export const CIVIL_WAR_NAMES: readonly CivilWarNameDef[] = [
+  { tag: "DEU", ideology: "democratic", key: "ww1936.cw_name.deu_democratic" },
+  { tag: "DEU", ideology: "communist", key: "ww1936.cw_name.deu_communist" },
+  { tag: "DEU", ideology: "neutral", key: "ww1936.cw_name.deu_neutral" },
+  { tag: "GBR", ideology: "communist", key: "ww1936.cw_name.gbr_communist" },
+  { tag: "GBR", ideology: "fascist", key: "ww1936.cw_name.gbr_fascist" },
+  { tag: "FRA", ideology: "communist", key: "ww1936.cw_name.fra_communist" },
+  { tag: "FRA", ideology: "fascist", key: "ww1936.cw_name.fra_fascist" },
+  { tag: "ITA", ideology: "democratic", key: "ww1936.cw_name.ita_democratic" },
+  { tag: "ITA", ideology: "communist", key: "ww1936.cw_name.ita_communist" },
+  { tag: "ITA", ideology: "neutral", key: "ww1936.cw_name.ita_neutral" },
+  { tag: "USA", ideology: "communist", key: "ww1936.cw_name.usa_communist" },
+  { tag: "USA", ideology: "fascist", key: "ww1936.cw_name.usa_fascist" },
+  { tag: "SUN", ideology: "democratic", key: "ww1936.cw_name.sun_democratic" },
+  { tag: "SUN", ideology: "fascist", key: "ww1936.cw_name.sun_fascist" },
+  { tag: "SUN", ideology: "neutral", key: "ww1936.cw_name.sun_neutral" },
+  { tag: "JPN", ideology: "democratic", key: "ww1936.cw_name.jpn_democratic" },
+  { tag: "JPN", ideology: "communist", key: "ww1936.cw_name.jpn_communist" },
+  { tag: "JPN", ideology: "fascist", key: "ww1936.cw_name.jpn_fascist" },
+  { tag: "JPN", ideology: "neutral", key: "ww1936.cw_name.jpn_neutral" },
+  { tag: "CHN", ideology: "communist", key: "ww1936.cw_name.chn_communist" },
+  { tag: "CHN", ideology: "fascist", key: "ww1936.cw_name.chn_fascist" },
+  { tag: "CCP", ideology: "democratic", key: "ww1936.cw_name.ccp_democratic" },
+  { tag: "CCP", ideology: "fascist", key: "ww1936.cw_name.ccp_fascist" },
+  { tag: "CCP", ideology: "neutral", key: "ww1936.cw_name.ccp_neutral" },
+  { tag: "MCK", ideology: "democratic", key: "ww1936.cw_name.mck_democratic" },
+  { tag: "MCK", ideology: "communist", key: "ww1936.cw_name.mck_communist" },
+  { tag: "MCK", ideology: "fascist", key: "ww1936.cw_name.mck_fascist" },
+  { tag: "MCK", ideology: "neutral", key: "ww1936.cw_name.mck_neutral" },
+  { tag: "POL", ideology: "communist", key: "ww1936.cw_name.pol_communist" },
+  { tag: "POL", ideology: "fascist", key: "ww1936.cw_name.pol_fascist" },
+  { tag: "HUN", ideology: "democratic", key: "ww1936.cw_name.hun_democratic" },
+  { tag: "HUN", ideology: "communist", key: "ww1936.cw_name.hun_communist" },
+  { tag: "HUN", ideology: "fascist", key: "ww1936.cw_name.hun_fascist" },
+  { tag: "ROU", ideology: "communist", key: "ww1936.cw_name.rou_communist" },
+  { tag: "ROU", ideology: "fascist", key: "ww1936.cw_name.rou_fascist" },
+  { tag: "CSK", ideology: "communist", key: "ww1936.cw_name.csk_communist" },
+  { tag: "CSK", ideology: "fascist", key: "ww1936.cw_name.csk_fascist" },
+  { tag: "YUG", ideology: "democratic", key: "ww1936.cw_name.yug_democratic" },
+  { tag: "YUG", ideology: "communist", key: "ww1936.cw_name.yug_communist" },
+  { tag: "YUG", ideology: "fascist", key: "ww1936.cw_name.yug_fascist" },
+  { tag: "FIN", ideology: "communist", key: "ww1936.cw_name.fin_communist" },
+  { tag: "FIN", ideology: "fascist", key: "ww1936.cw_name.fin_fascist" },
+  { tag: "SWE", ideology: "communist", key: "ww1936.cw_name.swe_communist" },
+  { tag: "SWE", ideology: "fascist", key: "ww1936.cw_name.swe_fascist" },
+  { tag: "GRC", ideology: "democratic", key: "ww1936.cw_name.grc_democratic" },
+  { tag: "GRC", ideology: "communist", key: "ww1936.cw_name.grc_communist" },
+  { tag: "BGR", ideology: "democratic", key: "ww1936.cw_name.bgr_democratic" },
+  { tag: "BGR", ideology: "communist", key: "ww1936.cw_name.bgr_communist" },
+  { tag: "BGR", ideology: "fascist", key: "ww1936.cw_name.bgr_fascist" },
+  { tag: "NOR", ideology: "communist", key: "ww1936.cw_name.nor_communist" },
+  { tag: "NOR", ideology: "fascist", key: "ww1936.cw_name.nor_fascist" },
+  { tag: "NLD", ideology: "communist", key: "ww1936.cw_name.nld_communist" },
+  { tag: "NLD", ideology: "fascist", key: "ww1936.cw_name.nld_fascist" },
+  { tag: "BEL", ideology: "communist", key: "ww1936.cw_name.bel_communist" },
+  { tag: "BEL", ideology: "fascist", key: "ww1936.cw_name.bel_fascist" },
+  { tag: "PRT", ideology: "democratic", key: "ww1936.cw_name.prt_democratic" },
+  { tag: "PRT", ideology: "communist", key: "ww1936.cw_name.prt_communist" },
+  { tag: "PRT", ideology: "fascist", key: "ww1936.cw_name.prt_fascist" },
+  { tag: "TUR", ideology: "democratic", key: "ww1936.cw_name.tur_democratic" },
+  { tag: "TUR", ideology: "communist", key: "ww1936.cw_name.tur_communist" },
+  { tag: "TUR", ideology: "fascist", key: "ww1936.cw_name.tur_fascist" },
+  { tag: "BRA", ideology: "democratic", key: "ww1936.cw_name.bra_democratic" },
+  { tag: "BRA", ideology: "communist", key: "ww1936.cw_name.bra_communist" },
+  { tag: "BRA", ideology: "fascist", key: "ww1936.cw_name.bra_fascist" },
+  { tag: "ARG", ideology: "democratic", key: "ww1936.cw_name.arg_democratic" },
+  { tag: "ARG", ideology: "communist", key: "ww1936.cw_name.arg_communist" },
+  { tag: "ARG", ideology: "fascist", key: "ww1936.cw_name.arg_fascist" },
+  { tag: "MEX", ideology: "communist", key: "ww1936.cw_name.mex_communist" },
+  { tag: "MEX", ideology: "fascist", key: "ww1936.cw_name.mex_fascist" },
+  { tag: "CAN", ideology: "communist", key: "ww1936.cw_name.can_communist" },
+  { tag: "CAN", ideology: "fascist", key: "ww1936.cw_name.can_fascist" },
+  { tag: "AUS", ideology: "communist", key: "ww1936.cw_name.aus_communist" },
+  { tag: "AUS", ideology: "fascist", key: "ww1936.cw_name.aus_fascist" },
+  { tag: "ZAF", ideology: "communist", key: "ww1936.cw_name.zaf_communist" },
+  { tag: "ZAF", ideology: "fascist", key: "ww1936.cw_name.zaf_fascist" },
+];

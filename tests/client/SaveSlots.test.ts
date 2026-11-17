@@ -49,6 +49,14 @@ describe("saves: the mode's own label, and three rotating autosaves", () => {
       saveGameLabel({ mode: "imjin", country: "JOS", date: "1592-05-23" }),
     ).toBe("임진왜란 1592 · 조선 · 1592년 5월");
     expect(saveGameLabel({ mode: "ww1936" })).toBe("세계대전 1936");
+    // ww237: a civil-war side's save reads its own name, not its slot's.
+    expect(
+      saveGameLabel({
+        mode: "ww1936",
+        country: "CW7",
+        countryName: "독일 소비에트 공화국",
+      }),
+    ).toBe("세계대전 1936 · 독일 소비에트 공화국");
   });
 
   it("rotates autosaves through slots 1-3, oldest first, leaving manual saves alone", async () => {
