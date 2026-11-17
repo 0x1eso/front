@@ -147,12 +147,9 @@ import { WarfareRingPass, type Ring } from "./passes/WarfareRingPass";
 import { WingTokenPass } from "./passes/WingTokenPass";
 import { WorldTextPass, type PlaceLabel } from "./passes/WorldTextPass";
 import { WwMinePass } from "./passes/WwMinePass";
-import {
-  FLASH_INNER,
-  GLOW_MAX_SHARE,
-  WwStrikeFxPass,
-} from "./passes/WwStrikeFxPass";
+import { WwStrikeFxPass } from "./passes/WwStrikeFxPass";
 import type { RenderSettings } from "./RenderSettings";
+import { StrikeOverlay, type OverlayView } from "./StrikeOverlay";
 import { AffiliationPalette } from "./utils/Affiliation";
 import {
   EFFECT_PALETTE_BLOCKS,
@@ -356,11 +353,17 @@ export class GPURenderer {
   /** World War 1936 P6 (U4): the strike effects' scheduler and its host hooks. */
   private strikeFx: WwStrikeFxPass | null = null;
   private strikeSound: ((loud: boolean) => void) | null = null;
-  private strikeEdge: HTMLDivElement | null = null;
-  private strikeLight: HTMLDivElement | null = null;
-  /** Last values written to the glow and flash overlays (no style write when unchanged). */
-  private glowLast = { size: -1, left: 0, top: 0, op: -1 };
-  private edgeLastOp = -1;
+  /** The strike glow and edge flash, in a fixed, clipped layer (StrikeOverlay). */
+  private readonly strikeOverlay = new StrikeOverlay(
+    () => this.canvas.parentElement,
+  );
+  private readonly overlayView: OverlayView = {
+    offsetX: 0,
+    offsetY: 0,
+    scale: 1,
+    width: 1,
+    height: 1,
+  };
   private readonly fleetLayout = new FleetLayoutCache();
   /** The sea or air layer's table as built, and as the pass last got it. */
   private readonly layerColors = new Uint8Array(LAYER_TABLE_SIZE * 4);
@@ -1543,66 +1546,18 @@ export class GPURenderer {
 
   /** The 20 s glow: a soft overlay over the struck region, moved with the camera; no tile changes. */
   private drawStrikeLight(x: number, y: number, alpha: number): void {
-    let el = this.strikeLight;
-    if (el === null) {
-      const host = this.canvas.parentElement;
-      if (host === null) return;
-      el = document.createElement("div");
-      el.setAttribute("data-ww-strike-light", "");
-      el.style.cssText =
-        "position:absolute;pointer-events:none;z-index:4;border-radius:50%;" +
-        "background:radial-gradient(circle,rgba(255,236,180,0.9) 0%,rgba(255,200,120,0.35) 40%,rgba(255,200,120,0) 70%)";
-      host.appendChild(el);
-      this.strikeLight = el;
-    }
-    const cw = this.canvas.clientWidth;
-    const ch = this.canvas.clientHeight;
-    const z = this.camera.zoom / renderDpr();
-    // Never more than GLOW_MAX_SHARE of the shorter screen side, at any zoom.
-    const size = Math.round(
-      Math.min(Math.max(40, 50 * z), GLOW_MAX_SHARE * Math.min(cw, ch)),
-    );
-    const left = Math.round(cw / 2 + (x - this.camera.offsetX) * z - size / 2);
-    const top = Math.round(ch / 2 + (y - this.camera.offsetY) * z - size / 2);
-    const op = Math.round(alpha * 100);
-    const last = this.glowLast;
-    if (size !== last.size) {
-      el.style.width = el.style.height = `${size}px`;
-      last.size = size;
-    }
-    if (left !== last.left) {
-      el.style.left = `${left}px`;
-      last.left = left;
-    }
-    if (top !== last.top) {
-      el.style.top = `${top}px`;
-      last.top = top;
-    }
-    if (op !== last.op) {
-      el.style.opacity = String(op / 100);
-      last.op = op;
-    }
+    const v = this.overlayView;
+    v.offsetX = this.camera.offsetX;
+    v.offsetY = this.camera.offsetY;
+    v.scale = this.camera.zoom / renderDpr();
+    v.width = this.canvas.clientWidth;
+    v.height = this.canvas.clientHeight;
+    this.strikeOverlay.light(x, y, alpha, v);
   }
 
   /** The victim's one red flash: a vignette on the screen's edges, the middle clear. */
   private drawStrikeEdge(alpha: number): void {
-    let el = this.strikeEdge;
-    if (el === null) {
-      const host = this.canvas.parentElement;
-      if (host === null) return;
-      el = document.createElement("div");
-      el.setAttribute("data-ww-strike-edge", "");
-      el.style.cssText =
-        "position:absolute;inset:0;pointer-events:none;z-index:5;" +
-        "background:radial-gradient(ellipse at center,rgba(220,0,0,0) " +
-        `${FLASH_INNER * 100}%,rgba(220,0,0,1) 100%);opacity:0`;
-      host.appendChild(el);
-      this.strikeEdge = el;
-    }
-    const op = Math.round(alpha * 100);
-    if (op === this.edgeLastOp) return;
-    this.edgeLastOp = op;
-    el.style.opacity = String(op / 100);
+    this.strikeOverlay.edgeFlash(alpha);
   }
 
   /** Strategic weapons: streaks rising from silos (a satellite launch, an interceptor). */
@@ -2811,8 +2766,7 @@ export class GPURenderer {
     this.victoryProjectPass.dispose();
     this.orbitalBeamPass.dispose();
     this.strategicFxPass.dispose();
-    this.strikeEdge?.remove();
-    this.strikeLight?.remove();
+    this.strikeOverlay.dispose();
     this.warfareRingPass.dispose();
     this.samRadiusPass.dispose();
     this.crosshairPass.dispose();
