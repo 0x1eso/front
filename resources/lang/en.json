@@ -34038,6 +34038,23 @@
       },
       "title": "Military thought"
     },
+    "ties": {
+      "access_gives": "Gives access to",
+      "access_has": "Access through",
+      "allies": "Allies",
+      "exile": "In exile in",
+      "faction": "Faction",
+      "faction_led": "{faction} (led by {leader})",
+      "faction_leader": "{faction} (leader)",
+      "guaranteed_by": "Guaranteed by",
+      "guarantees": "Guarantees",
+      "more": "+{n} more",
+      "nap": "Non-aggression pact",
+      "overlord": "Overlord",
+      "subjects": "Subjects",
+      "title": "Diplomacy",
+      "war": "At war with"
+    },
     "title": {
       "ac_air_defense": "Air Chief (Air Defense)",
       "ac_airlift": "Air Chief (Airlift)",

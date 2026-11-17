@@ -42,6 +42,8 @@ import {
   getPlayerIcons,
   IMAGE_ICON_KIND,
 } from "../PlayerIcons";
+import { countryFlag } from "../ww1936/CountryFlags";
+import { countryTies } from "../ww1936/CountryTiesModel";
 import { WwStrikeFlowEvent } from "../ww1936/DepthEvents";
 import { DepthMiscModel } from "../ww1936/DepthMiscModel";
 import {
@@ -1057,6 +1059,57 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
    * World War 1936 (spec §8.2): the region's name, points and owner — P3
    * (controller ruling R16): its legal owner when someone else holds it.
    */
+  /**
+   * ww241: the country's diplomatic ties under its name (faction, wars,
+   * overlord or subjects, guarantees, pacts, access, exile host), each
+   * country with its flag. Public, as the diplomacy drawer's world is;
+   * none: no section.
+   */
+  private renderWwTies(player: PlayerView) {
+    if (this.game.worldWarScenario() === null) return "";
+    const rows = countryTies(this.game, player.smallID());
+    if (rows.length === 0) return "";
+    return html`<div
+      data-ww-ties
+      class="flex flex-wrap items-center gap-x-3 gap-y-0.5 border-t border-white/10 px-3 py-1 text-xs text-white/80"
+    >
+      <span class="font-semibold text-white"
+        >${translateText("ww1936.ties.title")}</span
+      >
+      ${rows.map(
+        (r) =>
+          html`<span
+            data-ww-tie=${r.id}
+            class="inline-flex flex-wrap items-center gap-x-1"
+          >
+            <span class="text-white/60">${r.label}:</span>
+            ${r.lead === "" ? "" : html`<span>${r.lead}</span>`}
+            ${r.lead !== "" && r.countries.length > 0
+              ? html`<span class="text-white/40">·</span>`
+              : ""}
+            ${r.countries.map(
+              (c, i) =>
+                html`<span
+                  data-ww-tie-country=${c.tag}
+                  class="inline-flex items-center gap-0.5"
+                  ><img
+                    src=${countryFlag(c.tag)}
+                    alt=""
+                    class="h-3 w-4 shrink-0 rounded-sm object-cover"
+                  />${c.name}${i < r.countries.length - 1 ? "," : ""}</span
+                >`,
+            )}
+            ${r.more === ""
+              ? ""
+              : html`<span class="text-white/60">${r.more}</span>`}
+            ${r.note === ""
+              ? ""
+              : html`<span class="text-white/60">(${r.note})</span>`}
+          </span>`,
+      )}
+    </div>`;
+  }
+
   private renderRegionLine(tile: TileRef) {
     // The mode first: other games skip the language lookup (a DOM query).
     if (this.game.worldWarScenario() === null) return "";
@@ -1527,6 +1580,7 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
           @mouseleave=${this.onPanelLeave}
         >
           ${this.player ? this.renderPlayerInfo(this.player) : ""}
+          ${this.player ? this.renderWwTies(this.player) : ""}
           ${this.player && this.tile !== null
             ? this.renderRegionLine(this.tile)
             : ""}
