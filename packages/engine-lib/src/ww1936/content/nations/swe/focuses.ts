@@ -13,7 +13,16 @@ import type {
   AiWeight,
   FocusDef,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
-import { all, exists, flag, gflag, nationRouteAi, not, T } from "../../helpers";
+import {
+  all,
+  any,
+  exists,
+  flag,
+  gflag,
+  nationRouteAi,
+  not,
+  T,
+} from "../../helpers";
 
 const AI10: AiWeight = { base: 10 };
 /** A route's middle steps: once started, the AI carries on. */
@@ -1974,8 +1983,16 @@ export const SWE_FOCUSES: readonly FocusDef[] = [
     branch: "politics",
     icon: "crown",
     group: "swe_nordic",
-    prereq: [["swe_union_finland"]],
-    available: flag("swe_union_grew"),
+    // ww237: the union grows by an accepted offer (swe_union_offer) or by
+    // the sword (swe_union_by_force): a Nordic neighbour gone, its capital
+    // Sweden's.
+    prereq: [["swe_union_finland", "swe_union_by_force"]],
+    available: any(
+      flag("swe_union_grew"),
+      all(not(exists("NOR")), { kind: "controls_capital_of", of: T("NOR") }),
+      all(not(exists("DNK")), { kind: "controls_capital_of", of: T("DNK") }),
+      all(not(exists("FIN")), { kind: "controls_capital_of", of: T("FIN") }),
+    ),
     effects: [
       { kind: "set_name", key: "ww1936.rename.swe_nordic_union" },
       { kind: "add_spirit", id: "swe_united_north" },

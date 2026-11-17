@@ -321,6 +321,25 @@ describe("ww229 national content: the shape", () => {
     }
   });
 
+  it("ww237: Sweden's Nordic crown opens by the sword too (a neighbour conquered)", () => {
+    const swe = NATIONS.find((n) => n.tag === "SWE")!;
+    const crown = swe.focuses.find((f) => f.id === "swe_nordic_crown")!;
+    expect({ prereq: crown.prereq, available: crown.available }).toEqual({
+      prereq: [["swe_union_finland", "swe_union_by_force"]],
+      available: {
+        any: [
+          { kind: "flag", flag: "swe_union_grew" },
+          ...(["NOR", "DNK", "FIN"] as const).map((tag) => ({
+            all: [
+              { not: { kind: "exists", who: { tag } } },
+              { kind: "controls_capital_of", of: { tag } },
+            ],
+          })),
+        ],
+      },
+    });
+  });
+
   it("core rows: generals, balance of power, equipment and start arms resolve", () => {
     for (const c of NATION_CORES) {
       for (const g of c.generals) {
