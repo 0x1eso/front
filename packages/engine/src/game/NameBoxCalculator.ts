@@ -45,8 +45,14 @@ export function placeSpawnName(game: Game, player: Player): NameViewData {
   };
 }
 
-export function placeName(game: Game, player: Player): NameViewData {
+export function placeName(
+  game: Game,
+  player: Player,
+  // ww240: World War 1936 passes its home block's box (WwLand.labelBox).
+  box: { min: Point; max: Point } | null = null,
+): NameViewData {
   const boundingBox =
+    box ??
     player.largestClusterBoundingBox ??
     calculateBoundingBox(game, player.borderTiles());
 

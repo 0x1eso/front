@@ -374,8 +374,13 @@ export class GameRunner {
       this.game.ticks() % 30 === 0
     ) {
       this.viewDataStale = false;
+      const land = this.game.worldWar()?.land ?? null;
       for (const p of this.game.players()) {
-        this.playerViewData[p.id()] = placeName(this.game, p);
+        this.playerViewData[p.id()] = placeName(
+          this.game,
+          p,
+          land?.labelBox(p.smallID()) ?? null,
+        );
       }
       viewDataChanged = true;
     }

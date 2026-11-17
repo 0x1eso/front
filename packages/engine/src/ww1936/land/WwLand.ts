@@ -64,6 +64,7 @@ import {
   emptySide,
 } from "@openfront/engine-lib/ww1936/CombatRules";
 import { GENERALS } from "@openfront/engine-lib/ww1936/Generals";
+import { homeBlockBox } from "@openfront/engine-lib/ww1936/LabelBlock";
 import { idHash } from "@openfront/engine-lib/ww1936/Roll";
 import {
   divisionStatsAt,
@@ -1478,6 +1479,17 @@ export class WwLand {
     }
     if (x1 < 0) return null;
     return { min: new Cell(x0, y0), max: new Cell(x1, y1) };
+  }
+
+  /**
+   * ww240: the box the map name sits in: the home block of what `smallID`
+   * controls (LabelBlock), not the colonies' span. Display only.
+   */
+  labelBox(smallID: number): { min: Cell; max: Cell } | null {
+    const b = homeBlockBox(this.scenario, this.controller, smallID);
+    return b === null
+      ? null
+      : { min: new Cell(b.minX, b.minY), max: new Cell(b.maxX, b.maxY) };
   }
 
   // ---- Divisions ----
