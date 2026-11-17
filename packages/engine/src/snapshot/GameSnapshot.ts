@@ -5,6 +5,7 @@ import {
 } from "@openfront/engine-api/game/GameTypes";
 import type { SnapshotHeader } from "@openfront/engine-api/game/SnapshotHeader";
 import { GameConfig, GameConfigSchema } from "@openfront/engine-api/Schemas";
+import { EXTRA_CIVIL_WAR_SLOTS } from "@openfront/engine-api/ww1936/Countries";
 import {
   GameMapImpl,
   GameMapSnapshot,
@@ -265,6 +266,29 @@ export function readSnapshotHeader(bytes: Uint8Array): SnapshotHeader {
   };
 }
 
+/**
+ * ww238: the scenario a 1936 save was played on. Builds before ww226 had no
+ * extra civil-war slots (EXTRA_CIVIL_WAR_SLOTS), so a save from then holds
+ * no players for them; it goes on without them, as it was played, rather
+ * than with countries that have no player.
+ */
+function scenarioOfSave(
+  scenario: ScenarioIndex | null,
+  state: { worldWar?: unknown; greatWar?: unknown },
+  players: readonly { smallID: number }[],
+): ScenarioIndex | null {
+  if (
+    scenario === null ||
+    state.worldWar === undefined ||
+    state.greatWar !== undefined
+  ) {
+    return scenario;
+  }
+  const first = scenario.smallIdOf(EXTRA_CIVIL_WAR_SLOTS[0]);
+  if (first === 0 || players.some((p) => p.smallID >= first)) return scenario;
+  return scenario.withoutExtraSlots();
+}
+
 export interface RestoreDeps {
   config: (gameConfig: GameConfig) => EngineConfig;
   /** Freshly loaded maps for header.gameConfig; they are mutated. */
@@ -292,6 +316,9 @@ export function restoreGame(bytes: Uint8Array, deps: RestoreDeps): Game {
     readVersioned(GameMapSnapshot, root.miniMap),
   );
 
+  const players = root.players.map((p) => readVersioned(PlayerSnapshot, p));
+  const scenario = scenarioOfSave(deps.scenario ?? null, state, players);
+
   const humans = state.humans.map(newPlayerInfo);
   // World War 1936 (plan decision 2): every country's PlayerInfo is in
   // `humans`, and its nation shares that very object. Vanilla ids never
@@ -313,11 +340,10 @@ export function restoreGame(bytes: Uint8Array, deps: RestoreDeps): Game {
     new StatsImpl(),
     deps.teamGameSpawnAreas,
     true,
-    deps.scenario ?? null,
+    scenario,
   );
 
   // Pass 1: an empty shell for every object, so references resolve.
-  const players = root.players.map((p) => readVersioned(PlayerSnapshot, p));
   const playerShells = players.map((p) => {
     const shell = Object.create(PlayerImpl.prototype) as PlayerImpl;
     game.addRestoredPlayer(shell, p.info.id, p.smallID);

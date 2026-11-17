@@ -355,44 +355,62 @@ const HistIdSchema = zb.string({
   max: 40,
   regex: /^[a-z]{3}_[a-z0-9_]+$/,
 });
-export const DesignDefSchema = z.discriminatedUnion("kind", [
-  z.object({
-    kind: z.literal("tank"),
-    base: z.enum(TANK_BASES),
-    modules: z
-      .array(z.union([z.enum(TANK_MODULES), z.literal("")]))
-      .min(6)
-      .max(7),
-    armorLevel: zb.uint({ max: 10 }),
-    engineLevel: zb.uint({ max: 10 }),
-    name: DesignNameSchema,
-    hist: HistIdSchema.optional(),
-  }),
-  z.object({
-    kind: z.literal("ship"),
-    base: zb.string({
-      min: 4,
-      max: 4,
-      regex: /^(dd|cl|ca|bc|bb|cv|ss)_[1-4]$/,
+/**
+ * A design's layout, with the rules for its name and catalogue id given:
+ * the wire's (DesignDefSchema) or a save's (StoredDesignDefSchema).
+ */
+function designDefSchema<
+  N extends z.ZodType<string>,
+  H extends z.ZodType<string>,
+>(name: N, hist: H) {
+  return z.discriminatedUnion("kind", [
+    z.object({
+      kind: z.literal("tank"),
+      base: z.enum(TANK_BASES),
+      modules: z
+        .array(z.union([z.enum(TANK_MODULES), z.literal("")]))
+        .min(6)
+        .max(7),
+      armorLevel: zb.uint({ max: 10 }),
+      engineLevel: zb.uint({ max: 10 }),
+      name,
+      hist: hist.optional(),
     }),
-    modules: z
-      .array(z.union([z.enum(SHIP_MODULES), z.literal("")]))
-      .min(3)
-      .max(6),
-    name: DesignNameSchema,
-    hist: HistIdSchema.optional(),
-  }),
-  z.object({
-    kind: z.literal("plane"),
-    base: z.enum(PLANE_BASES),
-    modules: z
-      .array(z.union([z.enum(PLANE_MODULES), z.literal("")]))
-      .min(4)
-      .max(6),
-    name: DesignNameSchema,
-    hist: HistIdSchema.optional(),
-  }),
-]);
+    z.object({
+      kind: z.literal("ship"),
+      base: zb.string({
+        min: 4,
+        max: 4,
+        regex: /^(dd|cl|ca|bc|bb|cv|ss)_[1-4]$/,
+      }),
+      modules: z
+        .array(z.union([z.enum(SHIP_MODULES), z.literal("")]))
+        .min(3)
+        .max(6),
+      name,
+      hist: hist.optional(),
+    }),
+    z.object({
+      kind: z.literal("plane"),
+      base: z.enum(PLANE_BASES),
+      modules: z
+        .array(z.union([z.enum(PLANE_MODULES), z.literal("")]))
+        .min(4)
+        .max(6),
+      name,
+      hist: hist.optional(),
+    }),
+  ]);
+}
+/** A design as an order sends it: a player's name within the name rule. */
+export const DesignDefSchema = designDefSchema(DesignNameSchema, HistIdSchema);
+/**
+ * ww238: a design as a save holds it. The engine names a catalogue design by
+ * its catalogue id (depth/Hist.ts histDef), up to 40 characters, longer than
+ * a player may name one, so a save checks only that both are strings: the
+ * wire's rules made every 1936 save with such a design unreadable.
+ */
+export const StoredDesignDefSchema = designDefSchema(z.string(), z.string());
 
 /** Tank design numbers at battalion level (P2 units): attack values, armor, pierce centi; speed centi-km/h. */
 export interface TankDesignStats {

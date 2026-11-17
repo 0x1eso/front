@@ -11,7 +11,6 @@ import {
   DESIGN_KINDS,
   DESIGN_ORIGINS,
   DesignDef,
-  DesignDefSchema,
   DesignKind,
   DesignStats,
   FACILITY_IDS,
@@ -21,6 +20,7 @@ import {
   KeyStatsTable,
   MIO_FAMILIES,
   SPECIAL_PROJECTS,
+  StoredDesignDefSchema,
   TREATY_END_DATE,
   WW_PLANE_DESIGN_SLOTS,
   WW_SHIP_DESIGN_SLOTS,
@@ -145,7 +145,7 @@ export type { KeyStatsTable } from "@openfront/engine-api/ww1936/DepthTypes";
 
 const zIds = () => z.array(zInt());
 const DesignSlotSchema = z.object({
-  def: DesignDefSchema,
+  def: StoredDesignDefSchema,
   origin: z.enum(DESIGN_ORIGINS),
   from: zInt(),
   fromSlot: zInt(),
@@ -280,7 +280,7 @@ export const WwDepthStateSchema = z.object({
         id: zInt(),
         seller: zInt(),
         key: zInt(),
-        design: DesignDefSchema.nullable(),
+        design: StoredDesignDefSchema.nullable(),
         count: zInt(),
         reserved: zInt(),
       }),
@@ -291,7 +291,7 @@ export const WwDepthStateSchema = z.object({
         buyer: zInt(),
         seller: zInt(),
         key: zInt(),
-        design: DesignDefSchema.nullable(),
+        design: StoredDesignDefSchema.nullable(),
         count: zInt(),
         priceMilli: zInt(),
         paidMilli: zInt(),

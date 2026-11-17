@@ -192,7 +192,15 @@ export class ScenarioIndex {
   /** targetKm by base × 65536 + target. */
   private targetKmMemo = new Map<number, number>();
 
-  constructor(data: ReadonlyScenarioData, regionIds: Uint16Array) {
+  constructor(
+    data: ReadonlyScenarioData,
+    regionIds: Uint16Array,
+    /**
+     * ww238: false builds the scenario as it was before ww226, without
+     * EXTRA_CIVIL_WAR_SLOTS, for a save from then (withoutExtraSlots).
+     */
+    extraCivilWarSlots = true,
+  ) {
     this.data = data;
     this.regionIds = regionIds;
     this.width = data.width;
@@ -211,7 +219,7 @@ export class ScenarioIndex {
     this.countries = [
       ...own,
       ...DORMANT_TAGS,
-      ...(imjin ? [] : EXTRA_CIVIL_WAR_SLOTS),
+      ...(imjin || !extraCivilWarSlots ? [] : EXTRA_CIVIL_WAR_SLOTS),
     ];
     for (const c of data.countries) this.capitals.set(c.tag, c.capital);
     for (const s of data.seaZones) this.seaById.set(s.id, s);
@@ -260,6 +268,16 @@ export class ScenarioIndex {
       data,
       decodeRegions(regionsBin, data.width, data.height),
     );
+  }
+
+  /**
+   * ww238: the same scenario without the extra civil-war slots, as builds
+   * before ww226 had it: a save from then holds no players for them, and
+   * every country loop runs to countries.length. Their tags read as absent
+   * (smallID 0), as on the Imjin War's map.
+   */
+  withoutExtraSlots(): ScenarioIndex {
+    return new ScenarioIndex(this.data, this.regionIds, false);
   }
 
   /** The country's smallID, or 0 when it is not in this scenario. */
