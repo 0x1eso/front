@@ -1,6 +1,5 @@
 import type { WwOrder } from "@openfront/engine-api/Schemas";
 import { AIR_TYPES } from "@openfront/engine-api/ww1936/AirTypes";
-import { COUNTRIES } from "@openfront/engine-api/ww1936/Countries";
 import type { WwDesignSlotData } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
   BUILDABLE,
@@ -25,7 +24,6 @@ import type { HistCountry } from "@openfront/engine-lib/ww1936/hist/Types";
 import { IMJIN_OFF_BUILDINGS } from "@openfront/engine-lib/ww1936/scenario/Profile";
 import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import { emptyStats } from "@openfront/engine-lib/ww1936/Stats";
-import { assetUrl } from "@openfront/shared/AssetUrls";
 import { html, nothing, TemplateResult } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { SendWwOrderIntentEvent } from "../../Transport";
@@ -125,6 +123,7 @@ import {
   stockSortsShort,
   WwStockLitEvent,
 } from "./ArmyHudModel";
+import { countryFlag } from "./CountryFlags";
 import { WwDepthOpenEvent } from "./DepthEvents";
 import { DepthIndustryModel } from "./DepthIndustryModel";
 import { DesignerGame, DesignerModel } from "./DesignerModel";
@@ -1998,7 +1997,7 @@ export class WwIndustryPanel extends WwDrawerBase {
     return tag === undefined
       ? nothing
       : html`<img
-          src=${assetUrl(`flags/${COUNTRIES[tag].flag}.svg`)}
+          src=${countryFlag(tag)}
           alt=""
           class="h-3 w-4 shrink-0 rounded-sm object-cover"
         />`;

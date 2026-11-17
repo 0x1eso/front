@@ -1,11 +1,9 @@
-import { COUNTRIES } from "@openfront/engine-api/ww1936/Countries";
 import { ID_ARMY } from "@openfront/engine-api/ww1936/DepthTypes";
 import type {
   BattleSummary,
   ModLine,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { hasImjinTerrain } from "@openfront/engine-lib/imjin/Terrain";
-import { assetUrl } from "@openfront/shared/AssetUrls";
 import { EventBus } from "@openfront/shared/EventBus";
 import { html, LitElement, nothing, TemplateResult } from "lit";
 import { customElement, state } from "lit/decorators.js";
@@ -14,6 +12,7 @@ import { Controller } from "../../Controller";
 import { SendWwOrderIntentEvent } from "../../Transport";
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view";
+import { countryFlag } from "./CountryFlags";
 import { fogModelOf } from "./FogModel";
 import { imjinBattleBlock } from "./ImjinLandUi";
 import {
@@ -506,7 +505,7 @@ export class WwBattleCard extends LitElement implements Controller {
         ${tag === undefined
           ? nothing
           : html`<img
-                src=${assetUrl(`flags/${COUNTRIES[tag].flag}.svg`)}
+                src=${countryFlag(tag)}
                 alt=""
                 class="h-3 w-4 shrink-0 rounded-sm object-cover"
               />

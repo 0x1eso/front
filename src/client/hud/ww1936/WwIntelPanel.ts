@@ -5,17 +5,16 @@
 // codes. Every order goes out as one ww_order; an operation and a code
 // exploitation take two taps. Reads views only.
 import type { WwOrder } from "@openfront/engine-api/Schemas";
-import { COUNTRIES } from "@openfront/engine-api/ww1936/Countries";
 import {
   type IntelMission,
   type IntelOperation,
   INTEL_DOMAINS,
 } from "@openfront/engine-api/ww1936/DepthTypes";
-import { assetUrl } from "@openfront/shared/AssetUrls";
 import { html, nothing, TemplateResult } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { SendWwOrderIntentEvent } from "../../Transport";
 import { translateText } from "../../Utils";
+import { countryFlag } from "./CountryFlags";
 import { WwDepthOpenEvent } from "./DepthEvents";
 import { AgencyCard, IntelModel, OperativeCard, TargetRow } from "./IntelModel";
 import { TwoTap } from "./WorldWarModel";
@@ -47,8 +46,6 @@ const BAND_COLOR = [
   "bg-yellow-300",
   "bg-green-400",
 ];
-
-const flagOf = (tag: string) => assetUrl(`flags/${tag}.svg`);
 
 /** The operative flow: card → target → mission chips and the operation list. */
 interface Flow {
@@ -285,7 +282,7 @@ export class WwIntelPanel extends WwDrawerBase {
         ${targetTag === null
           ? nothing
           : html`<img
-              src=${flagOf(COUNTRIES[targetTag].flag)}
+              src=${countryFlag(targetTag)}
               alt=""
               class="h-3 w-4 rounded-sm object-cover"
             />`}
@@ -434,7 +431,7 @@ export class WwIntelPanel extends WwDrawerBase {
     return html`${tag === null
         ? nothing
         : html`<img
-            src=${flagOf(COUNTRIES[tag].flag)}
+            src=${countryFlag(tag)}
             alt=""
             class="h-3 w-4 shrink-0 rounded-sm object-cover"
           />`}

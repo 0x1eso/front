@@ -1,6 +1,4 @@
-import { COUNTRIES } from "@openfront/engine-api/ww1936/Countries";
 import { renderNumber } from "@openfront/engine-lib/Format";
-import { assetUrl } from "@openfront/shared/AssetUrls";
 import { EventBus, GameEvent } from "@openfront/shared/EventBus";
 import { html, LitElement, nothing, type TemplateResult } from "lit";
 import { customElement, state } from "lit/decorators.js";
@@ -10,6 +8,7 @@ import { SendWwOrderIntentEvent } from "../../Transport";
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view";
 import { COMPACT_MAX_HEIGHT } from "../domestic/DomesticPanel";
+import { countryFlag } from "./CountryFlags";
 import { WwDepthOpenEvent, WwMultiSelectEvent } from "./DepthEvents";
 import { BandDepth, DoctrineModel } from "./DoctrineModel";
 import { menText, TopBandEconomy, topBandEconomy } from "./EconomyModel";
@@ -526,7 +525,7 @@ export class WwTopBand extends LitElement implements Controller {
           ? nothing
           : html`<span class="flex min-w-0 items-center gap-1.5">
               <img
-                src=${assetUrl(`flags/${COUNTRIES[m.myTag].flag}.svg`)}
+                src=${countryFlag(m.myTag)}
                 alt=""
                 class="h-3.5 w-5 shrink-0 rounded-sm object-cover"
               />

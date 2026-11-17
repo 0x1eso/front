@@ -42,6 +42,11 @@ import {
 // Value import from the leaf module (not the ./render/gl barrel) so non-Vite
 // consumers don't pull in GPURenderer and its shaders — see note above.
 import {
+  drawnFlagsVersion,
+  flagSource,
+  flagSourceUrl,
+} from "./hud/ww1936/CountryFlags";
+import {
   EFFECT_PALETTE_BLOCKS,
   MAX_TRAIL_COLORS,
 } from "./render/gl/utils/ColorUtils";
@@ -182,6 +187,9 @@ export class WebGLFrameBuilder {
    * flag are on the map (the view replaces a country's object on change).
    */
   private readonly wwCountriesDrawn = new Map<number, WwCountryView>();
+  /** ww240: the flag URL each 1936 country was last drawn with. */
+  private readonly wwFlagUrls = new Map<number, string>();
+  private wwFlagsVersion = -1;
   // The renderer needs to know which player is "me" so affiliation tint,
   // unit colors, and SAM-radius perspective work. Push it once the local
   // player's update arrives (may take several ticks during join).
@@ -272,17 +280,21 @@ export class WebGLFrameBuilder {
     if (ww === null) return;
     const names = new Map<string, string>();
     const restyled: PlayerStatic[] = [];
+    // ww240: a civil-war side's canton flag, drawn in the client, came in.
+    const flagsVersion = drawnFlagsVersion();
+    const flagsMoved = flagsVersion !== this.wwFlagsVersion;
+    this.wwFlagsVersion = flagsVersion;
     for (const [smallID, c] of ww.countries) {
       const drawn = this.wwCountriesDrawn.get(smallID);
-      if (drawn === c) continue;
+      if (drawn === c && !flagsMoved) continue;
       this.wwCountriesDrawn.set(smallID, c);
       // Not on the map yet: syncPlayers writes it with these.
       if (!this.knownSmallIDs.has(smallID)) continue;
       const p = gameView.playerBySmallID(smallID);
       if (!p.isPlayer()) continue;
       const pv = p as PlayerView;
-      names.set(pv.id(), mapName(pv, ww));
-      if (drawn?.flag !== c.flag) {
+      if (drawn !== c) names.set(pv.id(), mapName(pv, ww));
+      if (this.wwFlagUrls.get(smallID) !== wwFlagUrl(pv, ww)) {
         restyled.push(this.writePlayerCosmetics(pv, ww));
       }
     }
@@ -750,10 +762,12 @@ export class WebGLFrameBuilder {
     // p.cosmetics.flag has already been server-resolved to either a full URL
     // or a relative asset path (e.g. "/flags/US.svg" or a CDN URL for a
     // custom flag). assetUrl() passes URLs through and rewrites paths.
-    // World War 1936 P5 (spec §3.5): the endgame's flag first.
-    const wwFlag = ww?.countries.get(smallID)?.flag;
-    const flagRef = wwFlag ? `flags/${wwFlag}.svg` : p.cosmetics.flag;
-    const flagUrl = flagRef ? assetUrl(flagRef) : undefined;
+    // World War 1936 P5 (spec §3.5): the endgame's flag first (ww240: a
+    // civil-war side's country flag with its canton).
+    const wwFlag = wwFlagUrl(p, ww);
+    if (wwFlag !== null) this.wwFlagUrls.set(smallID, wwFlag);
+    const flagRef = p.cosmetics.flag;
+    const flagUrl = wwFlag ?? (flagRef ? assetUrl(flagRef) : undefined);
 
     // Crown cosmetic: already server-resolved to the catalog image URL.
     const crownRef = p.cosmetics.crown?.url;
@@ -830,6 +844,17 @@ export class WebGLFrameBuilder {
  */
 function mapName(p: PlayerView, ww: WwEndgameView | null): string {
   return wwMapName(p.countryTag(), p.smallID(), ww) ?? p.displayName();
+}
+
+/**
+ * ww240: a 1936 country's flag URL on the map (CountryFlags: a civil-war
+ * side's country flag with its canton); null before its endgame view.
+ */
+function wwFlagUrl(p: PlayerView, ww: WwEndgameView | null): string | null {
+  const c = ww?.countries.get(p.smallID());
+  const tag = p.countryTag();
+  if (c === undefined || tag === null) return null;
+  return flagSourceUrl(flagSource(tag, c));
 }
 
 /** The World War 1936 endgame view; optional call: test doubles of the game predate it. */

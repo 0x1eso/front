@@ -71,7 +71,8 @@ describe("endgame names on the map", () => {
       }),
     );
     expect(uploads).toHaveLength(1);
-    expect(uploads[0][0].flag).toMatch(/ww_cw_democratic\.svg$/);
+    // ww240: its country's flag (POL; the canton once drawn), never the slot's.
+    expect(uploads[0][0].flag).toMatch(/flags\/pl\.svg$/);
     // The same view again pushes nothing.
     builder.syncWwCountries(game);
     expect(names).toHaveLength(1);

@@ -48,6 +48,11 @@ import {
 import { PlayerCosmetics, WirePlayer } from "@openfront/shared/WireSchemas";
 import { noteGwRun } from "../GwRecentRuns";
 import { setGwRealms } from "../hud/ww1914/GwFateModel";
+import {
+  flagSource,
+  flagSourceUrl,
+  setLiveCountryFlags,
+} from "../hud/ww1936/CountryFlags";
 import { setLiveCountryNames } from "../hud/ww1936/WorldWarModel";
 import { useWwCalendar } from "../hud/ww1936/WwClientCalendar";
 import { computeAllianceClusters } from "../render/frame/derive/AllianceClusters";
@@ -234,6 +239,7 @@ export class GameView implements GameLike {
     }
     const scenario = this.worldWarScenario();
     setLiveCountryNames(null);
+    setLiveCountryFlags(null);
     if (scenario !== null) {
       // ww177: the profile's calendar (epoch, the Imjin date line).
       const gc = this._config.gameConfig();
@@ -260,6 +266,12 @@ export class GameView implements GameLike {
       setLiveCountryNames((tag) => {
         const id = scenario.smallIdOf(tag);
         return id > 0 ? eg.liveName(id) : null;
+      });
+      // ww240: and its flags (a civil-war side's country flag with its canton).
+      setLiveCountryFlags((tag) => {
+        const id = scenario.smallIdOf(tag);
+        const c = id > 0 ? eg.countries.get(id) : undefined;
+        return c === undefined ? null : flagSourceUrl(flagSource(tag, c));
       });
       this._wwDepth = new WwDepthView();
       // ww92: template screens read the stats and key table the engine uses.
@@ -487,10 +499,21 @@ export class GameView implements GameLike {
     // every client draws the same), never the shared gray.
     const cw = CIVIL_WAR_SLOTS.indexOf(tag as (typeof CIVIL_WAR_SLOTS)[number]);
     if (cw >= 0) {
-      return {
-        flag: `/flags/${def.flag}.svg`,
+      // ww240: the flag the slot flies now (its side's country flag with
+      // its canton), read each time: the hover card and the rows follow
+      // it; never the slot's generic one once its side has a country.
+      const slotFlag = `/flags/${def.flag}.svg`;
+      const cosmetics: PlayerCosmetics = {
         color: { color: CIVIL_WAR_COLORS[cw % CIVIL_WAR_COLORS.length] },
       };
+      Object.defineProperty(cosmetics, "flag", {
+        enumerable: true,
+        get: () => {
+          const c = this._wwEndgame?.countries.get(smallID);
+          return c === undefined ? slotFlag : flagSourceUrl(flagSource(tag, c));
+        },
+      });
+      return cosmetics;
     }
     return {
       flag: `/flags/${def.flag}.svg`,

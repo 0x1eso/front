@@ -52,8 +52,9 @@ export function normalizeAssetPath(path: string): string {
 // "app://openfront/_assets/flags/US.<hash>.svg" into
 // "/app%3A/openfront/_assets/..." — a 404, and a country flag that silently
 // never rendered in game on desktop.
+// ww240: a data: URL too (a civil-war side's flag drawn in the client).
 function isAbsoluteUrl(path: string): boolean {
-  return /^[a-z][a-z0-9+.-]*:\/\//i.test(path);
+  return /^(?:[a-z][a-z0-9+.-]*:\/\/|data:)/i.test(path);
 }
 
 export function buildAssetUrl(

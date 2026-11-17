@@ -9,7 +9,6 @@
 // am about to submit) and the map mode are a per-game client state
 // (peaceUiOf), shared by the card, the land tap flow and the map pass.
 import {
-  COUNTRIES,
   type CountryTag,
   isCountryTag,
 } from "@openfront/engine-api/ww1936/Countries";
@@ -42,7 +41,6 @@ import {
 } from "@openfront/engine-lib/ww1936/PeaceRules";
 import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import { SHIP_BASE } from "@openfront/engine-lib/ww1936/ShipStats";
-import { assetUrl } from "@openfront/shared/AssetUrls";
 import {
   PEACE_ASSIGNED,
   PEACE_DECIDED,
@@ -56,6 +54,7 @@ import {
 } from "../../render/gl/passes/PeaceMapPass";
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view";
+import { flagSource, flagSourceUrl } from "./CountryFlags";
 import { isCoreNow } from "./EconomyModel";
 import {
   countryName,
@@ -742,9 +741,8 @@ export function peaceFlagUrl(game: PeaceGame, id: number): string | null {
   const sc = game.worldWarScenario();
   const tag = sc?.tagOfSmallId(id);
   if (sc === null || tag === undefined) return null;
-  const own = game.wwEndgame?.()?.countries.get(id)?.flag ?? "";
-  const flag = own !== "" ? own : COUNTRIES[tag].flag;
-  return assetUrl(`flags/${flag}.svg`);
+  // ww240: a civil-war side flies its country's flag with its canton.
+  return flagSourceUrl(flagSource(tag, game.wwEndgame?.()?.countries.get(id)));
 }
 
 /** A region's name (scenario.json, P0 decision 15). */

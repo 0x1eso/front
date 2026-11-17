@@ -112,6 +112,7 @@ import { assetUrl } from "@openfront/shared/AssetUrls";
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view";
 import type { WwPoliticsView } from "../../view/WwPoliticsView";
+import { countryFlag } from "./CountryFlags";
 import { designerOn } from "./DesignerFlag";
 import {
   blockText,
@@ -272,7 +273,8 @@ export function nameOf(game: WwGame, id: number): string {
 }
 
 export function flagUrl(tag: CountryTag): string {
-  return assetUrl(`flags/${COUNTRIES[tag].flag}.svg`);
+  // ww240: the running game's flag (a civil-war side's country flag).
+  return countryFlag(tag);
 }
 
 /**

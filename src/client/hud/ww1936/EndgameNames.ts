@@ -5,7 +5,6 @@
 // the country they play after a takeover) and the P5 notices' params,
 // the daily batches' "a:b:n" items among them.
 import {
-  COUNTRIES,
   type CountryTag,
   isCountryTag,
 } from "@openfront/engine-api/ww1936/Countries";
@@ -17,10 +16,10 @@ import {
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { GROUND_EQUIP_KEYS } from "@openfront/engine-api/ww1936/LandTypes";
 import { renderNumber } from "@openfront/engine-lib/Format";
-import { assetUrl } from "@openfront/shared/AssetUrls";
 import { translateText } from "../../Utils";
 import type { GameView, PlayerView } from "../../view";
 import type { WwEndgameView } from "../../view/WwEndgameView";
+import { flagSource, flagSourceUrl } from "./CountryFlags";
 import { EQUIPMENT_KEYS } from "./EconomyModel";
 import { regionName } from "./LandModel";
 import { countryName, wwActive, type WwGame } from "./WorldWarModel";
@@ -61,12 +60,14 @@ export function countryText(game: WwGame, id: number): string {
   return tag === null ? "" : countryName(tag);
 }
 
-/** Spec §3.5: a country's flag file — a civil-war slot flies its ideology's. */
+/**
+ * Spec §3.5: a country's flag — ww240: a civil-war side flies its
+ * country's flag with its ideology's canton (CountryFlags.flagSource).
+ */
 export function countryFlagUrl(game: WwGame, id: number): string {
-  const flag = game.wwEndgame?.()?.countries.get(id)?.flag;
-  if (flag) return assetUrl(`flags/${flag}.svg`);
   const tag = tagOf(game, id);
-  return tag === null ? "" : assetUrl(`flags/${COUNTRIES[tag].flag}.svg`);
+  if (tag === null) return "";
+  return flagSourceUrl(flagSource(tag, game.wwEndgame?.()?.countries.get(id)));
 }
 
 /**

@@ -25,8 +25,14 @@ vi.mock("../../../src/client/Utils", async (importOriginal) => ({
       : `[${key}]`,
 }));
 
+import { assetUrl } from "@openfront/shared/AssetUrls";
 import { EventsDisplay } from "../../../src/client/hud/layers/EventsDisplay";
 import { PlayerStats } from "../../../src/client/hud/layers/PlayerStats";
+import {
+  drawnFlagsVersion,
+  flagSource,
+  setFlagComposer,
+} from "../../../src/client/hud/ww1936/CountryFlags";
 import {
   countryFlagUrl,
   countryText,
@@ -34,6 +40,7 @@ import {
   occupationParams,
   wwMapName,
 } from "../../../src/client/hud/ww1936/EndgameNames";
+import { peaceFlagUrl } from "../../../src/client/hud/ww1936/PeaceModel";
 import { UserSettings } from "../../../src/client/UserSettings";
 import type { PlayerView } from "../../../src/client/view";
 import { WwEndgameView } from "../../../src/client/view/WwEndgameView";
@@ -177,7 +184,77 @@ describe("World War 1936 P5: endgame names", () => {
       "[ww1936.cw_name.democratic] country=[ww1936.country.POL]",
     );
     expect(countryText(game, ID("DEU"))).toBe("[ww1936.country.DEU]");
-    expect(countryFlagUrl(game, ID("CW1"))).toContain("ww_cw_democratic.svg");
+    // ww240: its country's flag (the canton comes once drawn), never the slot's.
+    expect(countryFlagUrl(game, ID("CW1"))).toContain(
+      `flags/${COUNTRIES.POL.flag}.svg`,
+    );
+  });
+
+  it("ww240: a civil-war side flies its country's flag with its ideology's canton", async () => {
+    setFlagComposer(async (url, mark) => `data:image/png;${mark};${url}`);
+    try {
+      const eg = new WwEndgameView();
+      eg.apply({
+        news: [],
+        countries: [
+          // The government (it took the new ideology: its own flag stays).
+          view("FRA"),
+          // The rebels, as the engine sends them (WwEndgame.flagOf).
+          view("CW7", {
+            nameKey: "ww1936.cw_name.fra_communist",
+            nameArg: "FRA",
+            flag: "ww_cw_communist",
+          }),
+          // A second civil war inside the rebels: its side is France's too.
+          view("CW8", {
+            nameKey: "ww1936.cw_name.fra_fascist",
+            nameArg: "FRA",
+            flag: "ww_cw_fascist",
+          }),
+          // A side that won and took the country's own name.
+          view("CW9", {
+            nameKey: "ww1936.country.POL",
+            flag: "ww_cw_democratic",
+          }),
+        ],
+      });
+      const { game } = fakeGame(eg, []);
+      const fr = `flags/${COUNTRIES.FRA.flag}.svg`;
+      // Until its canton is drawn a side shows its country's plain flag.
+      expect(countryFlagUrl(game, ID("CW7"))).toContain(fr);
+      countryFlagUrl(game, ID("CW8"));
+      await new Promise((r) => setTimeout(r, 0));
+      const gov = countryFlagUrl(game, ID("FRA"));
+      const red = countryFlagUrl(game, ID("CW7"));
+      const black = countryFlagUrl(game, ID("CW8"));
+      expect(gov).toContain(fr);
+      expect(red).toBe(`data:image/png;communist;${gov}`);
+      expect(black).toBe(`data:image/png;fascist;${gov}`);
+      expect(new Set([gov, red, black]).size).toBe(3);
+      // The winner flies its country's flag plain.
+      expect(countryFlagUrl(game, ID("CW9"))).toContain(
+        `flags/${COUNTRIES.POL.flag}.svg`,
+      );
+      for (const id of ["CW7", "CW8", "CW9"] as const) {
+        expect(countryFlagUrl(game, ID(id))).not.toContain("ww_cw_");
+        expect(peaceFlagUrl(game as never, ID(id))).toBe(
+          countryFlagUrl(game, ID(id)),
+        );
+      }
+      // A data: flag passes through assetUrl (the hover card's cosmetics).
+      expect(assetUrl(red)).toBe(red);
+      expect(drawnFlagsVersion()).toBeGreaterThan(0);
+      // The sources: a slot without a country keeps the engine's flag.
+      expect(
+        flagSource("CW10", {
+          flag: "ww_cw_neutral",
+          nameKey: null,
+          nameArg: null,
+        }),
+      ).toEqual({ file: "ww_cw_neutral", mark: null });
+    } finally {
+      setFlagComposer(null);
+    }
   });
 
   it("dormant countries are not on the leaderboard", async () => {
