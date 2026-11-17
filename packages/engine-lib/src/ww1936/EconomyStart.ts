@@ -205,16 +205,227 @@ export function startLaws(
   };
 }
 
+/**
+ * ww236: a tier-A minor's 1936 start beyond the map's buildings, on the
+ * world map's historical order of battle only (like REFINERY_START). Rough
+ * proportions of HOI4's 1936 starts against this game's majors: no tier-A
+ * minor opens with a single factory, the real industrial or army powers
+ * among them (Poland, Czechoslovakia, Sweden, China, Brazil, the
+ * dominions) get several, a dockyard goes only where there was a navy.
+ * Spain is left as it is (the owner's call).
+ */
+export interface MinorStart {
+  /**
+   * Added to the map's own buildings: [region name (one of the country's
+   * own 1936 regions), civilian factories, military factories, dockyards].
+   */
+  factories: readonly (readonly [string, number, number, number])[];
+  /** The 1936 army in divisions of its first template, instead of P2's generic count. */
+  divisions?: number;
+}
+
+export const MINOR_START: Readonly<Partial<Record<CountryTag, MinorStart>>> = {
+  // 7/2/1 -> 9/4/1. Warsaw, Upper Silesia, the Central Industrial Region
+  // (Stalowa Wola, Mielec). Some 30 infantry divisions in 1939.
+  POL: {
+    factories: [
+      ["Masovian", 1, 0, 0],
+      ["Silesian", 1, 1, 0],
+      ["Subcarpathian", 0, 1, 0],
+    ],
+    divisions: 20,
+  },
+  // 2/1/0 -> 4/2/0. Csepel (Manfred Weiss), Diósgyőr steel.
+  HUN: {
+    factories: [
+      ["Budapest", 1, 1, 0],
+      ["Borsod-Abaúj-Zemplén", 1, 0, 0],
+    ],
+    divisions: 8,
+  },
+  // 2/1/0 -> 4/2/0. Ploiești oil, Bucharest, the Reșița works.
+  ROU: {
+    factories: [
+      ["Prahova", 1, 0, 0],
+      ["Bucharest", 1, 0, 0],
+      ["Timis", 0, 1, 0],
+    ],
+    divisions: 14,
+  },
+  // 6/6/0 -> 8/6/0. Prague, Ostrava (Vítkovice); Škoda is on the map already.
+  CSK: {
+    factories: [
+      ["Prague", 1, 0, 0],
+      ["Moravskoslezský", 1, 0, 0],
+    ],
+    divisions: 16,
+  },
+  // 2/1/0 -> 4/2/0. Belgrade, Zagreb.
+  YUG: {
+    factories: [
+      ["Grad Beograd", 1, 1, 0],
+      ["Grad Zagreb", 1, 0, 0],
+    ],
+    divisions: 12,
+  },
+  // 1/0/0 -> 3/1/0. Tampere (Tampella), Helsinki. Nine divisions in 1939.
+  FIN: {
+    factories: [
+      ["Pirkanmaa", 1, 1, 0],
+      ["Uusimaa", 1, 0, 0],
+    ],
+    divisions: 8,
+  },
+  // 4/2/2 -> 6/3/2. Gothenburg, Malmö, Bofors (Karlskoga).
+  SWE: {
+    factories: [
+      ["Västra Götaland", 1, 0, 0],
+      ["Skåne", 1, 0, 0],
+      ["Orebro", 0, 1, 0],
+    ],
+    divisions: 6,
+  },
+  // 1/0/0 -> 2/1/1. Thessaloniki, the Piraeus arsenal and Salamis yard.
+  GRC: {
+    factories: [
+      ["Kentriki Makedonia", 1, 0, 0],
+      ["Attiki", 0, 1, 1],
+    ],
+    divisions: 6,
+  },
+  // 1/0/0 -> 2/1/0. Plovdiv, the Sofia arsenal.
+  BGR: {
+    factories: [
+      ["Plovdiv", 1, 0, 0],
+      ["Grad Sofiya", 0, 1, 0],
+    ],
+    divisions: 6,
+  },
+  // 1/0/0 -> 2/1/1. Bergen, Kongsberg, the Horten naval yard.
+  NOR: {
+    factories: [
+      ["Hordaland", 1, 0, 0],
+      ["Buskerud", 0, 1, 0],
+      ["Oslo", 0, 0, 1],
+    ],
+    divisions: 4,
+  },
+  // 6/2/3 -> 7/3/3. Arnhem, the Bandung arms works in the Indies.
+  NLD: {
+    factories: [
+      ["Gelderland", 1, 0, 0],
+      ["Batavia", 0, 1, 0],
+    ],
+  },
+  // 6/2/1 -> 7/3/1. FN and the Liège-Brussels industry.
+  BEL: {
+    factories: [["Brussels", 1, 1, 0]],
+    divisions: 12,
+  },
+  // 1/0/0 -> 2/1/1. Lisbon, its army arsenal and naval yard.
+  PRT: {
+    factories: [["Lisboa", 1, 1, 1]],
+    divisions: 5,
+  },
+  // 2/1/0 -> 4/2/1. Istanbul (the Golden Horn and Gölcük yards), the
+  // Ankara arms works (MKE), Izmir.
+  TUR: {
+    factories: [
+      ["Istanbul", 1, 0, 1],
+      ["Ankara", 0, 1, 0],
+      ["Izmir", 1, 0, 0],
+    ],
+    divisions: 14,
+  },
+  // 4/1/0 -> 6/2/1. São Paulo, Minas Gerais, the Rio navy arsenal.
+  BRA: {
+    factories: [
+      ["São Paulo", 1, 0, 0],
+      ["Minas Gerais", 1, 0, 0],
+      ["Rio de Janeiro", 0, 1, 1],
+    ],
+    divisions: 16,
+  },
+  // 3/1/0 -> 5/2/1. Buenos Aires and its naval yard, Rosario, the Córdoba
+  // military aircraft factory.
+  ARG: {
+    factories: [
+      ["Ciudad de Buenos Aires", 1, 0, 1],
+      ["Santa Fe", 1, 0, 0],
+      ["Córdoba", 0, 1, 0],
+    ],
+    divisions: 10,
+  },
+  // 2/1/0 -> 3/1/0. Monterrey steel.
+  MEX: {
+    factories: [["Nuevo León", 1, 0, 0]],
+  },
+  // 6/2/1 -> 8/4/1. Wuhan (the Hanyang arsenal), Nanjing, the Jiangnan
+  // arsenal. Its army is the generic cap already (50).
+  CHN: {
+    factories: [
+      ["Hubei", 1, 1, 0],
+      ["Jiangsu", 1, 0, 0],
+      ["Shanghai", 0, 1, 0],
+    ],
+  },
+  // 1/0/0 -> 1/1/0. The Yan'an arsenal; some 30,000 men after the Long March.
+  CCP: {
+    factories: [["Yan'an", 0, 1, 0]],
+    divisions: 3,
+  },
+  // 3/1/0 -> 4/2/0. Mukden (its arsenal), Anshan steel.
+  MCK: {
+    factories: [["Liaoning", 1, 1, 0]],
+  },
+  // 4/1/2 -> 6/2/2. Ontario's and Quebec's industry.
+  CAN: {
+    factories: [
+      ["Ontario (SE)", 1, 1, 0],
+      ["Québec (S)", 1, 0, 0],
+    ],
+    divisions: 5,
+  },
+  // 3/1/2 -> 4/2/2. Newcastle (BHP), the Footscray and Maribyrnong works.
+  AUS: {
+    factories: [
+      ["New South Wales", 1, 0, 0],
+      ["Victoria", 0, 1, 0],
+    ],
+    divisions: 4,
+  },
+  // 2/1/0 -> 3/2/0. The Witwatersrand, Pretoria.
+  ZAF: {
+    factories: [["Gauteng", 1, 1, 0]],
+    divisions: 5,
+  },
+};
+
+/** A MINOR_START army's men per division: its rifles and guns cover the divisions. */
+export const MINOR_START_MEN_PER_DIVISION = 10_000;
+
+/** The MINOR_START divisions on the historical order of battle, else undefined. */
+export function minorStartDivisions(
+  tag: CountryTag,
+  historical: boolean,
+): number | undefined {
+  return historical ? MINOR_START[tag]?.divisions : undefined;
+}
+
 export function startArmy(
   tag: CountryTag,
   recruitable: number,
   imjin: ImjinStartId | null = null,
+  historical = false,
 ): number {
   if (imjin !== null) return imjinStartOf(imjin, tag).army;
-  return (
-    MAJOR_START[tag]?.army ??
-    Math.max(1000, Math.floor((recruitable * 30) / 100))
-  );
+  const major = MAJOR_START[tag]?.army;
+  if (major !== undefined) return major;
+  const generic = Math.max(1000, Math.floor((recruitable * 30) / 100));
+  const divs = minorStartDivisions(tag, historical);
+  return divs === undefined
+    ? generic
+    : Math.max(generic, divs * MINOR_START_MEN_PER_DIVISION);
 }
 
 export function startTechs(

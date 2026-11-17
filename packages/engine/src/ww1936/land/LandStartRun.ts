@@ -7,7 +7,11 @@ import {
   WW_MAX_ARMY_DIVISIONS,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { hasAutoCompanies } from "@openfront/engine-lib/ww1936/AutoCompanies";
-import { isMajor, startArmy } from "@openfront/engine-lib/ww1936/EconomyStart";
+import {
+  isMajor,
+  minorStartDivisions,
+  startArmy,
+} from "@openfront/engine-lib/ww1936/EconomyStart";
 import {
   GENERALS,
   generalServes,
@@ -186,17 +190,22 @@ export function startLand(land: WwLand): void {
       cl.generals.push(newGeneralState(id - 1));
     const oob = historical ? (START_OOB[cl.tag] ?? null) : null;
     const first = land.templateStatsOf(cl.smallID, cl.templates[0].id)!;
+    const minor = land.ww.imjin
+      ? undefined
+      : minorStartDivisions(cl.tag, historical);
     const army = startArmy(
       cl.tag,
       land.econ.recruitableWith(cl.smallID, ce.law().conscriptionPermille),
       land.ww.imjinStart,
+      historical,
     );
     counts.set(
       cl.smallID,
       oob === null
-        ? // ww177 m2: an Imjin start's army is the men in the field
-          // (Starts.ts), all of them fielded (dev 3 fields 100%).
-          genericDivisions(army, land.ww.imjin ? 3 : dev, first.men)
+        ? // ww236: a tier-A minor's MINOR_START divisions; ww177 m2: an
+          // Imjin start's army is the men in the field (Starts.ts), all of
+          // them fielded (dev 3 fields 100%).
+          (minor ?? genericDivisions(army, land.ww.imjin ? 3 : dev, first.men))
         : oob.reduce(
             (n, a) => n + a.divisions.reduce((m, [, k]) => m + k, 0),
             0,

@@ -1757,3 +1757,15 @@ export function resolveRegionName(sc: ScenarioIndex, name: string): number {
   for (const r of sc.landRegions) if (r.name === name) return r.id;
   throw new Error(`World War 1936: no region named "${name}"`);
 }
+
+/** ww236: the 1936 region of `tag` named `name` (names repeat across countries). */
+export function resolveOwnRegion(
+  sc: ScenarioIndex,
+  tag: string,
+  name: string,
+): number {
+  for (const r of sc.landRegions) {
+    if (r.name === name && r.owner === tag) return r.id;
+  }
+  throw new Error(`World War 1936: ${tag} has no region named "${name}"`);
+}

@@ -45,6 +45,7 @@ import {
   tradeUnitsBought,
 } from "@openfront/engine-lib/ww1936/EconomyRules";
 import {
+  MINOR_START,
   navalStartTechs,
   REFINERY_START,
   SILO_START,
@@ -64,6 +65,7 @@ import {
 import { landStartTechs } from "@openfront/engine-lib/ww1936/LandStart";
 import { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import {
+  resolveOwnRegion,
   resolveRegionName,
   START_PLANES,
   startNavyOf,
@@ -734,6 +736,20 @@ export class WwEconomy {
           }
         }
       }
+      // ww236: the tier-A minors' factories beyond the map's (not on an
+      // Imjin War start).
+      if (ww.imjinStart === null) {
+        for (const [tag, m] of Object.entries(MINOR_START)) {
+          if (scenario.smallIdOf(tag as CountryTag) === 0) continue;
+          for (const [name, civ, mil, dock] of m?.factories ?? []) {
+            const r = resolveOwnRegion(scenario, tag, name);
+            this.civ[r] += civ;
+            this.mil[r] += mil;
+            this.dock[r] += dock;
+            this.dirtyRegions.add(r);
+          }
+        }
+      }
     }
     for (const r of regions) {
       this.infraEff[r.id] = this.infra[r.id];
@@ -788,12 +804,12 @@ export class WwEconomy {
         ce.smallID,
         ce.law().conscriptionPermille,
       );
-      const army = startArmy(ce.tag, recruitable, imjin);
+      const historical = this.scenario.data.historicalOob === true;
+      const army = startArmy(ce.tag, recruitable, imjin, historical);
       ce.stock = startStock(ce.tag, army, civ, mil, imjin);
       // P4 (plan decision 31): the historical order of battle splits the
       // fighters and bombers (spec §12.4) and has the hand convoys; else a
       // coast gives (civilian + military) × 5 convoys.
-      const historical = this.scenario.data.historicalOob === true;
       if (historical) splitStartPlanes(ce.stock, START_PLANES[ce.tag]);
       const hand = historical ? startNavyOf(ce.tag)?.convoys : undefined;
       addConvoys(ce, hand ?? (coastal ? (civ + mil) * 5 : 0));
