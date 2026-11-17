@@ -4,10 +4,7 @@
 // diplomacy and the isthmus 19-25, the opening 27-29, industry 30-34, oil
 // 37-40, army 42-46, air 49-51, navy 53-55, the war 57-58. Data only
 // (ContentPurity).
-import type {
-  Condition,
-  Effect,
-} from "@openfront/engine-api/ww1936/PoliticsDsl";
+import type { Condition } from "@openfront/engine-api/ww1936/PoliticsDsl";
 import type {
   AiWeight,
   FocusDef,
