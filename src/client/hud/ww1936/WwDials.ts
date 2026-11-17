@@ -87,6 +87,21 @@ function progressBar(progress: number, color: DialColor): TemplateResult {
 /** A press this long on ✈ opens the air drawer (spec §18.1). */
 export const WW_DIAL_HOLD_MS = 500;
 
+/** ww240: a dial's model, or null (logged once per message) when it throws. */
+const dialErrors = new Set<string>();
+function dialOrNull<T>(build: () => T): T | null {
+  try {
+    return build();
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (!dialErrors.has(msg)) {
+      dialErrors.add(msg);
+      console.error("ww1936 dial:", e);
+    }
+    return null;
+  }
+}
+
 export interface WwDialsModel {
   industry: IndustryDial;
   research: ResearchDialModel;
@@ -304,22 +319,32 @@ export class WwDials extends LitElement implements Controller {
     const pol = politicsInput(this.game);
     const imjin = imjinCalendarOn();
     const ctx = navyCtx(this.game as unknown as NavyGame);
+    // ww240: one dial that cannot read my country (a civil-war slot's
+    // missing scenario capital threw in the air dial) leaves that dial
+    // blank, never the whole dock.
     return {
       industry: industryDial(detail, view.summary(me.smallID())),
       research: researchDial(detail),
-      army: land === null ? null : armyDial(land, me.smallID()),
+      army:
+        land === null ? null : dialOrNull(() => armyDial(land, me.smallID())),
       // ww184: no 1936 focus tree in the Imjin War (its preparations are decisions).
-      focus: pol === null || imjin ? null : focusDial(pol),
-      politics: pol === null ? null : politicsDial(pol),
-      diplomacy: pol === null ? null : diplomacyDial(pol),
+      focus: pol === null || imjin ? null : dialOrNull(() => focusDial(pol)),
+      politics: pol === null ? null : dialOrNull(() => politicsDial(pol)),
+      diplomacy: pol === null ? null : dialOrNull(() => diplomacyDial(pol)),
       navy:
         ctx === null
           ? null
-          : navyDial(ctx, dayStartTick(ctx.day, prepEndTick(this.game))),
+          : dialOrNull(() =>
+              navyDial(ctx, dayStartTick(ctx.day, prepEndTick(this.game))),
+            ),
       // ww184: the Imjin War has no 1936 doctrine sliders, intelligence or air.
-      doctrine: imjin ? null : new DoctrineModel(this.game).thoughtDial(),
-      intel: imjin ? null : new DoctrineModel(this.game).intelDial(),
-      air: imjin || ctx === null ? null : airDial(ctx),
+      doctrine: imjin
+        ? null
+        : dialOrNull(() => new DoctrineModel(this.game).thoughtDial()),
+      intel: imjin
+        ? null
+        : dialOrNull(() => new DoctrineModel(this.game).intelDial()),
+      air: imjin || ctx === null ? null : dialOrNull(() => airDial(ctx)),
       airLayer: seaAirOf(this.game).selection.layer === "air",
       seaLayer: seaAirOf(this.game).selection.layer === "sea",
       compact: window.innerHeight <= COMPACT_MAX_HEIGHT,

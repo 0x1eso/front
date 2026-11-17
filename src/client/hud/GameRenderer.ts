@@ -941,6 +941,24 @@ export class GameRenderer {
   }
 
   /**
+   * ww240: one layer's tick that throws (a 1936 dial reading a civil-war
+   * slot's missing capital) no longer stops every layer after it — the
+   * leaderboard, the event cards, the dock — for the rest of the game.
+   * Logged once per layer and message.
+   */
+  private readonly layerErrors = new Set<string>();
+  private runLayer(layer: Controller, run: () => void): void {
+    try {
+      run();
+    } catch (e) {
+      const key = `${layer.constructor?.name ?? "?"}:${e instanceof Error ? e.message : String(e)}`;
+      if (this.layerErrors.has(key)) return;
+      this.layerErrors.add(key);
+      console.error("layer tick failed:", key, e);
+    }
+  }
+
+  /**
    * While no game tick arrives (the game paused): the controllers' idle
    * ticks, at their usual throttle.
    */
@@ -955,7 +973,7 @@ export class GameRenderer {
       if (intervalMs > 0 && nowMs - state.lastTickAtMs < intervalMs) continue;
       state.lastTickAtMs = nowMs;
       this.layerTickState.set(layer, state);
-      layer.idleTick();
+      this.runLayer(layer, () => layer.idleTick!());
     }
   }
 
@@ -984,7 +1002,7 @@ export class GameRenderer {
       this.layerTickState.set(layer, state);
 
       const tickStart = shouldProfileTick ? performance.now() : 0;
-      layer.tick();
+      this.runLayer(layer, () => layer.tick!());
       if (shouldProfileTick && tickStart !== 0) {
         const duration = performance.now() - tickStart;
         const label = layer.constructor?.name ?? "UnknownLayer";

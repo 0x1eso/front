@@ -13,6 +13,7 @@ vi.mock("../../../src/client/Utils", async (importOriginal) => ({
 
 import { DIAL_GLOW_CLASS } from "../../../src/client/hud/domestic/Dial";
 import { EventsDisplay } from "../../../src/client/hud/layers/EventsDisplay";
+import { capitalRegionOf } from "../../../src/client/hud/ww1936/AirModel";
 import type { WwDials } from "../../../src/client/hud/ww1936/WwDials";
 import {
   dockHeightPx,
@@ -29,7 +30,15 @@ import { WwSeaAirController } from "../../../src/client/hud/ww1936/WwSeaAirContr
 import "../../../src/client/hud/ww1936/WwTopBand";
 import type { WwTopBand } from "../../../src/client/hud/ww1936/WwTopBand";
 import { detail, fakeEconGame, FakeOptions, summary } from "./EconomyFixture";
-import { fleet, navyDetail, seaGame, SeaOptions, ship } from "./SeaAirFixture";
+import {
+  fleet,
+  navyDetail,
+  sea,
+  seaGame,
+  SeaOptions,
+  ship,
+  SID,
+} from "./SeaAirFixture";
 
 async function mountDials(o: FakeOptions = {}) {
   const { game, view } = fakeEconGame(o);
@@ -431,6 +440,45 @@ describe("<ww-dials> P4: ⚓ and ✈ (spec §18.1)", () => {
     const opened: unknown[] = [];
     m.bus.on(OpenWwNavyEvent, (e) => opened.push(e));
     navy.click();
+    expect(opened).toHaveLength(1);
+  });
+
+  it("ww240: a civil-war side (no scenario capital) keeps the whole dock", async () => {
+    // The player took the rebels' side: a civil-war slot holding two of
+    // France's regions. The ✈ dial read the scenario's capital, which a
+    // slot has none of; it threw, and the whole dock went.
+    const g = seaGame({ me: "CW7" });
+    const fra = sea.landRegions.filter((r) => r.owner === "FRA").slice(0, 2);
+    for (const r of fra) g.land.controller[r.id] = SID("CW7");
+    expect(sea.capitalTileOrNull("CW7")).toBeNull();
+    const top = [...fra].sort((a, b) => b.vp - a.vp || a.id - b.id)[0];
+    expect(capitalRegionOf(sea, g.land.controller, SID("CW7"))).toBe(top.id);
+    const bus = new EventBus();
+    new WwSeaAirController(g.game as never, bus).init();
+    const el = document.createElement("ww-dials") as WwDials;
+    el.game = g.game as never;
+    el.eventBus = bus;
+    document.body.appendChild(el);
+    el.init();
+    el.tick();
+    await el.updateComplete;
+    const ids = [...el.querySelectorAll<HTMLElement>("[data-ww-dial]")].map(
+      (b) => b.dataset.wwDial,
+    );
+    expect(ids).toEqual([
+      "industry",
+      "research",
+      "army",
+      "focus",
+      "politics",
+      "diplomacy",
+      "navy",
+      "air",
+    ]);
+    // Every panel the dock opens reads the new country: here the ✈ one.
+    const opened: unknown[] = [];
+    bus.on(OpenWwAirEvent, (e) => opened.push(e));
+    el.querySelector<HTMLButtonElement>("[data-ww-dial='air']")!.click();
     expect(opened).toHaveLength(1);
   });
 

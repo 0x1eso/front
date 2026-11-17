@@ -267,9 +267,36 @@ export interface AirDialModel {
   low: number;
 }
 
+/**
+ * ww240: a country's capital region as the engine's WwEndgame.capitalRegion
+ * reads it: the scenario's capital, else (a woken dormant or civil-war slot,
+ * which has none in the scenario) the region of highest VP it controls,
+ * the first on a tie; 0: none.
+ */
+export function capitalRegionOf(
+  sc: ScenarioIndex,
+  controller: ArrayLike<number> | null,
+  id: number,
+): number {
+  const tag = sc.tagOfSmallId(id);
+  const tile = tag === undefined ? null : sc.capitalTileOrNull(tag);
+  if (tile !== null) return sc.regionAt(tile);
+  if (controller === null) return 0;
+  let best = 0;
+  let bestVp = -1;
+  for (const r of sc.landRegions) {
+    if (controller[r.id] !== id || r.vp <= bestVp) continue;
+    best = r.id;
+    bestVp = r.vp;
+  }
+  return best;
+}
+
 export function airDial(ctx: AirCtx): AirDialModel {
   const sc = ctx.scenario;
-  const capital = sc.regionAt(sc.capitalTile(ctx.tag));
+  // ww240: a civil-war slot has no scenario capital (capitalTile threw,
+  // and the whole dock went with it).
+  const capital = capitalRegionOf(sc, ctx.land?.controller ?? null, ctx.me);
   const capSr = sc.regionSr(capital);
   const supPm = capSr === 0 ? 0 : ctx.air.mySuperiority(capSr);
   const front = new Set<number>();
