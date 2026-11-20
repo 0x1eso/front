@@ -52,8 +52,6 @@ export interface TieRow {
   note: string;
 }
 
-const KEY = "ww1936.ties.";
-
 /**
  * The rows of country `id`'s ties, in the card's order; empty rows are
  * left out, so a country with no ties has none.
@@ -89,10 +87,10 @@ export function countryTies(game: WwGame, id: number): TieRow[] {
     const extra = all.length - TIES_MAX_NAMES;
     rows.push({
       id: rowId,
-      label: translateText(`${KEY}${rowId}`),
+      label: translateText(`ww1936.ties.${rowId}`),
       lead,
       countries: all.slice(0, TIES_MAX_NAMES),
-      more: extra > 0 ? translateText(`${KEY}more`, { n: extra }) : "",
+      more: extra > 0 ? translateText("ww1936.ties.more", { n: extra }) : "",
       note,
     });
   };
@@ -108,9 +106,9 @@ export function countryTies(game: WwGame, id: number): TieRow[] {
       const leader = tagOf(f.leader);
       const lead =
         f.leader === id
-          ? translateText(`${KEY}faction_leader`, { faction: name })
+          ? translateText("ww1936.ties.faction_leader", { faction: name })
           : leader !== null
-            ? translateText(`${KEY}faction_led`, {
+            ? translateText("ww1936.ties.faction_led", {
                 faction: name,
                 leader: countryName(leader),
               })

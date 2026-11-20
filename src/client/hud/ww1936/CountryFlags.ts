@@ -18,7 +18,7 @@ import { assetUrl } from "@openfront/shared/AssetUrls";
 
 /** The engine's civil-war slot flag (WwEndgame.flagOf). */
 const SLOT_FLAG = /^ww_cw_([a-z]+)$/;
-const COUNTRY_KEY = "ww1936.country.";
+const COUNTRY_NAME_PREFIX = "ww1936.country.";
 
 /** What a country's flag is drawn from: a flag file, and the canton on it. */
 export interface FlagSource {
@@ -47,8 +47,8 @@ export function flagSource(
     if (c.nameArg && COUNTRIES[c.nameArg] !== undefined) {
       return { file: COUNTRIES[c.nameArg].flag, mark: ideology };
     }
-    const own = c.nameKey?.startsWith(COUNTRY_KEY)
-      ? (c.nameKey.slice(COUNTRY_KEY.length) as CountryTag)
+    const own = c.nameKey?.startsWith(COUNTRY_NAME_PREFIX)
+      ? (c.nameKey.slice(COUNTRY_NAME_PREFIX.length) as CountryTag)
       : null;
     if (own !== null && COUNTRIES[own] !== undefined) {
       return { file: COUNTRIES[own].flag, mark: null };
